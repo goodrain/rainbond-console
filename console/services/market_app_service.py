@@ -9,9 +9,8 @@ import socket
 import httplib2
 from django.db.models import Q
 
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
-from console.exception.main import AbortRequest
 from console.exception.main import ErrPluginAlreadyInstalled
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
@@ -70,8 +69,8 @@ class MarketAppService(object):
         key_service_map = {}
         tenant_service_group = None
         service_probe_map = {}
-        app_plugin_map = {}  # 新装服务对应的安装的插件映射
-        old_new_id_map = {}  # 新旧服务映射关系
+        app_plugin_map = {}  # 新装组件对应的安装的插件映射
+        old_new_id_map = {}  # 新旧组件映射关系
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
@@ -115,7 +114,7 @@ class MarketAppService(object):
                 if code != 200:
                     raise Exception(msg)
 
-                # 保存应用探针信息
+                # 保存组件探针信息
                 probe_infos = app.get("probes", None)
                 if probe_infos:
                     service_probe_map[ts.service_id] = probe_infos
@@ -136,9 +135,9 @@ class MarketAppService(object):
             # 保存依赖关系
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
 
-            # 数据中心创建应用
+            # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
-            # 创建应用插件
+            # 创建组件插件
             self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
 
             # dependent volume
@@ -146,7 +145,7 @@ class MarketAppService(object):
 
             events = []
             if is_deploy:
-                # 部署所有应用
+                # 部署所有组件
                 events = self.__deploy_services(tenant, user, new_service_list)
             return tenant_service_group, events
         except Exception as e:
@@ -167,8 +166,8 @@ class MarketAppService(object):
         key_service_map = {}
         tenant_service_group = None
         service_probe_map = {}
-        app_plugin_map = {}  # 新装服务对应的安装的插件映射
-        old_new_id_map = {}  # 新旧服务映射关系
+        app_plugin_map = {}  # 新装组件对应的安装的插件映射
+        old_new_id_map = {}  # 新旧组件映射关系
 
         for service in services:
             service_share_uuid = service.service_source_info.service_share_uuid
@@ -217,7 +216,7 @@ class MarketAppService(object):
                 if code != 200:
                     raise Exception(msg)
 
-                # 保存应用探针信息
+                # 保存组件探针信息
                 probe_infos = app.get("probes", None)
                 if probe_infos:
                     service_probe_map[ts.service_id] = probe_infos
@@ -235,9 +234,9 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
-            # 数据中心创建应用
+            # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
-            # 创建应用插件
+            # 创建组件插件
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
                 plugins = app_plugin_map[service.service_id]
@@ -245,7 +244,7 @@ class MarketAppService(object):
 
             events = {}
             if is_deploy:
-                # 部署所有应用
+                # 部署所有组件
                 events = self.__deploy_services(tenant, user, new_service_list)
             return {
                 "tenant_service_group": tenant_service_group,
@@ -455,9 +454,9 @@ class MarketAppService(object):
         new_service_list = []
         try:
             for service in service_list:
-                # 数据中心创建应用
+                # 数据中心创建组件
                 new_service = app_service.create_region_service(tenant, service, user.nick_name)
-                # 为服务添加探针
+                # 为组件添加探针
                 probe_data = service_probe_map.get(service.service_id)
                 probe_ids = []
                 if probe_data:
@@ -472,7 +471,7 @@ class MarketAppService(object):
                 if probe_ids:
                     service_prob_id_map[service.service_id] = probe_ids
 
-                # 添加服务有无状态标签
+                # 添加组件有无状态标签
                 label_service.update_service_state_label(tenant, new_service)
                 new_service_list.append(new_service)
             return new_service_list
@@ -683,25 +682,6 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def check_package_app_resource(self, tenant, region, market_app):
-        app_templates = json.loads(market_app.app_template)
-        logger.info(app_templates)
-        apps = app_templates["apps"]
-        total_memory = 0
-        for app in apps:
-            extend_method = app.get("extend_method_map", None)
-            if not extend_method:
-                min_node = 1
-                min_memory = 128
-            else:
-                min_node = int(extend_method.get("min_node", 1))
-                min_memory = int(extend_method.get("min_memory", 128))
-            total_memory += min_node * min_memory
-        allow_create, tips = app_service.verify_source(tenant, region, total_memory, "market_app_create")
-        if not allow_create:
-            raise AbortRequest(msg="over resource", msg_show=u"应用所需内存大小为{0}，{1}".format(total_memory, tips),
-                               status_code=412)
-
     def get_visiable_apps(self, tenant, scope, app_name):
 
         if scope == "team":
@@ -832,7 +812,7 @@ class MarketAppService(object):
         try:
             body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
             data = body.get("data")
-        except httplib2.ServerNotFoundError as e:
+        except (httplib2.ServerNotFoundError, region_api.CallApiError) as e:
             raise e
         if not data:
             return 0, []
@@ -1019,7 +999,7 @@ class MarketTemplateTranslateService(object):
     def v1_to_v2(self, old_templete, region=""):
         """旧版本模板转换为新版本数据"""
         new_templet = dict()
-        # 服务组的基础信息
+        # 组件组的基础信息
         new_templet["group_version"] = old_templete["group_version"]
         new_templet["group_name"] = old_templete["group_name"]
         new_templet["group_key"] = old_templete["group_key"]
@@ -1299,13 +1279,13 @@ class AppMarketSynchronizeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            return market_client.get_recommended_app_list(page=page, limit=limit, group_name=app_name)
-        # except httplib2.ServerNotFoundError as e:
-        except MaxRetryError as e:
-            print("eee : ", e)
+            return market_client.get_recommended_app_list_with_http_info(
+                page=page, limit=limit, group_name=app_name, _request_timeout=3)
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
             raise e
-        except socket.timeout:
-            logger.warning("request cloud app list timeout")
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
             return None
 
     def get_enterprise_access_token(self, enterprise_id, access_target):

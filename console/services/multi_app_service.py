@@ -23,7 +23,7 @@ class MultiAppService(object):
             return 11001, "not finished", "检测尚未完成", None
 
         if data["service_info"] and len(data["service_info"]) < 2:
-            return 11002, "not multiple services", "不是多服务项目", None
+            return 11002, "not multiple services", "不是多组件项目", None
 
         bean = data["service_info"]
 
@@ -33,7 +33,7 @@ class MultiAppService(object):
         # get temporary service
         temporary_service = service_repo.get_service_by_tenant_and_alias(tenant.tenant_id, service_alias)
         if not temporary_service:
-            return 11005, "service not found", "服务不存在", -1
+            return 11005, "service not found", "组件不存在", -1
 
         group_id = service_group_relation_repo.get_group_id_by_service(temporary_service)
 
@@ -46,14 +46,14 @@ class MultiAppService(object):
             user=user,
             service_infos=service_infos)
         if code != 200:
-            return code, msg, "创建多服务应用失败", -1
+            return code, msg, "创建多组件应用失败", -1
 
         code, msg = app_manage_service.delete(user, tenant, temporary_service, True)
         if code != 200:
             return code, "Service id: " + temporary_service.service_id + ";error \
                 deleting temporary service", msg, -1
 
-        return 200, "successfully create the multi-services", "成功创建多服务应用", group_id
+        return 200, "successfully create the multi-services", "成功创建多组件应用", group_id
 
     def save_multi_services(self, region_name, tenant, group_id, service, user, service_infos):
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)

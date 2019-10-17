@@ -51,17 +51,21 @@ class TenantServiceEnvVarRepository(object):
             return envs[0]
         return None
 
-    def get_service_env_or_404_by_attr_name(self, tenant_id, service_id, attr_name):
+    def get_service_env_or_404_by_env_id(self, tenant_id, service_id, env_id):
         return get_object_or_404(
             TenantServiceEnvVar,
-            msg="Environment variable with name {} not found".format(attr_name),
-            msg_show=u"环境变量`{}`不存在".format(attr_name),
+            msg="Environment variable with ID {} not found".format(env_id),
+            msg_show=u"环境变量`{}`不存在".format(env_id),
             tenant_id=tenant_id,
             service_id=service_id,
-            attr_name=attr_name)
+            ID=env_id)
 
     def get_env_by_ids_and_attr_names(self, tenant_id, service_ids, attr_names):
         envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, attr_name__in=attr_names)
+        return envs
+
+    def get_env_by_ids_and_env_id(self, tenant_id, service_id, env_id):
+        envs = TenantServiceEnvVar.objects.get(tenant_id=tenant_id, service_id=service_id, ID=env_id)
         return envs
 
     def get_service_env_by_port(self, tenant_id, service_id, port):
@@ -350,7 +354,7 @@ class TenantServiceMntRelationRepository(object):
             service_id=service_id, dep_service_id=dep_service_id, mnt_name=mnt_name).delete()
 
     def get_mount_current_service(self, tenant_id, service_id):
-        """查询挂载当前服务的信息"""
+        """查询挂载当前组件的信息"""
         return TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, dep_service_id=service_id)
 
     def delete_mnt(self, service_id):

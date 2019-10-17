@@ -24,7 +24,7 @@ class AppLabelView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取服务已使用和未使用的标签
+        获取组件已使用和未使用的标签
         ---
         parameters:
             - name: tenantName
@@ -33,7 +33,7 @@ class AppLabelView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -52,7 +52,7 @@ class AppLabelView(AppBaseView):
     @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
-        添加服务标签
+        添加组件标签
         ---
         parameters:
             - name: tenantName
@@ -61,12 +61,12 @@ class AppLabelView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: body
-              description: 服务标签 ["label_id1","label_id2"]
+              description: 组件标签 ["label_id1","label_id2"]
               required: true
               type: string
               paramType: body
@@ -90,7 +90,7 @@ class AppLabelView(AppBaseView):
     @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
-        删除服务标签
+        删除组件标签
         ---
         parameters:
             - name: tenantName
@@ -99,12 +99,12 @@ class AppLabelView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
             - name: label_id
-              description: 服务标签 id
+              description: 组件标签 id
               required: true
               type: string
               paramType: form
@@ -140,7 +140,7 @@ class AppLabelAvailableView(AppBaseView):
         :return:
         """
         try:
-            # 节点添加的标签和数据中心查询回来的标签才可被服务使用
+            # 节点添加的标签和数据中心查询回来的标签才可被组件使用
             node_labels = node_label_repo.get_all_labels()
             labels_list = list()
             labels_name_list = list()
@@ -172,7 +172,7 @@ class AppLabelAvailableView(AppBaseView):
                 logger.exception(e)
                 pass
 
-            # 去除该服务已绑定的标签
+            # 去除该组件已绑定的标签
             service_labels = service_label_repo.get_service_labels(self.service.service_id)
             if service_labels:
                 service_labels_id_list = [l.label_id for l in service_labels]

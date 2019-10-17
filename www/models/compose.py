@@ -10,8 +10,8 @@ class DockerService(BaseModel):
     compose_id = models.IntegerField(help_text=u"DockerComposeYaml的ID")
     command = models.CharField(max_length=100, null=True, blank=True, help_text=u"替换默认的command")
 
-    name = models.CharField(max_length=100, help_text=u"服务的节点名称")
-    depends_on = models.CharField(max_length=100, help_text=u"依赖的服务名称,逗号分割")
+    name = models.CharField(max_length=100, help_text=u"组件的节点名称")
+    depends_on = models.CharField(max_length=100, help_text=u"依赖的组件名称,逗号分割")
     entrypoint = models.CharField(max_length=100, help_text=u"镜像的启动脚本")
 
     environment = models.CharField(max_length=500, help_text=u"镜像的环境参数,dict的json")
@@ -51,7 +51,7 @@ class DockerService(BaseModel):
 
 
 class DockerComposeYaml(BaseModel):
-    """ 服务发布表格 """
+    """ 组件发布表格 """
 
     class Meta:
         db_table = 'docker_compose_yaml'

@@ -63,11 +63,11 @@ class AppPortService(object):
                          port_alias='',
                          is_inner_service=False,
                          is_outer_service=False):
-        # 三方服务暂时只允许添加一个端口
+        # 第三方组件暂时只允许添加一个端口
         tenant_service_ports = self.get_service_ports(service)
         logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
         if tenant_service_ports and service.service_source == "third_party":
-            return 400, u"三方服务只支持一个域名", None
+            return 400, u"第三方组件只支持一个域名", None
 
         container_port = int(container_port)
         code, msg = self.check_port(service, container_port)
@@ -112,7 +112,7 @@ class AppPortService(object):
             })
 
         new_port = port_repo.add_service_port(**service_port)
-        # 三方服务在添加端口是添加一条默认的健康检测数据
+        # 第三方组件在添加端口是添加一条默认的健康检测数据
         if service.service_source == "third_party":
             tenant_service_ports = self.get_service_ports(service)
             port_list = []
@@ -196,15 +196,15 @@ class AppPortService(object):
         if not port_info:
             return 404, u"端口{0}不存在".format(container_port), None
         if port_info.is_inner_service:
-            return 409, u"请关闭对内服务", None
+            return 409, u"请关闭对内组件", None
         if port_info.is_outer_service:
-            return 409, u"请关闭外部服务", None
+            return 409, u"请关闭对外组件", None
         if service.create_status == "complete":
             # 删除数据中心端口
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias, container_port,
                                            tenant.enterprise_id)
 
-        # 删除端口时禁用相关服务
+        # 删除端口时禁用相关组件
         self.disable_service_when_delete_port(tenant, service, container_port)
 
         # 删除env
@@ -216,7 +216,7 @@ class AppPortService(object):
         return 200, u"删除成功", port_info
 
     def disable_service_when_delete_port(self, tenant, service, container_port):
-        """删除端口时禁用相关服务"""
+        """删除端口时禁用相关组件"""
         # 禁用健康检测
         from console.services.app_config import probe_service
         probe = probe_repo.get_service_probe(service.service_id).filter(is_used=True).first()
@@ -722,3 +722,28 @@ class AppPortService(object):
         service_ids = [s.service_id for s in services]
         res = port_repo.get_tcp_outer_opend_ports(service_ids).exclude(lb_mapping_port__in=lb_mapping_ports)
         return res
+
+    def check_domain_thirdpart(self, tenant, service):
+        try:
+            res, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name,
+                                                                service.service_alias)
+            if res.status != 200:
+                return "regin error", "数据中心查询失败", 412
+            endpoint_list = body["list"]
+            for endpoint in endpoint_list:
+                address = endpoint.address
+                if "https://" in address:
+                    address = address.partition("https://")[2]
+                if "http://" in address:
+                    address = address.partition("http://")[2]
+                if ":" in address:
+                    address = address.rpartition(":")[0]
+                from console.utils.validation import validate_endpoint_address
+                errs = validate_endpoint_address(address)
+                if len(errs) > 0:
+                    return "do not allow operate outer port for domain endpoints", "不允许开启域名服务实例对外端口", 400
+        except Exception as e:
+            logger.exception(e)
+            from www.utils.return_message import error_message
+            result = error_message(e.message)
+            return result, "检查第三方域名服务错误", 500

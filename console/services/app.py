@@ -10,8 +10,7 @@ import string
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.exception.main import AccountOverdueException
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import dep_relation_repo
@@ -36,6 +35,7 @@ from www.tenantservice.baseservice import ServicePluginResource
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
+from console.utils.validation import validate_endpoint_address
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -51,14 +51,14 @@ probe_service = ProbeService()
 class AppService(object):
     def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:
-            return False, u"应用名称不能为空"
+            return False, u"组件名称不能为空"
         if len(service_cname) > 100:
-            return False, u"应用名称最多支持100个字符"
+            return False, u"组件名称最多支持100个字符"
         return True, u"success"
 
     def __init_source_code_app(self, region):
         """
-        初始化源码创建的应用默认数据,未存入数据库
+        初始化源码创建的组件默认数据,未存入数据库
         """
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
@@ -100,11 +100,6 @@ class AppService(object):
         new_service.service_cname = service_cname
         service_id = make_uuid(tenant.tenant_id)
         service_alias = self.create_service_alias(service_id)
-        # 判断是否超过资源
-        allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "source_code_app_create")
-        if not allow_create:
-            return 412, tips, None
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.pk
@@ -145,38 +140,6 @@ class AppService(object):
 
         return 200, u"success"
 
-    def verify_source(self, tenant, region, new_add_memory, reason=""):
-        """判断资源"""
-        data = {"quantity": new_add_memory, "reason": reason, "eid": tenant.enterprise_id}
-        if new_add_memory == 0:
-            return True, "success"
-        # is_public = settings.MODULES.get('SSO_LOGIN')
-        # if not is_public or new_add_memory <= 0:
-        #     return allow_create, tips
-        try:
-            res, body = region_api.service_chargesverify(region, tenant.tenant_name, data)
-            logger.debug("verify body {0}".format(body))
-            if not body:
-                return True, "success"
-            msg = body.get("msg", None)
-            if not msg or msg == "success":
-                return True, "success"
-            elif msg == "illegal_quantity":
-                raise ResourceNotEnoughException("资源申请非法，请联系管理员")
-            elif msg == "missing_tenant":
-                raise ResourceNotEnoughException("团队不存在")
-            elif msg == "owned_fee":
-                raise AccountOverdueException("账户已欠费")
-            elif msg == "region_unauthorized":
-                raise ResourceNotEnoughException("数据中心未授权")
-            elif msg == "lack_of_memory":
-                raise ResourceNotEnoughException("团队可用资源不足，请联系企业管理员")
-            elif msg == "cluster_lack_of_memory":
-                raise ResourceNotEnoughException("集群资源不足，请联系集群管理员")
-        except region_api.CallApiError as e:
-            logger.exception(e)
-            raise e
-
     def create_service_source_info(self, tenant, service, user_name, password):
         params = {
             "team_id": tenant.tenant_id,
@@ -188,7 +151,7 @@ class AppService(object):
 
     def __init_docker_image_app(self, region):
         """
-        初始化docker image创建的应用默认数据,未存入数据库
+        初始化docker image创建的组件默认数据,未存入数据库
         """
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
@@ -238,17 +201,13 @@ class AppService(object):
         new_service.service_source = image_type
         service_id = make_uuid(tenant.tenant_id)
         service_alias = self.create_service_alias(service_id)
-        allow_create, tips = self.verify_source(tenant, region, new_service.min_node * new_service.min_memory,
-                                                "image_create_app")
-        if not allow_create:
-            return 412, tips, None
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.pk
         new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + service_id
         new_service.docker_cmd = docker_cmd
         new_service.save()
-        # # 创建镜像和服务的关系（兼容老的流程）
+        # # 创建镜像和组件的关系（兼容老的流程）
         # if not image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service_id):
         #     image_service_relation_repo.create_image_service_relation(tenant.tenant_id, service_id, docker_cmd,
         #                                                               service_cname)
@@ -260,7 +219,7 @@ class AppService(object):
 
     def __init_third_party_app(self, region, end_point):
         """
-        初始化创建外置服务的默认数据,未存入数据库
+        初始化创建外置组件的默认数据,未存入数据库
         """
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
@@ -310,10 +269,26 @@ class AppService(object):
         if endpoints_type == "static":
             # 如果只有一个端口，就设定为默认端口，没有或有多个端口，不设置默认端口
             if endpoints:
+                from console.views.app_create.source_outer import check_endpoints
+                errs, isDomain = check_endpoints(endpoints)
+                if errs:
+                    return 400, u"组件地址不合法", None
                 port_list = []
+                prefix = ""
+                protocol = "tcp"
                 for endpoint in endpoints:
+                    if 'https://' in endpoint:
+                        endpoint = endpoint.split('https://')[1]
+                        prefix = "https"
+                        protocol = "http"
+                    if 'http://' in endpoint:
+                        endpoint = endpoint.split('http://')[1]
+                        prefix = "http"
+                        protocol = "http"
                     if ':' in endpoint:
                         port_list.append(endpoint.split(':')[1])
+                if len(port_list) == 0 and isDomain is True and prefix != "":
+                    port_list.append(443 if prefix == "https" else 80)
                 port_re = list(set(port_list))
                 if len(port_re) == 1:
                     port = int(port_re[0])
@@ -324,7 +299,7 @@ class AppService(object):
                             "service_id": new_service.service_id,
                             "container_port": port,
                             "mapping_port": port,
-                            "protocol": 'tcp',
+                            "protocol": protocol,
                             "port_alias": port_alias,
                             "is_inner_service": False,
                             "is_outer_service": False
@@ -384,7 +359,7 @@ class AppService(object):
         return services
 
     def get_service_status(self, tenant, service):
-        """获取应用状态"""
+        """获取组件状态"""
         start_time = ""
         try:
             body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
@@ -468,7 +443,7 @@ class AppService(object):
 
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # 将服务创建状态变更为创建完成
+        # 将组件创建状态变更为创建完成
         service.create_status = "complete"
         self.__handle_service_ports(tenant, service, ports)
         service.save()
@@ -511,7 +486,7 @@ class AppService(object):
         return data
 
     def __handle_service_ports(self, tenant, service, ports):
-        """处理创建应用的端口。对于打开了对内或对外端口的应用，需由业务端手动打开"""
+        """处理创建组件的端口。对于打开了对内或对外端口的组件，需由业务端手动打开"""
         try:
             for port in ports:
                 if port.is_outer_service:
@@ -622,17 +597,29 @@ class AppService(object):
 
         # endpoints
         endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+        if endpoints.endpoints_type == "static":
+            eps = json.loads(endpoints.endpoints_info)
+            for address in eps:
+                if "https://" in address:
+                    address = address.partition("https://")[2]
+                if "http://" in address:
+                    address = address.partition("http://")[2]
+                if ":" in address:
+                    address = address.rpartition(":")[0]
+                errs = validate_endpoint_address(address)
+                if errs:
+                    if len(eps) > 1:
+                        raise ErrDoNotSupportMultiDomain("do not support multi domain address")
         endpoints_dict = dict()
         if endpoints:
-            if endpoints.endpoints_type != "api":
-                endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
-                data["endpoints"] = endpoints_dict
+            endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
+            data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # 将服务创建状态变更为创建完成
+        # 将组件创建状态变更为创建完成
         service.create_status = "complete"
         self.__handle_service_ports(tenant, service, ports)
         service.save()

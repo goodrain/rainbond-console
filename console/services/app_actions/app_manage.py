@@ -88,7 +88,7 @@ class AppManageBase(object):
                 if self.MODULES["Owned_Fee"]:
                     return True
         else:
-            # 将原有免费用户的服务设置为7天后
+            # 将原有免费用户的组件设置为7天后
             service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
         return False
 
@@ -102,7 +102,7 @@ class AppManageBase(object):
         return False
 
     def cur_service_memory(self, tenant, cur_service):
-        """查询当前应用占用的内存"""
+        """查询当前组件占用的内存"""
         memory = 0
         try:
             body = region_api.check_service_status(
@@ -123,9 +123,9 @@ class AppManageBase(object):
         """
 
         :param tenant: 租户
-        :param service: 服务
+        :param service: 组件
         :param new_add_memory: 新添加的内存
-        :param is_check_status: 是否检测当前服务状态
+        :param is_check_status: 是否检测当前组件状态
         :return:
         """
         if self.MODULES["Memory_Limit"]:
@@ -153,12 +153,6 @@ class AppManageBase(object):
 
 class AppManageService(AppManageBase):
     def start(self, tenant, service, user):
-        from console.services.app import app_service
-        new_add_memory = service.min_memory * service.min_node
-        allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory, "start_app")
-        if not allow_start:
-            return 412, "资源不足，无法启动应用", None
-
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -168,7 +162,10 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"服务异常"
+                return 507, u"组件异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -185,7 +182,7 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"服务异常"
+                return 507, u"组件异常"
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -201,7 +198,10 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} retart app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"服务异常"
+                return 507, u"组件异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -265,6 +265,9 @@ class AppManageService(AppManageBase):
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
             return 507, "构建异常", ""
+        except region_api.ResourceNotEnoughError as e:
+            logger.exception(e)
+            return 412, e.msg, ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, u"操作过于频繁，请稍后再试", ""
@@ -409,12 +412,15 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             logger.exception(e)
             return 507, "更新异常", ""
+        except region_api.ResourceNotEnoughError as e:
+            logger.exception(e)
+            return 412, e.msg
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, u"操作过于频繁，请稍后再试", ""
 
     def __get_service_kind(self, service):
-        """获取应用种类，兼容老的逻辑"""
+        """获取组件种类，兼容老的逻辑"""
         if service.service_source:
             if service.service_source == AppConstants.SOURCE_CODE:
                 # return "source"
@@ -461,7 +467,10 @@ class AppManageService(AppManageBase):
                 region_api.rollback(service.service_region, tenant.tenant_name, service.service_alias, body)
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"服务异常"
+                return 507, u"组件异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
@@ -474,7 +483,7 @@ class AppManageService(AppManageBase):
         fail_service_name = []
         for service in services:
             try:
-                # 三方服务不具备启动，停止，重启操作
+                # 第三方组件不具备启动，停止，重启操作
                 if action == "start" and service.service_source != "third_party":
                     self.start(tenant, service, user)
                 elif action == "stop" and service.service_source != "third_party":
@@ -496,7 +505,7 @@ class AppManageService(AppManageBase):
     # 5.1新版批量操作（启动，关闭，构建）
     def batch_operations(self, tenant, user, action, service_ids):
         services = service_repo.get_services_by_service_ids(service_ids)
-        # 获取所有服务信息
+        # 获取所有组件信息
         body = dict()
         code = 200
         data = ''
@@ -509,7 +518,7 @@ class AppManageService(AppManageBase):
         elif action == "deploy":
             code, data = self.deploy_services_info(body, services, tenant, user)
         if code != 200:
-            return 415, "服务信息获取失败"
+            return 415, "组件信息获取失败"
         # 获取数据中心信息
         one_service = services[0]
         region_name = one_service.service_region
@@ -525,14 +534,9 @@ class AppManageService(AppManageBase):
         start_infos_list = []
         body["start_infos"] = start_infos_list
         for service in services:
-            from console.services.app import app_service
             if service.service_source == "":
                 continue
             service_dict = dict()
-            new_add_memory = service.min_memory * service.min_node
-            allow_start, tips = app_service.verify_source(tenant, service.service_region, new_add_memory, "start_app")
-            if not allow_start:
-                continue
             if service.create_status == "complete":
                 service_dict["service_id"] = service.service_id
                 start_infos_list.append(service_dict)
@@ -686,7 +690,7 @@ class AppManageService(AppManageBase):
         return 200, body
 
     def vertical_upgrade(self, tenant, service, user, new_memory):
-        """服务水平升级"""
+        """组件水平升级"""
         new_memory = int(new_memory)
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级"
@@ -709,14 +713,17 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"服务异常"
+                return 507, u"组件异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def horizontal_upgrade(self, tenant, service, user, new_node):
-        """服务水平升级"""
+        """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
             return 400, "节点数量需在1到100之间"
@@ -734,37 +741,40 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"服务异常"
+                return 507, u"组件异常"
+            except region_api.ResourceNotEnoughError as e:
+                logger.exception(e)
+                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
     def delete(self, user, tenant, service, is_force):
-        # 判断服务是否是运行状态
+        # 判断组件是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
-            msg = u"应用可能处于运行状态,请先关闭应用"
+            msg = u"组件可能处于运行状态,请先关闭组件"
             return 409, msg
-        # 判断服务是否被依赖
+        # 判断组件是否被依赖
         is_related, msg = self.__is_service_related(tenant, service)
         if is_related:
-            return 412, "服务被{0}依赖，不可删除".format(msg)
-        # 判断服务是否被其他应用挂载
+            return 412, "组件被{0}依赖，不可删除".format(msg)
+        # 判断组件是否被其他组件挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
-            return 412, "当前应用被{0}挂载, 不可删除".format(msg)
-        # 判断服务是否绑定了域名
+            return 412, "当前组件被{0}挂载, 不可删除".format(msg)
+        # 判断组件是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
-            return 412, "请先解绑应用绑定的域名"
+            return 412, "请先解绑组件绑定的域名"
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
-            return 412, "请先卸载应用安装的插件"
+            return 412, "请先卸载组件安装的插件"
 
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
-            # 服务关系移除
+            # 组件关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
             return 200, "success"
         else:
@@ -779,7 +789,7 @@ class AppManageService(AppManageBase):
                 return 507, u"删除异常"
 
     def truncate_service(self, tenant, service, user=None):
-        """彻底删除应用"""
+        """彻底删除组件"""
 
         try:
             region_api.delete_service(service.service_region, tenant.tenant_name,
@@ -787,7 +797,7 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
-                return 500, "删除应用失败 {0}".format(e.message)
+                return 500, "删除组件失败 {0}".format(e.message)
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
@@ -812,7 +822,7 @@ class AppManageService(AppManageBase):
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
-        # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
+        # 如果这个组件属于应用组, 则删除应用组最后一个组件后同时删除应用组
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
@@ -844,12 +854,12 @@ class AppManageService(AppManageBase):
             return None
 
     def move_service_into_recycle_bin(self, service):
-        """将服务移入回收站"""
+        """将组件移入回收站"""
         data = service.toJSON()
         data.pop("ID")
         trash_service = recycle_bin_repo.create_trash_service(**data)
 
-        # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
+        # 如果这个组件属于应用组, 则删除应用组最后一个组件后同时删除应用组
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
@@ -859,7 +869,7 @@ class AppManageService(AppManageBase):
         return trash_service
 
     def move_service_relation_info_recycle_bin(self, tenant, service):
-        # 1.如果服务依赖其他服务，将服务对应的关系放入回收站
+        # 1.如果组件依赖其他组件，将组件对应的关系放入回收站
         relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         if relations:
             for r in relations:
@@ -867,7 +877,7 @@ class AppManageService(AppManageBase):
                 r_data.pop("ID")
                 relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
-        # 如果服务关系回收站有被此服务依赖的服务，将信息及其对应的数据中心的依赖关系删除
+        # 如果组件关系回收站有被此组件依赖的组件，将信息及其对应的数据中心的依赖关系删除
         recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
         if recycle_relations:
             for recycle_relation in recycle_relations:
@@ -949,41 +959,41 @@ class AppManageService(AppManageBase):
 
     # 变更应用分组
     def move(self, service, move_group_id):
-        # 先删除分组应用关系表中该应用数据
+        # 先删除分组应用关系表中该组件数据
         group_service_relation_repo.delete_relation_by_service_id(service_id=service.service_id)
-        # 再新建该应用新的关联数据
+        # 再新建该组件新的关联数据
         group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
                                                                service.service_region)
 
-    # 批量删除应用
+    # 批量删除组件
     def batch_delete(self, user, tenant, service, is_force):
-        # 判断服务是否是运行状态
+        # 判断组件是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
-            msg = "当前应用处于运行状态,请先关闭应用"
+            msg = "当前组件处于运行状态,请先关闭组件"
             code = 409
             return code, msg
-        # 判断服务是否被其他应用挂载
+        # 判断组件是否被其他组件挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
             code = 412
-            msg = "当前应用被其他应用挂载, 您确定要删除吗？"
+            msg = "当前组件被其他组件挂载, 您确定要删除吗？"
             return code, msg
-        # 判断服务是否绑定了域名
+        # 判断组件是否绑定了域名
         is_bind_domain = self.__is_service_bind_domain(service)
         if is_bind_domain:
             code = 412
-            msg = "当前应用绑定了域名， 您确定要删除吗？"
+            msg = "当前组件绑定了域名， 您确定要删除吗？"
             return code, msg
         # 判断是否有插件
         if self.__is_service_has_plugins(service):
             code = 412
-            msg = "当前应用安装了插件， 您确定要删除吗？"
+            msg = "当前组件安装了插件， 您确定要删除吗？"
             return code, msg
 
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
-            # 服务关系移除
+            # 组件关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
             code = 200
             msg = "success"
@@ -1006,7 +1016,7 @@ class AppManageService(AppManageBase):
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
-            # 服务关系移除
+            # 组件关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
             return 200, "success"
         else:
@@ -1021,7 +1031,7 @@ class AppManageService(AppManageBase):
                 return 507, u"删除异常"
 
     def again_delete_service(self, tenant, service, user=None):
-        """二次删除应用"""
+        """二次删除组件"""
 
         try:
             region_api.delete_service(service.service_region, tenant.tenant_name,
@@ -1029,7 +1039,7 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
-                return 500, "删除应用失败 {0}".format(e.message)
+                return 500, "删除组件失败 {0}".format(e.message)
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
@@ -1053,9 +1063,9 @@ class AppManageService(AppManageBase):
         service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
-        # 删除应用和插件的关系
+        # 删除组件和插件的关系
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
-        # 如果这个应用属于应用组, 则删除应用组最后一个应用后同时删除应用组
+        # 如果这个组件属于应用组, 则删除应用组最后一个组件后同时删除应用组
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:

@@ -72,7 +72,7 @@ class AppPluginService(object):
     def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type, plugin_status):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
-            return 409, "应用已安装该插件", None
+            return 409, "组件已安装该插件", None
         params = {
             "service_id": service_id,
             "build_version": build_version,
@@ -84,7 +84,7 @@ class AppPluginService(object):
         return 200, "success", spr
 
     def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
-        """获取应用已开通和未开通的插件"""
+        """获取组件已开通和未开通的插件"""
 
         QUERY_INSTALLED_SQL = """
         SELECT
@@ -180,7 +180,7 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 if not self.__check_ports_for_config_items(ports, items):
-                    return 409, "插件支持的协议与应用端口协议不一致"
+                    return 409, "插件支持的协议与组件端口协议不一致"
                 for port in ports:
                     attrs_map = dict()
                     for item in items:
@@ -202,11 +202,11 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
                 if not dep_services:
-                    return 409, "应用没有依赖其他应用，不能安装此插件"
+                    return 409, "组件没有依赖其他组件，不能安装此插件"
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     if not self.__check_ports_for_config_items(ports, items):
-                        return 409, "该应用依赖的应用的端口协议与插件支持的协议不一致"
+                        return 409, "该组件依赖的组件的端口协议与插件支持的协议不一致"
                     for port in ports:
                         attrs_map = dict()
                         for item in items:
@@ -243,9 +243,9 @@ class AppPluginService(object):
         attrs = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id, build_version)
         normal_envs = []
         base_normal = dict()
-        # 上游应用
+        # 上游组件
         base_ports = []
-        # 下游应用
+        # 下游组件
         base_services = []
         region_env_config = dict()
         for attr in attrs:
@@ -701,7 +701,7 @@ class PluginService(object):
     def delete_plugin(self, region, team, plugin_id):
         plugin_service_relations = app_plugin_relation_repo.get_service_plugin_relation_by_plugin_id(plugin_id)
         if plugin_service_relations:
-            return 412, "当前插件被应用使用中，请先卸载"
+            return 412, "当前插件被组件使用中，请先卸载"
         # 删除数据中心数据
         try:
             region_api.delete_plugin(region, team.tenant_name, plugin_id)

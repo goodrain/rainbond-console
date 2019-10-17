@@ -16,12 +16,10 @@ configKey = "SYS_C_F_K"
 
 class ConfigCenter(object):
 
-    def __init__(self):
-        self.configs()
-
     def __getattr__(self, name):
-        if name in self.configs():
-            return self.configs()[name]
+        configs = self.configs()
+        if name in configs:
+            return configs[name]
         else:
             if hasattr(base_settings, name):
                 return getattr(base_settings, name)
@@ -29,12 +27,7 @@ class ConfigCenter(object):
                 return None
 
     def configs(self):
-        result = mcli.getKey(configKey)
-        if result is not None:
-            # logger.info("from " + result)
-            return json.loads(result)
-        else:
-            return self.loadfromDB()
+        return self.loadfromDB()
 
     def reload(self):
         mcli.setKey(configKey, json.dumps(self.loadfromDB()))

@@ -18,7 +18,7 @@ class PermService(object):
 class ServicePermService(object):
     def add_service_perm(self, current_user, user_id, tenant, service, identity):
         if current_user.user_id == user_id:
-            return 409, u"不能给自己添加应用权限", None
+            return 409, u"不能给自己添加组件权限", None
         user = user_repo.get_user_by_user_id(user_id)
         if not user:
             return 404, "用户{0}不存在".format(user_id), None
@@ -79,9 +79,9 @@ class ServicePermService(object):
         service_perm_repo.get_service_perm_by_user_pk(service_pk, user_id)
 
     def add_user_service_perm(self, current_user, user_list, tenant, service, perm_list):
-        """添加用户在一个应用中的权限"""
+        """添加用户在一个组件中的权限"""
         if current_user.user_id in user_list:
-            return 409, u"不能给自己添加应用权限", None
+            return 409, u"不能给自己添加组件权限", None
         for user_id in user_list:
             user = user_repo.get_user_by_user_id(user_id)
             if not user:
@@ -112,7 +112,7 @@ class ServicePermService(object):
                 }
                 perm_tenant = perms_repo.add_user_tenant_perm(perm_info)
 
-        return 200, "添加用户应用权限成功", None
+        return 200, "添加用户组件权限成功", None
 
     def delete_user_service_perm(self, current_user, user_id, service):
         if current_user.user_id == user_id:
@@ -134,7 +134,7 @@ class ServicePermService(object):
         return 200, u"success", service_perm
 
     def get_user_service_perm_info(self, service):
-        """获取应用下的成员及对应的权限"""
+        """获取组件下的成员及对应的权限"""
         user_id_list = service_perm_repo.get_user_id_in_service(service.ID)
         user_id_list = list(set(user_id_list))
         perm_list = []

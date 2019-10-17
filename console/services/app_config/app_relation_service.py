@@ -42,7 +42,7 @@ class AppServiceRelationService(object):
         dep_services = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         dep_service_ids = [dep.dep_service_id for dep in dep_services]
         for s in services:
-            # 查找打开内部访问的应用
+            # 查找打开内部访问的组件
             open_inner_services = port_repo.get_service_ports(tenant.tenant_id, s.service_id).filter(is_inner_service=True)
             if open_inner_services:
                 if s.service_id not in dep_service_ids:
@@ -94,7 +94,7 @@ class AppServiceRelationService(object):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
             tenant.tenant_id, service.service_id, dep_service_id)
         if dep_service_relation:
-            return 212, u"当前应用已被关联", None
+            return 212, u"当前组件已被关联", None
 
         dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, dep_service_id)
         # 开启对内端口
@@ -116,17 +116,17 @@ class AppServiceRelationService(object):
                 else:
                     logger.debug("auto open depend service inner port success ")
         else:
-            # 校验要依赖的服务是否开启了对内端口
+            # 校验要依赖的组件是否开启了对内端口
             open_inner_services = port_repo.get_service_ports(tenant.tenant_id,
                                                               dep_service.service_id).filter(is_inner_service=True)
             if not open_inner_services:
                 service_ports = port_repo.get_service_ports(tenant.tenant_id, dep_service.service_id)
                 port_list = [service_port.container_port for service_port in service_ports]
-                return 201, u"要关联的服务暂未开启对内端口，是否打开", port_list
+                return 201, u"要关联的组件暂未开启对内端口，是否打开", port_list
 
         is_duplicate = self.__is_env_duplicate(tenant, service, dep_service)
         if is_duplicate:
-            return 412, u"要关联的应用的变量与已关联的应用变量重复，请修改后再试", None
+            return 412, u"要关联的组件的变量与已关联的组件变量重复，请修改后再试", None
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
@@ -152,7 +152,7 @@ class AppServiceRelationService(object):
         services = service_repo.get_services_by_service_ids(dep_ids)
         if dep_service_relations:
             service_cnames = [s.service_cname for s in services]
-            return 412, u"应用{0}已被关联".format(service_cnames)
+            return 412, u"组件{0}已被关联".format(service_cnames)
         for dep_id in dep_service_ids:
             code, msg, relation = self.add_service_dependency(tenant, service, dep_id)
             if code != 200:

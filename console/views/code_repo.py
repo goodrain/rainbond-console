@@ -178,7 +178,7 @@ class ServiceCodeBranch(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用代码仓库分支
+        获取组件代码仓库分支
         ---
         parameters:
             - name: tenantName
@@ -187,7 +187,7 @@ class ServiceCodeBranch(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -205,7 +205,7 @@ class ServiceCodeBranch(AppBaseView):
     @perm_required('deploy_service')
     def put(self, request, *args, **kwargs):
         """
-        修改应用代码仓库分支
+        修改组件代码仓库分支
         ---
         parameters:
             - name: tenantName
@@ -214,7 +214,7 @@ class ServiceCodeBranch(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path

@@ -22,7 +22,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
-        image和docker-run创建应用
+        image和docker-run创建组件
         ---
         parameters:
             - name: tenantName
@@ -36,7 +36,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
               type: string
               paramType: form
             - name: service_cname
-              description: 应用名称
+              description: 组件名称
               required: true
               type: string
               paramType: form

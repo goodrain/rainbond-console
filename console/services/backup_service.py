@@ -54,7 +54,7 @@ class GroupAppBackupService(object):
 
     def check_backup_condition(self, tenant, region, group_id):
         """
-        检测备份条件，有状态应用备份应该
+        检测备份条件，有状态组件备份应该
         """
         services = group_service.get_group_services(group_id)
         service_ids = [s.service_id for s in services]
@@ -296,7 +296,7 @@ class GroupAppBackupService(object):
             return 404, "需要导入的组不存在", None
         services = group_service.get_group_services(group_id)
         if services:
-            return 409, "请确保需要导入的组中不存在应用", None
+            return 409, "请确保需要导入的组中不存在组件", None
         content = upload_file.read().strip()
         data = json.loads(AuthCode.decode(content, KEY))
         current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(group_id, data["backup_id"])

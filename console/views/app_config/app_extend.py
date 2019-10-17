@@ -20,7 +20,7 @@ class AppExtendView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用扩展方式
+        获取组件扩展方式
         ---
         parameters:
             - name: tenantName

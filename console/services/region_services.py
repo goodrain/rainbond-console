@@ -205,7 +205,7 @@ class RegionService(object):
         if not tenant_region.is_init:
             res, body = region_api.create_tenant(region_name, tenant.tenant_name,
                                                  tenant.tenant_id, tenant.enterprise_id)
-            if res["status"] != 200:
+            if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
                 return res["status"], u"数据中心创建租户失败", None
             tenant_region.is_active = True
             tenant_region.is_init = True

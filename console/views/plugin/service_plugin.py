@@ -25,7 +25,7 @@ class ServicePluginsView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
-        获取应用可用的插件列表
+        获取组件可用的插件列表
         ---
         parameters:
             - name: tenantName
@@ -34,7 +34,7 @@ class ServicePluginsView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -60,7 +60,7 @@ class ServicePluginInstallView(AppBaseView):
     @perm_required('manage_service_plugin')
     def post(self, request, plugin_id, *args, **kwargs):
         """
-        应用安装插件
+        组件安装插件
         ---
         parameters:
             - name: tenantName
@@ -69,7 +69,7 @@ class ServicePluginInstallView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -129,7 +129,7 @@ class ServicePluginInstallView(AppBaseView):
     @perm_required('manage_service_plugin')
     def delete(self, request, plugin_id, *args, **kwargs):
         """
-        应用卸载插件
+        组件卸载插件
         ---
         parameters:
             - name: tenantName
@@ -138,7 +138,7 @@ class ServicePluginInstallView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -164,7 +164,7 @@ class ServicePluginOperationView(AppBaseView):
     @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
-        启停用应用插件
+        启停用组件插件
         ---
         parameters:
             - name: tenantName
@@ -173,7 +173,7 @@ class ServicePluginOperationView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -232,7 +232,7 @@ class ServicePluginConfigView(AppBaseView):
     @perm_required('view_service')
     def get(self, request, plugin_id, *args, **kwargs):
         """
-        应用插件查看配置
+        组件插件查看配置
         ---
         parameters:
             - name: tenantName
@@ -241,7 +241,7 @@ class ServicePluginConfigView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
@@ -277,7 +277,7 @@ class ServicePluginConfigView(AppBaseView):
     @transaction.atomic
     def put(self, request, plugin_id, *args, **kwargs):
         """
-        应用插件配置更新
+        组件插件配置更新
         ---
         parameters:
             - name: tenantName
@@ -286,7 +286,7 @@ class ServicePluginConfigView(AppBaseView):
               type: string
               paramType: path
             - name: serviceAlias
-              description: 服务别名
+              description: 组件别名
               required: true
               type: string
               paramType: path
