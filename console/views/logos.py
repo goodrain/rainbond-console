@@ -27,10 +27,12 @@ class ConfigInfoView(AlowAnyApiView):
             data = config_service.initialization_or_get_config()
             logo = config_service.get_image()
             data["logo"] = "{0}".format(str(logo))
-            title = config_service.get_config_by_key("TITLE").value
+            title = config_service.get_config_by_key("TITLE")
             if not title:
-                config = config_service.add_config("TITLE", "Rainbond-企业云应用操作系统，开发、交付云解决方案", "string", "云帮title")
+                config = config_service.add_config("TITLE", "Rainbond-企业云应用操作系统，开发、交付云解决方案", "string", desc="云帮title")
                 title = config.value
+            else:
+                title = title.value
             data["title"] = title
             data["version"] = os.getenv("RELEASE_DESC", "public-cloud")
             result = general_message(code, "query success", u"Logo获取成功", bean=data, initialize_info=status)

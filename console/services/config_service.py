@@ -23,7 +23,7 @@ class ConfigService(object):
         self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB",
                                  "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
                                  "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
-                                 "CLOUD_MARKET", "TITLE"]
+                                 "CLOUD_MARKET"]
         self.default_feature_cfg_value = {
             "OPEN_DATA_CENTER_STATUS": {"value": None, "desc": u"开启/关闭开通数据中心功能", "enable": True},
             "NEWBIE_GUIDE": {"value": None, "desc": u"开启/关闭新手引导", "enable": True},
@@ -216,12 +216,14 @@ class ConfigService(object):
             config = self.add_config(key="REGISTER_STATUS", default_value="yes", type="string", desc="开启/关闭注册")
             return config.value
         else:
-            return is_regist
+            return is_regist.value
 
     def get_github_config(self):
         github_config = self.get_config_by_key("GITHUB")
         if not github_config:
             github_config = "{}"
+        else:
+            github_config = github_config.value
         github_dict = json.loads(github_config)
         if github_dict:
             csc = ConsoleSysConfig.objects.get(key="GITHUB")
@@ -234,6 +236,8 @@ class ConfigService(object):
         gitlab_config = self.get_config_by_key("GITLAB")
         if not gitlab_config:
             gitlab_config = "{}"
+        else:
+            gitlab_config = gitlab_config.value
         gitlab_dict_all = json.loads(gitlab_config)
         gitlab_dict = dict()
         if gitlab_dict_all:
@@ -253,7 +257,7 @@ class ConfigService(object):
             config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能")
             return config.value
         else:
-            return is_open_data_center
+            return is_open_data_center.value
 
 
 config_service = ConfigService()
