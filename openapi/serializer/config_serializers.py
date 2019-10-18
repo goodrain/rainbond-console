@@ -37,45 +37,115 @@ class UpdateBaseConfigReqSerializer(serializers.Serializer):
 
 
 class GithubServiceAPIRespSerializer(serializers.Serializer):
-    client_secret = serializers.CharField(max_length=255)
-    redirect_uri = serializers.CharField(max_length=255)
-    client_id = serializers.CharField(max_length=255)
+    client_secret = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+    redirect_uri = serializers.CharField(max_length=2047, allow_null=True, allow_blank=True, required=False)
+    client_id = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+
+
+class GithubServiceBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = GithubServiceAPIRespSerializer(required=False)
 
 
 class GitlabServiceAPIRespSerializer(serializers.Serializer):
-    admin_user = serializers.CharField(max_length=255)
-    url = serializers.CharField(max_length=255)
-    apitype = serializers.CharField(max_length=255)
-    hook_url = serializers.CharField(max_length=255)
-    admin_password = serializers.CharField(max_length=255)
-    admin_email = serializers.CharField(max_length=255)
+    admin_user = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+    url = serializers.CharField(max_length=2047, allow_null=True, allow_blank=True, required=False)
+    apitype = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+    hook_url = serializers.CharField(max_length=2047, allow_null=True, allow_blank=True, required=False)
+    admin_password = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+    admin_email = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+
+
+class GitlabServiceBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = GitlabServiceAPIRespSerializer(required=False)
 
 
 class AppStoreImageHubRespSerializer(serializers.Serializer):
-    namespace = serializers.CharField(max_length=255)
-    hub_password = serializers.CharField(max_length=255)
-    hub_url = serializers.CharField(max_length=255)
-    hub_user = serializers.CharField(max_length=255)
+    namespace = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+    hub_password = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+    hub_url = serializers.CharField(max_length=2047, allow_null=True, allow_blank=True, required=False)
+    hub_user = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
 
 
-class UpdateFeatureCfgReqSerializer(serializers.Serializer):
-    GITHUB = GithubServiceAPIRespSerializer(required=False)
-    GITLAB = GitlabServiceAPIRespSerializer(required=False)
-    APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
+class AppStoreImageHubBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = AppStoreImageHubRespSerializer(required=False)
+
+
+class OpenDataCenterStatusRespSerializer(serializers.Serializer):
+    pass
+
+
+class OpenDataCenterStatusBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = serializers.CharField(max_length=225, allow_null=True, allow_blank=True, required=False)
+
+
+class OfficialDemoRespSerializer(serializers.Serializer):
+    pass
+
+
+class OfficialDemoBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = serializers.CharField(max_length=225, allow_null=True, allow_blank=True, required=False)
+
+
+class NewBieGuideRespSerializer(serializers.Serializer):
+    pass
+
+
+class NewBieGuideBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = serializers.CharField(max_length=225, allow_null=True, allow_blank=True, required=False)
+
+
+class ExportAppRespSerializer(serializers.Serializer):
+    pass
+
+
+class ExportAppBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = serializers.CharField(max_length=225, allow_null=True, allow_blank=True, required=False)
+
+
+class CloudMarketRespSerializer(serializers.Serializer):
+    pass
+
+
+class CloudMarketBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = serializers.CharField(max_length=225, allow_null=True, allow_blank=True, required=False)
 
 
 class DocumentRespSerializer(serializers.Serializer):
-    platform_url = serializers.CharField(max_length=2047, required=False)
+    platform_url = serializers.CharField(max_length=2047, allow_null=True, allow_blank=True, required=False)
+
+
+class DocumentBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = DocumentRespSerializer(required=False)
 
 
 class FeatureConfigRespSerializer(serializers.Serializer):
-    GITHUB = GithubServiceAPIRespSerializer(required=False)
-    GITLAB = GitlabServiceAPIRespSerializer(required=False)
-    APPSTORE_IMAGE_HUB = AppStoreImageHubRespSerializer(required=False)
-    OPEN_DATA_CENTER_STATUS = serializers.BooleanField(required=False)
-    REGISTER_STATUS = serializers.BooleanField(required=False)
-    OFFICIAL_DEMO = serializers.BooleanField(required=False)
-    NEWBIE_GUIDE = serializers.BooleanField(required=False)
-    EXPORT_APP = serializers.BooleanField(required=False)
-    CLOUD_MARKET = serializers.BooleanField(required=False)
-    DOCUMENT = DocumentRespSerializer(required=False)
+    github = GithubServiceBaseRespSerializer(required=True)
+    gitlab = GitlabServiceBaseRespSerializer(required=True)
+    appstore_image_hub = AppStoreImageHubBaseRespSerializer(required=True)
+    open_data_center_status = OpenDataCenterStatusBaseRespSerializer(required=True)
+    official_demo = OfficialDemoBaseRespSerializer(required=True)
+    newbie_guide = NewBieGuideBaseRespSerializer(required=True)
+    export_app = ExportAppBaseRespSerializer(required=True)
+    cloud_market = CloudMarketBaseRespSerializer(required=True)
+    document = DocumentBaseRespSerializer(required=True)
+
+
+class UpdateFeatureCfgReqSerializer(serializers.Serializer):
+    github = GithubServiceBaseRespSerializer(required=False)
+    gitlab = GitlabServiceBaseRespSerializer(required=False)
+    appstore_image_hub = AppStoreImageHubBaseRespSerializer(required=False)
+    open_data_center_status = OpenDataCenterStatusBaseRespSerializer(required=False)
+    official_demo = OfficialDemoBaseRespSerializer(required=False)
+    newbie_guide = NewBieGuideBaseRespSerializer(required=False)
+    export_app = ExportAppBaseRespSerializer(required=False)
+    cloud_market = CloudMarketBaseRespSerializer(required=False)
+    document = DocumentBaseRespSerializer(required=False)

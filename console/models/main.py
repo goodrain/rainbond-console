@@ -43,7 +43,7 @@ class ConsoleSysConfig(BaseModel):
 
     key = models.CharField(max_length=32, help_text=u"key")
     type = models.CharField(max_length=32, help_text=u"类型")
-    value = models.CharField(max_length=4096, help_text=u"value")
+    value = models.CharField(max_length=4096, null=True, blank=True, help_text=u"value")
     desc = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"描述")
     enable = models.BooleanField(default=True, help_text=u"是否生效")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")

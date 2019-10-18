@@ -21,7 +21,7 @@ class BaseTaskGuidance:
             # TODO: handle error
             config_service.add_config_without_reload(key=eid, default_value=json.dumps(data), type="json")
         else:
-            data = json.loads(cfg)
+            data = json.loads(cfg.value)
         need_update = False
         for index in range(len(data)):
             if data[index] is not None and data[index]["key"] == "install_mysql_from_market":
