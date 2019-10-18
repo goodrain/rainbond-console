@@ -822,7 +822,7 @@ class AppManageService(AppManageBase):
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
-        # 如果这个组件属于应用组, 则删除应用组最后一个组件后同时删除应用组
+        # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
@@ -859,7 +859,7 @@ class AppManageService(AppManageBase):
         data.pop("ID")
         trash_service = recycle_bin_repo.create_trash_service(**data)
 
-        # 如果这个组件属于应用组, 则删除应用组最后一个组件后同时删除应用组
+        # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
@@ -1065,7 +1065,7 @@ class AppManageService(AppManageBase):
         service_label_repo.delete_service_all_labels(service.service_id)
         # 删除组件和插件的关系
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
-        # 如果这个组件属于应用组, 则删除应用组最后一个组件后同时删除应用组
+        # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:

@@ -20,7 +20,7 @@ class PermActions(object):
 
     tenant_viewer_actions = (('view_plugin', u"查看插件信息"), ) + tenant_access_actions
 
-    tenant_developer_actions = (('manage_group', u"应用组管理"), ('deploy_service', u"部署组件"), ('create_service', u"创建组件"),
+    tenant_developer_actions = (('manage_group', u"应用管理"), ('deploy_service', u"部署组件"), ('create_service', u"创建组件"),
                                 ('stop_service', u"关闭组件"), ('start_service', u"启动组件"), ('restart_service', u"重启组件"),
                                 ('rollback_service', u"回滚组件"), ('manage_service_container', u"组件容器管理"),
                                 ('manage_service_extend', u"组件伸缩管理"), ('manage_service_config', u"组件配置管理"),
@@ -31,7 +31,7 @@ class PermActions(object):
                                 ('create_three_service', u'创建第三方组件')) + tenant_viewer_actions
 
     tenant_admin_actions = (('manage_team_member_permissions', u'团队权限设置'), ('tenant_open_region', u'开通数据中心'),
-                            ('delete_service', u"删除应用"), ('share_service', u"应用组分享"), ('share_plugin', u"插件分享"),
+                            ('delete_service', u"删除应用"), ('share_service', u"应用分享"), ('share_plugin', u"插件分享"),
                             ('manage_service_member_perms', u'应用权限设置'),
                             ('tenant_manage_role', u'自定义角色')) + tenant_developer_actions
 

@@ -39,7 +39,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: group_id
-              description: 应用组id
+              description: 应用id
               required: true
               type: string
               paramType: path
@@ -63,7 +63,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: group_id
-              description: 应用组id
+              description: 应用id
               required: true
               type: string
               paramType: path
@@ -177,7 +177,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             if share_record.is_success or share_record.step >= 3:
                 result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
                 return Response(result, status=400)
-            # 获取分享应用组基本信息
+            # 获取分享应用基本信息
             data = dict()
             share_group_info = dict()
             share_group = share_service.check_whether_have_share_history(group_id=share_record.group_id)
@@ -486,7 +486,7 @@ class ShareRecordView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: group_id
-              description: 应用组id
+              description: 应用id
               required: true
               type: string
               paramType: path

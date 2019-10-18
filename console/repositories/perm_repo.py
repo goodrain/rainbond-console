@@ -404,7 +404,7 @@ class RolePermRepo(object):
             perms_dict["tenant_open_region"] = obj.pk
 
             obj = TenantUserPermission.objects.create(
-                codename="manage_group", per_info="应用组管理", is_select=True, group=service_group)
+                codename="manage_group", per_info="应用管理", is_select=True, group=service_group)
             perms_dict["manage_group"] = obj.pk
 
             obj = TenantUserPermission.objects.create(
@@ -424,7 +424,7 @@ class RolePermRepo(object):
             perms_dict["delete_service"] = obj.pk
 
             obj = TenantUserPermission.objects.create(
-                codename="share_service", per_info="应用组分享", is_select=True, group=service_group)
+                codename="share_service", per_info="应用分享", is_select=True, group=service_group)
             perms_dict["share_service"] = obj.pk
 
             obj = TenantUserPermission.objects.create(
