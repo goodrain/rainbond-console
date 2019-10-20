@@ -25,6 +25,8 @@ class ConfigInfoView(AlowAnyApiView):
             code = 200
             status = role_perm_repo.initialize_permission_settings()
             data = config_service.initialization_or_get_config()
+            base_data = config_service.initialization_or_get_base_config()
+            data.update(base_data)
             logo = config_service.get_image()
             data["logo"] = "{0}".format(str(logo))
             title = config_service.get_config_by_key("TITLE")
