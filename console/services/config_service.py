@@ -24,15 +24,9 @@ class ConfigService(object):
                                  "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
                                  "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
                                  "CLOUD_MARKET"]
-        self.feature_base_cfg_keys = ["IS_PUBLIC", "IS_REGIST", "IS_USER_REGISTER",
-                                      "EID", "ENTERPRISE_NAME", "MARKET_URL"]
+        self.feature_base_cfg_keys = ["IS_REGIST"]
         self.default_feature_base_cfg_value = {
-            "IS_PUBLIC": {"value": False, "desc": u"是否为公共数据中心", "enable": True},
             "IS_REGIST": {"value": True, "desc": u"是否注册", "enable": True},
-            "IS_USER_REGISTER": {"value": True, "desc": u"是否允许用户注册", "enable": True},
-            "EID": {"value": None, "desc": u"企业ID", "enable": True},
-            "ENTERPRISE_NAME": {"value": None, "desc": u"企业名称", "enable": True},
-            "MARKET_URL": {"value": "http://api.goodrain.com:80", "desc": u"应用市场网址", "enable": True}
         }
         self.default_feature_cfg_value = {
             "OPEN_DATA_CENTER_STATUS": {"value": None, "desc": u"开启/关闭开通数据中心功能", "enable": True},
