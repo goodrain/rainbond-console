@@ -245,12 +245,12 @@ class ConfigService(object):
             return None
 
     def get_regist_status(self):
-        is_regist = self.get_config_by_key("REGISTER_STATUS")
+        is_regist = self.get_config_by_key("IS_REGIST")
         if not is_regist:
-            config = self.add_config(key="REGISTER_STATUS", default_value="yes", type="string", desc="开启/关闭注册")
+            config = self.add_config(key="IS_REGIST", default_value=True, type="string", desc=u"开启/关闭注册")
             return config.value
         else:
-            return is_regist.value
+            return eval(is_regist.value)
 
     def get_github_config(self):
         github_config = self.get_config_by_key("GITHUB")
