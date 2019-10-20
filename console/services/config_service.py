@@ -79,7 +79,7 @@ class ConfigService(object):
                     rst_value = eval(tar_key.value)
                 else:
                     rst_value = tar_key.value
-                rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
+                rst_data = {key.lower(): rst_value}
                 rst_datas.update(rst_data)
         return rst_datas
 
