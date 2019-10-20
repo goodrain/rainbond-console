@@ -26,7 +26,7 @@ class ConfigService(object):
                                  "CLOUD_MARKET"]
         self.feature_base_cfg_keys = ["IS_REGIST"]
         self.default_feature_base_cfg_value = {
-            "IS_REGIST": {"value": True, "desc": u"是否注册", "enable": True},
+            "IS_REGIST": {"value": True, "desc": u"是否允许注册", "enable": True},
         }
         self.default_feature_cfg_value = {
             "OPEN_DATA_CENTER_STATUS": {"value": None, "desc": u"开启/关闭开通数据中心功能", "enable": True},
