@@ -19,7 +19,10 @@ class GitHubApi(BaseHttpClient):
         self.base_url = 'https://api.github.com'
 
     def _reload(self):
-        github_service_info = custom_config.GITHUB
+        if isinstance(custom_config.GITHUB, (unicode, str)):
+            github_service_info = eval(custom_config.GITHUB)
+        else:
+            github_service_info = custom_config.GITHUB
         for k, v in github_service_info.items():
             setattr(self, k, v)
 
