@@ -1,12 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
 
-from console.models.main import ConsoleSysConfig
 from console.exception.main import ServiceHandleException
+from console.models.main import ConsoleSysConfig
 from console.repositories.team_repo import team_repo
+from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.json_tool import json_load
-from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger('default')
 market_api = MarketOpenAPI()
@@ -33,7 +33,7 @@ class AppStore(object):
                 return info["image_repo"]
             else:
                 image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
-                if not image_config:
+                if not image_config or not image_config.enable:
                     return {"hub_url": 'goodrain.me', "namespace": team_name}
                 image_config_dict = json_load(image_config[0].value)
                 hub_url = image_config_dict.get("hub_url", None)
@@ -76,7 +76,7 @@ class AppStore(object):
                 return info["slug_repo"]
             else:
                 slug_config = ConsoleSysConfig.objects.filter(key='APPSTORE_SLUG_PATH')
-                if not slug_config:
+                if not slug_config or not slug_config.enable:
                     return {"namespace": team_name}
                 slug_config_dict = json_load(slug_config[0].value)
                 ftp_host = slug_config_dict.get("ftp_host", None)
