@@ -895,7 +895,7 @@ class RegisterStatusView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         try:
             register_config = config_service.get_regist_status()
-            if register_config != "yes":
+            if register_config is False:
                 return Response(
                     general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}),
                     status=200)
@@ -919,11 +919,11 @@ class RegisterStatusView(JWTAuthApiView):
 
                 if is_regist is False:
                     # 修改全局配置
-                    config_service.update_config("REGISTER_STATUS", "no")
+                    config_service.update_config("IS_REGIST", False)
 
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
                 else:
-                    config_service.update_config("REGISTER_STATUS", "yes")
+                    config_service.update_config("IS_REGIST", True)
                     return Response(general_message(200, "open register", "开启注册"), status=200)
             else:
                 return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
