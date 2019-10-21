@@ -22,3 +22,4 @@ update console.tenant_user_permission set per_info = '组件权限设置' where 
 
 -- 第三方组件
 update console.tenant_user_permission set per_info = '创建第三方组件' where codename = 'create_three_service';
+alter table console.console_sys_config modify `value` varchar(4096);
