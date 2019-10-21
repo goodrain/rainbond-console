@@ -19,15 +19,94 @@ class ConfigService(object):
     def __init__(self):
         # TODO: use enum
         self.base_cfg_keys = ["REGION_SERVICE_API", "TITLE",
-                              "REGISTER_STATUS", "RAINBOND_VERSION",
-                              "OPEN_DATA_CENTER_STATUS", "LOGO"]
-        self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB", "OPEN_DATA_CENTER_STATUS",
-                                 "NEWBIE_GUIDE", "EID", "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
-                                 "CLOUD_MARKET", "REGISTER_STATUS", "RAINBOND_VERSION", "REGION_SERVICE_API"]
+                              "REGISTER_STATUS", "RAINBOND_VERSION", "LOGO"]
+        self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB",
+                                 "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
+                                 "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
+                                 "CLOUD_MARKET"]
+        self.feature_base_cfg_keys = ["IS_REGIST"]
+        self.default_feature_base_cfg_value = {
+            "IS_REGIST": {"value": True, "desc": u"是否允许注册", "enable": True},
+        }
+        self.default_feature_cfg_value = {
+            "OPEN_DATA_CENTER_STATUS": {"value": None, "desc": u"开启/关闭开通数据中心功能", "enable": True},
+            "NEWBIE_GUIDE": {"value": None, "desc": u"开启/关闭新手引导", "enable": True},
+            "DOCUMENT": {"value": {"platform_url": "https://www.rainbond.com/", },
+                         "desc": u"开启/关闭文档", "enable": True},
+            "OFFICIAL_DEMO": {"value": None, "desc": u"开启/关闭官方Demo", "enable": True},
+            "EXPORT_APP": {"value": None, "desc": u"开启/关闭导出应用", "enable": False},
+            "CLOUD_MARKET": {"value": None, "desc": u"开启/关闭云应用市场", "enable": True},
+            "GITHUB": {"value": {"client_id": None, "client_secret": None, "redirect_uri": None},
+                       "desc": u"开启/关闭GITHUB", "enable": False},
+            "GITLAB": {"value": {"admin_email": None, "apitype": None, "hook_url": None, "url": None},
+                       "desc": u"开启/关闭GITLAB", "enable": False},
+            "APPSTORE_IMAGE_HUB": {"value": {"hub_user": None, "hub_url": None, "namespace": None, "hub_password": None},
+                                   "desc": u"开启/关闭GITLAB", "enable": False},
+        }
+
         self.update_or_create_funcs = {
             "LOGO": self._update_or_create_logo,
             "ENTERPRISE_ALIAS": self._update_entalias,
         }
+
+    def initialization_or_get_base_config(self):
+        rst_datas = {}
+        for key in self.feature_base_cfg_keys:
+            tar_key = self.get_config_by_key(key)
+            if not tar_key:
+                enable = self.default_feature_base_cfg_value[key]["enable"]
+                value = self.default_feature_base_cfg_value[key]["value"]
+                desc = self.default_feature_base_cfg_value[key]["desc"]
+
+                if isinstance(value, dict):
+                    type = "json"
+                else:
+                    type = "string"
+                rst_key = self.add_config(
+                    key=key, default_value=value, type=type, enable=enable, desc=desc)
+
+                value = rst_key.value
+                rst_data = {key.lower(): value}
+                rst_datas.update(rst_data)
+            else:
+                if tar_key.type == "json":
+                    rst_value = eval(tar_key.value)
+                elif tar_key.type == "string" and (tar_key.value == "True" or tar_key.value == "False"):
+                    rst_value = eval(tar_key.value)
+                else:
+                    rst_value = tar_key.value
+                rst_data = {key.lower(): rst_value}
+                rst_datas.update(rst_data)
+        return rst_datas
+
+    def initialization_or_get_config(self):
+        rst_datas = {}
+        for key in self.feature_cfg_keys:
+            tar_key = self.get_config_by_key(key)
+            if not tar_key:
+                enable = self.default_feature_cfg_value[key]["enable"]
+                value = self.default_feature_cfg_value[key]["value"]
+                desc = self.default_feature_cfg_value[key]["desc"]
+
+                if isinstance(value, dict):
+                    type = "json"
+                else:
+                    type = "string"
+                rst_key = self.add_config(
+                    key=key, default_value=value, type=type, enable=enable, desc=desc)
+
+                value = rst_key.value
+                enable = rst_key.enable
+                rst_data = {key.lower(): {"enable": enable, "value": value}}
+                rst_datas.update(rst_data)
+            else:
+                if tar_key.type == "json":
+                    rst_value = eval(tar_key.value)
+                else:
+                    rst_value = tar_key.value
+                rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
+                rst_datas.update(rst_data)
+        return rst_datas
 
     def list_by_keys(self, keys):
         cfgs = cfg_repo.list_by_keys(keys)
@@ -50,6 +129,24 @@ class ConfigService(object):
         key = key.upper()
         cfg_repo.delete_by_key(key)
         custom_settings.reload()
+
+    def update_config_enable_status(self, key, enable):
+        key = ConsoleSysConfig.objects.get(key=key)
+        if key.enable != enable:
+            key.enable = enable
+            key.save()
+
+    def update_config_value(self, key, value):
+        ConsoleSysConfig.objects.filter(key=key).update(value=value)
+
+    def update_by_key(self, key, enable, value):
+        key = key.upper()
+        if key in self.feature_cfg_keys:
+            if enable:
+                self.update_config_enable_status(key, enable)
+                self.update_config_value(key, value)
+            else:
+                self.update_config_enable_status(key, enable)
 
     def update_or_create(self, eid, data):
         for k, v in data.iteritems():
@@ -102,11 +199,11 @@ class ConfigService(object):
         ent.enterprise_alias = alias
         ent.save()
 
-    def add_config(self, key, default_value, type, desc=""):
+    def add_config(self, key, default_value, type, enable=True, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
-                key=key, type=type, value=default_value, desc=desc, create_time=create_time)
+                key=key, type=type, value=default_value, desc=desc, create_time=create_time, enable=enable)
             custom_settings.reload()
             return config
         else:
@@ -143,22 +240,24 @@ class ConfigService(object):
     def get_config_by_key(self, key):
         if ConsoleSysConfig.objects.filter(key=key).exists():
             console_sys_config = ConsoleSysConfig.objects.get(key=key)
-            return console_sys_config.value
+            return console_sys_config
         else:
             return None
 
     def get_regist_status(self):
-        is_regist = self.get_config_by_key("REGISTER_STATUS")
+        is_regist = self.get_config_by_key("IS_REGIST")
         if not is_regist:
-            config = self.add_config(key="REGISTER_STATUS", default_value="yes", type="string", desc="开启/关闭注册")
+            config = self.add_config(key="IS_REGIST", default_value=True, type="string", desc=u"开启/关闭注册")
             return config.value
         else:
-            return is_regist
+            return eval(is_regist.value)
 
     def get_github_config(self):
         github_config = self.get_config_by_key("GITHUB")
         if not github_config:
             github_config = "{}"
+        else:
+            github_config = github_config.value
         github_dict = json.loads(github_config)
         if github_dict:
             csc = ConsoleSysConfig.objects.get(key="GITHUB")
@@ -171,6 +270,8 @@ class ConfigService(object):
         gitlab_config = self.get_config_by_key("GITLAB")
         if not gitlab_config:
             gitlab_config = "{}"
+        else:
+            gitlab_config = gitlab_config.value
         gitlab_dict_all = json.loads(gitlab_config)
         gitlab_dict = dict()
         if gitlab_dict_all:
@@ -190,7 +291,7 @@ class ConfigService(object):
             config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能")
             return config.value
         else:
-            return is_open_data_center
+            return is_open_data_center.value
 
 
 config_service = ConfigService()

@@ -2,6 +2,8 @@
 """
   Created on 18/3/4.
 """
+from django.core.exceptions import MultipleObjectsReturned
+
 from www.models.plugin import PluginConfigGroup
 from www.models.plugin import PluginConfigItems
 
@@ -38,7 +40,12 @@ class PluginConfigGroupRepository(object):
 
     def create_if_not_exist(self, **plugin_config_group):
         try:
-            PluginConfigGroup.objects.get(plugin_id=plugin_config_group["plugin_id"])
+            PluginConfigGroup.objects.get(
+                plugin_id=plugin_config_group["plugin_id"],
+                build_version=plugin_config_group["build_version"],
+                config_name=plugin_config_group["config_name"])
+        except MultipleObjectsReturned:
+            pass
         except PluginConfigGroup.DoesNotExist:
             PluginConfigGroup.objects.create(**plugin_config_group)
 
@@ -73,7 +80,11 @@ class PluginConfigItemsRepository(object):
     def create_if_not_exist(self, **plugin_config_item):
         try:
             PluginConfigItems.objects.get(
-                plugin_id=plugin_config_item["plugin_id"], build_version=plugin_config_item["build_version"])
+                plugin_id=plugin_config_item["plugin_id"],
+                build_version=plugin_config_item["build_version"],
+                attr_name=plugin_config_item["attr_name"])
+        except MultipleObjectsReturned:
+            pass
         except PluginConfigItems.DoesNotExist:
             PluginConfigItems.objects.create(**plugin_config_item)
 
