@@ -23,3 +23,5 @@ update console.tenant_user_permission set per_info = '组件权限设置' where 
 -- 第三方组件
 update console.tenant_user_permission set per_info = '创建第三方组件' where codename = 'create_three_service';
 alter table console.console_sys_config modify `value` varchar(4096);
+-- 更新版本
+update console.console_sys_config set `value`="5.1.8" where `key`="RAINBOND_VERSION";
