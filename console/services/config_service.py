@@ -24,6 +24,10 @@ class ConfigService(object):
                                  "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
                                  "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
                                  "CLOUD_MARKET"]
+        self.feature_base_cfg_keys = ["IS_REGIST"]
+        self.default_feature_base_cfg_value = {
+            "IS_REGIST": {"value": True, "desc": u"是否允许注册", "enable": True},
+        }
         self.default_feature_cfg_value = {
             "OPEN_DATA_CENTER_STATUS": {"value": None, "desc": u"开启/关闭开通数据中心功能", "enable": True},
             "NEWBIE_GUIDE": {"value": None, "desc": u"开启/关闭新手引导", "enable": True},
@@ -44,6 +48,36 @@ class ConfigService(object):
             "LOGO": self._update_or_create_logo,
             "ENTERPRISE_ALIAS": self._update_entalias,
         }
+
+    def initialization_or_get_base_config(self):
+        rst_datas = {}
+        for key in self.feature_base_cfg_keys:
+            tar_key = self.get_config_by_key(key)
+            if not tar_key:
+                enable = self.default_feature_base_cfg_value[key]["enable"]
+                value = self.default_feature_base_cfg_value[key]["value"]
+                desc = self.default_feature_base_cfg_value[key]["desc"]
+
+                if isinstance(value, dict):
+                    type = "json"
+                else:
+                    type = "string"
+                rst_key = self.add_config(
+                    key=key, default_value=value, type=type, enable=enable, desc=desc)
+
+                value = rst_key.value
+                rst_data = {key.lower(): value}
+                rst_datas.update(rst_data)
+            else:
+                if tar_key.type == "json":
+                    rst_value = eval(tar_key.value)
+                elif tar_key.type == "string" and (tar_key.value == "True" or tar_key.value == "False"):
+                    rst_value = eval(tar_key.value)
+                else:
+                    rst_value = tar_key.value
+                rst_data = {key.lower(): rst_value}
+                rst_datas.update(rst_data)
+        return rst_datas
 
     def initialization_or_get_config(self):
         rst_datas = {}
@@ -211,12 +245,12 @@ class ConfigService(object):
             return None
 
     def get_regist_status(self):
-        is_regist = self.get_config_by_key("REGISTER_STATUS")
+        is_regist = self.get_config_by_key("IS_REGIST")
         if not is_regist:
-            config = self.add_config(key="REGISTER_STATUS", default_value="yes", type="string", desc="开启/关闭注册")
+            config = self.add_config(key="IS_REGIST", default_value=True, type="string", desc=u"开启/关闭注册")
             return config.value
         else:
-            return is_regist.value
+            return eval(is_regist.value)
 
     def get_github_config(self):
         github_config = self.get_config_by_key("GITHUB")
