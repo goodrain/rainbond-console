@@ -16,13 +16,13 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
-from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
 from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
 from openapi.serializer.team_serializer import RoleInfoRespSerializer
-from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import TeamBaseInfoSerializer
+from openapi.serializer.team_serializer import TeamInfoSerializer
+from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.views.base import BaseOpenAPIView
@@ -39,6 +39,7 @@ class ListTeamInfo(ListAPIView):
         manual_parameters=[
             openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
             openapi.Parameter("query", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("tenant_names", openapi.IN_QUERY, description="根据租户名称获取列表", type=openapi.TYPE_STRING),
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
@@ -58,10 +59,15 @@ class ListTeamInfo(ListAPIView):
             page_size = int(req.GET.get("page_size", 10))
         except ValueError:
             page_size = 10
+        tenant_names = req.GET.get("tenant_names", "")
 
-        data, total = team_services.list_teams_v2(
-            eid, query=query, page=page, page_size=page_size)
-        result = {"tenants": data, "total": total}
+        if tenant_names:
+            data = team_services.list_by_tenant_names(tenant_names.split(","))
+            result = {"tenants": data, "total": len(data)}
+        else:
+            data, total = team_services.list_teams_v2(
+                eid, query=query, page=page, page_size=page_size)
+            result = {"tenants": data, "total": total}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
         return Response(result, status.HTTP_200_OK)
