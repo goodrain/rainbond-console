@@ -127,15 +127,17 @@ class DomainService(object):
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate)
             data = analyze_cert(cert)
-            certificat_domain_name = data["issued_to"]
-            if certificat_domain_name.startswith('*'):
-                domain_suffix = certificat_domain_name[2:]
-            else:
-                domain_suffix = certificat_domain_name
-            logger.debug('---------domain_suffix-------->{0}'.format(domain_suffix))
-            domain_str = domain_name.encode('utf-8')
-            if not domain_str.endswith(domain_suffix):
-                return 400, u"域名和证书不匹配"
+            sans = data["issued_to"]
+            for certificat_domain_name in sans:
+                if certificat_domain_name.startswith('*'):
+                    domain_suffix = certificat_domain_name[2:]
+                else:
+                    domain_suffix = certificat_domain_name
+                logger.debug('---------domain_suffix-------->{0}'.format(domain_suffix))
+                domain_str = domain_name.encode('utf-8')
+                if domain_str.endswith(domain_suffix):
+                    return 200, u"success"
+            return 400, u"域名和证书不匹配"
 
         return 200, u"success"
 
