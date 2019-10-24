@@ -127,6 +127,18 @@ class DocumentBaseRespSerializer(serializers.Serializer):
     value = DocumentRespSerializer(required=False)
 
 
+class ObjectStorageRespSerializer(serializers.Serializer):
+    provider = serializers.CharField(max_length=255)
+    endpoint = serializers.CharField(max_length=2047)
+    access_key = serializers.CharField(max_length=255)
+    secret_key = serializers.CharField(max_length=255)
+
+
+class ObjectStorageBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = ObjectStorageRespSerializer(required=False)
+
+
 class FeatureConfigRespSerializer(serializers.Serializer):
     github = GithubServiceBaseRespSerializer(required=True)
     gitlab = GitlabServiceBaseRespSerializer(required=True)
@@ -149,3 +161,4 @@ class UpdateFeatureCfgReqSerializer(serializers.Serializer):
     export_app = ExportAppBaseRespSerializer(required=False)
     cloud_market = CloudMarketBaseRespSerializer(required=False)
     document = DocumentBaseRespSerializer(required=False)
+    object_storage = ObjectStorageBaseRespSerializer(required=False)

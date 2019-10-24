@@ -23,7 +23,7 @@ class ConfigService(object):
         self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB",
                                  "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
                                  "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
-                                 "CLOUD_MARKET"]
+                                 "CLOUD_MARKET", "OBJECT_STORAGE"]
         self.feature_base_cfg_keys = ["IS_REGIST"]
         self.default_feature_base_cfg_value = {
             "IS_REGIST": {"value": True, "desc": u"是否允许注册", "enable": True},
@@ -42,6 +42,16 @@ class ConfigService(object):
                        "desc": u"开启/关闭GITLAB", "enable": False},
             "APPSTORE_IMAGE_HUB": {"value": {"hub_user": None, "hub_url": None, "namespace": None, "hub_password": None},
                                    "desc": u"开启/关闭GITLAB", "enable": False},
+            "OBJECT_STORAGE":  {
+                "enable": True,
+                "value": {
+                    "provider": "",
+                    "endpoint": "",
+                    "access_key": "",
+                    "secret_key": ""
+                },
+                "desc": u"对象存储信息"
+            }
         }
 
         self.update_or_create_funcs = {
@@ -288,10 +298,17 @@ class ConfigService(object):
     def get_open_data_center_status(self):
         is_open_data_center = self.get_config_by_key("OPEN_DATA_CENTER_STATUS")
         if not is_open_data_center:
-            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能")
+            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True",
+                                     type="string", desc="开启/关闭开通数据中心功能")
             return config.value
         else:
             return is_open_data_center.value
+
+    def get_cloud_obj_storage_info(self):
+        cloud_obj_storage_info = self.get_config_by_key("OBJECT_STORAGE")
+        if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
+            return None
+        return cloud_obj_storage_info.value
 
 
 config_service = ConfigService()

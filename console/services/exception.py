@@ -17,3 +17,9 @@ class ErrAdminUserDoesNotExist(Exception):
 class ErrCannotDelLastAdminUser(Exception):
     def __init__(self, msg=""):
         super(ErrCannotDelLastAdminUser, self).__init__(msg)
+
+
+class ErrNoObjectStorageInfo(Exception):
+    def __init__(self):
+        msg = "no object storage info"
+        super(ErrNoObjectStorageInfo, self).__init__(msg)

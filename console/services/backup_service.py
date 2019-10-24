@@ -5,7 +5,6 @@
 import json
 import logging
 
-from console.appstore.appstore import app_store
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -33,6 +32,8 @@ from console.repositories.plugin.plugin_config import plugin_config_group_repo
 from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
+from console.services.config_service import config_service
+from console.services.exception import ErrNoObjectStorageInfo
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
@@ -78,15 +79,16 @@ class GroupAppBackupService(object):
         return image_config is None
 
     def backup_group_apps(self, tenant, user, region, group_id, mode, note):
-        service_slug = app_store.get_slug_connection_info("enterprise", tenant.tenant_name)
-        service_image = app_store.get_image_connection_info("enterprise", tenant.tenant_name)
-        if mode == "full-online" and not self.is_hub_info_configed():
-            return 412, "未配置hub仓库信息", None
+        s3_info = config_service.get_cloud_obj_storage_info()
+        if mode == "full-online" and not s3_info:
+            raise ErrNoObjectStorageInfo()  # TODO: catch ErrNoObjectStorageInfo
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
         total_memory, metadata = self.get_group_app_metadata(group_id, tenant)
         version = current_time_str("%Y%m%d%H%M%S")
+
+        s3_config = json.loads(s3_info)
         data = {
             "event_id": event_id,
             "group_id": group_uuid,
@@ -94,11 +96,11 @@ class GroupAppBackupService(object):
             "service_ids": [s.service_id for s in services],
             "mode": mode,
             "version": version,
-            "slug_info": service_slug,
-            "image_info": service_image
+            "s3_config": s3_config,
         }
         # 向数据中心发起备份任务
         body = region_api.backup_group_apps(region, tenant.tenant_name, data)
+
         bean = body["bean"]
         record_data = {
             "group_id": group_id,
@@ -116,13 +118,8 @@ class GroupAppBackupService(object):
             "backup_size": bean.get("backup_size", 0),
             "user": user.nick_name,
             "total_memory": total_memory,
-            "backup_server_info": json.dumps({
-                "slug_info": service_slug,
-                "image_info": service_image
-            })
         }
-        backup_record = backup_record_repo.create_backup_records(**record_data)
-        return 200, "success", backup_record
+        return backup_record_repo.create_backup_records(**record_data)
 
     def get_backup_group_uuid(self, group_id):
         backup_record = backup_record_repo.get_record_by_group_id(group_id)

@@ -56,9 +56,10 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         if not group_id:
             return Response(general_message(400, "group id is null", "请选择需要备份的组"), status=400)
         note = request.data.get("note", None)
-        mode = request.data.get("mode", None)
         if not note:
             return Response(general_message(400, "note is null", "请填写备份信息"), status=400)
+        mode = request.data.get("mode", None)
+        mode = "full-online"
         if not mode:
             return Response(general_message(400, "mode is null", "请选择备份模式"), status=400)
 
@@ -67,13 +68,10 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         if running_state_services:
             msg_cn = "您有有状态服务未关闭,应用如下 {0}".format(",".join(running_state_services))
             return Response(general_message(412, "state service is not closed", msg_cn), status=412)
-        code, msg, back_up_record = groupapp_backup_service.backup_group_apps(
+        back_up_record = groupapp_backup_service.backup_group_apps(
             self.tenant, self.user, self.region_name, group_id, mode, note)
-        if code != 200:
-            return Response(general_message(code, "backup not success", msg), status=code)
 
         bean = back_up_record.to_dict()
-        bean.pop("backup_server_info")
         result = general_message(200, "success", "操作成功，正在备份中", bean=bean)
         return Response(result, status=result["code"])
 
