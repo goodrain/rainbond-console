@@ -59,7 +59,6 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         if not note:
             return Response(general_message(400, "note is null", "请填写备份信息"), status=400)
         mode = request.data.get("mode", None)
-        mode = "full-online"
         if not mode:
             return Response(general_message(400, "mode is null", "请选择备份模式"), status=400)
 

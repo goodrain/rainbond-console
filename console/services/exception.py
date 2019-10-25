@@ -23,3 +23,15 @@ class ErrNoObjectStorageInfo(Exception):
     def __init__(self):
         msg = "no object storage info"
         super(ErrNoObjectStorageInfo, self).__init__(msg)
+
+
+class ErrBackupRecordNotFound(Exception):
+    def __init__(self):
+        msg = "backup record not found"
+        super(ErrNoObjectStorageInfo, self).__init__(msg)
+
+
+class ErrNeedAllServiceCloesed(Exception):
+    def __init__(self):
+        msg = "restore the backup, please make sure that all services are all closed."
+        super(ErrNoObjectStorageInfo, self).__init__(msg)
