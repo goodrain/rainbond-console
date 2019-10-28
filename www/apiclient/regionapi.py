@@ -8,6 +8,7 @@ from django import http
 from django.conf import settings
 
 from console.models.main import RegionConfig
+from console.services.config_service import config_service
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo

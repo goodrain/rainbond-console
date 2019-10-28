@@ -132,6 +132,7 @@ class ObjectStorageRespSerializer(serializers.Serializer):
     endpoint = serializers.CharField(max_length=2047)
     access_key = serializers.CharField(max_length=255)
     secret_key = serializers.CharField(max_length=255)
+    bucket_name = serializers.CharField(max_length=255)
 
 
 class ObjectStorageBaseRespSerializer(serializers.Serializer):
@@ -149,6 +150,7 @@ class FeatureConfigRespSerializer(serializers.Serializer):
     export_app = ExportAppBaseRespSerializer(required=True)
     cloud_market = CloudMarketBaseRespSerializer(required=True)
     document = DocumentBaseRespSerializer(required=True)
+    object_storage = ObjectStorageBaseRespSerializer(required=False)
 
 
 class UpdateFeatureCfgReqSerializer(serializers.Serializer):

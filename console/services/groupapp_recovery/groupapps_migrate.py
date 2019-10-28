@@ -27,7 +27,7 @@ from console.repositories.team_repo import team_repo
 from console.services.config_service import config_service
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
-from console.services.exception import ErrNoObjectStorageInfo
+from console.services.exception import ErrObjectStorageInfoNotFound
 from console.services.group_service import group_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
@@ -122,17 +122,17 @@ class GroupappsMigrateService(object):
                       backup_id, migrate_type, event_id, restore_id):
         backup_record = backup_record_repo.get_record_by_backup_id(current_team.tenant_id, backup_id)
         if not backup_record:
-            raise ErrBackupRecordNotFound()  # TODO: catch ErrNoObjectStorageInfo
+            raise ErrBackupRecordNotFound
 
         s3_info = config_service.get_cloud_obj_storage_info()
         if backup_record.mode == "full-online" and not s3_info:
-            raise ErrNoObjectStorageInfo()  # TODO: catch ErrNoObjectStorageInfo
+            raise ErrObjectStorageInfoNotFound
 
         if migrate_type == "recover":
             is_all_services_closed = self.__check_group_service_status(
                 current_region, current_team, backup_record.group_id)
             if not is_all_services_closed:
-                raise ErrNeedAllServiceCloesed()
+                raise ErrNeedAllServiceCloesed
 
         restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
 
@@ -143,10 +143,11 @@ class GroupappsMigrateService(object):
             new_backup_record = backup_record
 
         data = {
+            "event_id": make_uuid(),
             "backup_id": new_backup_record.backup_id,
             "restore_mode": restore_mode,
             "tenant_id": migrate_team.tenant_id,
-            "s3_config": json.loads(s3_info),
+            "s3_config": s3_info,
         }
         body = region_api.star_apps_migrate_task(
             migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)

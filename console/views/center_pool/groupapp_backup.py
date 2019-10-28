@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from console.constants import StorageUnit
 from console.repositories.group import group_repo
 from console.services.backup_service import groupapp_backup_service
+from console.services.config_service import config_service
 from console.services.team_services import team_services
 from console.views.base import AlowAnyApiView
 from console.views.base import RegionTenantHeaderView
@@ -123,45 +124,14 @@ class GroupAppsBackupView(RegionTenantHeaderView):
     def delete(self, request, *args, **kwargs):
         """
         根据应用备份ID删除备份
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名称
-              required: true
-              type: string
-              paramType: path
-            - name: group_id
-              description: 组ID
-              required: true
-              type: string
-              paramType: path
-            - name: backup_id
-              description: 备份id
-              required: true
-              type: string
-              paramType: form
         """
-        try:
-            group_id = int(kwargs.get("group_id", None))
-            if not group_id:
-                return Response(general_message(400, "group id is null", "请选择需要的组ID"), status=400)
-            backup_id = request.data.get("backup_id", None)
-            if not backup_id:
-                return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
-            code, msg = groupapp_backup_service.delete_group_backup_by_backup_id(
-                self.tenant,
-                self.response_region,
-                backup_id,
-                group_id,
-            )
-            if code != 200:
-                return Response(general_message(code, "get backup status error", msg), status=code)
+        backup_id = request.data.get("backup_id", None)
+        if not backup_id:
+            return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
+        groupapp_backup_service.delete_group_backup_by_backup_id(
+            self.tenant, self.response_region, backup_id)
 
-            result = general_message(200, "success", "删除成功")
-
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
 
@@ -243,8 +213,8 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
         backups = groupapp_backup_service.get_group_back_up_info(self.tenant, self.region_name, group_id)
         paginator = JuncheePaginator(backups, int(page_size))
         backup_records = paginator.page(int(page))
-        is_configed = groupapp_backup_service.is_hub_info_configed()
-        bean = {"is_configed": is_configed}
+        obj_storage = config_service.get_cloud_obj_storage_info()
+        bean = {"is_configed": obj_storage is not None}
         result = general_message(200, "success", "查询成功", bean=bean,
                                  list=[backup.to_dict() for backup in backup_records], total=paginator.count)
         return Response(result, status=result["code"])

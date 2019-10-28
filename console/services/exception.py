@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+from console.exception.main import ServiceHandleException
 
 
 class ErrDepServiceNotFound(Exception):
@@ -19,19 +20,32 @@ class ErrCannotDelLastAdminUser(Exception):
         super(ErrCannotDelLastAdminUser, self).__init__(msg)
 
 
-class ErrNoObjectStorageInfo(Exception):
+class ErrTenantRegionNotFound(Exception):
     def __init__(self):
-        msg = "no object storage info"
-        super(ErrNoObjectStorageInfo, self).__init__(msg)
+        msg = "tenant region not found"
+        super(ErrTenantRegionNotFound, self).__init__(msg)
 
 
-class ErrBackupRecordNotFound(Exception):
-    def __init__(self):
-        msg = "backup record not found"
-        super(ErrNoObjectStorageInfo, self).__init__(msg)
+ErrObjectStorageInfoNotFound = ServiceHandleException(
+    msg="object storage info not found",
+    msg_show="云端存储信息不存在",
+    status_code=404,
+)
+
+ErrBackupRecordNotFound = ServiceHandleException(
+    msg="backup not found",
+    msg_show="备份不存在",
+    status_code=404,
+)
+
+ErrBackupInProgress = ServiceHandleException(
+    msg="backup in progress",
+    msg_show="该备份正在进行中",
+    status_code=409,
+)
 
 
-class ErrNeedAllServiceCloesed(Exception):
-    def __init__(self):
-        msg = "restore the backup, please make sure that all services are all closed."
-        super(ErrNoObjectStorageInfo, self).__init__(msg)
+ErrNeedAllServiceCloesed = ServiceHandleException(
+    msg="restore the backup, please make sure that all services are all closed.",
+    msg_show="请先关闭所有的组件",
+)

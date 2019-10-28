@@ -33,7 +33,9 @@ from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
 from console.services.config_service import config_service
-from console.services.exception import ErrNoObjectStorageInfo
+from console.services.exception import ErrBackupInProgress
+from console.services.exception import ErrBackupRecordNotFound
+from console.services.exception import ErrObjectStorageInfoNotFound
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
@@ -79,16 +81,15 @@ class GroupAppBackupService(object):
         return image_config is None
 
     def backup_group_apps(self, tenant, user, region, group_id, mode, note):
-        s3_info = config_service.get_cloud_obj_storage_info()
-        if mode == "full-online" and not s3_info:
-            raise ErrNoObjectStorageInfo()  # TODO: catch ErrNoObjectStorageInfo
+        s3_config = config_service.get_cloud_obj_storage_info()
+        if mode == "full-online" and not s3_config:
+            raise ErrObjectStorageInfoNotFound
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
         total_memory, metadata = self.get_group_app_metadata(group_id, tenant)
         version = current_time_str("%Y%m%d%H%M%S")
 
-        s3_config = json.loads(s3_info)
         data = {
             "event_id": event_id,
             "group_id": group_uuid,
@@ -141,17 +142,20 @@ class GroupAppBackupService(object):
             backup_record.save()
         return 200, "success", backup_record
 
-    def delete_group_backup_by_backup_id(self, tenant, region, backup_id, group_id):
+    def delete_group_backup_by_backup_id(self, tenant, region, backup_id):
         backup_record = backup_record_repo.get_record_by_backup_id(tenant.tenant_id, backup_id)
         if not backup_record:
-            return 404, "不存在该备份记录"
+            raise ErrBackupRecordNotFound
         if backup_record.status == "starting":
-            return 409, "该备份正在进行中"
-        if backup_record.status == "success" and group_repo.get_group_by_id(group_id):
-            return 409, "该备份不可删除"
-        region_api.delete_backup_by_backup_id(region, tenant.tenant_name, backup_id)
+            return ErrBackupInProgress
+
+        try:
+            region_api.delete_backup_by_backup_id(region, tenant.tenant_name, backup_id)
+        except region_api.CallApiError as e:
+            if e.status != 404:
+                raise e
+
         backup_record_repo.delete_record_by_backup_id(tenant.tenant_id, backup_id)
-        return 200, "success"
 
     def get_group_backup_status_by_group_id(self, tenant, region, group_id):
         backup_records = backup_record_repo.get_record_by_group_id(group_id)

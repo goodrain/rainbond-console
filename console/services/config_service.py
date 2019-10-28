@@ -48,7 +48,8 @@ class ConfigService(object):
                     "provider": "",
                     "endpoint": "",
                     "access_key": "",
-                    "secret_key": ""
+                    "secret_key": "",
+                    "bucket_name": "",
                 },
                 "desc": u"对象存储信息"
             }
@@ -308,7 +309,7 @@ class ConfigService(object):
         cloud_obj_storage_info = self.get_config_by_key("OBJECT_STORAGE")
         if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
             return None
-        return cloud_obj_storage_info.value
+        return eval(cloud_obj_storage_info.value)
 
 
 config_service = ConfigService()
