@@ -55,6 +55,9 @@ class RegionRepo(object):
             return region_configs[0]
         return None
 
+    def get_by_region_name(self, region_name):
+        return RegionConfig.objects.get(region_name=region_name)
+
     def get_region_by_region_names(self, region_names):
         return RegionConfig.objects.filter(region_name__in=region_names)
 
