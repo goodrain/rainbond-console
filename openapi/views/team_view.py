@@ -441,6 +441,7 @@ class ListRegionTeamServicesView(ListAPIView):
         serializer = ListRegionTeamServicesSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status.HTTP_200_OK)
+    
     def delete(self, request, team_id, region_name):
         try:
             team_services.delete_team_region(team_id, region_name)
