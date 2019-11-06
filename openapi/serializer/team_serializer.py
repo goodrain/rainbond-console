@@ -33,7 +33,7 @@ class TeamInfoSerializer(serializers.Serializer):
 
 
 class ListTeamRespSerializer(serializers.Serializer):
-    total = serializers.IntegerField()
+    total = serializers.IntegerField(required=False)
     tenants = TeamInfoSerializer(many=True)
 
 
