@@ -322,6 +322,7 @@ class UserService(object):
         try:
             upp = paginator.page(page)
         except Exception as e:
+            logger.debug(e)
             return [], 0
         users = []
         for user in upp:
