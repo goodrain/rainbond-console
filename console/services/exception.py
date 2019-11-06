@@ -17,3 +17,9 @@ class ErrAdminUserDoesNotExist(Exception):
 class ErrCannotDelLastAdminUser(Exception):
     def __init__(self, msg=""):
         super(ErrCannotDelLastAdminUser, self).__init__(msg)
+
+
+class ErrTenantRegionNotFound(Exception):
+    def __init__(self):
+        msg = "tenant region not found"
+        super(ErrTenantRegionNotFound, self).__init__(msg)

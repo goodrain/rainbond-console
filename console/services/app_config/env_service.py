@@ -148,14 +148,14 @@ class AppEnvVarService(object):
         env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, attr_name)
 
     def delete_env_by_env_id(self, tenant, service, env_id):
-        if service.create_status == "complete":
-            env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
-            if env:
+        env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
+        if env:
+            env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, env.attr_name)
+            if service.create_status == "complete":
                 region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
                     "env_name": env.attr_name,
                     "enterprise_id": tenant.enterprise_id
                 })
-                env_var_repo.delete_service_env_by_attr_name(tenant.tenant_id, service.service_id, env.attr_name)
 
     def delete_env_by_container_port(self, tenant, service, container_port):
         envs = env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)

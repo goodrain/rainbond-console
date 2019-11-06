@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
-
-import MySQLdb
 import os
 import sys
+
+import MySQLdb
 
 
 class RainbondVersion(object):
@@ -100,7 +100,7 @@ def get_version():
 
 
 def get_current_version():
-    return RainbondVersion("5.1.7")
+    return RainbondVersion("5.1.8")
 
 
 def should_upgrade(current_version, new_version):

@@ -5,8 +5,8 @@ import logging
 from django.core.paginator import Paginator
 from django.db import transaction
 
-from console.exception.exceptions import RegionUnreachableError
 from console.enum.region_enum import RegionStatusEnum
+from console.exception.exceptions import RegionUnreachableError
 from console.models.main import ConsoleSysConfig
 from console.models.main import RegionConfig
 from console.repositories.group import group_repo
@@ -32,6 +32,9 @@ class RegionService(object):
 
     def get_region_by_region_name(self, region_name):
         return region_repo.get_region_by_region_name(region_name=region_name)
+
+    def get_by_region_name(self, region_name):
+        return region_repo.get_by_region_name(region_name)
 
     def get_region_all_list_by_team_name(self, team_name):
         regions = region_repo.get_region_by_tenant_name(tenant_name=team_name)
