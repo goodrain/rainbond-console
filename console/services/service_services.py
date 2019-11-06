@@ -21,11 +21,16 @@ class BaseService(object):
                 t.version,
                 t.update_time,
                 r.group_id,
-                g.group_name
+                g.group_name,
+                h.tenant_name,
+                i.region_id
             FROM
                 tenant_service t
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
+                LEFT JOIN tenant_info h ON t.tenant_id = h.tenant_id
+                LEFT JOIN region_info i ON t.service_region = i.region_name
+
             WHERE
                 t.tenant_id = "{team_id}"
                 AND t.service_region = "{region_name}"

@@ -26,6 +26,7 @@ from openapi.serializer.team_serializer import TeamBaseInfoSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
+from openapi.serializer.team_serializer import ListRegionTeamServicesSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
@@ -406,6 +407,41 @@ class TeamRegionView(BaseOpenAPIView):
         },
         tags=['openapi-team-region'],
     )
+    def delete(self, request, team_id):
+        serializer = TeamRegionReqSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team_data = serializer.data
+        region = team_data.get("region", None)
+        if region:
+            region = region_services.get_region_by_region_name(region)
+            if not region:
+                raise serializers.ValidationError("指定数据中心不存在")
+        code, msg, team = team_services.delete_team_region(team_id, region)
+        if code == 200:
+            re = TeamBaseInfoSerializer(team)
+            return Response(re.data, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_404_NOT_FOUND)
+
+
+class ListRegionTeamServicesView(ListAPIView):
+    @swagger_auto_schema(
+        operation_description="获取团队下指定数据中心组件信息",
+        manual_parameters=[
+            openapi.Parameter("eid", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_name", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ListRegionTeamServicesSerializer()},
+        tags=['openapi-team'],
+    )
+    def get(self, req, team_id, region_name, *args, **kwargs):
+        services = region_services.list_services_by_tenant_name(region_name, team_id)
+        total = len(services)
+        data = {"services": services, "total": total}
+        serializer = ListRegionTeamServicesSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+
     def delete(self, request, team_id, region_name):
         try:
             team_services.delete_team_region(team_id, region_name)
