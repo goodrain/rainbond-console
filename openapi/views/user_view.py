@@ -8,7 +8,6 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
-from console.views.base import BaseApiView
 from console.exception.exceptions import EmailExistError
 from console.exception.exceptions import PhoneExistError
 from console.exception.exceptions import UserExistError
@@ -205,18 +204,11 @@ class ChangePassword(BaseOpenAPIView):
             new_password = request.data.get("password", None)
             new_password1 = request.data.get("password1", None)
             code = 500
-            print 1
-            if new_password != new_password1:
-                result = general_message(500, "two password disagree", "两个密码不一致")
-            else:
+            if new_password == new_password1:
                 status, info = user_services.update_password(user_id=user_id, new_password=new_password)
                 if status:
                     code = 200
-                    result = general_message(200, "change password success", "密码修改成功")
-                else:
-                    result = general_message(500, "password change failed", "密码修改失败")
             return Response(None, status=code)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
             return Response(None, status=500)
