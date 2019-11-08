@@ -5,14 +5,15 @@ import logging
 from django.core.paginator import Paginator
 from django.db import transaction
 
-from console.exception.exceptions import RegionUnreachableError
 from console.enum.region_enum import RegionStatusEnum
+from console.exception.exceptions import RegionUnreachableError
 from console.models.main import ConsoleSysConfig
 from console.models.main import RegionConfig
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.config_service import config_service
+from console.services.service_services import base_service
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
@@ -31,6 +32,9 @@ class RegionService(object):
 
     def get_region_by_region_name(self, region_name):
         return region_repo.get_region_by_region_name(region_name=region_name)
+
+    def get_by_region_name(self, region_name):
+        return region_repo.get_by_region_name(region_name)
 
     def get_region_all_list_by_team_name(self, team_name):
         regions = region_repo.get_region_by_tenant_name(tenant_name=team_name)
@@ -117,6 +121,9 @@ class RegionService(object):
         regions = region_repo.list_by_tenant_id(tenant_id, query, page, page_size)
         total = region_repo.count_by_tenant_id(tenant_id, query)
         return regions, total
+
+    def list_services_by_tenant_name(self, region_name, team_id):
+        return base_service.get_services_list(team_id, region_name)
 
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()

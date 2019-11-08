@@ -319,7 +319,11 @@ class UserService(object):
     def list_users(self, page, size, item=""):
         uall = user_repo.list_users(item)
         paginator = Paginator(uall, size)
-        upp = paginator.page(page)
+        try:
+            upp = paginator.page(page)
+        except Exception as e:
+            logger.debug(e)
+            return [], 0
         users = []
         for user in upp:
             users.append({
