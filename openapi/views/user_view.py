@@ -179,7 +179,7 @@ class ChangePassword(BaseOpenAPIView):
         },
         tags=['openapi-user'],
     )
-    def post(self, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """
         修改密码
         ---
@@ -219,4 +219,4 @@ class ChangePassword(BaseOpenAPIView):
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-            return Response(result, status=500)
+            return Response(None, status=500)
