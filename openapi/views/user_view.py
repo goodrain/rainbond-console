@@ -23,7 +23,6 @@ from openapi.serializer.user_serializer import ChangePassWdUserSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 from www.models.main import Users
-from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger("default")
 
