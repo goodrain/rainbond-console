@@ -13,6 +13,7 @@ from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.config_service import config_service
+from console.services.service_services import base_service
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
@@ -120,6 +121,9 @@ class RegionService(object):
         regions = region_repo.list_by_tenant_id(tenant_id, query, page, page_size)
         total = region_repo.count_by_tenant_id(tenant_id, query)
         return regions, total
+
+    def list_services_by_tenant_name(self, region_name, team_id):
+        return base_service.get_services_list(team_id, region_name)
 
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()
