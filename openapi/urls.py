@@ -34,6 +34,7 @@ from openapi.views.team_view import TeamRegionView
 from openapi.views.team_view import TeamUserInfoView
 from openapi.views.upload_view import UploadView
 from openapi.views.user_view import ListUsersView
+from openapi.views.user_view import ChangePassword
 from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
 
@@ -69,6 +70,7 @@ urlpatterns = [
     url(r'^v1/users$', ListUsersView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
+    url(r'^v1/user/changepwd$', ChangePassword.as_view()),
     url(r'^v1/administrators$', ListAdminsView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),

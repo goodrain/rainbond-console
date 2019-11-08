@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.views.base import BaseApiView
 from console.exception.exceptions import EmailExistError
 from console.exception.exceptions import PhoneExistError
 from console.exception.exceptions import UserExistError
@@ -19,9 +20,11 @@ from openapi.serializer.user_serializer import CreateUserSerializer
 from openapi.serializer.user_serializer import ListUsersRespView
 from openapi.serializer.user_serializer import UpdateUserSerializer
 from openapi.serializer.user_serializer import UserInfoSerializer
+from openapi.serializer.user_serializer import ChangePassWdUserSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 from www.models.main import Users
+from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger("default")
 
@@ -164,3 +167,56 @@ class UserTeamInfoView(ListAPIView):
         serializer.is_valid(raise_exception=True)
 
         return Response(result, status.HTTP_200_OK)
+
+
+class ChangePassword(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="修改用户密码",
+        request_body=ChangePassWdUserSerializer,
+        responses={
+            status.HTTP_200_OK: None,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+        },
+        tags=['openapi-user'],
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        修改密码
+        ---
+        parameters:
+            - name: password
+              description: 原密码
+              required: true
+              type: string
+              paramType: form
+            - name: new_password
+              description: 新密码
+              required: true
+              type: string
+              paramType: form
+            - name: new_password2
+              description: 确认密码
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            user_id = request.data.get("user_id", None)
+            new_password = request.data.get("password", None)
+            new_password1 = request.data.get("password1", None)
+            code = 500
+            print 1
+            if new_password != new_password1:
+                result = general_message(500, "two password disagree", "两个密码不一致")
+            else:
+                status, info = user_services.update_password(user_id=user_id, new_password=new_password)
+                if status:
+                    code = 200
+                    result = general_message(200, "change password success", "密码修改成功")
+                else:
+                    result = general_message(500, "password change failed", "密码修改失败")
+            return Response(None, status=code)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
