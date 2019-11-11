@@ -382,8 +382,11 @@ class UserService(object):
             perms = EnterpriseUserPerm.objects.filter(enterprise_id=eid).all()
         total = perms.count()
         paginator = Paginator(perms, size)
-        permsp = paginator.page(page)
-
+        try:
+            permsp = paginator.page(page)
+        except Exception as e:
+            logger.debug(e)
+            return [], total
         users = []
         for item in permsp:
             try:
