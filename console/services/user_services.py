@@ -93,7 +93,7 @@ class UserService(object):
             PermRelTenant.objects.filter(user_id=user.pk).delete()
         except PermRelTenant.DoesNotExist:
             pass
-        gitClient.deleteUser(git_user_id)
+        # gitClient.deleteUser(git_user_id)
         user.delete()
 
     def update_user_password(self, user_id, new_password):
