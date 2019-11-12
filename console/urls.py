@@ -3,6 +3,8 @@ from django.conf.urls import url
 
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
+from console.views.app_autoscaler import AppAutoscalerView
+from console.views.app_autoscaler import ListAppAutoscalerView
 from console.views.app_config.app_dependency import AppDependencyManageView
 from console.views.app_config.app_dependency import AppDependencyView
 from console.views.app_config.app_dependency import AppNotDependencyView
@@ -56,6 +58,8 @@ from console.views.app_create.source_outer import ThirdPartyServiceApiView
 from console.views.app_create.source_outer import ThirdPartyServiceCreateView
 from console.views.app_create.source_outer import ThirdPartyUpdateSecretKeyView
 from console.views.app_event import AppEventLogView
+from console.views.app_event import AppEventsLogView
+from console.views.app_event import AppEventsView
 from console.views.app_event import AppEventView
 from console.views.app_event import AppHistoryLogView
 from console.views.app_event import AppLogInstanceView
@@ -247,7 +251,6 @@ from console.views.webhook import ImageWebHooksTrigger
 from console.views.webhook import UpdateSecretKey
 from console.views.webhook import WebHooksDeploy
 from console.views.webhook import WebHooksStatus
-from console.views.app_event import AppEventsView, AppEventsLogView
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -548,6 +551,10 @@ urlpatterns = [
         HorizontalExtendAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vertical$', VerticalExtendAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules$', ListAppAutoscalerView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules/(?P<rule_id>[\w\-]+)$',
+        AppAutoscalerView.as_view()),
+
     # 修改组件应用类型标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$',
         ChangeServiceTypeView.as_view()),

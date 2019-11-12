@@ -49,3 +49,14 @@ ErrNeedAllServiceCloesed = ServiceHandleException(
     msg="restore the backup, please make sure that all services are all closed.",
     msg_show="请先关闭所有的组件",
 )
+
+ErrDuplicateMetrics = ServiceHandleException(
+    msg="depulicate metrics",
+    msg_show="重复的指标",
+)
+
+ErrAutoscalerRuleNotFound = ServiceHandleException(
+    msg="autoscaler rule not found",
+    msg_show="自动伸缩规程不存在",
+    status_code=404
+)
