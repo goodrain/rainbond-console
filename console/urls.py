@@ -4,6 +4,7 @@ from django.conf.urls import url
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
 from console.views.app_autoscaler import AppAutoscalerView
+from console.views.app_autoscaler import AppScalingRecords
 from console.views.app_autoscaler import ListAppAutoscalerView
 from console.views.app_config.app_dependency import AppDependencyManageView
 from console.views.app_config.app_dependency import AppDependencyView
@@ -554,6 +555,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules$', ListAppAutoscalerView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules/(?P<rule_id>[\w\-]+)$',
         AppAutoscalerView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparecords$', AppScalingRecords.as_view()),
 
     # 修改组件应用类型标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$',

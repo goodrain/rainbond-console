@@ -7,7 +7,10 @@ from console.repositories.autoscaler_repo import autoscaler_rule_metrics_repo
 from console.repositories.autoscaler_repo import autoscaler_rules_repo
 from console.services.exception import ErrAutoscalerRuleNotFound
 from console.services.exception import ErrDuplicateMetrics
+from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
+
+region_api = RegionInvokeApi()
 
 
 class AutoscalerService(object):
@@ -92,4 +95,11 @@ class AutoscalerService(object):
         return autoscaler_rule
 
 
+class ScalingRecordsService(object):
+    def list_scaling_records(self, region_name, tenant_name, service_alias, page=None, page_size=None):
+        body = region_api.list_scaling_records(region_name, tenant_name, service_alias, page, page_size)
+        return body["bean"]
+
+
 autoscaler_service = AutoscalerService()
+scaling_records_service = ScalingRecordsService()

@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from console.exception.main import AbortRequest
 from console.services.autoscaler_service import autoscaler_service
+from console.services.autoscaler_service import scaling_records_service
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
@@ -80,4 +81,14 @@ class AppAutoscalerView(AppBaseView):
         res = autoscaler_service.update_autoscaler_rule(rule_id, req.data)
 
         result = general_message(200, "success", "创建成功", bean=res)
+        return Response(data=result, status=200)
+
+
+class AppScalingRecords(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, req, *args, **kwargs):
+        data = scaling_records_service.list_scaling_records(
+            self.region_name, self.tenant.tenant_name, self.service.service_alias)
+        result = general_message(200, "success", "查询成功", list=data)
         return Response(data=result, status=200)
