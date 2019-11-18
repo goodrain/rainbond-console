@@ -75,6 +75,14 @@ class ListAppAutoscalerView(AppBaseView):
 
 class AppAutoscalerView(AppBaseView):
     @never_cache
+    @perm_required('view_service')
+    def get(self, req, rule_id, *args, **kwargs):
+        res = autoscaler_service.get_by_rule_id(rule_id)
+
+        result = general_message(200, "success", "创建成功", bean=res)
+        return Response(data=result, status=200)
+
+    @never_cache
     @perm_required('manage_service_extend')
     def put(self, req, rule_id, *args, **kwargs):
         validate_parameter(req.data)
@@ -90,7 +98,10 @@ class AppScalingRecords(AppBaseView):
     @never_cache
     @perm_required('view_service')
     def get(self, req, *args, **kwargs):
+        page = req.GET.get("page", 1)
+        page_size = req.GET.get("page_size", 10)
+
         data = scaling_records_service.list_scaling_records(
-            self.region_name, self.tenant.tenant_name, self.service.service_alias)
+            self.region_name, self.tenant.tenant_name, self.service.service_alias, page, page_size)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(data=result, status=200)

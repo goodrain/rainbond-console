@@ -16,6 +16,9 @@ class AutoscalerRulesRepository(object):
     def list_by_service_id(self, service_id):
         return AutoscalerRules.objects.filter(service_id=service_id)
 
+    def get_by_rule_id(self, rule_id):
+        return AutoscalerRules.objects.get(rule_id=rule_id)
+
 
 class AutoscalerRuleMetricsRepository(object):
 
@@ -32,11 +35,12 @@ class AutoscalerRuleMetricsRepository(object):
         return AutoscalerRuleMetrics.objects.bulk_create(metrics)
 
     def list_by_rule_ids(self, rule_ids):
-        return AutoscalerRuleMetrics.objects.filter(rule_id__in=rule_ids)
+        return AutoscalerRuleMetrics.objects.filter(rule_id__in=rule_ids).order_by
 
     def update_or_create(self, rule_id, metric):
         try:
-            m = AutoscalerRuleMetrics.objects.get(metric_type=metric["metric_type"], metric_name=metric["metric_name"])
+            m = AutoscalerRuleMetrics.objects.get(
+                rule_id=rule_id, metric_type=metric["metric_type"], metric_name=metric["metric_name"])
             m.metric_target_type = metric["metric_target_type"]
             m.metric_target_value = metric["metric_target_value"]
             m.save()

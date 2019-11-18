@@ -14,13 +14,30 @@ region_api = RegionInvokeApi()
 
 
 class AutoscalerService(object):
+    def get_by_rule_id(self, rule_id):
+        try:
+            rule = autoscaler_rules_repo.get_by_rule_id(rule_id)
+            metrics = autoscaler_rule_metrics_repo.list_by_rule_ids([rule.rule_id])
+
+            res = rule.to_dict()
+            res["metrics"] = [m.to_dict() for m in metrics]
+            return res
+        except AutoscalerRules.DoesNotExist:
+            raise ErrAutoscalerRuleNotFound
+
     def list_autoscaler_rules(self, service_id):
         rules = autoscaler_rules_repo.list_by_service_id(service_id)
         rule_ids = [rule.rule_id for rule in rules]
 
         metrics = autoscaler_rule_metrics_repo.list_by_rule_ids(rule_ids)
         # rule to metrics
-        r2m = {m.rule_id: m.to_dict() for m in metrics}
+        r2m = {}
+        for metric in metrics:
+            metric = metric.to_dict()
+            if r2m.get(metric["rule_id"], None) is None:
+                r2m[metric["rule_id"]] = [metric]
+            else:
+                r2m[metric["rule_id"]].append(metric)
 
         res = []
         for rule in rules:
@@ -95,6 +112,14 @@ class AutoscalerService(object):
         region_api.update_xpa_rule(region_name, tenant_name, service_alias, data=autoscaler_rule)
 
         return autoscaler_rule
+
+    @transaction.atomic
+    def delete_autoscaler_rule(self, region_name, tenant_name, service_alias, rule_id):
+        try:
+            autoscaler_rule = autoscaler_rules_repo.delete(rule_id)
+        except AutoscalerRules.DoesNotExist:
+            raise ErrAutoscalerRuleNotFound
+        autoscaler_rule = autoscaler_rule.to_dict()
 
 
 class ScalingRecordsService(object):
