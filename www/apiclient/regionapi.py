@@ -1515,3 +1515,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
+
+    def create_xpa_rule(self, region, tenant_name, service_alias, data):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparules"
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region)
+        return body
+
+    def update_xpa_rule(self, region, tenant_name, service_alias, data):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparules"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region)
+        return body

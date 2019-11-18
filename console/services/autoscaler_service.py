@@ -32,15 +32,15 @@ class AutoscalerService(object):
         return res
 
     @transaction.atomic
-    def create_autoscaler_rule(self, data):
+    def create_autoscaler_rule(self, region_name, tenant_name, service_alias, data):
         # create autoscaler rule
         autoscaler_rule = {
             "rule_id": make_uuid(),
             "service_id": data["service_id"],
             "xpa_type": data["xpa_type"],
             "enable": data["enable"],
-            "max_replicas": data["min_replicas"],
-            "min_replicas": data["max_replicas"],
+            "min_replicas": data["min_replicas"],
+            "max_replicas": data["max_replicas"],
         }
         autoscaler_rules_repo.create(**autoscaler_rule)
 
@@ -60,19 +60,20 @@ class AutoscalerService(object):
         except IntegrityError:
             raise ErrDuplicateMetrics
 
-        # TODO: region api
-
         autoscaler_rule["metrics"] = metrics
+
+        region_api.create_xpa_rule(region_name, tenant_name, service_alias, data=autoscaler_rule)
+
         return autoscaler_rule
 
     @transaction.atomic
-    def update_autoscaler_rule(self, rule_id, data):
+    def update_autoscaler_rule(self, region_name, tenant_name, service_alias, rule_id, data):
         # create autoscaler rule
         autoscaler_rule = {
             "xpa_type": data["xpa_type"],
             "enable": data["enable"],
-            "max_replicas": data["min_replicas"],
-            "min_replicas": data["max_replicas"],
+            "min_replicas": data["min_replicas"],
+            "max_replicas": data["max_replicas"],
         }
         try:
             autoscaler_rule = autoscaler_rules_repo.update(rule_id, **autoscaler_rule)
@@ -89,9 +90,10 @@ class AutoscalerService(object):
             except IntegrityError:
                 raise ErrDuplicateMetrics
 
-        # TODO: region api
-
         autoscaler_rule["metrics"] = metrics
+
+        region_api.update_xpa_rule(region_name, tenant_name, service_alias, data=autoscaler_rule)
+
         return autoscaler_rule
 
 

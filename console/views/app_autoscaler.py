@@ -66,7 +66,8 @@ class ListAppAutoscalerView(AppBaseView):
 
         data = req.data
         data["service_id"] = self.service.service_id
-        res = autoscaler_service.create_autoscaler_rule(data)
+        res = autoscaler_service.create_autoscaler_rule(
+            self.region_name, self.tenant.tenant_name, self.service.service_alias, data)
 
         result = general_message(200, "success", "创建成功", bean=res)
         return Response(data=result, status=200)
@@ -78,7 +79,8 @@ class AppAutoscalerView(AppBaseView):
     def put(self, req, rule_id, *args, **kwargs):
         validate_parameter(req.data)
 
-        res = autoscaler_service.update_autoscaler_rule(rule_id, req.data)
+        res = autoscaler_service.update_autoscaler_rule(
+            self.region_name, self.tenant.tenant_name, self.service.service_alias, rule_id, req.data)
 
         result = general_message(200, "success", "创建成功", bean=res)
         return Response(data=result, status=200)
@@ -90,5 +92,5 @@ class AppScalingRecords(AppBaseView):
     def get(self, req, *args, **kwargs):
         data = scaling_records_service.list_scaling_records(
             self.region_name, self.tenant.tenant_name, self.service.service_alias)
-        result = general_message(200, "success", "查询成功", list=data)
+        result = general_message(200, "success", "查询成功", bean=data)
         return Response(data=result, status=200)
