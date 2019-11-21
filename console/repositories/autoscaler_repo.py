@@ -35,7 +35,7 @@ class AutoscalerRuleMetricsRepository(object):
         return AutoscalerRuleMetrics.objects.bulk_create(metrics)
 
     def list_by_rule_ids(self, rule_ids):
-        return AutoscalerRuleMetrics.objects.filter(rule_id__in=rule_ids).order_by
+        return AutoscalerRuleMetrics.objects.filter(rule_id__in=rule_ids)
 
     def update_or_create(self, rule_id, metric):
         try:
