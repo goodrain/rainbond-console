@@ -92,6 +92,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except RegionApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
+    def delete_tenant(self, region, tenant_name):
+        """删除组件"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name
+
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
     def create_service(self, region, tenant_name, body):
         """创建组件"""
 
@@ -682,7 +693,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_target_events_list(self, region, tenant_name, target, target_id, page, page_size):
         """获取作用对象事件日志列表"""
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
+        url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(
+            target, target_id, page, page_size)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
@@ -1490,4 +1502,34 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def list_scaling_records(self, region, tenant_name, service_alias, page=None, page_size=None):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparecords"
+
+        if page is not None and page_size is not None:
+            url = url + "?page={}&page_size={}".format(page, page_size)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def create_xpa_rule(self, region, tenant_name, service_alias, data):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparules"
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region)
+        return body
+
+    def update_xpa_rule(self, region, tenant_name, service_alias, data):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparules"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region)
         return body
