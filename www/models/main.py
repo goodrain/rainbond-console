@@ -5,7 +5,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import DateTimeField
+from django.db.models.fields import DateTimeField, CharField, AutoField, BooleanField, DecimalField, IntegerField
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from enum import Enum
@@ -290,6 +290,39 @@ class BaseModel(models.Model):
                 value = value.url if value else None
             data[f.name] = value
         return data
+
+    def to_json(self):
+        opts = self._meta
+        data = []
+        for f in opts.concrete_fields:
+            parameter = {}
+            parameter["table"] = opts.db_table
+            parameter["name"] = f.name
+            parameter["kind"] = self.parse_kind(f)
+            parameter["default"] = self.parse_default(f.default)
+            parameter["desc"] = f.help_text
+            data.append(parameter)
+        return data
+
+    def parse_default(self, a):
+        # if type(a) == NOT_PROVIDED:
+        return ""
+
+    def parse_kind(self, a):
+        # print(a.name, type(a))
+        if type(a) == CharField:
+            return "string"
+        if type(a) == AutoField:
+            return "int"
+        if type(a) == BooleanField:
+            return "boolean"
+        if type(a) == DecimalField:
+            return "decimal"
+        if type(a) == DateTimeField:
+            return "datetime"
+        if type(a) == IntegerField:
+            return "int"
+        return "string"
 
 
 class Tenants(BaseModel):
