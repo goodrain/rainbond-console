@@ -124,13 +124,13 @@ class AppVolumeView(AppBaseView):
         volume_capacity = request.data.get("volume_capacity", 0)
         provider_kind = request.data.get("volume_provider_kind", None)
         provider_name = request.data.get("volume_provider_name", None)
-        if volume_capacity == 0:
-            result = general_message(
-                400, "volume capcacity is {0}, must be greater than zero".format(volume_capacity),
-                "存储大小必须设定大于0")
-            return Response(result, status=400)
         try:
             if volume_type == "ceph-rbd":
+                if volume_capacity == 0:
+                    result = general_message(
+                        400, "volume capcacity is {0}, must be greater than zero".format(volume_capacity),
+                        "存储大小必须设定大于0")
+                    return Response(result, status=400)
                 code, providers = volume_service.get_service_support_volume_providers(self.tenant, self.service)
                 if code != 200:
                     result = general_message(code, "no volume-provider support ceph")
