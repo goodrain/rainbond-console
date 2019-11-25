@@ -965,6 +965,9 @@ class TenantServiceVolume(BaseModel):
     volume_type = models.CharField(max_length=30, blank=True)
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
     volume_name = models.CharField(max_length=100, blank=True)
+    volume_capacity = models.IntegerField(default=0, help_text=u"存储大小，单位(Mi)")
+    volume_provider_kind = models.CharField(max_length=50, blank=True, help_text=u"存储驱动类型")
+    volume_provider_name = models.CharField(max_length=100, blank=True, help_text=u"存储驱动名字")
 
 
 class TenantServiceConfigurationFile(BaseModel):

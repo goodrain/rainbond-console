@@ -21,6 +21,20 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
+class AppVolumeProviderView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取组件可用的存储列表
+        ---
+        parameters:
+        """
+        code, providers = volume_service.get_service_support_volume_providers(self.tenant, self.service)
+        result = general_message(200, "success", "查询成功", list=providers)
+        return Response(result, status=result["code"])
+
+
 class AppVolumeView(AppBaseView):
     @never_cache
     @perm_required('view_service')
@@ -55,6 +69,8 @@ class AppVolumeView(AppBaseView):
                     volume_dict["volume_type"] = tenant_service_volume.volume_type
                     volume_dict["volume_path"] = tenant_service_volume.volume_path
                     volume_dict["volume_name"] = tenant_service_volume.volume_name
+                    volume_dict["volume_provider_kind"] = tenant_service_volume.volume_provider_kind
+                    volume_dict["volume_provider_name"] = tenant_service_volume.volume_provider_name
                     volume_dict["ID"] = tenant_service_volume.ID
                     if tenant_service_volume.volume_type == "config-file":
                         cf_file = volume_repo.get_service_config_file(tenant_service_volume.ID)
@@ -105,10 +121,34 @@ class AppVolumeView(AppBaseView):
         volume_type = request.data.get("volume_type", None)
         volume_path = request.data.get("volume_path", None)
         file_content = request.data.get("file_content", None)
+        volume_capacity = request.data.get("volume_capacity", 0)
+        provider_kind = request.data.get("volume_provider_kind", None)
+        provider_name = request.data.get("volume_provider_name", None)
+        if volume_capacity == 0:
+            result = general_message(
+                400, "volume capcacity is {0}, must be greater than zero".format(volume_capacity),
+                "存储大小必须设定大于0")
+            return Response(result, status=400)
         try:
+            if volume_type == "ceph-rbd":
+                code, providers = volume_service.get_service_support_volume_providers(self.tenant, self.service)
+                if code != 200:
+                    result = general_message(code, "no volume-provider support ceph")
+                    return Response(result, status=code)
+                exists = False
+                for provider in providers:
+                    if provider.kind == volume_type:
+                        for detail in provider.provisioner:
+                            if detail.name == provider_name:
+                                exists = True
+                                break
+                if exists is False:
+                    result = general_message(code, "no volume-provider support ceph")
+                    return Response(result, status=code)
 
             code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                                volume_name, file_content)
+                                                                volume_name, provider_kind, provider_name,
+                                                                volume_capacity, file_content)
             if code != 200:
                 result = general_message(code, "add volume error", msg)
                 return Response(result, status=code)

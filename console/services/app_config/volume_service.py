@@ -40,6 +40,14 @@ class AppVolumeService(object):
         "/usr/bin",
     ]
 
+    def get_service_support_volume_providers(self, tenant, service):
+        res, body = region_api.get_volume_providers(service.service_region,
+                                                    tenant.tenant_name)
+        if res.status != 200:
+            return 200, []
+        # for provider in body.list:
+        return 200, body.list
+
     def get_service_volumes(self, tenant, service):
         return volume_repo.get_service_volumes(service.service_id)
 
@@ -50,7 +58,8 @@ class AppVolumeService(object):
                 return 400, u"持久化名称只支持数字字母下划线", volume_name
             else:
                 volume_name = service.service_cname + make_uuid()[-3:]
-        volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
+        volume = volume_repo.get_service_volume_by_name(
+            service.service_id, volume_name)
 
         if volume:
             return 412, u"持久化名称{0}已存在".format(volume_name), volume_name
@@ -64,7 +73,8 @@ class AppVolumeService(object):
                 #     return 412, u"持久化路径不能和挂载共享路径相同"
                 if volume_path.startswith(path + "/"):
                     return 412, u"持久化路径不能再挂载共享路径下"
-        volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
+        volume = volume_repo.get_service_volume_by_path(
+            service.service_id, volume_path)
         if volume:
             return 412, u"持久化路径 {0} 已存在".format(volume_path)
         if service.service_source == AppConstants.SOURCE_CODE:
@@ -83,7 +93,8 @@ class AppVolumeService(object):
         else:
             if not is_path_legal(volume_path):
                 return 412, u"请输入符合规范的路径（如：/app/volumes ）"
-        all_volumes = volume_repo.get_service_volumes(service.service_id).values("volume_path")
+        all_volumes = volume_repo.get_service_volumes(
+            service.service_id).values("volume_path")
         for path in list(all_volumes):
             # volume_path不能重复
 
@@ -94,27 +105,35 @@ class AppVolumeService(object):
 
         return 200, u"success"
 
-    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None):
+    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, provider_kind, provider_name,
+                           volume_capacity, file_content=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         code, msg, volume_name = self.check_volume_name(service, volume_name)
-        dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_dir', flat=True)
+        dep_mnt_names = mnt_repo.get_service_mnts(
+            tenant.tenant_id, service.service_id).values_list('mnt_dir',
+                                                              flat=True)
         local_path = []
         if dep_mnt_names:
-            local_path.append(dep_mnt_names.values("mnt_dir")[0].get("mnt_dir"))
+            local_path.append(
+                dep_mnt_names.values("mnt_dir")[0].get("mnt_dir"))
         if code != 200:
             return code, msg, None
         code, msg = self.check_volume_path(service, volume_path, local_path)
         if code != 200:
             return code, msg, None
-        host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
+        host_path = "/grdata/tenant/{0}/service/{1}{2}".format(
+            tenant.tenant_id, service.service_id, volume_path)
         volume_data = {
             "service_id": service.service_id,
             "category": service.category,
             "host_path": host_path,
             "volume_type": volume_type,
             "volume_path": volume_path,
-            "volume_name": volume_name
+            "volume_name": volume_name,
+            "volume_capacity": volume_capacity,
+            "volume_provider_kind": provider_kind,
+            "volume_provider_name": provider_name
         }
         # region端添加数据
         if service.create_status == "complete":
@@ -133,14 +152,23 @@ class AppVolumeService(object):
                     "volume_name": volume_name,
                     "volume_path": volume_path,
                     "volume_type": volume_type,
+                    "volume_capacity": volume_capacity,
+                    "volume_provider_name": provider_name,
                     "enterprise_id": tenant.enterprise_id
                 }
-            res, body = region_api.add_service_volumes(service.service_region, tenant.tenant_name, service.service_alias, data)
+            res, body = region_api.add_service_volumes(service.service_region,
+                                                       tenant.tenant_name,
+                                                       service.service_alias,
+                                                       data)
             logger.debug(body)
 
         volume = volume_repo.add_service_volume(**volume_data)
         if volume_type == "config-file":
-            file_data = {"service_id": service.service_id, "volume_id": volume.ID, "file_content": file_content}
+            file_data = {
+                "service_id": service.service_id,
+                "volume_id": volume.ID,
+                "file_content": file_content
+            }
             volume_repo.add_service_config_file(**file_data)
         return 200, "success", volume
 
@@ -150,13 +178,17 @@ class AppVolumeService(object):
             return 404, u"需要删除的路径不存在", None
         # if volume.volume_type == volume.SHARE:
         # 判断当前共享目录是否被使用
-        mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
+        mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id,
+                                                     volume.volume_name)
         if mnt:
             return 403, u"当前路径被共享,无法删除", None
         if service.create_status == "complete":
-            res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
-                                                          volume.volume_name, tenant.enterprise_id)
-            logger.debug("service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name, body))
+            res, body = region_api.delete_service_volumes(
+                service.service_region, tenant.tenant_name,
+                service.service_alias, volume.volume_name,
+                tenant.enterprise_id)
+            logger.debug("service {0} delete volume {1}, result {2}".format(
+                service.service_cname, volume.volume_name, body))
 
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume_id(volume_id)
@@ -170,7 +202,9 @@ class AppVolumeService(object):
         volumes = volume_repo.get_service_volumes(service.service_id)
         for volume in volumes:
             try:
-                res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
-                                                              volume.volume_name, tenant.enterprise_id)
+                res, body = region_api.delete_service_volumes(
+                    service.service_region, tenant.tenant_name,
+                    service.service_alias, volume.volume_name,
+                    tenant.enterprise_id)
             except Exception as e:
                 logger.exception(e)
