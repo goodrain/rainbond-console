@@ -737,7 +737,7 @@ class UserOAuthServices(BaseModel):
     class Meta:
         db_table = "user_oauth_service"
 
-    oauth_user_id = models.CharField(max_length=64, null=False,help_text=u"oauth_user_id")
+    oauth_user_id = models.CharField(max_length=64, null=False, help_text=u"oauth_user_id")
     oauth_user_name = models.CharField(max_length=64, null=False, help_text=u"oauth_user_name")
     oauth_user_email = models.CharField(max_length=64, null=False, help_text=u"oauth_user_email")
     service_id = models.IntegerField(null=False, help_text=u"service_id")

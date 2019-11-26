@@ -137,7 +137,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
             elif oauth_service.oauth_type == "gitee":
                 user_name = user["name"]
             else:
-                user_name =None
+                user_name = None
 
             user_id = str(user["id"])
             user_email = user["email"]
@@ -193,7 +193,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
                     is_expired=False,
                 )
                 rst = {
-                    "oauth_user_name" : usr.oauth_user_name,
+                    "oauth_user_name": usr.oauth_user_name,
                     "oauth_user_id": usr.oauth_user_id,
                     "oauth_user_email": usr.oauth_user_email,
                     "service_id": usr.service_id,
@@ -237,7 +237,7 @@ class OAuthUserInfo(AlowAnyApiView):
 
 
 class OAuthServerUserAuthorize(JWTAuthApiView):
-    def post(self,request):
+    def post(self, request):
         login_user = request.user
         code = request.data.get("code")
         service_id = request.data.get("service_id")
@@ -283,7 +283,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
                     oauth_user_id=user_id,
                     oauth_user_name=user_name,
                     oauth_user_email=user_email,
-                    user_id = login_user.user_id,
+                    user_id=login_user.user_id,
                     code=code,
                     service_id=service_id,
                     access_token=data["access_token"],
@@ -303,7 +303,7 @@ class UserOAuthLink(JWTAuthApiView):
         user_id = request.user.user_id
         oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=oauth_user_id)
         if oauth_user:
-            oauth_user.user_id=user_id
+            oauth_user.user_id = user_id
             oauth_user.save()
             data = {
                 "oauth_user_id": oauth_user.oauth_user_id,
@@ -321,6 +321,7 @@ class UserOAuthLink(JWTAuthApiView):
             rst = {"data": {"data": {"bean": None}, "status": 404, "msg_show": u"link fail"}}
             return Response(rst, status=status.HTTP_200_OK)
 
+
 class UserOAuthRefresh(JWTAuthApiView):
     def get(self, request, service_id, *args, **kwargs):
         user_id = request.user.user_id
@@ -329,12 +330,11 @@ class UserOAuthRefresh(JWTAuthApiView):
 
         try:
             GitApi(oauth_service=oauth_service, oauth_user=oauth_user)
-        except:
+        except Exception:
             return Response({"data": {"data": {"bean": None}, "status": 400, "msg_show": u"refresh failed"}},
                             status=status.HTTP_200_OK)
         return Response({"data": {"data": {"bean": None}, "status": 200, "msg_show": u"refresh success"}},
                         status=status.HTTP_200_OK)
-
 
 
 class OAuthGitUserRepositories(JWTAuthApiView):

@@ -120,8 +120,8 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             service_code_from = "oauth_"+oauth_service.oauth_type
 
             if oauth_service.oauth_type == "github" or oauth_service.oauth_type == "gitee":
-                service_code_clone_url = urls[0]+'//'+oauth_user.oauth_user_name\
-                                         +':'+access_token+'@'+urls[-1]
+                service_code_clone_url = urls[0] + '//' + oauth_user.oauth_user_name +\
+                                         ':' + access_token + '@' + urls[-1]
             elif oauth_service.oauth_type == "gitlab":
                 service_code_clone_url = urls[0]+'//oauth2:'+access_token+'@'+urls[-1]
             else:
@@ -149,10 +149,11 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             # 自动添加hook
             if open_webhook and is_oauth and not new_service.open_webhooks:
                 service_webhook = service_webhooks_repo.create_service_webhooks(new_service.service_id, "code_Webhooks")
-                service_webhook.state=True
-                service_webhook.deploy_keyword="deploy"
+                service_webhook.state = True
+                service_webhook.deploy_keyword = "deploy"
                 service_webhook.save()
-                git_service.api.creat_hooks(host=host, full_name_or_id=full_name, endpoint='console/webhooks/'+ new_service.service_id)
+                git_service.api.creat_hooks(host=host, full_name_or_id=full_name,
+                                            endpoint='console/webhooks/' + new_service.service_id)
                 new_service.open_webhooks = True
                 new_service.save()
             # 添加组件所在组

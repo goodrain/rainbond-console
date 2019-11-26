@@ -59,8 +59,6 @@ from console.views.app_create.source_outer import ThirdPartyServiceApiView
 from console.views.app_create.source_outer import ThirdPartyServiceCreateView
 from console.views.app_create.source_outer import ThirdPartyUpdateSecretKeyView
 from console.views.app_event import AppEventLogView
-from console.views.app_event import AppEventsLogView
-from console.views.app_event import AppEventsView
 from console.views.app_event import AppEventView
 from console.views.app_event import AppHistoryLogView
 from console.views.app_event import AppLogInstanceView
@@ -252,7 +250,8 @@ from console.views.webhook import ImageWebHooksTrigger
 from console.views.webhook import UpdateSecretKey
 from console.views.webhook import WebHooksDeploy
 from console.views.webhook import WebHooksStatus
-from console.views.app_event import AppEventsView, AppEventsLogView
+from console.views.app_event import AppEventsView
+from console.views.app_event import AppEventsLogView
 from console.views.oauth import OAuthServiceRedirect
 from console.views.oauth import OAuthServerAuthorize
 from console.views.oauth import OAuthUserInfo

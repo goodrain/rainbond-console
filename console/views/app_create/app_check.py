@@ -69,7 +69,7 @@ class AppCheck(AppBaseView):
                 else:
                     data["error_infos"] = [save_error]
         check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
-        code_from =  self.service.code_from
+        code_from = self.service.code_from
         if code_from in (SourceCodeType.OAUTH_GITEE, SourceCodeType.OAUTH_GITHUB, SourceCodeType.OAUTH_GITLAB):
             for i in check_brief_info["service_info"]:
                 if i["type"] == "source_from":

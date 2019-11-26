@@ -379,7 +379,8 @@ class UserDetailsView(JWTAuthApiView):
                 tenant_info["tenant_actions"] = user.actions.tenant_actions
                 tenant_list.append(tenant_info)
             user_detail["teams"] = tenant_list
-            oauth_services = oauth_user_repo.get_user_oauth_services_info(eid=request.user.enterprise_id, user_id=request.user.user_id)
+            oauth_services = oauth_user_repo.get_user_oauth_services_info(eid=request.user.enterprise_id,
+                                                                          user_id=request.user.user_id)
             user_detail["oauth_services"] = oauth_services
             result = general_message(code, "Obtain my details to be successful.", "获取我的详情成功", bean=user_detail)
         except Exception as e:

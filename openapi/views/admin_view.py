@@ -27,8 +27,6 @@ logger = logging.getLogger("default")
 class ListAdminsView(ListAPIView):
     @swagger_auto_schema(
         operation_description="获取企业管理员列表",
-        consumes = ["applications/json"],
-        produces = ["applications/json"],
         manual_parameters=[
             openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),

@@ -78,14 +78,14 @@ class ConfigInfoView(AlowAnyApiView):
                     data["market_url"] = market_token.access_url
                 else:
                     data["market_url"] = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
-                data["oauth_services_is_sonsole"] = {"enable":False,"value":None}
+                data["oauth_services_is_sonsole"] = {"enable": False, "value": None}
                 oauth_services = []
                 is_console = True
                 services = oauth_repo.get_oauth_services(str(enterprise.enterprise_id))
 
                 for service in services:
                     if service.is_console:
-                        is_console=False
+                        is_console = False
                     oauth_services.append(
                         {
                             "service_id": service.ID,

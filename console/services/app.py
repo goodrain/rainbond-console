@@ -141,7 +141,7 @@ class AppService(object):
             code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
             gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
         elif service_code_from in (SourceCodeType.OAUTH_GITHUB,
-                                   SourceCodeType.OAUTH_GITLAB,SourceCodeType.OAUTH_GITEE):
+                                   SourceCodeType.OAUTH_GITLAB, SourceCodeType.OAUTH_GITEE):
             if not service_code_clone_url:
                 return 403, u"代码信息不全"
             if check_uuid:

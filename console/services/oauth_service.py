@@ -1,40 +1,20 @@
 # coding=utf-8
+import requests
 from github import Github
 from gitlab import Gitlab
 
-import requests
-import urllib
-import requests
-
-class NoQuoteSession(requests.Session):
-    def send(self, prep, **send_kwargs):
-        table = {
-            urllib.quote('{'): '{',
-            urllib.quote('}'): '}',
-            urllib.quote(':'): ':',
-            urllib.quote(','): ',',
-            urllib.quote('<'): '<',
-            urllib.quote('>'): '>',
-        }
-        for old, new in table.items():
-            prep.url = prep.url.replace(old, new)
-
-        return super(NoQuoteSession, self).send(prep, **send_kwargs)
-
-s = NoQuoteSession()
 
 class Gitee(object):
     def __init__(self, url, oauth_token=None, api_version="5"):
         self._api_version = str(api_version)
         self._base_url = url
         self._url = "%s/api/v%s" % (url, api_version)
-        self.oauth_token = 'bearer '+ oauth_token
+        self.oauth_token = 'bearer ' + oauth_token
         self.session = requests.Session()
         self.headers = {
             "Accept": "application/json",
             "Authorization": self.oauth_token,
         }
-
 
     def _api_get(self, url_suffix, params=None):
         url = '/'.join([self._url, url_suffix])
@@ -42,14 +22,13 @@ class Gitee(object):
             rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
             if rst.status_code == 200:
                 data = rst.json()
-                if not isinstance(data, (list,dict)):
+                if not isinstance(data, (list, dict)):
                     data = None
             else:
                 data = None
-        except:
+        except Exception:
             data = None
         return data
-
 
     def _api_post(self, url_suffix, params=None, data=None):
         url = '/'.join([self._url, url_suffix])
@@ -62,7 +41,7 @@ class Gitee(object):
                     dat = None
             else:
                 dat = None
-        except:
+        except Exception:
             dat = None
         return dat
 
@@ -153,7 +132,7 @@ class Oauth2(object):
                     data = None
             else:
                 data = None
-        except:
+        except Exception:
             data = None
         return data
 
@@ -229,7 +208,7 @@ class GithubApiV3(object):
         repo_list = []
         try:
             repos = self.api.search_repositories(query=full_name_or_id+' in:name')
-        except Exception as e:
+        except Exception:
             return repo_list
         for repo in repos:
             if repo is None:
@@ -252,7 +231,7 @@ class GithubApiV3(object):
 
     def get_repo(self, full_name_or_id, **kwargs):
         repo_list = []
-        for repo in  [self.api.get_repo(full_name_or_id, **kwargs)]:
+        for repo in [self.api.get_repo(full_name_or_id, **kwargs)]:
             if repo is None:
                 pass
             else:
@@ -411,7 +390,7 @@ class GiteeApiV5(object):
     def search_repo(self, full_name, **kwargs):
         page = int(kwargs.get("page", 1))
         repo_list = []
-        repos =  self.api.search_repos(full_name=full_name, page=page)
+        repos = self.api.search_repos(full_name=full_name, page=page)
         for repo in repos:
             if repo is None:
                 pass

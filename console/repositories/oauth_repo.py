@@ -6,6 +6,7 @@ from console.models.main import UserOAuthServices
 
 logger = logging.getLogger('default')
 
+
 class OAuthRepo(object):
     def get_conosle_oauth_service(self, eid):
         return OAuthServices.objects.filter(eid=eid, is_deleted=False, is_console=True).first()
@@ -42,9 +43,7 @@ class OAuthRepo(object):
                     oauth_type=value["oauth_type"], home_url=value["home_url"],
                     auth_url=value["auth_url"], access_token_url=value["access_token_url"],
                     api_url=value["api_url"], enable=value["enable"], is_auto_login=value["is_auto_login"],
-                    is_console = value["is_console"], is_deleted=value.get("is_deleted", False)
-
-                )
+                    is_console=value["is_console"], is_deleted=value.get("is_deleted", False))
             if eid is None:
                 eid = value["eid"]
         OAuthServices.objects.bulk_create(querysetlist)
@@ -81,7 +80,6 @@ class OAuthRepo(object):
 
     def delete_oauth_service(self, service_id):
         OAuthServices.objects.filter(ID=service_id).delete()
-
 
 
 class UserOAuthRepo(object):
@@ -203,4 +201,4 @@ class UserOAuthRepo(object):
 
 
 oauth_repo = OAuthRepo()
-oauth_user_repo=UserOAuthRepo()
+oauth_user_repo = UserOAuthRepo()
