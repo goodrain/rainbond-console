@@ -28,8 +28,8 @@ class ListRegionInfo(ListAPIView):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_INTEGER),
         ],
         responses={200: RegionInfoRespSerializer(many=True)},
         tags=['openapi-region'],

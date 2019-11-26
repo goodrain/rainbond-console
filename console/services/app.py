@@ -92,7 +92,7 @@ class AppService(object):
         return tenant_service
 
     def create_source_code_app(self, region, tenant, user, service_code_from, service_cname, service_code_clone_url,
-                               service_code_id, service_code_version, server_type):
+                               service_code_id, service_code_version, server_type, check_uuid, event_id):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -108,7 +108,8 @@ class AppService(object):
         new_service.server_type = server_type
         new_service.save()
         code, msg = self.init_repositories(new_service, user, service_code_from,
-                                           service_code_clone_url, service_code_id, service_code_version)
+                                           service_code_clone_url, service_code_id,
+                                           service_code_version, check_uuid, event_id)
         if code != 200:
             return code, msg, new_service
         logger.debug("service.create", "user:{0} create service from source code".format(user.nick_name))
@@ -116,7 +117,7 @@ class AppService(object):
         return 200, u"创建成功", ts
 
     def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id,
-                          service_code_version):
+                          service_code_version, check_uuid, event_id):
         if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
             service_code_id = "0"
 
@@ -139,6 +140,19 @@ class AppService(object):
             code_user = service_code_clone_url.split("/")[3]
             code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
             gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
+        elif service_code_from in (SourceCodeType.OAUTH_GITHUB,
+                                   SourceCodeType.OAUTH_GITLAB,SourceCodeType.OAUTH_GITEE):
+            if not service_code_clone_url:
+                return 403, u"代码信息不全"
+            if check_uuid:
+                service.check_uuid = check_uuid
+            if event_id:
+                service.check_event_id = event_id
+            service.git_project_id = service_code_id
+            service.git_url = service_code_clone_url
+            service.code_from = service_code_from
+            service.code_version = service_code_version
+            service.save()
 
         return 200, u"success"
 

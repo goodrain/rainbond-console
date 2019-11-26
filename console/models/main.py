@@ -688,3 +688,39 @@ class Announcement(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     title = models.CharField(max_length=64, help_text=u"通知标题", default=u"title")
     level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
+
+
+class OAuthServices(BaseModel):
+    class Meta:
+        db_table = "oauth_service"
+    name = models.CharField(max_length=32, null=False, unique=True, help_text=u"oauth服务名称")
+    client_id = models.CharField(max_length=64, null=False, help_text=u"client_id")
+    client_secret = models.CharField(max_length=64, null=False, help_text=u"client_secret")
+    redirect_uri = models.CharField(max_length=255, null=False, help_text=u"redirect_uri")
+    home_url = models.CharField(max_length=255, null=False, help_text=u"auth_url")
+    auth_url = models.CharField(max_length=255, null=False, help_text=u"auth_url")
+    access_token_url = models.CharField(max_length=255, null=False, help_text=u"access_token_url")
+    api_url = models.CharField(max_length=255, null=False, help_text=u"api_url")
+    oauth_type = models.CharField(max_length=16, null=False, help_text=u"oauth_type")
+    eid = models.CharField(max_length=64, null=False, help_text=u"user_id")
+    enable = models.BooleanField(default=True, help_text=u"user_id")
+    is_deleted = models.BooleanField(default=False, help_text=u"is_deleted")
+    is_console = models.BooleanField(default=True, help_text=u"is_console")
+    is_auto_login = models.BooleanField(default=True, help_text=u"is_auto_login")
+
+
+class UserOAuthServices(BaseModel):
+    class Meta:
+        db_table = "user_oauth_service"
+
+    oauth_user_id = models.CharField(max_length=64, null=False,help_text=u"oauth_user_id")
+    oauth_user_name = models.CharField(max_length=64, null=False, help_text=u"oauth_user_name")
+    oauth_user_email = models.CharField(max_length=64, null=False, help_text=u"oauth_user_email")
+    service_id = models.IntegerField(null=False, help_text=u"service_id")
+    is_auto_login = models.BooleanField(help_text=u"is_auto_login")
+    is_authenticated = models.BooleanField(help_text=u"is_authenticated")
+    is_expired = models.BooleanField(help_text=u"is_expired")
+    access_token = models.CharField(max_length=255, null=False, help_text=u"access_token_url")
+    refresh_token = models.CharField(max_length=64, null=False, help_text=u"refresh_token")
+    user_id = models.IntegerField(default=None, help_text=u"user_id")
+    code = models.CharField(max_length=256, help_text=u"user_id")

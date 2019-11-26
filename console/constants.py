@@ -64,6 +64,9 @@ class SourceCodeType(object):
     GITLAB_NEW = "gitlab_new"
     GITLAB_EXIT = "gitlab_exit"
     GITHUB = "github"
+    OAUTH_GITHUB = "oauth_github"
+    OAUTH_GITLAB = "oauth_gitlab"
+    OAUTH_GITEE = "oauth_gitee"
     GITLAB_DEMO = "gitlab_demo"
 
 

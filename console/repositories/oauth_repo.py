@@ -1,0 +1,195 @@
+# -*- coding: utf-8 -*-
+import logging
+
+from console.models.main import OAuthServices
+from console.models.main import UserOAuthServices
+
+logger = logging.getLogger('default')
+
+class OAuthRepo(object):
+    def get_conosle_oauth_service(self, eid):
+        return OAuthServices.objects.filter(eid=eid, is_deleted=False, is_console=True).first()
+
+    def get_oauth_services(self, eid):
+        return OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True)
+
+    def get_oauth_services_by_type(self, oauth_type, eid):
+        return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False)
+
+    def get_oauth_services_by_service_id(self, service_id):
+        return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
+
+    def create_or_update_oauth_services(self, values, eid):
+        querysetlist = []
+        for value in values:
+            if value.get("service_id") is None:
+                querysetlist.append(
+                    OAuthServices(
+                        name=value["name"], client_id=value["client_id"], eid=value["eid"],
+                        client_secret=value["client_secret"], redirect_uri=value["redirect_uri"],
+                        oauth_type=value["oauth_type"], home_url=value["home_url"],
+                        auth_url=value["auth_url"], access_token_url=value["access_token_url"],
+                        api_url=value["api_url"], enable=value["enable"],
+                        is_auto_login=value["is_auto_login"], is_console=value["is_console"]
+
+                    )
+                )
+            else:
+                OAuthServices.objects.filter(ID=value["service_id"]).update(
+                    name=value["name"], client_id=value["client_id"], eid=value["eid"],
+                    client_secret=value["client_secret"], redirect_uri=value["redirect_uri"],
+                    oauth_type=value["oauth_type"], home_url=value["home_url"],
+                    auth_url=value["auth_url"], access_token_url=value["access_token_url"],
+                    api_url=value["api_url"], enable=value["enable"], is_auto_login=value["is_auto_login"],
+                    is_console = value["is_console"]
+                )
+        OAuthServices.objects.bulk_create(querysetlist)
+        rst = OAuthServices.objects.filter(eid=eid)
+        return rst
+
+    def create_or_update_console_oauth_services(self, values, eid):
+        querysetlist = []
+        for value in values:
+            if value.get("service_id") is None:
+                querysetlist.append(
+                    OAuthServices(
+                        name=value["name"], client_id=value["client_id"], eid=value["eid"],
+                        client_secret=value["client_secret"], redirect_uri=value["redirect_uri"],
+                        oauth_type=value["oauth_type"], home_url=value["home_url"],
+                        auth_url=value["auth_url"], access_token_url=value["access_token_url"],
+                        api_url=value["api_url"], enable=value["enable"],
+                        is_auto_login=value["is_auto_login"], is_console=value["is_console"]
+
+                    )
+                )
+            else:
+                OAuthServices.objects.filter(ID=value["service_id"]).update(
+                    name=value["name"], client_id=value["client_id"], eid=value["eid"],
+                    client_secret=value["client_secret"], redirect_uri=value["redirect_uri"],
+                    oauth_type=value["oauth_type"], home_url=value["home_url"],
+                    auth_url=value["auth_url"], access_token_url=value["access_token_url"],
+                    api_url=value["api_url"], enable=value["enable"], is_auto_login=value["is_auto_login"],
+                    is_console=value["is_console"]
+                )
+        OAuthServices.objects.bulk_create(querysetlist)
+        rst = OAuthServices.objects.filter(eid=eid, is_console=True)
+        return rst
+
+    def delete_oauth_service(self, service_id):
+        OAuthServices.objects.filter(ID=service_id).delete()
+
+
+
+class UserOAuthRepo(object):
+    def save_oauth(self, *args, **kwargs):
+        try:
+            user = UserOAuthServices.objects.get(
+                oauth_user_id=kwargs.get("oauth_user_id"),
+                service_id=kwargs.get("service_id"),
+            )
+        except Exception:
+            user = UserOAuthServices.objects.create(
+                oauth_user_id=kwargs.get("oauth_user_id"),
+                oauth_user_name=kwargs.get("oauth_user_name"),
+                oauth_user_email=kwargs.get("oauth_user_email"),
+                service_id=kwargs.get("service_id"),
+                is_auto_login=kwargs.get("is_auto_login"),
+                is_authenticated=kwargs.get("is_authenticated"),
+                is_expired=kwargs.get("is_expired"),
+                access_token=kwargs.get("access_token"),
+                refresh_token=kwargs.get("refresh_token"),
+                user_id=kwargs.get("user_id"),
+                code=kwargs.get("code")
+            )
+        return user
+
+    def update_oauth(self, *args, **kwargs):
+        user = self.get_user_by_oauth_user_id(service_id=kwargs.get("service_id"),
+                                              oauth_user_id=kwargs.get("oauth_user_id"))
+        if user is not None:
+            user.oauth_user_id = kwargs.get("oauth_user_id")
+            user.oauth_user_name = kwargs.get("oauth_user_name")
+            user.oauth_user_email = kwargs.get("oauth_user_email")
+            user.access_token = kwargs.get("access_token")
+            user.refresh_token = kwargs.get("refresh_token")
+            user.save()
+        return user
+
+    def get_user_by_oauth_user_id(self, service_id, oauth_user_id):
+        try:
+            oauth_user = UserOAuthServices.objects.get(service_id=service_id,
+                                                       oauth_user_id=oauth_user_id)
+            return oauth_user
+        except Exception:
+            return None
+
+    def user_oauth_exists(self, service_id, oauth_user_id):
+        try:
+            oauth_user = UserOAuthServices.objects.get(service_id=service_id,
+                                                       oauth_user_id=oauth_user_id)
+            return oauth_user
+        except Exception:
+            return None
+
+    def get_user_oauth_by_user_id(self, service_id, user_id):
+        try:
+            oauth_user = UserOAuthServices.objects.get(service_id=service_id,
+                                                       user_id=user_id)
+            return oauth_user
+        except Exception:
+            return None
+
+    def get_user_oauth_by_id(self, service_id, id):
+        try:
+            oauth_user = UserOAuthServices.objects.get(service_id=service_id,
+                                                       ID=id)
+            return oauth_user
+        except Exception:
+            return None
+
+    def get_user_oauth_by_code(self, service_id, code):
+        try:
+            oauth_user = UserOAuthServices.objects.get(service_id=service_id,
+                                                       code=code)
+            return oauth_user
+        except Exception:
+            return None
+
+    def user_oauth_is_link(self, service_id, oauth_user_id):
+        data = UserOAuthServices.objects.get(service_id=service_id,
+                                             oauth_user_id=oauth_user_id)
+        if data["user_id"]:
+            return True
+        else:
+            return False
+
+    def get_user_oauth_services_info(self, eid, user_id):
+        oauth_services = []
+        services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True)
+        for service in services:
+            user_service = self.get_user_oauth_by_user_id(service_id=service.ID,
+                                                          user_id=user_id)
+            if user_service:
+                oauth_services.append(
+                    {
+                        "service_id": service.ID,
+                        "service_name": service.name,
+                        "oauth_type": service.oauth_type,
+                        "is_authenticated": user_service.is_authenticated,
+                        "is_expired": user_service.is_expired,
+                    })
+            else:
+                oauth_services.append(
+                    {
+                        "service_id": service.ID,
+                        "service_name": service.name,
+                        "oauth_type": service.oauth_type,
+                        "is_authenticated": False,
+                        "is_expired": False,
+                    }
+                )
+        return oauth_services
+
+
+oauth_repo = OAuthRepo()
+oauth_user_repo=UserOAuthRepo()

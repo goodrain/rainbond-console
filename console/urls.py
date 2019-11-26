@@ -248,10 +248,38 @@ from console.views.webhook import UpdateSecretKey
 from console.views.webhook import WebHooksDeploy
 from console.views.webhook import WebHooksStatus
 from console.views.app_event import AppEventsView, AppEventsLogView
+from console.views.oauth import OAuthServiceRedirect
+from console.views.oauth import OAuthServerAuthorize
+from console.views.oauth import OAuthUserInfo
+from console.views.oauth import UserOAuthLink
+from console.views.oauth import OAuthGitUserRepository
+from console.views.oauth import OAuthGitUserRepositories
+from console.views.oauth import OAuthGitUserRepositoryBranches
+from console.views.oauth import OauthService
+from console.views.oauth import OauthConfig
+from console.views.oauth import OauthServiceInfo
+from console.views.oauth import OAuthServerUserAuthorize
+from console.views.oauth import OAuthGitCodeDetection
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigInfoView.as_view()),
+    # OAuth
+    # url(r"^oauth/access_token")
+    url(r"^oauth/oauth-config$", OauthConfig.as_view()),
+    url(r"^oauth/oauth-services$", OauthService.as_view()),
+    url(r"^oauth/oauth-services/(?P<service_id>[\w\-]+)$", OauthServiceInfo.as_view()),
+    url(r"^oauth/redirect$", OAuthServiceRedirect.as_view()),
+    url(r"^oauth/authorize$", OAuthServerAuthorize.as_view()),
+    url(r"^oauth/user/authorize$", OAuthServerUserAuthorize.as_view()),
+    url(r"^oauth/user$", OAuthUserInfo.as_view()),
+    url(r"^oauth/user/link$", UserOAuthLink.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repositories$", OAuthGitUserRepositories.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/(?P<path>[\w\-]+)/(?P<name>[\w\-]+)$",
+        OAuthGitUserRepository.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/branches$", OAuthGitUserRepositoryBranches.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/code_detection$", OAuthGitCodeDetection.as_view()),
+
     # php环境配置
     url(r'^php$', PhpConfigView.as_view()),
     # 判断是sso还是私有云
