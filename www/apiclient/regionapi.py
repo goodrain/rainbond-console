@@ -524,11 +524,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_volume_providers(self, region, tenant_name):
+    def get_volume_providers(self, region, tenant_name, kind=''):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         tenant_name = tenant_region.region_tenant_name
-        url = uri_prefix + "/v2/tenants/{0}/volume-providers".format(tenant_name)
+        url = uri_prefix + "/v2/tenants/{0}/volume-providers?kind={1}".format(tenant_name, kind)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body

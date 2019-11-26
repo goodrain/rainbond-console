@@ -40,12 +40,10 @@ class AppVolumeService(object):
         "/usr/bin",
     ]
 
-    def get_service_support_volume_providers(self, tenant, service):
-        res, body = region_api.get_volume_providers(service.service_region,
-                                                    tenant.tenant_name)
+    def get_service_support_volume_providers(self, tenant, service, kind=''):
+        res, body = region_api.get_volume_providers(service.service_region, tenant.tenant_name, kind)
         if res.status != 200:
             return 200, []
-        # for provider in body.list:
         return 200, body.list
 
     def get_service_volumes(self, tenant, service):
@@ -105,8 +103,7 @@ class AppVolumeService(object):
 
         return 200, u"success"
 
-    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, provider_kind, provider_name,
-                           volume_capacity, file_content=None):
+    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings, file_content=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         code, msg, volume_name = self.check_volume_name(service, volume_name)
@@ -131,9 +128,13 @@ class AppVolumeService(object):
             "volume_type": volume_type,
             "volume_path": volume_path,
             "volume_name": volume_name,
-            "volume_capacity": volume_capacity,
-            "volume_provider_kind": provider_kind,
-            "volume_provider_name": provider_name
+            "volume_capacity": settings['volume_capacity'],
+            "volume_provider_name": settings['provider_name'],
+            "access_mode": settings['access_mode'],
+            "share_policy": settings['share_policy'],
+            "backup_policy": settings['backup_policy'],
+            "reclaim_policy": settings['reclaim_policy'],
+            "allow_expansion": settings['allow_expansion']
         }
         # region端添加数据
         if service.create_status == "complete":
@@ -152,14 +153,16 @@ class AppVolumeService(object):
                     "volume_name": volume_name,
                     "volume_path": volume_path,
                     "volume_type": volume_type,
-                    "volume_capacity": volume_capacity,
-                    "volume_provider_name": provider_name,
+                    "volume_capacity": settings['volume_capacity'],
+                    "volume_provider_name": settings['provider_name'],
+                    "access_mode": settings['access_mode'],
+                    "share_policy": settings['share_policy'],
+                    "backup_policy": settings['backup_policy'],
+                    "reclaim_policy": settings['reclaim_policy'],
+                    "allow_expansion": settings['allow_expansion'],
                     "enterprise_id": tenant.enterprise_id
                 }
-            res, body = region_api.add_service_volumes(service.service_region,
-                                                       tenant.tenant_name,
-                                                       service.service_alias,
-                                                       data)
+            res, body = region_api.add_service_volumes(service.service_region, tenant.tenant_name, service.service_alias, data)
             logger.debug(body)
 
         volume = volume_repo.add_service_volume(**volume_data)

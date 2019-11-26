@@ -966,8 +966,12 @@ class TenantServiceVolume(BaseModel):
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
     volume_name = models.CharField(max_length=100, blank=True)
     volume_capacity = models.IntegerField(default=0, help_text=u"存储大小，单位(Mi)")
-    volume_provider_kind = models.CharField(max_length=50, blank=True, help_text=u"存储驱动类型")
     volume_provider_name = models.CharField(max_length=100, blank=True, help_text=u"存储驱动名字")
+    access_mode = models.CharField(max_length=100, blank=True, help_text=u"读写模式：RWO、ROX、RWX")
+    share_policy = models.CharField(max_length=100, blank=True, help_text=u"共享模式")
+    backup_policy = models.CharField(max_length=100, blank=True, help_text=u"备份策略")
+    reclaim_policy = models.CharField(max_length=100, blank=True, help_text=u"回收策略")
+    allow_expansion = models.BooleanField(max_length=100, blank=True, help_text=u"只是支持控制扩展，0：不支持；1：支持")
 
 
 class TenantServiceConfigurationFile(BaseModel):

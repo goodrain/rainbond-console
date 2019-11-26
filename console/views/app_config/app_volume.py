@@ -30,7 +30,9 @@ class AppVolumeProviderView(AppBaseView):
         ---
         parameters:
         """
-        code, providers = volume_service.get_service_support_volume_providers(self.tenant, self.service)
+        kind = parse_argument(request, key='kind', default='')
+
+        code, providers = volume_service.get_service_support_volume_providers(self.tenant, self.service, kind)
         result = general_message(200, "success", "查询成功", list=providers)
         return Response(result, status=result["code"])
 
@@ -69,8 +71,13 @@ class AppVolumeView(AppBaseView):
                     volume_dict["volume_type"] = tenant_service_volume.volume_type
                     volume_dict["volume_path"] = tenant_service_volume.volume_path
                     volume_dict["volume_name"] = tenant_service_volume.volume_name
-                    volume_dict["volume_provider_kind"] = tenant_service_volume.volume_provider_kind
+                    volume_dict["volume_capacity"] = tenant_service_volume.volume_capacity
                     volume_dict["volume_provider_name"] = tenant_service_volume.volume_provider_name
+                    volume_dict["access_mode"] = tenant_service_volume.access_mode
+                    volume_dict["share_policy"] = tenant_service_volume.share_policy
+                    volume_dict["backup_policy"] = tenant_service_volume.backup_policy
+                    volume_dict["reclaim_policy"] = tenant_service_volume.reclaim_policy
+                    volume_dict["allow_expansion"] = tenant_service_volume.allow_expansion
                     volume_dict["ID"] = tenant_service_volume.ID
                     if tenant_service_volume.volume_type == "config-file":
                         cf_file = volume_repo.get_service_config_file(tenant_service_volume.ID)
@@ -122,8 +129,38 @@ class AppVolumeView(AppBaseView):
         volume_path = request.data.get("volume_path", None)
         file_content = request.data.get("file_content", None)
         volume_capacity = request.data.get("volume_capacity", 0)
-        provider_kind = request.data.get("volume_provider_kind", None)
         provider_name = request.data.get("volume_provider_name", None)
+        access_mode = request.data.get("access_mode", 'rwo')
+        share_policy = request.data.get('share_policy', 'exclusive')
+        backup_policy = request.data.get('back_policy', 'exclusive')
+        reclaim_policy = request.data.get('reclaim_policy', 'retain')
+        allow_expansion = request.data.get('allow_expansion', False)  # TODO 添加参数校验
+        """
+        添加外部存储时需要做的事情
+        1. 确定存储类型
+        2. 根据不同类型存储的读写策略确定是否可添加
+
+        延伸出实例扩展限制
+        实例在扩展前需要确定已添加存储是否支持多读、多写等特性，如果不支持，需禁止扩展
+
+        延伸出组件类型
+        1. 有状态组件
+        2. 无状态组件
+        3. 单实例组件
+        4. 任务型组件
+        等等
+
+        不同类型组件对应着不同类型的资源选择
+
+        外部存储的设定
+        1. 存储类型
+        2. 提供者
+        3. 大小
+        4. 读写模式
+        5. 共享模式
+        6. 备份模式
+        7. 是否可扩展
+        """
         try:
             if volume_type == "ceph-rbd":
                 if volume_capacity == 0:
@@ -145,10 +182,17 @@ class AppVolumeView(AppBaseView):
                 if exists is False:
                     result = general_message(code, "no volume-provider support ceph")
                     return Response(result, status=code)
+                settings = {}
+                settings['volume_capacity'] = volume_capacity
+                settings['provider_name'] = provider_name
+                settings['access_mode'] = access_mode
+                settings['share_policy'] = share_policy
+                settings['backup_policy'] = backup_policy
+                settings['reclaim_policy'] = reclaim_policy
+                settings['allow_expansion'] = allow_expansion
 
             code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                                volume_name, provider_kind, provider_name,
-                                                                volume_capacity, file_content)
+                                                                volume_name, settings, file_content)
             if code != 200:
                 result = general_message(code, "add volume error", msg)
                 return Response(result, status=code)
