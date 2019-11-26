@@ -190,7 +190,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
                     access_token=data["access_token"],
                     refresh_token=data.get('refresh_token'),
                     is_authenticated=True,
-                    is_expired=True,
+                    is_expired=False,
                 )
                 rst = {
                     "oauth_user_name" : usr.oauth_user_name,
@@ -304,13 +304,13 @@ class UserOAuthLink(JWTAuthApiView):
         oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=oauth_user_id)
         if oauth_user:
             oauth_user.user_id=user_id
-            user_info = oauth_user.save()
+            oauth_user.save()
             data = {
-                "oauth_user_id": user_info.oauth_user_id,
-                "oauth_user_name": user_info.oauth_user_name,
-                "oauth_user_email": user_info.oauth_user_email,
-                "is_authenticated": user_info.is_authenticated,
-                "is_expired": user_info.is_expired,
+                "oauth_user_id": oauth_user.oauth_user_id,
+                "oauth_user_name": oauth_user.oauth_user_name,
+                "oauth_user_email": oauth_user.oauth_user_email,
+                "is_authenticated": oauth_user.is_authenticated,
+                "is_expired": oauth_user.is_expired,
                 "is_link": True,
                 "service_id": service_id,
                 "oauth_type": oauth_service.oauth_type,
@@ -321,16 +321,31 @@ class UserOAuthLink(JWTAuthApiView):
             rst = {"data": {"data": {"bean": None}, "status": 404, "msg_show": u"link fail"}}
             return Response(rst, status=status.HTTP_200_OK)
 
+class UserOAuthRefresh(JWTAuthApiView):
+    def get(self, request, service_id, *args, **kwargs):
+        user_id = request.user.user_id
+        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+
+        try:
+            GitApi(oauth_service=oauth_service, oauth_user=oauth_user)
+        except:
+            return Response({"data": {"data": {"bean": None}, "status": 400, "msg_show": u"refresh failed"}},
+                            status=status.HTTP_200_OK)
+        return Response({"data": {"data": {"bean": None}, "status": 200, "msg_show": u"refresh success"}},
+                        status=status.HTTP_200_OK)
+
+
 
 class OAuthGitUserRepositories(JWTAuthApiView):
     def get(self, request, service_id, *args, **kwargs):
         user_id = request.user.user_id
         page = request.GET.get("page", 1)
-        search = request.GET.get("search")
+        search = request.GET.get("search", '')
         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
         oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         service = GitApi(oauth_service=oauth_service, oauth_user=oauth_user)
-        if search is not None:
+        if len(search) > 0 and search is not None:
             data = service.api.search_repo(search, page=page)
         else:
             data = service.api.get_repos(page=page)
@@ -393,6 +408,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         user_id = request.user.user_id
         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
         oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        Oauth2(oauth_service=oauth_service, oauth_user=oauth_user).check_and_refresh_access_token()
         access_token = oauth_user.access_token
         tenant = Tenants.objects.get(tenant_name=tenant_name)
         service_code_version = version
@@ -410,7 +426,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
             "branch": service_code_version,
             "tenant_id": tenant.tenant_id
         }
-        print service_code_clone_url
+
         source_body = json.dumps(sb)
         body = dict()
         body["tenant_id"] = tenant.tenant_id
@@ -427,10 +443,3 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         check_uuid = request.GET.get("check_uuid")
         res, body = region_api.get_service_check_info(region, tenant_name, check_uuid)
         return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
-
-
-
-
-
-
-

@@ -142,19 +142,20 @@ class ObjectStorageBaseRespSerializer(serializers.Serializer):
 
 class OauthServicesRespSerializer(serializers.Serializer):
     enable = serializers.BooleanField(default=True)
-    auth_url = serializers.CharField(max_length=255, required=False)
+    auth_url = serializers.CharField(max_length=255)
     name = serializers.CharField(max_length=64)
     client_id = serializers.CharField(max_length=255)
     client_secret = serializers.CharField(max_length=255)
-    redirect_uri = serializers.CharField(max_length=255, required=False)
-    is_console = serializers.BooleanField(default=True, required=False)
-    is_auto_login = serializers.BooleanField(default=True, required=False)
-    service_id = serializers.IntegerField(required=False)
+    redirect_uri = serializers.CharField(max_length=255)
+    is_console = serializers.BooleanField(default=False)
+    is_auto_login = serializers.BooleanField(default=False)
+    service_id = serializers.IntegerField(allow_null=True)
     oauth_type = serializers.CharField(max_length=64)
-    eid = serializers.CharField(max_length=64, required=False)
-    home_page = serializers.CharField(max_length=255, required=False)
-    access_token_url = serializers.CharField(max_length=255, required=False)
-    api_url = serializers.CharField(max_length=255, required=False)
+    eid = serializers.CharField(max_length=64)
+    home_url = serializers.CharField(max_length=255, allow_null=True)
+    access_token_url = serializers.CharField(max_length=255)
+    api_url = serializers.CharField(max_length=255)
+    is_deleted = serializers.BooleanField(default=False)
 
 
 class OauthServicesBaseRespSerializer(serializers.Serializer):

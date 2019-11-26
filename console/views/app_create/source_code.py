@@ -102,16 +102,16 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         server_type = request.data.get("server_type", "git")
         user_id = request.user.user_id
 
-        auto_build = False
         git_service = None
         full_name = None
+        open_webhook = False
         host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
 
         result = {}
         if is_oauth:
             service_id = request.data.get("service_id")
             full_name = request.data.get("full_name")
-            auto_build = request.data.get("auto_build")
+            open_webhook = request.data.get("open_webhook", False)
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
             git_service = GitApi(oauth_service=oauth_service, oauth_user=oauth_user)
@@ -146,14 +146,15 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if git_password or git_user_name:
                 app_service.create_service_source_info(self.tenant, new_service, git_user_name, git_password)
 
-            # # 自动添加hook
-            # if auto_build:
-            #     service_webhook = service_webhooks_repo.create_service_webhooks(new_service.service_id, "code_Webhooks")
-            #     service_webhook.state=True
-            #     service_webhook.deploy_keyword="deploy"
-            #     service_webhook.save()
-            #     git_service.api.creat_hooks(host=host, full_name_or_id=full_name,
-            #                                 endpoint='console/webhooks/'+ new_service.service_id)
+            # 自动添加hook
+            if open_webhook and is_oauth and not new_service.open_webhooks:
+                service_webhook = service_webhooks_repo.create_service_webhooks(new_service.service_id, "code_Webhooks")
+                service_webhook.state=True
+                service_webhook.deploy_keyword="deploy"
+                service_webhook.save()
+                git_service.api.creat_hooks(host=host, full_name_or_id=full_name, endpoint='console/webhooks/'+ new_service.service_id)
+                new_service.open_webhooks = True
+                new_service.save()
             # 添加组件所在组
 
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,

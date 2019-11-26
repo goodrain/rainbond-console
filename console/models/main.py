@@ -705,7 +705,7 @@ class OAuthServices(BaseModel):
     eid = models.CharField(max_length=64, null=False, help_text=u"user_id")
     enable = models.BooleanField(default=True, help_text=u"user_id")
     is_deleted = models.BooleanField(default=False, help_text=u"is_deleted")
-    is_console = models.BooleanField(default=True, help_text=u"is_console")
+    is_console = models.BooleanField(default=False, help_text=u"is_console")
     is_auto_login = models.BooleanField(default=True, help_text=u"is_auto_login")
 
 

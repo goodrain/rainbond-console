@@ -19,7 +19,7 @@ class OAuthRepo(object):
     def get_oauth_services_by_service_id(self, service_id):
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
-    def create_or_update_oauth_services(self, values, eid):
+    def create_or_update_oauth_services(self, values, eid=None):
         querysetlist = []
         for value in values:
             if value.get("service_id") is None:
@@ -30,7 +30,8 @@ class OAuthRepo(object):
                         oauth_type=value["oauth_type"], home_url=value["home_url"],
                         auth_url=value["auth_url"], access_token_url=value["access_token_url"],
                         api_url=value["api_url"], enable=value["enable"],
-                        is_auto_login=value["is_auto_login"], is_console=value["is_console"]
+                        is_auto_login=value["is_auto_login"], is_console=value["is_console"],
+                        is_deleted=value.get("is_deleted", False)
 
                     )
                 )
@@ -41,8 +42,11 @@ class OAuthRepo(object):
                     oauth_type=value["oauth_type"], home_url=value["home_url"],
                     auth_url=value["auth_url"], access_token_url=value["access_token_url"],
                     api_url=value["api_url"], enable=value["enable"], is_auto_login=value["is_auto_login"],
-                    is_console = value["is_console"]
+                    is_console = value["is_console"], is_deleted=value.get("is_deleted", False)
+
                 )
+            if eid is None:
+                eid = value["eid"]
         OAuthServices.objects.bulk_create(querysetlist)
         rst = OAuthServices.objects.filter(eid=eid)
         return rst
@@ -177,6 +181,10 @@ class UserOAuthRepo(object):
                         "oauth_type": service.oauth_type,
                         "is_authenticated": user_service.is_authenticated,
                         "is_expired": user_service.is_expired,
+                        "auth_url": service.auth_url,
+                        "client_id": service.client_id,
+                        "redirect_uri": service.redirect_uri,
+
                     })
             else:
                 oauth_services.append(
@@ -186,6 +194,9 @@ class UserOAuthRepo(object):
                         "oauth_type": service.oauth_type,
                         "is_authenticated": False,
                         "is_expired": False,
+                        "auth_url": service.auth_url,
+                        "client_id": service.client_id,
+                        "redirect_uri": service.redirect_uri,
                     }
                 )
         return oauth_services

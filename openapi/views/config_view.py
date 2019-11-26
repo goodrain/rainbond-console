@@ -96,15 +96,18 @@ class ListFeatureConfigView(BaseOpenAPIView):
     def put(self, req):
         serializer = UpdateFeatureCfgReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
-        print serializer.validated_data
         for key in serializer.validated_data.keys():
-            print key
             if key.upper() in config_service.feature_cfg_keys:
                 data = serializer.validated_data[key]
                 if "enable" in data.keys():
                     enable = data.get("enable")
                     if data.get("value"):
-                        value = dict(data.get("value"))
+                        if isinstance(data.get("value"), dict):
+                            value = dict(data.get("value"))
+                        elif isinstance(data.get("value"), list):
+                            value = list(data.get("value"))
+                        else:
+                            value = data.get("value")
                     else:
                         value = data.get("value")
                     try:

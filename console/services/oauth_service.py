@@ -93,7 +93,6 @@ class Gitee(object):
 
     def get_branches(self, full_name):
         url_suffix = 'repos/{full_name}/branches'.format(full_name=full_name)
-        print url_suffix
         return self._api_get(url_suffix)
 
     def get_tags(self, full_name):
@@ -144,9 +143,9 @@ class Oauth2(object):
             "grant_type": "authorization_code"
         }
         try:
-
             rst = self._session.request(method='POST', url=self.access_token_url,
                                         headers=self.headers, params=params)
+            print(rst.url, rst.content)
             if rst.status_code == 200:
                 data = rst.json()
                 self.access_token = data["access_token"]
@@ -230,9 +229,7 @@ class GithubApiV3(object):
         repo_list = []
         try:
             repos = self.api.search_repositories(query=full_name_or_id+' in:name')
-            print repos
         except Exception as e:
-            print e
             return repo_list
         for repo in repos:
             if repo is None:
@@ -358,7 +355,6 @@ class GitLabApiV4(object):
     def get_project_branches_or_tags(self, full_name_or_id, type):
         rst_list = []
         name = full_name_or_id.split("/")[-1]
-        print self.api.projects.list(search=name)
         repo = self.api.projects.list(search=name)[0]
         if type == "branches":
             for branch in repo.protectedbranches.list():
@@ -472,13 +468,6 @@ class GiteeApiV5(object):
     def creat_hooks(self, host, full_name, endpoint='console/webhooks'):
         return self.api.create_hook(host, endpoint, full_name)
 
-# a = GiteeApiV5('https://gitee.com', access_token='7079b23b9dcac9fd4bc851af348de104')
-# a = GithubApiV3('8d8f36362c4760cd3cfaa4cc4e557f87a7dd8f35')
-# b = GitLabApiV4(host='http://git.goodrain.com', access_token='a73713bf05314df9c1b9c61f89495482d1f190e9dce7ebd2f6a428c717ec3fbb')
-# b = GiteeApiV5(host='http://git.goodrain.com', access_token='a73713bf05314df9c1b9c61f89495482d1f190e9dce7ebd2f6a428c717ec3fbb')
-# print b.creat_hooks('192.168.2.48', 'panda-zxs/django')
-# print b.get_repos()
-# print b.creat_hooks('192.168.2.48:7070', 'zhaoxs/zxs')
 
 class GitApi(object):
     def __init__(self, oauth_service, oauth_user):
@@ -489,175 +478,3 @@ class GitApi(object):
         }
         Oauth2(oauth_service=oauth_service, oauth_user=oauth_user).check_and_refresh_access_token()
         self.api = api[oauth_service.oauth_type]
-
-#
-#
-# class GitOAuth2(object):
-#     def __init__(self, oauth_service, oauth_user=None, code=None, page=None):
-#         self._session = requests.Session()
-#         self.page = page
-#         self.code = code
-#         self.oauth_user = oauth_user
-#         if self.oauth_user is None:
-#             self.access_token = None
-#             self.refresh_token = None
-#             self.user = None
-#         else:
-#             self.access_token = oauth_user.access_token
-#             self.refresh_token = oauth_user.refresh_token
-#             self.user = oauth_user.oauth_user_name
-#         self.oauth_service = oauth_service
-#         self.oauth_type = oauth_service.oauth_type
-#         self.client_id = oauth_service.client_id
-#         self.client_secret = oauth_service.client_secret
-#         self.redirect_uri = oauth_service.redirect_uri
-#         self.auth_url = oauth_service.auth_url
-#         self.access_token_url = oauth_service.access_token_url
-#         self.access_token_method = oauth_service.access_token_method
-#         self.api_url = oauth_service.api_url
-#         self.project = self.api_url+oauth_service.api_project_url
-#         self.headers = {
-#             "Accept": "application/json",
-#             "Authorization": self.access_token,
-#         }
-#
-#     def get_access_token(self):
-#         headers = {
-#             "Accept": "application/json",
-#         }
-#         if self.oauth_type == "github":
-#             params = {
-#                 "code": self.code,
-#                 "client_id": self.client_id,
-#                 "client_secret": self.client_secret,
-#             }
-#             url = self.access_token_url
-#         elif self.oauth_type == "gitlab" or self.oauth_type == 'gitee':
-#             url = self.access_token_url+\
-#                   '?client_id={}&client_secret={}&code={}&grant_type=authorization_code&redirect_uri={}'.format(
-#                       self.client_id, self.client_secret,self.code, self.redirect_uri)
-#             params = {}
-#
-#         else:
-#             url=None
-#             params={}
-#         rst = self._session.request(method=self.access_token_method, url=url,
-#                                     headers=headers, params=params)
-#
-#         if rst.status_code == 200:
-#             data = rst.json()
-#             if data.get("error_description"):
-#                 return data["error_description"], None, 400
-#             elif data.get("token_type") == "bearer":
-#                 token = "bearer "+ data["access_token"]
-#                 refresh_token = data.get("refresh_token")
-#                 self.access_token = token
-#                 self.refresh_token = refresh_token
-#                 self.headers["Authorization"] = token
-#                 return token, refresh_token, 200
-#         else:
-#             return rst.reason, None, rst.status_code
-#
-#     def refresh_access_token(self):
-#         headers = {
-#             "Accept": "application/json",
-#         }
-#         if self.oauth_type == "gitlab":
-#             url = self.access_token_url+'?refresh_token={}&grant_type=refresh_token&scope=api'.format(self.refresh_token)
-#         elif self.oauth_type == "gitee":
-#             url = self.access_token_url + '?refresh_token={}&grant_type=refresh_token'.format(
-#                 self.refresh_token)
-#         else:
-#             url =None
-#         rst = self._session.request(method=self.access_token_method, url=url, headers=headers)
-#         data = rst.json()
-#         if rst.status_code == 200:
-#             self.refresh_token = data.get("refresh_token")
-#             self.access_token = data.get("access_token")
-#             token_type = data.get("token_type")
-#             self.oauth_user.refresh_token = self.refresh_token
-#             self.oauth_user.access_token = token_type+' '+self.access_token
-#             self.oauth_user.save()
-#
-#     def get_user(self):
-#         return self._session.request(method='GET', url=self.api_url+'user',
-#                                      headers=self.headers).json()
-#
-#     def get_repositories(self):
-#         if self.oauth_service.oauth_type == "github":
-#             url = self.project.format(self.user, self.page)+'&per_page=10'
-#         elif self.oauth_service.oauth_type == "gitlab":
-#             url = self.project.format(self.page)
-#         elif self.oauth_service.oauth_type == "gitee":
-#             url = self.project.format(self.page)
-#         else:
-#             url = None
-#         print url
-#         rst = self._session.request(method="GET", url=url, headers=self.headers)
-#         status = rst.status_code
-#         if status == 401:
-#             self.refresh_access_token()
-#             self.headers["Authorization"] = self.access_token
-#             rst = self._session.request(method="GET",
-#                                         url=url,
-#                                         headers=self.headers)
-#         data = rst.json()
-#         if len(data) > 0:
-#             for value in data:
-#                 if self.oauth_service.oauth_type == "github":
-#                     value["project_name"] = value["name"]
-#                     value["project_fullname"] = value["full_name"]
-#                     value["project_url"] = value["clone_url"]
-#                     value["project_description"] = value["description"]
-#                     value["project_size"] = value["size"]
-#                     value["project_versions_url"] = value["branches_url"]
-#                     value["project_default_version"] = value["default_branch"]
-#                     value["project_language"] = value["language"]
-#                     value["project_ssh_url"] = value["ssh_url"]
-#                     value["project_hooks_url"] = value["hooks_url"]
-#                     value["updated_at"] = value["updated_at"]
-#                     value["created_at"] = value["created_at"]
-#                 elif self.oauth_service.oauth_type == "gitlab":
-#                     value["project_name"] = value["name"]
-#                     value["project_fullname"] = value["path_with_namespace"]
-#                     value["project_url"] = value["http_url_to_repo"]
-#                     value["project_description"] = value["description"]
-#                     value["project_size"] = None
-#                     value["project_versions_url"] = value["_links"]["repo_branches"]
-#                     value["project_default_version"] = value["default_branch"]
-#                     value["project_language"] = None
-#                     value["project_ssh_url"] = value["ssh_url_to_repo"]
-#                     value["project_hooks_url"] = None
-#                     value["updated_at"] = value["last_activity_at"]
-#                     value["created_at"] = value["created_at"]
-#                 elif self.oauth_service.oauth_type == "gitee":
-#                     value["project_name"] = value["name"]
-#                     value["project_fullname"] = value["human_name"]
-#                     value["project_url"] = value["html_url"]
-#                     value["project_description"] = value["description"]
-#                     value["project_size"] = None
-#                     value["project_versions_url"] = value["branches_url"]
-#                     value["project_default_version"] = value["branches_url"]
-#                     value["project_language"] = value["language"]
-#                     value["project_ssh_url"] = value["ssh_url"]
-#                     value["project_hooks_url"] = value["hooks_url"]
-#                     value["updated_at"] = value["updated_at"]
-#                     value["created_at"] = value["created_at"]
-#                 else:
-#                     pass
-#         return data
-#
-#     def get_repository_versions(self, url, type):
-#         url = url.split("/branches")[0]+"/"+type
-#         print url
-#         rst = self._session.request(method='GET', url=url, headers=self.headers)
-#         status = rst.status_code
-#         data = rst.json()
-#         if status == 401:
-#             self.refresh_access_token()
-#             self.headers["Authorization"] = self.access_token
-#             rst = self._session.request(method="GET",
-#                                         url=url,
-#                                         headers=self.headers)
-#             data = rst.json()
-#         return data

@@ -7,6 +7,7 @@ import datetime
 import json
 import logging
 import os
+from re import split as re_split
 import pickle
 
 from django.conf import settings
@@ -18,6 +19,7 @@ from rest_framework.response import Response
 
 from console.constants import AppConstants
 from console.constants import PluginCategoryConstants
+from console.constants import SourceCodeType
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -667,6 +669,12 @@ class BuildSourceinfo(AppBaseView):
         try:
             service_source = service_source_repo.get_service_source(
                 team_id=self.service.tenant_id, service_id=self.service.service_id)
+
+            code_from = self.service.code_from
+            if code_from in (SourceCodeType.OAUTH_GITEE, SourceCodeType.OAUTH_GITHUB, SourceCodeType.OAUTH_GITLAB):
+                result_url = re_split("[:,@]", self.service.git_url)
+                self.service.git_url = result_url[0] + '//' + result_url[-1]
+                self.service.service_source = self.service.code_from
             bean = {
                 "user_name": "",
                 "password": "",

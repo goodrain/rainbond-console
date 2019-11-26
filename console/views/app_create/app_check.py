@@ -73,9 +73,7 @@ class AppCheck(AppBaseView):
         if code_from in (SourceCodeType.OAUTH_GITEE, SourceCodeType.OAUTH_GITHUB, SourceCodeType.OAUTH_GITLAB):
             for i in check_brief_info["service_info"]:
                 if i["type"] == "source_from":
-                    print i
                     result_url = re_spilt("[:,@]", i["value"])
-                    print result_url
                     i["value"] = result_url[0] + '//' + result_url[-2] + result_url[-1]
         result = general_message(200, "success", "请求成功", bean=check_brief_info)
         return Response(result, status=result["code"])
