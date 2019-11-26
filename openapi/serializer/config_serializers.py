@@ -128,11 +128,11 @@ class DocumentBaseRespSerializer(serializers.Serializer):
 
 
 class ObjectStorageRespSerializer(serializers.Serializer):
-    provider = serializers.CharField(max_length=255)
-    endpoint = serializers.CharField(max_length=2047)
-    access_key = serializers.CharField(max_length=255)
-    secret_key = serializers.CharField(max_length=255)
-    bucket_name = serializers.CharField(max_length=255)
+    provider = serializers.CharField(max_length=255, allow_blank=True)
+    endpoint = serializers.CharField(max_length=2047, allow_blank=True)
+    access_key = serializers.CharField(max_length=255, allow_blank=True)
+    secret_key = serializers.CharField(max_length=255, allow_blank=True)
+    bucket_name = serializers.CharField(max_length=255, allow_blank=True)
 
 
 class ObjectStorageBaseRespSerializer(serializers.Serializer):
