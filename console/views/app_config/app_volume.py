@@ -129,11 +129,11 @@ class AppVolumeView(AppBaseView):
         volume_path = request.data.get("volume_path", None)
         file_content = request.data.get("file_content", None)
         volume_capacity = request.data.get("volume_capacity", 0)
-        provider_name = request.data.get("volume_provider_name", None)
-        access_mode = request.data.get("access_mode", 'rwo')
-        share_policy = request.data.get('share_policy', 'exclusive')
-        backup_policy = request.data.get('back_policy', 'exclusive')
-        reclaim_policy = request.data.get('reclaim_policy', 'retain')
+        provider_name = request.data.get("volume_provider_name", '')
+        access_mode = request.data.get("access_mode", '')
+        share_policy = request.data.get('share_policy', '')
+        backup_policy = request.data.get('back_policy', '')
+        reclaim_policy = request.data.get('reclaim_policy', '')
         allow_expansion = request.data.get('allow_expansion', False)  # TODO 添加参数校验
         """
         添加外部存储时需要做的事情
@@ -182,14 +182,14 @@ class AppVolumeView(AppBaseView):
                 if exists is False:
                     result = general_message(code, "no volume-provider support ceph")
                     return Response(result, status=code)
-                settings = {}
-                settings['volume_capacity'] = volume_capacity
-                settings['provider_name'] = provider_name
-                settings['access_mode'] = access_mode
-                settings['share_policy'] = share_policy
-                settings['backup_policy'] = backup_policy
-                settings['reclaim_policy'] = reclaim_policy
-                settings['allow_expansion'] = allow_expansion
+            settings = {}
+            settings['volume_capacity'] = volume_capacity
+            settings['provider_name'] = provider_name
+            settings['access_mode'] = access_mode
+            settings['share_policy'] = share_policy
+            settings['backup_policy'] = backup_policy
+            settings['reclaim_policy'] = reclaim_policy
+            settings['allow_expansion'] = allow_expansion
 
             code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
                                                                 volume_name, settings, file_content)
