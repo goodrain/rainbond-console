@@ -51,8 +51,17 @@ def parse_item(request, key, default=None, required=False, error=''):
     """ 解析某一个date参数
     :type request: rest_framework.request.Request
     """
-    value = request.data.get(key, default)
+
+    data = {}
+    if isinstance(request, dict):
+        data = request
+    else:
+        data = request.data
+
+    value = data.get(key, default)
     if required and value is None:
+        if error == '':
+            error = "the filed '{}' is required".format(key)
         raise AbortRequest(error)
     return value
 

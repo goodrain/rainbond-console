@@ -60,3 +60,9 @@ class TeamUserSerializer(serializers.Serializer):
 class ListTeamUsersRespSerializer(serializers.Serializer):
     users = TeamUserSerializer(many=True)
     total = serializers.IntegerField()
+
+
+class ChangePassWdUserSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=True, help_text=u"user_id")
+    password = serializers.CharField(max_length=16, required=True, min_length=8, help_text=u"新密码")
+    password1 = serializers.CharField(max_length=16, required=True, min_length=8, help_text=u"再次确认新密码")

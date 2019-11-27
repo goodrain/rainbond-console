@@ -79,11 +79,9 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
                 migrate_region, migrate_team.tenant_name)
             return Response(general_message(412, "region is not usable", msg_cn), status=412)
 
-        code, msg, migrate_record = migrate_service.start_migrate(
-            self.user, self.tenant, self.region_name, migrate_team, migrate_region, backup_id, migrate_type,
-            event_id, restore_id)
-        if code != 200:
-            return Response(general_message(code, "migrate failed", msg), status=code)
+        migrate_record = migrate_service.start_migrate(
+            self.user, self.tenant, self.region_name, migrate_team, migrate_region,
+            backup_id, migrate_type, event_id, restore_id)
         result = general_message(200, "success", "操作成功，开始迁移应用", bean=migrate_record.to_dict())
         return Response(result, status=result["code"])
 
