@@ -563,11 +563,18 @@ class MarketAppService(object):
         if not volumes:
             return 200, "success"
         for volume in volumes:
-            if "file_content" in volume.keys():
+            if "file_content" in volume.keys() and volume["file_content"] != "":
                 code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
                                                                            volume["volume_type"], volume["volume_name"],
                                                                            volume["file_content"])
             else:
+                settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
+                                                                            volume.get("access_mode"),
+                                                                            volume.get("share_policy"),
+                                                                            volume.get("backup_policy"))
+                if settings.changed:
+                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
+                    volume["volume_type"] = settings.volume_type  # TODO 需要重置更多的参数
                 code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
                                                                            volume["volume_type"], volume["volume_name"])
             if code != 200:

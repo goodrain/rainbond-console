@@ -320,6 +320,9 @@ class ShareService(object):
                         s_v['volume_type'] = volume.volume_type
                         s_v['volume_path'] = volume.volume_path
                         s_v['volume_name'] = volume.volume_name
+                        s_v['access_mode'] = volume.access_mode
+                        s_v['share_policy'] = volume.share_policy
+                        s_v['backup_policy'] = volume.backup_policy
                         data['service_volume_map_list'].append(s_v)
 
                 data['service_env_map_list'] = list()

@@ -42,9 +42,29 @@ class AppVolumeService(object):
 
     def get_service_support_volume_providers(self, tenant, service, kind=''):
         res, body = region_api.get_volume_providers(service.service_region, tenant.tenant_name, kind)
+        # 过滤share-file & local-file的StorageClass
         if res.status != 200:
             return 200, []
         return 200, body.list
+
+    # 需要提供更多的信息到源数据中
+    # 使用数据中心接口统一返回最合适的类型，
+    def get_best_suitable_volume_settings(self, tenant, service, volume_type, access_mode=None, share_policy=None,
+                                          backup_policy=None, reclaim_policy=None, provider_name=None):
+        data = {
+            "volume_type": volume_type,
+            "access_mode": access_mode,
+            "share_policy": share_policy,
+            "backup_policy": backup_policy
+            }
+        """
+        settings 结构
+        volume_type: string 新的存储类型，没有合适的相同的存储则返回新的存储
+        changed: bool 是否有合适的相同的存储
+        ... 后续待补充
+        """
+        settings = region_api.get_volume_best_selector(service.service_region, tenant.tenant_name, data)
+        return settings.bean
 
     def get_service_volumes(self, tenant, service):
         return volume_repo.get_service_volumes(service.service_id)
@@ -103,7 +123,7 @@ class AppVolumeService(object):
 
         return 200, u"success"
 
-    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings, file_content=None):
+    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         code, msg, volume_name = self.check_volume_name(service, volume_name)
@@ -127,15 +147,16 @@ class AppVolumeService(object):
             "host_path": host_path,
             "volume_type": volume_type,
             "volume_path": volume_path,
-            "volume_name": volume_name,
-            "volume_capacity": settings['volume_capacity'],
-            "volume_provider_name": settings['provider_name'],
-            "access_mode": settings['access_mode'],
-            "share_policy": settings['share_policy'],
-            "backup_policy": settings['backup_policy'],
-            "reclaim_policy": settings['reclaim_policy'],
-            "allow_expansion": settings['allow_expansion']
+            "volume_name": volume_name
         }
+        if settings:
+            volume_data['volume_capacity'] = settings['volume_capacity']
+            volume_data['volume_provider_name'] = settings['provider_name']
+            volume_data['access_mode'] = settings['access_mode']
+            volume_data['share_policy'] = settings['share_policy']
+            volume_data['backup_policy'] = settings['backup_policy']
+            volume_data['reclaim_policy'] = settings['reclaim_policy']
+            volume_data['allow_expansion'] = settings['allow_expansion']
         # region端添加数据
         if service.create_status == "complete":
             if volume_type == "config-file":
@@ -153,15 +174,16 @@ class AppVolumeService(object):
                     "volume_name": volume_name,
                     "volume_path": volume_path,
                     "volume_type": volume_type,
-                    "volume_capacity": settings['volume_capacity'],
-                    "volume_provider_name": settings['provider_name'],
-                    "access_mode": settings['access_mode'],
-                    "share_policy": settings['share_policy'],
-                    "backup_policy": settings['backup_policy'],
-                    "reclaim_policy": settings['reclaim_policy'],
-                    "allow_expansion": settings['allow_expansion'],
                     "enterprise_id": tenant.enterprise_id
                 }
+            if settings:
+                data['volume_capacity'] = settings['volume_capacity']
+                data['volume_provider_name'] = settings['provider_name']
+                data['access_mode'] = settings['access_mode']
+                data['share_policy'] = settings['share_policy']
+                data['backup_policy'] = settings['backup_policy']
+                data['reclaim_policy'] = settings['reclaim_policy']
+                data['allow_expansion'] = settings['allow_expansion']
             res, body = region_api.add_service_volumes(service.service_region, tenant.tenant_name, service.service_alias, data)
             logger.debug(body)
 

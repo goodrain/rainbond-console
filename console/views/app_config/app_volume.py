@@ -192,7 +192,7 @@ class AppVolumeView(AppBaseView):
             settings['allow_expansion'] = allow_expansion
 
             code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                                volume_name, settings, file_content)
+                                                                volume_name, file_content, settings)
             if code != 200:
                 result = general_message(code, "add volume error", msg)
                 return Response(result, status=code)

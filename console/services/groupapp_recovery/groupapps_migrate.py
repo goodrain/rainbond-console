@@ -48,6 +48,7 @@ from www.models.main import ThirdPartyServiceEndpoints
 from www.models.plugin import ServicePluginConfigVar
 from www.models.plugin import TenantServicePluginRelation
 from www.utils.crypt import make_uuid
+from console.services.app_config import volume_service
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -244,7 +245,7 @@ class GroupappsMigrateService(object):
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
-            self.__save_volume(ts, app["service_volumes"],
+            self.__save_volume(migrate_tenant, ts, app["service_volumes"],
                                app["service_config_file"] if 'service_config_file' in app else None)
             self.__save_port(migrate_tenant, ts, app["service_ports"])
             self.__save_compile_env(ts, app["service_compile_env"])
@@ -301,11 +302,19 @@ class GroupappsMigrateService(object):
         if env_list:
             TenantServiceEnvVar.objects.bulk_create(env_list)
 
-    def __save_volume(self, service, tenant_service_volumes, service_config_file):
+    def __save_volume(self, tenant, service, tenant_service_volumes, service_config_file):
+        # 逻辑混乱，待优化
         if not service_config_file:
             volume_list = []
             for volume in tenant_service_volumes:
                 volume.pop("ID")
+                settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
+                                                                            volume.get("access_mode"),
+                                                                            volume.get("share_policy"),
+                                                                            volume.get("backup_policy"))
+                if settings.changed:
+                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
+                    volume["volume_type"] = settings.volume_type
                 new_volume = TenantServiceVolume(**volume)
                 new_volume.service_id = service.service_id
                 volume_list.append(new_volume)
@@ -322,6 +331,13 @@ class GroupappsMigrateService(object):
                         new_config_file.service_id = service.service_id
                         config_list.append(new_config_file)
                 volume.pop("ID")
+                settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
+                                                                            volume.get("access_mode"),
+                                                                            volume.get("share_policy"),
+                                                                            volume.get("backup_policy"))
+                if settings.changed:
+                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
+                    volume["volume_type"] = settings.volume_type
                 new_volume = TenantServiceVolume(**volume)
                 new_volume.service_id = service.service_id
                 volume_list.append(new_volume)
