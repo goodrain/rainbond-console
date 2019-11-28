@@ -199,7 +199,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     logger.debug("获取分支信息失败")
                     result = general_message(200, "failed", "获取分支信息失败")
                     return Response(result, status=200)
-                ref = ref.split("/")[2]
+                ref = ref.split("/")[-1]
                 if not service_obj.code_version == ref:
                     logger.debug("当前分支与部署分支不同")
                     result = general_message(200, "failed", "提交分支与部署分支不同")
