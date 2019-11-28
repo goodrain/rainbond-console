@@ -55,10 +55,9 @@ class ShareService(object):
                         data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(),
                                 "bean": dict()}
                         return data
-                    else:
-                        data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(),
-                                "bean": dict()}
-                        return data
+                data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(),
+                        "bean": dict()}
+                return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前组内无组件", "list": list(), "bean": dict()}
             return data
