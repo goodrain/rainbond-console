@@ -99,7 +99,9 @@ class ShareService(object):
                 tmp_list = []
                 if service_id in dep_service_map.keys():
                     tmp_list = dep_service_map.get(service_id)
-                dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id)[0]
+                dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id).first()
+                if dep_service_info is None:
+                    return {}
                 tmp_list.append(dep_service_info)
                 dep_service_map[service_id] = tmp_list
             return dep_service_map
