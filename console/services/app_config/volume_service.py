@@ -67,7 +67,25 @@ class AppVolumeService(object):
         return settings.bean
 
     def get_service_volumes(self, tenant, service):
-        return volume_repo.get_service_volumes(service.service_id)
+        volumes = volume_repo.get_service_volumes(service.service_id)
+        vos = []
+        res, body = region_api.get_service_volumes_status(service.service_region, tenant.tenant_name, service.service_alias)
+        if res.status != 200:
+            for volume in volumes:
+                vo = volume.to_dict()
+                vo["status"] = 'unknown'
+                vos.append(vo)
+
+            return volumes
+        if body and body.bean:
+            for volume in volumes:
+                vo = volume.to_dict()
+                if vo["volume_name"] in body.bean.status:
+                    vo["status"] = body.bean.status[vo["volume_name"]]
+                else:
+                    vo["status"] = 'unknown'
+                vos.append(vo)
+        return vos
 
     def check_volume_name(self, service, volume_name):
         r = re.compile(u'^[a-zA-Z0-9_]+$')

@@ -4,7 +4,6 @@
 """
 import logging
 
-from django.db.models import Q
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -58,32 +57,23 @@ class AppVolumeView(AppBaseView):
         """
         volume_types = parse_argument(request, 'volume_types', value_type=list)
         try:
-            q = Q(volume_type__in=volume_types) if volume_types else Q()
-            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service).filter(q)
-
+            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
             volumes_list = []
-            if tenant_service_volumes:
+            if volume_types:
                 for tenant_service_volume in tenant_service_volumes:
-                    volume_dict = dict()
-                    volume_dict["service_id"] = tenant_service_volume.service_id
-                    volume_dict["category"] = tenant_service_volume.category
-                    volume_dict["host_path"] = tenant_service_volume.host_path
-                    volume_dict["volume_type"] = tenant_service_volume.volume_type
-                    volume_dict["volume_path"] = tenant_service_volume.volume_path
-                    volume_dict["volume_name"] = tenant_service_volume.volume_name
-                    volume_dict["volume_capacity"] = tenant_service_volume.volume_capacity
-                    volume_dict["volume_provider_name"] = tenant_service_volume.volume_provider_name
-                    volume_dict["access_mode"] = tenant_service_volume.access_mode
-                    volume_dict["share_policy"] = tenant_service_volume.share_policy
-                    volume_dict["backup_policy"] = tenant_service_volume.backup_policy
-                    volume_dict["reclaim_policy"] = tenant_service_volume.reclaim_policy
-                    volume_dict["allow_expansion"] = tenant_service_volume.allow_expansion
-                    volume_dict["ID"] = tenant_service_volume.ID
-                    if tenant_service_volume.volume_type == "config-file":
-                        cf_file = volume_repo.get_service_config_file(tenant_service_volume.ID)
+                    if tenant_service_volume["volume_type"] in volume_types:
+                        if tenant_service_volume["volume_type"] == "config-file":
+                            cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
+                            if cf_file:
+                                tenant_service_volume["file_content"] = cf_file.file_content
+                            volumes_list.append(tenant_service_volume)
+            else:
+                for tenant_service_volume in tenant_service_volumes:
+                    if tenant_service_volume["volume_type"] == "config-file":
+                        cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
                         if cf_file:
-                            volume_dict["file_content"] = cf_file.file_content
-                    volumes_list.append(volume_dict)
+                            tenant_service_volume["file_content"] = cf_file.file_content
+                    volumes_list.append(tenant_service_volume)
             result = general_message(200, "success", "查询成功", list=volumes_list)
         except Exception as e:
             logger.exception(e)
