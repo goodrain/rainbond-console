@@ -4,7 +4,7 @@ import logging
 import os
 import pickle
 import re
-from urlparse import urlparse
+# from urlparse import urlparse
 
 from docker_image import reference
 from rest_framework.response import Response
