@@ -4,7 +4,7 @@ import logging
 import os
 import pickle
 import re
-from urlparse import urlparse
+# from urlparse import urlparse
 
 from docker_image import reference
 from rest_framework.response import Response
@@ -199,7 +199,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     logger.debug("获取分支信息失败")
                     result = general_message(200, "failed", "获取分支信息失败")
                     return Response(result, status=200)
-                ref = ref.split("/")[2]
+                ref = ref.split("/")[-1]
                 if not service_obj.code_version == ref:
                     logger.debug("当前分支与部署分支不同")
                     result = general_message(200, "failed", "提交分支与部署分支不同")
@@ -364,22 +364,22 @@ class WebHooksDeploy(AlowAnyApiView):
 
     def _check_warehouse(self, service_git_url, clone_url, ssh_url):
         # 判断地址是否相同
-        service_url = urlparse(service_git_url)
-        http_url = urlparse(clone_url)
-        sh_url = urlparse(ssh_url)
-        service_url_netloc = service_url.netloc
-        service_url_path = service_url.path.strip(".git")
-        http_url_netloc = http_url.netloc
-        http_url_path = http_url.path.strip(".git")
-        sh_url_path = sh_url.path.strip(".git")
+        # service_url = urlparse(service_git_url)
+        # http_url = urlparse(clone_url)
+        # sh_url = urlparse(ssh_url)
+        # service_url_netloc = service_url.netloc
+        # service_url_path = service_url.path.strip(".git")
+        # http_url_netloc = http_url.netloc
+        # http_url_path = http_url.path.strip(".git")
+        # sh_url_path = sh_url.path.strip(".git")
 
-        if service_url.scheme:
-            if service_url_netloc != http_url_netloc or service_url_path != http_url_path:
-                return 400, "failed", "仓库地址不相符"
-        # git@github.com:27-1/static.git
-        else:
-            if service_url_path != sh_url_path:
-                return 400, "failed", "仓库地址不相符"
+        # if service_url.scheme:
+        #     if service_url_netloc != http_url_netloc or service_url_path != http_url_path:
+        #         return 400, "failed", "仓库地址不相符"
+        # # git@github.com:27-1/static.git
+        # else:
+        #     if service_url_path != sh_url_path:
+        #         return 400, "failed", "仓库地址不相符"
         return 200, "success", None
 
 
