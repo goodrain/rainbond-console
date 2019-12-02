@@ -55,25 +55,18 @@ class AppVolumeView(AppBaseView):
               type: string
               paramType: path
         """
-        volume_types = parse_argument(request, 'volume_types', value_type=list)
+        is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
         try:
-            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
+            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
             volumes_list = []
-            if volume_types:
+            if is_config:
                 for tenant_service_volume in tenant_service_volumes:
-                    if tenant_service_volume["volume_type"] in volume_types:
-                        if tenant_service_volume["volume_type"] == "config-file":
-                            cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
-                            if cf_file:
-                                tenant_service_volume["file_content"] = cf_file.file_content
-                            volumes_list.append(tenant_service_volume)
-            else:
-                for tenant_service_volume in tenant_service_volumes:
-                    if tenant_service_volume["volume_type"] == "config-file":
-                        cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
-                        if cf_file:
-                            tenant_service_volume["file_content"] = cf_file.file_content
+                    cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
+                    if cf_file:
+                        tenant_service_volume["file_content"] = cf_file.file_content
                     volumes_list.append(tenant_service_volume)
+            else:
+                volumes_list.append(tenant_service_volume for tenant_service_volume in tenant_service_volumes)
             result = general_message(200, "success", "查询成功", list=volumes_list)
         except Exception as e:
             logger.exception(e)

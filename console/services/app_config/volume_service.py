@@ -66,17 +66,25 @@ class AppVolumeService(object):
         settings = region_api.get_volume_best_selector(service.service_region, tenant.tenant_name, data)
         return settings.bean
 
-    def get_service_volumes(self, tenant, service):
-        volumes = volume_repo.get_service_volumes(service.service_id)
+    def get_service_volumes(self, tenant, service, is_config_file):
+        volumes = []
+        if is_config_file:
+            volumes = volume_repo.get_service_volumes_about_config_file(service.service_id)
+        else:
+            volumes = volume_repo.get_service_volumes(service.service_id)
         vos = []
-        res, body = region_api.get_service_volumes_status(service.service_region, tenant.tenant_name, service.service_alias)
-        if res.status != 200:
+        res = None
+        body = None
+        try:
+            res, body = region_api.get_service_volumes_status(service.service_region, tenant.tenant_name, service.service_alias)
+        except Exception as e:
+            logger.exception(e)
+        if res is None or (res is not None and res.status != 200):
             for volume in volumes:
                 vo = volume.to_dict()
-                vo["status"] = 'unknown'
+                vo["status"] = 'unknown'  # 与后端的未绑定进行统一
                 vos.append(vo)
-
-            return volumes
+            return vos
         if body and body.bean:
             for volume in volumes:
                 vo = volume.to_dict()
