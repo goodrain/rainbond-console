@@ -127,6 +127,19 @@ class DocumentBaseRespSerializer(serializers.Serializer):
     value = DocumentRespSerializer(required=False)
 
 
+class ObjectStorageRespSerializer(serializers.Serializer):
+    provider = serializers.CharField(max_length=255, allow_blank=True)
+    endpoint = serializers.CharField(max_length=2047, allow_blank=True)
+    access_key = serializers.CharField(max_length=255, allow_blank=True)
+    secret_key = serializers.CharField(max_length=255, allow_blank=True)
+    bucket_name = serializers.CharField(max_length=255, allow_blank=True)
+
+
+class ObjectStorageBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = ObjectStorageRespSerializer(required=False)
+
+
 class FeatureConfigRespSerializer(serializers.Serializer):
     github = GithubServiceBaseRespSerializer(required=True)
     gitlab = GitlabServiceBaseRespSerializer(required=True)
@@ -137,6 +150,7 @@ class FeatureConfigRespSerializer(serializers.Serializer):
     export_app = ExportAppBaseRespSerializer(required=True)
     cloud_market = CloudMarketBaseRespSerializer(required=True)
     document = DocumentBaseRespSerializer(required=True)
+    object_storage = ObjectStorageBaseRespSerializer(required=False)
 
 
 class UpdateFeatureCfgReqSerializer(serializers.Serializer):
@@ -149,3 +163,4 @@ class UpdateFeatureCfgReqSerializer(serializers.Serializer):
     export_app = ExportAppBaseRespSerializer(required=False)
     cloud_market = CloudMarketBaseRespSerializer(required=False)
     document = DocumentBaseRespSerializer(required=False)
+    object_storage = ObjectStorageBaseRespSerializer(required=False)

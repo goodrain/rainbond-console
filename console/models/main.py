@@ -688,3 +688,27 @@ class Announcement(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     title = models.CharField(max_length=64, help_text=u"通知标题", default=u"title")
     level = models.CharField(max_length=32, default="low", help_text=u"通知的等级")
+
+
+class AutoscalerRules(BaseModel):
+    class Meta:
+        db_table = "autoscaler_rules"
+
+    rule_id = models.CharField(max_length=32, unique=True, help_text=u"自动伸缩规则ID")
+    service_id = models.CharField(max_length=32, help_text=u"关联的组件ID")
+    enable = models.BooleanField(default=True, help_text=u"是否启用自动伸缩规则")
+    xpa_type = models.CharField(max_length=3, help_text=u"自动伸缩规则类型: hpa, vpa")
+    min_replicas = models.IntegerField(help_text=u"最小副本数")
+    max_replicas = models.IntegerField(help_text=u"最大副本数")
+
+
+class AutoscalerRuleMetrics(BaseModel):
+    class Meta:
+        db_table = "autoscaler_rule_metrics"
+        unique_together = ('rule_id', 'metric_type', 'metric_name')
+
+    rule_id = rule_id = models.CharField(max_length=32, help_text=u"关联的自动伸缩规则ID")
+    metric_type = models.CharField(max_length=16, help_text=u"指标类型")
+    metric_name = models.CharField(max_length=255, help_text=u"指标名称")
+    metric_target_type = models.CharField(max_length=13, help_text=u"指标目标类型")
+    metric_target_value = models.IntegerField(help_text=u"指标目标值")

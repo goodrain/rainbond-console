@@ -742,6 +742,7 @@ class AppPortService(object):
                 errs = validate_endpoint_address(address)
                 if len(errs) > 0:
                     return "do not allow operate outer port for domain endpoints", "不允许开启域名服务实例对外端口", 400
+            return "", "", 200
         except Exception as e:
             logger.exception(e)
             from www.utils.return_message import error_message
