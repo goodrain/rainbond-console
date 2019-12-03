@@ -41,9 +41,11 @@ class AutoscalerService(object):
 
         res = []
         for rule in rules:
-            m = r2m[rule.rule_id]
             r = rule.to_dict()
-            r["metrics"] = m
+            r["metrics"] = []
+            if r2m.get(rule.rule_id, None) is not None:
+                m = r2m[rule.rule_id]
+                r["metrics"] = m
             res.append(r)
 
         return res
@@ -98,14 +100,23 @@ class AutoscalerService(object):
             raise ErrAutoscalerRuleNotFound
         autoscaler_rule = autoscaler_rule.to_dict()
 
-        # create autoscaler rule metrics
+        # delete old autoscaler rule metrics
+        autoscaler_rule_metrics_repo.delete_by_rule_id(rule_id)
+        # create new ones
         metrics = []
-        for dat in data["metrics"]:
-            try:
-                metric = autoscaler_rule_metrics_repo.update_or_create(rule_id, dat)
-                metrics.append(metric.to_dict())
-            except IntegrityError:
-                raise ErrDuplicateMetrics
+        for metric in data["metrics"]:
+            metrics.append({
+                "rule_id": autoscaler_rule["rule_id"],
+                "metric_type": metric["metric_type"],
+                "metric_name": metric["metric_name"],
+                "metric_target_type": metric["metric_target_type"],
+                "metric_target_value": metric["metric_target_value"],
+            })
+
+        try:
+            autoscaler_rule_metrics_repo.bulk_create(metrics)
+        except IntegrityError:
+            raise ErrDuplicateMetrics
 
         autoscaler_rule["metrics"] = metrics
 

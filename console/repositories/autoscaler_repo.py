@@ -53,6 +53,9 @@ class AutoscalerRuleMetricsRepository(object):
                 metric_target_type=metric["metric_target_type"],
                 metric_target_value=metric["metric_target_value"])
 
+    def delete_by_rule_id(self, rule_id):
+        AutoscalerRuleMetrics.objects.filter(rule_id=rule_id).delete()
+
 
 autoscaler_rules_repo = AutoscalerRulesRepository()
 autoscaler_rule_metrics_repo = AutoscalerRuleMetricsRepository()

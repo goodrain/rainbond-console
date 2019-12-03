@@ -35,7 +35,7 @@ class AppStore(object):
                 image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
                 if not image_config or not image_config[0].enable:
                     return {"hub_url": 'goodrain.me', "namespace": team_name}
-                image_config_dict = json_load(image_config[0].value)
+                image_config_dict = eval(image_config[0].value)
                 hub_url = image_config_dict.get("hub_url", None)
                 hub_user = image_config_dict.get("hub_user", None)
                 hub_password = image_config_dict.get("hub_password", None)
