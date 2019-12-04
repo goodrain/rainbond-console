@@ -194,9 +194,9 @@ class Users(models.Model):
 
     user_id = models.AutoField(primary_key=True, max_length=10)
     email = models.EmailField(max_length=35, help_text=u"邮件地址")
-    nick_name = models.CharField(max_length=24, unique=True, null=True, blank=True, help_text=u"用户昵称")
-    password = models.CharField(max_length=16, help_text=u"密码")
-    phone = models.CharField(max_length=11, null=True, blank=True, help_text=u"手机号码")
+    nick_name = models.CharField(max_length=64, unique=True, null=True, blank=True, help_text=u"用户昵称")
+    password = models.CharField(max_length=64, help_text=u"密码")
+    phone = models.CharField(max_length=15, null=True, blank=True, help_text=u"手机号码")
     is_active = models.BooleanField(default=False, help_text=u"激活状态")
     origion = models.CharField(max_length=12, choices=user_origion, help_text=u"用户来源")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
@@ -301,7 +301,7 @@ class Tenants(BaseModel):
         db_table = 'tenant_info'
 
     tenant_id = models.CharField(max_length=33, unique=True, default=make_tenant_id, help_text=u"租户id")
-    tenant_name = models.CharField(max_length=40, unique=True, help_text=u"租户名称")
+    tenant_name = models.CharField(max_length=64, unique=True, help_text=u"租户名称")
     region = models.CharField(max_length=30, default='', help_text=u"区域中心,弃用")
     is_active = models.BooleanField(default=True, help_text=u"激活状态")
     pay_type = models.CharField(max_length=5, choices=tenant_type, help_text=u"付费状态")
@@ -325,13 +325,13 @@ class TenantRegionInfo(BaseModel):
         unique_together = (('tenant_id', 'region_name'), )
 
     tenant_id = models.CharField(max_length=33, db_index=True, help_text=u"租户id")
-    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
     is_active = models.BooleanField(default=True, help_text=u"是否已激活")
     is_init = models.BooleanField(default=False, help_text=u'是否创建租户网络')
     service_status = models.IntegerField(help_text=u"组件状态0:暂停，1:运行，2:关闭", default=1)
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
-    region_tenant_name = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心租户名")
+    region_tenant_name = models.CharField(max_length=64, null=True, blank=True, default='', help_text=u"数据中心租户名")
     region_tenant_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心租户id")
     region_scope = models.CharField(max_length=32, null=True, blank=True,
                                     default='', help_text=u"数据中心类型 private/public")
@@ -345,7 +345,7 @@ class TenantRegionResource(BaseModel):
 
     enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     tenant_id = models.CharField(max_length=33, help_text=u"租户id")
-    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
     memory_limit = models.IntegerField(help_text=u"内存使用上限(M)", default=0)
     memory_expire_date = models.DateTimeField(null=True, blank=True, help_text=u"内存有效期时间")
     disk_limit = models.IntegerField(help_text=u"磁盘使用上限(M)", default=0)
@@ -385,12 +385,12 @@ class ServiceInfo(BaseModel):
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web组件")
     version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    image = models.CharField(max_length=100, help_text=u"镜像")
+    image = models.CharField(max_length=200, help_text=u"镜像")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
     slug = models.CharField(max_length=200, help_text=u"slug包路径", default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text=u"启动参数")
-    setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
+    setting = models.CharField(max_length=200, null=True, blank=True, help_text=u"设置项")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
     dependecy = models.CharField(max_length=100, default="", help_text=u"依赖组件--service_key待确认")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
@@ -398,7 +398,7 @@ class ServiceInfo(BaseModel):
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
     inner_port = models.IntegerField(help_text=u"内部端口", default=0)
     publish_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
-    volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
+    volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text=u"mount目录")
     service_type = models.CharField(max_length=50, null=True, blank=True,
                                     help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
     is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
@@ -423,16 +423,16 @@ class TenantServiceInfo(BaseModel):
     service_key = models.CharField(max_length=32, help_text=u"组件key")
     service_alias = models.CharField(max_length=100, help_text=u"组件别名")
     service_cname = models.CharField(max_length=100, default='', help_text=u"组件名")
-    service_region = models.CharField(max_length=15, help_text=u"组件所属区")
+    service_region = models.CharField(max_length=64, help_text=u"组件所属区")
     desc = models.CharField(max_length=200, null=True, blank=True, help_text=u"描述")
     category = models.CharField(max_length=15, help_text=u"组件分类：application,cache,store")
     service_port = models.IntegerField(help_text=u"组件端口", default=0)
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web组件")
     version = models.CharField(max_length=255, help_text=u"版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    image = models.CharField(max_length=100, help_text=u"镜像")
+    image = models.CharField(max_length=200, help_text=u"镜像")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text=u"启动参数")
-    setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
+    setting = models.CharField(max_length=200, null=True, blank=True, help_text=u"设置项")
     extend_method = models.CharField(
         max_length=15, choices=extend_method, default='stateless', help_text=u"组件部署类型,stateless or state")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
@@ -440,7 +440,7 @@ class TenantServiceInfo(BaseModel):
     min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
     inner_port = models.IntegerField(help_text=u"内部端口", default=0)
-    volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
+    volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text=u"mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text=u"mount目录")
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"仅用于云市创建应用表示构建源的部署版版-小版本")
     code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
@@ -458,7 +458,7 @@ class TenantServiceInfo(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner组件")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
-    volume_type = models.CharField(max_length=15, default='shared', help_text=u"共享类型shared、exclusive")
+    volume_type = models.CharField(max_length=30, default='shared', help_text=u"共享类型shared、exclusive")
     port_type = models.CharField(max_length=15, default='multi_outer',
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
@@ -520,27 +520,27 @@ class TenantServiceInfoDelete(BaseModel):
     service_key = models.CharField(max_length=32, help_text=u"组件key")
     service_alias = models.CharField(max_length=100, help_text=u"组件别名")
     service_cname = models.CharField(max_length=100, default='', help_text=u"组件名")
-    service_region = models.CharField(max_length=15, help_text=u"组件所属区")
+    service_region = models.CharField(max_length=64, help_text=u"组件所属区")
     desc = models.CharField(max_length=200, null=True, blank=True, help_text=u"描述")
     category = models.CharField(max_length=15, help_text=u"组件分类：application,cache,store")
     service_port = models.IntegerField(help_text=u"组件端口", default=8000)
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web组件")
     version = models.CharField(max_length=20, help_text=u"版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    image = models.CharField(max_length=100, help_text=u"镜像")
-    cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
-    setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
+    image = models.CharField(max_length=200, help_text=u"镜像")
+    cmd = models.CharField(max_length=2048, null=True, blank=True, help_text=u"启动参数")
+    setting = models.CharField(max_length=200, null=True, blank=True, help_text=u"设置项")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
     min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
     inner_port = models.IntegerField(help_text=u"内部端口")
-    volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
+    volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text=u"mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text=u"mount目录")
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
     code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
-    git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"code代码仓库")
+    git_url = models.CharField(max_length=200, null=True, blank=True, help_text=u"code代码仓库")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
@@ -554,7 +554,7 @@ class TenantServiceInfoDelete(BaseModel):
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner组件")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
-    volume_type = models.CharField(max_length=15, default='shared', help_text=u"共享类型shared、exclusive")
+    volume_type = models.CharField(max_length=30, default='shared', help_text=u"共享类型shared、exclusive")
     port_type = models.CharField(max_length=15, default='multi_outer',
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
@@ -616,8 +616,8 @@ class TenantServiceAuth(BaseModel):
         db_table = 'tenant_service_auth'
 
     service_id = models.CharField(max_length=32, help_text=u"组件id")
-    user = models.CharField(max_length=40, null=True, blank=True, help_text=u"用户")
-    password = models.CharField(max_length=100, null=True, blank=True, help_text=u"密码")
+    user = models.CharField(max_length=64, null=True, blank=True, help_text=u"用户")
+    password = models.CharField(max_length=200, null=True, blank=True, help_text=u"密码")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
@@ -651,17 +651,17 @@ class ServiceDomain(BaseModel):
         db_table = 'service_domain'
 
     http_rule_id = models.CharField(max_length=128, unique=True, help_text=u"http_rule_id")
-    region_id = models.CharField(max_length=32, help_text=u"region id")
+    region_id = models.CharField(max_length=36, help_text=u"region id")
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"组件id")
-    service_name = models.CharField(max_length=32, help_text=u"组件名")
+    service_name = models.CharField(max_length=64, help_text=u"组件名")
     domain_name = models.CharField(max_length=128, help_text=u"域名")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     protocol = models.CharField(max_length=15, default='http', help_text=u"域名类型 http https httptphttps httpandhttps")
     certificate_id = models.IntegerField(default=0, help_text=u'证书ID')
     domain_type = models.CharField(max_length=20, default='www', help_text=u"组件域名类型")
-    service_alias = models.CharField(max_length=32, default='', help_text=u"组件别名")
+    service_alias = models.CharField(max_length=64, default='', help_text=u"组件别名")
     is_senior = models.BooleanField(default=False, help_text=u'是否有高级路由')
     domain_path = models.TextField(blank=True, help_text=u"域名path")
     domain_cookie = models.TextField(blank=True, help_text=u"域名cookie")
@@ -685,7 +685,7 @@ class ServiceDomainCertificate(BaseModel):
     certificate = models.TextField(default='', help_text=u'证书')
     certificate_type = models.TextField(default='', help_text=u'证书类型')
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
-    alias = models.CharField(max_length=32, help_text=u"证书别名")
+    alias = models.CharField(max_length=64, help_text=u"证书别名")
 
     def __unicode__(self):
         return "private_key:{} certificate:{}".format(self.private_key, self.certificate)
@@ -899,7 +899,7 @@ class TenantServicesPort(BaseModel):
     mapping_port = models.IntegerField(default=0, help_text=u"映射端口")
     lb_mapping_port = models.IntegerField(default=0, help_text=u"负载均衡映射端口")
     protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"组件协议：http,stream")
-    port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")
+    port_alias = models.CharField(max_length=64, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部组件；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部组件；0:不绑定；1:绑定")
 
@@ -953,7 +953,7 @@ class ServiceGroup(BaseModel):
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     group_name = models.CharField(max_length=128, help_text=u"组名")
-    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
 
 
@@ -966,7 +966,7 @@ class ServiceGroupRelation(BaseModel):
     service_id = models.CharField(max_length=32, help_text=u"组件id")
     group_id = models.IntegerField()
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
 
 
 class ImageServiceRelation(BaseModel):
@@ -977,7 +977,7 @@ class ImageServiceRelation(BaseModel):
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"组件id")
-    image_url = models.CharField(max_length=100, help_text=u"镜像地址")
+    image_url = models.CharField(max_length=200, help_text=u"镜像地址")
     service_cname = models.CharField(max_length=100, default='', help_text=u"组件名")
 
 
@@ -1002,7 +1002,7 @@ class ServiceRule(BaseModel):
     tenant_name = models.CharField(max_length=40, unique=True, help_text=u"租户名称")
     service_id = models.CharField(max_length=32, help_text=u"组件id")
     service_alias = models.CharField(max_length=100, help_text=u"组件别名")
-    service_region = models.CharField(max_length=32, help_text=u"数据中心")
+    service_region = models.CharField(max_length=64, help_text=u"数据中心")
     item = models.CharField(max_length=50, help_text=u"规则项目")
     maxvalue = models.IntegerField(default=0)
     minvalue = models.IntegerField(default=0)
@@ -1072,10 +1072,10 @@ class ThirdAppInfo(BaseModel):
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"组件id")
-    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
+    bucket_name = models.CharField(max_length=64, help_text=u"空间名")
     app_type = models.CharField(max_length=32, help_text=u"第三方组件类型")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    name = models.CharField(max_length=32, help_text=u"组件名称")
+    name = models.CharField(max_length=64, help_text=u"组件名称")
     bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
     open = models.BooleanField(default=1, help_text=u"是否开启状态")
     delete = models.BooleanField(default=0, help_text=u"是否删除状态")
@@ -1179,7 +1179,7 @@ class ServiceEvent(BaseModel):
     event_id = models.CharField(max_length=32, help_text=u"操作id")
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"组件id")
-    user_name = models.CharField(max_length=50, help_text=u"操作用户")
+    user_name = models.CharField(max_length=64, help_text=u"操作用户")
     start_time = models.DateTimeField(help_text=u"操作开始时间")
     end_time = models.DateTimeField(help_text=u"操作结束时间", null=True)
     type = models.CharField(max_length=20, help_text=u"操作类型")
@@ -1190,7 +1190,7 @@ class ServiceEvent(BaseModel):
     old_deploy_version = models.CharField(max_length=20, help_text=u"历史部署版本")
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
     old_code_version = models.CharField(max_length=200, help_text=u"历史部署代码版本")
-    region = models.CharField(max_length=32, default="", help_text=u"组件所属数据中心")
+    region = models.CharField(max_length=64, default="", help_text=u"组件所属数据中心")
 
 
 class GroupCreateTemp(BaseModel):
@@ -1221,11 +1221,11 @@ class ServiceProbe(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"组件id")
     probe_id = models.CharField(max_length=32, help_text=u"探针id")
-    mode = models.CharField(max_length=10, help_text=u"不健康处理方式readiness（下线）或liveness（重启）或ignore（忽略）")
+    mode = models.CharField(max_length=20, help_text=u"不健康处理方式readiness（下线）或liveness（重启）或ignore（忽略）")
     scheme = models.CharField(max_length=10, default="tcp", help_text=u"探针使用协议,tcp,http,cmd")
-    path = models.CharField(max_length=50, default="", help_text=u"路径")
+    path = models.CharField(max_length=200, default="", help_text=u"路径")
     port = models.IntegerField(default=80, help_text=u"检测端口")
-    cmd = models.CharField(max_length=150, default="", help_text=u"cmd 命令")
+    cmd = models.CharField(max_length=1024, default="", help_text=u"cmd 命令")
     http_header = models.CharField(max_length=300, blank=True, default="", help_text=u"http请求头，key=value,key2=value2")
     initial_delay_second = models.IntegerField(default=1, help_text=u"初始化等候时间")
     period_second = models.IntegerField(default=3, help_text=u"检测间隔时间")
@@ -1239,7 +1239,7 @@ class ConsoleConfig(BaseModel):
     class Meta:
         db_table = 'console_config'
 
-    key = models.CharField(max_length=50, help_text=u"配置名称")
+    key = models.CharField(max_length=100, help_text=u"配置名称")
     value = models.CharField(max_length=1000, help_text=u"配置值")
     description = models.TextField(null=True, blank=True, default="", help_text=u"说明")
     update_time = models.DateTimeField(help_text=u"更新时间", null=True)
@@ -1304,7 +1304,7 @@ class TenantServiceGroup(BaseModel):
     group_alias = models.CharField(max_length=64, help_text=u"组件别名")
     group_key = models.CharField(max_length=32, help_text=u"组件组id")
     group_version = models.CharField(max_length=32, help_text=u"组件组版本")
-    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
     service_group_id = models.IntegerField(default=0, help_text=u"ServiceGroup主键, 组件分类ID")
 
 
@@ -1315,15 +1315,15 @@ class ServiceTcpDomain(BaseModel):
         db_table = 'service_tcp_domain'
 
     tcp_rule_id = models.CharField(max_length=128, unique=True, help_text=u"tcp_rule_id")
-    region_id = models.CharField(max_length=32, help_text=u"region id")
+    region_id = models.CharField(max_length=36, help_text=u"region id")
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"组件id")
-    service_name = models.CharField(max_length=32, help_text=u"组件名")
+    service_name = models.CharField(max_length=64, help_text=u"组件名")
     end_point = models.CharField(max_length=256, help_text=u"ip+port")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：tcp,udp")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
-    service_alias = models.CharField(max_length=32, default='', help_text=u"组件别名")
+    service_alias = models.CharField(max_length=64, default='', help_text=u"组件别名")
     type = models.IntegerField(default=0, help_text=u"类型（默认：0， 自定义：1）")
     rule_extensions = models.TextField(null=True, blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
