@@ -93,16 +93,23 @@ class AppVolumeService(object):
         if res is None or (res is not None and res.status != 200):
             for volume in volumes:
                 vo = volume.to_dict()
-                vo["status"] = 'NOT_READY'  # 与后端的未绑定进行统一
+                vo["status"] = 'not_bound'
                 vos.append(vo)
             return vos
         if body and body.bean:
             for volume in volumes:
                 vo = volume.to_dict()
-                if vo["volume_name"] in body.bean.status:
-                    vo["status"] = body.bean.status[vo["volume_name"]]
+                if vo["volume_type"] in ["share-file", "config-file", "local", "memoryfs"]:
+                    vo["status"] = "bound"
+                    vos.append(vo)
+                    continue
+                if body.bean.status[vo["volume_name"]] is not None:
+                    if body.bean.status[vo["volume_name"]] == "READY":
+                        vo["status"] = "bound"
+                    else:
+                        vo["status"] = "un_bound"
                 else:
-                    vo["status"] = 'NOT_READY'
+                    vo["status"] = 'not_bound'
                 vos.append(vo)
         return vos
 
