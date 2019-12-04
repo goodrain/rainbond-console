@@ -145,26 +145,6 @@ class AppVolumeView(AppBaseView):
         7. 是否可扩展
         """
         try:
-            if volume_type == "ceph-rbd":
-                if volume_capacity == 0:
-                    result = general_message(
-                        400, "volume capcacity is {0}, must be greater than zero".format(volume_capacity),
-                        "存储大小必须设定大于0")
-                    return Response(result, status=400)
-                code, providers = volume_service.get_service_support_volume_providers(self.tenant, self.service)
-                if code != 200:
-                    result = general_message(code, "no volume-provider support ceph")
-                    return Response(result, status=code)
-                exists = False
-                for provider in providers:
-                    if provider.kind == volume_type:
-                        for detail in provider.provisioner:
-                            if detail.name == provider_name:
-                                exists = True
-                                break
-                if exists is False:
-                    result = general_message(code, "no volume-provider support ceph")
-                    return Response(result, status=code)
             settings = {}
             settings['volume_capacity'] = volume_capacity
             settings['provider_name'] = provider_name
