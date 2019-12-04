@@ -657,15 +657,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_service_logs(self, region, tenant_name, service_alias, body):
+    def get_service_logs(self, region, tenant_name, service_alias, rows):
         """获取组件日志"""
-
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/log"
-
+        url = url + "/v2/tenants/{0}/services/{1}/logs?rows={2}".format(tenant_region.region_tenant_name, service_alias, rows)
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._get(url, self.default_headers, region=region)
         return body
 
     def get_service_log_files(self, region, tenant_name, service_alias, enterprise_id):
