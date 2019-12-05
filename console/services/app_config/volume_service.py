@@ -229,7 +229,7 @@ class AppVolumeService(object):
         if volume_type == "alicloud-disk":
             if settings['volume_capacity'] is None or settings['volume_capacity'] == "":
                 return 400, u'ceph-rbd存储容量必须大于0'
-            if int(settings['volume_capacity']) <= 20:
+            if int(settings['volume_capacity']) < 20:
                 return 400, u'阿里云盘存储容量必须大于20'
 
         return 200, ''
