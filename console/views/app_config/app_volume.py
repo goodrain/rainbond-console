@@ -66,7 +66,8 @@ class AppVolumeView(AppBaseView):
                         tenant_service_volume["file_content"] = cf_file.file_content
                     volumes_list.append(tenant_service_volume)
             else:
-                volumes_list.append(tenant_service_volume for tenant_service_volume in tenant_service_volumes)
+                for vo in tenant_service_volumes:
+                    volumes_list.append(vo)
             result = general_message(200, "success", "查询成功", list=volumes_list)
         except Exception as e:
             logger.exception(e)
