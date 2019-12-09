@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
 from console.forms.users_operation import RegisterForm
 from console.repositories.perm_repo import perms_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -378,6 +379,9 @@ class UserDetailsView(JWTAuthApiView):
                 tenant_info["tenant_actions"] = user.actions.tenant_actions
                 tenant_list.append(tenant_info)
             user_detail["teams"] = tenant_list
+            oauth_services = oauth_user_repo.get_user_oauth_services_info(eid=request.user.enterprise_id,
+                                                                          user_id=request.user.user_id)
+            user_detail["oauth_services"] = oauth_services
             result = general_message(code, "Obtain my details to be successful.", "获取我的详情成功", bean=user_detail)
         except Exception as e:
             code = 500

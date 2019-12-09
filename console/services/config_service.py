@@ -8,6 +8,7 @@ from console.exception.exceptions import ConfigExistError
 from console.models.main import CloundBangImages
 from console.models.main import ConsoleSysConfig
 from console.repositories.config_repo import cfg_repo
+from console.repositories.oauth_repo import oauth_repo
 from console.services.enterprise_services import enterprise_services
 from goodrain_web.custom_config import custom_config as custom_settings
 from www.models.main import TenantEnterprise
@@ -23,12 +24,13 @@ class ConfigService(object):
         self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB",
                                  "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
                                  "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
-                                 "CLOUD_MARKET", "OBJECT_STORAGE"]
+                                 "CLOUD_MARKET", "OBJECT_STORAGE", "OAUTH_SERVICES"]
         self.feature_base_cfg_keys = ["IS_REGIST"]
         self.default_feature_base_cfg_value = {
             "IS_REGIST": {"value": True, "desc": u"是否允许注册", "enable": True},
         }
         self.default_feature_cfg_value = {
+            "OAUTH_SERVICES": {"value": None, "desc": u"开启/关闭OAuthServices功能", "enable": True},
             "OPEN_DATA_CENTER_STATUS": {"value": None, "desc": u"开启/关闭开通数据中心功能", "enable": True},
             "NEWBIE_GUIDE": {"value": None, "desc": u"开启/关闭新手引导", "enable": True},
             "DOCUMENT": {"value": {"platform_url": "https://www.rainbond.com/", },
@@ -155,7 +157,10 @@ class ConfigService(object):
         if key in self.feature_cfg_keys:
             if enable:
                 self.update_config_enable_status(key, enable)
-                self.update_config_value(key, value)
+                if key == "OAUTH_SERVICES":
+                    oauth_repo.create_or_update_oauth_services(value)
+                else:
+                    self.update_config_value(key, value)
             else:
                 self.update_config_enable_status(key, enable)
 
