@@ -145,3 +145,26 @@ alter table tenant_service_group modify `region_name` varchar(64);
 alter table service_tcp_domain modify `service_name` varchar(64);
 alter table service_tcp_domain modify `service_alias` varchar(64);
 alter table service_tcp_domain modify `region_id` varchar(36);
+
+CREATE TABLE `autoscaler_rules` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `rule_id` varchar(32) NOT NULL,
+  `service_id` varchar(32) NOT NULL,
+  `enable` tinyint(1) NOT NULL,
+  `xpa_type` varchar(3) NOT NULL,
+  `min_replicas` int(11) NOT NULL,
+  `max_replicas` int(11) NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `rule_id` (`rule_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `autoscaler_rule_metrics` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `rule_id` varchar(32) NOT NULL,
+  `metric_type` varchar(16) NOT NULL,
+  `metric_name` varchar(255) NOT NULL,
+  `metric_target_type` varchar(13) NOT NULL,
+  `metric_target_value` int(11) NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `autoscaler_rule_metrics_rule_id_metric_type_metr_da6a4fbb_uniq` (`rule_id`,`metric_type`,`metric_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8;
