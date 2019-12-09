@@ -3,6 +3,7 @@
   Created on 18/1/19.
 """
 import logging
+import copy
 
 from console.exception.main import ErrDepVolumeNotFound
 from console.exception.main import ErrInvalidVolume
@@ -69,7 +70,8 @@ class AppMntService(object):
             .exclude(volume_name__in=dep_mnt_names).filter(q)
         # 只展示无状态的组件(有状态组件的存储类型为config-file也可)
         volumes = list(service_volumes)
-        for volume in volumes:
+        copy_volumes = copy.copy(volumes)
+        for volume in copy_volumes:
             service_obj = service_repo.get_service_by_service_id(volume.service_id)
             if service_obj:
                 if service_obj.extend_method != "stateless" and volume.volume_type != "config-file":

@@ -139,7 +139,7 @@ class AppLogView(AppBaseView):
               type: string
               paramType: query
             - name: lines
-              description: 日志数量，默认为50
+              description: 日志数量，默认为100
               required: false
               type: integer
               paramType: query
@@ -147,7 +147,7 @@ class AppLogView(AppBaseView):
         """
         try:
             action = request.GET.get("action", "service")
-            lines = request.GET.get("lines", 50)
+            lines = request.GET.get("lines", 100)
 
             code, msg, log_list = log_service.get_service_logs(
                 self.tenant, self.service, action, int(lines))
