@@ -12,6 +12,9 @@ from console.services.common_services import common_services
 from console.services.plugin import app_plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.app_config.base import AppBaseView
+from console.repositories.app_config import port_repo
+from console.repositories.plugin import plugin_repo
+from console.repositories.plugin import app_plugin_relation_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import error_message
@@ -85,10 +88,35 @@ class ServicePluginInstallView(AppBaseView):
               paramType: form
         """
         result = {}
+        plugin_list = []
+        categories = []
+        protocols = []
         build_version = request.data.get("build_version", None)
         try:
             if not plugin_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
+            service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
+                self.service.service_id)
+            plugin_info = plugin_repo.get_plugin_by_plugin_id(self.tenant.tenant_id, plugin_id)
+            if len(service_plugins) != 0:
+                for i in service_plugins:
+                    plugin_list.append(i.plugin_id)
+                plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_list)
+                for i in plugins:
+                    categories.append(i.category)
+
+                if plugin_info.category.split(":")[0] == "net-plugin" and plugin_info.category in categories:
+                    return Response(general_message(400, "params error", u"该组件已存在相同功能插件"), status=400)
+                if plugin_info.category == "net-plugin:in-and-out" and (
+                        "net-plugin:up" in categories or "net-plugin:down" in categories):
+                    return Response(general_message(400, "params error", u"该组件已存在相同功能插件"), status=400)
+            port_info = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id)
+            for i in port_info:
+                if i.protocol not in ["tcp", "udp"]:
+                    protocols.append(i.protocol)
+            if len(protocols) == 0 and plugin_info.plugin_alias == "服务实时性能分析":
+                return Response(general_message(400, "params error", u"服务实时性能分析插件仅支持 http 与 mysql 协议"),
+                                status=400)
             if not build_version:
                 plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
                 build_version = plugin_version.build_version
