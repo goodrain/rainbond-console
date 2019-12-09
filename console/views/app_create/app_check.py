@@ -49,7 +49,11 @@ class AppCheck(AppBaseView):
         code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
         # 如果已创建完成
         if self.service.create_status == "complete":
-            app_check_service.update_service_check_info(self.tenant, self.service, data)
+            service_info = data.get("service_info")
+            if service_info is not None and len(service_info) > 1 and service_info[0].get("language") == "Java-maven":
+                pass
+            else:
+                app_check_service.update_service_check_info(self.tenant, self.service, data)
             check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
             return Response(general_message(200, "success", "请求成功", bean=check_brief_info))
 
