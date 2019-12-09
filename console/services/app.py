@@ -94,7 +94,8 @@ class AppService(object):
 
     def create_source_code_app(self, region, tenant, user, service_code_from, service_cname,
                                service_code_clone_url, service_code_id, service_code_version,
-                               server_type, check_uuid, event_id, oauth_service_id, git_full_name):
+                               server_type, check_uuid=None, event_id=None, oauth_service_id=None,
+                               git_full_name=None):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
