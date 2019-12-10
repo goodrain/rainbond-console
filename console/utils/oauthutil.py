@@ -23,7 +23,7 @@ class OAuthType(object):
     填写当前支持的OAuth类型
     不是git仓库的类型，统一归为other
     """
-    OAuthType = ("github", "gitlab", "gitee", "other")
+    OAuthType = ("github", "gitlab", "gitee")
 
 
 class BaseOAuth2(object):
