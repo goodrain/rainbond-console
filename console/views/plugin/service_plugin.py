@@ -89,6 +89,9 @@ class ServicePluginInstallView(AppBaseView):
         try:
             if not plugin_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
+            rst = app_plugin_service.check_the_same_plugin(plugin_id, self.tenant.tenant_id, self.service.service_id)
+            if rst:
+                return Response(general_message(400, "params error", u"该组件已存在相同功能插件"), status=400)
             if not build_version:
                 plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
                 build_version = plugin_version.build_version

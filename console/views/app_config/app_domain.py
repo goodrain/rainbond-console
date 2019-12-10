@@ -119,6 +119,8 @@ class TenantCertificateView(RegionTenantHeaderView):
         """
         try:
             alias = request.data.get("alias", None)
+            if len(alias) > 64:
+                return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
             private_key = request.data.get("private_key", None)
             certificate = request.data.get("certificate", None)
             certificate_type = request.data.get("certificate_type", None)
@@ -155,16 +157,9 @@ class TenantCertificateManageView(RegionTenantHeaderView):
               paramType: path
 
         """
-        try:
-            certificate_id = kwargs.get("certificate_id", None)
-            code, msg = domain_service.delete_certificate_by_pk(certificate_id)
-            if code != 200:
-                return Response(general_message(code, "delete error", msg), status=code)
-
-            result = general_message(200, "success", "证书删除成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        certificate_id = kwargs.get("certificate_id", None)
+        domain_service.delete_certificate_by_pk(certificate_id)
+        result = general_message(200, "success", u"证书删除成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -201,23 +196,20 @@ class TenantCertificateManageView(RegionTenantHeaderView):
               paramType: form
 
         """
-        try:
-            certificate_id = kwargs.get("certificate_id", None)
-            if not certificate_id:
-                return Response(400, "no param certificate_id", "缺少未指明具体证书")
-            new_alias = request.data.get("alias", None)
-            private_key = request.data.get("private_key", None)
-            certificate = request.data.get("certificate", None)
-            certificate_type = request.data.get("certificate_type", None)
-            code, msg = domain_service.update_certificate(
-                self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
-            if code != 200:
-                return Response(general_message(code, "update certificate error", msg), status=code)
+        certificate_id = kwargs.get("certificate_id", None)
+        if not certificate_id:
+            return Response(400, "no param certificate_id", "缺少未指明具体证书")
+        new_alias = request.data.get("alias", None)
+        if len(new_alias) > 64:
+            return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
 
-            result = general_message(200, "success", "证书修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        private_key = request.data.get("private_key", None)
+        certificate = request.data.get("certificate", None)
+        certificate_type = request.data.get("certificate_type", None)
+        domain_service.update_certificate(self.region_name, self.tenant, certificate_id,
+                                          new_alias, certificate, private_key, certificate_type)
+
+        result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -795,10 +787,17 @@ class DomainQueryView(RegionTenantHeaderView):
             try:
                 # 查询分页排序
                 if search_conditions:
+                    search_conditions = search_conditions.decode('utf-8')
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute("select count(*) from service_domain where tenant_id='{0}' and region_id='{1}' \
-                            and domain_name like '%{2}%';".format(tenant.tenant_id, region.region_id, search_conditions))
+                    cursor.execute("select count(sd.domain_name) \
+                        from service_domain sd \
+                            left join service_group_relation sgr on sd.service_id = sgr.service_id \
+                            left join service_group sg on sgr.group_id = sg.id  \
+                        where sd.tenant_id='{0}' and sd.region_id='{1}' \
+                            and (sd.domain_name like '%{2}%' \
+                                or sd.service_alias like '%{2}%' \
+                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -810,18 +809,28 @@ class DomainQueryView(RegionTenantHeaderView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        "select domain_name, type, is_senior, certificate_id, service_alias, protocol, service_name, \
-                        container_port, http_rule_id, service_id, domain_path, domain_cookie, domain_heander, the_weight, \
-                            is_outer_service from service_domain where tenant_id='{0}' and region_id='{1}' and domain_name \
-                                like '%{2}%' order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id,
-                                                                                       search_conditions, start, end))
+                        "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+                            sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
+                            sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
+                            sd.is_outer_service \
+                        from service_domain sd \
+                            left join service_group_relation sgr on sd.service_id = sgr.service_id \
+                            left join service_group sg on sgr.group_id = sg.id \
+                        where sd.tenant_id='{0}' \
+                            and sd.region_id='{1}' \
+                            and (sd.domain_name like '%{2}%' \
+                                or sd.service_alias like '%{2}%' \
+                                or sg.group_name like '%{2}%') \
+                        order by type desc LIMIT {3},{4};".format(
+                            tenant.tenant_id, region.region_id, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
 
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute("select count(*) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
-                        tenant.tenant_id, region.region_id))
+                    cursor.execute(
+                        "select count(1) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
+                            tenant.tenant_id, region.region_id))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -907,12 +916,18 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             try:
                 # 查询分页排序
                 if search_conditions:
+                    search_conditions = search_conditions.decode('utf-8')
                     # 获取总数
                     cursor = connection.cursor()
                     cursor.execute(
-                        """select count(*) from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and
-                        domain_name like '%{2}%' or service_alias like '%{3}%';""".
-                        format(tenant.tenant_id, region.region_id, search_conditions, search_conditions))
+                        "select count(1) from service_tcp_domain std \
+                            left join service_group_relation sgr on std.service_id = sgr.service_id \
+                            left join service_group sg on sgr.group_id = sg.id  \
+                        where std.tenant_id='{0}' and std.region_id='{1}' \
+                            and (std.end_point like '%{2}%' \
+                                or std.service_alias like '%{2}%' \
+                                or sg.group_name like '%{2}%');".format(
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -924,17 +939,25 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        """select end_point, type, protocol, service_name, service_alias, container_port, tcp_rule_id,
-                        service_id, is_outer_service from service_tcp_domain where tenant_id='{0}' and region_id='{1}' and
-                        end_point like '%{2}%' or service_alias like '%{3}%' or group_name like '%{4}%'
-                        order by type desc LIMIT {5},{6};""".format(tenant.tenant_id, region.region_id, search_conditions,
-                                                                    search_conditions, search_conditions, start, end))
+                        "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
+                            std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
+                        from service_tcp_domain std \
+                            left join service_group_relation sgr on std.service_id = sgr.service_id \
+                            left join service_group sg on sgr.group_id = sg.id  \
+                        where std.tenant_id='{0}' and std.region_id='{1}' \
+                            and (std.end_point like '%{2}%' \
+                                or std.service_alias like '%{2}%' \
+                                or sg.group_name like '%{2}%') \
+                        order by type desc LIMIT {5},{6};".format(
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions,
+                            search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute("select count(*) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
-                        tenant.tenant_id, region.region_id))
+                    cursor.execute(
+                        "select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
+                            tenant.tenant_id, region.region_id))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]

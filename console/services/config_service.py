@@ -248,8 +248,7 @@ class ConfigService(object):
         try:
             cbi = CloundBangImages.objects.get(identify=identify)
             logo = cbi.logo.name
-        except CloundBangImages.DoesNotExist as e:
-            logger.error(e)
+        except CloundBangImages.DoesNotExist:
             logo = ""
         return logo
 
