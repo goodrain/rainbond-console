@@ -1,5 +1,4 @@
--- 更新版本
-update console.console_sys_config set `value`="5.1.9" where `key`="RAINBOND_VERSION";
+
 ------------------------------## module console ##--------------------------------------
 
 -- console_sys_config
@@ -214,3 +213,5 @@ alter table console.tenant_service add column git_full_name varchar(64) null def
 
 -- 证书
 alter table console.service_domain_certificate modify `alias` varchar(64);
+-- 更新版本
+update console.console_sys_config set `value`="5.1.9" where `key`="RAINBOND_VERSION";
