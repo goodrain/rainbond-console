@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+import datetime
+import logging
+import time
 
 from OpenSSL import crypto
-import time
-import datetime
+
+from console.utils.exception import err_cert_expired
+from console.utils.exception import err_invalid_cert
+
+logger = logging.getLogger("default")
 
 
 def analyze_cert(content):
@@ -64,10 +70,11 @@ def cert_is_effective(content):
     try:
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, content)
         has_expired = cert.has_expired()  # 是否过期
-        if not has_expired:
-            return True
-    except Exception:
-        return False
+        if has_expired:
+            err_cert_expired
+    except Exception as e:
+        logger.warning("loading certificate: {}".format(e))
+        raise err_invalid_cert
 
     return True
 
