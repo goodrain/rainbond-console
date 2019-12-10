@@ -540,21 +540,15 @@ class TeamDelView(JWTAuthApiView):
                 code = 400
                 result = general_message(code, "no identity", "您不是最高管理员，不能删除团队")
                 return Response(result, status=code)
-        try:
-            service_count = team_services.get_team_service_count_by_team_name(team_name=team_name)
-            if service_count >= 1:
-                result = general_message(400, "failed", "当前团队内有应用,不可以删除")
-                return Response(result, status=400)
-            team_services.delete_tenant(tenant_name=team_name)
-            result = general_message(code, "delete a tenant successfully", "删除团队成功")
-        except Tenants.DoesNotExist as e:
-            code = 400
-            logger.exception(e)
+
+        tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
+        if tenant is None:
+            code = 404
             result = general_message(code, "tenant not exist", "{}团队不存在".format(team_name))
-        except Exception as e:
-            code = 500
-            result = general_message(code, "sys exception", "系统异常")
-            logger.exception(e)
+
+        team_services.delete_by_tenant_id(tenant.tenant_id)
+        result = general_message(code, "delete a tenant successfully", "删除团队成功")
+
         return Response(result, status=code)
 
 
