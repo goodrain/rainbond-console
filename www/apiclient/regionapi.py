@@ -1531,3 +1531,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region)
         return body
+
+    def update_ingresses_by_certificate(self, region_name, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + region.region_tenant_name + "/gateway/certificate"
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body

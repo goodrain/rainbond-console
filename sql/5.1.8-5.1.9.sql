@@ -210,3 +210,7 @@ CREATE TABLE `user_oauth_service` (
 -- **2019-11-26 在tenant_service表中增加oauth_service_id字段，用来记录源码创建使用的oauth服务id
 alter table console.tenant_service add column oauth_service_id int(11) null default null;
 alter table console.tenant_service add column git_full_name varchar(64) null default null;
+
+
+-- 证书
+alter table console.service_domain_certificate modify `alias` varchar(64);
