@@ -682,7 +682,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_target_events_list(self, region, tenant_name, target, target_id, page, page_size):
         """获取作用对象事件日志列表"""
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
+        url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(
+            target, target_id, page, page_size)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
@@ -1491,3 +1492,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
+
+    def update_ingresses_by_certificate(self, region_name, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + region.region_tenant_name + "/gateway/certificate"
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body

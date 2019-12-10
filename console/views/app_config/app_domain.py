@@ -157,16 +157,9 @@ class TenantCertificateManageView(RegionTenantHeaderView):
               paramType: path
 
         """
-        try:
-            certificate_id = kwargs.get("certificate_id", None)
-            code, msg = domain_service.delete_certificate_by_pk(certificate_id)
-            if code != 200:
-                return Response(general_message(code, "delete error", msg), status=code)
-
-            result = general_message(200, "success", "证书删除成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        certificate_id = kwargs.get("certificate_id", None)
+        domain_service.delete_certificate_by_pk(certificate_id)
+        result = general_message(200, "success", u"证书删除成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -203,25 +196,20 @@ class TenantCertificateManageView(RegionTenantHeaderView):
               paramType: form
 
         """
-        try:
-            certificate_id = kwargs.get("certificate_id", None)
-            if not certificate_id:
-                return Response(400, "no param certificate_id", "缺少未指明具体证书")
-            new_alias = request.data.get("alias", None)
-            if len(new_alias) > 64:
-                return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
-            private_key = request.data.get("private_key", None)
-            certificate = request.data.get("certificate", None)
-            certificate_type = request.data.get("certificate_type", None)
-            code, msg = domain_service.update_certificate(
-                self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
-            if code != 200:
-                return Response(general_message(code, "update certificate error", msg), status=code)
+        certificate_id = kwargs.get("certificate_id", None)
+        if not certificate_id:
+            return Response(400, "no param certificate_id", "缺少未指明具体证书")
+        new_alias = request.data.get("alias", None)
+        if len(new_alias) > 64:
+            return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
 
-            result = general_message(200, "success", "证书修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        private_key = request.data.get("private_key", None)
+        certificate = request.data.get("certificate", None)
+        certificate_type = request.data.get("certificate_type", None)
+        domain_service.update_certificate(self.region_name, self.tenant, certificate_id,
+                                          new_alias, certificate, private_key, certificate_type)
+
+        result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -840,8 +828,9 @@ class DomainQueryView(RegionTenantHeaderView):
 
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute("select count(1) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
-                        tenant.tenant_id, region.region_id))
+                    cursor.execute(
+                        "select count(1) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
+                            tenant.tenant_id, region.region_id))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -938,7 +927,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                             and (std.end_point like '%{2}%' \
                                 or std.service_alias like '%{2}%' \
                                 or sg.group_name like '%{2}%');".format(
-                                    tenant.tenant_id, region.region_id, search_conditions, search_conditions))
+                            tenant.tenant_id, region.region_id, search_conditions, search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -966,8 +955,9 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 else:
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute("select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
-                        tenant.tenant_id, region.region_id))
+                    cursor.execute(
+                        "select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
+                            tenant.tenant_id, region.region_id))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
