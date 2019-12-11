@@ -38,6 +38,7 @@ from openapi.views.user_view import ListUsersView
 from openapi.views.user_view import ChangePassword
 from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
+from openapi.views.oauth import OauthTypeView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -90,4 +91,5 @@ urlpatterns = [
     url(r'^v1/apps/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
     url(r'^v1/apps/(?P<app_id>[\w\-]+)/httprules$', ListAppGatewayHTTPRuleView.as_view()),
     url(r'^v1/market-install', MarketAppInstallView.as_view()),
+    url(r'^v1/oauth/type', OauthTypeView.as_view()),
 ]

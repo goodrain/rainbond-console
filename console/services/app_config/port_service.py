@@ -196,9 +196,9 @@ class AppPortService(object):
         if not port_info:
             return 404, u"端口{0}不存在".format(container_port), None
         if port_info.is_inner_service:
-            return 409, u"请关闭对内组件", None
+            return 409, u"请关闭对内服务", None
         if port_info.is_outer_service:
-            return 409, u"请关闭对外组件", None
+            return 409, u"请关闭对外服务", None
         if service.create_status == "complete":
             # 删除数据中心端口
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias, container_port,

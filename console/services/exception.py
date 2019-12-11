@@ -60,3 +60,17 @@ ErrAutoscalerRuleNotFound = ServiceHandleException(
     msg_show="自动伸缩规程不存在",
     status_code=404
 )
+
+ErrStillHasServices = ServiceHandleException(
+    msg="the team still has service",
+    msg_show="团队仍有组件, 无法删除",
+    status_code=409,
+    error_code=2001
+)
+
+ErrAllTenantDeletionFailed = ServiceHandleException(
+    msg="delete of all tenants failed",
+    msg_show="所有租户的删除都失败了",
+    status_code=400,
+    error_code=400
+)
