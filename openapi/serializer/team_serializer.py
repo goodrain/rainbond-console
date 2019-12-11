@@ -74,7 +74,7 @@ class CreateTeamUserReqSerializer(serializers.Serializer):
 
 
 class TeamRegionsRespSerializer(serializers.Serializer):
-    region_id = serializers.CharField(max_length=32, help_text=u"region id")
+    region_id = serializers.CharField(max_length=36, help_text=u"region id")
     region_name = serializers.CharField(max_length=32, help_text=u"数据中心名称")
     region_alias = serializers.CharField(max_length=32, help_text=u"数据中心别名")
     tenant_name = serializers.CharField(max_length=32, help_text=u"租户名称")
@@ -106,7 +106,7 @@ class TeamServicesRespSerializer(serializers.Serializer):
     service_id = serializers.CharField(max_length=64, allow_blank=True, allow_null=True, help_text=u"组件id")
     group_id = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组id")
     tenant_name = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"租户名称")
-    region_id = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"数据中心id")
+    region_id = serializers.CharField(max_length=36, allow_blank=True, allow_null=True, help_text=u"数据中心id")
 
 
 class ListRegionTeamServicesSerializer(serializers.Serializer):
