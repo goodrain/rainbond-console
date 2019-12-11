@@ -480,8 +480,8 @@ class TenantServiceInfo(BaseModel):
     is_upgrate = models.BooleanField(default=False, help_text=u'是否可以更新')
     build_upgrade = models.BooleanField(default=True, help_text=u'组件构建后是否升级')
     service_name = models.CharField(max_length=100, default='', help_text=u"组件名称（新加属性，数据中心使用）")
-    oauth_service_id = models.IntegerField(default=None, help_text=u"拉取源码所用的OAuth服务id")
-    git_full_name = models.CharField(max_length=64, default=None, help_text=u"git项目的fullname")
+    oauth_service_id = models.IntegerField(default=None, null=True, blank=True, help_text=u"拉取源码所用的OAuth服务id")
+    git_full_name = models.CharField(max_length=64, null=True, blank=True, default=None, help_text=u"git项目的fullname")
 
     def __unicode__(self):
         return self.service_alias
