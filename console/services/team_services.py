@@ -19,6 +19,8 @@ from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
+from console.services.exception import ErrAllTenantDeletionFailed
+from console.services.exception import ErrStillHasServices
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.perm_services import perm_services
 from console.services.region_services import region_services
@@ -338,7 +340,27 @@ class TeamService(object):
         team_repo.delete_tenant(tenant_name=tenant_name)
 
     def delete_by_tenant_id(self, tenant_id):
-        return team_repo.delete_by_tenant_id(tenant_id=tenant_id)
+        service_count = team_services.count_by_tenant_id(tenant_id=tenant_id)
+        if service_count >= 1:
+            raise ErrStillHasServices
+
+        # list all related regions
+        tenant_regions = region_repo.list_by_tenant_id(tenant_id)
+        success_count = 0
+        for tenant_region in tenant_regions:
+            try:
+                # There is no guarantee that the deletion of each tenant can be successful.
+                region_api.delete_tenant(tenant_region["region_name"], tenant_region["tenant_name"])
+                success_count = success_count + 1
+            except Exception as e:
+                logger.error("tenantid: {}; region name: {}; delete tenant: {}".format(
+                    tenant_id, tenant_region["tenant_name"], e))
+        # The current strategy is that if a tenant is deleted successfully, it is considered successful.
+        # For tenants that have not been deleted successfully, other deletion paths need to be taken.
+        if success_count == 0:
+            raise ErrAllTenantDeletionFailed
+
+        team_repo.delete_by_tenant_id(tenant_id=tenant_id)
 
     def get_current_user_tenants(self, user_id):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)

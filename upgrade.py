@@ -100,7 +100,7 @@ def get_version():
 
 
 def get_current_version():
-    return RainbondVersion("5.1.8")
+    return RainbondVersion("5.1.9")
 
 
 def should_upgrade(current_version, new_version):
