@@ -528,6 +528,28 @@ class AppPluginService(object):
 
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
+    def check_the_same_plugin(self, plugin_id, tenant_id, service_id):
+        print plugin_id, tenant_id, service_id
+        plugin_list = []
+        categories = []
+        flag = False
+        service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(tenant_id, plugin_id)
+        print service_plugins
+        if len(service_plugins) != 0:
+            for i in service_plugins:
+                plugin_list.append(i.plugin_id)
+            plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_list)
+            for i in plugins:
+                categories.append(i.category)
+        print plugin_info.category
+        if plugin_info.category.split(":")[0] == "net-plugin" and plugin_info.category in categories:
+            flag = True
+        if plugin_info.category == "net-plugin:in-and-out" and (
+                "net-plugin:up" in categories or "net-plugin:down" in categories):
+            flag = True
+        return flag
+
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):

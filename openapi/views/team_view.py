@@ -19,6 +19,7 @@ from console.services.user_services import user_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
+from openapi.serializer.team_serializer import ListRegionTeamServicesSerializer
 from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
 from openapi.serializer.team_serializer import RoleInfoRespSerializer
@@ -26,11 +27,9 @@ from openapi.serializer.team_serializer import TeamBaseInfoSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
-from openapi.serializer.team_serializer import ListRegionTeamServicesSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
-from openapi.views.exceptions import ErrStillHasServices
 from openapi.views.exceptions import ErrTeamNotFound
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -146,10 +145,6 @@ class TeamInfo(BaseOpenAPIView):
     )
     def delete(self, req, team_id,  *args, **kwargs):
         try:
-            service_count = team_services.count_by_tenant_id(tenant_id=team_id)
-            if service_count >= 1:
-                raise ErrStillHasServices
-
             res = team_services.delete_by_tenant_id(tenant_id=team_id)
             if res:
                 return Response(None, status.HTTP_200_OK)
