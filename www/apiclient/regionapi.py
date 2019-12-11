@@ -9,6 +9,7 @@ from django.conf import settings
 
 from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
+from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo
 from www.models.main import Tenants
@@ -1078,6 +1079,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
         region_info = self.get_region_info(region_name=region)
+        if region_info is None:
+            raise err_region_not_found
         url = region_info.url
         if not token:
             # region_map = self.get_region_map(region)
