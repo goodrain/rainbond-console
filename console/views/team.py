@@ -932,22 +932,18 @@ class EnterpriseInfoView(RegionTenantHeaderView):
         """
         查询企业信息
         """
+        enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.team.enterprise_id)
+        ent = enter.to_dict()
+        is_ent = False
         try:
-            enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.team.enterprise_id)
-            ent = enter.to_dict()
-            is_ent = False
-            try:
-                res, body = region_api.get_api_version_v2(self.team.tenant_name, self.response_region)
-                if res.status == 200 and body is not None and "enterprise" in body["raw"]:
-                    is_ent = True
-            except region_api.CallApiError as e:
-                logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
-            ent["is_enterprise"] = is_ent
+            res, body = region_api.get_api_version_v2(self.team.tenant_name, self.response_region)
+            if res.status == 200 and body is not None and "enterprise" in body["raw"]:
+                is_ent = True
+        except region_api.CallApiError as e:
+            logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
+        ent["is_enterprise"] = is_ent
 
-            result = general_message(200, "success", "查询成功", bean=ent)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
 
