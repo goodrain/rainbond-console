@@ -31,7 +31,7 @@ class NodeLabels(BaseModel):
     class Meta:
         db_table = "node_labels"
 
-    region_id = models.CharField(max_length=32, help_text=u"数据中心 id")
+    region_id = models.CharField(max_length=36, help_text=u"数据中心 id")
     node_uuid = models.CharField(max_length=36, help_text=u"节点uuid")
     label_id = models.CharField(max_length=32, help_text=u"标签id")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")

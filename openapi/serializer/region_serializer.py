@@ -50,7 +50,7 @@ class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
 
 
 class RegionInfoRespSerializer(serializers.Serializer):
-    region_id = serializers.CharField(max_length=32, help_text=u"region id")
+    region_id = serializers.CharField(max_length=36, help_text=u"region id")
     region_name = serializers.CharField(max_length=32, help_text=u"数据中心名称")
     region_alias = serializers.CharField(max_length=32, help_text=u"数据中心别名")
     url = serializers.CharField(max_length=256, help_text=u"数据中心API url")
