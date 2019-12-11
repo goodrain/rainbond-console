@@ -28,7 +28,7 @@ class OAuthRepo(object):
         querysetlist = []
         for value in values:
             oauth_type = list(OAuthType.OAuthType)
-            oauth_type.remove("other")
+            # oauth_type.remove("other")
             if value["oauth_type"] in oauth_type:
                 is_git = True
             else:
@@ -64,7 +64,7 @@ class OAuthRepo(object):
         old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True).first()
         for value in values[:1]:
             oauth_type = list(OAuthType.OAuthType)
-            oauth_type.remove("other")
+            # oauth_type.remove("other")
             if value["oauth_type"] in oauth_type:
                 is_git = True
             else:
