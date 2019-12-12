@@ -47,13 +47,18 @@ class OAuthRepo(object):
                     )
                 )
             else:
-                OAuthServices.objects.filter(ID=value["service_id"]).update(
-                    name=value["name"], eid=value["eid"], redirect_uri=value["redirect_uri"],
-                    home_url=value["home_url"], auth_url=value["auth_url"],
-                    access_token_url=value["access_token_url"], api_url=value["api_url"],
-                    enable=value["enable"], is_auto_login=value["is_auto_login"],
-                    is_console=value["is_console"]
-                )
+                if value.get("is_deleted") is True:
+                    OAuthServices.objects.filter(ID=value["service_id"]).delete()
+                    users = UserOAuthServices.objects.filter(service_id=service_id)
+                    users.delete()
+                else:
+                    OAuthServices.objects.filter(ID=value["service_id"]).update(
+                        name=value["name"], eid=value["eid"], redirect_uri=value["redirect_uri"],
+                        home_url=value["home_url"], auth_url=value["auth_url"],
+                        access_token_url=value["access_token_url"], api_url=value["api_url"],
+                        enable=value["enable"], is_auto_login=value["is_auto_login"],
+                        is_console=value["is_console"]
+                    )
             if eid is None:
                 eid = value["eid"]
         OAuthServices.objects.bulk_create(querysetlist)
