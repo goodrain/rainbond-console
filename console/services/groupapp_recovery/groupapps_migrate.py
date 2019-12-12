@@ -312,9 +312,9 @@ class GroupappsMigrateService(object):
                                                                             volume.get("access_mode"),
                                                                             volume.get("share_policy"),
                                                                             volume.get("backup_policy"))
-                if settings.changed:
+                if settings["changed"]:
                     logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
-                    volume["volume_type"] = settings.volume_type
+                    volume["volume_type"] = settings["volume_type"]
                 new_volume = TenantServiceVolume(**volume)
                 new_volume.service_id = service.service_id
                 volume_list.append(new_volume)
@@ -335,9 +335,9 @@ class GroupappsMigrateService(object):
                                                                             volume.get("access_mode"),
                                                                             volume.get("share_policy"),
                                                                             volume.get("backup_policy"))
-                if settings.changed:
+                if settings["changed"]:
                     logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
-                    volume["volume_type"] = settings.volume_type
+                    volume["volume_type"] = settings["volume_type"]
                 new_volume = TenantServiceVolume(**volume)
                 new_volume.service_id = service.service_id
                 volume_list.append(new_volume)

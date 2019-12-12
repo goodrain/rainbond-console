@@ -20,7 +20,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-class AppVolumeProviderView(AppBaseView):
+class AppVolumeOptionsView(AppBaseView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
@@ -29,10 +29,8 @@ class AppVolumeProviderView(AppBaseView):
         ---
         parameters:
         """
-        kind = parse_argument(request, key='kind', default='')
-
-        code, providers = volume_service.get_service_support_volume_providers(self.tenant, self.service, kind)
-        result = general_message(200, "success", "查询成功", list=providers)
+        code, volume_types = volume_service.get_service_support_volume_options(self.tenant, self.service)
+        result = general_message(200, "success", "查询成功", list=volume_types)
         return Response(result, status=result["code"])
 
 

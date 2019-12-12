@@ -40,6 +40,8 @@ class AppVolumeService(object):
         "/usr/bin",
     ]
 
+    simple_volume_type = ["share-file", "config-file", "memoryfs", "local"]
+
     def ensure_volume_share_policy(self, tenant, service):
         volumes = self.get_service_volumes(tenant, service)
         for vo in volumes:
@@ -51,31 +53,41 @@ class AppVolumeService(object):
             #  后续添加share_policy进行共享策略的限制
         return True
 
-    def get_service_support_volume_providers(self, tenant, service, kind=''):
-        res, body = region_api.get_volume_providers(service.service_region, tenant.tenant_name, kind)
-        # 过滤share-file & local-file的StorageClass
+    def get_service_support_volume_options(self, tenant, service):
+        res, body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
         if res.status != 200:
             return 200, []
-        return 200, body.list
+        list = []
+        for opt in body.list:
+            if opt["volume_type"] == "local" and service.extend_method != "state":
+                continue
+            list.append(opt)
+        return 200, list
 
     # 需要提供更多的信息到源数据中
     # 使用数据中心接口统一返回最合适的类型，
     def get_best_suitable_volume_settings(self, tenant, service, volume_type, access_mode=None, share_policy=None,
                                           backup_policy=None, reclaim_policy=None, provider_name=None):
-        data = {
-            "volume_type": volume_type,
-            "access_mode": access_mode,
-            "share_policy": share_policy,
-            "backup_policy": backup_policy
-            }
         """
         settings 结构
         volume_type: string 新的存储类型，没有合适的相同的存储则返回新的存储
         changed: bool 是否有合适的相同的存储
         ... 后续待补充
         """
-        settings = region_api.get_volume_best_selector(service.service_region, tenant.tenant_name, data)
-        return settings.bean
+        settings = {}
+        if volume_type in self.simple_volume_type:
+            settings["changed"] = False
+            return settings
+        code, list = self.get_service_support_volume_options(tenant, service)
+        for opt in list:
+            if opt["volume_type"] == volume_type:
+                if access_mode.upper() in opt["access_mode"]:
+                    settings["changed"] = False
+                    return settings
+        settings["changed"] = True
+        settings["Volume_type"] = "share-file"
+
+        return settings
 
     def get_service_volumes(self, tenant, service, is_config_file=False):
         volumes = []
@@ -168,23 +180,20 @@ class AppVolumeService(object):
         return 200, u"success"
 
     def __setting_volume_access_mode(self, service, volume_type, settings):
-        access_mode = settings["access_mode"]
-        if access_mode != "":
+        access_mode = settings.get("access_mode")
+        if access_mode is not None and access_mode != "":
             return access_mode.upper()
-        if volume_type == "share_file":
+        if volume_type == "share-file":
             if service.extend_method == "stateless":
                 access_mode = "RWX"
             else:
                 access_mode = "RWO"
-
-        if volume_type == "config-file":
+        elif volume_type == "config-file":
             access_mode = "RWX"
-
-        if volume_type == "memoryfs" or volume_type == "local":
+        elif volume_type == "memoryfs" or volume_type == "local":
             access_mode = "RWO"
-        if volume_type == "ceph-rbd" or volume_type == "alicloud-disk":
+        else:
             access_mode = "RWO"
-        # TODO 在此补充新增存储的读写模式
 
         return access_mode
 
@@ -197,6 +206,18 @@ class AppVolumeService(object):
         backup_policy = "exclusive"
 
         return backup_policy
+
+    def __setting_volume_capacity(self, service, volume_type, settings):
+        if volume_type in self.simple_volume_type:
+            return 0
+        if settings.get("volume_capacity") is not None and settings.get("volume_capacity") != "":
+            return int(settings.get("volume_capacity"))
+
+    def __setting_volume_provider_name(self, service, volume_type, settings):
+        if volume_type in self.simple_volume_type:
+            return ""
+        if settings.get("provider_name") is not None:
+            return settings.get("provider_name")
 
     def setting_volume_properties(self, service, volume_type, settings=None):
         """
@@ -211,6 +232,10 @@ class AppVolumeService(object):
         settings["share_policy"] = share_policy
         backup_policy = self.__setting_volume_backup_policy(service, volume_type, settings)
         settings["backup_policy"] = backup_policy
+        capacity = self.__setting_volume_capacity(service, volume_type, settings)
+        settings["volume_capacity"] = capacity
+        volume_provider_name = self.__setting_volume_provider_name(service, volume_type, settings)
+        settings["provider_name"] = volume_provider_name
 
         settings['reclaim_policy'] = "exclusive"
         settings['allow_expansion'] = False
@@ -218,37 +243,27 @@ class AppVolumeService(object):
         return settings
 
     def check_volume_capacity(self, service, volume_type, settings):
-        simple_volume_type = ["share-file", "config-file", "memoryfs", "local"]
-        if volume_type in simple_volume_type:
+        if volume_type in self.simple_volume_type:
             return 200, u''
-        if volume_type == "ceph-rbd":
-            if settings['volume_capacity'] is None or settings['volume_capacity'] == "":
-                return 400, u'ceph-rbd存储容量必须大于0'
-            if int(settings['volume_capacity']) <= 0:
-                return 400, u'ceph块存储容量必须大于0'
-        if volume_type == "alicloud-disk":
-            if settings['volume_capacity'] is None or settings['volume_capacity'] == "":
-                return 400, u'ceph-rbd存储容量必须大于0'
-            if int(settings['volume_capacity']) < 20:
-                return 400, u'阿里云盘存储容量必须大于20'
+        if settings['volume_capacity'] is None or settings['volume_capacity'] == "":
+            return 400, u'高级存储容量必须大于0'
+        if int(settings['volume_capacity']) <= 0:
+            return 400, u'高级存储容量必须大于0'
 
         return 200, ''
 
-    def check_volume_provider(self, tenant, service, volume_type, settings):
-        simple_volume_type = ["share-file", "config-file", "memoryfs", "local"]
-        if volume_type in simple_volume_type:
+    def check_volume_options(self, tenant, service, volume_type, settings):
+        if volume_type in self.simple_volume_type:
             return 200, u''
         try:
-            code, providers = self.get_service_support_volume_providers(tenant, service)
+            code, options = self.get_service_support_volume_options(tenant, service)
             if code != 200:
                 return 500, u'查询可用存储失败'
             exists = False
-            for provider in providers:
-                if provider.kind == volume_type:
-                    for detail in provider.provisioner:
-                        if detail.name == settings["provider_name"]:
-                            exists = True
-                            break
+            for opt in options:
+                if opt["volume_type"] == volume_type:
+                    exists = True
+                    break
             if exists is False:
                 return 400, "没有可用的存储驱动为{0}提供存储服务".format(volume_type)
         except Exception as e:
@@ -297,7 +312,7 @@ class AppVolumeService(object):
         code, msg = self.check_service_multi_node(service, settings)
         if code != 200:
             return code, msg, None
-        code, msg = self.check_volume_provider(tenant, service, volume_type, settings)
+        code, msg = self.check_volume_options(tenant, service, volume_type, settings)
         if code != 200:
             return code, msg, None
 

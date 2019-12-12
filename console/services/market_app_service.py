@@ -572,9 +572,9 @@ class MarketAppService(object):
                                                                             volume.get("access_mode"),
                                                                             volume.get("share_policy"),
                                                                             volume.get("backup_policy"))
-                if settings.changed:
+                if settings["changed"]:
                     logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
-                    volume["volume_type"] = settings.volume_type  # TODO 需要重置更多的参数
+                    volume["volume_type"] = settings["volume_type"]  # TODO 需要重置更多的参数
                 code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
                                                                            volume["volume_type"], volume["volume_name"])
             if code != 200:
