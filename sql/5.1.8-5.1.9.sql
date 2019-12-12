@@ -141,7 +141,7 @@ alter table service_tcp_domain modify `service_name` varchar(64);
 alter table service_tcp_domain modify `service_alias` varchar(64);
 alter table service_tcp_domain modify `region_id` varchar(36);
 
-CREATE TABLE `autoscaler_rules` (
+CREATE TABLE if not exists `autoscaler_rules` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `rule_id` varchar(32) NOT NULL,
   `service_id` varchar(32) NOT NULL,
@@ -153,7 +153,7 @@ CREATE TABLE `autoscaler_rules` (
   UNIQUE KEY `rule_id` (`rule_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 
-CREATE TABLE `autoscaler_rule_metrics` (
+CREATE TABLE if not exists `autoscaler_rule_metrics` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `rule_id` varchar(32) NOT NULL,
   `metric_type` varchar(16) NOT NULL,
@@ -165,7 +165,7 @@ CREATE TABLE `autoscaler_rule_metrics` (
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8;
 
 -- oauth
-CREATE TABLE `oauth_service` (
+CREATE TABLE if not exists `oauth_service` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(64) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT '0',
   `client_id` varchar(64) DEFAULT NULL,
@@ -186,7 +186,7 @@ CREATE TABLE `oauth_service` (
 ) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8;
 
 
-CREATE TABLE `user_oauth_service` (
+CREATE TABLE if not exists `user_oauth_service` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) DEFAULT NULL,
   `service_id` int(11) DEFAULT NULL,
