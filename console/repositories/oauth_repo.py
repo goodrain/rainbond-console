@@ -49,7 +49,7 @@ class OAuthRepo(object):
             else:
                 if value.get("is_deleted") is True:
                     OAuthServices.objects.filter(ID=value["service_id"]).delete()
-                    users = UserOAuthServices.objects.filter(service_id=service_id)
+                    users = UserOAuthServices.objects.filter(service_id=value["service_id"])
                     users.delete()
                 else:
                     OAuthServices.objects.filter(ID=value["service_id"]).update(
