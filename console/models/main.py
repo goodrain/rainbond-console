@@ -730,7 +730,7 @@ class OAuthServices(BaseModel):
     enable = models.NullBooleanField(null=True, default=True, help_text=u"user_id")
     is_deleted = models.NullBooleanField(null=True, default=False, help_text=u"is_deleted")
     is_console = models.NullBooleanField(null=True, default=False, help_text=u"is_console")
-    is_auto_login = models.NullBooleanField(null=True, default=True, help_text=u"is_auto_login")
+    is_auto_login = models.NullBooleanField(null=True, default=False, help_text=u"is_auto_login")
     is_git = models.NullBooleanField(null=True, default=True, help_text=u"是否为git仓库")
 
 
