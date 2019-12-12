@@ -139,7 +139,7 @@ class AppLogView(AppBaseView):
               type: string
               paramType: query
             - name: lines
-              description: 日志数量，默认为50
+              description: 日志数量，默认为100
               required: false
               type: integer
               paramType: query
@@ -147,15 +147,12 @@ class AppLogView(AppBaseView):
         """
         try:
             action = request.GET.get("action", "service")
-            lines = request.GET.get("lines", 50)
+            lines = request.GET.get("lines", 100)
 
             code, msg, log_list = log_service.get_service_logs(
                 self.tenant, self.service, action, int(lines))
             if code != 200:
                 return Response(general_message(code, "query service log error", msg), status=code)
-            for log in log_list:
-                if not log:
-                    log_list.remove(log)
             result = general_message(200, "success", "查询成功", list=log_list)
         except Exception as e:
             logger.exception(e)
@@ -228,11 +225,12 @@ class AppHistoryLogView(AppBaseView):
             if code != 200:
                 file_list = []
             file_urls = []
-            for f in file_list:
-                file_name = f[22:]
-                file_url = log_domain_url + f
-                file_urls.append(
-                    {"file_name": file_name, "file_url": file_url})
+            if file_list:
+                for f in file_list:
+                    file_name = f[22:]
+                    file_url = log_domain_url + f
+                    file_urls.append(
+                        {"file_name": file_name, "file_url": file_url})
 
             result = general_message(200, "success", "查询成功", list=file_urls)
         except Exception as e:

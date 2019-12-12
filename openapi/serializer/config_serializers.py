@@ -140,6 +140,29 @@ class ObjectStorageBaseRespSerializer(serializers.Serializer):
     value = ObjectStorageRespSerializer(required=False)
 
 
+class OauthServicesRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=True)
+    auth_url = serializers.CharField(max_length=255)
+    name = serializers.CharField(max_length=64)
+    client_id = serializers.CharField(max_length=255)
+    client_secret = serializers.CharField(max_length=255)
+    redirect_uri = serializers.CharField(max_length=255)
+    is_console = serializers.BooleanField(default=False)
+    is_auto_login = serializers.BooleanField(default=False)
+    service_id = serializers.IntegerField(required=False, allow_null=True)
+    oauth_type = serializers.CharField(max_length=64)
+    eid = serializers.CharField(max_length=64)
+    home_url = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
+    access_token_url = serializers.CharField(max_length=255)
+    api_url = serializers.CharField(max_length=255)
+    is_deleted = serializers.BooleanField(default=False)
+
+
+class OauthServicesBaseRespSerializer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = OauthServicesRespSerializer(required=False, many=True)
+
+
 class FeatureConfigRespSerializer(serializers.Serializer):
     github = GithubServiceBaseRespSerializer(required=True)
     gitlab = GitlabServiceBaseRespSerializer(required=True)
@@ -151,6 +174,7 @@ class FeatureConfigRespSerializer(serializers.Serializer):
     cloud_market = CloudMarketBaseRespSerializer(required=True)
     document = DocumentBaseRespSerializer(required=True)
     object_storage = ObjectStorageBaseRespSerializer(required=False)
+    oauth_services = OauthServicesBaseRespSerializer(required=False)
 
 
 class UpdateFeatureCfgReqSerializer(serializers.Serializer):
@@ -164,3 +188,4 @@ class UpdateFeatureCfgReqSerializer(serializers.Serializer):
     cloud_market = CloudMarketBaseRespSerializer(required=False)
     document = DocumentBaseRespSerializer(required=False)
     object_storage = ObjectStorageBaseRespSerializer(required=False)
+    oauth_services = OauthServicesBaseRespSerializer(required=False)

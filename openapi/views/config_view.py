@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.models.main import ConsoleSysConfig
+from console.repositories.oauth_repo import oauth_repo
 from console.services.config_service import config_service
 from console.services.enterprise_services import enterprise_services
 from openapi.serializer.config_serializers import BaseConfigRespSerializer
@@ -55,7 +56,31 @@ class ListFeatureConfigView(BaseOpenAPIView):
         tags=['openapi-config'],
     )
     def get(self, request):
+        user = request.user
         queryset = config_service.initialization_or_get_config()
+        oauth_services = []
+        services = oauth_repo.get_all_oauth_services(str(user.enterprise_id))
+
+        for service in services:
+            oauth_services.append(
+                {
+                    "service_id": service.ID,
+                    "enable": service.enable,
+                    "name": service.name,
+                    "client_id": service.client_id,
+                    "auth_url": service.auth_url,
+                    "redirect_uri": service.redirect_uri,
+                    "oauth_type": service.oauth_type,
+                    "is_console": service.is_console,
+                    "home_url": service.home_url,
+                    "eid": service.eid,
+                    "access_token_url": service.access_token_url,
+                    "api_url": service.api_url,
+                    "client_secret": service.client_secret,
+                    "is_auto_login": service.is_auto_login
+                }
+            )
+        queryset["oauth_services"]["value"] = oauth_services
         serializer = FeatureConfigRespSerializer(queryset)
         return Response(serializer.data)
 
@@ -77,7 +102,12 @@ class ListFeatureConfigView(BaseOpenAPIView):
                 if "enable" in data.keys():
                     enable = data.get("enable")
                     if data.get("value"):
-                        value = dict(data.get("value"))
+                        if isinstance(data.get("value"), dict):
+                            value = dict(data.get("value"))
+                        elif isinstance(data.get("value"), list):
+                            value = list(data.get("value"))
+                        else:
+                            value = data.get("value")
                     else:
                         value = data.get("value")
                     try:

@@ -201,12 +201,10 @@ class ChangePassword(BaseOpenAPIView):
         user_id = request.data.get("user_id", None)
         new_password = request.data.get("password", None)
         new_password1 = request.data.get("password1", None)
-        code = 500
         info = u"缺少参数"
         if new_password and new_password == new_password1:
             status, info = user_services.update_password(user_id=user_id, new_password=new_password)
-            code = status
-            if status == 200:
-                return Response(None, status=code)
+            if status:
+                return Response(None, status=200)
         logger.debug(info)
-        return Response(None, status=code)
+        return Response(None, status=400)

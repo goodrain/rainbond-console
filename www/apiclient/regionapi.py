@@ -9,6 +9,7 @@ from django.conf import settings
 
 from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
+from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo
 from www.models.main import Tenants
@@ -679,15 +680,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_service_logs(self, region, tenant_name, service_alias, body):
+    def get_service_logs(self, region, tenant_name, service_alias, rows):
         """获取组件日志"""
-
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/log"
-
+        url = url + "/v2/tenants/{0}/services/{1}/logs?rows={2}".format(tenant_region.region_tenant_name, service_alias, rows)
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._get(url, self.default_headers, region=region)
         return body
 
     def get_service_log_files(self, region, tenant_name, service_alias, enterprise_id):
@@ -1102,6 +1101,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
         region_info = self.get_region_info(region_name=region)
+        if region_info is None:
+            raise err_region_not_found
         url = region_info.url
         if not token:
             # region_map = self.get_region_map(region)
@@ -1555,3 +1556,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region)
         return body
+
+    def update_ingresses_by_certificate(self, region_name, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + region.region_tenant_name + "/gateway/certificate"
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body

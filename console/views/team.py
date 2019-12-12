@@ -540,21 +540,15 @@ class TeamDelView(JWTAuthApiView):
                 code = 400
                 result = general_message(code, "no identity", "您不是最高管理员，不能删除团队")
                 return Response(result, status=code)
-        try:
-            service_count = team_services.get_team_service_count_by_team_name(team_name=team_name)
-            if service_count >= 1:
-                result = general_message(400, "failed", "当前团队内有应用,不可以删除")
-                return Response(result, status=400)
-            team_services.delete_tenant(tenant_name=team_name)
-            result = general_message(code, "delete a tenant successfully", "删除团队成功")
-        except Tenants.DoesNotExist as e:
-            code = 400
-            logger.exception(e)
+
+        tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
+        if tenant is None:
+            code = 404
             result = general_message(code, "tenant not exist", "{}团队不存在".format(team_name))
-        except Exception as e:
-            code = 500
-            result = general_message(code, "sys exception", "系统异常")
-            logger.exception(e)
+
+        team_services.delete_by_tenant_id(tenant.tenant_id)
+        result = general_message(code, "delete a tenant successfully", "删除团队成功")
+
         return Response(result, status=code)
 
 
@@ -938,22 +932,18 @@ class EnterpriseInfoView(RegionTenantHeaderView):
         """
         查询企业信息
         """
+        enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.team.enterprise_id)
+        ent = enter.to_dict()
+        is_ent = False
         try:
-            enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=self.team.enterprise_id)
-            ent = enter.to_dict()
-            is_ent = False
-            try:
-                res, body = region_api.get_api_version_v2(self.team.tenant_name, self.response_region)
-                if res.status == 200 and body is not None and "enterprise" in body["raw"]:
-                    is_ent = True
-            except region_api.CallApiError as e:
-                logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
-            ent["is_enterprise"] = is_ent
+            res, body = region_api.get_api_version_v2(self.team.tenant_name, self.response_region)
+            if res.status == 200 and body is not None and "enterprise" in body["raw"]:
+                is_ent = True
+        except region_api.CallApiError as e:
+            logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
+        ent["is_enterprise"] = is_ent
 
-            result = general_message(200, "success", "查询成功", bean=ent)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
 

@@ -801,6 +801,14 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
+            data.pop("service_name")
+            data.pop("build_upgrade")
+            data.pop("oauth_service_id")
+            data.pop("is_upgrate")
+            data.pop("secret")
+            data.pop("open_webhooks")
+            data.pop("server_type")
+            data.pop("git_full_name")
             delete_service_repo.create_delete_service(**data)
 
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
@@ -1043,6 +1051,14 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
+            data.pop("service_name")
+            data.pop("build_upgrade")
+            data.pop("oauth_service_id")
+            data.pop("is_upgrate")
+            data.pop("secret")
+            data.pop("open_webhooks")
+            data.pop("server_type")
+            data.pop("git_full_name")
             delete_service_repo.create_delete_service(**data)
 
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)

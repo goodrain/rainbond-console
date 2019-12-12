@@ -8,6 +8,7 @@ from django.conf import settings
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_perm_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.oauth_repo import oauth_repo
 from console.services.config_service import config_service
 from console.services.market_app_service import market_sycn_service
 from console.views.base import AlowAnyApiView
@@ -77,6 +78,33 @@ class ConfigInfoView(AlowAnyApiView):
                     data["market_url"] = market_token.access_url
                 else:
                     data["market_url"] = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
+                data["oauth_services_is_sonsole"] = {"enable": True, "value": None}
+                oauth_services = []
+                services = oauth_repo.get_oauth_services(str(enterprise.enterprise_id))
+
+                for service in services:
+                    if not service.is_console:
+                        data["oauth_services_is_sonsole"]["enable"] = False
+                    oauth_services.append(
+                        {
+                            "service_id": service.ID,
+                            "enable": service.enable,
+                            "name": service.name,
+                            "client_id": service.client_id,
+                            "auth_url": service.auth_url,
+                            "redirect_uri": service.redirect_uri,
+                            "oauth_type": service.oauth_type,
+                            "is_console": service.is_console,
+                            "home_url": service.home_url,
+                            "eid": service.eid,
+                            "access_token_url": service.access_token_url,
+                            "api_url": service.api_url,
+                            "client_secret": service.client_secret,
+                            "is_auto_login": service.is_auto_login,
+                            "is_git": service.is_git,
+                        }
+                    )
+                data["oauth_services"]["value"] = oauth_services
             data["version"] = os.getenv("RELEASE_DESC", "public-cloud")
             return Response(result, status=code)
         except Exception as e:

@@ -78,7 +78,7 @@ class ConsoleSysConfig(BaseModel):
     key = models.CharField(max_length=32, help_text=u"key")
     type = models.CharField(max_length=32, help_text=u"类型")
     value = models.CharField(max_length=4096, null=True, blank=True, help_text=u"value")
-    desc = models.CharField(max_length=40, null=True, blank=True, default="", help_text=u"描述")
+    desc = models.CharField(max_length=100, null=True, blank=True, default="", help_text=u"描述")
     enable = models.BooleanField(default=True, help_text=u"是否生效")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
@@ -94,9 +94,9 @@ class RainbondCenterApp(BaseModel):
     group_name = models.CharField(max_length=64, help_text=u"应用包名")
     share_user = models.IntegerField(help_text=u"分享人id")
     record_id = models.IntegerField(help_text=u"分享流程id，控制一个分享流程产出一个实体")
-    share_team = models.CharField(max_length=32, help_text=u"来源应用所属团队")
+    share_team = models.CharField(max_length=64, help_text=u"来源应用所属团队")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
-    pic = models.CharField(max_length=100, null=True, blank=True, help_text=u"应用头像信息")
+    pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     version = models.CharField(max_length=20, help_text=u"版本")
     scope = models.CharField(max_length=50, choices=app_scope, help_text=u"可用范围")
@@ -135,7 +135,7 @@ class RainbondCenterPlugin(BaseModel):
         db_table = "rainbond_center_plugin"
 
     plugin_key = models.CharField(max_length=32, help_text=u"插件分享key")
-    plugin_name = models.CharField(max_length=32, help_text=u"插件名称")
+    plugin_name = models.CharField(max_length=64, help_text=u"插件名称")
     plugin_id = models.CharField(max_length=32, null=True, help_text=u"插件id")
     category = models.CharField(max_length=32, help_text=u"插件类别")
     record_id = models.IntegerField(help_text=u"分享流程id")
@@ -166,7 +166,7 @@ class ServiceShareRecord(BaseModel):
 
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"发布应用组或插件的唯一Key")
     group_id = models.CharField(max_length=32, help_text=u"分享应用组id或者单独插件ID")
-    team_name = models.CharField(max_length=32, help_text=u"应用所在团队唯一名称")
+    team_name = models.CharField(max_length=64, help_text=u"应用所在团队唯一名称")
     event_id = models.CharField(max_length=32, help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
     share_version = models.CharField(max_length=15, help_text=u"应用组发布版本")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
@@ -186,11 +186,11 @@ class ServiceShareRecordEvent(BaseModel):
 
     record_id = models.IntegerField(help_text=u"关联的订单ID")
     region_share_id = models.CharField(max_length=36, help_text=u"应用数据中心分享反馈ID")
-    team_name = models.CharField(max_length=32, help_text=u"应用所在团队唯一名称")
+    team_name = models.CharField(max_length=64, help_text=u"应用所在团队唯一名称")
     service_key = models.CharField(max_length=32, help_text=u"对应应用key")
     service_id = models.CharField(max_length=32, help_text=u"对应应用ID")
-    service_alias = models.CharField(max_length=10, help_text=u"对应应用别名")
-    service_name = models.CharField(max_length=32, help_text=u"对应应用名称")
+    service_alias = models.CharField(max_length=64, help_text=u"对应应用别名")
+    service_name = models.CharField(max_length=64, help_text=u"对应应用名称")
     team_id = models.CharField(max_length=32, help_text=u"对应所在团队ID")
     event_id = models.CharField(max_length=32, default="", help_text=u"介质同步事件ID")
     event_status = models.CharField(max_length=32, default="not_start", help_text=u"事件状态")
@@ -210,9 +210,9 @@ class PluginShareRecordEvent(BaseModel):
     record_id = models.IntegerField(help_text=u"关联的记录ID")
     region_share_id = models.CharField(max_length=36, help_text=u"应用数据中心分享反馈ID")
     team_id = models.CharField(max_length=32, help_text=u"对应所在团队ID")
-    team_name = models.CharField(max_length=32, help_text=u"应用所在团队唯一名称")
+    team_name = models.CharField(max_length=64, help_text=u"应用所在团队唯一名称")
     plugin_id = models.CharField(max_length=32, help_text=u"对应插件ID")
-    plugin_name = models.CharField(max_length=32, help_text=u"对应插件名称")
+    plugin_name = models.CharField(max_length=64, help_text=u"对应插件名称")
     event_id = models.CharField(max_length=32, default="", help_text=u"介质同步事件ID")
     event_status = models.CharField(max_length=32, default="not_start", help_text=u"事件状态")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
@@ -286,7 +286,7 @@ class TeamGitlabInfo(BaseModel):
 
     team_id = models.CharField(max_length=32, help_text=u"团队ID")
     repo_name = models.CharField(max_length=100, help_text=u"代码仓库名称")
-    respo_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"code代码仓库")
+    respo_url = models.CharField(max_length=200, null=True, blank=True, help_text=u"code代码仓库")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
@@ -309,7 +309,7 @@ class ServiceRecycleBin(BaseModel):
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     version = models.CharField(max_length=20, help_text=u"版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    image = models.CharField(max_length=100, help_text=u"镜像")
+    image = models.CharField(max_length=200, help_text=u"镜像")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
     extend_method = models.CharField(max_length=15, default='stateless', help_text=u"伸缩方式")
@@ -318,11 +318,11 @@ class ServiceRecycleBin(BaseModel):
     min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
     inner_port = models.IntegerField(help_text=u"内部端口", default=0)
-    volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
+    volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text=u"mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text=u"mount目录")
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
     code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
-    git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"code代码仓库")
+    git_url = models.CharField(max_length=200, null=True, blank=True, help_text=u"code代码仓库")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
@@ -495,9 +495,9 @@ class AppImportRecord(BaseModel):
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
-    team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
-    region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
-    user_name = models.CharField(max_length=24, null=True, blank=True, help_text=u"操作人")
+    team_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"正在导入的团队名称")
+    region = models.CharField(max_length=64, null=True, blank=True, help_text=u"数据中心")
+    user_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"操作人")
 
 
 class GroupAppBackupRecord(BaseModel):
@@ -510,10 +510,10 @@ class GroupAppBackupRecord(BaseModel):
     version = models.CharField(max_length=32, null=True, blank=True, help_text=u"备份版本")
     backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份ID")
     team_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"团队ID")
-    user = models.CharField(max_length=20, null=True, blank=True, help_text=u"备份人")
-    region = models.CharField(max_length=15, null=True, blank=True, help_text=u"数据中心")
+    user = models.CharField(max_length=64, null=True, blank=True, help_text=u"备份人")
+    region = models.CharField(max_length=64, null=True, blank=True, help_text=u"数据中心")
     status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
-    note = models.CharField(max_length=128, null=True, blank=True, default="", help_text=u"备份说明")
+    note = models.CharField(max_length=255, null=True, blank=True, default="", help_text=u"备份说明")
     mode = models.CharField(max_length=15, null=True, blank=True, default="", help_text=u"备份类型")
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     backup_size = models.IntegerField(help_text=u"备份文件大小")
@@ -533,8 +533,8 @@ class GroupAppMigrateRecord(BaseModel):
     version = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的版本")
     backup_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"备份ID")
     migrate_team = models.CharField(max_length=32, null=True, blank=True, help_text=u"迁移的团队名称")
-    user = models.CharField(max_length=20, null=True, blank=True, help_text=u"恢复人")
-    migrate_region = models.CharField(max_length=15, null=True, blank=True, help_text=u"迁移的数据中心")
+    user = models.CharField(max_length=64, null=True, blank=True, help_text=u"恢复人")
+    migrate_region = models.CharField(max_length=64, null=True, blank=True, help_text=u"迁移的数据中心")
     status = models.CharField(max_length=15, null=True, blank=True, help_text=u"时间请求状态")
     migrate_type = models.CharField(max_length=15, default="migrate", help_text=u"类型")
     restore_id = models.CharField(max_length=36, null=True, blank=True, help_text=u"恢复ID")
@@ -552,8 +552,8 @@ class GroupAppBackupImportRecord(BaseModel):
     file_temp_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
-    team_name = models.CharField(max_length=32, null=True, blank=True, help_text=u"正在导入的团队名称")
-    region = models.CharField(max_length=32, null=True, blank=True, help_text=u"数据中心")
+    team_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"正在导入的团队名称")
+    region = models.CharField(max_length=64, null=True, blank=True, help_text=u"数据中心")
 
 
 class Applicants(BaseModel):
@@ -562,16 +562,16 @@ class Applicants(BaseModel):
 
     # 用户ID
     user_id = models.IntegerField(help_text=u'申请用户ID')
-    user_name = models.CharField(max_length=20, null=False, help_text=u"申请用户名")
+    user_name = models.CharField(max_length=64, null=False, help_text=u"申请用户名")
     # 团队
     team_id = models.CharField(max_length=33, help_text=u'所属团队id')
-    team_name = models.CharField(max_length=20, null=False, help_text=u"申请组名")
+    team_name = models.CharField(max_length=64, null=False, help_text=u"申请组名")
     # 申请时间
     apply_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"申请时间")
     # is_pass是否通过
     is_pass = models.IntegerField(default=0, help_text=u'0表示审核中，1表示通过审核，2表示审核未通过')
     # 团队名
-    team_alias = models.CharField(max_length=30, null=False, help_text=u"团队名")
+    team_alias = models.CharField(max_length=64, null=False, help_text=u"团队名")
 
 
 class DeployRelation(BaseModel):
@@ -601,7 +601,7 @@ class TenantServiceBackup(BaseModel):
     class Meta:
         db_table = "tenant_service_backup"
 
-    region_name = models.CharField(max_length=32, help_text=u"数据中心名称")
+    region_name = models.CharField(max_length=64, help_text=u"数据中心名称")
     tenant_id = models.CharField(max_length=32)
     service_id = models.CharField(max_length=32)
     backup_id = models.CharField(max_length=32, unique=True)
@@ -678,9 +678,9 @@ class RegionConfig(BaseModel):
     class Meta:
         db_table = 'region_info'
 
-    region_id = models.CharField(max_length=32, unique=True, help_text=u"region id")
-    region_name = models.CharField(max_length=32, unique=True, help_text=u"数据中心名称,不可修改")
-    region_alias = models.CharField(max_length=32, help_text=u"数据中心别名")
+    region_id = models.CharField(max_length=36, unique=True, help_text=u"region id")
+    region_name = models.CharField(max_length=64, unique=True, help_text=u"数据中心名称,不可修改")
+    region_alias = models.CharField(max_length=64, help_text=u"数据中心别名")
     url = models.CharField(max_length=256, help_text=u"数据中心API url")
     wsurl = models.CharField(max_length=256, help_text=u"数据中心Websocket url")
     httpdomain = models.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
@@ -688,7 +688,7 @@ class RegionConfig(BaseModel):
     token = models.CharField(max_length=255, null=True, blank=True, default="", help_text=u"数据中心token")
     status = models.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
-    desc = models.CharField(max_length=128, blank=True, help_text=u"数据中心描述")
+    desc = models.CharField(max_length=200, blank=True, help_text=u"数据中心描述")
     scope = models.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
     ssl_ca_cert = models.TextField(blank=True, null=True, help_text=u"数据中心访问ca证书地址")
     cert_file = models.TextField(blank=True, null=True, help_text=u"验证文件")
@@ -746,3 +746,40 @@ class AutoscalerRuleMetrics(BaseModel):
     metric_name = models.CharField(max_length=255, help_text=u"指标名称")
     metric_target_type = models.CharField(max_length=13, help_text=u"指标目标类型")
     metric_target_value = models.IntegerField(help_text=u"指标目标值")
+
+
+class OAuthServices(BaseModel):
+    class Meta:
+        db_table = "oauth_service"
+    name = models.CharField(max_length=32, null=False, unique=True, help_text=u"oauth服务名称")
+    client_id = models.CharField(max_length=64, null=False, help_text=u"client_id")
+    client_secret = models.CharField(max_length=64, null=False, help_text=u"client_secret")
+    redirect_uri = models.CharField(max_length=255, null=False, help_text=u"redirect_uri")
+    home_url = models.CharField(max_length=255, null=False, help_text=u"auth_url")
+    auth_url = models.CharField(max_length=255, null=False, help_text=u"auth_url")
+    access_token_url = models.CharField(max_length=255, null=False, help_text=u"access_token_url")
+    api_url = models.CharField(max_length=255, null=False, help_text=u"api_url")
+    oauth_type = models.CharField(max_length=16, null=False, help_text=u"oauth_type")
+    eid = models.CharField(max_length=64, null=False, help_text=u"user_id")
+    enable = models.BooleanField(default=True, help_text=u"user_id")
+    is_deleted = models.BooleanField(default=False, help_text=u"is_deleted")
+    is_console = models.BooleanField(default=False, help_text=u"is_console")
+    is_auto_login = models.BooleanField(default=True, help_text=u"is_auto_login")
+    is_git = models.BooleanField(default=True, help_text=u"是否为git仓库")
+
+
+class UserOAuthServices(BaseModel):
+    class Meta:
+        db_table = "user_oauth_service"
+
+    oauth_user_id = models.CharField(max_length=64, null=False, help_text=u"oauth_user_id")
+    oauth_user_name = models.CharField(max_length=64, null=False, help_text=u"oauth_user_name")
+    oauth_user_email = models.CharField(max_length=64, null=False, help_text=u"oauth_user_email")
+    service_id = models.IntegerField(null=False, help_text=u"service_id")
+    is_auto_login = models.BooleanField(help_text=u"is_auto_login")
+    is_authenticated = models.BooleanField(help_text=u"is_authenticated")
+    is_expired = models.BooleanField(help_text=u"is_expired")
+    access_token = models.CharField(max_length=255, null=False, help_text=u"access_token_url")
+    refresh_token = models.CharField(max_length=64, null=False, help_text=u"refresh_token")
+    user_id = models.IntegerField(default=None, help_text=u"user_id")
+    code = models.CharField(max_length=256, help_text=u"user_id")

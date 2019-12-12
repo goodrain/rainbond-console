@@ -286,14 +286,10 @@ class AppEventService(object):
 
 
 class AppLogService(object):
-    def get_service_logs(self, tenant, service, action="service", lines=50):
+    def get_service_logs(self, tenant, service, action="service", lines=100):
         log_list = []
         if action == LogConstants.SERVICE:
-            data = dict()
-            data["tenant_id"] = tenant.tenant_id
-            data['lines'] = lines
-            data["enterprise_id"] = tenant.enterprise_id
-            body = region_api.get_service_logs(service.service_region, tenant.tenant_name, service.service_alias, data)
+            body = region_api.get_service_logs(service.service_region, tenant.tenant_name, service.service_alias, lines)
             log_list = body["list"]
         return 200, "success", log_list
 

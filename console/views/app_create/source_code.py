@@ -2,19 +2,27 @@
 """
   Created by leon on 18/1/5.
 """
+import json
+import os
+from re import split as re_split
+import logging
+
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
-import logging
 from www.utils.return_message import general_message, error_message
 from console.services.app import app_service
 from console.services.app_config import compile_env_service
 from console.services.group_service import group_service
+from console.utils.oauthutil import OAuth2
+from console.repositories.oauth_repo import oauth_repo
+from console.repositories.oauth_repo import oauth_user_repo
+from console.repositories.app import service_webhooks_repo
 from console.views.app_config.base import AppBaseView
-import json
+
 
 logger = logging.getLogger("default")
 
@@ -88,8 +96,26 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         git_user_name = request.data.get("username", None)
         service_code_id = request.data.get("git_project_id", None)
         service_code_version = request.data.get("code_version", "master")
+        is_oauth = request.data.get("is_oauth", False)
+        check_uuid = request.data.get("check_uuid")
+        event_id = request.data.get("event_id")
         server_type = request.data.get("server_type", "git")
+        user_id = request.user.user_id
+        oauth_service_id = request.data.get("service_id")
+        git_full_name = request.data.get("full_name")
+        git_service = None
+        open_webhook = False
+        host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
+
         result = {}
+        if is_oauth:
+            open_webhook = request.data.get("open_webhook", False)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
+            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
+            git_service = OAuth2(oauth_service=oauth_service, oauth_user=oauth_user)
+            service_code_from = "oauth_" + oauth_service.oauth_type
+            service_code_clone_url = git_service.api.get_git_clone_path(oauth_user.oauth_user_name,
+                                                                        service_code_clone_url)
         try:
             if not service_code_clone_url:
                 return Response(general_message(400, "code url is null", "仓库地址未指明"), status=400)
@@ -101,20 +127,42 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
             code, msg_show, new_service = app_service.create_source_code_app(
-                self.response_region, self.tenant, self.user, service_code_from, service_cname, service_code_clone_url,
-                service_code_id, service_code_version, server_type)
+                self.response_region, self.tenant, self.user, service_code_from, service_cname,
+                service_code_clone_url, service_code_id, service_code_version, server_type,
+                check_uuid, event_id, oauth_service_id, git_full_name)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             # 添加username,password信息
             if git_password or git_user_name:
                 app_service.create_service_source_info(self.tenant, new_service, git_user_name, git_password)
 
+            # 自动添加hook
+            if open_webhook and is_oauth and not new_service.open_webhooks:
+                service_webhook = service_webhooks_repo.create_service_webhooks(new_service.service_id, "code_Webhooks")
+                service_webhook.state = True
+                service_webhook.deploy_keyword = "deploy"
+                service_webhook.save()
+                try:
+                    git_service.api.creat_hooks(host=host, full_name_or_id=git_full_name,
+                                                endpoint='console/webhooks/' + new_service.service_id)
+                    new_service.open_webhooks = True
+                except Exception as e:
+                    logger.debug(e)
+                    new_service.open_webhooks = False
+                new_service.save()
             # 添加组件所在组
+
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
+
             if code != 200:
                 logger.debug("service.create", msg_show)
-            result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
+            bean = new_service.to_dict()
+            if is_oauth:
+                result_url = re_split("[:,@]", bean["git_url"])
+
+                bean["git_url"] = result_url[0]+'://'+result_url[-1]
+            result = general_message(200, "success", "创建成功", bean=bean)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:

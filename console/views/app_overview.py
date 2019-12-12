@@ -7,6 +7,7 @@ import datetime
 import json
 import logging
 import os
+from re import split as re_split
 import pickle
 
 from django.conf import settings
@@ -18,7 +19,11 @@ from rest_framework.response import Response
 
 from console.constants import AppConstants
 from console.constants import PluginCategoryConstants
+from console.utils.oauthutil import OAuth2
+from console.utils.oauthutil import OAuthType
 from console.exception.main import ServiceHandleException
+from console.repositories.oauth_repo import oauth_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app import service_webhooks_repo
@@ -667,6 +672,11 @@ class BuildSourceinfo(AppBaseView):
         try:
             service_source = service_source_repo.get_service_source(
                 team_id=self.service.tenant_id, service_id=self.service.service_id)
+
+            code_from = self.service.code_from
+            if code_from in OAuthType.OAuthType:
+                result_url = re_split("[:,@]", self.service.git_url)
+                self.service.git_url = result_url[0] + '//' + result_url[-1]
             bean = {
                 "user_name": "",
                 "password": "",
@@ -681,6 +691,8 @@ class BuildSourceinfo(AppBaseView):
                 "code_version": self.service.code_version,
                 "server_type": self.service.server_type,
                 "language": self.service.language,
+                "oauth_service_id": self.service.oauth_service_id,
+                "full_name": self.service.git_full_name
             }
             if service_source:
                 bean["user"] = service_source.user_name
@@ -731,6 +743,10 @@ class BuildSourceinfo(AppBaseView):
             code_version = request.data.get("code_version", None)
             user_name = request.data.get("user_name", None)
             password = request.data.get("password", None)
+            is_oauth = request.data.get("is_oauth", False)
+            user_id = request.user.user_id
+            oauth_service_id = request.data.get("service_id")
+            git_full_name = request.data.get("full_name")
 
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
@@ -757,7 +773,21 @@ class BuildSourceinfo(AppBaseView):
                 else:
                     self.service.code_version = "master"
                 if git_url:
-                    self.service.git_url = git_url
+                    if is_oauth:
+                        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
+                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id,
+                                                                               user_id=user_id)
+                        git_service = OAuth2(oauth_service=oauth_service, oauth_user=oauth_user)
+
+                        service_code_clone_url = git_service.api.get_git_clone_path(oauth_user.oauth_user_name,
+                                                                                    git_url)
+                        service_code_from = "oauth_" + oauth_service.oauth_type
+                        self.service.code_from = service_code_from
+                        self.service.git_url = service_code_clone_url
+                        self.service.git_full_name = git_full_name
+                        self.service.oauth_service_id = oauth_service_id
+                    else:
+                        self.service.git_url = git_url
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
