@@ -119,7 +119,7 @@ class AppVolumeService(object):
                     if body.bean.status[vo["volume_name"]] == "READY":
                         vo["status"] = "bound"
                     else:
-                        vo["status"] = "un_bound"
+                        vo["status"] = "not_bound"
                 else:
                     vo["status"] = 'not_bound'
                 vos.append(vo)
