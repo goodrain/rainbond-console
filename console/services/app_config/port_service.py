@@ -196,9 +196,9 @@ class AppPortService(object):
         if not port_info:
             return 404, u"端口{0}不存在".format(container_port), None
         if port_info.is_inner_service:
-            return 409, u"请关闭对内服务", None
+            return 409, u"请关闭对内组件", None
         if port_info.is_outer_service:
-            return 409, u"请关闭对外服务", None
+            return 409, u"请关闭对外组件", None
         if service.create_status == "complete":
             # 删除数据中心端口
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias, container_port,
@@ -711,6 +711,13 @@ class AppPortService(object):
                     urls.insert(0, "https://{0}{1}".format(d.domain_name, domain_path))
                 else:
                     urls.insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
+        tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, port)
+        if tcp_domains:
+            for td in tcp_domains:
+                if td.protocol != "http":
+                    urls.append("https://{0}".format(td.end_point))
+                else:
+                    urls.append("http://{0}".format(td.end_point))
 
         return urls
 
