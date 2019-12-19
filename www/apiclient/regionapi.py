@@ -526,17 +526,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return body
 
     def get_volume_options(self, region, tenant_name):
-        """
-        获取所有支持的存储列表
-        包含默认存储（共享存储（文件）、本地存储
-        """
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         tenant_name = tenant_region.region_tenant_name
         url = uri_prefix + "/v2/volume-options"
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
-        return res, body
+        return body
 
     def get_service_volumes_status(self, region, tenant_name, service_alias):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)

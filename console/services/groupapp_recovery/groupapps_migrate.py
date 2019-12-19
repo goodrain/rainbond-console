@@ -303,15 +303,26 @@ class GroupappsMigrateService(object):
             TenantServiceEnvVar.objects.bulk_create(env_list)
 
     def __save_volume(self, tenant, service, tenant_service_volumes, service_config_file):
-        # 逻辑混乱，待优化
+        contain_config_file = False
         if not service_config_file:
-            volume_list = []
-            for volume in tenant_service_volumes:
-                volume.pop("ID")
+            contain_config_file = True
+        volume_list = []
+        config_list = []
+        for volume in tenant_service_volumes:
+            volume.pop("ID")
+            if volume["volume_type"] == "config_file" and contain_config_file is True:
+                for config_file in service_config_file:
+                    if config_file["volume_id"] == volume["ID"]:
+                        config_file.pop("ID")
+                        new_config_file = TenantServiceConfigurationFile(**config_file)
+                        new_config_file.service_id = service.service_id
+                        config_list.append(new_config_file)
+            else:
                 settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
                                                                             volume.get("access_mode"),
                                                                             volume.get("share_policy"),
-                                                                            volume.get("backup_policy"))
+                                                                            volume.get("backup_policy"),
+                                                                            None, volume.get("volume_provider_name"))
                 if settings["changed"]:
                     logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
                     volume["volume_type"] = settings["volume_type"]
@@ -319,40 +330,13 @@ class GroupappsMigrateService(object):
                 new_volume.service_id = service.service_id
                 volume_list.append(new_volume)
             if volume_list:
-                TenantServiceVolume.objects.bulk_create(volume_list)
-        else:
-            for volume in tenant_service_volumes:
-                volume_list = []
-                config_list = []
-                for config_file in service_config_file:
-                    if config_file["volume_id"] == volume["ID"]:
-                        config_file.pop("ID")
-                        new_config_file = TenantServiceConfigurationFile(**config_file)
-                        new_config_file.service_id = service.service_id
-                        config_list.append(new_config_file)
-                volume.pop("ID")
-                settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
-                                                                            volume.get("access_mode"),
-                                                                            volume.get("share_policy"),
-                                                                            volume.get("backup_policy"))
-                if settings["changed"]:
-                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
-                    volume["volume_type"] = settings["volume_type"]
-                new_volume = TenantServiceVolume(**volume)
-                new_volume.service_id = service.service_id
-                volume_list.append(new_volume)
-                logger.debug('----------------->{0}'.format(new_volume.to_dict()))
-                if volume_list:
-                    volume_js = TenantServiceVolume.objects.bulk_create(volume_list)
-                    volume_j = volume_js[0]
-                    logger.debug('--------------555-------------->{0}'.format(volume_j.to_dict()))
-                    for config in config_list:
-                        volume_obj = volume_repo.get_service_volume_by_name(service.service_id, volume_j.volume_name)
-                        logger.debug('--------------2222121212-------------->{0}'.format(volume_obj.to_dict()))
-                        config.volume_id = volume_obj.ID
-                        logger.debug('------------666---------------->{0}'.format(config.volume_id))
+                volume_js = TenantServiceVolume.objects.bulk_create(volume_list)
+                volume_j = volume_js[0]
+                for config in config_list:
+                    volume_obj = volume_repo.get_service_volume_by_name(service.service_id, volume_j.volume_name)
+                    config.volume_id = volume_obj.ID
 
-                    TenantServiceConfigurationFile.objects.bulk_create(config_list)
+                TenantServiceConfigurationFile.objects.bulk_create(config_list)
 
     def __save_port(self, tenant, service, tenant_service_ports):
         port_list = []

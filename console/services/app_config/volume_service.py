@@ -11,6 +11,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 import logging
 from console.utils.urlutil import is_path_legal
 from www.utils.crypt import make_uuid
+from console.services.exception import ErrVolumeTypeNotFound
+from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -40,7 +42,8 @@ class AppVolumeService(object):
         "/usr/bin",
     ]
 
-    simple_volume_type = ["share-file", "config-file", "memoryfs", "local"]
+    default_volume_type = "share-file"
+    simple_volume_type = [default_volume_type, "config-file", "memoryfs", "local"]
 
     def ensure_volume_share_policy(self, tenant, service):
         volumes = self.get_service_volumes(tenant, service)
@@ -54,15 +57,17 @@ class AppVolumeService(object):
         return True
 
     def get_service_support_volume_options(self, tenant, service):
-        res, body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        if res.status != 200:
-            return 200, []
-        list = []
+        body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
+        opts = []
         for opt in body.list:
-            if opt["volume_type"] == "local" and service.extend_method != "state":
-                continue
-            list.append(opt)
-        return 200, list
+            if service.extend_method != "state":  # 无状态组件
+                if opt["volume_type"] == "local":
+                    continue
+                if opt["access_mode"] is not None:
+                    if len(opt["access_mode"]) == 1 and opt["access_mode"][0] == "RWO":
+                        continue
+            opts.append(opt)
+        return opts
 
     # 需要提供更多的信息到源数据中
     # 使用数据中心接口统一返回最合适的类型，
@@ -78,14 +83,23 @@ class AppVolumeService(object):
         if volume_type in self.simple_volume_type:
             settings["changed"] = False
             return settings
-        code, list = self.get_service_support_volume_options(tenant, service)
-        for opt in list:
+        opts = self.get_service_support_volume_options(tenant, service)
+        """
+        1、先确定是否有相同的存储类型
+        2、再确定是否有相同的存储提供方
+        """
+        for opt in opts:
             if opt["volume_type"] == volume_type:
                 if access_mode.upper() in opt["access_mode"]:
                     settings["changed"] = False
                     return settings
+        for opt in opts:
+            if opt["provisioner"] and opt["provisioner"] == provider_name:
+                settings["volume_type"] = opt["volume_type"]
+                settings["changed"] = True
+                return settings
         settings["changed"] = True
-        settings["Volume_type"] = "share-file"
+        settings["volume_type"] = self.default_volume_type
 
         return settings
 
@@ -98,30 +112,33 @@ class AppVolumeService(object):
         vos = []
         res = None
         body = None
-        try:
-            res, body = region_api.get_service_volumes_status(service.service_region, tenant.tenant_name, service.service_alias)
-        except Exception as e:
-            logger.exception(e)
-        if res is None or (res is not None and res.status != 200):
+        if service.create_status != "complete":
             for volume in volumes:
                 vo = volume.to_dict()
-                vo["status"] = 'not_bound'
+                vo["status"] = "not_bound"
                 vos.append(vo)
             return vos
-        if body and body.bean:
+        res, body = region_api.get_service_volumes(service.service_region, tenant.tenant_name,
+                                                   service.service_alias, tenant.enterprise_id)
+        if body and body.list:
+            status = {}
+            for volume in body.list:
+                status[volume["volume_name"]] = volume["status"]
+
             for volume in volumes:
                 vo = volume.to_dict()
-                if vo["volume_type"] in ["share-file", "config-file", "local", "memoryfs"]:
-                    vo["status"] = "bound"
-                    vos.append(vo)
-                    continue
-                if body.bean.status[vo["volume_name"]] is not None:
-                    if body.bean.status[vo["volume_name"]] == "READY":
+                if status[vo["volume_name"]] is not None:
+                    if status[vo["volume_name"]] == "READY":
                         vo["status"] = "bound"
                     else:
                         vo["status"] = "not_bound"
                 else:
                     vo["status"] = 'not_bound'
+                vos.append(vo)
+        else:
+            for volume in volumes:
+                vo = volume.to_dict()
+                vo["status"] = "not_bound"
                 vos.append(vo)
         return vos
 
@@ -183,7 +200,7 @@ class AppVolumeService(object):
         access_mode = settings.get("access_mode")
         if access_mode is not None and access_mode != "":
             return access_mode.upper()
-        if volume_type == "share-file":
+        if volume_type == self.default_volume_type:
             if service.extend_method == "stateless":
                 access_mode = "RWX"
             else:
@@ -208,18 +225,23 @@ class AppVolumeService(object):
         return backup_policy
 
     def __setting_volume_capacity(self, service, volume_type, settings):
-        if volume_type in self.simple_volume_type:
+        if settings.get("volume_capacity"):
+            return settings.get("volume_capacity")
+        else:
             return 0
-        if settings.get("volume_capacity") is not None and settings.get("volume_capacity") != "":
-            return int(settings.get("volume_capacity"))
 
-    def __setting_volume_provider_name(self, service, volume_type, settings):
+    def __setting_volume_provider_name(self, tenant, service, volume_type, settings):
         if volume_type in self.simple_volume_type:
             return ""
-        if settings.get("provider_name") is not None:
-            return settings.get("provider_name")
+        if settings.get("volume_provider_name") is not None:
+            return settings.get("volume_provider_name")
+        opts = self.get_service_support_volume_options(tenant, service)
+        for opt in opts:
+            if opt["volume_type"] == volume_type:
+                return opt["provisioner"]
+        return ""
 
-    def setting_volume_properties(self, service, volume_type, settings=None):
+    def setting_volume_properties(self, tenant, service, volume_type, settings=None):
         """
         目的：
         1. 现有存储如果提供默认的读写策略、共享模式等参数
@@ -234,50 +256,30 @@ class AppVolumeService(object):
         settings["backup_policy"] = backup_policy
         capacity = self.__setting_volume_capacity(service, volume_type, settings)
         settings["volume_capacity"] = capacity
-        volume_provider_name = self.__setting_volume_provider_name(service, volume_type, settings)
-        settings["provider_name"] = volume_provider_name
+        volume_provider_name = self.__setting_volume_provider_name(tenant, service, volume_type, settings)
+        settings["volume_provider_name"] = volume_provider_name
 
         settings['reclaim_policy'] = "exclusive"
         settings['allow_expansion'] = False
 
         return settings
 
-    def check_volume_capacity(self, service, volume_type, settings):
-        if volume_type in self.simple_volume_type:
-            return 200, u''
-        if settings['volume_capacity'] is None or settings['volume_capacity'] == "":
-            return 400, u'高级存储容量必须大于0'
-        if int(settings['volume_capacity']) <= 0:
-            return 400, u'高级存储容量必须大于0'
-
-        return 200, ''
-
     def check_volume_options(self, tenant, service, volume_type, settings):
         if volume_type in self.simple_volume_type:
-            return 200, u''
-        try:
-            code, options = self.get_service_support_volume_options(tenant, service)
-            if code != 200:
-                return 500, u'查询可用存储失败'
-            exists = False
-            for opt in options:
-                if opt["volume_type"] == volume_type:
-                    exists = True
-                    break
-            if exists is False:
-                return 400, "没有可用的存储驱动为{0}提供存储服务".format(volume_type)
-        except Exception as e:
-            logger.exception(e)
-            return 500, u'查询可用存储失败'
-
-        return 200, ''
+            return
+        options = self.get_service_support_volume_options(tenant, service)
+        exists = False
+        for opt in options:
+            if opt["volume_type"] == volume_type:
+                exists = True
+                break
+        if exists is False:
+            raise ErrVolumeTypeNotFound
 
     def check_service_multi_node(self, service, settings):
-        if service.min_node > 1:
+        if service.extend_method != "state" and service.min_node > 1:
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
-                return 400, '组件实例个数大于1， 存储读写模式仅支持单实例读写'
-            #  后续添加share_policy进行共享策略的限制
-        return 200, ''
+                raise ErrVolumeTypeDoNotAllowMultiNode
 
     def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None):
         volume_name = volume_name.strip()
@@ -305,19 +307,12 @@ class AppVolumeService(object):
             "volume_path": volume_path,
             "volume_name": volume_name
         }
-        settings = self.setting_volume_properties(service, volume_type, settings)
-        code, msg = self.check_volume_capacity(service, volume_type, settings)
-        if code != 200:
-            return code, msg, None
-        code, msg = self.check_service_multi_node(service, settings)
-        if code != 200:
-            return code, msg, None
-        code, msg = self.check_volume_options(tenant, service, volume_type, settings)
-        if code != 200:
-            return code, msg, None
+        self.check_service_multi_node(service, settings)
+        self.check_volume_options(tenant, service, volume_type, settings)
+        settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 
         volume_data['volume_capacity'] = settings['volume_capacity']
-        volume_data['volume_provider_name'] = settings['provider_name']
+        volume_data['volume_provider_name'] = settings['volume_provider_name']
         volume_data['access_mode'] = settings['access_mode']
         volume_data['share_policy'] = settings['share_policy']
         volume_data['backup_policy'] = settings['backup_policy']

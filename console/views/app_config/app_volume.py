@@ -29,7 +29,7 @@ class AppVolumeOptionsView(AppBaseView):
         ---
         parameters:
         """
-        code, volume_types = volume_service.get_service_support_volume_options(self.tenant, self.service)
+        volume_types = volume_service.get_service_support_volume_options(self.tenant, self.service)
         result = general_message(200, "success", "查询成功", list=volume_types)
         return Response(result, status=result["code"])
 
@@ -54,22 +54,18 @@ class AppVolumeView(AppBaseView):
               paramType: path
         """
         is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
-        try:
-            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
-            volumes_list = []
-            if is_config:
-                for tenant_service_volume in tenant_service_volumes:
-                    cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
-                    if cf_file:
-                        tenant_service_volume["file_content"] = cf_file.file_content
-                    volumes_list.append(tenant_service_volume)
-            else:
-                for vo in tenant_service_volumes:
-                    volumes_list.append(vo)
-            result = general_message(200, "success", "查询成功", list=volumes_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
+        volumes_list = []
+        if is_config:
+            for tenant_service_volume in tenant_service_volumes:
+                cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
+                if cf_file:
+                    tenant_service_volume["file_content"] = cf_file.file_content
+                volumes_list.append(tenant_service_volume)
+        else:
+            for vo in tenant_service_volumes:
+                volumes_list.append(vo)
+        result = general_message(200, "success", "查询成功", list=volumes_list)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -115,53 +111,24 @@ class AppVolumeView(AppBaseView):
         access_mode = request.data.get("access_mode", '')
         share_policy = request.data.get('share_policy', '')
         backup_policy = request.data.get('back_policy', '')
-        reclaim_policy = request.data.get('reclaim_policy', '')
-        allow_expansion = request.data.get('allow_expansion', False)  # TODO 添加参数校验
-        """
-        添加外部存储时需要做的事情
-        1. 确定存储类型
-        2. 根据不同类型存储的读写策略确定是否可添加
+        reclaim_policy = request.data.get('reclaim_policy', '')  # TODO fanyangyang 使用serialer进行参数校验
+        allow_expansion = request.data.get('allow_expansion', False)
+        settings = {}
+        settings['volume_capacity'] = volume_capacity
+        settings['provider_name'] = provider_name
+        settings['access_mode'] = access_mode
+        settings['share_policy'] = share_policy
+        settings['backup_policy'] = backup_policy
+        settings['reclaim_policy'] = reclaim_policy
+        settings['allow_expansion'] = allow_expansion
 
-        延伸出实例扩展限制
-        实例在扩展前需要确定已添加存储是否支持多读、多写等特性，如果不支持，需禁止扩展
+        code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
+                                                            volume_name, file_content, settings)
+        if code != 200:
+            result = general_message(code, "add volume error", msg)
+            return Response(result, status=code)
+        result = general_message(code, msg, u"持久化路径添加成功", bean=data.to_dict())
 
-        延伸出组件类型
-        1. 有状态组件
-        2. 无状态组件
-        3. 单实例组件
-        4. 任务型组件
-        等等
-
-        不同类型组件对应着不同类型的资源选择
-
-        外部存储的设定
-        1. 存储类型
-        2. 提供者
-        3. 大小
-        4. 读写模式
-        5. 共享模式
-        6. 备份模式
-        7. 是否可扩展
-        """
-        try:
-            settings = {}
-            settings['volume_capacity'] = volume_capacity
-            settings['provider_name'] = provider_name
-            settings['access_mode'] = access_mode
-            settings['share_policy'] = share_policy
-            settings['backup_policy'] = backup_policy
-            settings['reclaim_policy'] = reclaim_policy
-            settings['allow_expansion'] = allow_expansion
-
-            code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                                volume_name, file_content, settings)
-            if code != 200:
-                result = general_message(code, "add volume error", msg)
-                return Response(result, status=code)
-            result = general_message(code, msg, u"持久化路径添加成功", bean=data.to_dict())
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 

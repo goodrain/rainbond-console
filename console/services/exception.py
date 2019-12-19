@@ -74,3 +74,15 @@ ErrAllTenantDeletionFailed = ServiceHandleException(
     status_code=400,
     error_code=400
 )
+
+ErrVolumeTypeNotFound = ServiceHandleException(
+    msg="volume type do not found",
+    msg_show="存储类型不可用",
+    status_code=400,
+    error_code=400
+)
+
+ErrVolumeTypeDoNotAllowMultiNode = ServiceHandleException(
+    msg="volume type do not allow multi node",
+    msg_show="存储类型不支持多个实例读写"
+)
