@@ -21,6 +21,7 @@ class OAuth2Test(OAuth2Interface):
         :return: OAuth2User
         '''
         access_token = self._get_access_token()
+        print(access_token)
         return OAuth2User("test", "12345", "test@test.com")
 
     def get_redirect_url(self):
