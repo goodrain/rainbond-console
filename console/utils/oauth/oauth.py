@@ -29,6 +29,12 @@ class OAuth2Interface(object):
             self.oauth_user.access_token = refresh_token
             self.oauth_user.save()
 
+    def is_git_oauth(self):
+        '''
+        :return:
+        '''
+        return False
+
     def set_oauth_service(self, oauth_service):
         '''
         set oauth server config model
@@ -37,31 +43,10 @@ class OAuth2Interface(object):
         self.oauth_service = oauth_service
 
     @abstractmethod
-    def get_access_token(self):
-        '''
-        get oauth access token
-        :return:
-        '''
-
-    @abstractmethod
-    def refresh_access_token(self):
-        '''
-        refresh oauth access token
-        :return:
-        '''
-
-    @abstractmethod
     def get_user_info(self):
         '''
         get oauth common user
         :return: OAuth2User
-        '''
-
-    @abstractmethod
-    def check_and_refresh_access_token(self):
-        '''
-        check access token ,if token expired, refresh it
-        :return: true or false
         '''
 
     @abstractmethod
