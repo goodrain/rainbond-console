@@ -277,7 +277,7 @@ class AppVolumeService(object):
             raise ErrVolumeTypeNotFound
 
     def check_service_multi_node(self, service, settings):
-        if service.extend_method != "state" and service.min_node > 1:
+        if service.extend_method == "state" and service.min_node > 1:
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
@@ -307,7 +307,7 @@ class AppVolumeService(object):
             "volume_path": volume_path,
             "volume_name": volume_name
         }
-        self.check_service_multi_node(service, settings)
+
         self.check_volume_options(tenant, service, volume_type, settings)
         settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 
