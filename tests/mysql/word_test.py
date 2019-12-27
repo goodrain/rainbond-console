@@ -62,7 +62,6 @@ from console.models.main import Applicants
 from console.models.main import DeployRelation
 from console.models.main import ServiceBuildSource
 from console.models.main import TenantServiceBackup
-from console.models.main import UpgradeStatus
 from console.models.main import AppUpgradeRecord
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import RegionConfig
@@ -70,31 +69,11 @@ from console.models.main import CloundBangImages
 from console.models.main import Announcement
 
 from docx import Document
-from docx.enum.style import WD_STYLE_TYPE
 
 import json
 
 
 class Json2WordCase(TestCase):
-
-    # def test_style(self):
-    #     document = Document()
-    #     styles = document.styles
-        
-    #     #生成所有表样式
-    #     for s in styles:
-    #         if s.type == WD_STYLE_TYPE.TABLE:
-    #             print(s)
-    #             document.add_paragraph(u"表格样式 :  "+ s.name)
-    #             table = document.add_table(3,3, style = s)
-    #             heading_cells = table.rows[0].cells
-    #             heading_cells[0].text = u'第一列内容'
-    #             heading_cells[1].text = u'第二列内容'
-    #             heading_cells[2].text = u'第三列内容'
-    #             document.add_paragraph("\n")
-        
-    #             document.save('/Users/fanyangyang/Desktop/demo2.docx')
-
     def init(self):
         self.sources = [
             Tenants(),
@@ -162,7 +141,7 @@ class Json2WordCase(TestCase):
             CloundBangImages(),
             Announcement(),
         ]
-        
+
     def test_something(self):
         self.init()
         document = Document()
@@ -173,14 +152,14 @@ class Json2WordCase(TestCase):
             table = document.add_table(rows=1, cols=4, style='Medium Shading 1')
 
             cells = table.rows[0].cells
-            
+
             cells[0].text = "name"
             cells[1].text = "kind"
             cells[2].text = "default"
             cells[3].text = "desc"
             for parameter in data:
                 cells = table.add_row().cells
-                cells[0].style = 'Medium Grid 1 Accent 1' 
+                cells[0].style = 'Medium Grid 1 Accent 1'
                 cells[0].text = parameter["name"]
                 cells[1].text = parameter["kind"]
                 cells[2].text = parameter["default"]
@@ -189,48 +168,6 @@ class Json2WordCase(TestCase):
             document.add_page_break()
 
             document.save('/Users/fanyangyang/Desktop/demo.docx')
-                
-
-
-        
-        # document = Document()
-        # p = document.add_paragraph('A plain paragraph having some ')
-        # p.add_run('bold').bold = True
-        # p.add_run(' and some ')
-        # p.add_run('italic.').italic = True
-        #
-        # document.add_heading('Heading, level 1', level=1)
-        # document.add_paragraph('Intense quote', style='Intense Quote')
-        #
-        # document.add_paragraph(
-        #     'first item in unordered list', style='List Bullet'
-        # )
-        # document.add_paragraph(
-        #     'first item in ordered list', style='List Number'
-        # )
-        #
-        # # document.add_picture('monty-truth.png', width=Inches(1.25))
-        #
-        # records = (
-        #     (3, '101', 'Spam'),
-        #     (7, '422', 'Eggs'),
-        #     (4, '631', 'Spam, spam, eggs, and spam')
-        # )
-        #
-        # table = document.add_table(rows=1, cols=3)
-        # hdr_cells = table.rows[0].cells
-        # hdr_cells[0].text = 'Qty'
-        # hdr_cells[1].text = 'Id'
-        # hdr_cells[2].text = 'Desc'
-        # for qty, id, desc in records:
-        #     row_cells = table.add_row().cells
-        #     row_cells[0].text = str(qty)
-        #     row_cells[1].text = id
-        #     row_cells[2].text = desc
-        #
-        # document.add_page_break()
-        #
-        # document.save('/Users/fanyangyang/Desktop/demo.docx')
 
 
 if __name__ == '__main__':
