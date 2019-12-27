@@ -5,7 +5,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import DateTimeField
+from django.db.models.fields import DateTimeField, CharField, AutoField, BooleanField, DecimalField, IntegerField
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from enum import Enum
@@ -291,6 +291,39 @@ class BaseModel(models.Model):
             data[f.name] = value
         return data
 
+    def to_json(self):
+        opts = self._meta
+        data = []
+        for f in opts.concrete_fields:
+            parameter = {}
+            parameter["table"] = opts.db_table
+            parameter["name"] = f.name
+            parameter["kind"] = self.parse_kind(f)
+            parameter["default"] = self.parse_default(f.default)
+            parameter["desc"] = f.help_text
+            data.append(parameter)
+        return data
+
+    def parse_default(self, a):
+        # if type(a) == NOT_PROVIDED:
+        return ""
+
+    def parse_kind(self, a):
+        # print(a.name, type(a))
+        if type(a) == CharField:
+            return "string"
+        if type(a) == AutoField:
+            return "int"
+        if type(a) == BooleanField:
+            return "boolean"
+        if type(a) == DecimalField:
+            return "decimal"
+        if type(a) == DateTimeField:
+            return "datetime"
+        if type(a) == IntegerField:
+            return "int"
+        return "string"
+
 
 class Tenants(BaseModel):
     """
@@ -458,7 +491,7 @@ class TenantServiceInfo(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner组件")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
-    volume_type = models.CharField(max_length=30, default='shared', help_text=u"共享类型shared、exclusive")
+    volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
     port_type = models.CharField(max_length=15, default='multi_outer',
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
@@ -556,7 +589,7 @@ class TenantServiceInfoDelete(BaseModel):
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner组件")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
-    volume_type = models.CharField(max_length=30, default='shared', help_text=u"共享类型shared、exclusive")
+    volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
     port_type = models.CharField(max_length=15, default='multi_outer',
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
@@ -931,9 +964,16 @@ class TenantServiceVolume(BaseModel):
     service_id = models.CharField(max_length=32, help_text=u"组件id")
     category = models.CharField(max_length=50, blank=True, help_text=u"组件类型")
     host_path = models.CharField(max_length=400, help_text=u"物理机的路径,绝对路径")
-    volume_type = models.CharField(max_length=30, blank=True)
+    volume_type = models.CharField(max_length=64, blank=True)
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
     volume_name = models.CharField(max_length=100, blank=True)
+    volume_capacity = models.IntegerField(default=0, help_text=u"存储大小，单位(Mi)")
+    volume_provider_name = models.CharField(max_length=100, blank=True, help_text=u"存储驱动名字")
+    access_mode = models.CharField(max_length=100, blank=True, help_text=u"读写模式：RWO、ROX、RWX")
+    share_policy = models.CharField(max_length=100, blank=True, help_text=u"共享模式")
+    backup_policy = models.CharField(max_length=100, blank=True, help_text=u"备份策略")
+    reclaim_policy = models.CharField(max_length=100, blank=True, help_text=u"回收策略")
+    allow_expansion = models.BooleanField(max_length=100, blank=True, help_text=u"只是支持控制扩展，0：不支持；1：支持")
 
 
 class TenantServiceConfigurationFile(BaseModel):

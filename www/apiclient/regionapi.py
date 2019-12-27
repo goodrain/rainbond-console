@@ -525,6 +525,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
+    def get_volume_options(self, region, tenant_name):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/volume-options"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_service_volumes_status(self, region, tenant_name, service_alias):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes-status".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def get_service_volumes(self, region, tenant_name, service_alias, enterprise_id):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)

@@ -318,9 +318,14 @@ class ShareService(object):
                             if config_file:
                                 s_v['file_content'] = config_file.file_content
                         s_v['category'] = volume.category
+                        s_v['volume_capacity'] = volume.volume_capacity
+                        s_v['volume_provider_name'] = volume.volume_provider_name
                         s_v['volume_type'] = volume.volume_type
                         s_v['volume_path'] = volume.volume_path
                         s_v['volume_name'] = volume.volume_name
+                        s_v['access_mode'] = volume.access_mode
+                        s_v['share_policy'] = volume.share_policy
+                        s_v['backup_policy'] = volume.backup_policy
                         data['service_volume_map_list'].append(s_v)
 
                 data['service_env_map_list'] = list()

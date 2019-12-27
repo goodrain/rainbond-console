@@ -313,13 +313,13 @@ class AppManageService(AppManageBase):
             if service_volume:
                 continue
             file_content = volume.get("file_content", None)
-            code, msg, volume_data = volume_service.add_service_volume(
-                tenant,
-                service,
-                volume["volume_path"],
-                volume_type=volume["volume_type"],
-                volume_name=volume["volume_name"],
-                file_content=file_content)
+            settings = {}
+            settings["volume_capacity"] = volume["volume_capacity"]
+            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                       volume_type=volume["volume_type"],
+                                                                       volume_name=volume["volume_name"],
+                                                                       file_content=file_content,
+                                                                       settings=settings)
             if code != 200:
                 logger.error("save market app volume error: {}".format(msg))
                 return code, msg

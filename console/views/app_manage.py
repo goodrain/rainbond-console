@@ -278,6 +278,10 @@ class HorizontalExtendAppView(AppBaseView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
+            if self.service.extend_method == "state" and new_node != 1:
+                if volume_service.ensure_volume_share_policy(self.tenant, self.service) is False:
+                    return Response(general_message(400, "do not allow multi node", "存储读写策略限制，不允许扩展多实例"), status=400)
+
             code, msg = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
             bean = {}
             if code != 200:
@@ -488,7 +492,7 @@ class ChangeServiceTypeView(AppBaseView):
             tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
             if tenant_service_volumes:
                 for tenant_service_volume in tenant_service_volumes:
-                    if tenant_service_volume.volume_type == "local":
+                    if tenant_service_volume["volume_type"] == "local":
                         is_mnt_dir = 1
             if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
                 return Response(

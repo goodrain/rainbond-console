@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from django.db import models
+from django.db.models.fields import DateTimeField, CharField, AutoField, BooleanField, DecimalField, IntegerField
 from django.db.models.fields.files import FileField
 from enum import Enum
 from enum import IntEnum
@@ -35,6 +36,39 @@ class BaseModel(models.Model):
                 value = value.url if value else None
             data[f.attname] = value
         return data
+
+    def to_json(self):
+        opts = self._meta
+        data = []
+        for f in opts.concrete_fields:
+            parameter = {}
+            parameter["table"] = opts.db_table
+            parameter["name"] = f.name
+            parameter["kind"] = self.parse_kind(f)
+            parameter["default"] = self.parse_default(f.default)
+            parameter["desc"] = f.help_text
+            data.append(parameter)
+        return data
+
+    def parse_default(self, a):
+        # if type(a) == NOT_PROVIDED:
+        return ""
+
+    def parse_kind(self, a):
+        # print(a.name, type(a))
+        if type(a) == CharField:
+            return "string"
+        if type(a) == AutoField:
+            return "int"
+        if type(a) == BooleanField:
+            return "boolean"
+        if type(a) == DecimalField:
+            return "decimal"
+        if type(a) == DateTimeField:
+            return "datetime"
+        if type(a) == IntegerField:
+            return "int"
+        return "string"
 
 
 class ConsoleSysConfig(BaseModel):
@@ -302,7 +336,7 @@ class ServiceRecycleBin(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
-    volume_type = models.CharField(max_length=30, default='shared', help_text=u"共享类型shared、exclusive")
+    volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
     port_type = models.CharField(max_length=15, default='multi_outer',
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
@@ -721,31 +755,31 @@ class OAuthServices(BaseModel):
     client_id = models.CharField(max_length=64, null=False, help_text=u"client_id")
     client_secret = models.CharField(max_length=64, null=False, help_text=u"client_secret")
     redirect_uri = models.CharField(max_length=255, null=False, help_text=u"redirect_uri")
-    home_url = models.CharField(max_length=255, null=False, help_text=u"auth_url")
-    auth_url = models.CharField(max_length=255, null=False, help_text=u"auth_url")
-    access_token_url = models.CharField(max_length=255, null=False, help_text=u"access_token_url")
-    api_url = models.CharField(max_length=255, null=False, help_text=u"api_url")
-    oauth_type = models.CharField(max_length=16, null=False, help_text=u"oauth_type")
-    eid = models.CharField(max_length=64, null=False, help_text=u"user_id")
-    enable = models.BooleanField(default=True, help_text=u"user_id")
-    is_deleted = models.BooleanField(default=False, help_text=u"is_deleted")
-    is_console = models.BooleanField(default=False, help_text=u"is_console")
-    is_auto_login = models.BooleanField(default=True, help_text=u"is_auto_login")
-    is_git = models.BooleanField(default=True, help_text=u"是否为git仓库")
+    home_url = models.CharField(max_length=255, null=True, help_text=u"auth_url")
+    auth_url = models.CharField(max_length=255, null=True, help_text=u"auth_url")
+    access_token_url = models.CharField(max_length=255, null=True, help_text=u"access_token_url")
+    api_url = models.CharField(max_length=255, null=True, help_text=u"api_url")
+    oauth_type = models.CharField(max_length=16, null=True, help_text=u"oauth_type")
+    eid = models.CharField(max_length=64, null=True, help_text=u"user_id")
+    enable = models.NullBooleanField(null=True, default=True, help_text=u"user_id")
+    is_deleted = models.NullBooleanField(null=True, default=False, help_text=u"is_deleted")
+    is_console = models.NullBooleanField(null=True, default=False, help_text=u"is_console")
+    is_auto_login = models.NullBooleanField(null=True, default=False, help_text=u"is_auto_login")
+    is_git = models.NullBooleanField(null=True, default=True, help_text=u"是否为git仓库")
 
 
 class UserOAuthServices(BaseModel):
     class Meta:
         db_table = "user_oauth_service"
 
-    oauth_user_id = models.CharField(max_length=64, null=False, help_text=u"oauth_user_id")
-    oauth_user_name = models.CharField(max_length=64, null=False, help_text=u"oauth_user_name")
-    oauth_user_email = models.CharField(max_length=64, null=False, help_text=u"oauth_user_email")
-    service_id = models.IntegerField(null=False, help_text=u"service_id")
-    is_auto_login = models.BooleanField(help_text=u"is_auto_login")
-    is_authenticated = models.BooleanField(help_text=u"is_authenticated")
-    is_expired = models.BooleanField(help_text=u"is_expired")
-    access_token = models.CharField(max_length=255, null=False, help_text=u"access_token_url")
-    refresh_token = models.CharField(max_length=64, null=False, help_text=u"refresh_token")
-    user_id = models.IntegerField(default=None, help_text=u"user_id")
-    code = models.CharField(max_length=256, help_text=u"user_id")
+    oauth_user_id = models.CharField(max_length=64, null=True, help_text=u"oauth_user_id")
+    oauth_user_name = models.CharField(max_length=64, null=True, help_text=u"oauth_user_name")
+    oauth_user_email = models.CharField(max_length=64, null=True, help_text=u"oauth_user_email")
+    service_id = models.IntegerField(null=True, help_text=u"service_id")
+    is_auto_login = models.NullBooleanField(null=True, default=False, help_text=u"is_auto_login")
+    is_authenticated = models.NullBooleanField(null=True, default=False, help_text=u"is_authenticated")
+    is_expired = models.NullBooleanField(null=True, default=False, help_text=u"is_expired")
+    access_token = models.CharField(max_length=255, null=True, help_text=u"access_token_url")
+    refresh_token = models.CharField(max_length=64, null=True, help_text=u"refresh_token")
+    user_id = models.IntegerField(null=True, default=None, help_text=u"user_id")
+    code = models.CharField(max_length=256, null=True,  help_text=u"user_id")

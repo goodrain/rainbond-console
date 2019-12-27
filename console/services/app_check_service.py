@@ -363,8 +363,11 @@ class AppCheckService(object):
                         logger.error("service.check", "save service check info port error {0}".format(msg))
                         # return code, msg
                 else:
+                    settings = {}
+                    settings["volume_capacity"] = volume["volume_capacity"]
                     code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                               volume["volume_type"], volume_name)
+                                                                               volume["volume_type"],
+                                                                               volume_name, None, settings)
                     if code != 200:
                         logger.error("service.check", "save service check info port error {0}".format(msg))
                         # return code, msg

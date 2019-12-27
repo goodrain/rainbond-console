@@ -36,6 +36,7 @@ from console.views.app_config.app_port import TopologicalPortView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeManageView
 from console.views.app_config.app_volume import AppVolumeView
+from console.views.app_config.app_volume import AppVolumeOptionsView
 from console.views.app_create.app_build import AppBuild
 from console.views.app_create.app_build import ComposeBuildView
 from console.views.app_create.app_check import AppCheck
@@ -506,6 +507,8 @@ urlpatterns = [
     # 对外访问tcp端口修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tcp-ports/(?P<port>[\w\-]+)$',
         AppTcpOuterManageView.as_view()),
+    # 组件支持的存储列表
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volume-opts$', AppVolumeOptionsView.as_view()),
     # 持久化路径配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes$', AppVolumeView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/(?P<volume_id>[\w\-]+)$',
