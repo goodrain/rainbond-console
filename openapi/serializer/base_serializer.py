@@ -9,3 +9,7 @@ class TokenSerializer(serializers.Serializer):
 
 class FailSerializer(serializers.Serializer):
     msg = serializers.CharField(max_length=300)
+
+
+class SuccessSerializer(serializers.Serializer):
+    msg = serializers.CharField(max_length=300)
