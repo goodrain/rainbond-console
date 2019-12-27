@@ -11,6 +11,7 @@ ACTION_CHOICE = (
     ("deploy", ("deploy")),
 )
 
+
 class AppBaseInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceGroup
@@ -73,7 +74,7 @@ class APPHttpDomainRspSerializer(serializers.Serializer):
     http_rule_id = serializers.CharField(max_length=64, help_text=u"http规则id")
     rule_extensions = serializers.ListField(help_text=u"规则参数")
     service_name = serializers.CharField(max_length=64, help_text=u"组件名称")
-    domain_heander = serializers.CharField(max_length=64, allow_blank=True,allow_null=True, help_text=u"header")
+    domain_heander = serializers.CharField(max_length=64, allow_blank=True, allow_null=True, help_text=u"header")
     domain_name = serializers.CharField(max_length=64, help_text=u"域名")
     the_weight = serializers.IntegerField()
     service_alias = serializers.CharField(max_length=64, help_text=u"组件昵称")

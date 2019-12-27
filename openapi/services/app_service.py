@@ -50,7 +50,6 @@ class AppService(object):
                     service_ids.remove(service_id)
         return tenant, service_ids
 
-
     def get_services_by_group_id(self, group_id):
         return group_service_relation_repo.get_services_by_group(group_id)
 
@@ -81,7 +80,6 @@ class AppService(object):
             return tenant
         except Exception:
             return None
-
 
     def check_strategy_exist(self, service, container_port, domain_name, protocol, domain_path, rule_extensions):
         rst = False
@@ -118,7 +116,7 @@ class AppService(object):
         for service in services:
             detail = console_app_service.get_service_status(tenant, service)
             if detail["status"] == "running":
-                count+=1
+                count += 1
         return count
 
     def get_app_memory_and_cpu_used(self, services):
