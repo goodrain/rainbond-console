@@ -99,7 +99,6 @@ class ConfigInfoView(AlowAnyApiView):
                             "eid": service.eid,
                             "access_token_url": service.access_token_url,
                             "api_url": service.api_url,
-                            "client_secret": service.client_secret,
                             "is_auto_login": service.is_auto_login,
                             "is_git": service.is_git,
                         }
