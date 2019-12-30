@@ -12,7 +12,8 @@ from django.db.models import Q
 
 from console.constants import AppConstants
 from console.constants import SourceCodeType
-from console.utils.oauthutil import OAuthType
+from console.utils.oauth.oauth_types import support_oauth_type
+
 from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -133,18 +134,18 @@ class AppService(object):
             service.code_from = service_code_from
             service.code_version = service_code_version
             service.save()
-        # elif service_code_from == SourceCodeType.GITHUB:
-        #     if not service_code_clone_url:
-        #         return 403, u"代码信息不全"
-        #     service.git_project_id = service_code_id
-        #     service.git_url = service_code_clone_url
-        #     service.code_from = service_code_from
-        #     service.code_version = service_code_version
-        #     service.save()
-        #     code_user = service_code_clone_url.split("/")[3]
-        #     code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
-        #     gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
-        elif service_code_from.split("oauth_")[-1] in OAuthType.OAuthType:
+        elif service_code_from == SourceCodeType.GITHUB:
+            if not service_code_clone_url:
+                return 403, u"代码信息不全"
+            service.git_project_id = service_code_id
+            service.git_url = service_code_clone_url
+            service.code_from = service_code_from
+            service.code_version = service_code_version
+            service.save()
+            code_user = service_code_clone_url.split("/")[3]
+            code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
+            gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
+        elif service_code_from.split("oauth_")[-1] in support_oauth_type.keys():
 
             if not service_code_clone_url:
                 return 403, u"代码信息不全"

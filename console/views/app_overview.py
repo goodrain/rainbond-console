@@ -19,8 +19,10 @@ from rest_framework.response import Response
 
 from console.constants import AppConstants
 from console.constants import PluginCategoryConstants
-from console.utils.oauthutil import OAuth2
-from console.utils.oauthutil import OAuthType
+
+from console.utils.oauth.oauth_types import get_oauth_instance
+from console.utils.oauth.oauth_types import support_oauth_type
+
 from console.exception.main import ServiceHandleException
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -674,7 +676,8 @@ class BuildSourceinfo(AppBaseView):
                 team_id=self.service.tenant_id, service_id=self.service.service_id)
 
             code_from = self.service.code_from
-            if code_from in OAuthType.OAuthType:
+            oauth_type = support_oauth_type.keys()
+            if code_from in oauth_type:
                 result_url = re_split("[:,@]", self.service.git_url)
                 self.service.git_url = result_url[0] + '//' + result_url[-1]
             bean = {
@@ -775,15 +778,26 @@ class BuildSourceinfo(AppBaseView):
                 if git_url:
                     if is_oauth:
                         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id,
-                                                                               user_id=user_id)
-                        git_service = OAuth2(oauth_service=oauth_service, oauth_user=oauth_user)
-
-                        service_code_clone_url = git_service.api.get_git_clone_path(oauth_user.oauth_user_name,
-                                                                                    git_url)
+                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
+                            service_id=oauth_service_id, user_id=user_id)
+                        try:
+                            instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                        except Exception as e:
+                            logger.debug(e)
+                            rst = {"data": {"bean": None},
+                                   "status": 400,
+                                   "msg_show": u"未找到OAuth服务"
+                                   }
+                            return Response(rst, status=200)
+                        if not instance.is_git_oauth():
+                            rst = {"data": {"bean": None},
+                                   "status": 400,
+                                   "msg_show": u"该OAuth服务不是代码仓库类型"
+                                   }
+                            return Response(rst, status=200)
                         service_code_from = "oauth_" + oauth_service.oauth_type
                         self.service.code_from = service_code_from
-                        self.service.git_url = service_code_clone_url
+                        self.service.git_url = git_url
                         self.service.git_full_name = git_full_name
                         self.service.oauth_service_id = oauth_service_id
                     else:
