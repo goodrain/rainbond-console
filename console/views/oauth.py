@@ -54,9 +54,9 @@ class OauthService(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         eid = request.user.enterprise_id
         service = oauth_repo.get_conosle_oauth_service(eid)
-        api = get_oauth_instance(service.oauth_type, service, None)
-        authorize_url = api.get_authorize_url()
         if service is not None:
+            api = get_oauth_instance(service.oauth_type, service, None)
+            authorize_url = api.get_authorize_url()
             data = {
                 "service_id": service.ID,
                 "enable": service.enable,
