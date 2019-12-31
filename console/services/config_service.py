@@ -45,7 +45,7 @@ class ConfigService(object):
             "APPSTORE_IMAGE_HUB": {"value": {"hub_user": None, "hub_url": None, "namespace": None, "hub_password": None},
                                    "desc": u"开启/关闭GITLAB", "enable": False},
             "OBJECT_STORAGE":  {
-                "enable": True,
+                "enable": False,
                 "value": {
                     "provider": "",
                     "endpoint": "",
@@ -53,7 +53,7 @@ class ConfigService(object):
                     "secret_key": "",
                     "bucket_name": "",
                 },
-                "desc": u"对象存储信息"
+                "desc": u"云端备份使用的对象存储信息"
             }
         }
 
