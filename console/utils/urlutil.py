@@ -10,3 +10,7 @@ def is_path_legal(path):
     if not r.match(path):
         return False
     return True
+
+
+def set_get_url(url, params):
+    return "?".join([url, "&".join(map(lambda x: "=".join(x), params.items()))])
