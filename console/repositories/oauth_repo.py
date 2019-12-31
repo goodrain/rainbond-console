@@ -90,6 +90,8 @@ class OAuthRepo(object):
                         enable=value["enable"], is_auto_login=value["is_auto_login"],
                         is_console=value["is_console"]
                     )
+            else:
+                raise Exception(u"未找到该OAuth类型")
             rst = OAuthServices.objects.filter(eid=eid, is_console=True)
             return rst
 

@@ -86,8 +86,8 @@ class OauthService(JWTAuthApiView):
         try:
             services = oauth_repo.create_or_update_console_oauth_services(values, eid)
         except Exception as e:
-            logger.debug(e)
-            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+            logger.debug(e.message)
+            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
         service = oauth_repo.get_conosle_oauth_service(eid)
         api = get_oauth_instance(service.oauth_type, service, None)
         authorize_url = api.get_authorize_url()
