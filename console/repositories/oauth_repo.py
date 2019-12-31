@@ -25,6 +25,9 @@ class OAuthRepo(object):
     def get_oauth_services_by_service_id(self, service_id):
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
+    def open_get_oauth_services_by_service_id(self, service_id):
+        return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
+
     def create_or_update_oauth_services(self, values, eid=None):
         querysetlist = []
         for value in values:
@@ -46,16 +49,19 @@ class OAuthRepo(object):
                     )
                 )
             else:
-                old_service = self.get_oauth_services_by_service_id(service_id=value.get("service_id"))
-                if old_service.home_url != value["home_url"]:
-                    UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
-                OAuthServices.objects.filter(ID=value["service_id"]).update(
-                    name=value["name"], eid=value["eid"], redirect_uri=value["redirect_uri"],
-                    home_url=value["home_url"], auth_url=auth_url,
-                    access_token_url=auth_url, api_url=auth_url,
-                    enable=value["enable"], is_auto_login=value["is_auto_login"],
-                    is_console=value["is_console"]
-                )
+                if value.get("is_deleted"):
+                    self.delete_oauth_service(service_id=value.get("service_id"))
+                else:
+                    old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
+                    if old_service.home_url != value["home_url"]:
+                        UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
+                    OAuthServices.objects.filter(ID=value["service_id"]).update(
+                        name=value["name"], eid=value["eid"], redirect_uri=value["redirect_uri"],
+                        home_url=value["home_url"], auth_url=auth_url,
+                        access_token_url=auth_url, api_url=auth_url,
+                        enable=value["enable"], is_auto_login=value["is_auto_login"],
+                        is_console=value["is_console"]
+                    )
             if eid is None:
                 eid = value["eid"]
         OAuthServices.objects.bulk_create(querysetlist)

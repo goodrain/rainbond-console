@@ -145,7 +145,8 @@ class OAuthServerAuthorize(AlowAnyApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务"}
+            rst = {"data": {"bean": None}, "status": 404,
+                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
@@ -266,7 +267,8 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务"}
+            rst = {"data": {"bean": None}, "status": 404,
+                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
@@ -325,7 +327,13 @@ class UserOAuthLink(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         oauth_user_id = str(request.data.get("oauth_user_id"))
         service_id = request.data.get("service_id")
-        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+        try:
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+        except Exception as e:
+            logger.debug(e)
+            rst = {"data": {"bean": None}, "status": 404,
+                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            return Response(rst, status=status.HTTP_200_OK)
         user_id = request.user.user_id
         oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=oauth_user_id)
         link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
@@ -357,8 +365,14 @@ class OAuthGitUserRepositories(JWTAuthApiView):
         user_id = request.user.user_id
         page = request.GET.get("page", 1)
         search = request.GET.get("search", '')
-        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
-        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        try:
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        except Exception as e:
+            logger.debug(e)
+            rst = {"data": {"bean": None}, "status": 404,
+                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
             rst = {"data": {"bean": None},
                    "status": 400,
@@ -394,8 +408,14 @@ class OAuthGitUserRepository(JWTAuthApiView):
     def get(self, request, service_id, path, name, *args, **kwargs):
         full_name = '/'.join([path, name])
         user_id = request.user.user_id
-        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
-        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        try:
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        except Exception as e:
+            logger.debug(e)
+            rst = {"data": {"bean": None}, "status": 404,
+                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
             rst = {"data": {"bean": None},
                    "status": 400,
@@ -441,8 +461,14 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
         user_id = request.user.user_id
         type = request.GET.get("type")
         full_name = request.GET.get("full_name")
-        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
-        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        try:
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        except Exception as e:
+            logger.debug(e)
+            rst = {"data": {"bean": None}, "status": 404,
+                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
             rst = {"data": {"bean": None},
                    "status": 400,
@@ -483,8 +509,14 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         git_url = request.data.get("project_url")
         version = request.data.get("version")
         user_id = request.user.user_id
-        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
-        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        try:
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        except Exception as e:
+            logger.debug(e)
+            rst = {"data": {"bean": None}, "status": 404,
+                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
             rst = {"data": {"bean": None},
                    "status": 400,
