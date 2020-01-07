@@ -46,7 +46,7 @@ class TopologicalService(object):
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
                 "service_source": service_info.service_source,
-                "node_num": (len(pods["bean"]["new_pods"]) if pods["bean"] else service_info.min_node),
+                "node_num": (len(pods["bean"]["new_pods"]) if pods["bean"]["new_pods"] else service_info.min_node),
             }
             json_svg[service_info.service_id] = []
             if service_status_map.get(service_info.service_id):
