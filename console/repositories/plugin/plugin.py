@@ -2,6 +2,8 @@
 """
   Created on 18/1/29.
 """
+from django.db.models import Max
+
 from www.db.base import BaseConnection
 from www.models.plugin import PluginBuildVersion
 from www.models.plugin import PluginConfigGroup
@@ -77,6 +79,11 @@ class TenantPluginRepository(object):
             TenantPlugin.objects.get(tenant_id=plugin["tenant_id"], plugin_id=plugin["plugin_id"])
         except TenantPlugin.DoesNotExist:
             TenantPlugin.objects.create(**plugin)
+
+    def get_plugin_last_update(self, region, tenant_id):
+        return PluginBuildVersion.objects.filter(region=region, tenant_id=tenant_id).values(
+            "build_time", "update_info", "plugin_id"
+        ).annotate(Max("build_time"))
 
 
 plugin_repo = TenantPluginRepository()

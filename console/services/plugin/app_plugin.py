@@ -748,3 +748,6 @@ class PluginService(object):
         else:
             return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
                 category="analyst-plugin:perf", image="goodrain.me/tcm")
+
+    def get_plugins_last_update_info(self, region, tenant):
+        return plugin_repo.get_plugin_last_update(region, tenant.tenant_id)

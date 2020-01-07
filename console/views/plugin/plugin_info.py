@@ -354,6 +354,11 @@ class AllPluginBaseInfoView(RegionTenantHeaderView):
         """
         try:
             plugin_list = plugin_service.get_tenant_plugins(self.response_region, self.tenant)
+            plugin_update_info_list = plugin_service.get_plugins_last_update_info(self.response_region, self.tenant)
+            for plugin_info in plugin_list:
+                for plugin_update_info in plugin_update_info_list:
+                    if plugin_info.plugin_id == plugin_update_info["plugin_id"] and plugin_update_info["update_info"]:
+                        plugin_info.desc = plugin_update_info["update_info"]
             dict_list = [plugin.to_dict() for plugin in plugin_list]
             result = general_message(200, "success", "查询成功", list=dict_list)
         except Exception as e:
