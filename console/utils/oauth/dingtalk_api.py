@@ -12,6 +12,7 @@ import base64
 import hashlib
 import urllib
 
+
 class Dingtalk(object):
     def __init__(self, url, oauth_token=None):
         self._base_url = url
@@ -82,6 +83,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
         message = canonicalString.encode(encoding="utf-8")
         sec = secret.encode(encoding="utf-8")
         return str(base64.b64encode(hmac.new(sec, message, digestmod=hashlib.sha256).digest()))
+        
     def _get_user_info(self, code=None):
         '''
         private function, get access_token
