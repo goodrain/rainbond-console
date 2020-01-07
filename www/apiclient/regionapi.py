@@ -1218,7 +1218,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         url += "/v2/app/export"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data).encode('utf-8'))
         return res, body
 
     def get_app_export_status(self, region, tenant_name, event_id):

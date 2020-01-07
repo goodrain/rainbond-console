@@ -46,15 +46,6 @@ class AppPortService(object):
             return 400, u"端口别名不合法"
         return 200, "success"
 
-    # def is_open_outer_steam_port(self, tenant_id, service_id, current_port):
-    #     """判断是否有对外打开的非http协议端口"""
-    #     ports = port_repo.get_service_ports(tenant_id, service_id).filter(is_outer_service=True).exclude(
-    #         protocol="http").exclude(container_port=current_port)
-    #     # 如果为公有云且已经开放端口
-    #     if ports and settings.MODULES.get('SSO_LOGIN'):
-    #         return True
-    #     return False
-
     def add_service_port(self,
                          tenant,
                          service,
@@ -67,7 +58,7 @@ class AppPortService(object):
         tenant_service_ports = self.get_service_ports(service)
         logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
         if tenant_service_ports and service.service_source == "third_party":
-            return 400, u"第三方组件只支持一个域名", None
+            return 400, u"第三方组件只支持配置一个端口", None
 
         container_port = int(container_port)
         code, msg = self.check_port(service, container_port)
