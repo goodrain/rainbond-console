@@ -41,12 +41,16 @@ class TopologicalService(object):
         # 拼接组件状态
         for service_info in service_list:
             pods = region_api.get_service_pods(region, team_name, service_info.service_alias, enterprise_id)
+            if pods["bean"] and pods["bean"].get("new_pods"):
+                node_num = len(pods["bean"]["new_pods"])
+            else:
+                node_num = service_info.min_node
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
                 "service_source": service_info.service_source,
-                "node_num": (len(pods["bean"]["new_pods"]) if pods["bean"] else service_info.min_node),
+                "node_num": node_num,
             }
             json_svg[service_info.service_id] = []
             if service_status_map.get(service_info.service_id):
