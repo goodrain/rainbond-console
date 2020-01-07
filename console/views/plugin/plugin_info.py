@@ -272,7 +272,7 @@ class PluginVersionInfoView(PluginBaseView):
             min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
 
             self.plugin.plugin_alias = plugin_alias
-
+            self.plugin.desc = update_info
             self.plugin_version.update_info = update_info
             self.plugin_version.build_cmd = build_cmd
             self.plugin_version.image_tag = image_tag
