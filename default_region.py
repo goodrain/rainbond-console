@@ -12,7 +12,7 @@ def create_db_client():
     user = os.environ.get('MYSQL_USER')
     password = os.environ.get('MYSQL_PASS')
     database = os.environ.get('MYSQL_DB')
-    db = MySQLdb.connect(host=host,post=post, user=user, password=password, database=database)
+    db = MySQLdb.connect(host=host, post=post, user=user, password=password, database=database)
     return db
 
 
