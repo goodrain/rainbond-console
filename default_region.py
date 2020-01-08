@@ -57,19 +57,19 @@ def get_contends(path):
 
 
 def get_ssl_ca_cert():
-    content = get_contends("/opt/rainbond/etc/rainbond-console/certs/ssl_ca_cert")
+    content = get_contends("/app/region/ssl/ssl_ca_cert")
     print(content)
     return content
 
 
 def get_cert_file():
-    content = get_contends("/opt/rainbond/etc/rainbond-console/certs/cert_file")
+    content = get_contends("/app/region/ssl/cert_file")
     print(content)
     return content
 
 
 def get_key_file():
-    content = get_contends("/opt/rainbond/etc/rainbond-console/certs/key_file")
+    content = get_contends("/app/region/ssl/key_file")
     print(content)
     return content
 
