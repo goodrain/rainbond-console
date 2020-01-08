@@ -40,11 +40,15 @@ class TopologicalService(object):
 
         # 拼接组件状态
         for service_info in service_list:
-            pods = region_api.get_service_pods(region, team_name, service_info.service_alias, enterprise_id)
-            if pods["bean"] and pods["bean"].get("new_pods"):
-                node_num = len(pods["bean"]["new_pods"])
-            else:
-                node_num = service_info.min_node
+            node_num = service_info.min_node
+            if service_info.create_status == "complete":
+                try:
+                    pods = region_api.get_service_pods(region, team_name, service_info.service_alias, enterprise_id)
+                    if pods["bean"] and pods["bean"].get("new_pods"):
+                        node_num = len(pods["bean"]["new_pods"])
+                # get pod list before service create will occurred error
+                except Exception as e:
+                    pass
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
