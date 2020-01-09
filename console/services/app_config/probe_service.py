@@ -62,10 +62,9 @@ class ProbeService(object):
             if period_second < 1:
                 return 400, u"检测间隔不能小于1秒"
 
-        timeout_second = data.get("timeout_second", 30)
-        if timeout_second is not None:
-            if timeout_second < 20:
-                return 400, u"检测超时时间不能少于20秒"
+        timeout_second = data.get("timeout_second", 1)
+        if timeout_second < 1:
+            return 400, u"超时时间不能小于1秒"
 
         failure_threshold = data.get("failure_threshold", 3)
         if failure_threshold is not None:
@@ -95,9 +94,9 @@ class ProbeService(object):
             "port": data.get("port"),
             "cmd": data.get("cmd", ""),
             "http_header": data.get("http_header", ""),
-            "initial_delay_second": data.get("initial_delay_second", 1),
+            "initial_delay_second": data.get("initial_delay_second", 4),
             "period_second": data.get("period_second", 3),
-            "timeout_second": data.get("timeout_second", 30),
+            "timeout_second": data.get("timeout_second", 5),
             "failure_threshold": data.get("failure_threshold", 3),
             "success_threshold": data.get("success_threshold", 1),
             "is_used": is_used,
