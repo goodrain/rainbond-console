@@ -8,11 +8,11 @@ import MySQLdb
 
 def create_db_client():
     host = os.environ.get('MYSQL_HOST')
-    post = os.environ.get('MYSQL_PORT')
+    port = os.environ.get('MYSQL_PORT')
     user = os.environ.get('MYSQL_USER')
     password = os.environ.get('MYSQL_PASS')
     database = os.environ.get('MYSQL_DB')
-    db = MySQLdb.connect(host=host, post=post, user=user, password=password, database=database)
+    db = MySQLdb.connect(host=host, port=port, user=user, password=password, database=database)
     return db
 
 
