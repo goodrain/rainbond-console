@@ -121,6 +121,8 @@ class ProbeService(object):
             return code, msg, None
         probes = probe_repo.get_service_probe(service.service_id)
         if not probes:
+            if service.service_source == "third_party":
+                return self.add_service_probe(tenant, service, data)
             return 404, u"组件未设置探针，无法进行修改操作", None
         probe = probes[0]
         # delete more probe without first, one service will have one probe
