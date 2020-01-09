@@ -1,18 +1,19 @@
 # -*- coding: UTF-8 -*-
-import os
 import datetime
-import uuid
 import hashlib
+import os
+import uuid
+
 import MySQLdb
 
 
 def create_db_client():
     host = os.environ.get('MYSQL_HOST')
-    port = os.environ.get('MYSQL_PORT')
+    port = int(os.environ.get('MYSQL_PORT'))
     user = os.environ.get('MYSQL_USER')
     password = os.environ.get('MYSQL_PASS')
     database = os.environ.get('MYSQL_DB')
-    db = MySQLdb.connect(host=host, port=port, user=user, password=password, database=database)
+    db = MySQLdb.connect(host=host, port=port, user=user, passwd=password, db=database)
     return db
 
 
