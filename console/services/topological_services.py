@@ -90,10 +90,6 @@ class TopologicalService(object):
                 outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
             json_data[service_info.service_id]['is_internet'] = outer_port_exist
 
-
-
-
-
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id
             tmp_info = service_map.get(tmp_id)
