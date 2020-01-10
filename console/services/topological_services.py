@@ -39,14 +39,20 @@ class TopologicalService(object):
                 logger.exception(e)
 
         # 拼接组件状态
+        dynamic_services_info = region_api.get_dynamic_services_pods(
+            region, team_name,
+            [service.service_id for service in service_list])
         for service_info in service_list:
-            pods = region_api.get_service_pods(region, team_name, service_info.service_alias, enterprise_id)
+            node_num = 0
+            for dynamic_service in dynamic_services_info["list"]:
+                if dynamic_service["service_id"] == service_info.service_id:
+                    node_num += 1
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
                 "service_source": service_info.service_source,
-                "node_num": (len(pods["bean"]["new_pods"]) if pods["bean"] else service_info.min_node),
+                "node_num": node_num,
             }
             json_svg[service_info.service_id] = []
             if service_status_map.get(service_info.service_id):
@@ -83,6 +89,10 @@ class TopologicalService(object):
             if len(port_list) > 0:
                 outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
             json_data[service_info.service_id]['is_internet'] = outer_port_exist
+
+
+
+
 
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id
