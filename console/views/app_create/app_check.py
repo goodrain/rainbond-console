@@ -7,7 +7,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.views.app_config.base import AppBaseView
-from console.utils.oauthutil import OAuthType
+from console.utils.oauth.oauth_types import support_oauth_type
 from console.services.app_check_service import app_check_service
 from console.services.app import app_service
 from www.decorator import perm_required
@@ -74,7 +74,7 @@ class AppCheck(AppBaseView):
                     data["error_infos"] = [save_error]
         check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
         code_from = self.service.code_from
-        if code_from in OAuthType.OAuthType:
+        if code_from in support_oauth_type.keys():
             for i in check_brief_info["service_info"]:
                 if i["type"] == "source_from":
                     result_url = re_spilt("[:,@]", i["value"])
@@ -103,8 +103,9 @@ class AppCheck(AppBaseView):
 
         """
         try:
+            user = request.user
             is_again = request.data.get("is_again", False)
-            code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again)
+            code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, user)
             if code != 200:
                 result = general_message(code, "check service error", msg)
             else:

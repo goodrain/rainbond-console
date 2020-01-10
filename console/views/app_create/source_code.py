@@ -4,7 +4,6 @@
 """
 import json
 import os
-from re import split as re_split
 import logging
 
 from django.views.decorators.cache import never_cache
@@ -17,7 +16,9 @@ from www.utils.return_message import general_message, error_message
 from console.services.app import app_service
 from console.services.app_config import compile_env_service
 from console.services.group_service import group_service
-from console.utils.oauthutil import OAuth2
+
+from console.utils.oauth.oauth_types import get_oauth_instance
+
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.app import service_webhooks_repo
@@ -110,12 +111,34 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         result = {}
         if is_oauth:
             open_webhook = request.data.get("open_webhook", False)
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
-            git_service = OAuth2(oauth_service=oauth_service, oauth_user=oauth_user)
+            try:
+                oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
+                oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
+            except Exception as e:
+                logger.debug(e)
+                rst = {"data": {"bean": None},
+                       "status": 400,
+                       "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"
+                       }
+                return Response(rst, status=200)
+            try:
+                git_service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+            except Exception as e:
+                logger.debug(e)
+                rst = {"data": {"bean": None},
+                       "status": 400,
+                       "msg_show": u"未找到OAuth服务"
+                       }
+                return Response(rst, status=200)
+            if not git_service.is_git_oauth():
+                rst = {"data": {"bean": None},
+                       "status": 400,
+                       "msg_show": u"该OAuth服务不是代码仓库类型"
+                       }
+                return Response(rst, status=200)
+
             service_code_from = "oauth_" + oauth_service.oauth_type
-            service_code_clone_url = git_service.api.get_git_clone_path(oauth_user.oauth_user_name,
-                                                                        service_code_clone_url)
+            # git_clone_url = git_service.get_clone_url(service_code_clone_url)
         try:
             if not service_code_clone_url:
                 return Response(general_message(400, "code url is null", "仓库地址未指明"), status=400)
@@ -143,8 +166,8 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 service_webhook.deploy_keyword = "deploy"
                 service_webhook.save()
                 try:
-                    git_service.api.creat_hooks(host=host, full_name_or_id=git_full_name,
-                                                endpoint='console/webhooks/' + new_service.service_id)
+                    git_service.create_hook(host=host, full_name_or_id=git_full_name,
+                                            endpoint='console/webhooks/' + new_service.service_id)
                     new_service.open_webhooks = True
                 except Exception as e:
                     logger.debug(e)
@@ -158,10 +181,6 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if code != 200:
                 logger.debug("service.create", msg_show)
             bean = new_service.to_dict()
-            if is_oauth:
-                result_url = re_split("[:,@]", bean["git_url"])
-
-                bean["git_url"] = result_url[0]+'://'+result_url[-1]
             result = general_message(200, "success", "创建成功", bean=bean)
         except ResourceNotEnoughException as re:
             raise re

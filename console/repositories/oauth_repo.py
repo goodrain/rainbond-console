@@ -3,7 +3,8 @@ import logging
 
 from console.models.main import OAuthServices
 from console.models.main import UserOAuthServices
-from console.utils.oauthutil import OAuthType
+from console.utils.oauth.oauth_types import support_oauth_type
+from console.utils.oauth.oauth_types import get_oauth_instance
 
 logger = logging.getLogger('default')
 
@@ -24,38 +25,40 @@ class OAuthRepo(object):
     def get_oauth_services_by_service_id(self, service_id):
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
+    def open_get_oauth_services_by_service_id(self, service_id):
+        return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
+
     def create_or_update_oauth_services(self, values, eid=None):
         querysetlist = []
         for value in values:
-            oauth_type = list(OAuthType.OAuthType)
-            # oauth_type.remove("other")
-            if value["oauth_type"] in oauth_type:
-                is_git = True
-            else:
-                is_git = False
+            instance = get_oauth_instance(value["oauth_type"])
+            auth_url = instance.get_auth_url(home_url=value["home_url"])
+            access_token_url = instance.get_access_token_url(home_url=value["home_url"])
+            api_url = instance.get_user_url(home_url=value["home_url"])
+            is_git = instance.is_git_oauth()
             if value.get("service_id") is None:
                 querysetlist.append(
                     OAuthServices(
                         name=value["name"], client_id=value["client_id"], eid=value["eid"],
                         client_secret=value["client_secret"], redirect_uri=value["redirect_uri"],
                         oauth_type=value["oauth_type"], home_url=value["home_url"],
-                        auth_url=value["auth_url"], access_token_url=value["access_token_url"],
-                        api_url=value["api_url"], enable=value["enable"],
+                        auth_url=auth_url,  access_token_url=access_token_url, api_url=api_url,
                         is_auto_login=value["is_auto_login"], is_console=value["is_console"],
                         is_deleted=value.get("is_deleted", False), is_git=is_git
 
                     )
                 )
             else:
-                if value.get("is_deleted") is True:
-                    OAuthServices.objects.filter(ID=value["service_id"]).delete()
-                    users = UserOAuthServices.objects.filter(service_id=value["service_id"])
-                    users.delete()
+                if value.get("is_deleted"):
+                    self.delete_oauth_service(service_id=value.get("service_id"))
                 else:
+                    old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
+                    if old_service.home_url != value["home_url"]:
+                        UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
                     OAuthServices.objects.filter(ID=value["service_id"]).update(
                         name=value["name"], eid=value["eid"], redirect_uri=value["redirect_uri"],
-                        home_url=value["home_url"], auth_url=value["auth_url"],
-                        access_token_url=value["access_token_url"], api_url=value["api_url"],
+                        home_url=value["home_url"], auth_url=auth_url,
+                        access_token_url=auth_url, api_url=auth_url,
                         enable=value["enable"], is_auto_login=value["is_auto_login"],
                         is_console=value["is_console"]
                     )
@@ -68,33 +71,35 @@ class OAuthRepo(object):
     def create_or_update_console_oauth_services(self, values, eid):
         old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True).first()
         for value in values[:1]:
-            oauth_type = list(OAuthType.OAuthType)
-            # oauth_type.remove("other")
-            if value["oauth_type"] in oauth_type:
-                is_git = True
-            else:
-                is_git = False
-            if value.get("service_id") is None and old_oauth_service is None:
-                OAuthServices.objects.create(
-                    name=value["name"], client_id=value["client_id"], eid=value["eid"],
-                    client_secret=value["client_secret"], redirect_uri=value["redirect_uri"],
-                    oauth_type=value["oauth_type"], home_url=value["home_url"],
-                    auth_url=value["auth_url"], access_token_url=value["access_token_url"],
-                    api_url=value["api_url"], enable=value["enable"],
-                    is_auto_login=value["is_auto_login"], is_console=value["is_console"],
-                    is_git=is_git
+            if value["oauth_type"] in support_oauth_type.keys():
+                instance = get_oauth_instance(value["oauth_type"])
+                auth_url = instance.get_auth_url(home_url=value["home_url"])
+                access_token_url = instance.get_access_token_url(home_url=value["home_url"])
+                api_url = instance.get_user_url(home_url=value["home_url"])
+                is_git = instance.is_git_oauth()
+                if value.get("service_id") is None and old_oauth_service is None:
+                    OAuthServices.objects.create(
+                        name=value["name"], client_id=value["client_id"], eid=value["eid"],
+                        client_secret=value["client_secret"], redirect_uri=value["redirect_uri"],
+                        oauth_type=value["oauth_type"], home_url=value["home_url"],
+                        auth_url=auth_url, access_token_url=access_token_url,
+                        api_url=api_url, enable=value["enable"],
+                        is_auto_login=value["is_auto_login"], is_console=value["is_console"],
+                        is_git=is_git
 
-                )
-            elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
-                OAuthServices.objects.filter(ID=value["service_id"]).update(
-                    name=value["name"], eid=value["eid"], redirect_uri=value["redirect_uri"],
-                    home_url=value["home_url"], auth_url=value["auth_url"],
-                    access_token_url=value["access_token_url"], api_url=value["api_url"],
-                    enable=value["enable"], is_auto_login=value["is_auto_login"],
-                    is_console=value["is_console"]
-                )
-        rst = OAuthServices.objects.filter(eid=eid, is_console=True)
-        return rst
+                    )
+                elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
+                    OAuthServices.objects.filter(ID=value["service_id"]).update(
+                        name=value["name"], eid=value["eid"], redirect_uri=value["redirect_uri"],
+                        home_url=value["home_url"], auth_url=auth_url,
+                        access_token_url=access_token_url, api_url=api_url,
+                        enable=value["enable"], is_auto_login=value["is_auto_login"],
+                        is_console=value["is_console"]
+                    )
+            else:
+                raise Exception(u"未找到该OAuth类型")
+            rst = OAuthServices.objects.filter(eid=eid, is_console=True)
+            return rst
 
     def delete_oauth_service(self, service_id):
         OAuthServices.objects.filter(ID=service_id).delete()
