@@ -108,7 +108,7 @@ class ComposeService(object):
                     # 组件列表
                     name_service_map = {}
                     for service_info in service_info_list:
-                        service_cname = service_info.get("image_alias", service_info["image_alias"])
+                        service_cname = service_info.get("cname", service_info["image_alias"])
                         image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
                         # 保存信息
                         service = self.__init_compose_service(tenant, user, service_cname, image, region)
