@@ -88,12 +88,10 @@ class UserService(object):
 
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
-        git_user_id = user.git_user_id
         try:
             PermRelTenant.objects.filter(user_id=user.pk).delete()
         except PermRelTenant.DoesNotExist:
             pass
-        gitClient.deleteUser(git_user_id)
         user.delete()
 
     def update_user_password(self, user_id, new_password):
@@ -319,7 +317,11 @@ class UserService(object):
     def list_users(self, page, size, item=""):
         uall = user_repo.list_users(item)
         paginator = Paginator(uall, size)
-        upp = paginator.page(page)
+        try:
+            upp = paginator.page(page)
+        except Exception as e:
+            logger.debug(e)
+            return [], 0
         users = []
         for user in upp:
             users.append({
@@ -378,8 +380,11 @@ class UserService(object):
             perms = EnterpriseUserPerm.objects.filter(enterprise_id=eid).all()
         total = perms.count()
         paginator = Paginator(perms, size)
-        permsp = paginator.page(page)
-
+        try:
+            permsp = paginator.page(page)
+        except Exception as e:
+            logger.debug(e)
+            return [], total
         users = []
         for item in permsp:
             try:

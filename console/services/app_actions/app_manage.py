@@ -9,6 +9,10 @@ import logging
 from django.conf import settings
 
 from console.constants import AppConstants
+from console.utils.oauth.oauth_types import get_oauth_instance
+
+from console.repositories.oauth_repo import oauth_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.app import delete_service_repo
 from console.repositories.app import recycle_bin_repo
 from console.repositories.app import relation_recycle_bin_repo
@@ -221,13 +225,38 @@ class AppManageService(AppManageBase):
         body["service_id"] = service.service_id
         # source type parameter
         if kind == "build_from_source_code" or kind == "source":
-            body["code_info"] = {
-                "repo_url": service.git_url,
-                "branch": service.code_version,
-                "server_type": service.server_type,
-                "lang": service.language,
-                "cmd": service.cmd,
-            }
+            if service.oauth_service_id:
+                try:
+                    oauth_service = oauth_repo.get_oauth_services_by_service_id(
+                        service_id=service.oauth_service_id)
+                    oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
+                        service_id=service.oauth_service_id, user_id=user.user_id)
+                except Exception as e:
+                    logger.debug(e)
+                    return 507, "构建异常", ""
+                try:
+                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                except Exception as e:
+                    logger.debug(e)
+                    return 507, "构建异常", ""
+                if not instance.is_git_oauth():
+                    return 507, "构建异常", ""
+                git_url = instance.get_clone_url(service.git_url)
+                body["code_info"] = {
+                    "repo_url": git_url,
+                    "branch": service.code_version,
+                    "server_type": service.server_type,
+                    "lang": service.language,
+                    "cmd": service.cmd,
+                }
+            else:
+                body["code_info"] = {
+                    "repo_url": service.git_url,
+                    "branch": service.code_version,
+                    "server_type": service.server_type,
+                    "lang": service.language,
+                    "cmd": service.cmd,
+                }
         if kind == "build_from_image" or kind == "build_from_market_image":
             body["image_info"] = {
                 "image_url": service.image,
@@ -801,6 +830,14 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
+            data.pop("service_name")
+            data.pop("build_upgrade")
+            data.pop("oauth_service_id")
+            data.pop("is_upgrate")
+            data.pop("secret")
+            data.pop("open_webhooks")
+            data.pop("server_type")
+            data.pop("git_full_name")
             delete_service_repo.create_delete_service(**data)
 
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
@@ -1043,6 +1080,14 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
+            data.pop("service_name")
+            data.pop("build_upgrade")
+            data.pop("oauth_service_id")
+            data.pop("is_upgrate")
+            data.pop("secret")
+            data.pop("open_webhooks")
+            data.pop("server_type")
+            data.pop("git_full_name")
             delete_service_repo.create_delete_service(**data)
 
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)

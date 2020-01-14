@@ -66,9 +66,9 @@ class ProbeSerilizer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
         help_text=u"http请求头，key=value,key2=value2")
-    initial_delay_second = serializers.IntegerField(default=1, required=False, help_text=u"初始化等候时间")
+    initial_delay_second = serializers.IntegerField(default=4, required=False, help_text=u"初始化等候时间")
     period_second = serializers.IntegerField(default=3, required=False, help_text=u"检测间隔时间")
-    timeout_second = serializers.IntegerField(default=30, required=False, help_text=u"检测超时时间")
+    timeout_second = serializers.IntegerField(default=5, required=False, help_text=u"检测超时时间")
     failure_threshold = serializers.IntegerField(default=3, required=False, help_text=u"标志为失败的检测次数")
     success_threshold = serializers.IntegerField(default=1, required=False, help_text=u"标志为成功的检测次数")
     is_used = serializers.BooleanField(required=False, default=True, help_text=u"是否启用")
@@ -89,9 +89,9 @@ class ProbeUpdateSerilizer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
         help_text=u"http请求头，key=value,key2=value2")
-    initial_delay_second = serializers.IntegerField(default=1, required=False, help_text=u"初始化等候时间")
+    initial_delay_second = serializers.IntegerField(default=4, required=False, help_text=u"初始化等候时间")
     period_second = serializers.IntegerField(default=3, required=False, help_text=u"检测间隔时间")
-    timeout_second = serializers.IntegerField(default=30, required=False, help_text=u"检测超时时间")
+    timeout_second = serializers.IntegerField(default=5, required=False, help_text=u"检测超时时间")
     failure_threshold = serializers.IntegerField(default=3, required=False, help_text=u"标志为失败的检测次数")
     success_threshold = serializers.IntegerField(default=1, required=False, help_text=u"标志为成功的检测次数")
     is_used = serializers.BooleanField(required=False, default=True, help_text=u"是否启用")

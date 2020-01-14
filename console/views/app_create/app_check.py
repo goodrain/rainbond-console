@@ -2,10 +2,12 @@
 """
   Created on 18/2/1.
 """
+from re import split as re_spilt
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.views.app_config.base import AppBaseView
+from console.utils.oauth.oauth_types import support_oauth_type
 from console.services.app_check_service import app_check_service
 from console.services.app import app_service
 from www.decorator import perm_required
@@ -47,7 +49,11 @@ class AppCheck(AppBaseView):
         code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
         # 如果已创建完成
         if self.service.create_status == "complete":
-            app_check_service.update_service_check_info(self.tenant, self.service, data)
+            service_info = data.get("service_info")
+            if service_info is not None and len(service_info) > 1 and service_info[0].get("language") == "Java-maven":
+                pass
+            else:
+                app_check_service.update_service_check_info(self.tenant, self.service, data)
             check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
             return Response(general_message(200, "success", "请求成功", bean=check_brief_info))
 
@@ -67,6 +73,13 @@ class AppCheck(AppBaseView):
                 else:
                     data["error_infos"] = [save_error]
         check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
+        code_from = self.service.code_from
+        if code_from in support_oauth_type.keys():
+            for i in check_brief_info["service_info"]:
+                if i["type"] == "source_from":
+                    result_url = re_spilt("[:,@]", i["value"])
+                    if len(result_url) != 2:
+                        i["value"] = result_url[0] + '//' + result_url[-2] + result_url[-1]
         result = general_message(200, "success", "请求成功", bean=check_brief_info)
         return Response(result, status=result["code"])
 
@@ -90,8 +103,9 @@ class AppCheck(AppBaseView):
 
         """
         try:
+            user = request.user
             is_again = request.data.get("is_again", False)
-            code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again)
+            code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, user)
             if code != 200:
                 result = general_message(code, "check service error", msg)
             else:

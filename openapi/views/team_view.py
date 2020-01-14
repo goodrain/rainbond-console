@@ -10,23 +10,27 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
+from console.models.main import RegionConfig
 from console.services.enterprise_services import enterprise_services
+from console.services.exception import ErrTenantRegionNotFound
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
-from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
+from openapi.serializer.team_serializer import ListRegionTeamServicesSerializer
 from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
 from openapi.serializer.team_serializer import RoleInfoRespSerializer
-from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import TeamBaseInfoSerializer
+from openapi.serializer.team_serializer import TeamInfoSerializer
+from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
+from openapi.views.exceptions import ErrTeamNotFound
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
 
@@ -39,6 +43,7 @@ class ListTeamInfo(ListAPIView):
         manual_parameters=[
             openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
             openapi.Parameter("query", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("tenant_names", openapi.IN_QUERY, description="根据租户名称获取列表", type=openapi.TYPE_STRING),
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
@@ -58,10 +63,15 @@ class ListTeamInfo(ListAPIView):
             page_size = int(req.GET.get("page_size", 10))
         except ValueError:
             page_size = 10
+        tenant_names = req.GET.get("tenant_names", "")
 
-        data, total = team_services.list_teams_v2(
-            eid, query=query, page=page, page_size=page_size)
-        result = {"tenants": data, "total": total}
+        if tenant_names:
+            data = team_services.list_by_tenant_names(tenant_names.split(","))
+            result = {"tenants": data, "total": len(data)}
+        else:
+            data, total = team_services.list_teams_v2(
+                eid, query=query, page=page, page_size=page_size)
+            result = {"tenants": data, "total": total}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
         return Response(result, status.HTTP_200_OK)
@@ -122,7 +132,7 @@ class TeamInfo(BaseOpenAPIView):
             serializer = TeamInfoSerializer(queryset)
             return Response(serializer.data, status.HTTP_200_OK)
         except Tenants.DoesNotExist:
-            return Response(None, status.HTTP_404_NOT_FOUND)
+            raise ErrTeamNotFound
 
     @swagger_auto_schema(
         operation_description="删除团队",
@@ -135,10 +145,6 @@ class TeamInfo(BaseOpenAPIView):
     )
     def delete(self, req, team_id,  *args, **kwargs):
         try:
-            service_count = team_services.count_by_tenant_id(tenant_id=team_id)
-            if service_count >= 1:
-                raise serializers.ValidationError("当前团队内有应用,不可以删除")
-
             res = team_services.delete_by_tenant_id(tenant_id=team_id)
             if res:
                 return Response(None, status.HTTP_200_OK)
@@ -364,7 +370,7 @@ class ListRegionsView(ListAPIView):
             status.HTTP_500_INTERNAL_SERVER_ERROR: None,
             status.HTTP_400_BAD_REQUEST: None,
         },
-        tags=['openapi-team'],
+        tags=['openapi-team-region'],
     )
     def post(self, request, team_id):
         serializer = TeamRegionReqSerializer(data=request.data)
@@ -386,15 +392,15 @@ class ListRegionsView(ListAPIView):
         else:
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class TeamRegionView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="关闭数据中心",
-        request_body=TeamRegionReqSerializer(),
         responses={
-            status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
+            status.HTTP_200_OK: None,
+            status.HTTP_404_NOT_FOUND: None,
         },
-        tags=['openapi-team'],
+        tags=['openapi-team-region'],
     )
     def delete(self, request, team_id):
         serializer = TeamRegionReqSerializer(data=request.data)
@@ -411,3 +417,30 @@ class ListRegionsView(ListAPIView):
             return Response(re.data, status=status.HTTP_200_OK)
         else:
             return Response(None, status=status.HTTP_404_NOT_FOUND)
+
+
+class ListRegionTeamServicesView(ListAPIView):
+    @swagger_auto_schema(
+        operation_description="获取团队下指定数据中心组件信息",
+        manual_parameters=[
+            openapi.Parameter("eid", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_name", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ListRegionTeamServicesSerializer()},
+        tags=['openapi-team'],
+    )
+    def get(self, req, team_id, region_name, *args, **kwargs):
+        services = region_services.list_services_by_tenant_name(region_name, team_id)
+        total = len(services)
+        data = {"services": services, "total": total}
+        serializer = ListRegionTeamServicesSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+
+    def delete(self, request, team_id, region_name):
+        try:
+            team_services.delete_team_region(team_id, region_name)
+        except (Tenants.DoesNotExist, RegionConfig.DoesNotExist, ErrTenantRegionNotFound):
+            raise exceptions.NotFound()
+
+        return Response(None, status=status.HTTP_200_OK)

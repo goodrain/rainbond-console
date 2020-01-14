@@ -174,3 +174,8 @@ class ParseDateTestCase(TestCase):
             'b': 'hello',
             'c': [1, 2],
         })
+
+    def test_parse_dict_data(self):
+        data = {"foo": "bar"}
+        value = parse_item(data, key="foo", required=True)
+        self.assertEqual(value, "bar")

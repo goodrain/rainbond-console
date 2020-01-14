@@ -3,11 +3,16 @@ import logging
 import os
 
 from rest_framework.response import Response
+from django.conf import settings
 
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_perm_repo
+from console.repositories.user_repo import user_repo
+from console.repositories.oauth_repo import oauth_repo
 from console.services.config_service import config_service
+from console.services.market_app_service import market_sycn_service
 from console.views.base import AlowAnyApiView
+from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.base import BaseApiView
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -25,6 +30,8 @@ class ConfigInfoView(AlowAnyApiView):
             code = 200
             status = role_perm_repo.initialize_permission_settings()
             data = config_service.initialization_or_get_config()
+            base_data = config_service.initialization_or_get_base_config()
+            data.update(base_data)
             logo = config_service.get_image()
             data["logo"] = "{0}".format(str(logo))
             title = config_service.get_config_by_key("TITLE")
@@ -41,6 +48,61 @@ class ConfigInfoView(AlowAnyApiView):
             if enterprise:
                 data["eid"] = enterprise.enterprise_id
                 data["enterprise_name"] = enterprise.enterprise_alias
+
+            build_absolute_uri = request.build_absolute_uri()
+            scheme = "http"
+            if build_absolute_uri.startswith("https"):
+                scheme = "https"
+            if settings.MODULES.get('SSO_LOGIN'):
+                data["url"] = os.getenv("SSO_BASE_URL", "https://sso.goodrain.com") + "/#/login/"
+                data["is_public"] = True
+            else:
+                data["url"] = "{0}://{1}/index#/user/login".format(scheme, request.get_host())
+                data["is_public"] = False
+
+            if settings.MODULES.get('SSO_LOGIN'):
+                data["is_user_register"] = True
+            else:
+                users = user_repo.get_all_users()
+                if users:
+                    data["is_user_register"] = True
+                else:
+                    data["is_user_register"] = False
+
+            data["eid"] = None
+            enterprise = enterprise_repo.get_enterprise_first()
+            if enterprise:
+                data["eid"] = enterprise.enterprise_id
+                data["enterprise_name"] = enterprise.enterprise_alias
+                market_token = market_sycn_service.get_enterprise_access_token(enterprise.enterprise_id, "market")
+                if market_token:
+                    data["market_url"] = market_token.access_url
+                else:
+                    data["market_url"] = os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"])
+                data["oauth_services_is_sonsole"] = {"enable": True, "value": None}
+                oauth_services = []
+                services = oauth_repo.get_oauth_services(str(enterprise.enterprise_id))
+                for service in services:
+                    api = get_oauth_instance(service.oauth_type, service, None)
+                    authorize_url = api.get_authorize_url()
+                    if not service.is_console:
+                        data["oauth_services_is_sonsole"]["enable"] = False
+                    oauth_services.append(
+                        {
+                            "service_id": service.ID,
+                            "enable": service.enable,
+                            "name": service.name,
+                            "oauth_type": service.oauth_type,
+                            "is_console": service.is_console,
+                            "home_url": service.home_url,
+                            "eid": service.eid,
+                            "is_auto_login": service.is_auto_login,
+                            "is_git": service.is_git,
+                            "authorize_url": authorize_url,
+                        }
+                    )
+                data["oauth_services"]["value"] = oauth_services
+            data["version"] = os.getenv("RELEASE_DESC", "public-cloud")
             return Response(result, status=code)
         except Exception as e:
             logger.exception(e)

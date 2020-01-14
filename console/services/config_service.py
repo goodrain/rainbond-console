@@ -8,6 +8,7 @@ from console.exception.exceptions import ConfigExistError
 from console.models.main import CloundBangImages
 from console.models.main import ConsoleSysConfig
 from console.repositories.config_repo import cfg_repo
+from console.repositories.oauth_repo import oauth_repo
 from console.services.enterprise_services import enterprise_services
 from goodrain_web.custom_config import custom_config as custom_settings
 from www.models.main import TenantEnterprise
@@ -23,8 +24,13 @@ class ConfigService(object):
         self.feature_cfg_keys = ["GITHUB", "GITLAB", "APPSTORE_IMAGE_HUB",
                                  "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
                                  "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
-                                 "CLOUD_MARKET"]
+                                 "CLOUD_MARKET", "OBJECT_STORAGE", "OAUTH_SERVICES"]
+        self.feature_base_cfg_keys = ["IS_REGIST"]
+        self.default_feature_base_cfg_value = {
+            "IS_REGIST": {"value": True, "desc": u"是否允许注册", "enable": True},
+        }
         self.default_feature_cfg_value = {
+            "OAUTH_SERVICES": {"value": None, "desc": u"开启/关闭OAuthServices功能", "enable": True},
             "OPEN_DATA_CENTER_STATUS": {"value": None, "desc": u"开启/关闭开通数据中心功能", "enable": True},
             "NEWBIE_GUIDE": {"value": None, "desc": u"开启/关闭新手引导", "enable": True},
             "DOCUMENT": {"value": {"platform_url": "https://www.rainbond.com/", },
@@ -38,12 +44,53 @@ class ConfigService(object):
                        "desc": u"开启/关闭GITLAB", "enable": False},
             "APPSTORE_IMAGE_HUB": {"value": {"hub_user": None, "hub_url": None, "namespace": None, "hub_password": None},
                                    "desc": u"开启/关闭GITLAB", "enable": False},
+            "OBJECT_STORAGE":  {
+                "enable": False,
+                "value": {
+                    "provider": "",
+                    "endpoint": "",
+                    "access_key": "",
+                    "secret_key": "",
+                    "bucket_name": "",
+                },
+                "desc": u"云端备份使用的对象存储信息"
+            }
         }
 
         self.update_or_create_funcs = {
             "LOGO": self._update_or_create_logo,
             "ENTERPRISE_ALIAS": self._update_entalias,
         }
+
+    def initialization_or_get_base_config(self):
+        rst_datas = {}
+        for key in self.feature_base_cfg_keys:
+            tar_key = self.get_config_by_key(key)
+            if not tar_key:
+                enable = self.default_feature_base_cfg_value[key]["enable"]
+                value = self.default_feature_base_cfg_value[key]["value"]
+                desc = self.default_feature_base_cfg_value[key]["desc"]
+
+                if isinstance(value, dict):
+                    type = "json"
+                else:
+                    type = "string"
+                rst_key = self.add_config(
+                    key=key, default_value=value, type=type, enable=enable, desc=desc)
+
+                value = rst_key.value
+                rst_data = {key.lower(): value}
+                rst_datas.update(rst_data)
+            else:
+                if tar_key.type == "json":
+                    rst_value = eval(tar_key.value)
+                elif tar_key.type == "string" and (tar_key.value == "True" or tar_key.value == "False"):
+                    rst_value = eval(tar_key.value)
+                else:
+                    rst_value = tar_key.value
+                rst_data = {key.lower(): rst_value}
+                rst_datas.update(rst_data)
+        return rst_datas
 
     def initialization_or_get_config(self):
         rst_datas = {}
@@ -110,7 +157,10 @@ class ConfigService(object):
         if key in self.feature_cfg_keys:
             if enable:
                 self.update_config_enable_status(key, enable)
-                self.update_config_value(key, value)
+                if key == "OAUTH_SERVICES":
+                    oauth_repo.create_or_update_oauth_services(value)
+                else:
+                    self.update_config_value(key, value)
             else:
                 self.update_config_enable_status(key, enable)
 
@@ -198,8 +248,7 @@ class ConfigService(object):
         try:
             cbi = CloundBangImages.objects.get(identify=identify)
             logo = cbi.logo.name
-        except CloundBangImages.DoesNotExist as e:
-            logger.error(e)
+        except CloundBangImages.DoesNotExist:
             logo = ""
         return logo
 
@@ -211,12 +260,12 @@ class ConfigService(object):
             return None
 
     def get_regist_status(self):
-        is_regist = self.get_config_by_key("REGISTER_STATUS")
+        is_regist = self.get_config_by_key("IS_REGIST")
         if not is_regist:
-            config = self.add_config(key="REGISTER_STATUS", default_value="yes", type="string", desc="开启/关闭注册")
+            config = self.add_config(key="IS_REGIST", default_value=True, type="string", desc=u"开启/关闭注册")
             return config.value
         else:
-            return is_regist.value
+            return eval(is_regist.value)
 
     def get_github_config(self):
         github_config = self.get_config_by_key("GITHUB")
@@ -254,10 +303,17 @@ class ConfigService(object):
     def get_open_data_center_status(self):
         is_open_data_center = self.get_config_by_key("OPEN_DATA_CENTER_STATUS")
         if not is_open_data_center:
-            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True", type="string", desc="开启/关闭开通数据中心功能")
+            config = self.add_config(key="OPEN_DATA_CENTER_STATUS", default_value="True",
+                                     type="string", desc="开启/关闭开通数据中心功能")
             return config.value
         else:
             return is_open_data_center.value
+
+    def get_cloud_obj_storage_info(self):
+        cloud_obj_storage_info = self.get_config_by_key("OBJECT_STORAGE")
+        if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
+            return None
+        return eval(cloud_obj_storage_info.value)
 
 
 config_service = ConfigService()

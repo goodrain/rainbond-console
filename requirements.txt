@@ -10,7 +10,7 @@ simplejson==3.8.0
 urllib3==1.24.3
 certifi
 whitenoise==2.0.3
-pillow==2.9.0
+pillow==6.2.0
 djangorestframework==3.8
 markdown==2.6.2
 django-filter==0.11.0
@@ -32,6 +32,8 @@ pytest-django==3.4.8
 pytest-xdist==1.28.0
 pytest-mock==1.10.4
 drf-yasg==1.16.1
+python-gitlab==1.13.0
+PyGithub==1.44.1
 -e git+https://github.com/goodrain/market-api-python.git#egg=rainbond_market_client
 
 

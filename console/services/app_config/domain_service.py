@@ -2,20 +2,28 @@
 """
   Created on 18/1/23.
 """
-from console.repositories.app_config import domain_repo, tcp_domain
-import re
+import base64
 import datetime
 import logging
-import base64
+import re
 
-from console.repositories.region_repo import region_repo
+from django.db import transaction
+
 from console.constants import DomainType
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import port_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.region_repo import region_repo
+from console.services.app_config.exceptoin import err_cert_name_exists
+from console.services.app_config.exceptoin import err_cert_not_found
+from console.services.app_config.exceptoin import err_still_has_http_rules
+from console.services.group_service import group_service
+from console.services.team_services import team_services
+from console.utils.certutil import analyze_cert
+from console.utils.certutil import cert_is_effective
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
-from console.utils.certutil import analyze_cert, cert_is_effective
-from console.repositories.app_config import port_repo
-from console.services.team_services import team_services
-from console.services.group_service import group_service
+
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -43,19 +51,16 @@ class DomainService(object):
         # if not r.match(alias):
         #     return 400, u"证书别名只能是数字和字母的组合"
         if domain_repo.get_certificate_by_alias(tenant.tenant_id, alias):
-            return 412, u"证书别名已存在"
-        return 200, "success"
+            raise err_cert_name_exists
 
     def add_certificate(self, tenant, alias, certificate_id, certificate, private_key, certificate_type):
-        code, msg = self.__check_certificate_alias(tenant, alias)
-        if code != 200:
-            return code, msg, None
-        if cert_is_effective(certificate):
-            certificate = base64.b64encode(certificate)
-            certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
-                                                      certificate_type)
-            return 200, "success", certificate
-        return 400, u'证书无效', certificate
+        self.__check_certificate_alias(tenant, alias)
+
+        cert_is_effective(certificate)
+        certificate = base64.b64encode(certificate)
+        certificate = domain_repo.add_certificate(
+            tenant.tenant_id, alias, certificate_id, certificate, private_key, certificate_type)
+        return 200, "success", certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
         certificate = domain_repo.get_certificate_by_alias(tenant.tenant_id, alias)
@@ -79,30 +84,44 @@ class DomainService(object):
         return 200, u"success", data
 
     def delete_certificate_by_pk(self, pk):
-        certificate = domain_repo.get_certificate_by_pk(pk)
-        if certificate:
-            certificate.delete()
-            return 200, u"success"
-        else:
-            return 404, u"证书不存在"
+        cert = domain_repo.get_certificate_by_pk(pk)
+        if not cert:
+            raise err_cert_not_found
 
-    def update_certificate(self, tenant, certificate_id, new_alias, certificate, private_key, certificate_type):
-        if not cert_is_effective(certificate):
-            return 400, u'证书无效'
-        certif = domain_repo.get_certificate_by_pk(certificate_id)
-        if certif.alias != new_alias:
-            code, msg = self.__check_certificate_alias(tenant, new_alias)
-            if code != 200:
-                return code, msg
-            certif.alias = new_alias
-        if certif:
-            certif.certificate = base64.b64encode(certificate)
-        if certif.certificate_type != certificate_type:
-            certif.certificate_type = certificate_type
+        # can't delete the cerificate that till has http rules
+        http_rules = domain_repo.list_service_domains_by_cert_id(pk)
+        if http_rules:
+            raise err_still_has_http_rules
+
+        cert.delete()
+
+    @transaction.atomic
+    def update_certificate(
+            self, region_name, tenant, certificate_id, new_alias, certificate, private_key, certificate_type):
+        cert_is_effective(certificate)
+
+        cert = domain_repo.get_certificate_by_pk(certificate_id)
+        if cert is None:
+            raise err_cert_not_found
+        if cert.alias != new_alias:
+            self.__check_certificate_alias(tenant, new_alias)
+            cert.alias = new_alias
+        if certificate:
+            cert.certificate = base64.b64encode(certificate)
+        if certificate_type:
+            cert.certificate_type = certificate_type
         if private_key:
-            certif.private_key = private_key
-        certif.save()
-        return 200, "success"
+            cert.private_key = private_key
+        cert.save()
+
+        # update all ingress related to the certificate
+        body = {
+            "certificate_id": cert.certificate_id,
+            "certificate_name": "foobar",
+            "certificate": base64.b64decode(cert.certificate),
+            "private_key": cert.private_key,
+        }
+        region_api.update_ingresses_by_certificate(region_name, tenant.tenant_name, body)
 
     def __check_domain_name(self, team_name, domain_name, domain_type, certificate_id):
         if not domain_name:
@@ -127,15 +146,17 @@ class DomainService(object):
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate)
             data = analyze_cert(cert)
-            certificat_domain_name = data["issued_to"]
-            if certificat_domain_name.startswith('*'):
-                domain_suffix = certificat_domain_name[2:]
-            else:
-                domain_suffix = certificat_domain_name
-            logger.debug('---------domain_suffix-------->{0}'.format(domain_suffix))
-            domain_str = domain_name.encode('utf-8')
-            if not domain_str.endswith(domain_suffix):
-                return 400, u"域名和证书不匹配"
+            sans = data["issued_to"]
+            for certificat_domain_name in sans:
+                if certificat_domain_name.startswith('*'):
+                    domain_suffix = certificat_domain_name[2:]
+                else:
+                    domain_suffix = certificat_domain_name
+                logger.debug('---------domain_suffix-------->{0}'.format(domain_suffix))
+                domain_str = domain_name.encode('utf-8')
+                if domain_str.endswith(domain_suffix):
+                    return 200, u"success"
+            return 400, u"域名和证书不匹配"
 
         return 200, u"success"
 
@@ -154,8 +175,9 @@ class DomainService(object):
         return tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, container_port)
 
     def get_sld_domains(self, service, container_port):
-        return domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                container_port).filter(domain_type=DomainType.SLD_DOMAIN)
+        return domain_repo.get_service_domain_by_container_port(
+            service.service_id, container_port).filter(
+            domain_type=DomainType.SLD_DOMAIN)
 
     def is_domain_exist(self, domain_name):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
@@ -268,7 +290,8 @@ class DomainService(object):
 
     def bind_siample_http_domain(self, tenant, user, service, domain_name, container_port):
 
-        res, msg = self.bind_domain(tenant, user, service, domain_name, container_port, "http", None, DomainType.WWW, None)
+        res, msg = self.bind_domain(tenant, user, service, domain_name,
+                                    container_port, "http", None, DomainType.WWW, None)
         if res == 200:
             return domain_repo.get_domain_by_domain_name(domain_name)
         return None
@@ -368,8 +391,9 @@ class DomainService(object):
             domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
-    def update_httpdomain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type, domain_path,
-                          domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
+    def update_httpdomain(
+            self, tenant, user, service, domain_name, container_port, certificate_id, domain_type, domain_path,
+            domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
         # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
         domain_info = dict()
@@ -532,8 +556,9 @@ class DomainService(object):
         domain_info.update({"rule_extensions": rule_extensions})
         return 200, u"success", domain_info
 
-    def update_tcpdomain(self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
-                         default_ip):
+    def update_tcpdomain(
+            self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
+            default_ip):
 
         ip = end_point.split(":")[0]
         ip.replace(' ', '')

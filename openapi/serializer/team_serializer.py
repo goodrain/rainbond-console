@@ -33,7 +33,7 @@ class TeamInfoSerializer(serializers.Serializer):
 
 
 class ListTeamRespSerializer(serializers.Serializer):
-    total = serializers.IntegerField()
+    total = serializers.IntegerField(required=False)
     tenants = TeamInfoSerializer(many=True)
 
 
@@ -74,7 +74,7 @@ class CreateTeamUserReqSerializer(serializers.Serializer):
 
 
 class TeamRegionsRespSerializer(serializers.Serializer):
-    region_id = serializers.CharField(max_length=32, help_text=u"region id")
+    region_id = serializers.CharField(max_length=36, help_text=u"region id")
     region_name = serializers.CharField(max_length=32, help_text=u"数据中心名称")
     region_alias = serializers.CharField(max_length=32, help_text=u"数据中心别名")
     tenant_name = serializers.CharField(max_length=32, help_text=u"租户名称")
@@ -94,3 +94,21 @@ class TeamRegionsRespSerializer(serializers.Serializer):
 class ListTeamRegionsRespSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     regions = TeamRegionsRespSerializer(many=True)
+
+
+class TeamServicesRespSerializer(serializers.Serializer):
+    update_time = serializers.DateTimeField(help_text=u"更新日期")
+    deploy_version = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组件版本")
+    service_alias = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组件昵称")
+    service_cname = serializers.CharField(max_length=255, allow_blank=True, allow_null=True, help_text=u"组件名称")
+    group_name = serializers.CharField(max_length=255, allow_blank=True, allow_null=True, help_text=u"应用名称")
+    service_type = serializers.CharField(max_length=255, allow_blank=True, allow_null=True, help_text=u"组件类型")
+    service_id = serializers.CharField(max_length=64, allow_blank=True, allow_null=True, help_text=u"组件id")
+    group_id = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组id")
+    tenant_name = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"租户名称")
+    region_id = serializers.CharField(max_length=36, allow_blank=True, allow_null=True, help_text=u"数据中心id")
+
+
+class ListRegionTeamServicesSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    services = TeamServicesRespSerializer(many=True)

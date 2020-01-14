@@ -19,12 +19,15 @@ from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
+from console.services.exception import ErrAllTenantDeletionFailed
+from console.services.exception import ErrStillHasServices
+from console.services.exception import ErrTenantRegionNotFound
 from console.services.perm_services import perm_services
+from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
 from www.models.main import TenantServiceInfo
-
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -337,7 +340,27 @@ class TeamService(object):
         team_repo.delete_tenant(tenant_name=tenant_name)
 
     def delete_by_tenant_id(self, tenant_id):
-        return team_repo.delete_by_tenant_id(tenant_id=tenant_id)
+        service_count = team_services.count_by_tenant_id(tenant_id=tenant_id)
+        if service_count >= 1:
+            raise ErrStillHasServices
+
+        # list all related regions
+        tenant_regions = region_repo.list_by_tenant_id(tenant_id)
+        success_count = 0
+        for tenant_region in tenant_regions:
+            try:
+                # There is no guarantee that the deletion of each tenant can be successful.
+                region_api.delete_tenant(tenant_region["region_name"], tenant_region["tenant_name"])
+                success_count = success_count + 1
+            except Exception as e:
+                logger.error("tenantid: {}; region name: {}; delete tenant: {}".format(
+                    tenant_id, tenant_region["tenant_name"], e))
+        # The current strategy is that if a tenant is deleted successfully, it is considered successful.
+        # For tenants that have not been deleted successfully, other deletion paths need to be taken.
+        if success_count == 0:
+            raise ErrAllTenantDeletionFailed
+
+        team_repo.delete_by_tenant_id(tenant_id=tenant_id)
 
     def get_current_user_tenants(self, user_id):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
@@ -443,15 +466,19 @@ class TeamService(object):
         team_repo.create_team_perms(**create_perm_param)
         return 200, "success", team
 
-    def delete_team_region(self, team_id, region):
+    def delete_team_region(self, team_id, region_name):
+        # check team
         tenant = team_repo.get_team_by_team_id(team_id)
-        if not tenant:
-            return 404, u"需要关闭的团队不存在", None
-        tenant_region = region_repo.get_team_region_by_tenant_and_region(team_id, region.region_name)
+        # check region
+        region_services.get_by_region_name(region_name)
+
+        tenant_region = region_repo.get_team_region_by_tenant_and_region(team_id, region_name)
         if not tenant_region:
-            return 404, u"需要关闭的数据中心{0}不存在".format(tenant_region.region_name), None
+            raise ErrTenantRegionNotFound()
+
+        region_api.delete_tenant(region_name, tenant.tenant_name)
+
         tenant_region.delete()
-        return 200, u"success", tenant
 
     def get_enterprise_teams(self, enterprise_id, user_id=None, query=None, page=None, page_size=None):
         from console.services.user_services import user_services
@@ -492,6 +519,10 @@ class TeamService(object):
             region_num = tenant_region_repo.count_by_tenant_id(tenant["tenant_id"])
             tenant["region_num"] = region_num
         return tenants, total
+
+    def list_by_tenant_names(self, tenant_names):
+        query_set = Tenants.objects.filter(tenant_name__in=tenant_names)
+        return [qs.to_dict() for qs in query_set]
 
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)

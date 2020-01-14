@@ -3,6 +3,9 @@ from django.conf.urls import url
 
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
+from console.views.app_autoscaler import AppAutoscalerView
+from console.views.app_autoscaler import AppScalingRecords
+from console.views.app_autoscaler import ListAppAutoscalerView
 from console.views.app_config.app_dependency import AppDependencyManageView
 from console.views.app_config.app_dependency import AppDependencyView
 from console.views.app_config.app_dependency import AppNotDependencyView
@@ -247,11 +250,41 @@ from console.views.webhook import ImageWebHooksTrigger
 from console.views.webhook import UpdateSecretKey
 from console.views.webhook import WebHooksDeploy
 from console.views.webhook import WebHooksStatus
-from console.views.app_event import AppEventsView, AppEventsLogView
+from console.views.app_event import AppEventsView
+from console.views.app_event import AppEventsLogView
+from console.views.oauth import OAuthServiceRedirect
+from console.views.oauth import OAuthServerAuthorize
+from console.views.oauth import OAuthUserInfo
+from console.views.oauth import UserOAuthLink
+from console.views.oauth import OAuthGitUserRepository
+from console.views.oauth import OAuthGitUserRepositories
+from console.views.oauth import OAuthGitUserRepositoryBranches
+from console.views.oauth import OauthService
+from console.views.oauth import OauthConfig
+from console.views.oauth import OauthType
+from console.views.oauth import OauthServiceInfo
+from console.views.oauth import OAuthServerUserAuthorize
+from console.views.oauth import OAuthGitCodeDetection
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigInfoView.as_view()),
+    # OAuth
+    url(r"^oauth/oauth-config$", OauthConfig.as_view()),
+    url(r"^oauth/oauth-services$", OauthService.as_view()),
+    url(r"^oauth/oauth-services/(?P<service_id>[\w\-]+)$", OauthServiceInfo.as_view()),
+    url(r"^oauth/redirect$", OAuthServiceRedirect.as_view()),
+    url(r"^oauth/authorize$", OAuthServerAuthorize.as_view()),
+    url(r"^oauth/type$", OauthType.as_view()),
+    url(r"^oauth/user/authorize$", OAuthServerUserAuthorize.as_view()),
+    url(r"^oauth/user$", OAuthUserInfo.as_view()),
+    url(r"^oauth/user/link$", UserOAuthLink.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repositories$", OAuthGitUserRepositories.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/(?P<path>[\w\-]+)/(?P<name>[\w\-]+)$",
+        OAuthGitUserRepository.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/branches$", OAuthGitUserRepositoryBranches.as_view()),
+    url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/code_detection$", OAuthGitCodeDetection.as_view()),
+
     # php环境配置
     url(r'^php$', PhpConfigView.as_view()),
     # 判断是sso还是私有云
@@ -548,6 +581,11 @@ urlpatterns = [
         HorizontalExtendAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vertical$', VerticalExtendAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules$', ListAppAutoscalerView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules/(?P<rule_id>[\w\-]+)$',
+        AppAutoscalerView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparecords$', AppScalingRecords.as_view()),
+
     # 修改组件应用类型标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$',
         ChangeServiceTypeView.as_view()),
