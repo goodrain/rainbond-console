@@ -142,7 +142,7 @@ class ObjectStorageBaseRespSerializer(serializers.Serializer):
 
 class OauthServicesRespSerializer(serializers.Serializer):
     enable = serializers.BooleanField(default=True)
-    auth_url = serializers.CharField(max_length=255)
+    auth_url = serializers.CharField(required=False, max_length=255)
     name = serializers.CharField(max_length=64)
     client_id = serializers.CharField(max_length=255)
     client_secret = serializers.CharField(max_length=255)
@@ -153,8 +153,8 @@ class OauthServicesRespSerializer(serializers.Serializer):
     oauth_type = serializers.CharField(max_length=64)
     eid = serializers.CharField(max_length=64)
     home_url = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
-    access_token_url = serializers.CharField(max_length=255)
-    api_url = serializers.CharField(max_length=255)
+    access_token_url = serializers.CharField(required=False, max_length=255)
+    api_url = serializers.CharField(required=False, max_length=255)
     is_deleted = serializers.BooleanField(default=False)
 
 

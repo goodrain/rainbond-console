@@ -25,6 +25,7 @@ class TopologicalService(object):
         json_data = {}
         json_svg = {}
         service_status_map = {}
+
         # 批量查询组件状态
         if len(service_list) > 0:
             try:
@@ -39,13 +40,28 @@ class TopologicalService(object):
                 logger.exception(e)
 
         # 拼接组件状态
+        try:
+            dynamic_services_info = region_api.get_dynamic_services_pods(
+                region, team_name, [service.service_id for service in service_list])
+            dynamic_services_list = dynamic_services_info["list"]
+        except Exception as e:
+            logger.debug(e)
+            dynamic_services_list = []
+
         for service_info in service_list:
+            node_num = 0
+            if dynamic_services_list:
+                for dynamic_service in dynamic_services_list:
+                    if dynamic_service["service_id"] == service_info.service_id:
+                        node_num += 1
+            else:
+                node_num = service_info.min_node
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
                 "service_source": service_info.service_source,
-                "node_num": service_info.min_node,
+                "node_num": node_num,
             }
             json_svg[service_info.service_id] = []
             if service_status_map.get(service_info.service_id):

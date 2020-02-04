@@ -257,7 +257,6 @@ from console.views.oauth import OAuthServiceRedirect
 from console.views.oauth import OAuthServerAuthorize
 from console.views.oauth import OAuthUserInfo
 from console.views.oauth import UserOAuthLink
-from console.views.oauth import UserOAuthRefresh
 from console.views.oauth import OAuthGitUserRepository
 from console.views.oauth import OAuthGitUserRepositories
 from console.views.oauth import OAuthGitUserRepositoryBranches
@@ -281,7 +280,6 @@ urlpatterns = [
     url(r"^oauth/user/authorize$", OAuthServerUserAuthorize.as_view()),
     url(r"^oauth/user$", OAuthUserInfo.as_view()),
     url(r"^oauth/user/link$", UserOAuthLink.as_view()),
-    url(r"^oauth/service/(?P<service_id>[\w\-]+)/refresh$", UserOAuthRefresh.as_view()),
     url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repositories$", OAuthGitUserRepositories.as_view()),
     url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/(?P<path>[\w\-]+)/(?P<name>[\w\-]+)$",
         OAuthGitUserRepository.as_view()),

@@ -9,6 +9,9 @@ from django.db import transaction
 
 from console.constants import AppConstants
 from console.exception.main import ServiceHandleException
+from console.utils.oauth.oauth_types import get_oauth_instance
+from console.repositories.oauth_repo import oauth_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import service_endpoints_repo
 from console.services.app_config import compile_env_service
@@ -17,6 +20,8 @@ from console.services.app_config import port_service
 from console.services.app_config import volume_service
 from console.services.common_services import common_services
 from www.apiclient.regionapi import RegionInvokeApi
+
+from www.models.main import Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -31,7 +36,7 @@ class AppCheckService(object):
         elif service_source == AppConstants.THIRD_PARTY:
             return "third-party-service"
 
-    def check_service(self, tenant, service, is_again):
+    def check_service(self, tenant, service, is_again, user=None):
         # if service.create_status == "complete":
         #     return 409, "组件完成创建,请勿重复检测", None
         body = dict()
@@ -46,10 +51,38 @@ class AppCheckService(object):
             user_name = service_source.user_name
             password = service_source.password
         if service.service_source == AppConstants.SOURCE_CODE:
+            if service.oauth_service_id:
+                try:
+                    oauth_service = oauth_repo.get_oauth_services_by_service_id(service.oauth_service_id)
+                    oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
+                        service_id=service.oauth_service_id, user_id=user.user_id)
+                except Exception as e:
+                    logger.debug(e)
+                    return 400, u"未找到oauth服务, 请检查该服务是否存在且属于开启状态", None
+                if oauth_user is None:
+                    return 400, u"未成功获取第三方用户信息", None
+
+                try:
+                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                except Exception as e:
+                    logger.debug(e)
+                    return 400, u"未找到OAuth服务", None
+                if not instance.is_git_oauth():
+                    return 400, u"该OAuth服务不是代码仓库类型", None
+                tenant = Tenants.objects.get(tenant_name=tenant.tenant_name)
+                try:
+                    service_code_clone_url = instance.get_clone_url(service.git_url)
+                    print service_code_clone_url
+                except Exception as e:
+                    logger.debug(e)
+                    print e
+                    return 400, u"Access Token 已过期", None
+            else:
+                service_code_clone_url = service.git_url
 
             sb = {
                 "server_type": service.server_type,
-                "repository_url": service.git_url,
+                "repository_url": service_code_clone_url,
                 "branch": service.code_version,
                 "user": user_name,
                 "password": password,

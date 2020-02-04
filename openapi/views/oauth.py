@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 
-from console.utils.oauthutil import OAuthType
+from console.utils.oauth.oauth_types import support_oauth_type
 from openapi.views.base import ListAPIView
 
 from openapi.serializer.oauth_serializer import OAuthTypeSerializer
@@ -26,7 +26,7 @@ class OauthTypeView(ListAPIView):
         tags=['openapi-oauth'],
     )
     def get(self, request):
-        data = list(OAuthType.OAuthType)
+        data = support_oauth_type.keys()
         serializer = OAuthTypeSerializer(data={"type": data})
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
