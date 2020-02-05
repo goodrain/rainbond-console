@@ -52,8 +52,9 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
-from console.utils.etcdutil import del_etcd
 from console.models.main import ServiceShareRecordEvent
+from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.repositories.migration_repo import migrate_repo
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -782,11 +783,6 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功"
 
     def delete(self, user, tenant, service, is_force):
-        # 删除etcd数据，不论是否真删除组件，均删除etcd数据
-        try:
-            self.truncate_service_etcd_data(tenant, service)
-        except Exception as e:
-            logger.exception(e)
         # 判断组件是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = u"组件可能处于运行状态,请先关闭组件"
@@ -824,8 +820,7 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 507, u"删除异常"
 
-    # delete etcd # TODO fanyangyang delete etcd
-    def truncate_service_etcd_data(self, tenant, service):
+    def get_etcd_keys(self, tenant, service):
         logger.debug("ready delete etcd data while delete service")
         keys = []
         # 删除代码检测的etcd数据
@@ -836,14 +831,23 @@ class AppManageService(AppManageBase):
             logger.debug("ready for delete etcd service share data")
             for event in events:
                 keys.append("/rainbond/shareresult/{0}".format(event.region_share_id))
-        del_etcd(service.service_region, tenant.tenant_name, keys)
+        # 删除恢复迁移的etcd数据
+        group_id = service_group_relation_repo.get_group_id_by_service(service)
+        if group_id:
+            migrate_record = migrate_repo.get_by_original_group_id(group_id)
+            if migrate_record:
+                for record in migrate_record:
+                    keys.append("/rainbond/backup_restore/{0}".format(record.restore_id))
+        return keys
 
     def truncate_service(self, tenant, service, user=None):
         """彻底删除组件"""
 
         try:
+            data = {}
+            data["keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id)
+                                      service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -1025,11 +1029,6 @@ class AppManageService(AppManageBase):
 
     # 批量删除组件
     def batch_delete(self, user, tenant, service, is_force):
-        # 删除etcd数据，不论是否真删除组件，均删除etcd数据
-        try:
-            self.truncate_service_etcd_data(tenant, service)
-        except Exception as e:
-            logger.exception(e)
         # 判断组件是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = "当前组件处于运行状态,请先关闭组件"
@@ -1076,11 +1075,6 @@ class AppManageService(AppManageBase):
                 return code, msg
 
     def delete_again(self, user, tenant, service, is_force):
-        # 删除etcd数据，不论是否真删除组件，均删除etcd数据
-        try:
-            self.truncate_service_etcd_data(tenant, service)
-        except Exception as e:
-            logger.exception(e)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
@@ -1102,8 +1096,10 @@ class AppManageService(AppManageBase):
         """二次删除组件"""
 
         try:
+            data = {}
+            data["keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id)
+                                      service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)

@@ -471,6 +471,9 @@ class AppService(object):
                 "volume_name": mnt.mnt_name
             } for mnt in mnt_info]
 
+        # etcd keys
+        data["etcd_keys"] = ["/servicecheck/{0}".format(service.check_uuid)]
+
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成
@@ -646,6 +649,8 @@ class AppService(object):
             data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
+        # etcd keys
+        data["etcd_keys"] = ["/servicecheck/{0}".format(service.check_uuid)]
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)

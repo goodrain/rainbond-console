@@ -24,7 +24,6 @@ from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 from www.apiclient.baseclient import HttpClient
-from console.utils.etcdutil import del_etcd
 
 logger = logging.getLogger("default")
 
@@ -74,10 +73,6 @@ class AppBuild(AppBaseView):
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
-
-            # 删除代码构建的etcd数据
-            logger.debug("ready for delete etcd service check data")
-            del_etcd(self.region_name, self.tenant_name, ["/servicecheck/{0}".format(self.service.check_uuid)])
 
             result = general_message(200, "success", "构建成功")
             return Response(result, status=result["code"])

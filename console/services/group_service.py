@@ -16,8 +16,6 @@ from console.repositories.group import group_service_relation_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
 from www.models.main import ServiceGroup
-from console.repositories.migration_repo import migrate_repo
-from console.utils.etcdutil import del_etcd
 
 logger = logging.getLogger("default")
 
@@ -217,18 +215,6 @@ class GroupService(object):
 
     def get_apps_list(self, team_id=None, region_name=None, query=None):
         return group_repo.get_apps_list(team_id, region_name, query)
-
-    def delete_group_etcd_data(self, group):
-        migrate_record = migrate_repo.get_by_original_group_id(group)
-        if not migrate_record:
-            logger.debug("do not found migrate data by group id={0}".format(group))
-            return
-        keys = []
-        region = migrate_record[0].migrate_region
-        team = migrate_record[0].migrate_team
-        for record in migrate_record:
-            keys.append("/rainbond/backup_restore/{0}".format(record.restore_id))
-        del_etcd(region, team, keys)
 
 
 group_service = GroupService()
