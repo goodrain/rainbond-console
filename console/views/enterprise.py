@@ -70,14 +70,14 @@ class EnterpriseAppOverView(JWTAuthApiView):
                 for service_group in service_groups:
                     try:
                         team = team_repo.get_team_by_team_id(service_group.tenant_id)
-                    except:
+                    except Exception:
                         continue
                     try:
                         group_service_list = service_repo.get_group_service_by_group_id(
                             service_group.ID, service_group.region_name,
                             service_group.tenant_id, team.tenant_name, enterprise_id
                         )
-                    except:
+                    except Exception:
                         continue
                     before_service_nums = service_running_nums
                     service_nums += len(group_service_list)
