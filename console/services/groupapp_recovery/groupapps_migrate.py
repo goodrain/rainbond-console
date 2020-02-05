@@ -49,6 +49,7 @@ from www.models.plugin import ServicePluginConfigVar
 from www.models.plugin import TenantServicePluginRelation
 from www.utils.crypt import make_uuid
 from console.services.app_config import volume_service
+from console.utils.etcdutil import del_etcd
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -223,6 +224,10 @@ class GroupappsMigrateService(object):
                         backup_record_repo.get_record_by_group_id(
                             migrate_record.original_group_id).update(group_id=migrate_record.group_id)
                         self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
+                # 删除restore的etcd数据
+                logger.debug("ready for delete etcd migrate record data")
+                del_etcd(migrate_record.migrate_region, migrate_record.migrate_team,
+                         ["/rainbond/backup_restore/{0}".format(migrate_record.restore_id)])
             migrate_record.status = status
             migrate_record.save()
 

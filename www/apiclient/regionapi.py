@@ -1568,3 +1568,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
+
+    def delete_etcd_keys(self, region_name, tenant_name, data):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + region.region_tenant_name + "/etcd"
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region_name, body=json.dumps(data))
+        return res, body

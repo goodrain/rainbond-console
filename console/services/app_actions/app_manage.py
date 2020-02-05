@@ -52,6 +52,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
+from console.utils.etcdutil import del_etcd
+from console.models.main import ServiceShareRecordEvent
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -780,6 +782,11 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功"
 
     def delete(self, user, tenant, service, is_force):
+        # 删除etcd数据，不论是否真删除组件，均删除etcd数据
+        try:
+            self.truncate_service_etcd_data(tenant, service)
+        except Exception as e:
+            logger.exception(e)
         # 判断组件是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = u"组件可能处于运行状态,请先关闭组件"
@@ -816,6 +823,20 @@ class AppManageService(AppManageBase):
             except Exception as e:
                 logger.exception(e)
                 return 507, u"删除异常"
+
+    # delete etcd # TODO fanyangyang delete etcd
+    def truncate_service_etcd_data(self, tenant, service):
+        logger.debug("ready delete etcd data while delete service")
+        keys = []
+        # 删除代码检测的etcd数据
+        keys.append("/servicecheck/{0}".format(service.check_uuid))
+        # 删除分享应用的etcd数据
+        events = ServiceShareRecordEvent.objects.filter(service_id=service.service_id)
+        if events and events[0].region_share_id:
+            logger.debug("ready for delete etcd service share data")
+            for event in events:
+                keys.append("/rainbond/shareresult/{0}".format(event.region_share_id))
+        del_etcd(service.service_region, tenant.tenant_name, keys)
 
     def truncate_service(self, tenant, service, user=None):
         """彻底删除组件"""
@@ -1004,6 +1025,11 @@ class AppManageService(AppManageBase):
 
     # 批量删除组件
     def batch_delete(self, user, tenant, service, is_force):
+        # 删除etcd数据，不论是否真删除组件，均删除etcd数据
+        try:
+            self.truncate_service_etcd_data(tenant, service)
+        except Exception as e:
+            logger.exception(e)
         # 判断组件是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = "当前组件处于运行状态,请先关闭组件"
@@ -1050,6 +1076,11 @@ class AppManageService(AppManageBase):
                 return code, msg
 
     def delete_again(self, user, tenant, service, is_force):
+        # 删除etcd数据，不论是否真删除组件，均删除etcd数据
+        try:
+            self.truncate_service_etcd_data(tenant, service)
+        except Exception as e:
+            logger.exception(e)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)

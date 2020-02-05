@@ -130,6 +130,9 @@ class TenantGroupOperationView(RegionTenantHeaderView):
             group_id = int(kwargs.get("group_id", None))
             service = group_service_relation_repo.get_service_by_group(group_id)
             group_object = group_repo.get_group_by_id(group_id)
+            # delete etcd # TODO fanyangyang delete etcd
+            logger.debug("ready for delete etcd migrate record data while delete group")
+            group_service.delete_group_etcd_data(group_id)
             if group_object.is_default:
                 result = general_message(400, "默认应用不允许删除", None)
                 return Response(result, status=result["code"])

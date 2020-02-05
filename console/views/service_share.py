@@ -22,6 +22,7 @@ from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from console.utils.etcdutil import del_etcd
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -466,6 +467,13 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             app_market_url = share_service.complete(self.tenant, self.user, share_record)
             result = general_message(
                 200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
+            # 删除分享应用的etcd数据
+            events = ServiceShareRecordEvent.objects.filter(record_id=share_id)
+            keys = []
+            if events and events[0].region_share_id:
+                logger.debug("ready for delete etcd service share data")
+                keys = ["/rainbond/shareresult/{0}".format(event.region_share_id) for event in events]
+            del_etcd(self.region_name, self.tenant_name, keys)
         except ServiceHandleException as e:
             raise e
         except Exception as e:
