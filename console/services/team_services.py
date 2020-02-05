@@ -366,6 +366,9 @@ class TeamService(object):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
         return tenants
 
+    def get_active_user_tenants(self, user_id):
+        return team_repo.get_active_tenants_by_user_id(user_id=user_id)
+
     @transaction.atomic
     def change_tenant_admin(self, user_id, other_user_id, tenant_name):
         s_id = transaction.savepoint()

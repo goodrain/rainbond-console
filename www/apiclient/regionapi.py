@@ -1542,3 +1542,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
+
+    def get_region_resources(self, tenant_name, region_name):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/nodes/fullres"
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body

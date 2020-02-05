@@ -265,6 +265,14 @@ from console.views.oauth import OauthType
 from console.views.oauth import OauthServiceInfo
 from console.views.oauth import OAuthServerUserAuthorize
 from console.views.oauth import OAuthGitCodeDetection
+from console.views.enterprise import Enterprises
+from console.views.enterprise import EnterpriseInfo
+from console.views.enterprise import EnterpriseAppOverView
+from console.views.enterprise import EnterpriseTeamOverView
+from console.views.enterprise import EnterpriseOverview
+from console.views.enterprise import EnterpriseTeams
+from console.views.enterprise import EnterpriseMonitor
+from console.views.enterprise import EnterpriseUserTeams
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -809,6 +817,15 @@ urlpatterns = [
     # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # get basic task guided information
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
+    url(r'^enterprises$', Enterprises.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)/teams$', EnterpriseUserTeams.as_view()),
+
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

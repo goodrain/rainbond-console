@@ -5,12 +5,72 @@ from django.db.models import Q
 
 from console.models.main import EnterpriseUserPerm
 from console.repositories.base import BaseConnection
+from console.repositories.team_repo import team_repo
+from console.models.main import ServiceShareRecord
+from console.models.main import ServiceShareRecordEvent
 from www.models.main import TenantEnterprise
+from www.models.main import TenantRegionInfo
+from www.models.main import ServiceGroup
+from www.models.main import Users
+from www.models.main import Tenants
+
 
 logger = logging.getLogger("default")
 
 
 class TenantEnterpriseRepo(object):
+    def get_team_enterprises(self, tenant_id):
+        enterprise_ids = TenantRegionInfo.objects.filter(tenant_id=tenant_id).values_list("enterprise_id", flat=True)
+        return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
+
+    def get_enterprise_apps(self, enterprise_id):
+        tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
+        return ServiceGroup.objects.filter(tenant_id__in=tenant_ids)
+
+    def get_enterprise_users(self, enterprise_id):
+        return Users.objects.filter(enterprise_id=enterprise_id, is_active=True)
+
+    def get_enterprise_user_teams(self, enterprise_id, user_id):
+        return team_repo.get_tenants_by_user_id(user_id=user_id)
+
+    def get_enterprise_teams(self, enterprise_id):
+        return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
+
+    def get_enterprise_shared_service_nums(self, enterprise_id):
+        service_groups = self.get_enterprise_apps(enterprise_id)
+        if not service_groups:
+            return 0
+        service_group_ids = service_groups.values_list("ID", flat=True)
+        record = ServiceShareRecord.objects.filter(group_id__in=service_group_ids, step=3, is_success=True)
+        if not record:
+            return 0
+        record_ids = record.values_list("ID", flat=True)
+        service_list = ServiceShareRecordEvent.objects.filter(record_id__in=record_ids)
+        if not service_list:
+            return 0
+        return len(set(service_list.values_list("service_id", flat=True)))
+
+    def get_user_active_teams(self, enterprise_id, user_id):
+        tenants = self.get_enterprise_user_teams(enterprise_id, user_id)
+        if not tenants:
+            return None
+        active_tenants_list = []
+        if tenants:
+            for tenant in tenants:
+                active_tenants_list.append({
+                    "tenant_id": tenant.tenant_id,
+                    "team_alias": tenant.tenant_alias,
+                    "owner": tenant.creater,
+                    "enterprise_id": tenant.enterprise_id,
+                    "create_time": tenant.create_time,
+                    "team_name": tenant.tenant_name,
+                    "region": tenant.region,
+                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id))
+                })
+            active_tenants_list.sort(key=lambda x: x["num"])
+            active_tenants_list = active_tenants_list[:3]
+        return active_tenants_list
+
     def get_enterprise_by_enterprise_name(self, enterprise_name):
         enterprise = TenantEnterprise.objects.filter(enterprise_name=enterprise_name)
         if not enterprise:
