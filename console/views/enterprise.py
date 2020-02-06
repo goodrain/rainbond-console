@@ -224,10 +224,10 @@ class EnterpriseMonitor(RegionTenantHeaderView):
         for region in regions:
             res, body = region_api.get_region_resources(self.team.tenant_name, region.region_name)
             if res.get("status") == 200:
-                region_memory_total += body["bean"]["health_cap_mem"]
-                region_memory_used += body["bean"]["health_req_mem"]
-                region_cpu_total += body["bean"]["health_cap_cpu"]
-                region_cpu_used += body["bean"]["health_req_cpu"]
+                region_memory_total += body["bean"]["cap_mem"]
+                region_memory_used += body["bean"]["req_mem"]
+                region_cpu_total += body["bean"]["cap_cpu"]
+                region_cpu_used += body["bean"]["req_cpu"]
         data = {
             "total_regions": region_num,
             "memory": {
