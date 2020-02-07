@@ -8,7 +8,6 @@ from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
 from console.repositories.base import BaseConnection
-from www.models.main import ServiceGroup
 from www.models.main import ServiceWebhooks
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServiceInfoDelete
@@ -126,29 +125,29 @@ class TenantServiceInfoRepository(object):
         TenantServiceInfo(**service_base).save()
 
     def get_app_list(self, tenant_ids, name, page, page_size):
-        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x:'"' + x + '"', tenant_ids)))
+        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
         if name:
             where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
         limit = "LIMIT {page}, {page_size}".format(page=page-1, page_size=page_size)
         conn = BaseConnection()
         sql = """
-            SELECT
-                A.ID,
-                A.group_name,
-                A.tenant_id, 
-                CONCAT('[', 
-                    GROUP_CONCAT(
-                    CONCAT('{"service_cname":"',C.service_cname,'"'),',',
-                    CONCAT('"service_id":"',C.service_id,'"'),',',
-                    CONCAT('"service_key":"',C.service_key,'"'),',',
-                    CONCAT('"service_alias":"',C.service_alias),'"}')
-                ,']') AS service_list
-            FROM service_group A 
-            LEFT JOIN service_group_relation B
-            ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
-            LEFT JOIN tenant_service C
-            ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
-            """
+        SELECT
+            A.ID,
+            A.group_name,
+            A.tenant_id,
+            CONCAT('[',
+                GROUP_CONCAT(
+                CONCAT('{"service_cname":"',C.service_cname,'"'),',',
+                CONCAT('"service_id":"',C.service_id,'"'),',',
+                CONCAT('"service_key":"',C.service_key,'"'),',',
+                CONCAT('"service_alias":"',C.service_alias),'"}')
+            ,']') AS service_list
+        FROM service_group A
+        LEFT JOIN service_group_relation B
+        ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
+        LEFT JOIN tenant_service C
+        ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
+        """
         sql += where + "GROUP BY A.ID "
         sql += limit
         result = conn.query(sql)
@@ -160,23 +159,23 @@ class TenantServiceInfoRepository(object):
             where += ' AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%")'.format(name, name)
         conn = BaseConnection()
         sql = """
-            SELECT
-                A.ID,
-                A.group_name,
-                A.tenant_id, 
-                CONCAT('[', 
-                    GROUP_CONCAT(
-                    CONCAT('{"service_cname":"',C.service_cname,'"'),',',
-                    CONCAT('"service_id":"',C.service_id,'"'),',',
-                    CONCAT('"service_key":"',C.service_key,'"'),',',
-                    CONCAT('"service_alias":"',C.service_alias),'"}')
-                ,']') AS service_list
-            FROM service_group A 
-            LEFT JOIN service_group_relation B
-            ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
-            LEFT JOIN tenant_service C
-            ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
-            """
+        SELECT
+            A.ID,
+            A.group_name,
+            A.tenant_id,
+            CONCAT('[',
+            GROUP_CONCAT(
+                CONCAT('{"service_cname":"',C.service_cname,'"'),',',
+                CONCAT('"service_id":"',C.service_id,'"'),',',
+                CONCAT('"service_key":"',C.service_key,'"'),',',
+                CONCAT('"service_alias":"',C.service_alias),'"}')
+            ,']') AS service_list
+        FROM service_group A
+        LEFT JOIN service_group_relation B
+        ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
+        LEFT JOIN tenant_service C
+        ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
+        """
         sql += where + "GROUP BY A.ID "
         result = conn.query(sql)
         return result
