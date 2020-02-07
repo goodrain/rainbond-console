@@ -5,17 +5,19 @@
 import logging
 import httplib2
 import httplib
-from django.core.paginator import Paginator
+import json
 from django.db.models import F
-from django.db.models import Min
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
+from rest_framework import status
 
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.app import app_tag_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.app_import_and_export_service import export_service
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
@@ -64,29 +66,44 @@ class CenterAppListView(RegionTenantHeaderView):
         app_name = request.GET.get("app_name", None)
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
-
-        apps = market_app_service.get_visiable_apps(
-            self.tenant, scope, app_name).values('group_key').annotate(
-            id=Min('ID'))
-        paginator = Paginator(apps, int(page_size))
-        show_apps = paginator.page(int(page))
-
-        def yield_apps():
-            for app_value in show_apps:
-                app = RainbondCenterApp.objects.get(pk=app_value['id'])
-                group_version_list = RainbondCenterApp.objects.filter(
-                    is_complete=True, group_key=app_value['group_key']).values_list(
-                        'version', flat=True) or []
-                yield dict(
-                    group_version_list=group_version_list,
-                    min_memory=group_service.get_service_group_memory(app.app_template),
-                    export_status=export_service.get_export_record_status(self.tenant.enterprise_id, app.group_key,
-                                                                          group_version_list[0]) or '',
-                    **app.to_dict())
+        dev_status = request.GET.get("dev_status", None)
+        app_list = []
+        apps = market_app_service.get_visiable_apps_v2(
+            self.tenant, scope, app_name, dev_status, page, page_size)
+        for app in apps:
+            app_list.append({
+                "update_time": app.update_time,
+                "describe": app.describe,
+                "tenant_service_group_id": app.tenant_service_group_id,
+                "pic": app.pic,
+                "is_ingerit": app.is_ingerit,
+                "app_template": app.app_template,
+                "group_name": app.group_name,
+                "export_status": export_service.get_export_record_status(self.tenant.enterprise_id, app.group_key,
+                                                                         app.version),
+                "create_time": app.create_time,
+                "scope": app.scope,
+                "app_id": app.group_key,
+                "version": app.version,
+                "dev_status": app.dev_status,
+                "tags": (json.loads(app.tags) if app.tags else []),
+                "enterprise_id": app.enterprise_id,
+                "is_official": app.is_official,
+                "upgrade_time": app.upgrade_time,
+                "ID": app.ID,
+                "template_version": app.template_version,
+                "source": app.source,
+                "details": app.details,
+                "share_team": app.share_team,
+                "record_id": app.record_id,
+                "install_number": app.install_number,
+                "min_memory": group_service.get_service_group_memory(app.app_template),
+                "is_complete": app.is_complete,
+                "share_user": app.share_user,
+            })
 
         return MessageResponse(
-            "success", msg_show="查询成功", list=[app for app in yield_apps()],
-            total=paginator.count, next_page=int(page) + 1)
+            "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
 
 
 class CenterAppView(RegionTenantHeaderView):
@@ -395,3 +412,68 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
         except Exception as e:
             logger.exception(e)
             return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
+
+
+class TagCLView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        data = []
+        app_tag_list = app_tag_repo.get_all_tag_list()
+        if app_tag_list:
+            for app_tag in app_tag_list:
+                data.append({
+                    "name": app_tag.name,
+                    "tag_id": app_tag.ID
+                })
+        result = general_message(200, "success", None, list=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        name = request.data.get("name", None)
+        result = general_message(200, "success", u"创建成功")
+        if not name:
+            result = general_message(400, "fail", u"参数不正确")
+        try:
+            rst = app_tag_repo.create_tag(name)
+            if not rst:
+                result = general_message(400, "fail", u"标签已存在")
+        except Exception as e:
+            logger.debug(e)
+            result = general_message(400, "fail", u"创建失败")
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class TagUDView(RegionTenantHeaderView):
+    def put(self, request, tag_id, *args, **kwargs):
+        name = request.data.get("name", None)
+        result = general_message(200, "success", u"更新成功")
+        if not name:
+            result = general_message(400, "fail", u"参数不正确")
+        rst = app_tag_repo.update_tag_name(tag_id, name)
+        if not rst:
+            result = general_message(400, "fail", u"更新失败")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def delete(self, request, tag_id, *args, **kwargs):
+        result = general_message(200, "success", u"删除成功")
+        rst = app_tag_repo.delete_tag(tag_id)
+        if not rst:
+            result = general_message(400, "fail", u"删除失败")
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class AppTagCView(RegionTenantHeaderView):
+    def post(self, request, enterprise_id, app_id, *args, **kwargs):
+        version = request.data.get("version", None)
+        tag_id = request.data.get("tag_id", None)
+        result = general_message(200, "success", u"创建成功")
+        if not (version and tag_id):
+            result = general_message(400, "fail", u"请求参数错误")
+        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(enterprise_id, app_id, version)
+        if not app:
+            result = general_message(404, "fail", u"该应用不存在")
+        try:
+            app_tag_repo.create_app_tag_relation(app, tag_id)
+        except Exception as e:
+            logger.debug(e)
+            result = general_message(404, "fail", u"创建失败")
+        return Response(result, status=status.HTTP_200_OK)

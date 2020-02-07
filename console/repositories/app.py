@@ -7,6 +7,9 @@ from docker_image import reference
 from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
+from console.models.main import RainbondCenterAppTag
+from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterAppTagsRelation
 from console.repositories.base import BaseConnection
 from www.models.main import ServiceWebhooks
 from www.models.main import TenantServiceInfo
@@ -199,9 +202,83 @@ class TenantServiceWebhooks(object):
             service_id, deployment_way)
 
 
+class AppTagRepository(object):
+    def get_all_tag_list(self):
+        return RainbondCenterAppTag.objects.filter(is_deleted=False)
+
+    def create_tag(self, name):
+        old_tag = RainbondCenterAppTag.objects.filter(name=name)
+        if old_tag:
+            return False
+        return RainbondCenterAppTag.objects.create(name=name, is_deleted=False)
+
+    def create_tags(self, names):
+        tag_list = []
+        old_tag = RainbondCenterAppTag.objects.filter(name__in=names)
+        if old_tag:
+            return False
+        for name in names:
+            tag_list.append(RainbondCenterAppTag.objects.create(name=name, is_deleted=False))
+        return RainbondCenterAppTag.objects.bulk_create(tag_list)
+
+    def create_app_tag_relation(self, app, tag_id):
+        old_relation = RainbondCenterAppTagsRelation.objects.filter(
+            enterprise_id=app.enterprise_id,
+            group_key=app.group_key,
+            version=app.version,
+            tag_id=tag_id
+        )
+        if old_relation:
+            return True
+        return RainbondCenterAppTagsRelation.objects.create(
+            enterprise_id=app.enterprise_id,
+            group_key=app.group_key,
+            version=app.version,
+            tag_id=tag_id
+        )
+
+    def delete_tag(self, tag_id):
+        status = True
+        try:
+            app_tag = RainbondCenterAppTag.objects.get(ID=tag_id)
+            app_tag_relation = RainbondCenterAppTagsRelation.objects.filter(tag_id=tag_id)
+            app_tag.delete()
+            app_tag_relation.delete()
+        except Exception:
+            status = False
+        return status
+
+    def delete_tags(self, tag_ids):
+        status = True
+        try:
+            app_tag = RainbondCenterAppTag.objects.filter(ID__in=tag_ids)
+            app_tag_relation = RainbondCenterAppTagsRelation.objects.filter(tag_id__in=tag_ids)
+            app_tag.delete()
+            app_tag_relation.delete()
+        except Exception:
+            status = False
+        return status
+
+    def update_tag_name(self, tag_id, name):
+        status = True
+        try:
+            app_tag = RainbondCenterAppTag.objects.get(ID=tag_id)
+            app_tag.name = name
+            app_tag.save()
+        except Exception as e:
+            print e
+            status = False
+        return status
+
+    def get_app_tags(self, enterprise_id, group_key, version):
+        return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, group_key=group_key,
+                                                            version=version)
+
+
 service_repo = TenantServiceInfoRepository()
 service_source_repo = ServiceSourceRepository()
 recycle_bin_repo = ServiceRecycleBinRepository()
 delete_service_repo = TenantServiceDeleteRepository()
 relation_recycle_bin_repo = ServiceRelationRecycleBinRepository()
 service_webhooks_repo = TenantServiceWebhooks()
+app_tag_repo = AppTagRepository()

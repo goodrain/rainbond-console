@@ -65,6 +65,7 @@ class RainbondCenterApp(BaseModel):
     pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     version = models.CharField(max_length=20, help_text=u"版本")
+    dev_status = models.CharField(max_length=32, default='release', help_text=u"开发状态")
     scope = models.CharField(max_length=50, choices=app_scope, help_text=u"可用范围")
     describe = models.CharField(max_length=400, null=True, blank=True, help_text=u"云市应用描述信息")
     app_template = models.TextField(help_text=u"全量应用与插件配置信息")
@@ -92,6 +93,28 @@ class RainbondCenterAppInherit(BaseModel):
 
     def __unicode__(self):
         return self.to_dict()
+
+
+class RainbondCenterAppTagsRelation(BaseModel):
+    """云市应用标签关系"""
+
+    class Meta:
+        db_table = "rainbond_center_app_tag_relation"
+
+    enterprise_id = models.CharField(max_length=36, default="public", help_text=u"企业id")
+    group_key = models.CharField(max_length=32, unique=True, help_text=u"当前应用")
+    version = models.CharField(max_length=32, unique=True, help_text=u"当前应用版本号")
+    tag_id = models.IntegerField(help_text=u"标签id")
+
+
+class RainbondCenterAppTag(BaseModel):
+    """云市应用标签"""
+
+    class Meta:
+        db_table = "rainbond_center_app_tag"
+
+    name = models.CharField(max_length=32, unique=True, help_text=u"标签名称")
+    is_deleted = models.BooleanField(default=False, help_text=u"是否删除")
 
 
 class RainbondCenterPlugin(BaseModel):

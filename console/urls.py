@@ -109,6 +109,9 @@ from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.apps import CenterVersionlMarversionketAppView
 from console.views.center_pool.apps import DownloadMarketAppGroupTemplageDetailView
 from console.views.center_pool.apps import GetCloudRecommendedAppList
+from console.views.center_pool.apps import TagCLView
+from console.views.center_pool.apps import TagUDView
+from console.views.center_pool.apps import AppTagCView
 from console.views.center_pool.groupapp_backup import AllTeamGroupAppsBackupView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupExportView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupImportView
@@ -202,6 +205,10 @@ from console.views.service_share import ServiceShareEventPost
 from console.views.service_share import ServiceShareInfoView
 from console.views.service_share import ServiceShareRecordView
 from console.views.service_share import ShareRecordView
+from console.views.service_share import ShareAppsVersionsListView
+from console.views.service_share import ShareCloudMarkets
+from console.views.service_share import ShareServiceVersionsListView
+from console.views.service_share import ShareServiceOperationRecord
 from console.views.service_version import AppVersionManageView
 from console.views.service_version import AppVersionsView
 from console.views.services_toplogical import GroupServiceDetView
@@ -386,6 +393,11 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
     # 云市分享应用
+    url(r'^teams/(?P<team_name>[\w\-]+)/shared/apps$', ShareAppsVersionsListView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/shared/app/versions$', ShareServiceVersionsListView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/shared/cloud/markets$', ShareCloudMarkets.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/share/operation/record$',
+        ShareServiceOperationRecord.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
@@ -683,6 +695,9 @@ urlpatterns = [
     # 内部云市应用相关
     # 获取可安装应用
     url(r'^apps$', CenterAppListView.as_view()),
+    url(r'^apps/tag$', TagCLView.as_view()),
+    url(r'^apps/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_key>[\w\-]+)/tag$', AppTagCView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
     # 好雨云市应用同步
