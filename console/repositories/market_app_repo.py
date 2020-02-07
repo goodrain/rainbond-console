@@ -29,12 +29,6 @@ class RainbondCenterAppRepository(object):
         return RainbondCenterApp.objects.filter(
             is_complete=True, enterprise_id__in=["public", enterprise_id])
 
-    def get_rainbond_app_by_key_and_version(self, group_key, group_version):
-        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, version=group_version)
-        if rcapps:
-            return rcapps[0]
-        return None
-
     def get_rainbond_app_by_key_and_version_eid(self, eid, group_key, group_version):
         rcapps = RainbondCenterApp.objects.filter(enterprise_id=eid, group_key=group_key, version=group_version)
         if rcapps:
@@ -51,7 +45,7 @@ class RainbondCenterAppRepository(object):
         return None
 
     def get_rainbond_app_by_key_and_version(self, enterprise_id, group_key, group_version):
-        rcapps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id,group_key=group_key,
+        rcapps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, group_key=group_key,
                                                   version=group_version,
                                                   scope__in=["gooodrain", "team", "enterprise"])
         if rcapps:

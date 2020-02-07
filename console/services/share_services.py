@@ -721,12 +721,6 @@ class ShareService(object):
             rt_list.append(p)
         return rt_list
 
-    # 创建新建应用记录
-    def create_new_app(self, share_record, share_team, share_user, use_force):
-        sid = transaction.savepoint()
-
-
-
     # 创建应用分享记录
     # 创建应用记录
     # 创建介质同步记录

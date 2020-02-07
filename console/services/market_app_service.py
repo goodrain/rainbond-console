@@ -715,21 +715,21 @@ class MarketAppService(object):
             page = (page - 1) * page_size
             limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
         sql = """
-                SELECT 
+                SELECT
                     A.*,
                     CONCAT('[',
                         GROUP_CONCAT(
                         CONCAT('{"tag_id":"',C.ID,'"'),',',
                         CONCAT('"name":"',C.name),'"}')
                     ,']') as tags
-                FROM rainbond_center_app A 
+                FROM rainbond_center_app A
                 LEFT JOIN rainbond_center_app_tag_relation B
                 ON A.group_key = B.group_key and A.enterprise_id = B.enterprise_id
                 LEFT JOIN rainbond_center_app_tag C
                 ON B.tag_id = C.ID
                 """
         sql1 = """
-                GROUP BY 
+                GROUP BY
                     A.group_key, A.version
                 ORDER BY
                     A.create_time DESC

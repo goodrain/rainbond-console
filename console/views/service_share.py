@@ -209,7 +209,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                     share_group_info["version"] = 'v1.0'
                     share_group_info["branch"] = "release"
                     share_group_info["describe"] = 'This is a default description.'
-                    share_group_info["scope"] = (scope+'private' if scope=="goodrian" else scope)
+                    share_group_info["scope"] = (scope + 'private' if scope == "goodrian" else scope)
                     share_group_info["share_id"] = share_record.group_id
                     share_group_info["pic"] = ''
                     share_group_info["share_team"] = team_name
@@ -241,7 +241,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                         data["group_key"] = group_key
                         data["group_version"] = ""
                         data["template_version"] = ""
-                        data["publish_user"] =  user.nick_name
+                        data["publish_user"] = user.nick_name
                         data["publish_team"] = self.tenant.tenant_alias
                         data["update_note"] = "This is a default description."
                         data["group_template"] = "v2"

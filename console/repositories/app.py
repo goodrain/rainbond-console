@@ -8,7 +8,6 @@ from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
 from console.models.main import RainbondCenterAppTag
-from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppTagsRelation
 from console.repositories.base import BaseConnection
 from www.models.main import ServiceWebhooks
