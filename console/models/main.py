@@ -749,3 +749,14 @@ class UserOAuthServices(BaseModel):
     refresh_token = models.CharField(max_length=64, null=True, help_text=u"refresh_token")
     user_id = models.IntegerField(null=True, default=None, help_text=u"user_id")
     code = models.CharField(max_length=256, null=True,  help_text=u"user_id")
+
+
+class UserFavorite(BaseModel):
+    class Meta:
+        db_table = "user_favorite"
+
+    name = models.CharField(max_length=64, help_text=u"收藏视图名称")
+    url = models.CharField(max_length=255, help_text=u"收藏视图链接")
+    user_id = models.IntegerField(help_text=u"用户id")
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)

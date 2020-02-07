@@ -243,6 +243,8 @@ from console.views.user_operation import PasswordResetBegin
 from console.views.user_operation import SendResetEmail
 from console.views.user_operation import TenantServiceView
 from console.views.user_operation import UserDetailsView
+from console.views.user_operation import UserFavoriteLCView
+from console.views.user_operation import UserFavoriteUDView
 from console.views.webhook import CustomWebHooksDeploy
 from console.views.webhook import GetWebHooksUrl
 from console.views.webhook import ImageWebHooksDeploy
@@ -304,6 +306,8 @@ urlpatterns = [
 
     # 我的详情
     url(r'^users/details$', UserDetailsView.as_view()),
+    url(r'^user/favorite$', UserFavoriteLCView.as_view()),
+    url(r'^user/favorite/(?P<favorite_id>[\w\-]+)$', UserFavoriteUDView.as_view()),
     # 模糊查询用户
     url(r'^users/query$', UserFuzSerView.as_view()),
     # 团队中用户详情页

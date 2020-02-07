@@ -3,6 +3,7 @@ from django.db.models import Q
 
 from console.exception.exceptions import UserNotExistError
 from console.repositories.base import BaseConnection
+from console.models.main import UserFavorite
 from www.models.main import Users
 
 
@@ -167,6 +168,32 @@ class UserRepo(object):
         conn = BaseConnection()
         result = conn.query(sql)
         return result[0].get("total")
+
+    def get_user_favorite(self, user_id):
+        return UserFavorite.objects.filter(user_id=user_id).order_by("-create_time")
+
+    def get_user_favorite_by_name(self, user_id, name):
+        return UserFavorite.objects.filter(user_id=user_id, name=name)
+
+    def get_user_favorite_by_ID(self, user_id, favorite_id):
+        return UserFavorite.objects.get(user_id=user_id, ID=favorite_id)
+
+    def create_user_favorite(self, user_id, name, url):
+        UserFavorite.objects.create(
+            user_id=user_id,
+            name=name,
+            url=url
+        )
+
+    def update_user_favorite(self, user_favorite, name, url):
+        rst = True
+        try:
+            user_favorite.name = name
+            user_favorite.url = url
+            user_favorite.save()
+        except Exception:
+            rst = False
+        return rst
 
 
 user_repo = UserRepo()

@@ -5,10 +5,12 @@ import re
 import time
 
 from rest_framework.response import Response
+from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 from console.forms.users_operation import RegisterForm
 from console.repositories.perm_repo import perms_repo
 from console.repositories.oauth_repo import oauth_user_repo
+from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -388,3 +390,72 @@ class UserDetailsView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=code)
+
+
+class UserFavoriteLCView(JWTAuthApiView):
+    def get(self, request):
+        data = []
+        try:
+            user_favorites = user_repo.get_user_favorite(request.user.user_id)
+            if user_favorites:
+                for user_favorite in user_favorites:
+                    data.append({
+                        "name": user_favorite.name,
+                        "url": user_favorite.url,
+                        "favorite_id": user_favorite.ID
+                    })
+        except Exception as e:
+            logger.debug(e)
+            result = general_message(400, "fail", "获取失败")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        result = general_message(200, "success", None, list=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        name = request.data.get("name")
+        url = request.data.get("url")
+        if name and url:
+            try:
+
+                old_favorite = user_repo.get_user_favorite_by_name(request.user.user_id, name)
+                if old_favorite:
+                    result = general_message(400, "fail", "名称已存在")
+                    return Response(result, status=status.HTTP_200_OK)
+                user_repo.create_user_favorite(request.user.user_id, name, url)
+                result = general_message(200, "success", "创建成功")
+                return Response(result, status=status.HTTP_200_OK)
+            except Exception as e:
+                logger.debug(e)
+                result = general_message(400, "fail", "创建失败")
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            result = general_message(400, "fail", "参数错误")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserFavoriteUDView(JWTAuthApiView):
+    def put(self, request, favorite_id):
+        result = general_message(200, "success", "更新成功")
+        name = request.data.get("name")
+        url = request.data.get("url")
+        if not (name and url):
+            result = general_message(400, "fail", "参数错误")
+        try:
+            user_favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)
+            rst = user_repo.update_user_favorite(user_favorite, name, url)
+            if not rst:
+                result = general_message(200, "fail", "更新视图失败")
+        except Exception as e:
+            logger.debug(e)
+            result = general_message(404, "fail", "收藏视图不存在")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def delete(self, request, favorite_id):
+        result = general_message(200, "success", "删除成功")
+        try:
+            user_favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)
+            user_favorite.delete()
+        except Exception as e:
+            logger.debug(e)
+            result = general_message(404, "fail", "收藏视图不存在")
+        return Response(result, status=status.HTTP_200_OK)
