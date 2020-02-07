@@ -23,6 +23,11 @@ class TenantEnterpriseRepo(object):
         enterprise_ids = TenantRegionInfo.objects.filter(tenant_id=tenant_id).values_list("enterprise_id", flat=True)
         return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
 
+    def get_enterprises_by_user_id(self, user_id):
+        tenant_ids = team_repo.get_tenants_by_user_id(user_id).values_list("tenant_id", flat=True)
+        enterprise_ids = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True)
+        return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
+
     def get_enterprise_apps(self, enterprise_id):
         tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
         return ServiceGroup.objects.filter(tenant_id__in=tenant_ids)

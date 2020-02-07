@@ -19,10 +19,15 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-class Enterprises(RegionTenantHeaderView):
+class Enterprises(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         enterprises_list = []
-        enterprises = enterprise_repo.get_team_enterprises(self.team.tenant_id)
+        try:
+            enterprises = enterprise_repo.get_enterprises_by_user_id(request.user.user_id)
+        except Exception as e:
+            logger.debug(e)
+            data = general_message(404, "success", "该用户未加入任何团队")
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
         if enterprises:
             for enterprise in enterprises:
                 enterprises_list.append({
