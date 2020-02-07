@@ -37,6 +37,10 @@ class TeamService(object):
     def get_tenant_by_tenant_name(self, tenant_name, exception=True):
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
 
+    def get_enterprise_tenant_by_tenant_name(self,enterprise_id, tenant_name):
+        return Tenants.objects.filter(tenant_name=tenant_name, enterprise_id=enterprise_id).first()
+
+
     def get_tenant(self, tenant_name):
         if not Tenants.objects.filter(tenant_name=tenant_name).exists():
             raise Tenants.DoesNotExist

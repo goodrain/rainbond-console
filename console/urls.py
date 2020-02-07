@@ -18,6 +18,8 @@ from console.views.app_config.app_domain import HttpStrategyView
 from console.views.app_config.app_domain import SecondLevelDomainView
 from console.views.app_config.app_domain import ServiceDomainView
 from console.views.app_config.app_domain import ServiceTcpDomainQueryView
+from console.views.app_config.app_domain import AppServiceDomainQueryView
+from console.views.app_config.app_domain import AppServiceTcpDomainQueryView
 from console.views.app_config.app_domain import ServiceTcpDomainView
 from console.views.app_config.app_domain import TenantCertificateManageView
 from console.views.app_config.app_domain import TenantCertificateView
@@ -535,6 +537,11 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/get_senior_url$', GetSeniorUrlView.as_view()),
     # 查询tcp/udp策略（含模糊搜索）
     url(r'^teams/(?P<tenantName>[\w\-]+)/tcpdomain/query$', ServiceTcpDomainQueryView.as_view()),
+    # 查询应用层面tcp/udp策略（含模糊搜索）
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/tcpdomain/query$',
+        AppServiceTcpDomainQueryView.as_view()),
+url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/domain/query$',
+        AppServiceDomainQueryView.as_view()),
     # 获取可用的port
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/get_port$', GetPortView.as_view()),
     # tcp/udp策略操作
