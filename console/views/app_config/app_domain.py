@@ -1019,7 +1019,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
         return Response(result)
 
 
-# 查询团队下策略
+# 查询应用下策略
 class AppServiceDomainQueryView(RegionTenantHeaderView):
     def get(self, request, enterprise_id, team_name, app_id, *args, **kwargs):
         try:
@@ -1030,84 +1030,8 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             region = region_repo.get_region_by_region_name(
                 self.response_region)
             try:
-                # 查询分页排序
-                if search_conditions:
-                    search_conditions = search_conditions.decode('utf-8')
-                    # 获取总数
-                    cursor = connection.cursor()
-                    cursor.execute("select count(sd.domain_name) \
-                        from service_domain sd \
-                            left join service_group_relation sgr on sd.service_id = sgr.service_id \
-                            left join service_group sg on sgr.group_id = sg.id  \
-                        where sd.tenant_id='{0}' and sd.region_id='{1}' and  sgr.group_id='{3}'\
-                            and (sd.domain_name like '%{2}%' \
-                                or sd.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%');".format(
-                        tenant.tenant_id, region.region_id, search_conditions, app_id))
-                    domain_count = cursor.fetchall()
-
-                    total = domain_count[0][0]
-                    start = (page - 1) * page_size
-                    remaining_num = total - (page - 1) * page_size
-                    end = page_size
-                    if remaining_num < page_size:
-                        end = remaining_num
-
-                    cursor = connection.cursor()
-                    cursor.execute(
-                        "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
-                            sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
-                            sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                            sd.is_outer_service \
-                        from service_domain sd \
-                            left join service_group_relation sgr on sd.service_id = sgr.service_id \
-                            left join service_group sg on sgr.group_id = sg.id \
-                        where sd.tenant_id='{0}' \
-                            and sd.region_id='{1}' \
-                            and sgr.group_id='{5}' \
-                            and (sd.domain_name like '%{2}%' \
-                                or sd.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%') \
-                        order by type desc LIMIT {3},{4};".format(
-                            tenant.tenant_id, region.region_id, search_conditions, start, end, app_id))
-                    tenant_tuples = cursor.fetchall()
-                else:
-
-                    # 获取总数
-                    cursor = connection.cursor()
-                    cursor.execute("select count(sd.domain_name) \
-                                            from service_domain sd \
-                                                left join service_group_relation sgr on sd.service_id = sgr.service_id \
-                                                left join service_group sg on sgr.group_id = sg.id  \
-                                            where sd.tenant_id='{0}' and \
-                                            sd.region_id='{1}' and \
-                                            sgr.group_id='{2}';".format(
-                        tenant.tenant_id, region.region_id, app_id))
-                    domain_count = cursor.fetchall()
-
-                    total = domain_count[0][0]
-                    start = (page - 1) * page_size
-                    remaining_num = total - (page - 1) * page_size
-                    end = page_size
-                    if remaining_num < page_size:
-                        end = remaining_num
-
-                    cursor = connection.cursor()
-
-                    cursor.execute(
-                        "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
-                            sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
-                            sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                            sd.is_outer_service \
-                        from service_domain sd \
-                            left join service_group_relation sgr on sd.service_id = sgr.service_id \
-                            left join service_group sg on sgr.group_id = sg.id \
-                        where sd.tenant_id='{0}' \
-                            and sd.region_id='{1}' \
-                            and sgr.group_id='{2}' \
-                        order by type desc;".format(
-                            tenant.tenant_id, region.region_id, app_id))
-                    tenant_tuples = cursor.fetchall()
+                tenant_tuples, total = domain_service.get_app_service_domain_list(
+                    region, tenant, app_id, search_conditions, page, page_size)
 
             except Exception as e:
                 logger.exception(e)
@@ -1174,72 +1098,8 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
             region = region_repo.get_region_by_region_name(
                 self.response_region)
             try:
-                # 查询分页排序
-                if search_conditions:
-                    search_conditions = search_conditions.decode('utf-8')
-                    # 获取总数
-                    cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(1) from service_tcp_domain std \
-                            left join service_group_relation sgr on std.service_id = sgr.service_id \
-                            left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{3}' \
-                            and (std.end_point like '%{2}%' \
-                                or std.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%');".format(
-                            tenant.tenant_id, region.region_id, search_conditions, app_id))
-                    domain_count = cursor.fetchall()
-
-                    total = domain_count[0][0]
-                    start = (page - 1) * page_size
-                    remaining_num = total - (page - 1) * page_size
-                    end = page_size
-                    if remaining_num < page_size:
-                        end = remaining_num
-
-                    cursor = connection.cursor()
-                    cursor.execute(
-                        "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
-                            std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
-                        from service_tcp_domain std \
-                            left join service_group_relation sgr on std.service_id = sgr.service_id \
-                            left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{5}' \
-                            and (std.end_point like '%{2}%' \
-                                or std.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%') \
-                        order by type desc LIMIT {3},{4};".format(
-                            tenant.tenant_id, region.region_id, search_conditions, start, end, app_id))
-                    tenant_tuples = cursor.fetchall()
-                else:
-                    # 获取总数
-                    cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(1) from service_tcp_domain std \
-                            left join service_group_relation sgr on std.service_id = sgr.service_id \
-                            left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{2}';".format(
-                            tenant.tenant_id, region.region_id, app_id))
-                    domain_count = cursor.fetchall()
-
-                    total = domain_count[0][0]
-                    start = (page - 1) * page_size
-                    remaining_num = total - (page - 1) * page_size
-                    end = page_size
-                    if remaining_num < page_size:
-                        end = remaining_num
-
-                    cursor = connection.cursor()
-                    cursor.execute(
-                        "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
-                            std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
-                        from service_tcp_domain std \
-                            left join service_group_relation sgr on std.service_id = sgr.service_id \
-                            left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{4}' \
-                        order by type desc LIMIT {2},{3};".format(
-                            tenant.tenant_id, region.region_id, start, end, app_id))
-                    tenant_tuples = cursor.fetchall()
+                tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(
+                    region, tenant, app_id, search_conditions, page, page_size)
             except Exception as e:
                 logger.exception(e)
                 result = general_message(405, "faild", "查询数据库失败")
