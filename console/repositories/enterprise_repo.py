@@ -6,6 +6,9 @@ from django.db.models import Q
 from console.models.main import EnterpriseUserPerm
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
+from console.repositories.user_repo import user_repo
+from console.repositories.user_role_repo import user_role_repo
+from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import ServiceShareRecord
 from console.models.main import ServiceShareRecordEvent
 from www.models.main import TenantEnterprise
@@ -62,15 +65,25 @@ class TenantEnterpriseRepo(object):
         active_tenants_list = []
         if tenants:
             for tenant in tenants:
+                user = user_repo.get_user_by_user_id(tenant.creater)
+                try:
+                    role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
+                except UserRoleNotFoundException:
+                    if tenant.creater == user.user_id:
+                        role = "owner"
+                    else:
+                        role = None
                 active_tenants_list.append({
                     "tenant_id": tenant.tenant_id,
                     "team_alias": tenant.tenant_alias,
                     "owner": tenant.creater,
+                    "owner_name": user.nick_name,
                     "enterprise_id": tenant.enterprise_id,
                     "create_time": tenant.create_time,
                     "team_name": tenant.tenant_name,
                     "region": tenant.region,
-                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id))
+                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
+                    "role": role
                 })
             active_tenants_list.sort(key=lambda x: x["num"])
             active_tenants_list = active_tenants_list[:3]

@@ -9,8 +9,11 @@ from www.utils.return_message import general_message
 
 from console.services.user_services import user_services
 from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.exceptions import UserRoleNotFoundException
 from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.user_repo import user_repo
+from console.repositories.user_role_repo import user_role_repo
 from console.models.main import RegionConfig
 from console.views.base import JWTAuthApiView
 from console.views.base import RegionTenantHeaderView
@@ -138,14 +141,24 @@ class EnterpriseTeams(JWTAuthApiView):
         teams = enterprise_repo.get_enterprise_teams(enterprise_id)
         if teams:
             for team in teams:
+                user = user_repo.get_user_by_user_id(team.creater)
+                try:
+                    role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
+                except UserRoleNotFoundException:
+                    if team.creater == user.user_id:
+                        role = "owner"
+                    else:
+                        role = None
                 teams_list.append({
                     "tenant_id": team.tenant_id,
                     "team_alias": team.tenant_alias,
                     "owner": team.creater,
+                    "owner_name": user.nick_name,
                     "enterprise_id": enterprise_id,
                     "create_time": team.create_time,
                     "team_name": team.tenant_name,
                     "region": team.region,
+                    "role": role,
                 })
             result = general_message(200, "success", None, list=teams_list)
         else:
@@ -156,7 +169,6 @@ class EnterpriseTeams(JWTAuthApiView):
 class EnterpriseUserTeams(JWTAuthApiView):
     def get(self, request, enterprise_id, user_id, *args, **kwargs):
         user = request.user
-        print user_id, user.user_id
         code = 200
         if int(user_id) != int(user.user_id):
             result = general_message(400, "failed", "请求失败")
@@ -166,6 +178,14 @@ class EnterpriseUserTeams(JWTAuthApiView):
             if tenants:
                 teams_list = list()
                 for tenant in tenants:
+                    user = user_repo.get_user_by_user_id(tenant.creater)
+                    try:
+                        role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
+                    except UserRoleNotFoundException:
+                        if tenant.creater == user.user_id:
+                            role = "owner"
+                        else:
+                            role = None
                     teams_list.append({
                         "team_name": tenant.tenant_name,
                         "team_alias": tenant.tenant_alias,
@@ -174,6 +194,8 @@ class EnterpriseUserTeams(JWTAuthApiView):
                         "region": tenant.region,
                         "enterprise_id": tenant.enterprise_id,
                         "owner": tenant.creater,
+                        "owner_name": user.nick_name,
+                        "role": role
                     })
                 result = general_message(200, "team query success", "成功获取该用户加入的团队", list=teams_list)
             else:
@@ -193,6 +215,14 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             tenant = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id).first()
             active_tenants = enterprise_repo.get_user_active_teams(enterprise_id, request.user.user_id)
             if tenant:
+                user = user_repo.get_user_by_user_id(tenant.creater)
+                try:
+                    role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
+                except UserRoleNotFoundException:
+                    if tenant.creater == user.user_id:
+                        role = "owner"
+                    else:
+                        role = None
                 data = {
                     "active_teams": active_tenants,
                     "new_join_team": {
@@ -203,6 +233,8 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "region": tenant.region,
                         "enterprise_id": tenant.enterprise_id,
                         "owner": tenant.creater,
+                        "owner_name": user.nick_name,
+                        "role": role,
                     },
                 }
                 result = general_message(200, "success", None, bean=data)
