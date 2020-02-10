@@ -8,6 +8,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
 from console.services.user_services import user_services
+from console.exception.exceptions import TenantNotExistError
+from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.exceptions import UserRoleNotFoundException
 from console.repositories.service_repo import service_repo
@@ -26,7 +28,7 @@ class Enterprises(JWTAuthApiView):
         enterprises_list = []
         try:
             enterprises = enterprise_repo.get_enterprises_by_user_id(request.user.user_id)
-        except Exception as e:
+        except ExterpriseNotExistError as e:
             logger.debug(e)
             data = general_message(404, "success", "该用户未加入任何团队")
             return Response(data, status=status.HTTP_404_NOT_FOUND)
@@ -68,7 +70,7 @@ class EnterpriseAppOverView(JWTAuthApiView):
                 for service_group in service_groups:
                     try:
                         team = team_repo.get_team_by_team_id(service_group.tenant_id)
-                    except Exception:
+                    except TenantNotExistError:
                         continue
                     try:
                         group_service_list = service_repo.get_group_service_by_group_id(

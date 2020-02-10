@@ -3,6 +3,7 @@ import logging
 
 from django.db.models import Q
 
+from console.exception.exceptions import ExterpriseNotExistError
 from console.models.main import EnterpriseUserPerm
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
@@ -17,7 +18,6 @@ from www.models.main import ServiceGroup
 from www.models.main import Users
 from www.models.main import Tenants
 
-
 logger = logging.getLogger("default")
 
 
@@ -27,9 +27,12 @@ class TenantEnterpriseRepo(object):
         return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
 
     def get_enterprises_by_user_id(self, user_id):
-        tenant_ids = team_repo.get_tenants_by_user_id(user_id).values_list("tenant_id", flat=True)
-        enterprise_ids = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True)
-        return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
+        try:
+            tenant_ids = team_repo.get_tenants_by_user_id(user_id).values_list("tenant_id", flat=True)
+            enterprise_ids = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True)
+            return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
+        except Exception:
+            raise ExterpriseNotExistError
 
     def get_enterprise_apps(self, enterprise_id):
         tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)

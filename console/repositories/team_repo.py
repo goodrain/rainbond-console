@@ -3,6 +3,7 @@ import logging
 
 from django.db.models import Q
 
+from console.exception.exceptions import TenantNotExistError
 from console.models.main import RegionConfig
 from console.models.main import TeamGitlabInfo
 from console.repositories.base import BaseConnection
@@ -127,7 +128,10 @@ class TeamRepo(object):
         PermRelTenant.objects.filter(Q(user_id=user_id, tenant_id=tenant_id) & ~Q(identity='owner')).delete()
 
     def get_team_by_team_id(self, team_id):
-        return Tenants.objects.get(tenant_id=team_id)
+        try:
+            return Tenants.objects.get(tenant_id=team_id)
+        except Exception:
+            raise TenantNotExistError
 
     def get_teams_by_enterprise_id(self, enterprise_id, user_id=None, query=None):
         q = Q(enterprise_id=enterprise_id)
