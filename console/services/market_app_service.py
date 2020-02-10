@@ -7,6 +7,7 @@ import json
 import logging
 import socket
 import httplib2
+from addict import Dict
 from django.db.models import Q
 
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
@@ -713,13 +714,11 @@ class MarketAppService(object):
     def get_team_visiable_apps(self, tenant):
         tenants = team_repo.get_teams_by_enterprise_id(tenant.enterprise_id)
         tenant_names = [t.tenant_name for t in tenants]
-        public_apps = Q(scope="goodrain")
         enterprise_apps = Q(share_team__in=tenant_names, scope="enterprise")
         team_apps = Q(share_team=tenant.tenant_name, scope="team")
 
         return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(
-            public_apps | enterprise_apps
-            | team_apps)
+            enterprise_apps | team_apps)
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)
@@ -935,7 +934,7 @@ class MarketAppService(object):
                 result_list.append(rbapp)
         return total, result_list
 
-    def list_upgradeable_versions(self, tenant, service):
+    def list_upgradeable_versions(self, tenant, service, apps_versions_templates, apps_plugins_templates):
         """
         list the upgradeable versions of the rainbond center app
         corresponding to the tenant and service
@@ -947,12 +946,11 @@ class MarketAppService(object):
         install_from_cloud = False
         cur_rbd_app = None
         if service_source.extend_info:
-            pass
             # 5.1.5 Direct upgrades from the cloud city are not supported, so the cloud city API is not requested
             extend_info = json.loads(service_source.extend_info)
             if extend_info and extend_info.get("install_from_cloud", False):
                 install_from_cloud = True
-            #     cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
+                cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
         if not cur_rbd_app:
             cur_rbd_app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(
                 tenant.enterprise_id, service_source.group_key, service_source.version)
@@ -966,13 +964,21 @@ class MarketAppService(object):
             if not rbd_center_apps:
                 return None
         else:
-            # TODO:get new versions from cloud
-            rbd_center_apps = []
+            if apps_versions_templates:
+                for version in apps_versions_templates:
+                    rbd_center_apps.append(Dict({"version": version}))
+            else:
+                return None
+
         pc = PropertiesChanges(service, tenant)
         result = []
         for item in rbd_center_apps:
             try:
-                changes = pc.get_property_changes(tenant.enterprise_id, item.version)
+                changes = pc.get_property_changes(
+                    tenant.enterprise_id, item.version,
+                    version_template=apps_versions_templates.get(item.version),
+                    plugin_template=apps_plugins_templates.get(item.version)
+                )
             except (RbdAppNotFound, ErrServiceSourceNotFound) as e:
                 logger.warning(e)
                 continue
