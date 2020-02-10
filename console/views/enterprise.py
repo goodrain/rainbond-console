@@ -16,7 +16,6 @@ from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.models.main import RegionConfig
 from console.views.base import JWTAuthApiView
-from console.views.base import RegionTenantHeaderView
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -49,19 +48,10 @@ class Enterprises(JWTAuthApiView):
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
-class EnterpriseInfo(RegionTenantHeaderView):
+class EnterpriseInfo(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
         ent = enter.to_dict()
-        is_ent = False
-        try:
-            res, body = region_api.get_api_version_v2(self.team.tenant_name, self.response_region)
-            if res.status == 200 and body is not None and "enterprise" in body["raw"]:
-                is_ent = True
-        except region_api.CallApiError as e:
-            logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
-        ent["is_enterprise"] = is_ent
-
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
@@ -247,8 +237,9 @@ class EnterpriseTeamOverView(JWTAuthApiView):
         return Response(result, status=code)
 
 
-class EnterpriseMonitor(RegionTenantHeaderView):
+class EnterpriseMonitor(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
+        teams = team_repo.get_teams_by_enterprise_id(enterprise_id, request.user.user_id)
         region_memory_total = 0
         region_memory_used = 0
         region_cpu_total = 0
@@ -258,8 +249,8 @@ class EnterpriseMonitor(RegionTenantHeaderView):
             result = general_message(404, "no found", None)
             return Response(result, status=status.HTTP_200_OK)
         region_num = len(regions)
-        for region in regions:
-            res, body = region_api.get_region_resources(self.team.tenant_name, region.region_name)
+        for team in teams:
+            res, body = region_api.get_region_resources(team.tenant_name, team.region)
             if res.get("status") == 200:
                 region_memory_total += body["bean"]["cap_mem"]
                 region_memory_used += body["bean"]["req_mem"]
