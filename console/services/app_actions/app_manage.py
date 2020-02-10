@@ -786,7 +786,7 @@ class AppManageService(AppManageBase):
             msg = u"组件可能处于运行状态,请先关闭组件"
             return 409, msg
         # 判断组件是否被依赖
-        is_related, msg = self.__is_service_related(service)
+        is_related, msg = self.__is_service_related(tenant, service)
         if is_related:
             return 412, "组件被{0}依赖，不可删除".format(msg)
         # 判断组件是否被其他组件挂载
@@ -916,7 +916,7 @@ class AppManageService(AppManageBase):
                 relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
         # 如果组件被其他应用下的组件依赖，将组件对应的关系删除
-        relations = dep_relation_repo.get_dependency_by_dep_id(service.service_id)
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
         if relations:
             relations.delete()
         # 如果组件关系回收站有被此组件依赖的组件，将信息及其对应的数据中心的依赖关系删除
@@ -954,8 +954,8 @@ class AppManageService(AppManageBase):
             return True, mnt_service_names
         return False, ""
 
-    def __is_service_related(self, service):
-        tsrs = dep_relation_repo.get_dependency_by_dep_id(service.service_id)
+    def __is_service_related(self, tenant, service):
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
             services = service_repo.get_services_by_service_ids(sids).values_list("service_cname", flat=True)
@@ -966,17 +966,15 @@ class AppManageService(AppManageBase):
         return False, ""
 
     def __is_service_related_by_other_app_service(self, tenant, service):
-        tsrs = dep_relation_repo.get_dependency_by_dep_id(service.service_id)
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
         group_ids = []
         if tsrs:
             sids = list(set([tsr.service_id for tsr in tsrs]))
-            print sids, service.service_id
             service_group = ServiceGroupRelation.objects.get(
                 service_id=service.service_id, tenant_id=tenant.tenant_id)
             groups = ServiceGroupRelation.objects.filter(service_id__in=sids, tenant_id=tenant.tenant_id)
             for group in groups:
                 group_ids.append(group.group_id)
-            print group_ids, service_group.group_id
             if group_ids and service_group.group_id in group_ids:
                 group_ids.remove(service_group.group_id)
             if not group_ids:
@@ -1124,7 +1122,7 @@ class AppManageService(AppManageBase):
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
-        relations = dep_relation_repo.get_dependency_by_dep_id(service.service_id)
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
         if relations:
             relations.delete()
         mnt_repo.delete_mnt(service.service_id)

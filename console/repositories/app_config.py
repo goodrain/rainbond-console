@@ -258,8 +258,8 @@ class TenantServiceRelationRepository(object):
         return TenantServiceRelation.objects.filter(
             tenant_id=tenant_id, service_id=service_id, dep_service_id__in=dep_service_ids)
 
-    def get_dependency_by_dep_id(self, dep_service_id):
-        tsr = TenantServiceRelation.objects.filter(dep_service_id=dep_service_id)
+    def get_dependency_by_dep_id(self, tenant_id, dep_service_id):
+        tsr = TenantServiceRelation.objects.filter(tenant_id=tenant_id, dep_service_id=dep_service_id)
         return tsr
 
     def delete_service_relation(self, tenant_id, service_id):
