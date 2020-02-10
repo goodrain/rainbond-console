@@ -4,27 +4,29 @@ import logging
 import re
 import time
 
+from django import forms
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_jwt.settings import api_settings
+
+from console.exception.exceptions import UserFavoriteNotExistError
 from console.forms.users_operation import RegisterForm
 from console.repositories.perm_repo import perms_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.perm_repo import role_perm_repo
+from console.repositories.perm_repo import  role_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView
 from www import perms
-from django import forms
 from www.models.main import Users, SuperAdminUser
 from www.perms import PermActions, UserActions
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.utils.return_message import general_message, error_message
-
-from console.repositories.perm_repo import role_perm_repo, role_repo
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
@@ -445,7 +447,7 @@ class UserFavoriteUDView(JWTAuthApiView):
             rst = user_repo.update_user_favorite(user_favorite, name, url)
             if not rst:
                 result = general_message(200, "fail", "更新视图失败")
-        except Exception as e:
+        except UserFavoriteNotExistError as e:
             logger.debug(e)
             result = general_message(404, "fail", "收藏视图不存在")
         return Response(result, status=status.HTTP_200_OK)
@@ -455,7 +457,7 @@ class UserFavoriteUDView(JWTAuthApiView):
         try:
             user_favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)
             user_favorite.delete()
-        except Exception as e:
+        except UserFavoriteNotExistError as e:
             logger.debug(e)
             result = general_message(404, "fail", "收藏视图不存在")
         return Response(result, status=status.HTTP_200_OK)

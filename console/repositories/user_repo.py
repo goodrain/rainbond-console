@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
 
+from console.exception.exceptions import UserFavoriteNotExistError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.base import BaseConnection
 from console.models.main import UserFavorite
@@ -176,7 +177,10 @@ class UserRepo(object):
         return UserFavorite.objects.filter(user_id=user_id, name=name)
 
     def get_user_favorite_by_ID(self, user_id, favorite_id):
-        return UserFavorite.objects.get(user_id=user_id, ID=favorite_id)
+        try:
+            return UserFavorite.objects.get(user_id=user_id, ID=favorite_id)
+        except Exception:
+            raise UserFavoriteNotExistError
 
     def create_user_favorite(self, user_id, name, url):
         UserFavorite.objects.create(
