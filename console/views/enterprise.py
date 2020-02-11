@@ -126,13 +126,15 @@ class EnterpriseOverview(JWTAuthApiView):
 
 class EnterpriseTeams(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.user_id))
             return Response(result, status=status.HTTP_200_OK)
         teams_list = []
         teams = enterprise_repo.get_enterprise_teams(enterprise_id)
         if teams:
-            for team in teams:
+            for team in teams[(page-1)*page_size:page*page_size]:
                 user = user_repo.get_user_by_user_id(team.creater)
                 try:
                     role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
@@ -152,7 +154,13 @@ class EnterpriseTeams(JWTAuthApiView):
                     "region": team.region,
                     "role": role,
                 })
-            result = general_message(200, "success", None, list=teams_list)
+                data = {
+                    "total_count": len(teams),
+                    "page": page,
+                    "page_size": page_size,
+                    "list": teams_list
+                }
+            result = general_message(200, "success", None, bean=data)
         else:
             result = general_message(404, "no found", None)
         return Response(result, status=status.HTTP_200_OK)
