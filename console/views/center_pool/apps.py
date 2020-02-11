@@ -64,8 +64,8 @@ class CenterAppListView(RegionTenantHeaderView):
         """
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
-        page = request.GET.get("page", 1)
-        page_size = request.GET.get("page_size", 10)
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
         dev_status = request.GET.get("dev_status", None)
         app_list = []
         apps = market_app_service.get_visiable_apps_v2(

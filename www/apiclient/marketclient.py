@@ -145,6 +145,13 @@ class MarketOpenAPI(HttpClient):
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data), timeout=30)
         return self._unpack(body)
 
+    def publish_v2_create_app(self, tenant_id, data):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/console/v1/enter-market/apps"
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token),
+                               json.dumps(data), timeout=30)
+        return self._unpack(body)
+
     def publish_plugin_template_data(self, tenant_id, data):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enter-market/plugins/share"

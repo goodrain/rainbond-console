@@ -249,8 +249,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                         data["logo"] = ""
                         data["details"] = ""
                         data["share_type"] = "private"
-                        result = market_api.publish_v2_template_group_data(self.tenant.tenant_id, data)
-
+                        market_api.publish_v2_create_app(self.tenant.tenant_id, data)
                 else:
                     result = general_message(code=code, msg="failed", msg_show=msg)
                     return Response(result, status=code)
