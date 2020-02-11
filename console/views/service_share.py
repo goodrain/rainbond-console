@@ -661,10 +661,14 @@ class ShareAppsVersionsListView(RegionTenantHeaderView):
                         data[service["group_name"]]["version"].extend(
                             [version["app_version"] for version in service["app_versions"]])
                     else:
+                        if service["app_versions"]:
+                            versions = [version["app_version"] for version in service["app_versions"]]
+                        else:
+                            versions = []
                         data[service["app_key_id"]] = {
                             "group_name": service["name"],
                             "group_key": service["app_key_id"],
-                            "version": [version["app_version"] for version in service["app_versions"]],
+                            "version": versions,
                         }
             else:
                 return Response(error_message('no found'), status=404)
