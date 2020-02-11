@@ -1545,6 +1545,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def get_region_resources(self, tenant_name, region_name):
         url, token = self.__get_region_access_info(tenant_name, region_name)
-        url = url + "/v2/nodes/fullres"
+        url = url + "/v2/cluster"
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
