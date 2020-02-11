@@ -55,10 +55,9 @@ class ShareService(object):
                         data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(),
                                 "bean": dict()}
                         return data
-                    else:
-                        data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(),
-                                "bean": dict()}
-                        return data
+                data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(),
+                        "bean": dict()}
+                return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前组内无组件", "list": list(), "bean": dict()}
             return data
@@ -100,7 +99,9 @@ class ShareService(object):
                 tmp_list = []
                 if service_id in dep_service_map.keys():
                     tmp_list = dep_service_map.get(service_id)
-                dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id)[0]
+                dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id).first()
+                if dep_service_info is None:
+                    return {}
                 tmp_list.append(dep_service_info)
                 dep_service_map[service_id] = tmp_list
             return dep_service_map
@@ -214,7 +215,10 @@ class ShareService(object):
         logger.debug("======>get services deploy version failure")
         return None
 
-    def query_share_service_info(self, team, group_id):
+    def query_share_service_info(self, team, group_id, group_key):
+        service_last_share_info = self.query_service_last_share_info(group_id)
+        if service_last_share_info:
+            service_last_share_info = {service["service_id"]: service for service in service_last_share_info}
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
@@ -347,6 +351,19 @@ class ShareService(object):
                     plugin_data = spr.to_dict()
                     plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
                     data['service_related_plugin_config'].append(plugin_data)
+                if service_last_share_info:
+                    service_data = service_last_share_info.get(service.service_id)
+                    if service_data:
+                        data["extend_method_map"] = self.service_last_share_cache(
+                            data["extend_method_map"], service_data["extend_method_map"])
+                        data["port_map_list"] = self.service_last_share_cache(
+                            data["port_map_list"], service_data["port_map_list"])
+                        data["service_volume_map_list"] = self.service_last_share_cache(
+                            data["service_volume_map_list"], service_data["service_volume_map_list"])
+                        data["service_env_map_list"] = self.service_last_share_cache(
+                            data["service_env_map_list"], service_data["service_env_map_list"])
+                        data["service_connect_info_map_list"] = self.service_last_share_cache(
+                            data["service_connect_info_map_list"], service_data["service_connect_info_map_list"])
 
                 all_data_map[service.service_id] = data
 
@@ -376,10 +393,40 @@ class ShareService(object):
                             "mnt_dir":
                             dep_mnt.mnt_dir
                         })
+                if service_last_share_info:
+                    service_data = service_last_share_info.get(service_id)
+                    if service_data:
+                        service["dep_service_map_list"] = self.service_last_share_cache(
+                            service["dep_service_map_list"], service_data["dep_service_map_list"])
+
+                        service["mnt_relation_list"] = self.service_last_share_cache(
+                            service["mnt_relation_list"], service_data["mnt_relation_list"])
                 all_data.append(service)
             return all_data
         else:
             return []
+
+    def service_last_share_cache(self, service_info, last_share_info):
+        if service_info:
+            if isinstance(service_info, dict):
+                service_info.update(last_share_info)
+            elif isinstance(service_info, list):
+                for i in xrange(len(service_info)):
+                    for last_info in last_share_info:
+                        if not service_info[i].get("attr_name"):
+                            service_info[i].update(last_info)
+                            continue
+                        if service_info[i].get("attr_name") and service_info[i]["attr_name"] == last_info["attr_name"]:
+                            service_info[i] = last_info
+                            continue
+        return service_info
+
+    def query_service_last_share_info(self, group_id):
+        service_share = share_repo.get_shared_app_versions_by_groupid(group_id).first()
+        if service_share:
+            return json.loads(service_share.app_template)["apps"]
+        else:
+            return None
 
     # 查询应用内使用的插件列表
     def query_group_service_plugin_list(self, team, group_id):
@@ -799,22 +846,51 @@ class ShareService(object):
             RainbondCenterApp.objects.filter(
                 version=group_info["version"], tenant_service_group_id=share_record.group_id).delete()
             # 新增加
-            app = RainbondCenterApp(
-                group_key=app_templete["group_key"],
-                group_name=app_templete["group_name"],
-                share_user=share_user.user_id,
-                share_team=share_team.tenant_name,
-                tenant_service_group_id=share_record.group_id,
-                pic=group_info.get("pic", ""),
-                source="local",
-                record_id=share_record.ID,
-                version=group_info["version"],
-                enterprise_id=share_team.enterprise_id,
-                scope=group_info["scope"],
-                describe=group_info["describe"],
-                details=group_info.get("details", ""),
-                app_template=json.dumps(app_templete))
-            app.save()
+
+            if group_info["scope"].startswith("goodrain"):
+                # app = {
+                #     "group_key": group_info["group_key"],
+                #     "version": group_info["version"],
+                #     "template_version": "v2",
+                #     "describe": group_info["describe"],
+                #     "app_template": json.dumps(app_templete),
+                #     "group_name": group_info["group_name"],
+                #     "pic": group_info.get("pic", ""),
+                #     "details": group_info.get("details", ""),
+                # }
+                app = RainbondCenterApp(
+                    group_key=group_info["group_key"],
+                    group_name=group_info["group_name"],
+                    share_user=share_user.user_id,
+                    share_team=share_team.tenant_name,
+                    tenant_service_group_id=share_record.group_id,
+                    pic=group_info.get("pic", ""),
+                    source="local",
+                    record_id=share_record.ID,
+                    version=group_info["version"],
+                    enterprise_id=share_team.enterprise_id,
+                    scope=group_info["scope"],
+                    describe=group_info["describe"],
+                    details=group_info.get("details", ""),
+                    app_template=json.dumps(app_templete))
+                app.save()
+            else:
+                app = RainbondCenterApp(
+                    group_key=app_templete["group_key"],
+                    group_name=app_templete["group_name"],
+                    share_user=share_user.user_id,
+                    share_team=share_team.tenant_name,
+                    tenant_service_group_id=share_record.group_id,
+                    pic=group_info.get("pic", ""),
+                    source="local",
+                    record_id=share_record.ID,
+                    version=group_info["version"],
+                    enterprise_id=share_team.enterprise_id,
+                    scope=group_info["scope"],
+                    describe=group_info["describe"],
+                    details=group_info.get("details", ""),
+                    app_template=json.dumps(app_templete))
+                app.save()
             share_record.step = 2
             share_record.update_time = datetime.datetime.now()
             share_record.save()
@@ -900,6 +976,36 @@ class ShareService(object):
             else:
                 raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
                                              status_code=500, error_code=500)
+
+    @staticmethod
+    def get_shared_services_list(service):
+        data = {
+            "group_name": service["group_name"],
+            "group_key": service["group_key"],
+        }
+        return data
+
+    @staticmethod
+    def get_shared_services_versions_list(service):
+        data = {
+            "group_name": service.group_name,
+            "group_key": service.group_key,
+            "version": service.version,
+        }
+        return data
+
+    @staticmethod
+    def get_shared_services_records_list(service):
+        data = {
+            "group_name": service.group_name,
+            "group_key": service.group_key,
+            "version": service.version,
+            "create_time": service.create_time,
+            "update_time": service.update_time,
+            "scope": service.scope,
+            "upgrade_time": service.upgrade_time,
+        }
+        return data
 
 
 share_service = ShareService()
