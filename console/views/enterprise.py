@@ -134,32 +134,37 @@ class EnterpriseTeams(JWTAuthApiView):
         teams_list = []
         teams = enterprise_repo.get_enterprise_teams(enterprise_id)
         if teams:
-            for team in teams[(page-1)*page_size:page*page_size]:
-                user = user_repo.get_user_by_user_id(team.creater)
-                try:
-                    role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
-                except UserRoleNotFoundException:
-                    if team.creater == user.user_id:
-                        role = "owner"
-                    else:
-                        role = None
-                teams_list.append({
-                    "tenant_id": team.tenant_id,
-                    "team_alias": team.tenant_alias,
-                    "owner": team.creater,
-                    "owner_name": user.nick_name,
-                    "enterprise_id": enterprise_id,
-                    "create_time": team.create_time,
-                    "team_name": team.tenant_name,
-                    "region": team.region,
-                    "role": role,
-                })
-                data = {
-                    "total_count": len(teams),
-                    "page": page,
-                    "page_size": page_size,
-                    "list": teams_list
-                }
+            try:
+                rst_teams = teams[(page-1)*page_size:page*page_size]
+            except Exception:
+                rst_teams = []
+            if rst_teams:
+                for team in rst_teams:
+                    user = user_repo.get_user_by_user_id(team.creater)
+                    try:
+                        role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
+                    except UserRoleNotFoundException:
+                        if team.creater == user.user_id:
+                            role = "owner"
+                        else:
+                            role = None
+                    teams_list.append({
+                        "tenant_id": team.tenant_id,
+                        "team_alias": team.tenant_alias,
+                        "owner": team.creater,
+                        "owner_name": user.nick_name,
+                        "enterprise_id": enterprise_id,
+                        "create_time": team.create_time,
+                        "team_name": team.tenant_name,
+                        "region": team.region,
+                        "role": role,
+                    })
+            data = {
+                "total_count": len(teams),
+                "page": page,
+                "page_size": page_size,
+                "list": teams_list
+            }
             result = general_message(200, "success", None, bean=data)
         else:
             result = general_message(404, "no found", None)
