@@ -15,7 +15,7 @@ from console.repositories.perm_repo import perms_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.perm_repo import role_perm_repo
-from console.repositories.perm_repo import  role_repo
+from console.repositories.perm_repo import role_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
