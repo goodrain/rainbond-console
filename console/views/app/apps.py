@@ -18,7 +18,6 @@ logger = logging.getLogger("default")
 
 class AppLView(RegionTenantHeaderView):
     def get(self, request, enterprise_id, team_name, *args, **kwargs):
-        print enterprise_id, team_name
         name = request.GET.get("name", None)
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
