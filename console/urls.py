@@ -202,6 +202,10 @@ from console.views.service_share import ServiceShareEventPost
 from console.views.service_share import ServiceShareInfoView
 from console.views.service_share import ServiceShareRecordView
 from console.views.service_share import ShareRecordView
+from console.views.service_share import ShareAppsVersionsListView
+from console.views.service_share import ShareCloudMarkets
+from console.views.service_share import ShareServiceVersionsListView
+from console.views.service_share import ShareServiceOperationRecord
 from console.views.service_version import AppVersionManageView
 from console.views.service_version import AppVersionsView
 from console.views.services_toplogical import GroupServiceDetView
@@ -386,6 +390,11 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
     # 云市分享应用
+    url(r'^teams/(?P<team_name>[\w\-]+)/shared/apps$', ShareAppsVersionsListView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/shared/app/versions$', ShareServiceVersionsListView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/shared/cloud/markets$', ShareCloudMarkets.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/share/operation/record$',
+        ShareServiceOperationRecord.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),

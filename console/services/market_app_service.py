@@ -15,6 +15,7 @@ from console.exception.main import ErrPluginAlreadyInstalled
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
+from console.repositories.base import BaseConnection
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.app_config import volume_repo
@@ -695,6 +696,48 @@ class MarketAppService(object):
         if app_name:
             rt_apps = rt_apps.filter(Q(group_name__icontains=app_name))
         return rt_apps
+
+    def get_visiable_apps_v2(self, tenant, scope, app_name, page, page_size):
+        limit = ""
+        where = 'WHERE A.is_complete=1 AND A.enterprise_id in ("public", "{}")'.format(tenant.enterprise_id)
+        if scope:
+            if scope == "team":
+                where += ' AND A.share_team="{}"'.format(tenant.tenant_name)
+            else:
+                where += ' AND A.scope="{}"'.format(scope)
+        else:
+            where += ' AND ((A.share_team="{}") OR (A.scope in ("goodrain", "enterprise")))'.format(tenant.tenant_name)
+        if app_name:
+            where += ' AND A.group_name like "{}%"'.format(app_name)
+        if page is not None and page_size is not None:
+            page = (page - 1) * page_size
+            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+        sql = """
+                SELECT
+                    A.*,
+                    CONCAT('[',
+                        GROUP_CONCAT(
+                        CONCAT('{"tag_id":"',C.ID,'"'),',',
+                        CONCAT('"name":"',C.name),'"}')
+                    ,']') as tags
+                FROM rainbond_center_app A
+                LEFT JOIN rainbond_center_app_tag_relation B
+                ON A.group_key = B.group_key and A.enterprise_id = B.enterprise_id
+                LEFT JOIN rainbond_center_app_tag C
+                ON B.tag_id = C.ID
+                """
+        sql1 = """
+                GROUP BY
+                    A.group_key, A.version
+                ORDER BY
+                    A.create_time DESC
+                """
+        sql += where
+        sql += sql1
+        sql += limit
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result
 
     def get_current_team_shared_apps(self, enterprise_id, current_team_name):
         return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team=current_team_name)
