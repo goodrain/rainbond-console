@@ -95,7 +95,7 @@ class AppDetailView(AppBaseView):
                     result = general_message(200, "success", "查询成功", bean=bean)
                     return Response(result, status=result["code"])
                 rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-                    self.tenant.enterprise_id,service_source.group_key, service_source.version)
+                    self.tenant.enterprise_id, service_source.group_key, service_source.version)
                 if not rain_app:
                     result = general_message(200, "success", "当前云市组件已删除", bean=bean)
                     return Response(result, status=result["code"])
