@@ -8,6 +8,7 @@ import logging
 from django.db import transaction
 from rest_framework.response import Response
 
+from console.repositories.plugin import service_plugin_config_repo
 from console.services.common_services import common_services
 from console.services.plugin import app_plugin_service
 from console.services.plugin import plugin_version_service
@@ -206,6 +207,8 @@ class ServicePluginOperationView(AppBaseView):
             else:
                 build_version = service_plugin_relation.build_version
             pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
+            spcr = service_plugin_config_repo.get_service_plugin_config_var(
+                self.service.service_id, plugin_id, build_version).first()
             # 更新内存和cpu
             min_memory = request.data.get("min_memory", pbv.min_memory)
             min_cpu = common_services.calculate_cpu(self.service.service_region, min_memory)
@@ -221,9 +224,11 @@ class ServicePluginOperationView(AppBaseView):
                 self.response_region, self.tenant.tenant_name, self.service.service_alias, data)
             # 更新本地数据
             app_plugin_service.start_stop_service_plugin(self.service.service_id, plugin_id, is_active)
-            pbv.min_memory = min_memory
-            pbv.min_cpu = min_cpu
-            pbv.save()
+            if spcr:
+                spcr.min_memory = min_memory
+                spcr.min_cpu = min_cpu            # pbv.min_memory = min_memory
+            # pbv.min_cpu = min_cpu
+                spcr.save()
             result = general_message(200, "success", "操作成功")
         except Exception, e:
             logger.exception(e)

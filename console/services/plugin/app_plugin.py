@@ -142,6 +142,13 @@ class AppPluginService(object):
 
         dsn = BaseConnection()
         installed_plugins = dsn.query(query_installed_plugin)
+        for installed_plugin in installed_plugins:
+
+            plugin = service_plugin_config_repo.get_service_plugin_config_var(
+                service_id, installed_plugin.plugin_id, installed_plugin.build_version).first()
+            installed_plugin.min_memory = plugin.min_memory
+            installed_plugin.min_cpu = plugin.min_cpu
+
         uninstalled_plugins = dsn.query(query_uninstalled_plugin)
         return installed_plugins, uninstalled_plugins
 
@@ -158,6 +165,7 @@ class AppPluginService(object):
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
         """console层保存默认的数据"""
         config_groups = plugin_config_service.get_config_group(plugin_id, build_version)
+        plugin_version = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
         service_plugin_var = []
         for config_group in config_groups:
 
@@ -176,7 +184,10 @@ class AppPluginService(object):
                         dest_service_alias="",
                         container_port=0,
                         attrs=json.dumps(attrs_map),
-                        protocol=""))
+                        protocol="",
+                        min_memory=plugin_version.min_memory,
+                        min_cpu=plugin_version.min_cpu,
+                    ))
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 if not self.__check_ports_for_config_items(ports, items):
@@ -197,7 +208,10 @@ class AppPluginService(object):
                             dest_service_alias="",
                             container_port=port.container_port,
                             attrs=json.dumps(attrs_map),
-                            protocol=port.protocol))
+                            protocol=port.protocol,
+                            min_memory=plugin_version.min_memory,
+                            min_cpu=plugin_version.min_cpu,
+                        ))
 
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
@@ -223,7 +237,10 @@ class AppPluginService(object):
                                 dest_service_alias=dep_service.service_alias,
                                 container_port=port.container_port,
                                 attrs=json.dumps(attrs_map),
-                                protocol=port.protocol))
+                                protocol=port.protocol,
+                                min_memory=plugin_version.min_memory,
+                                min_cpu=plugin_version.min_cpu,
+                            ))
         # 保存数据
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
         return 200, "success"

@@ -149,6 +149,8 @@ class ServicePluginConfigVar(BaseModel):
     attrs = models.CharField(max_length=1024, help_text=u"键值对", default="")
     protocol = models.CharField(max_length=16, help_text=u"端口协议", default="")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    min_memory = models.IntegerField(help_text=u"内存")
+    min_cpu = models.IntegerField(help_text=u"cpu")
 
 
 class ConstKey():
