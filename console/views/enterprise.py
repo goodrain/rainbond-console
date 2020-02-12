@@ -70,7 +70,7 @@ class EnterpriseAppOverView(JWTAuthApiView):
                 for service_group in service_groups:
                     try:
                         team = team_repo.get_team_by_team_id(service_group.tenant_id)
-                    except TenantNotExistError:
+                    except (TenantNotExistError, Exception):
                         continue
                     try:
                         group_service_list = service_repo.get_group_service_by_group_id(
