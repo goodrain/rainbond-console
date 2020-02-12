@@ -66,30 +66,29 @@ class TenantEnterpriseRepo(object):
         if not tenants:
             return None
         active_tenants_list = []
-        if tenants:
-            for tenant in tenants:
-                user = user_repo.get_user_by_user_id(tenant.creater)
-                try:
-                    role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
-                except UserRoleNotFoundException:
-                    if tenant.creater == user.user_id:
-                        role = "owner"
-                    else:
-                        role = None
-                active_tenants_list.append({
-                    "tenant_id": tenant.tenant_id,
-                    "team_alias": tenant.tenant_alias,
-                    "owner": tenant.creater,
-                    "owner_name": user.nick_name,
-                    "enterprise_id": tenant.enterprise_id,
-                    "create_time": tenant.create_time,
-                    "team_name": tenant.tenant_name,
-                    "region": tenant.region,
-                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
-                    "role": role
-                })
-            active_tenants_list.sort(key=lambda x: x["num"])
-            active_tenants_list = active_tenants_list[:3]
+        for tenant in tenants:
+            user = user_repo.get_user_by_user_id(tenant.creater)
+            try:
+                role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
+            except UserRoleNotFoundException:
+                if tenant.creater == user.user_id:
+                    role = "owner"
+                else:
+                    role = None
+            active_tenants_list.append({
+                "tenant_id": tenant.tenant_id,
+                "team_alias": tenant.tenant_alias,
+                "owner": tenant.creater,
+                "owner_name": user.nick_name,
+                "enterprise_id": tenant.enterprise_id,
+                "create_time": tenant.create_time,
+                "team_name": tenant.tenant_name,
+                "region": tenant.region,
+                "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
+                "role": role
+            })
+        active_tenants_list.sort(key=lambda x: x["num"])
+        active_tenants_list = active_tenants_list[:3]
         return active_tenants_list
 
     def get_enterprise_by_enterprise_name(self, enterprise_name):
