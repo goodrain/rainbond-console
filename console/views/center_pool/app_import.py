@@ -128,7 +128,7 @@ class CenterAppImportView(RegionTenantHeaderView):
             if tenant_name:
                 tenant = team_repo.get_team_by_team_name(tenant_name)
             else:
-                tenant =self.tenant
+                tenant = self.tenant
             files = file_name.split(",")
             import_service.start_import_apps(tenant, self.response_region, scope, event_id, files)
             result = general_message(200, 'success', "操作成功，正在导入")
