@@ -26,20 +26,16 @@ class AppLView(RegionTenantHeaderView):
         if not team:
             result = general_message(404, "no found", "团队不存在")
             return Response(result, status=status.HTTP_200_OK)
-        try:
-            data = []
-            app_list = service_repo.get_app_list(team_id, name, page, page_size)
-            app_count = service_repo.get_app_count(team_id, name)
-            for app in app_list:
-                data.append({
-                    "ID": app.ID,
-                    "group_name": app.group_name,
-                    "tenant_id": app.tenant_id,
-                    "service_list": json.loads(app.service_list) if app.service_list else []
-                })
-            result = general_message(200, "success", "获取成功", list=data,
-                                     total_count=len(app_count), page=page, page_size=page_size)
-        except Exception as e:
-            logger.debug(e)
-            result = general_message(400, "fail", "获取失败")
+        data = []
+        app_list = service_repo.get_app_list(team_id, name, page, page_size)
+        app_count = service_repo.get_app_count(team_id, name)
+        for app in app_list:
+            data.append({
+                "ID": app.ID,
+                "group_name": app.group_name,
+                "tenant_id": app.tenant_id,
+                "service_list": json.loads(app.service_list) if app.service_list else []
+            })
+        result = general_message(200, "success", "获取成功", list=data,
+                                 total_count=len(app_count), page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
