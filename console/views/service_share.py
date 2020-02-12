@@ -209,7 +209,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                     share_group_info["version"] = 'v1.0'
                     share_group_info["branch"] = "release"
                     share_group_info["describe"] = 'This is a default description.'
-                    share_group_info["scope"] = (scope + 'private' if scope == "goodrian" else scope)
+                    share_group_info["scope"] = (scope + ':private' if scope == "goodrian" else scope)
                     share_group_info["share_id"] = share_record.group_id
                     share_group_info["pic"] = ''
                     share_group_info["share_team"] = team_name
@@ -236,20 +236,20 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                     app = rainbond_app_repo.get_rainbond_app_by_record_id(share_record.ID)
                     if scope == "goodrain" and app:
                         market_api = MarketOpenAPI()
-                        data = dict()
-                        data["tenant_id"] = self.tenant.tenant_id
-                        data["group_key"] = group_key
-                        data["group_version"] = ""
-                        data["template_version"] = ""
-                        data["publish_user"] = user.nick_name
-                        data["publish_team"] = self.tenant.tenant_alias
-                        data["update_note"] = "This is a default description."
-                        data["group_template"] = "v2"
-                        data["group_share_alias"] = app_name
-                        data["logo"] = ""
-                        data["details"] = ""
-                        data["share_type"] = "private"
-                        market_api.publish_v2_create_app(self.tenant.tenant_id, data)
+                        request_data = dict()
+                        request_data["tenant_id"] = self.tenant.tenant_id
+                        request_data["group_key"] = group_key
+                        request_data["group_version"] = ""
+                        request_data["template_version"] = ""
+                        request_data["publish_user"] = user.nick_name
+                        request_data["publish_team"] = self.tenant.tenant_alias
+                        request_data["update_note"] = "This is a default description."
+                        request_data["group_template"] = "v2"
+                        request_data["group_share_alias"] = app_name
+                        request_data["logo"] = ""
+                        request_data["details"] = ""
+                        request_data["share_type"] = "private"
+                        market_api.publish_v2_create_app(self.tenant.tenant_id, request_data)
                 else:
                     result = general_message(code=code, msg="failed", msg_show=msg)
                     return Response(result, status=code)
@@ -666,10 +666,14 @@ class ShareAppsVersionsListView(RegionTenantHeaderView):
                         data[service["group_name"]]["version"].extend(
                             [version["app_version"] for version in service["app_versions"]])
                     else:
+                        if service["app_versions"]:
+                            versions = [version["app_version"] for version in service["app_versions"]]
+                        else:
+                            versions = []
                         data[service["app_key_id"]] = {
                             "group_name": service["name"],
                             "group_key": service["app_key_id"],
-                            "version": [version["app_version"] for version in service["app_versions"]],
+                            "version": versions,
                         }
             else:
                 return Response(error_message('no found'), status=404)
