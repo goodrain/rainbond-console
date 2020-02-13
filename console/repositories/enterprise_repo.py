@@ -41,11 +41,15 @@ class TenantEnterpriseRepo(object):
     def get_enterprise_users(self, enterprise_id):
         return Users.objects.filter(enterprise_id=enterprise_id, is_active=True)
 
-    def get_enterprise_user_teams(self, enterprise_id, user_id):
-        return team_repo.get_tenants_by_user_id(user_id=user_id)
+    def get_enterprise_user_teams(self, enterprise_id, user_id, name):
+        return team_repo.get_tenants_by_user_id(user_id, name)
 
-    def get_enterprise_teams(self, enterprise_id):
-        return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
+    def get_enterprise_teams(self, enterprise_id, name=None):
+        if name:
+            return Tenants.objects.filter(
+                enterprise_id=enterprise_id, is_active=True, tenant_alias__contains=name).order_by("-create_time")
+        else:
+            return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
     def get_enterprise_shared_service_nums(self, enterprise_id):
         service_groups = self.get_enterprise_apps(enterprise_id)

@@ -128,11 +128,12 @@ class EnterpriseTeams(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
+        name = request.GET.get("name", None)
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.user_id))
             return Response(result, status=status.HTTP_200_OK)
         teams_list = []
-        teams = enterprise_repo.get_enterprise_teams(enterprise_id)
+        teams = enterprise_repo.get_enterprise_teams(enterprise_id, name)
         if teams:
             try:
                 rst_teams = teams[(page-1)*page_size:page*page_size]
@@ -174,12 +175,13 @@ class EnterpriseTeams(JWTAuthApiView):
 class EnterpriseUserTeams(JWTAuthApiView):
     def get(self, request, enterprise_id, user_id, *args, **kwargs):
         user = request.user
+        name = request.GET.get("name", None)
         code = 200
         if int(user_id) != int(user.user_id):
             result = general_message(400, "failed", "请求失败")
             return Response(result, status=code)
         try:
-            tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user_id)
+            tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user_id, name)
             if tenants:
                 teams_list = list()
                 for tenant in tenants:
