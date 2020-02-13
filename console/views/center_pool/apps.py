@@ -5,8 +5,9 @@
 import logging
 import httplib2
 import httplib
-import json
+from django.core.paginator import Paginator
 from django.db.models import F
+from django.db.models import Min
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -61,44 +62,31 @@ class CenterAppListView(RegionTenantHeaderView):
         """
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 10))
-        app_list = []
-        apps = market_app_service.get_visiable_apps_v2(
-            self.tenant, scope, app_name, page, page_size)
-        for app in apps:
-            app_list.append({
-                "update_time": app.update_time,
-                "describe": app.describe,
-                "tenant_service_group_id": app.tenant_service_group_id,
-                "pic": app.pic,
-                "is_ingerit": app.is_ingerit,
-                "app_template": app.app_template,
-                "group_name": app.group_name,
-                "export_status": export_service.get_export_record_status(self.tenant.enterprise_id, app.group_key,
-                                                                         app.version),
-                "create_time": app.create_time,
-                "scope": app.scope,
-                "app_id": app.group_key,
-                "version": app.version,
-                "tags": (json.loads(app.tags) if app.tags else []),
-                "enterprise_id": app.enterprise_id,
-                "is_official": app.is_official,
-                "upgrade_time": app.upgrade_time,
-                "ID": app.ID,
-                "template_version": app.template_version,
-                "source": app.source,
-                "details": app.details,
-                "share_team": app.share_team,
-                "record_id": app.record_id,
-                "install_number": app.install_number,
-                "min_memory": group_service.get_service_group_memory(app.app_template),
-                "is_complete": app.is_complete,
-                "share_user": app.share_user,
-            })
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+
+        apps = market_app_service.get_visiable_apps(
+            self.tenant, scope, app_name).values('group_key').annotate(
+            id=Min('ID'))
+        paginator = Paginator(apps, int(page_size))
+        show_apps = paginator.page(int(page))
+
+        def yield_apps():
+            for app_value in show_apps:
+                app = RainbondCenterApp.objects.get(pk=app_value['id'])
+                group_version_list = RainbondCenterApp.objects.filter(
+                    is_complete=True, group_key=app_value['group_key']).values_list(
+                        'version', flat=True) or []
+                yield dict(
+                    group_version_list=group_version_list,
+                    min_memory=group_service.get_service_group_memory(app.app_template),
+                    export_status=export_service.get_export_record_status(self.tenant.enterprise_id, app.group_key,
+                                                                          group_version_list[0]) or '',
+                    **app.to_dict())
 
         return MessageResponse(
-            "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
+            "success", msg_show="查询成功", list=[app for app in yield_apps()],
+            total=paginator.count, next_page=int(page) + 1)
 
 
 class CenterAppView(RegionTenantHeaderView):
