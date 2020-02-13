@@ -44,6 +44,15 @@ class AppVolumeService(object):
 
     default_volume_type = "share-file"
     simple_volume_type = [default_volume_type, "config-file", "memoryfs", "local"]
+    stateless_volume_types = [
+        {"volume_type": "share-file", "name_show": "共享存储（文件）"},
+        {"volume_type": "memoryfs", "name_show": "内存文件存储"}
+        ]
+    state_volume_types = [
+        {"volume_type": "share-file", "name_show": "共享存储（文件）"},
+        {"volume_type": "memoryfs", "name_show": "内存文件存储"},
+        {"volume_type": "local", "name_show": "本地存储"}
+        ]
 
     def ensure_volume_share_policy(self, tenant, service):
         volumes = self.get_service_volumes(tenant, service)
@@ -57,15 +66,11 @@ class AppVolumeService(object):
         return True
 
     def get_service_support_volume_options(self, tenant, service):
+        if service.extend_method != "state":  # 无状态组件
+            return self.stateless_volume_types
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        opts = []
+        opts = self.state_volume_types
         for opt in body.list:
-            if service.extend_method != "state":  # 无状态组件
-                if opt["volume_type"] == "local":
-                    continue
-                if opt["access_mode"] is not None:
-                    if len(opt["access_mode"]) == 1 and opt["access_mode"][0] == "RWO":
-                        continue
             opts.append(opt)
         return opts
 
