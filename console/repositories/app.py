@@ -124,6 +124,62 @@ class TenantServiceInfoRepository(object):
     def create(self, service_base):
         TenantServiceInfo(**service_base).save()
 
+    def get_app_list(self, tenant_ids, name, page, page_size):
+        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
+        if name:
+            where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
+        limit = "LIMIT {page}, {page_size}".format(page=page-1, page_size=page_size)
+        conn = BaseConnection()
+        sql = """
+        SELECT
+            A.ID,
+            A.group_name,
+            A.tenant_id,
+            CONCAT('[',
+                GROUP_CONCAT(
+                CONCAT('{"service_cname":"',C.service_cname,'"'),',',
+                CONCAT('"service_id":"',C.service_id,'"'),',',
+                CONCAT('"service_key":"',C.service_key,'"'),',',
+                CONCAT('"service_alias":"',C.service_alias),'"}')
+            ,']') AS service_list
+        FROM service_group A
+        LEFT JOIN service_group_relation B
+        ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
+        LEFT JOIN tenant_service C
+        ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
+        """
+        sql += where + "GROUP BY A.ID "
+        sql += limit
+        result = conn.query(sql)
+        return result
+
+    def get_app_count(self, tenant_ids, name):
+        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
+        if name:
+            where += ' AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%")'.format(name, name)
+        conn = BaseConnection()
+        sql = """
+        SELECT
+            A.ID,
+            A.group_name,
+            A.tenant_id,
+            CONCAT('[',
+            GROUP_CONCAT(
+                CONCAT('{"service_cname":"',C.service_cname,'"'),',',
+                CONCAT('"service_id":"',C.service_id,'"'),',',
+                CONCAT('"service_key":"',C.service_key,'"'),',',
+                CONCAT('"service_alias":"',C.service_alias),'"}')
+            ,']') AS service_list
+        FROM service_group A
+        LEFT JOIN service_group_relation B
+        ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
+        LEFT JOIN tenant_service C
+        ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
+        """
+        sql += where + "GROUP BY A.ID "
+        result = conn.query(sql)
+        return result
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):

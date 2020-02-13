@@ -265,6 +265,7 @@ from console.views.oauth import OauthType
 from console.views.oauth import OauthServiceInfo
 from console.views.oauth import OAuthServerUserAuthorize
 from console.views.oauth import OAuthGitCodeDetection
+from console.views.app.apps import AppLView
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -803,6 +804,8 @@ urlpatterns = [
     url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/apps$', AppLView.as_view()),
+
     # # 获取企业下所有用户信息(企业中心中：删除用户)
     # url(r'^enterprise/users$', AllUserView.as_view()),
     # # 企业中心模糊查询团队
