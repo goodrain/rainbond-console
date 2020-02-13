@@ -58,19 +58,19 @@ def get_contends(path):
 
 
 def get_ssl_ca_cert():
-    content = get_contends("/app/region/ssl/ssl_ca_cert")
+    content = get_contends("/app/region/ssl/ca.pem")
     print(content)
     return content
 
 
 def get_cert_file():
-    content = get_contends("/app/region/ssl/cert_file")
+    content = get_contends("/app/region/ssl/client.pem")
     print(content)
     return content
 
 
 def get_key_file():
-    content = get_contends("/app/region/ssl/key_file")
+    content = get_contends("/app/region/ssl/client.key.pem")
     print(content)
     return content
 
