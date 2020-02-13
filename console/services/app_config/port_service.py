@@ -114,7 +114,7 @@ class AppPortService(object):
                 if not probe:
                     params = {
                         "http_header": "",
-                        "initial_delay_second": 2,
+                        "initial_delay_second": 4,
                         "is_used": True,
                         "mode": "ignore",
                         "path": "",
@@ -122,7 +122,7 @@ class AppPortService(object):
                         "port": int(new_port.container_port),
                         "scheme": "tcp",
                         "success_threshold": 1,
-                        "timeout_second": 20
+                        "timeout_second": 5
                     }
                     code, msg, probe = pros.add_service_probe(tenant, service, params)
                     if code != 200:
