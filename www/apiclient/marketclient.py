@@ -145,13 +145,6 @@ class MarketOpenAPI(HttpClient):
         res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data), timeout=30)
         return self._unpack(body)
 
-    def publish_v2_create_app(self, tenant_id, data):
-        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url += "/openapi/console/v1/enter-market/apps"
-        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token),
-                               json.dumps(data), timeout=30)
-        return self._unpack(body)
-
     def publish_plugin_template_data(self, tenant_id, data):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enter-market/plugins/share"
@@ -239,44 +232,3 @@ class MarketOpenAPI(HttpClient):
             enterprise_id, page, page_size, start, end)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return body
-
-    def get_app_template(self, tenant_id, group_key, version):
-        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/console/v1/enter-market/apps/{0}?group_version={1}".format(group_key, version)
-        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        return body
-
-
-class MarketOpenAPIV2(HttpClient):
-    def __init__(self, *args, **kwargs):
-        HttpClient.__init__(self, *args, **kwargs)
-        self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
-        self.version = "v2"
-
-    def __auth_header(self, market_client_id, market_client_token):
-        self.default_headers.update({"X_ENTERPRISE_ID": market_client_id, "X_ENTERPRISE_TOKEN": market_client_token})
-        return self.default_headers
-
-    def get_app_versions(self, tenant_id, group_key):
-        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/{1}/enter-market/apps/{0}/versions".format(group_key, self.version)
-        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        if res.get("status") == 200 and not body.get("error_code"):
-            return body
-        return None
-
-    def get_apps_versions(self, tenant_id):
-        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v2/enter-market/apps"
-        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        if res.get("status") == 200 and isinstance(body, list):
-            return body
-        return None
-
-    def get_markets(self, tenant_id):
-        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
-        url = url + "/openapi/v2/enter-markets"
-        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        if res.get("status") == 200 and not body.get("error_code"):
-            return body
-        return None
