@@ -760,3 +760,4 @@ class UserFavorite(BaseModel):
     user_id = models.IntegerField(help_text=u"用户id")
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
+    custom_sort = models.IntegerField(help_text=u"用户自定义排序")

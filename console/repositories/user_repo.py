@@ -171,7 +171,7 @@ class UserRepo(object):
         return result[0].get("total")
 
     def get_user_favorite(self, user_id):
-        return UserFavorite.objects.filter(user_id=user_id).order_by("-create_time")
+        return UserFavorite.objects.filter(user_id=user_id).order_by("custom_sort")
 
     def get_user_favorite_by_name(self, user_id, name):
         return UserFavorite.objects.filter(user_id=user_id, name=name)
@@ -183,21 +183,50 @@ class UserRepo(object):
             raise UserFavoriteNotExistError
 
     def create_user_favorite(self, user_id, name, url):
+        user_favorites = self.get_user_favorite(user_id)
+        if user_favorites:
+            custom_sort = user_favorites.last().custom_sort + 1
+        else:
+            custom_sort = 0
         UserFavorite.objects.create(
             user_id=user_id,
             name=name,
-            url=url
+            url=url,
+            custom_sort=custom_sort
         )
 
-    def update_user_favorite(self, user_favorite, name, url):
+    def update_user_favorite(self, user_favorite, name, url, custom_sort):
         rst = True
         try:
             user_favorite.name = name
             user_favorite.url = url
+            if custom_sort != user_favorite.custom_sort:
+                user_favorites = self.get_user_favorite(user_favorite.user_id)
+                if custom_sort < user_favorite.custom_sort:
+                    operate_user_favorites = user_favorites[custom_sort: user_favorite.custom_sort]
+                    for operate_user_favorite in operate_user_favorites:
+                        print operate_user_favorite.ID
+                        operate_user_favorite.custom_sort += 1
+                        operate_user_favorite.save()
+                elif custom_sort > user_favorite.custom_sort:
+                    operate_user_favorites = user_favorites[user_favorite.custom_sort+1: custom_sort+1]
+                    for operate_user_favorite in operate_user_favorites:
+                        operate_user_favorite.custom_sort -= 1
+                        operate_user_favorite.save()
+            user_favorite.custom_sort = custom_sort
             user_favorite.save()
         except Exception:
             rst = False
         return rst
+
+    def delete_user_favorite_by_id(self, user_id, favorite_id):
+        user_favorites = self.get_user_favorite(user_id)
+        tar_user_favorite = self.get_user_favorite_by_ID(user_id, favorite_id)
+        operate_user_favorites = user_favorites[tar_user_favorite.custom_sort:]
+        for operate_user_favorite in operate_user_favorites:
+            operate_user_favorite.custom_sort -= 1
+            operate_user_favorite.save()
+        tar_user_favorite.delete()
 
 
 user_repo = UserRepo()

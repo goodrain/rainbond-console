@@ -404,7 +404,8 @@ class UserFavoriteLCView(JWTAuthApiView):
                     data.append({
                         "name": user_favorite.name,
                         "url": user_favorite.url,
-                        "favorite_id": user_favorite.ID
+                        "favorite_id": user_favorite.ID,
+                        "custom_sort": user_favorite.custom_sort
                     })
         except Exception as e:
             logger.debug(e)
@@ -440,11 +441,12 @@ class UserFavoriteUDView(JWTAuthApiView):
         result = general_message(200, "success", "更新成功")
         name = request.data.get("name")
         url = request.data.get("url")
+        custom_sort = request.data.get("custom_sort")
         if not (name and url):
             result = general_message(400, "fail", "参数错误")
         try:
             user_favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)
-            rst = user_repo.update_user_favorite(user_favorite, name, url)
+            rst = user_repo.update_user_favorite(user_favorite, name, url, custom_sort)
             if not rst:
                 result = general_message(200, "fail", "更新视图失败")
         except UserFavoriteNotExistError as e:
@@ -455,8 +457,7 @@ class UserFavoriteUDView(JWTAuthApiView):
     def delete(self, request, favorite_id):
         result = general_message(200, "success", "删除成功")
         try:
-            user_favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)
-            user_favorite.delete()
+            user_repo.delete_user_favorite_by_id(request.user.user_id, favorite_id)
         except UserFavoriteNotExistError as e:
             logger.debug(e)
             result = general_message(404, "fail", "收藏视图不存在")
