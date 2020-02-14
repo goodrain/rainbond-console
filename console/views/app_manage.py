@@ -278,10 +278,6 @@ class HorizontalExtendAppView(AppBaseView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            if self.service.extend_method == "state" and new_node != 1:
-                if volume_service.ensure_volume_share_policy(self.tenant, self.service) is False:
-                    return Response(general_message(400, "do not allow multi node", "存储读写策略限制，不允许扩展多实例"), status=400)
-
             code, msg = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
             bean = {}
             if code != 200:
