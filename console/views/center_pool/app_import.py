@@ -8,6 +8,7 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.repositories.team_repo import team_repo
 from console.services.file_upload_service import upload_service
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
@@ -116,14 +117,20 @@ class CenterAppImportView(RegionTenantHeaderView):
         try:
             scope = request.data.get("scope", None)
             file_name = request.data.get("file_name", None)
+            tenant_name = request.data.get("tenant_name", None)
+
             if not scope:
                 return Response(general_message(400, "param scope is null", "请指定导入应用可见范围"), status=400)
             if not file_name:
                 return Response(general_message(400, "file name is null", "文件名称为空"), status=400)
             if not event_id:
                 return Response(general_message(400, "event id is not found", "参数错误"), status=400)
+            if tenant_name:
+                tenant = team_repo.get_team_by_team_name(tenant_name)
+            else:
+                tenant = self.tenant
             files = file_name.split(",")
-            import_service.start_import_apps(self.tenant, self.response_region, scope, event_id, files)
+            import_service.start_import_apps(tenant, self.response_region, scope, event_id, files)
             result = general_message(200, 'success', "操作成功，正在导入")
         except Exception as e:
             logger.exception(e)
