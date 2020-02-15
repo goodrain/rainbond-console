@@ -3,6 +3,7 @@
   Created on 18/1/17.
 """
 import re
+import copy
 
 from console.constants import AppConstants
 from console.repositories.app_config import volume_repo, mnt_repo
@@ -69,7 +70,7 @@ class AppVolumeService(object):
         if service.extend_method != "state":  # 无状态组件
             return self.stateless_volume_types
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        opts = self.state_volume_types
+        opts = copy.deepcopy(self.state_volume_types)
         for opt in body.list:
             opts.append(opt)
         return opts
