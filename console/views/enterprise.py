@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+from datetime import datetime
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -218,21 +219,23 @@ class EnterpriseUserTeams(JWTAuthApiView):
 class EnterpriseTeamOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         code = 200
+        new_join_team = []
         try:
-            tenant = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id).first()
+            tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id)
+            join_tenants = enterprise_repo.get_enterprise_user_join_teams(enterprise_id, request.user.user_id)
+            tenants = tenants[:3]
             active_tenants = enterprise_repo.get_user_active_teams(enterprise_id, request.user.user_id)
-            if tenant:
-                user = user_repo.get_user_by_user_id(tenant.creater)
-                try:
-                    role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
-                except UserRoleNotFoundException:
-                    if tenant.creater == user.user_id:
-                        role = "owner"
-                    else:
-                        role = None
-                data = {
-                    "active_teams": active_tenants,
-                    "new_join_team": {
+            if tenants:
+                for tenant in tenants:
+                    user = user_repo.get_user_by_user_id(tenant.creater)
+                    try:
+                        role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
+                    except UserRoleNotFoundException:
+                        if tenant.creater == user.user_id:
+                            role = "owner"
+                        else:
+                            role = None
+                    new_join_team.append({
                         "team_name": tenant.tenant_name,
                         "team_alias": tenant.tenant_alias,
                         "team_id": tenant.tenant_id,
@@ -242,7 +245,28 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "owner": tenant.creater,
                         "owner_name": user.nick_name,
                         "role": role,
-                    },
+                        "is_pass": True,
+                    })
+            if join_tenants:
+                for tenant in join_tenants:
+                    tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
+                    user = user_repo.get_user_by_user_id(tenant_info.creater)
+                    new_join_team.append({
+                        "team_name": tenant.user_name,
+                        "team_alias": tenant.team_alias,
+                        "team_id": tenant.team_id,
+                        "create_time": tenant_info.create_time,
+                        "region": tenant_info.region,
+                        "enterprise_id": tenant_info.enterprise_id,
+                        "owner": tenant_info.creater,
+                        "owner_name": user.nick_name,
+                        "role": None,
+                        "is_pass": False,
+                    })
+            if new_join_team:
+                data = {
+                    "active_teams": active_tenants,
+                    "new_join_team": new_join_team
                 }
                 result = general_message(200, "success", None, bean=data)
             else:

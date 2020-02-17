@@ -405,6 +405,27 @@ class UserService(object):
 
         return users, total
 
+    def get_admin_users(self, eid):
+        perms = EnterpriseUserPerm.objects.filter(enterprise_id=eid)
+        users = []
+        for item in perms:
+            try:
+                user = user_services.get_user_by_user_id(item.user_id)
+                users.append({
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "nick_name": user.nick_name,
+                    "phone": user.phone,
+                    "is_active": user.is_active,
+                    "origion": user.origion,
+                    "create_time": user.create_time,
+                    "client_ip": user.client_ip,
+                    "enterprise_id": user.enterprise_id,
+                })
+            except UserNotExistError:
+                logger.warning("user_id: {}; user not found".format(item.user_id))
+        return users
+
     def create_admin_user(self, user, ent):
         # 判断用户是否为企业管理员
         if user_services.is_user_admin_in_current_enterprise(user, ent.enterprise_id):

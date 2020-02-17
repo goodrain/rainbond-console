@@ -12,6 +12,8 @@ from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import ServiceShareRecord
 from console.models.main import ServiceShareRecordEvent
+from console.models.main import Applicants
+
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo
 from www.models.main import ServiceGroup
@@ -41,8 +43,11 @@ class TenantEnterpriseRepo(object):
     def get_enterprise_users(self, enterprise_id):
         return Users.objects.filter(enterprise_id=enterprise_id, is_active=True)
 
-    def get_enterprise_user_teams(self, enterprise_id, user_id, name):
+    def get_enterprise_user_teams(self, enterprise_id, user_id, name=None):
         return team_repo.get_tenants_by_user_id(user_id, name)
+
+    def get_enterprise_user_join_teams(self, enterprise_id, user_id):
+        return Applicants.objects.filter(user_id=user_id, is_pass=False).order_by("-apply_time")
 
     def get_enterprise_teams(self, enterprise_id, name=None):
         if name:
