@@ -5,6 +5,7 @@ import json
 
 from django.db.models import Q
 from rest_framework.response import Response
+from rest_framework import status
 
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
@@ -174,14 +175,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        create_type = request.GET.get("create_type")
-        group_key = request.GET.get("group_key")
-        version = request.GET.get("version")
-        scope = request.GET.get("scope")
-        app_name = request.GET.get("app_name")
-        share_group_info = dict()
         data = dict()
-        share_group = None
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -190,164 +184,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
             return Response(result, status=400)
 
-        if create_type:
-            if create_type == "new":
-                try:
-                    user = user_services.get_user_by_user_name(user_name=request.user)
-                    if not user:
-                        result = general_message(400, "user failed", "数据紊乱，非当前用户操作页面")
-                        return Response(result, status=400)
-                except UserNotExistError as e:
-                    result = general_message(400, e.message, "用户不存在")
-                    return Response(result, status=400)
-                code, msg, group = group_service.get_group_by_id(
-                    tenant=self.team, region=self.response_region, group_id=share_record.group_id)
-                if code == 200:
-                    group_key = make_uuid()
-                    share_group_info["group_key"] = group_key
-                    share_group_info["group_name"] = app_name
-                    share_group_info["version"] = 'v1.0'
-                    share_group_info["branch"] = "release"
-                    share_group_info["describe"] = 'This is a default description.'
-                    share_group_info["scope"] = (scope + ':private' if scope == "goodrian" else scope)
-                    share_group_info["share_id"] = share_record.group_id
-                    share_group_info["pic"] = ''
-                    share_group_info["share_team"] = team_name
-                    share_group_info["share_user"] = str(user.user_id)
-                    share_group_info["is_shared"] = False
-                    data["share_group_info"] = share_group_info
-                    RainbondCenterApp.objects.create(
-                        group_key=group_key,
-                        group_name=app_name,
-                        share_user=str(user.user_id),
-                        share_team=team_name,
-                        tenant_service_group_id=share_record.group_id,
-                        pic="",
-                        source="local",
-                        record_id=share_record.ID,
-                        version="",
-                        dev_status="release",
-                        enterprise_id=self.user.enterprise_id,
-                        scope=scope,
-                        describe="This is a default description.",
-                        details="",
-                        app_template=json.dumps({})
-                    )
-                    app = rainbond_app_repo.get_rainbond_app_by_record_id(share_record.ID)
-                    if scope == "goodrain" and app:
-                        market_api = MarketOpenAPI()
-                        request_data = dict()
-                        request_data["tenant_id"] = self.tenant.tenant_id
-                        request_data["group_key"] = group_key
-                        request_data["group_version"] = ""
-                        request_data["template_version"] = ""
-                        request_data["publish_user"] = user.nick_name
-                        request_data["publish_team"] = self.tenant.tenant_alias
-                        request_data["update_note"] = "This is a default description."
-                        request_data["group_template"] = "v2"
-                        request_data["group_share_alias"] = app_name
-                        request_data["logo"] = ""
-                        request_data["details"] = ""
-                        request_data["share_type"] = "private"
-                        market_api.publish_v2_create_app(self.tenant.tenant_id, request_data)
-                else:
-                    result = general_message(code=code, msg="failed", msg_show=msg)
-                    return Response(result, status=code)
-            elif create_type == "old" and group_key:
-                if scope == "goodrain":
-                    try:
-                        app_info = MarketOpenAPI().get_app_template(self.tenant.tenant_id, group_key, version)
-                    except Exception as e:
-                        logger.debug(e)
-                        return Response(general_message(404, "no found app", "该app不存在或没有权限"), status=404)
-                    if app_info:
-                        app_info = app_info["data"]["bean"]
-                        share_group_info["group_key"] = app_info["group_key"]
-                        share_group_info["group_name"] = app_info["group_name"]
-                        share_group_info["version"] = app_info["group_version"]
-                        share_group_info["dev_status"] = app_info["dev_status"]
-                        share_group_info["describe"] = app_info["desc"]
-                        share_group_info["scope"] = app_info["goodrain"]
-                        share_group_info["share_id"] = None
-                        share_group_info["pic"] = app_info["pic"]
-                        share_group_info["share_team"] = None
-                        share_group_info["share_user"] = None
-                        share_group_info["is_shared"] = True
-                        data["share_group_info"] = share_group_info
-                    else:
-                        return Response(general_message(404, "no found app", "该app不存在"), status=404)
-                else:
-                    share_group = share_repo.get_shared_app_by_group_key(
-                        group_key=group_key, version=version, team_name=team_name)
-                    if not share_group:
-                        return Response(general_message(404, "no found app", "该app不存在或没有权限"), status=404)
-                    share_group_info["group_key"] = share_group.group_key
-                    share_group_info["group_name"] = share_group.group_name
-                    share_group_info["version"] = share_group.version
-                    share_group_info["dev_status"] = share_group.dev_status
-                    share_group_info["describe"] = share_group.describe
-                    share_group_info["scope"] = share_group.scope
-                    share_group_info["share_id"] = share_group.ID
-                    share_group_info["pic"] = share_group.pic
-                    share_group_info["share_team"] = share_group.share_team
-                    share_group_info["share_user"] = share_group.share_user
-                    share_group_info["is_shared"] = True
-                    data["share_group_info"] = share_group_info
-
-            else:
-                return Response(general_message(400, "failed", "参数错误"), status=400)
-        else:
-            try:
-                # 获取分享应用基本信息
-                share_group = share_service.check_whether_have_share_history(group_id=share_record.group_id)
-                if share_group:
-                    share_group_info["group_key"] = share_group.group_key
-                    share_group_info["group_name"] = share_group.group_name
-                    share_group_info["version"] = share_group.version
-                    share_group_info["dev_status"] = share_group.dev_status
-                    share_group_info["describe"] = share_group.describe
-                    share_group_info["scope"] = share_group.scope
-                    share_group_info["share_id"] = share_group.ID
-                    share_group_info["pic"] = share_group.pic
-                    share_group_info["share_team"] = share_group.share_team
-                    share_group_info["share_user"] = share_group.share_user
-                    share_group_info["is_shared"] = True
-                    data["share_group_info"] = share_group_info
-                else:
-                    try:
-                        user = user_services.get_user_by_user_name(user_name=request.user)
-                        if not user:
-                            result = general_message(400, "user failed", "数据紊乱，非当前用户操作页面")
-                            return Response(result, status=400)
-                    except UserNotExistError as e:
-                        result = general_message(400, e.message, "用户不存在")
-                        return Response(result, status=400)
-                    code, msg, group = group_service.get_group_by_id(
-                        tenant=self.team, region=self.response_region, group_id=share_record.group_id)
-                    if code == 200:
-                        share_group_info["group_key"] = make_uuid()
-                        share_group_info["group_name"] = group.get("group_name")
-                        share_group_info["version"] = 'v1.0'
-                        share_group_info["dev_status"] = "release"
-                        share_group_info["describe"] = 'This is a default description.'
-                        share_group_info["scope"] = 'team'
-                        share_group_info["share_id"] = share_record.group_id
-                        share_group_info["pic"] = ''
-                        share_group_info["share_team"] = team_name
-                        share_group_info["share_user"] = str(user.user_id)
-                        share_group_info["is_shared"] = False
-                        data["share_group_info"] = share_group_info
-                    else:
-                        result = general_message(code=code, msg="failed", msg_show=msg)
-                        return Response(result, status=code)
-            except ServiceHandleException as e:
-                raise e
-            except Exception as e:
-                logger.exception(e)
-                result = error_message(e.message)
-                return Response(result, status=500)
         service_info_list = share_service.query_share_service_info(
-            team=self.team, group_id=share_record.group_id, group_key=group_key)
+            team=self.team, group_id=share_record.group_id)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
         data["share_plugin_list"] = plugins
@@ -698,18 +536,16 @@ class ShareAppsVersionsListView(RegionTenantHeaderView):
         return Response(rst, status=200)
 
 
-class ShareServiceOperationRecord(RegionTenantHeaderView):
+class ServiceGroupSharedApps(RegionTenantHeaderView):
     @perm_required('share_service')
     def get(self, request, team_name, group_id, *args, **kwargs):
-        try:
-            operations = share_repo.get_shared_app_versions_by_groupid(group_id)
-        except Exception as e:
-            logger.debug(e)
-            return Response(error_message(e.message), status=404)
-        data = map(share_service.get_shared_services_records_list, operations)
-        rst = general_message(
-            200, "get shared apps list complete", None, bean=data)
-        return Response(rst, status=200)
+        scope = request.GET.get("scope", None)
+        if not scope:
+            data = share_service.get_last_shared_app_and_app_list(self.tenant.tenant_id, group_id)
+        else:
+            data = share_service.get_app_list(self.tenant.tenant_id, scope)
+        result = general_message(200, "get shared apps list complete", None, bean=data)
+        return Response(result, status=200)
 
 
 class ShareCloudMarkets(RegionTenantHeaderView):

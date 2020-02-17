@@ -81,6 +81,33 @@ class RainbondCenterApp(BaseModel):
     upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
 
 
+class RainbondCenterAppVersion(BaseModel):
+    """云市应用版本"""
+    class Meta:
+        db_table = "rainbond_center_app_version"
+        unique_together = ('app_id', 'version', 'enterprise_id')
+    app_id = models.CharField(max_length=32, help_text=u"应用id")
+    app_name = models.CharField(max_length=64, help_text=u"应用名称")
+    version = models.CharField(max_length=32, help_text=u"应用包名")
+    app_version_info = models.CharField(max_length=255, help_text=u"版本信息")
+    record_id = models.IntegerField(help_text=u"分享流程id，控制一个分享流程产出一个实体")
+    share_user = models.IntegerField(help_text=u"分享人id")
+    share_team = models.CharField(max_length=64, help_text=u"来源应用所属团队")
+    tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    dev_status = models.CharField(max_length=32, default=None, help_text=u"开发状态")
+    source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
+    scope = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用分享范围")
+    app_template = models.TextField(help_text=u"全量应用与插件配置信息")
+    template_version = models.CharField(max_length=10, default="v2", help_text=u"模板版本")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
+    upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
+    enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
+    is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
+    is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
+    is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
+
+
 class RainbondCenterAppInherit(BaseModel):
     """云市应用组继承关系"""
 
@@ -160,6 +187,9 @@ class ServiceShareRecord(BaseModel):
     share_version = models.CharField(max_length=15, help_text=u"应用组发布版本")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")
+    app_id = models.CharField(max_length=64, help_text=u"应用id")
+    scope = models.CharField(max_length=64, help_text=u"分享范围")
+    share_app_market_id = models.CharField(max_length=64, help_text=u"分享应用商店id")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")
 
