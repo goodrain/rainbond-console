@@ -737,6 +737,7 @@ class MarketAppService(object):
         sql += where
         sql += sql1
         sql += limit
+        print sql
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -771,6 +772,7 @@ class MarketAppService(object):
         if not app:
             return 404, None
         return 200, app
+
 
     def get_rain_bond_app_by_key_and_version(self, group_key, group_version):
         app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version)

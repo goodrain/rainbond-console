@@ -692,7 +692,7 @@ urlpatterns = [
     url(r'^apps$', CenterAppListView.as_view()),
     url(r'^apps/tag$', TagCLView.as_view()),
     url(r'^apps/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_key>[\w\-]+)/tag$', AppTagCView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/tag$', AppTagCView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
     # 好雨云市应用同步

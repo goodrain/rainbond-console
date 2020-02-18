@@ -223,16 +223,14 @@ class AppTagRepository(object):
     def create_app_tag_relation(self, app, tag_id):
         old_relation = RainbondCenterAppTagsRelation.objects.filter(
             enterprise_id=app.enterprise_id,
-            group_key=app.group_key,
-            version=app.version,
+            app_id=app.app_id,
             tag_id=tag_id
         )
         if old_relation:
             return True
         return RainbondCenterAppTagsRelation.objects.create(
             enterprise_id=app.enterprise_id,
-            group_key=app.group_key,
-            version=app.version,
+            app_id=app.app_id,
             tag_id=tag_id
         )
 
@@ -269,9 +267,8 @@ class AppTagRepository(object):
             status = False
         return status
 
-    def get_app_tags(self, enterprise_id, group_key, version):
-        return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, group_key=group_key,
-                                                            version=version)
+    def get_app_tags(self, enterprise_id, app_id):
+        return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, app_id=app_id)
 
 
 service_repo = TenantServiceInfoRepository()

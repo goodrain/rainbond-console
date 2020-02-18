@@ -64,43 +64,48 @@ class CenterAppListView(RegionTenantHeaderView):
         """
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
+        tags = json.loads(request.GET.get("tags", None))
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        dev_status = request.GET.get("dev_status", None)
         app_list = []
-        apps = market_app_service.get_visiable_apps_v2(
-            self.tenant, scope, app_name, dev_status, page, page_size)
-        for app in apps:
-            app_list.append({
-                "update_time": app.update_time,
-                "describe": app.describe,
-                "tenant_service_group_id": app.tenant_service_group_id,
-                "pic": app.pic,
-                "is_ingerit": app.is_ingerit,
-                "app_template": app.app_template,
-                "group_name": app.group_name,
-                "export_status": export_service.get_export_record_status(self.tenant.enterprise_id, app.group_key,
-                                                                         app.version),
-                "create_time": app.create_time,
-                "scope": app.scope,
-                "app_id": app.group_key,
-                "version": app.version,
-                "dev_status": app.dev_status,
-                "tags": (json.loads(app.tags) if app.tags else []),
-                "enterprise_id": app.enterprise_id,
-                "is_official": app.is_official,
-                "upgrade_time": app.upgrade_time,
-                "ID": app.ID,
-                "template_version": app.template_version,
-                "source": app.source,
-                "details": app.details,
-                "share_team": app.share_team,
-                "record_id": app.record_id,
-                "install_number": app.install_number,
-                "min_memory": group_service.get_service_group_memory(app.app_template),
-                "is_complete": app.is_complete,
-                "share_user": app.share_user,
-            })
+        apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
+            self.tenant.enterprise_id, app_name, tags, scope, page, page_size)
+        if apps[0].app_name:
+            for app in apps:
+                export_status = "exporting"
+                for version in app.versions:
+                    rst = export_service.get_export_record_status(
+                        self.tenant.enterprise_id, app.app_id,version)
+                    if rst == "failed":
+                        export_status = "failed"
+                app_templates = (json.loads(app.app_templates) if app.app_templates else [])
+                for app_template in app_templates:
+                    app_template["app_template"] = json.dumps(app_template["app_template"])
+                min_memory = group_service.get_service_group_memory(app_templates[0]["app_template"])
+                app_list.append({
+                    "update_time": app.update_time,
+                    "is_ingerit": app.is_ingerit,
+                    "app_id": app.app_id,
+                    "app_name": app.app_name,
+                    "pic": app.pic,
+                    "describe": app.describe,
+                    "create_time": app.create_time,
+                    "scope": app.scope,
+                    "versions": (json.loads(app.versions) if app.versions else []),
+                    "app_templates": app_templates,
+                    "dev_status": app.dev_status,
+                    "tags": (json.loads(app.tags) if app.tags else []),
+                    "enterprise_id": app.enterprise_id,
+                    "export_status": export_status,
+                    "is_official": app.is_official,
+                    "ID": app.ID,
+                    "source": app.source,
+                    "details": app.details,
+                    "install_number": app.install_number,
+                    "min_memory": min_memory,
+                    "create_user": app.create_user,
+                    "create_team": app.create_team,
+                })
 
         return MessageResponse(
             "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
@@ -462,13 +467,12 @@ class TagUDView(RegionTenantHeaderView):
 
 
 class AppTagCView(RegionTenantHeaderView):
-    def post(self, request, enterprise_id, app_id, *args, **kwargs):
-        version = request.data.get("version", None)
+    def post(self, request, enterprise_id, app_id):
         tag_id = request.data.get("tag_id", None)
         result = general_message(200, "success", u"创建成功")
-        if not (version and tag_id):
+        if not tag_id:
             result = general_message(400, "fail", u"请求参数错误")
-        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(enterprise_id, app_id, version)
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         if not app:
             result = general_message(404, "fail", u"该应用不存在")
         try:
