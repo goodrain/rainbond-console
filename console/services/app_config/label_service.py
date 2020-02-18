@@ -11,6 +11,7 @@ from console.repositories.region_repo import region_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
 
+
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
@@ -109,3 +110,9 @@ class LabelService(object):
         label_dict["labels"] = label_list
         region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, label_dict)
         return 200, u"success"
+
+    def set_service_os_label(self, tenant, service, os):
+        os_label = label_repo.get_labels_by_label_name(os)
+        if not os_label:
+            os_label = label_repo.create_label(os, os)
+        return self.add_service_labels(tenant, service, [os_label.label_id])

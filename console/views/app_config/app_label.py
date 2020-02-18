@@ -3,7 +3,6 @@
   Created on 18/1/15.
 """
 import logging
-import datetime
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -13,8 +12,7 @@ from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.label_repo import label_repo, node_label_repo, service_label_repo
-from www.utils.crypt import make_uuid
-from www.models.label import Labels
+
 
 logger = logging.getLogger("default")
 
@@ -161,11 +159,7 @@ class AppLabelAvailableView(AppBaseView):
                                 label_name_list.append(label.label_name)
                         for label_name in data_list:
                             if label_name not in label_name_list:
-                                label_id = make_uuid("labels")
-                                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                                label = Labels(
-                                    label_id=label_id, label_name=label_name, label_alias=label_name, create_time=create_time)
-                                label.save()
+                                label_repo.create_label(label_name, label_name)
                             labels_name_list.append(label_name)
 
             except Exception as e:
