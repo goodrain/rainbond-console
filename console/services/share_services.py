@@ -1130,4 +1130,16 @@ class ShareService(object):
             dt["app_list"] = app_list
         return dt
 
+    def create_cloud_app(self, tenant_id, data):
+        body = {
+            "group_key": data.get("app_id"),
+            "update_note": data["describe"],
+            "group_share_alias": data["name"],
+            "logo": data["pic"],
+            "details": data["details"],
+            "share_type": "private"
+        }
+        return market_api_v2.create_market_app(tenant_id, body)
+
+
 share_service = ShareService()

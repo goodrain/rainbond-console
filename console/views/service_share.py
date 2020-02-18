@@ -476,64 +476,37 @@ class ShareServicesListView(RegionTenantHeaderView):
         return Response(rst, status=200)
 
 
-class ShareServiceVersionsListView(RegionTenantHeaderView):
+class ServiceGroupAppCView(RegionTenantHeaderView):
     @perm_required('share_service')
-    def get(self, request, team_name, *args, **kwargs):
-        group_key = request.GET.get("group_key")
-        try:
-            share_services = share_repo.get_shared_app_versions_by_group_key(group_key=group_key, team_name=team_name)
-        except Exception as e:
-            logger.debug(e)
-            return Response(error_message(e.message), status=404)
-        data = map(share_service.get_shared_services_versions_list, share_services)
-        rst = general_message(
-            200, "get shared apps list complete", None, bean=data)
-        return Response(rst, status=200)
+    def post(self, request, team_name, *args, **kwargs):
+        name = request.data.get("name")
+        describe = request.data.get("describe", 'This is a default description.')
+        pic = request.data.get("pic")
+        scope = request.data.get("scope")
+        details = request.data.get("details")
+        app_id = make_uuid()
+        dev_status = request.data.get("dev_status")
 
-
-class ShareAppsVersionsListView(RegionTenantHeaderView):
-    @perm_required('share_service')
-    def get(self, request, team_name, *args, **kwargs):
-        scope = request.GET.get("share_scope")
+        data = {
+            "name": name,
+            "describe": describe,
+            "pic": pic,
+            "app_id": app_id,
+            "dev_status": dev_status,
+            "share_team": team_name,
+            "source": "local",
+            "scope": scope,
+            "details": details,
+        }
+        if not (name and scope):
+            result = general_message(400, "error params", None)
+            return Response(result, status=200)
         if scope == "goodrain":
-            data = {}
-            share_services = MarketOpenAPIV2().get_apps_versions(self.tenant.tenant_id)
-            if share_services:
-                for service in share_services:
-                    if service["app_key_id"] in data:
-                        data[service["group_name"]]["version"].extend(
-                            [version["app_version"] for version in service["app_versions"]])
-                    else:
-                        if service["app_versions"]:
-                            versions = [version["app_version"] for version in service["app_versions"]]
-                        else:
-                            versions = []
-                        data[service["app_key_id"]] = {
-                            "group_name": service["name"],
-                            "group_key": service["app_key_id"],
-                            "version": versions,
-                        }
-            else:
-                return Response(error_message('no found'), status=404)
+            share_service.create_cloud_app(self.tenant.tenant_id, data)
         else:
-            try:
-                share_services = share_repo.get_shared_apps_by_team(team_name)
-            except Exception as e:
-                logger.debug(e)
-                return Response(error_message(e.message), status=404)
-            data = {}
-            for service in share_services:
-                if service["group_key"] in data:
-                    data[service["group_key"]]["version"].append(service["version"])
-                else:
-                    data[service["group_key"]] = {
-                        "group_name": service["group_name"],
-                        "group_key": service["group_key"],
-                        "version": [service["version"]],
-                    }
-        rst = general_message(
-            200, "get shared apps list complete", None, bean=data.values())
-        return Response(rst, status=200)
+            share_repo.create_app(data)
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
 
 
 class ServiceGroupSharedApps(RegionTenantHeaderView):
@@ -547,22 +520,3 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
         result = general_message(200, "get shared apps list complete", None, bean=data)
         return Response(result, status=200)
 
-
-class ShareCloudMarkets(RegionTenantHeaderView):
-    @perm_required('share_service')
-    def get(self, request, team_name, *args, **kwargs):
-        try:
-            markets = MarketOpenAPIV2().get_markets(self.tenant.tenant_id)
-        except Exception as e:
-            logger.debug(e)
-            return Response(error_message(e.message), status=404)
-        if markets:
-            data = {
-                "market_id": markets["market_id"],
-                "name": markets["name"],
-                "eid": markets["eid"],
-            }
-            rst = general_message(
-                200, "get shared apps list complete", None, bean=data)
-            return Response(rst, status=200)
-        return Response(error_message("not found"), status=404)

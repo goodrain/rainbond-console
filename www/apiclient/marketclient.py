@@ -280,3 +280,11 @@ class MarketOpenAPIV2(HttpClient):
         if res.get("status") == 200 and not body.get("error_code"):
             return body
         return None
+
+    def create_market_app(self, tenant_id, data):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url += "/openapi/v2/enter-market/apps"
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token),
+                               json.dumps(data), timeout=30)
+        return self._unpack(body)
+

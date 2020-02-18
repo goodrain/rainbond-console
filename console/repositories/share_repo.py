@@ -127,6 +127,9 @@ class ShareRepo(object):
     def get_app_version_by_record_id(self, record_id):
         return RainbondCenterAppVersion.objects.filter(record_id=record_id).first()
 
+    def create_app(self, data):
+        RainbondCenterApp.objects.create(data)
+
     def create_service(self, **kwargs):
         service = ServiceInfo(**kwargs)
         service.save()
