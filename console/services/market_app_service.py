@@ -632,6 +632,9 @@ class MarketAppService(object):
         tenant_service.desc = "market app "
         tenant_service.category = "app_publish"
         tenant_service.setting = ""
+        # handle service type
+        extend_method = app["extend_method"]
+        extend_method = "state_singleton" if extend_method == "state_singleton" else "stateless_singleton"
         tenant_service.extend_method = app["extend_method"]
         tenant_service.env = ","
         tenant_service.min_node = app["extend_method_map"]["min_node"]

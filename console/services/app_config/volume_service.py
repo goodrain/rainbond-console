@@ -3,7 +3,6 @@
   Created on 18/1/17.
 """
 import re
-import copy
 
 from console.constants import AppConstants
 from console.repositories.app_config import volume_repo, mnt_repo
@@ -67,13 +66,23 @@ class AppVolumeService(object):
         return True
 
     def get_service_support_volume_options(self, tenant, service):
-        if service.extend_method != "state":  # 无状态组件
-            return self.stateless_volume_types
+        base_opts = [
+            {"volume_type": "share-file", "name_show": "共享存储（文件）"},
+            {"volume_type": "memoryfs", "name_show": "内存文件存储"}
+        ]
+        state = False
+        # state service
+        if service.extend_method == "state_singleton" or service.extend_method == "state_multiple":
+            state = True
+            base_opts.append({"volume_type": "local", "name_show": "本地存储"})
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        opts = copy.deepcopy(self.state_volume_types)
         for opt in body.list:
-            opts.append(opt)
-        return opts
+            if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
+                if state:
+                    base_opts.append(opt)
+            else:
+                base_opts.append(opt)
+        return base_opts
 
     # 需要提供更多的信息到源数据中
     # 使用数据中心接口统一返回最合适的类型，
