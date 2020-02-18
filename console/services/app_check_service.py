@@ -300,7 +300,7 @@ class AppCheckService(object):
 
         envs = service_info.get("envs", None)
         ports = service_info.get("ports", None)
-        volumes = service_info.get("volumes", None)    
+        volumes = service_info.get("volumes", None)
         service_runtime_os = service_info.get("volumes", "linux")
         if service_runtime_os == "windows":
             label_service.set_service_os_label()
