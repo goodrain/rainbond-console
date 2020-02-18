@@ -301,9 +301,9 @@ class AppCheckService(object):
         envs = service_info.get("envs", None)
         ports = service_info.get("ports", None)
         volumes = service_info.get("volumes", None)
-        service_runtime_os = service_info.get("volumes", "linux")
+        service_runtime_os = service_info.get("os", "linux")
         if service_runtime_os == "windows":
-            label_service.set_service_os_label()
+            label_service.set_service_os_label(tenant, service, service_runtime_os)
         code, msg = self.__save_compile_env(tenant, service, service.language)
         if code != 200:
             return code, msg

@@ -112,7 +112,7 @@ class AppLabelView(AppBaseView):
             label_id = request.data.get("label_id", None)
             if not label_id:
                 return Response(general_message(400, "param error", "标签ID未指定"), status=400)
-            service_label = service_label_repo.get_service_label(label_id)
+            service_label = service_label_repo.get_service_label(self.service.service_id, label_id)
             if not service_label:
                 return Response(general_message(400, "tag does not exist", "标签不存在"), status=400)
             code, msg, event = label_service.delete_service_label(self.tenant, self.service, label_id)

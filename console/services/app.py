@@ -29,6 +29,7 @@ from console.repositories.perm_repo import role_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
+from console.services.app_config import label_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume
@@ -471,6 +472,8 @@ class AppService(object):
                 "volume_name": mnt.mnt_name
             } for mnt in mnt_info]
 
+        # runtime os name
+        data["os_type"] = label_service.get_service_os_name(service)
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成

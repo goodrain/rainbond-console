@@ -56,14 +56,14 @@ class LabelService(object):
                 label_dict["label_key"] = "node-selector"
                 label_dict["label_value"] = label_name
                 labels_list.append(label_dict)
-        body["labels"] = labels_list
-        try:
-            region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)
-            ServiceLabels.objects.bulk_create(service_labels)
-        except region_api.CallApiError as e:
-            logger.exception(e)
-            return 507, u"组件异常", None
-
+            body["labels"] = labels_list
+            try:
+                region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)
+            except region_api.CallApiError as e:
+                if "is exist" not in e.body.get("msg"):
+                    logger.exception(e)
+                    return 507, u"组件异常", None
+        ServiceLabels.objects.bulk_create(service_labels)
         return 200, u"操作成功", None
 
     def get_region_labels(self, tenant, service):
@@ -116,3 +116,10 @@ class LabelService(object):
         if not os_label:
             os_label = label_repo.create_label(os, os)
         return self.add_service_labels(tenant, service, [os_label.label_id])
+
+    def get_service_os_name(self, service):
+        os_label = label_repo.get_labels_by_label_name("windows")
+        if os_label:
+            if service_label_repo.get_service_label(service.service_id, os_label.label_id):
+                return "windows"
+        return "linux"
