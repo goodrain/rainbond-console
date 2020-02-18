@@ -304,6 +304,12 @@ class UserService(object):
     def get_user_by_user_id(self, user_id):
         return user_repo.get_user_by_user_id(user_id=user_id)
 
+    def get_user_by_eid(self, eid, name):
+        users = user_repo.get_enterprise_users(eid)
+        if name:
+            users = users.filter(nick_name__contains=name)
+        return users
+
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新构建"""
         group_version = None

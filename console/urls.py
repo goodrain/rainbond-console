@@ -233,6 +233,7 @@ from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
 from console.views.team import UserFuzSerView
+from console.views.user import EnterPriseUsersCLView
 from console.views.user import AdminUserLCView
 from console.views.user import AdminUserDView
 from console.views.user import CheckSourceView
@@ -818,6 +819,7 @@ urlpatterns = [
     # # 企业中心模糊查询团队
     # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # get basic task guided information
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$',  EnterPriseUsersCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user$', AdminUserLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserDView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
