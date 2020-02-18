@@ -316,6 +316,7 @@ class AdminUserDView(JWTAuthApiView):
             result = general_message(400, "fail", None)
             return Response(result, 400)
 
+
 class EnterPriseUsersCLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         name = request.GET.get("name")

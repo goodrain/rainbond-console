@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import logging
-from datetime import datetime
 
 from rest_framework import status
 from rest_framework.response import Response
