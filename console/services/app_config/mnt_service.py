@@ -71,7 +71,7 @@ class AppMntService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         state_services = []  # 有状态组件
         for svc in services:
-            if svc.extend_method != "stateless":
+            if svc.extend_method != "stateless_singleton" and svc.extend_method != "stateless_multiple":
                 state_services.append(svc)
         state_service_ids = [svc.service_id for svc in state_services]
 
@@ -127,8 +127,9 @@ class AppMntService(object):
         for volume in copy_volumes:
             service_obj = service_repo.get_service_by_service_id(volume.service_id)
             if service_obj:
-                if service_obj.extend_method != "stateless" and volume.volume_type != "config-file":
-                    volumes.remove(volume)
+                if service_obj.extend_method != "stateless_singleton" and service_obj.extend_method != "stateless_multiple":
+                    if volume.volume_type != "config-file":
+                        volumes.remove(volume)
         total = len(volumes)
         volume_paginator = JuncheePaginator(volumes, int(page_size))
         page_volumes = volume_paginator.page(page)

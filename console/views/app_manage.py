@@ -490,7 +490,7 @@ class ChangeServiceTypeView(AppBaseView):
                 for tenant_service_volume in tenant_service_volumes:
                     if tenant_service_volume["volume_type"] == "local":
                         is_mnt_dir = 1
-            if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
+            if old_extend_method != "stateless_singleton" and extend_method == "stateless_singleton" and is_mnt_dir:
                 return Response(
                     general_message(
                         400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"),
@@ -541,7 +541,7 @@ class ChangeServiceNameView(AppBaseView):
         if not service_name:
             return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
         extend_method = self.service.extend_method
-        if extend_method == "stateless":
+        if extend_method == "stateless_singleton" or extend_method == "stateless_multiple":
             return Response(
                 general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"),
                 status=400)

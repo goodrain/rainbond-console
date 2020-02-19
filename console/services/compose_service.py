@@ -183,7 +183,7 @@ class ComposeService(object):
         tenant_service.desc = "docker compose application"
         tenant_service.category = "app_publish"
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless"
+        tenant_service.extend_method = "stateless_singleton"
         tenant_service.env = ","
         tenant_service.min_node = 1
         tenant_service.min_memory = 128

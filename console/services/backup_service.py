@@ -70,7 +70,7 @@ class GroupAppBackupService(object):
         # 处于运行中的有状态
         running_state_services = []
         for service in services:
-            if service.extend_method == "state":
+            if service.extend_method == "state_singleton" or service.extend_method == "state_multiple":
                 if service_status_map.get(service.service_id) not in ("closed", "undeploy"):
                     running_state_services.append(service.service_cname)
 
