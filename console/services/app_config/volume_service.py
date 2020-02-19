@@ -142,8 +142,9 @@ class AppVolumeService(object):
 
             for volume in volumes:
                 vo = volume.to_dict()
-                if status[vo["volume_name"]] is not None:
-                    if status[vo["volume_name"]] == "READY":
+                vo_status = status.get(vo["volume_name"], None)
+                if vo_status:
+                    if vo_status == "READY":
                         vo["status"] = "bound"
                     else:
                         vo["status"] = "not_bound"

@@ -634,8 +634,14 @@ class MarketAppService(object):
         tenant_service.setting = ""
         # handle service type
         extend_method = app["extend_method"]
-        extend_method = "state_singleton" if extend_method == "state_singleton" else "stateless_singleton"
-        tenant_service.extend_method = app["extend_method"]
+        if extend_method:
+            if extend_method == "state":
+                tenant_service.extend_method = "state_multiple"
+            elif extend_method == "stateless":
+                tenant_service.extend_method = "stateless_multiple"
+            else:
+                tenant_service.extend_method = extend_method
+
         tenant_service.env = ","
         tenant_service.min_node = app["extend_method_map"]["min_node"]
         tenant_service.min_memory = app["extend_method_map"]["min_memory"]

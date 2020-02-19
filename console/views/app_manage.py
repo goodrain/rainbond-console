@@ -32,6 +32,8 @@ env_var_service = AppEnvVarService()
 app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
 
+support_service_types = ["stateless_singleton", "stateless_multiple", "state_singleton", "state_multiple"]
+
 
 class StartAppView(AppBaseView):
     @never_cache
@@ -482,19 +484,35 @@ class ChangeServiceTypeView(AppBaseView):
             if not extend_method:
                 return Response(general_message(400, "select the application type", "请选择组件类型"), status=400)
 
-            old_extend_method = self.service.extend_method
-            # 状态从有到无，并且有本地存储的不可修改
-            is_mnt_dir = 0
+            if extend_method not in support_service_types:
+                return Response(general_message(400, "do not support service type", "组件类型非法"), status=400)
+
+            # 存储限制
             tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
-            if tenant_service_volumes:
-                for tenant_service_volume in tenant_service_volumes:
-                    if tenant_service_volume["volume_type"] == "local":
-                        is_mnt_dir = 1
-            if old_extend_method != "stateless_singleton" and extend_method == "stateless_singleton" and is_mnt_dir:
+            if not tenant_service_volumes:
+                deploy_type_service.put_service_deploy_type(self.tenant, self.service, extend_method)
+                result = general_message(200, "success", "操作成功")
+                return Response(result, status=result["code"])
+
+            old_extend_method = self.service.extend_method
+            for tenant_service_volume in tenant_service_volumes:
+                if tenant_service_volume["volume_type"] == "local":
+                    if old_extend_method == "state_singleton":
+                        return Response(
+                            general_message(
+                                400, "local storage only support state_singleton", "本地存储仅支持有状态单实例组件"), status=400)
+                if tenant_service_volume["access_mode"] and tenant_service_volume["access_mode"] == "RWO":
+                    if extend_method == "stateless_singleton" or extend_method == "stateless_multiple":
+                        return Response(
+                            general_message(400, "storage access mode do not support", "存储读写属性限制,不可修改为无状态组件"), status=400)
+            # 实例个数限制
+            if extend_method == "state_singleton" and self.service.min_node > 1:
                 return Response(
-                    general_message(
-                        400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"),
-                    status=400)
+                    general_message(400, "singleton service limit", "多实例组件不可修改为单实例组件"), status=400)
+            if extend_method == "stateless_singleton" and self.service.min_node > 1:
+                return Response(
+                    general_message(400, "singleton service limit", "多实例组件不可修改为单实例组件"), status=400)
+
             deploy_type_service.put_service_deploy_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
         except CallRegionAPIException as e:
