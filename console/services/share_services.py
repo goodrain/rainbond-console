@@ -851,13 +851,12 @@ class ShareService(object):
 
             app = RainbondCenterAppVersion(
                 app_id=group_info["group_key"],
-                app_name=group_info["group_name"],
                 version=group_info["version"],
                 app_version_info=group_info["app_version_info"],
                 record_id=share_record.ID,
                 share_user=share_user.user_id,
                 share_team=share_team.tenant_name,
-                tenant_service_group_id=share_record.group_id,
+                group_id=share_record.group_id,
                 source="local",
                 scope=scope,
                 app_template=json.dumps(app_templete),
