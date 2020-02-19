@@ -26,6 +26,7 @@ from console.services.market_app_service import market_sycn_service
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import RegionTenantHeaderView
+from console.views.base import JWTAuthApiView
 from www.apiclient.baseclient import HttpClient
 from www.decorator import perm_required
 from www.utils.return_message import error_message
@@ -34,7 +35,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger('default')
 
 
-class CenterAppListView(RegionTenantHeaderView):
+class CenterAppListView(JWTAuthApiView):
     @never_cache
     def get(self, request, *args, **kwargs):
         """
@@ -71,13 +72,13 @@ class CenterAppListView(RegionTenantHeaderView):
         page_size = int(request.GET.get("page_size", 10))
         app_list = []
         apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
-            self.tenant.enterprise_id, app_name, tags, scope, page, page_size)
+            self.user.enterprise_id, app_name, tags, scope, page, page_size)
         if apps[0].app_name:
             for app in apps:
                 export_status = "exporting"
                 for version in app.versions:
                     rst = export_service.get_export_record_status(
-                        self.tenant.enterprise_id, app.app_id,version)
+                        self.user.enterprise_id, app.app_id,version)
                     if rst == "failed":
                         export_status = "failed"
                 versions_info = (json.loads(app.versions_info) if app.versions_info else [])
@@ -420,7 +421,7 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
             return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
 
 
-class TagCLView(RegionTenantHeaderView):
+class TagCLView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         data = []
         app_tag_list = app_tag_repo.get_all_tag_list()
@@ -448,7 +449,7 @@ class TagCLView(RegionTenantHeaderView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class TagUDView(RegionTenantHeaderView):
+class TagUDView(JWTAuthApiView):
     def put(self, request, tag_id, *args, **kwargs):
         name = request.data.get("name", None)
         result = general_message(200, "success", u"更新成功")
@@ -467,7 +468,7 @@ class TagUDView(RegionTenantHeaderView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class AppTagCView(RegionTenantHeaderView):
+class AppTagCView(JWTAuthApiView):
     def post(self, request, enterprise_id, app_id):
         tag_id = request.data.get("tag_id", None)
         result = general_message(200, "success", u"创建成功")
