@@ -78,10 +78,10 @@ class CenterAppListView(RegionTenantHeaderView):
                         self.tenant.enterprise_id, app.app_id,version)
                     if rst == "failed":
                         export_status = "failed"
-                app_templates = (json.loads(app.app_templates) if app.app_templates else [])
-                for app_template in app_templates:
-                    app_template["app_template"] = json.dumps(app_template["app_template"])
-                min_memory = group_service.get_service_group_memory(app_templates[0]["app_template"])
+                versions_info = (json.loads(app.versions_info) if app.versions_info else [])
+                min_memory = group_service.get_service_group_memory(versions_info[0]["app_template"])
+                for version_info in versions_info:
+                    del version_info["app_template"]
                 app_list.append({
                     "update_time": app.update_time,
                     "is_ingerit": app.is_ingerit,
@@ -91,8 +91,7 @@ class CenterAppListView(RegionTenantHeaderView):
                     "describe": app.describe,
                     "create_time": app.create_time,
                     "scope": app.scope,
-                    "versions": (json.loads(app.versions) if app.versions else []),
-                    "app_templates": app_templates,
+                    "versions_info": versions_info,
                     "dev_status": app.dev_status,
                     "tags": (json.loads(app.tags) if app.tags else []),
                     "enterprise_id": app.enterprise_id,

@@ -56,12 +56,12 @@ class RainbondCenterAppRepository(object):
         sql1 = """SET GLOBAL group_concat_max_len = 102400;"""
         sql2 = """SET SESSION group_concat_max_len = 102400;"""
         sql = """
-                SELECT CC.*, 
+                SELECT CC.*,
                 CONCAT('[',
                     GROUP_CONCAT(
-						CONCAT('{"tag_id":"',E.ID,'"'),',',
-						CONCAT('"name":"',E.name),'"}')
-					,']') as tags
+                        CONCAT('{"tag_id":"',E.ID,'"'),',',
+                        CONCAT('"name":"',E.name),'"}')
+                        ,']') as tags
                 FROM
                 (SELECT
                     BB.ID,
@@ -89,12 +89,13 @@ class RainbondCenterAppRepository(object):
                     GROUP_CONCAT(
                         CONCAT('{"version":"',C.version,'"'),',',
                         CONCAT('"is_complete":',C.is_complete),',',
+                        CONCAT('"app_alias":"',C.app_alias),'",',
                         CONCAT('"app_template":',C.app_template),'}')
-                    ,']') as app_templates
-                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time 
+                    ,']') as versions_info
+                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
                       FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
                 LEFT JOIN rainbond_center_app_version C
-                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND 
+                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
                 C.version=B.version AND C.update_time=B.update_time
                 LEFT JOIN rainbond_center_app BB
                 ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
