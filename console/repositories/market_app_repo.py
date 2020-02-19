@@ -50,7 +50,7 @@ class RainbondCenterAppRepository(object):
             group += 'WHERE E.name="{}" '.format(tags[0])
             for tag in tags[1:]:
                 group += 'OR E.name="{}" '.format(tag)
-        order_by = "ORDER BY CC.install_number DESC "
+        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC "
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size};".format(page=page, page_size=page_size)
         sql1 = """SET GLOBAL group_concat_max_len = 102400;"""
