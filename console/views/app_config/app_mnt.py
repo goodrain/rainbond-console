@@ -56,6 +56,8 @@ class AppMntView(AppBaseView):
 
         """
         query = request.GET.get("query", "")
+        if query == "undefined":
+            query = ""
         query_type = request.GET.get("type", "mnt")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
