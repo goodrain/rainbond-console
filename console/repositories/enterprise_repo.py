@@ -13,6 +13,7 @@ from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import ServiceShareRecord
 from console.models.main import ServiceShareRecordEvent
 from console.models.main import Applicants
+from console.models.main import RainbondCenterApp
 
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo
@@ -56,19 +57,11 @@ class TenantEnterpriseRepo(object):
         else:
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
-    def get_enterprise_shared_service_nums(self, enterprise_id):
-        service_groups = self.get_enterprise_apps(enterprise_id)
-        if not service_groups:
+    def get_enterprise_shared_app_nums(self, enterprise_id):
+        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id).values("app_id").annotate()
+        if not apps:
             return 0
-        service_group_ids = service_groups.values_list("ID", flat=True)
-        record = ServiceShareRecord.objects.filter(group_id__in=service_group_ids, step=3, is_success=True)
-        if not record:
-            return 0
-        record_ids = record.values_list("ID", flat=True)
-        service_list = ServiceShareRecordEvent.objects.filter(record_id__in=record_ids)
-        if not service_list:
-            return 0
-        return len(set(service_list.values_list("service_id", flat=True)))
+        return len(set(apps.values_list("app_id", flat=True)))
 
     def get_user_active_teams(self, enterprise_id, user_id):
         tenants = self.get_enterprise_user_teams(enterprise_id, user_id)
@@ -187,6 +180,11 @@ class TenantEnterpriseRepo(object):
         conn = BaseConnection()
         result = conn.query(sql)
         return result[0]["total"]
+
+    def get_request_join_users(self, enterprise_id, user_id):
+        team_ids = team_repo.get_teams_by_create_user(enterprise_id, user_id).values_list("tenant_id", flat=True)
+        applicants = Applicants.objects.filter(team_id__in=team_ids, is_pass=False)
+        return applicants
 
 
 class TenantEnterpriseUserPermRepo(object):

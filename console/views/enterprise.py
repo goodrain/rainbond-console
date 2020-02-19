@@ -15,6 +15,7 @@ from console.repositories.exceptions import UserRoleNotFoundException
 from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.models.main import RegionConfig
 from console.views.base import JWTAuthApiView
@@ -114,9 +115,9 @@ class EnterpriseOverview(JWTAuthApiView):
         user_nums = len(users)
         team = enterprise_repo.get_enterprise_teams(enterprise_id)
         team_nums = len(team)
-        shared_service_nums = enterprise_repo.get_enterprise_shared_service_nums(enterprise_id)
+        shared_app_nums = enterprise_repo.get_enterprise_shared_app_nums(enterprise_id)
         data = {
-            "shared_components": shared_service_nums,
+            "shared_apps": shared_app_nums,
             "total_teams": team_nums,
             "total_users": user_nums
         }
@@ -224,9 +225,14 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             join_tenants = enterprise_repo.get_enterprise_user_join_teams(enterprise_id, request.user.user_id)
             tenants = tenants[:3]
             active_tenants = enterprise_repo.get_user_active_teams(enterprise_id, request.user.user_id)
+            request_users = enterprise_repo.get_request_join_users(enterprise_id, request.user.user_id)
             if tenants:
                 for tenant in tenants:
+                    region_name_list = []
                     user = user_repo.get_user_by_user_id(tenant.creater)
+                    region_list = team_repo.get_team_regions(tenant.tenant_id)
+                    if region_list:
+                        region_name_list = region_list.values_list("region_name", flat=True)
                     try:
                         role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
                     except UserRoleNotFoundException:
@@ -240,6 +246,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "team_id": tenant.tenant_id,
                         "create_time": tenant.create_time,
                         "region": tenant.region,
+                        "region_list": region_name_list,
                         "enterprise_id": tenant.enterprise_id,
                         "owner": tenant.creater,
                         "owner_name": user.nick_name,
@@ -251,7 +258,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
                     user = user_repo.get_user_by_user_id(tenant_info.creater)
                     new_join_team.append({
-                        "team_name": tenant.user_name,
+                        "team_name": tenant.team_name,
                         "team_alias": tenant.team_alias,
                         "team_id": tenant.team_id,
                         "create_time": tenant_info.create_time,
@@ -265,8 +272,25 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if new_join_team:
                 data = {
                     "active_teams": active_tenants,
-                    "new_join_team": new_join_team
+                    "new_join_team": new_join_team,
+                    "request_join_team": []
                 }
+                if request_users:
+                    for request_user in request_users:
+                        data["request_join_team"].append({
+                            "team_name": request_user.team_name,
+                            "team_alias": request_user.team_alias,
+                            "team_id": request_user.team_id,
+                            "apply_time": request_user.apply_time,
+                            "user_id": request_user.user_id,
+                            "user_name": request_user.user_name,
+                            "region": team_repo.get_team_by_team_id(request_user.team_id).region,
+                            "enterprise_id": enterprise_id,
+                            "owner": self.user.user_id,
+                            "owner_name": self.user.nick_name,
+                            "role": "viewer",
+                            "is_pass": request_user.is_pass,
+                        })
                 result = general_message(200, "success", None, bean=data)
             else:
                 result = general_message(200, "success", "该用户没有加入团队")
@@ -279,18 +303,17 @@ class EnterpriseTeamOverView(JWTAuthApiView):
 
 class EnterpriseMonitor(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        teams = team_repo.get_teams_by_enterprise_id(enterprise_id, request.user.user_id)
+        regions = region_repo.get_usable_regions()
         region_memory_total = 0
         region_memory_used = 0
         region_cpu_total = 0
         region_cpu_used = 0
-        regions = RegionConfig.objects.filter(status=1)
         if not regions:
             result = general_message(404, "no found", None)
             return Response(result, status=status.HTTP_200_OK)
         region_num = len(regions)
-        for team in teams:
-            res, body = region_api.get_region_resources(team.tenant_name, team.region)
+        for region in regions:
+            res, body = region_api.get_region_resources(enterprise_id, region.region_name)
             if res.get("status") == 200:
                 region_memory_total += body["bean"]["cap_mem"]
                 region_memory_used += body["bean"]["req_mem"]

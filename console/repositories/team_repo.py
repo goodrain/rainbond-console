@@ -11,6 +11,7 @@ from www.models.main import PermRelTenant
 from www.models.main import Tenants
 from www.models.main import Users
 from www.models.main import ServiceGroup
+from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
 
@@ -261,6 +262,12 @@ class TeamRepo(object):
         conn = BaseConnection()
         result = conn.query(sql)
         return result[0].get("total")
+
+    def get_team_regions(self, team_id):
+        return TenantRegionInfo.objects.filter(tenant_id=team_id)
+
+    def get_teams_by_create_user(self, enterprise_id, user_id):
+        return Tenants.objects.filter(creater=user_id, enterprise_id=enterprise_id)
 
 
 class TeamGitlabRepo(object):
