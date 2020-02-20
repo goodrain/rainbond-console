@@ -10,8 +10,6 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
-from console.models.main import ServiceShareRecord
-from console.models.main import ServiceShareRecordEvent
 from console.models.main import Applicants
 from console.models.main import RainbondCenterApp
 
@@ -181,9 +179,8 @@ class TenantEnterpriseRepo(object):
         result = conn.query(sql)
         return result[0]["total"]
 
-    def get_request_join_users(self, enterprise_id, user_id):
-        team_ids = team_repo.get_teams_by_create_user(enterprise_id, user_id).values_list("tenant_id", flat=True)
-        applicants = Applicants.objects.filter(team_id__in=team_ids, is_pass=False)
+    def get_request_join(self, enterprise_id, user_id):
+        applicants = Applicants.objects.filter(user_id=user_id).order_by("-apply_time")
         return applicants
 
 

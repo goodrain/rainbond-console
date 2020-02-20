@@ -52,8 +52,10 @@ class OauthConfig(JWTAuthApiView):
 
 class OauthService(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
+        all_services_list = []
         eid = request.user.enterprise_id
         service = oauth_repo.get_conosle_oauth_service(eid)
+        all_services = oauth_repo.get_all_oauth_services(eid)
         if service is not None:
             api = get_oauth_instance(service.oauth_type, service, None)
             authorize_url = api.get_authorize_url()
@@ -74,10 +76,52 @@ class OauthService(JWTAuthApiView):
                 "is_git": service.is_git,
                 "authorize_url": authorize_url,
             }
-            rst = {"data": {"bean": {"oauth_services": data}}}
+            if all_services:
+                for l_service in all_services:
+                    api = get_oauth_instance(l_service.oauth_type, service, None)
+                    authorize_url = api.get_authorize_url()
+                    all_services_list.append({
+                        "service_id": l_service.ID,
+                        "enable": l_service.enable,
+                        "name": l_service.name,
+                        "client_id": l_service.client_id,
+                        "auth_url": l_service.auth_url,
+                        "redirect_uri": l_service.redirect_uri,
+                        "oauth_type": l_service.oauth_type,
+                        "home_url": l_service.home_url,
+                        "eid": l_service.eid,
+                        "access_token_url": l_service.access_token_url,
+                        "api_url": l_service.api_url,
+                        "client_secret": l_service.client_secret,
+                        "is_auto_login": l_service.is_auto_login,
+                        "is_git": l_service.is_git,
+                        "authorize_url": authorize_url,
+                    })
+            rst = {"data": {"bean": {"oauth_services": data, "total_oauth_services": all_services_list}}}
             return Response(rst, status=status.HTTP_200_OK)
         else:
-            rst = {"data": {"bean": {"oauth_services": None}}}
+            if all_services:
+                for l_service in all_services:
+                    api = get_oauth_instance(l_service.oauth_type, service, None)
+                    authorize_url = api.get_authorize_url()
+                    all_services_list.append({
+                        "service_id": l_service.ID,
+                        "enable": l_service.enable,
+                        "name": l_service.name,
+                        "client_id": l_service.client_id,
+                        "auth_url": l_service.auth_url,
+                        "redirect_uri": l_service.redirect_uri,
+                        "oauth_type": l_service.oauth_type,
+                        "home_url": l_service.home_url,
+                        "eid": l_service.eid,
+                        "access_token_url": l_service.access_token_url,
+                        "api_url": l_service.api_url,
+                        "client_secret": l_service.client_secret,
+                        "is_auto_login": l_service.is_auto_login,
+                        "is_git": l_service.is_git,
+                        "authorize_url": authorize_url,
+                    })
+            rst = {"data": {"bean": {"oauth_services": None, "total_oauth_services": all_services_list}}}
             return Response(rst, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
