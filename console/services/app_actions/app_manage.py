@@ -52,6 +52,8 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
+from console.services.exception import ErrChangeServiceType
+from console.exception.main import ServiceHandleException
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -759,6 +761,9 @@ class AppManageService(AppManageBase):
         if new_node == service.min_node:
             return 409, "节点没有变化，无需升级"
 
+        if new_node > 1 and (service.extend_method == "stateless_singleton" or service.extend_method == "state_singleton"):
+            return 409, "组件为单实例组件，不可使用多节点"
+
         if service.create_status == "complete":
             body = dict()
             body["node_num"] = new_node
@@ -1118,3 +1123,32 @@ class AppManageService(AppManageBase):
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"
+
+    def change_service_type(self, tenant, service, extend_method):
+        # 存储限制
+        tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
+        if tenant_service_volumes:
+            old_extend_method = service.extend_method
+            for tenant_service_volume in tenant_service_volumes:
+                if tenant_service_volume["volume_type"] == "share-file" or tenant_service_volume["volume_type"] == "memoryfs":
+                    continue
+                if tenant_service_volume["volume_type"] == "local":
+                    if old_extend_method == "state_singleton":
+                        raise ServiceHandleException(msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
+                if tenant_service_volume["access_mode"] and tenant_service_volume["access_mode"] == "RWO":
+                    if extend_method == "stateless_singleton" or extend_method == "stateless_multiple":
+                        raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
+        # 实例个数限制
+        if extend_method == "state_singleton" and service.min_node > 1:
+            raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
+        if extend_method == "stateless_singleton" and service.min_node > 1:
+            raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
+        data = dict()
+        data["extend_method"] = extend_method
+        try:
+            region_api.update_service(service.service_region, tenant.tenant_name, service.service_alias, data)
+            service.extend_method = extend_method
+            service.save()
+        except Exception as e:
+            logger.exception(e)
+            raise ErrChangeServiceType

@@ -105,18 +105,19 @@ class AppVolumeService(object):
         """
         for opt in opts:
             if opt["volume_type"] == volume_type:
-                if access_mode.upper() in opt["access_mode"]:
-                    settings["changed"] = False
-                    return settings
-        for opt in opts:
-            if opt["provisioner"] and opt["provisioner"] == provider_name:
-                settings["volume_type"] = opt["volume_type"]
-                settings["changed"] = True
+                # 匹配到相同的存储类型
+                settings["changed"] = False
                 return settings
-        settings["changed"] = True
-        settings["volume_type"] = self.default_volume_type
 
-        return settings
+        if access_mode:
+            # 匹配相同读写模式的存储
+            for opt in opts:
+                if opt.get("access_mode") and opt.get("access_mode") == access_mode:
+                    settings["volume_type"] = opt["volume_type"]
+                    settings["changed"] = True
+                    return settings
+        # 找不到则不让创建对应组件
+        raise ErrVolumeTypeNotFound
 
     def get_service_volumes(self, tenant, service, is_config_file=False):
         volumes = []

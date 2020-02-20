@@ -72,10 +72,8 @@ class AppCheckService(object):
                 tenant = Tenants.objects.get(tenant_name=tenant.tenant_name)
                 try:
                     service_code_clone_url = instance.get_clone_url(service.git_url)
-                    print service_code_clone_url
                 except Exception as e:
                     logger.debug(e)
-                    print e
                     return 400, u"Access Token 已过期", None
             else:
                 service_code_clone_url = service.git_url
@@ -285,7 +283,8 @@ class AppCheckService(object):
         service.min_memory = memory - memory % 32
         service.min_cpu = min_cpu
         # Set the deployment type based on the test results
-        service.extend_method = "state" if service_info["deploy_type"] == "StatefulServiceType" else "stateless"
+        logger.debug("save service extend_method {0}".format(service_info.get("service_type", "stateless_multiple")))
+        service.extend_method = service_info.get("service_type", "stateless_multiple")
         args = service_info.get("args", None)
         if args:
             service.cmd = " ".join(args)

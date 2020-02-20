@@ -636,7 +636,7 @@ class MarketAppService(object):
         extend_method = app["extend_method"]
         if extend_method:
             if extend_method == "state":
-                tenant_service.extend_method = "state_multiple"
+                tenant_service.extend_method = "state_singleton"
             elif extend_method == "stateless":
                 tenant_service.extend_method = "stateless_multiple"
             else:

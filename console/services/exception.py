@@ -86,3 +86,8 @@ ErrVolumeTypeDoNotAllowMultiNode = ServiceHandleException(
     msg="volume type do not allow multi node",
     msg_show="存储类型不支持多个实例读写"
 )
+ErrChangeServiceType = ServiceHandleException(
+    error_code = 500,
+    msg="change service type failed",
+    msg_show="更新组件类型失败"
+)
