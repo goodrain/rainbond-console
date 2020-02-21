@@ -12,6 +12,7 @@ from www.models.main import Tenants
 from www.models.main import Users
 from www.models.main import ServiceGroup
 from www.models.main import TenantRegionInfo
+from www.models.main import TenantEnterprise
 
 logger = logging.getLogger("default")
 
@@ -41,6 +42,19 @@ class TeamRepo(object):
 
     def get_tenants_by_user_id(self, user_id, name=None):
         tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
+        if name:
+            tenants = Tenants.objects.filter(
+                ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
+        else:
+            tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
+        return tenants
+
+    def get_tenants_by_user_id_and_eid(self, eid, user_id, name=None):
+        enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
+        if not enterprise:
+            return enterprise
+        tenant_ids = PermRelTenant.objects.filter(
+            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True)
         if name:
             tenants = Tenants.objects.filter(
                 ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")

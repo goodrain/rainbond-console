@@ -63,6 +63,7 @@ class EnterpriseAppOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         try:
             service_groups = enterprise_repo.get_enterprise_apps(enterprise_id)
+            services_ids = enterprise_repo.get_enterprise_services(enterprise_id)
             service_groups_nums = len(service_groups)
             service_groups_running_nums = 0
             service_nums = 0
@@ -131,7 +132,7 @@ class EnterpriseTeams(JWTAuthApiView):
         page_size = int(request.GET.get("page_size", 10))
         name = request.GET.get("name", None)
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
-            result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.user_id))
+            result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
         teams_list = []
         teams = enterprise_repo.get_enterprise_teams(enterprise_id, name)
@@ -220,12 +221,13 @@ class EnterpriseTeamOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         code = 200
         new_join_team = []
+        request_join_team = []
         try:
             tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id)
             join_tenants = enterprise_repo.get_enterprise_user_join_teams(enterprise_id, request.user.user_id)
             tenants = tenants[:3]
-            active_tenants = enterprise_repo.get_user_active_teams(enterprise_id, request.user.user_id)
-            request_users = enterprise_repo.get_request_join(enterprise_id, request.user.user_id)
+            active_tenants = enterprise_repo.get_enterprise_user_active_teams(enterprise_id, request.user.user_id)
+            request_tenants = enterprise_repo.get_enterprise_user_request_join(enterprise_id, request.user.user_id)
             if tenants:
                 for tenant in tenants:
                     region_name_list = []
@@ -267,38 +269,35 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "owner": tenant_info.creater,
                         "owner_name": user.nick_name,
                         "role": None,
-                        "is_pass": False,
+                        "is_pass": tenant.is_pass,
                     })
-            if new_join_team:
-                data = {
-                    "active_teams": active_tenants,
-                    "new_join_team": new_join_team,
-                    "request_join_team": []
-                }
-                if request_users:
-                    for request_user in request_users:
-                        region_name_list = []
-                        region_list = team_repo.get_team_regions(request_user.team_id)
-                        if region_list:
-                            region_name_list = region_list.values_list("region_name", flat=True)
-                        data["request_join_team"].append({
-                            "team_name": request_user.team_name,
-                            "team_alias": request_user.team_alias,
-                            "team_id": request_user.team_id,
-                            "apply_time": request_user.apply_time,
-                            "user_id": request_user.user_id,
-                            "user_name": request_user.user_name,
-                            "region": team_repo.get_team_by_team_id(request_user.team_id).region,
-                            "region_list": region_name_list,
-                            "enterprise_id": enterprise_id,
-                            "owner": self.user.user_id,
-                            "owner_name": self.user.nick_name,
-                            "role": "viewer",
-                            "is_pass": request_user.is_pass,
-                        })
-                result = general_message(200, "success", None, bean=data)
-            else:
-                result = general_message(200, "success", "该用户没有加入团队")
+            if request_tenants:
+                for request_tenant in request_tenants:
+                    region_name_list = []
+                    region_list = team_repo.get_team_regions(request_tenant.team_id)
+                    if region_list:
+                        region_name_list = region_list.values_list("region_name", flat=True)
+                    request_join_team.append({
+                        "team_name": request_tenant.team_name,
+                        "team_alias": request_tenant.team_alias,
+                        "team_id": request_tenant.team_id,
+                        "apply_time": request_tenant.apply_time,
+                        "user_id": request_tenant.user_id,
+                        "user_name": request_tenant.user_name,
+                        "region": team_repo.get_team_by_team_id(request_tenant.team_id).region,
+                        "region_list": region_name_list,
+                        "enterprise_id": enterprise_id,
+                        "owner": self.user.user_id,
+                        "owner_name": self.user.nick_name,
+                        "role": "viewer",
+                        "is_pass": request_tenant.is_pass,
+                    })
+            data = {
+                "active_teams": active_tenants,
+                "new_join_team": new_join_team,
+                "request_join_team": request_join_team,
+            }
+            result = general_message(200, "success", None, bean=data)
         except Exception as e:
             logger.exception(e)
             code = 400

@@ -16,6 +16,7 @@ from console.models.main import RainbondCenterApp
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo
 from www.models.main import ServiceGroup
+from www.models.main import ServiceGroupRelation
 from www.models.main import Users
 from www.models.main import Tenants
 
@@ -39,14 +40,25 @@ class TenantEnterpriseRepo(object):
         tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
         return ServiceGroup.objects.filter(tenant_id__in=tenant_ids)
 
+    def get_enterprise_services(self, enterprise_id):
+        tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
+        if not tenant_ids:
+            return []
+        group_ids =  ServiceGroup.objects.filter(tenant_id__in=tenant_ids).values_list("ID")
+        if not group_ids:
+            return []
+        return ServiceGroupRelation.objects.filter(group_id__in=group_ids).values_list("service_id")
+
     def get_enterprise_users(self, enterprise_id):
         return Users.objects.filter(enterprise_id=enterprise_id, is_active=True)
 
     def get_enterprise_user_teams(self, enterprise_id, user_id, name=None):
-        return team_repo.get_tenants_by_user_id(user_id, name)
+        return team_repo.get_tenants_by_user_id_and_eid(enterprise_id, user_id, name)
 
     def get_enterprise_user_join_teams(self, enterprise_id, user_id):
-        return Applicants.objects.filter(user_id=user_id, is_pass=False).order_by("-apply_time")
+        team_ids = self.get_enterprise_user_teams(enterprise_id, user_id).values_list("tenant_id", flat=True)
+        return Applicants.objects.filter(
+            user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
 
     def get_enterprise_teams(self, enterprise_id, name=None):
         if name:
@@ -61,7 +73,7 @@ class TenantEnterpriseRepo(object):
             return 0
         return len(set(apps.values_list("app_id", flat=True)))
 
-    def get_user_active_teams(self, enterprise_id, user_id):
+    def get_enterprise_user_active_teams(self, enterprise_id, user_id):
         tenants = self.get_enterprise_user_teams(enterprise_id, user_id)
         if not tenants:
             return None
@@ -179,9 +191,10 @@ class TenantEnterpriseRepo(object):
         result = conn.query(sql)
         return result[0]["total"]
 
-    def get_request_join(self, enterprise_id, user_id):
-        applicants = Applicants.objects.filter(user_id=user_id).order_by("-apply_time")
-        return applicants
+    def get_enterprise_user_request_join(self, enterprise_id, user_id):
+        team_ids = self.get_enterprise_user_teams(enterprise_id, user_id).values_list("tenant_id", flat=True)
+        return Applicants.objects.filter(
+            user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
 
 
 class TenantEnterpriseUserPermRepo(object):

@@ -8,6 +8,7 @@ import string
 from django.core.paginator import Paginator
 
 from console.repositories.enterprise_repo import enterprise_repo
+from console.services.service_services import base_service
 from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
@@ -186,6 +187,9 @@ class EnterpriseServices(object):
             appstore_name = "好雨科技公有应用市场(默认)"
         setattr(ent, "appstore_name", appstore_name)
         return ent
+
+    # def get_services_status_by_service_ids(self, region_name, enterprise_id, service_ids):
+
 
 
 enterprise_services = EnterpriseServices()
