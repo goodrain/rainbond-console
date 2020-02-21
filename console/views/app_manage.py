@@ -485,8 +485,8 @@ class ChangeServiceTypeView(AppBaseView):
 
             if extend_method not in support_service_types:
                 return Response(general_message(400, "do not support service type", "组件类型非法"), status=400)
-
-            msg, msg_show = app_manage_service.change_service_type(self.tenant, self.service, extend_method)
+            logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
+            app_manage_service.change_service_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
         except ServiceHandleException as e:
             result = general_message(e.error_code, e.msg, e.msg_show)

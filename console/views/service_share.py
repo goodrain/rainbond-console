@@ -276,6 +276,15 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 result = general_message(400, "share group key can not be empty", "分享应用信息不全")
                 return Response(result, status=400)
 
+            if share_app_info:
+                for app in share_app_info:
+                    extend_method = app.get("extend_method", None)
+                    if extend_method and (extend_method == "state_singleton" or extend_method == "stateless_singleton"):
+                        extend_method_map = app.get("extend_method_map")
+                        if extend_method_map and extend_method_map.get("max_node", 1) > 1:
+                            result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
+                            return Response(result, status=400)
+
             # 继续给app_template_incomplete赋值
             code, msg, bean = share_service.create_share_info(
                 share_record=share_record,

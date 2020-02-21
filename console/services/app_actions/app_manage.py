@@ -1143,6 +1143,12 @@ class AppManageService(AppManageBase):
             raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
         if extend_method == "stateless_singleton" and service.min_node > 1:
             raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
+
+        if service.create_status != "complete":
+            service.extend_method = extend_method
+            service.save()
+            return
+
         data = dict()
         data["extend_method"] = extend_method
         try:
