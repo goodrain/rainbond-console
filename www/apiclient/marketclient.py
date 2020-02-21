@@ -38,8 +38,9 @@ class MarketOpenAPI(HttpClient):
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         return self._unpack(body)
 
-    def get_remote_app_templates(self, tenant_id, group_key, group_version, install=False):
-        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+    def get_remote_app_templates(self, enterprise_id, group_key, group_version, install=False):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_enterprise_id(
+            enterprise_id)
         url = url + "/openapi/console/v1/enter-market/apps/{0}?group_version={1}&install={2}".format(
             group_key, group_version, install)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
