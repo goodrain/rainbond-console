@@ -15,6 +15,7 @@ from console.exception.main import ErrPluginAlreadyInstalled
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterAppVersion
 from console.repositories.base import BaseConnection
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
@@ -774,8 +775,8 @@ class MarketAppService(object):
         return 200, app
 
 
-    def get_rain_bond_app_by_key_and_version(self, group_key, group_version):
-        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version)
+    def get_rain_bond_app_by_key_and_version(self, enterprise_id, group_key, group_version):
+        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(enterprise_id, group_key, group_version)
         if not app:
             return 404, None
         return 200, app
@@ -1240,63 +1241,88 @@ class MarketTemplateTranslateService(object):
 
 class AppMarketSynchronizeService(object):
     def download_app_service_group_from_market(self, user, tenant, group_key, group_version):
-        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(group_key, group_version)
-        if rainbond_app and rainbond_app.is_complete:
-            return rainbond_app
+        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+            tenant.enterprise_id, group_key, group_version)
+        rainbond_app_version = rainbond_app_repo.get_rainbond_app_by_key(group_key)
+        if rainbond_app_version and rainbond_app.is_complete:
+            return rainbond_app, rainbond_app_version
         try:
-            rainbond_app = self.down_market_group_app_detail(user, tenant, group_key, group_version, "v2")
-            return rainbond_app
+            rainbond_app, rainbond_app_version = self.down_market_group_app_detail(user, tenant, group_key, group_version, "v2")
+            return rainbond_app, rainbond_app_version
         except Exception as e:
             logger.exception(e)
             logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
             return None
 
-    def down_market_group_app_detail(self, user, tenant, group_key, group_version, template_version):
-        data = market_api.get_remote_app_templates(tenant.tenant_id, group_key, group_version)
-        return self.save_market_app_template(user, tenant, data)
+    def down_market_group_app_detail(self, user, enterprise_id, group_key, group_version, template_version):
+        data = market_api.get_remote_app_templates(enterprise_id, group_key, group_version)
+        return self.save_market_app_template(user, enterprise_id, data)
 
-    def save_market_app_template(self, user, tenant, app_templates):
+    def save_market_app_template(self, user, enterprise_id, app_templates):
         template_version = app_templates["template_version"]
         is_v1 = bool(template_version == "v1")
         if is_v1:
             v2_template = template_transform_service.v1_to_v2(app_templates)
         else:
             v2_template = app_templates
-        rainbond_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id,
-                                                                               v2_template["group_key"],
-                                                                               v2_template["group_version"])
+        rainbond_app = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
+            enterprise_id,
+            v2_template["group_key"],
+            v2_template["group_version"]
+        )
+        rainbond_app_version = rainbond_app_repo.get_enterpirse_app_by_key(
+            enterprise_id,
+            v2_template["group_key"],
+        )
 
         if not rainbond_app:
-            enterprise_id = tenant.enterprise_id
             rainbond_app = RainbondCenterApp(
-                group_key=app_templates["group_key"],
-                group_name=app_templates["group_name"],
+                app_id=app_templates["group_key"],
+                app_name=app_templates["group_name"],
+                dev_status=None,
+                create_user=0,
+                create_team="",
+                pic=app_templates["pic"],
+                source="market",
+                scope="goodrain",
+                describe=app_templates["info"],
+                enterprise_id=enterprise_id,
+                is_official=app_templates["is_official"],
+                details=app_templates["desc"])
+            rainbond_app_version = RainbondCenterAppVersion(
+                enterprise_id=enterprise_id,
+                app_id=app_templates["group_key"],
                 version=app_templates['group_version'],
+                app_alias=None,
+                app_version_info=app_templates['info'],
                 share_user=0,
                 record_id=0,
                 share_team="",
                 source="market",
                 scope="goodrain",
-                describe=app_templates["info"],
-                pic=app_templates["pic"],
                 app_template="",
-                enterprise_id=enterprise_id,
                 template_version=app_templates.get("template_version", ""),
                 is_official=app_templates["is_official"],
-                details=app_templates["desc"],
-                upgrade_time=app_templates["update_version"])
+                upgrade_time=app_templates["update_version"],
+            )
         if is_v1:
-            rainbond_app.share_user = v2_template["share_user"]
-            rainbond_app.share_team = v2_template["share_team"]
+            rainbond_app.create_user = v2_template["share_user"]
+            rainbond_app_version.share_user = v2_template["share_user"]
+            rainbond_app.create_team = v2_template["share_team"]
+            rainbond_app_version.share_team = v2_template["share_team"]
             rainbond_app.pic = v2_template["pic"]
             rainbond_app.describe = v2_template["describe"]
-            rainbond_app.app_template = json.dumps(v2_template)
-            rainbond_app.is_complete = True
+            rainbond_app_version.app_version_info = v2_template["describe"]
+            rainbond_app_version.app_template = json.dumps(v2_template)
+            rainbond_app_version.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+            rainbond_app_version.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template["is_official"]
+            rainbond_app_version.is_official = v2_template["is_official"]
             rainbond_app.details = v2_template["desc"]
-            rainbond_app.upgrade_time = v2_template.get("update_version", "0")
+            rainbond_app_version.upgrade_time = v2_template.get("update_version", "0")
             rainbond_app.save()
+            rainbond_app_version.save()
         else:
             user_name = v2_template.get("publish_user", None)
             user_id = 0
@@ -1306,18 +1332,23 @@ class AppMarketSynchronizeService(object):
                     user_id = user.user_id
                 except Exception as e:
                     logger.exception(e)
-            rainbond_app.share_user = user_id
-            rainbond_app.share_team = v2_template.get("publish_team", "")
+            rainbond_app.create_user = user_id
+            rainbond_app_version.share_user = user_id
+            rainbond_app.create_team = v2_template.get("publish_team", "")
+            rainbond_app_version.share_team = v2_template.get("publish_team", "")
             rainbond_app.pic = v2_template.get("pic", rainbond_app.pic)
             rainbond_app.describe = v2_template.get("update_note", rainbond_app.describe)
-            rainbond_app.app_template = v2_template["template_content"]
-            rainbond_app.is_complete = True
+            rainbond_app_version.app_template = v2_template["template_content"]
+            rainbond_app_version.is_complete = True
             rainbond_app.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
+            rainbond_app_version.update_time = current_time_str("%Y-%m-%d %H:%M:%S")
             rainbond_app.is_official = v2_template.get("is_official", 0)
+            rainbond_app_version.is_official = v2_template.get("is_official", 0)
             rainbond_app.details = v2_template.get("desc", "")
-            rainbond_app.upgrade_time = v2_template.get("update_version", "")
+            rainbond_app_version.upgrade_time = v2_template.get("update_version", "")
             rainbond_app.save()
-        return rainbond_app
+            rainbond_app_version.save()
+        return rainbond_app, rainbond_app_version
 
     def get_recommended_app_list(self, tenant, page, limit, app_name):
         try:

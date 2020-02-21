@@ -107,7 +107,7 @@ from console.views.center_pool.apps import CenterAppListView
 from console.views.center_pool.apps import CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.apps import CenterVersionlMarversionketAppView
-from console.views.center_pool.apps import DownloadMarketAppGroupTemplageDetailView
+from console.views.center_pool.apps import DownloadMarketAppTemplateView
 from console.views.center_pool.apps import GetCloudRecommendedAppList
 from console.views.center_pool.apps import TagCLView
 from console.views.center_pool.apps import TagUDView
@@ -698,16 +698,12 @@ urlpatterns = [
     # 好雨云市应用同步
     # 同步应用
     # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
-    # 同步某个应用回来
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/template_details$', DownloadMarketAppGroupTemplageDetailView.as_view()),
 
     # 查询查询云端app
     url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
     url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
     # 查询云端指定版本app
     url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
-    # 下架应用
-    url(r'^app_market/manage$', CenterAppManageView.as_view()),
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
@@ -718,8 +714,6 @@ urlpatterns = [
         BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
-    # 应用导出
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export$', CenterAppExportView.as_view()),
     # 应用导入
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view()),
     # 应用包目录查询
@@ -819,6 +813,14 @@ urlpatterns = [
     # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # get basic task guided information
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
+    # 应用导出
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/market/apps/export$', CenterAppExportView.as_view()),
+    # 同步某个应用回来
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/market/apps/cloud/download$',
+        DownloadMarketAppTemplateView.as_view()),
+    # 下架应用
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/market/apps/manage$', CenterAppManageView.as_view()),
+
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

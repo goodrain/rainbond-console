@@ -81,6 +81,7 @@ class CenterAppListView(JWTAuthApiView):
                         self.user.enterprise_id, app.app_id,version)
                     if rst == "failed":
                         export_status = "failed"
+                print app.versions_info
                 versions_info = (json.loads(app.versions_info) if app.versions_info else [])
                 min_memory = group_service.get_service_group_memory(versions_info[0]["app_template"])
                 for version_info in versions_info:
@@ -159,7 +160,8 @@ class CenterAppView(RegionTenantHeaderView):
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
+                    self.user.enterprise_id, group_key, group_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
@@ -183,9 +185,9 @@ class CenterAppView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class CenterAppManageView(RegionTenantHeaderView):
+class CenterAppManageView(JWTAuthApiView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request, enterprise_id, *args, **kwargs):
         """
         应用上下线
         ---
@@ -207,19 +209,20 @@ class CenterAppManageView(RegionTenantHeaderView):
                     return Response(
                         general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
                         status=403)
-            group_key = request.data.get("group_key", None)
-            group_version_list = request.data.get("group_version_list", [])
+            app_id = request.data.get("app_id", None)
+            app_version_list = request.data.get("app_versions", [])
             action = request.data.get("action", None)
-            if not group_key:
+            if not app_id:
                 return Response(general_message(400, "group_key is null", "请指明需要安装应用的group_key"), status=400)
-            if not group_version_list:
+            if not app_version_list:
                 return Response(general_message(400, "group_version_list is null", "请指明需要安装应用的版本"), status=400)
             if not action:
                 return Response(general_message(400, "action is not specified", "操作类型未指定"), status=400)
             if action not in ("online", "offline"):
                 return Response(general_message(400, "action is not allow", "不允许的操作类型"), status=400)
-            for group_version in group_version_list:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, group_version)
+            for app_version in app_version_list:
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
+                    self.user.enterprise_id, app_id, app_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
@@ -235,9 +238,9 @@ class CenterAppManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
+class DownloadMarketAppTemplateView(JWTAuthApiView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request, enterprise_id, *args, **kwargs):
         """
         同步下载云市组详情模板到云帮
         ---
@@ -254,29 +257,29 @@ class DownloadMarketAppGroupTemplageDetailView(RegionTenantHeaderView):
               paramType: body
         """
         try:
-            group_key = request.data.get("group_key", None)
-            group_version = request.data.get("group_version", [])
+            app_id = request.data.get("app_id", None)
+            app_versions = request.data.get("app_versions", [])
             template_version = request.data.get("template_version", "v2")
-            if not group_version or not group_key:
+            if not app_versions or not app_id:
                 return Response(general_message(400, "app is null", "请指明需要更新的应用"), status=400)
-            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            ent = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
             if ent and not ent.is_active:
                 result = general_message(10407, "failed", "用户未跟云市认证")
                 return Response(result, 500)
 
             if not self.user.is_sys_admin:
-                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
+                if not user_services.is_user_admin_in_current_enterprise(self.user, enterprise_id):
                     return Response(
                         general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
                         status=403)
             logger.debug("start synchronized market apps detail")
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
 
-            for version in group_version:
+            for version in app_versions:
                 market_sycn_service.down_market_group_app_detail(
-                    self.user, self.tenant, group_key, version, template_version)
+                    self.user, enterprise_id, app_id, version, template_version)
             result = general_message(200, "success", "应用同步成功")
         except HttpClient.CallApiError as e:
             logger.exception(e)

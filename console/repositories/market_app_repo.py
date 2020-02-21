@@ -107,6 +107,7 @@ class RainbondCenterAppRepository(object):
         conn = BaseConnection()
         conn.query(sql1)
         conn.query(sql2)
+        print sql
         result = conn.query(sql)
         return result
 
@@ -117,15 +118,24 @@ class RainbondCenterAppRepository(object):
         return None
 
     def get_rainbond_app_by_key_and_version(self, enterprise_id, group_key, group_version):
-        rcapps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, group_key=group_key,
-                                                  version=group_version,
-                                                  scope__in=["gooodrain", "team", "enterprise"])
+        app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
+        rcapps = RainbondCenterAppVersion.objects.filter(
+            enterprise_id=enterprise_id, app_id=group_key,
+            version=group_version,
+            scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
         if rcapps:
+            rcapps[0].pic = app.pic
+            rcapps[0].group_name = app.app_name
+            rcapps[0].describe = app.describe
             return rcapps[0]
-        rcapps = RainbondCenterApp.objects.filter(enterprise_id="public", group_key=group_key,
-                                                  version=group_version,
-                                                  scope__in=["gooodrain", "team", "enterprise"])
+        rcapps = RainbondCenterAppVersion.objects.filter(
+            enterprise_id="public", app_id=group_key,
+            version=group_version,
+            scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
         if rcapps:
+            rcapps[0].pic = app.pic
+            rcapps[0].group_name = app.app_name
+            rcapps[0].describe = app.describe
             return rcapps[0]
         return None
 
@@ -150,8 +160,30 @@ class RainbondCenterAppRepository(object):
                                  version=version, scope__in=["team", "enterprise", "goodrain"])
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
+        app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
+        rcapps = RainbondCenterAppVersion.objects.filter(
+            app_id=group_key, version=group_version,
+            enterprise_id__in=["public", enterprise_id]).order_by("-update_time")
+        if rcapps:
+            rcapp = rcapps.filter(enterprise_id=enterprise_id)
+            # 优先获取企业下的应用
+            if rcapp:
+                rcapp[0].pic = app.pic
+                rcapp[0].group_name = app.app_name
+                rcapp[0].describe = app.describe
+
+                return rcapp[0]
+            else:
+                rcapps[0].pic = app.pic
+                rcapps[0].describe = app.describe
+                rcapps[0].group_name = app.app_name
+            return rcapps[0]
+        logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
+        return None
+
+    def get_enterpirse_app_by_key(self, enterprise_id, group_key):
         rcapps = RainbondCenterApp.objects.filter(
-            group_key=group_key, version=group_version, enterprise_id__in=["public", enterprise_id])
+            app_id=group_key, enterprise_id__in=["public", enterprise_id])
         if rcapps:
             rcapp = rcapps.filter(enterprise_id=enterprise_id)
             # 优先获取企业下的应用
@@ -159,8 +191,9 @@ class RainbondCenterAppRepository(object):
                 return rcapp[0]
             else:
                 return rcapps[0]
-        logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
+        logger.warning("Enterprise ID: {0}; Group Key: {1};".format(enterprise_id, group_key))
         return None
+
 
     def bulk_create_rainbond_apps(self, rainbond_apps):
         RainbondCenterApp.objects.bulk_create(rainbond_apps)
