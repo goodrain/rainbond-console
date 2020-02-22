@@ -4,6 +4,7 @@
 """
 import logging
 
+from console.exception.main import AbortRequest
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -279,11 +280,10 @@ class HorizontalExtendAppView(AppBaseView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            code, msg = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
-            bean = {}
-            if code != 200:
-                return Response(general_message(code, "horizontal upgrade error", msg, bean=bean), status=code)
-            result = general_message(code, "success", "操作成功", bean=bean)
+            app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
+            result = general_message(200, "success", "操作成功", bean={})
+        except ServiceHandleException as e:
+            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -481,17 +481,17 @@ class ChangeServiceTypeView(AppBaseView):
         try:
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
-                return Response(general_message(400, "select the application type", "请选择组件类型"), status=400)
+                raise AbortRequest(msg="select the application type", msg_show="请选择组件类型")
 
             if extend_method not in support_service_types:
-                return Response(general_message(400, "do not support service type", "组件类型非法"), status=400)
+                raise AbortRequest(msg="do not support service type", msg_show="组件类型非法")
             logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
             app_manage_service.change_service_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
         except ServiceHandleException as e:
-            result = general_message(e.error_code, e.msg, e.msg_show)
+            raise e
         except ErrChangeServiceType as e:
-            result = general_message(e.error_code, e.msg, e.msg_show)
+            raise e
         except CallRegionAPIException as e:
             result = general_message(e.code, "failure", e.message)
         return Response(result, status=result["code"])

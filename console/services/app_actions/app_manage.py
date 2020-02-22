@@ -6,6 +6,10 @@ import datetime
 import json
 import logging
 
+from console.utils.component_type import state_singleton
+from console.utils.component_type import is_state
+from console.utils.component_type import is_singleton
+
 from django.conf import settings
 
 from console.constants import AppConstants
@@ -757,12 +761,12 @@ class AppManageService(AppManageBase):
         """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
-            return 400, "节点数量需在1到100之间"
+            raise ServiceHandleException(status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
         if new_node == service.min_node:
-            return 409, "节点没有变化，无需升级"
+            raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
 
         if new_node > 1 and (service.extend_method == "stateless_singleton" or service.extend_method == "state_singleton"):
-            return 409, "组件为单实例组件，不可使用多节点"
+            raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
 
         if service.create_status == "complete":
             body = dict()
@@ -775,14 +779,13 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                raise ServiceHandleException(status_code=507, msg="component error", msg_show="组件异常")
             except region_api.ResourceNotEnoughError as e:
                 logger.exception(e)
-                return 412, e.msg
+                raise ServiceHandleException(status_code=412, msg="resource not enough", msg_show=e.msg)
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                raise ServiceHandleException(status_code=409, msg="just wait a moment", msg_show="操作过于频繁，请稍后再试")
 
     def delete(self, user, tenant, service, is_force):
         # 判断组件是否是运行状态
@@ -1133,15 +1136,14 @@ class AppManageService(AppManageBase):
                 if tenant_service_volume["volume_type"] == "share-file" or tenant_service_volume["volume_type"] == "memoryfs":
                     continue
                 if tenant_service_volume["volume_type"] == "local":
-                    if old_extend_method == "state_singleton":
+                    if old_extend_method == state_singleton:
                         raise ServiceHandleException(msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
-                if tenant_service_volume["access_mode"] and tenant_service_volume["access_mode"] == "RWO":
-                    if extend_method == "stateless_singleton" or extend_method == "stateless_multiple":
+                access_mode = tenant_service_volume.get("access_mode", None)
+                if access_mode and access_mode == "RWO":
+                    if not is_state(extend_method):
                         raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
         # 实例个数限制
-        if extend_method == "state_singleton" and service.min_node > 1:
-            raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
-        if extend_method == "stateless_singleton" and service.min_node > 1:
+        if is_singleton(extend_method) and service.min_node > 1:
             raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
 
         if service.create_status != "complete":
@@ -1155,6 +1157,6 @@ class AppManageService(AppManageBase):
             region_api.update_service(service.service_region, tenant.tenant_name, service.service_alias, data)
             service.extend_method = extend_method
             service.save()
-        except Exception as e:
+        except region_api.CallApiError as e:
             logger.exception(e)
             raise ErrChangeServiceType

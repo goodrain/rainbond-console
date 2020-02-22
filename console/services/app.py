@@ -8,6 +8,9 @@ import logging
 import random
 import string
 
+from console.utils.component_type import stateless_multiple
+
+
 from django.db.models import Q
 
 from console.constants import AppConstants
@@ -72,7 +75,7 @@ class AppService(object):
         tenant_service.image = "goodrain.me/runner"
         tenant_service.cmd = ""
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless"
+        tenant_service.extend_method = stateless_multiple
         tenant_service.env = ""
         tenant_service.min_node = 1
         tenant_service.min_memory = 128
@@ -184,7 +187,7 @@ class AppService(object):
         # tenant_service.image = "goodrain.me/runner"
         # tenant_service.cmd = "start web"
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless_multiple"
+        tenant_service.extend_method = stateless_multiple
         tenant_service.env = ","
         tenant_service.min_node = 1
         tenant_service.min_memory = 128
@@ -252,7 +255,7 @@ class AppService(object):
         tenant_service.image = "third_party"
         tenant_service.cmd = ""
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless_singleton"
+        tenant_service.extend_method = stateless_multiple
         tenant_service.env = ""
         tenant_service.min_node = len(end_point)
         tenant_service.min_memory = 0

@@ -4,6 +4,9 @@
 """
 import re
 
+from console.utils.component_type import stateless_singleton
+from console.utils.component_type import state_singleton
+
 from console.constants import AppConstants
 from console.repositories.app_config import volume_repo, mnt_repo
 
@@ -16,6 +19,11 @@ from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+
+
+volume_bound = "bound"
+volume_not_bound = "not_bound"
+volume_ready = "READY"
 
 
 class AppVolumeService(object):
@@ -62,7 +70,6 @@ class AppVolumeService(object):
             vo["access_mode"] = vo["access_mode"].upper()
             if vo["access_mode"] == "RWO" or vo["access_mode"] == "ROX":
                 return False
-            #  后续添加share_policy进行共享策略的限制
         return True
 
     def get_service_support_volume_options(self, tenant, service):
@@ -84,8 +91,6 @@ class AppVolumeService(object):
                 base_opts.append(opt)
         return base_opts
 
-    # 需要提供更多的信息到源数据中
-    # 使用数据中心接口统一返回最合适的类型，
     def get_best_suitable_volume_settings(self, tenant, service, volume_type, access_mode=None, share_policy=None,
                                           backup_policy=None, reclaim_policy=None, provider_name=None):
         """
@@ -105,18 +110,20 @@ class AppVolumeService(object):
         """
         for opt in opts:
             if opt["volume_type"] == volume_type:
-                # 匹配到相同的存储类型
+                # get the same volume type
                 settings["changed"] = False
                 return settings
 
         if access_mode:
-            # 匹配相同读写模式的存储
+            # get the same access_mode volume type
+            # TODO fanyangyang more access_mode support, if no rwo, use rwx
             for opt in opts:
-                if opt.get("access_mode") and opt.get("access_mode") == access_mode:
-                    settings["volume_type"] = opt["volume_type"]
+                access_mode = opt.get("access_mode", None)
+                if access_mode and access_mode == access_mode:
+                    settings["volume_type"] = access_mode
                     settings["changed"] = True
                     return settings
-        # 找不到则不让创建对应组件
+        # raise volume type not found error, if no suitable volume type
         raise ErrVolumeTypeNotFound
 
     def get_service_volumes(self, tenant, service, is_config_file=False):
@@ -131,7 +138,7 @@ class AppVolumeService(object):
         if service.create_status != "complete":
             for volume in volumes:
                 vo = volume.to_dict()
-                vo["status"] = "not_bound"
+                vo["status"] = volume_not_bound
                 vos.append(vo)
             return vos
         res, body = region_api.get_service_volumes(service.service_region, tenant.tenant_name,
@@ -144,18 +151,14 @@ class AppVolumeService(object):
             for volume in volumes:
                 vo = volume.to_dict()
                 vo_status = status.get(vo["volume_name"], None)
-                if vo_status:
-                    if vo_status == "READY":
-                        vo["status"] = "bound"
-                    else:
-                        vo["status"] = "not_bound"
-                else:
-                    vo["status"] = 'not_bound'
+                vo["status"] = volume_not_bound
+                if vo_status and vo_status == volume_ready:
+                    vo["status"] = volume_bound
                 vos.append(vo)
         else:
             for volume in volumes:
                 vo = volume.to_dict()
-                vo["status"] = "not_bound"
+                vo["status"] = volume_not_bound
                 vos.append(vo)
         return vos
 
@@ -218,8 +221,7 @@ class AppVolumeService(object):
         if access_mode is not None and access_mode != "":
             return access_mode.upper()
         if volume_type == self.default_volume_type:
-            # TODO fanyangyang 待修改
-            if service.extend_method == "stateless_singleton":
+            if service.extend_method == stateless_singleton:
                 access_mode = "RWX"
             else:
                 access_mode = "RWO"
@@ -295,7 +297,7 @@ class AppVolumeService(object):
             raise ErrVolumeTypeNotFound
 
     def check_service_multi_node(self, service, settings):
-        if service.extend_method == "state_singleton" and service.min_node > 1:
+        if service.extend_method == state_singleton and service.min_node > 1:
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 

@@ -5,6 +5,8 @@
 import json
 import logging
 
+from console.utils.component_type import is_state
+
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -70,7 +72,7 @@ class GroupAppBackupService(object):
         # 处于运行中的有状态
         running_state_services = []
         for service in services:
-            if service.extend_method == "state_singleton" or service.extend_method == "state_multiple":
+            if is_state(service.extend_method):
                 if service_status_map.get(service.service_id) not in ("closed", "undeploy"):
                     running_state_services.append(service.service_cname)
 
