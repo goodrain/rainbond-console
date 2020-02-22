@@ -2,6 +2,7 @@
 """
   Created on 18/1/24.
 """
+from enum import Enum
 
 
 class AppConstants(object):
@@ -113,3 +114,32 @@ class StorageUnit(object):
 class DomainType(object):
     SLD_DOMAIN = "goodrain-sld"
     WWW = "www"
+
+
+class ComponentType(Enum):
+    stateless_singleton = "stateless_singleton"
+    stateless_multiple = "stateless_multiple"
+    state_singleton = "state_singleton"
+    state_multiple = "state_multiple"
+
+
+def is_state(component_type):
+    if component_type == ComponentType.state_singleton or component_type == ComponentType.state_multiple:
+        return True
+    return False
+
+
+def is_singleton(component_type):
+    if component_type == ComponentType.state_singleton or component_type == ComponentType.stateless_singleton:
+        return True
+    return False
+
+
+def is_support(component_type):
+    if component_type == ComponentType.state_singleton \
+            or component_type == ComponentType.stateless_singleton \
+            or component_type == ComponentType.stateless_multiple \
+            or component_type == ComponentType.state_multiple:
+        return True
+
+    return False

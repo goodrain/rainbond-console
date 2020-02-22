@@ -8,9 +8,6 @@ import logging
 import random
 import string
 
-from console.utils.component_type import stateless_multiple
-
-
 from django.db.models import Q
 
 from console.constants import AppConstants
@@ -43,6 +40,7 @@ from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
 from console.utils.validation import validate_endpoint_address
+from console.constants import ComponentType
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -75,7 +73,7 @@ class AppService(object):
         tenant_service.image = "goodrain.me/runner"
         tenant_service.cmd = ""
         tenant_service.setting = ""
-        tenant_service.extend_method = stateless_multiple
+        tenant_service.extend_method = ComponentType.stateless_multiple
         tenant_service.env = ""
         tenant_service.min_node = 1
         tenant_service.min_memory = 128
@@ -187,7 +185,7 @@ class AppService(object):
         # tenant_service.image = "goodrain.me/runner"
         # tenant_service.cmd = "start web"
         tenant_service.setting = ""
-        tenant_service.extend_method = stateless_multiple
+        tenant_service.extend_method = ComponentType.stateless_multiple
         tenant_service.env = ","
         tenant_service.min_node = 1
         tenant_service.min_memory = 128
@@ -255,7 +253,7 @@ class AppService(object):
         tenant_service.image = "third_party"
         tenant_service.cmd = ""
         tenant_service.setting = ""
-        tenant_service.extend_method = stateless_multiple
+        tenant_service.extend_method = ComponentType.stateless_multiple
         tenant_service.env = ""
         tenant_service.min_node = len(end_point)
         tenant_service.min_memory = 0

@@ -53,6 +53,7 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.constants import ComponentType
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -636,9 +637,9 @@ class MarketAppService(object):
         extend_method = app["extend_method"]
         if extend_method:
             if extend_method == "state":
-                tenant_service.extend_method = "state_singleton"
+                tenant_service.extend_method = ComponentType.state_singleton
             elif extend_method == "stateless":
-                tenant_service.extend_method = "stateless_multiple"
+                tenant_service.extend_method = ComponentType.stateless_multiple
             else:
                 tenant_service.extend_method = extend_method
 

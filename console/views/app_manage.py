@@ -24,15 +24,13 @@ from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message
-from console.services.exception import ErrChangeServiceType
+from console.constants import is_support, is_state
 
 logger = logging.getLogger("default")
 
 env_var_service = AppEnvVarService()
 app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
-
-support_service_types = ["stateless_singleton", "stateless_multiple", "state_singleton", "state_multiple"]
 
 
 class StartAppView(AppBaseView):
@@ -483,15 +481,11 @@ class ChangeServiceTypeView(AppBaseView):
             if not extend_method:
                 raise AbortRequest(msg="select the application type", msg_show="请选择组件类型")
 
-            if extend_method not in support_service_types:
+            if is_support(extend_method):
                 raise AbortRequest(msg="do not support service type", msg_show="组件类型非法")
             logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
             app_manage_service.change_service_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
-        except ServiceHandleException as e:
-            raise e
-        except ErrChangeServiceType as e:
-            raise e
         except CallRegionAPIException as e:
             result = general_message(e.code, "failure", e.message)
         return Response(result, status=result["code"])
@@ -511,8 +505,6 @@ class UpgradeAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
-        except ServiceHandleException as e:
-            raise e
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -536,10 +528,9 @@ class ChangeServiceNameView(AppBaseView):
         if not service_name:
             return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
         extend_method = self.service.extend_method
-        if extend_method == "stateless_singleton" or extend_method == "stateless_multiple":
+        if not is_state(extend_method):
             return Response(
-                general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"),
-                status=400)
+                general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"), status=400)
         self.service.service_name = service_name
         self.service.save()
         result = general_message(200, "success", "操作成功")

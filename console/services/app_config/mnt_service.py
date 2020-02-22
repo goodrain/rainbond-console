@@ -15,6 +15,7 @@ from console.repositories.group import group_service_relation_repo
 from console.services.app_config.volume_service import AppVolumeService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
+from console.constants import is_state
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -71,7 +72,7 @@ class AppMntService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         state_services = []  # 有状态组件
         for svc in services:
-            if svc.extend_method != "stateless_singleton" and svc.extend_method != "stateless_multiple":
+            if not is_state(svc.extend_method):
                 state_services.append(svc)
         state_service_ids = [svc.service_id for svc in state_services]
 
@@ -127,7 +128,7 @@ class AppMntService(object):
         for volume in copy_volumes:
             service_obj = service_repo.get_service_by_service_id(volume.service_id)
             if service_obj:
-                if service_obj.extend_method != "stateless_singleton" and service_obj.extend_method != "stateless_multiple":
+                if is_state(service_obj.extend_method):
                     if volume.volume_type != "config-file":
                         volumes.remove(volume)
         total = len(volumes)

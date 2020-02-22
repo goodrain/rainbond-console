@@ -30,6 +30,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
+from console.constants import is_singleton
 
 logger = logging.getLogger("default")
 
@@ -279,7 +280,7 @@ class ShareService(object):
                 e_m['step_memory'] = 128
                 e_m['is_restart'] = 0
                 e_m['min_node'] = service.min_node
-                if service.extend_method == "stateless_singleton" or service.extend_method == "state_singleton":
+                if is_singleton(service.extend_method):
                     e_m['max_node'] = 1
                 else:
                     e_m['max_node'] = 20

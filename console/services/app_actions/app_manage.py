@@ -6,10 +6,6 @@ import datetime
 import json
 import logging
 
-from console.utils.component_type import state_singleton
-from console.utils.component_type import is_state
-from console.utils.component_type import is_singleton
-
 from django.conf import settings
 
 from console.constants import AppConstants
@@ -58,6 +54,7 @@ from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from console.services.exception import ErrChangeServiceType
 from console.exception.main import ServiceHandleException
+from console.constants import ComponentType, is_singleton, is_state
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -765,7 +762,7 @@ class AppManageService(AppManageBase):
         if new_node == service.min_node:
             raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
 
-        if new_node > 1 and (service.extend_method == "stateless_singleton" or service.extend_method == "state_singleton"):
+        if new_node > 1 and is_singleton(service.extend_method):
             raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
 
         if service.create_status == "complete":
@@ -1136,10 +1133,9 @@ class AppManageService(AppManageBase):
                 if tenant_service_volume["volume_type"] == "share-file" or tenant_service_volume["volume_type"] == "memoryfs":
                     continue
                 if tenant_service_volume["volume_type"] == "local":
-                    if old_extend_method == state_singleton:
+                    if old_extend_method == ComponentType.state_singleton:
                         raise ServiceHandleException(msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
-                access_mode = tenant_service_volume.get("access_mode", None)
-                if access_mode and access_mode == "RWO":
+                if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):
                         raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
         # 实例个数限制

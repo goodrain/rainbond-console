@@ -25,6 +25,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.constants import ComponentType
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -183,7 +184,7 @@ class ComposeService(object):
         tenant_service.desc = "docker compose application"
         tenant_service.category = "app_publish"
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless_multiple"
+        tenant_service.extend_method = ComponentType.stateless_multiple
         tenant_service.env = ","
         tenant_service.min_node = 1
         tenant_service.min_memory = 128
