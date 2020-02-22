@@ -238,6 +238,9 @@ from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
 from console.views.team import UserFuzSerView
+from console.views.user import EnterPriseUsersCLView
+from console.views.user import AdminUserLCView
+from console.views.user import AdminUserDView
 from console.views.user import CheckSourceView
 from console.views.user import UserAddPemView
 from console.views.user import UserLogoutView
@@ -248,6 +251,14 @@ from console.views.user_operation import PasswordResetBegin
 from console.views.user_operation import SendResetEmail
 from console.views.user_operation import TenantServiceView
 from console.views.user_operation import UserDetailsView
+from console.views.enterprise import Enterprises
+from console.views.enterprise import EnterpriseInfo
+from console.views.enterprise import EnterpriseAppOverView
+from console.views.enterprise import EnterpriseTeamOverView
+from console.views.enterprise import EnterpriseOverview
+from console.views.enterprise import EnterpriseTeams
+from console.views.enterprise import EnterpriseMonitor
+from console.views.enterprise import EnterpriseUserTeams
 from console.views.webhook import CustomWebHooksDeploy
 from console.views.webhook import GetWebHooksUrl
 from console.views.webhook import ImageWebHooksDeploy
@@ -809,6 +820,17 @@ urlpatterns = [
     # # 企业中心模糊查询团队
     # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # get basic task guided information
+    url(r'^enterprises$', Enterprises.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$',  EnterPriseUsersCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)/teams$', EnterpriseUserTeams.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user$', AdminUserLCView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppListView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models$', CenterAllMarketAppView.as_view()),

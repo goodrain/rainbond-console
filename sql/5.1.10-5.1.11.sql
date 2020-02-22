@@ -5,6 +5,7 @@ alter table rainbond_center_app modify `dev_status` varchar(32) null default 're
 CREATE TABLE `rainbond_center_app_tag` (
   `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(32) DEFAULT NULL,
+  `enterprise_id` varchar(36) DEFAULT NULL,
   `is_deleted` tinyint(4) DEFAULT '0',
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8;

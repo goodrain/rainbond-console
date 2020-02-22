@@ -304,6 +304,12 @@ class UserService(object):
     def get_user_by_user_id(self, user_id):
         return user_repo.get_user_by_user_id(user_id=user_id)
 
+    def get_user_by_eid(self, eid, name):
+        users = user_repo.get_enterprise_users(eid)
+        if name:
+            users = users.filter(nick_name__contains=name)
+        return users
+
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新构建"""
         group_version = None
@@ -404,6 +410,27 @@ class UserService(object):
                 logger.warning("user_id: {}; user not found".format(item.user_id))
 
         return users, total
+
+    def get_admin_users(self, eid):
+        perms = EnterpriseUserPerm.objects.filter(enterprise_id=eid)
+        users = []
+        for item in perms:
+            try:
+                user = user_services.get_user_by_user_id(item.user_id)
+                users.append({
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "nick_name": user.nick_name,
+                    "phone": user.phone,
+                    "is_active": user.is_active,
+                    "origion": user.origion,
+                    "create_time": user.create_time,
+                    "client_ip": user.client_ip,
+                    "enterprise_id": user.enterprise_id,
+                })
+            except UserNotExistError:
+                logger.warning("user_id: {}; user not found".format(item.user_id))
+        return users
 
     def create_admin_user(self, user, ent):
         # 判断用户是否为企业管理员

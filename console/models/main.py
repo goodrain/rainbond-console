@@ -54,20 +54,20 @@ class RainbondCenterApp(BaseModel):
 
     class Meta:
         db_table = "rainbond_center_app"
-        unique_together = ('group_key', 'version', 'enterprise_id')
+        unique_together = ('app_id', 'enterprise_id')
 
     app_id = models.CharField(max_length=32, help_text=u"应用包")
     app_name = models.CharField(max_length=64, help_text=u"应用包名")
-    create_user = models.IntegerField(help_text=u"分享人id")
+    create_user = models.IntegerField(help_text=u"创建人id")
     create_team = models.CharField(max_length=64, help_text=u"来源应用所属团队")
     pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
-    dev_status = models.CharField(max_length=32, default='release', help_text=u"开发状态")
+    dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
     scope = models.CharField(max_length=50, choices=app_scope, help_text=u"可用范围")
     describe = models.CharField(max_length=400, null=True, blank=True, help_text=u"云市应用描述信息")
     is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
-    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
+    update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text=u"更新时间")
     enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     install_number = models.IntegerField(default=0, help_text=u'安装次数')
     is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
