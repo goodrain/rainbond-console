@@ -289,3 +289,8 @@ class MarketOpenAPIV2(HttpClient):
                                json.dumps(data), timeout=30)
         return self._unpack(body)
 
+    def create_market_app_by_enterprise_id(self, enterprise_id, data):
+        url, id, token = client_auth_service.get_market_access_token_by_enterprise_id(enterprise_id)
+        url += "/openapi/v2/enter-market/apps"
+        res, body = self._post(url, self.__auth_header(id, token),json.dumps(data), timeout=30)
+        return self._unpack(body)

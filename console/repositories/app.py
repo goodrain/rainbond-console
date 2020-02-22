@@ -235,6 +235,21 @@ class AppTagRepository(object):
             tag_id=tag_id
         )
 
+    def create_app_tags_relation(self, app, tag_ids):
+        relation_list = []
+        RainbondCenterAppTagsRelation.objects.filter(
+            enterprise_id=app.enterprise_id,
+            app_id=app.app_id,
+            tag_id__in=tag_ids
+        ).delete()
+        for tag_id in tag_ids:
+            relation_list.append(RainbondCenterAppTagsRelation(
+                enterprise_id=app.enterprise_id,
+                app_id=app.app_id,
+                tag_id=tag_id
+            ))
+        return RainbondCenterAppTagsRelation.objects.bulk_create(relation_list)
+
     def delete_app_tag_relation(self, app, tag_id):
         return RainbondCenterAppTagsRelation.objects.filter(
             enterprise_id=app.enterprise_id,

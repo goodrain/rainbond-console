@@ -103,7 +103,8 @@ from console.views.center_pool.app_import import CenterAppTarballDirView
 from console.views.center_pool.app_import import CenterAppUploadView
 from console.views.center_pool.app_import import ImportingRecordView
 from console.views.center_pool.apps import CenterAllMarketAppView
-from console.views.center_pool.apps import CenterAppListView
+from console.views.center_pool.apps import CenterAppCLView
+from console.views.center_pool.apps import CenterAppUDView
 from console.views.center_pool.apps import CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.apps import CenterVersionlMarversionketAppView
@@ -832,7 +833,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppListView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models$', CenterAllMarketAppView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/recommend', GetCloudRecommendedAppList.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/version$',
@@ -862,7 +864,7 @@ urlpatterns = [
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     # 下架应用
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
 
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),

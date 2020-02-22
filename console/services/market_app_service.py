@@ -48,6 +48,7 @@ from console.utils.restful_client import get_market_client
 from console.utils.timeutil import current_time_str
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
+from www.apiclient.marketclient import MarketOpenAPIV2
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
@@ -60,11 +61,23 @@ logger = logging.getLogger("default")
 baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
 market_api = MarketOpenAPI()
+market_api_v2 = MarketOpenAPIV2()
 region_api = RegionInvokeApi()
 mnt_service = AppMntService()
 
 
 class MarketAppService(object):
+    def create_cloud_app(self, enterprise_id, data):
+        body = {
+            "group_key": data.get("app_id"),
+            "update_note": data["describe"],
+            "group_share_alias": data["app_name"],
+            "logo": data["pic"],
+            "details": data["details"],
+            "share_type": "private"
+        }
+        return market_api_v2.create_market_app_by_enterprise_id(enterprise_id, body)
+
     def install_service(self, tenant, region, user, group_id, market_app, is_deploy, install_from_cloud):
         service_list = []
         service_key_dep_key_map = {}

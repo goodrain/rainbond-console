@@ -17,6 +17,8 @@ from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
+from console.repositories.team_repo import team_repo
+from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
@@ -26,6 +28,7 @@ from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
+from www.utils.crypt import make_uuid
 from www.apiclient.baseclient import HttpClient
 from www.decorator import perm_required
 from www.utils.return_message import error_message
@@ -170,6 +173,157 @@ class CenterAppView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
+
+
+class CenterAppCLView(JWTAuthApiView):
+    @never_cache
+    def get(self, request, enterprise_id, *args, **kwargs):
+        """
+        获取本地市场应用
+        ---
+        parameters:
+            - name: scope
+              description: 范围
+              required: false
+              type: string
+              paramType: query
+            - name: app_name
+              description: 应用名字
+              required: false
+              type: string
+              paramType: query
+            - name: page
+              description: 当前页
+              required: true
+              type: string
+              paramType: query
+            - name: page_size
+              description: 每页大小,默认为10
+              required: true
+              type: string
+              paramType: query
+        """
+        scope = request.GET.get("scope", None)
+        app_name = request.GET.get("app_name", None)
+        tags = request.GET.get("tags", [])
+        if tags:
+            tags = json.loads(tags)
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        app_list = []
+        apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
+            enterprise_id, app_name, tags, scope, page, page_size)
+        if apps and apps[0].app_name:
+            for app in apps:
+                versions_info = (json.loads(app.versions_info) if app.versions_info else [])
+                app_list.append({
+                    "update_time": app.update_time,
+                    "is_ingerit": app.is_ingerit,
+                    "app_id": app.app_id,
+                    "app_name": app.app_name,
+                    "pic": app.pic,
+                    "describe": app.describe,
+                    "create_time": app.create_time,
+                    "scope": app.scope,
+                    "versions_info": versions_info,
+                    "dev_status": app.dev_status,
+                    "tags": (json.loads(app.tags) if app.tags else []),
+                    "enterprise_id": app.enterprise_id,
+                    "is_official": app.is_official,
+                    "ID": app.ID,
+                    "source": app.source,
+                    "details": app.details,
+                    "install_number": app.install_number,
+                    "create_user": app.create_user,
+                    "create_team": app.create_team,
+                })
+
+        return MessageResponse(
+            "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
+
+
+    @never_cache
+    def post(self, request, enterprise_id, *args, **kwargs):
+        app_name = request.data.get("name")
+        describe = request.data.get("describe", 'This is a default description.')
+        pic = request.data.get("pic")
+        scope = request.data.get("scope")
+        details = request.data.get("details")
+        app_id = make_uuid()
+        dev_status = request.data.get("dev_status")
+        tenant_id = request.data.get("tenant_id")
+        team_name = request.data.get("team_name")
+        tag_ids = request.data.get("tag_ids")
+        if tenant_id:
+            team = team_repo.get_team_by_team_id(tenant_id)
+            team_name = team.tenant_name
+
+        data = {
+            "app_name": app_name,
+            "describe": describe,
+            "pic": pic,
+            "app_id": app_id,
+            "dev_status": dev_status,
+            "create_team": team_name,
+            "create_user": self.user.user_id,
+            "source": "local",
+            "scope": scope,
+            "details": details,
+            "enterprise_id": enterprise_id
+        }
+        if not (app_name and scope):
+            result = general_message(400, "error params", None)
+            return Response(result, status=200)
+        if scope == "goodrain":
+            market_app_service.create_cloud_app(enterprise_id, data)
+        else:
+            app = share_repo.create_app(data)
+            if tag_ids:
+                app_tag_repo.create_app_tags_relation(app, tag_ids)
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
+
+
+class CenterAppUDView(JWTAuthApiView):
+    """
+        编辑和删除应用市场应用
+        ---
+    """
+    def put(self, request, enterprise_id, app_id, *args, **kwargs):
+        name = request.data.get("name")
+        describe = request.data.get("describe", 'This is a default description.')
+        pic = request.data.get("pic")
+        details = request.data.get("details")
+        dev_status = request.data.get("dev_status")
+        tag_ids = request.data.get("tag_ids")
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        if not app:
+            result = general_message(404, "no found app-model", None)
+            return Response(result, status=404)
+        app.app_name = name
+        app.describe = describe
+        app.pic = pic
+        app.dev_status = dev_status
+        app.details = details
+        app.save()
+        if tag_ids:
+            app_tag_repo.create_app_tags_relation(app, tag_ids)
+        else:
+            app_tag_repo.get_app_tags(enterprise_id, app_id).delete()
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
+
+    def delete(self, request, enterprise_id, app_id, *args, **kwargs):
+        app = RainbondCenterApp.objects.filter(app_id=app_id, enterprise_id=enterprise_id)
+        if not app:
+            result = general_message(404, "no found app-model", None)
+            return Response(result, status=404)
+        app_model = rainbond_app_repo.get_rainbond_app_version_by_id(enterprise_id, app_id)
+        app.delete()
+        app_model.delete()
+        app_tag_repo.get_app_tags(enterprise_id, app_id).delete()
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
 
 
 class CenterAppManageView(JWTAuthApiView):
