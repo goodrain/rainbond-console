@@ -18,7 +18,6 @@ from console.models.main import RainbondCenterApp
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.services.app_import_and_export_service import export_service
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
@@ -37,7 +36,7 @@ logger = logging.getLogger('default')
 
 class CenterAppListView(JWTAuthApiView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         获取本地市场应用
         ---
@@ -72,20 +71,10 @@ class CenterAppListView(JWTAuthApiView):
         page_size = int(request.GET.get("page_size", 10))
         app_list = []
         apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
-            self.user.enterprise_id, app_name, tags, scope, page, page_size)
-        if apps[0].app_name:
+            enterprise_id, app_name, tags, scope, page, page_size)
+        if apps and apps[0].app_name:
             for app in apps:
-                export_status = "exporting"
-                for version in app.versions:
-                    rst = export_service.get_export_record_status(
-                        self.user.enterprise_id, app.app_id,version)
-                    if rst == "failed":
-                        export_status = "failed"
-                print app.versions_info
                 versions_info = (json.loads(app.versions_info) if app.versions_info else [])
-                min_memory = group_service.get_service_group_memory(versions_info[0]["app_template"])
-                for version_info in versions_info:
-                    del version_info["app_template"]
                 app_list.append({
                     "update_time": app.update_time,
                     "is_ingerit": app.is_ingerit,
@@ -99,13 +88,11 @@ class CenterAppListView(JWTAuthApiView):
                     "dev_status": app.dev_status,
                     "tags": (json.loads(app.tags) if app.tags else []),
                     "enterprise_id": app.enterprise_id,
-                    "export_status": export_status,
                     "is_official": app.is_official,
                     "ID": app.ID,
                     "source": app.source,
                     "details": app.details,
                     "install_number": app.install_number,
-                    "min_memory": min_memory,
                     "create_user": app.create_user,
                     "create_team": app.create_team,
                 })
@@ -293,9 +280,9 @@ class DownloadMarketAppTemplateView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
 
-class CenterAllMarketAppView(RegionTenantHeaderView):
+class CenterAllMarketAppView(JWTAuthApiView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         查询远端云市的应用
         ---
@@ -327,11 +314,11 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         open_query = request.GET.get("open_query", False)
         try:
             if not open_query:
-                ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+                ent = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
                 if ent and not ent.is_active:
                     result = general_message(10407, "failed", "用户未跟云市认证")
                     return Response(result, 500)
-            total, apps = market_app_service.get_remote_market_apps(self.tenant, int(page), int(page_size), app_name)
+            total, apps = market_app_service.get_remote_market_apps(enterprise_id, int(page), int(page_size), app_name)
 
             result = general_message(200, "success", "查询成功", list=apps, total=total, next_page=int(page) + 1)
         except (httplib2.ServerNotFoundError, httplib.ResponseNotReady) as e:
@@ -349,26 +336,26 @@ class CenterAllMarketAppView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class CenterVersionlMarversionketAppView(RegionTenantHeaderView):
+class CenterVersionlMarversionketAppView(JWTAuthApiView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         查询远端云市指定版本的应用
 
         """
         version = request.GET.get("version", None)
         app_name = request.GET.get("app_name", None)
-        group_key = request.GET.get("group_key", None)
-        if not group_key or not app_name or not version:
+        app_id = request.GET.get("app_id", None)
+        if not app_id or not app_name or not version:
             result = general_message(400, "not config", "参数缺失")
             return Response(result, status=400)
         try:
-            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+            ent = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
             if ent and not ent.is_active:
                 result = general_message(10407, "failed", "用户未跟云市认证")
                 return Response(result, 500)
 
-            total, apps = market_app_service.get_market_version_apps(self.tenant, app_name, group_key, version)
+            total, apps = market_app_service.get_market_version_apps(enterprise_id, app_name, app_id, version)
 
             result = general_message(200, "success", "查询成功", list=apps)
         except HttpClient.CallApiError as e:
@@ -383,8 +370,8 @@ class CenterVersionlMarversionketAppView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class GetCloudRecommendedAppList(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+class GetCloudRecommendedAppList(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         获取云端市场推荐应用列表
         ---
@@ -409,7 +396,7 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         try:
-            apps, code, _ = market_sycn_service.get_recommended_app_list(self.tenant, page, page_size, app_name)
+            apps, code, _ = market_sycn_service.get_recommended_app_list(enterprise_id, page, page_size, app_name)
             if apps and apps.list:
                 return MessageResponse(
                     "success",
@@ -425,9 +412,9 @@ class GetCloudRecommendedAppList(RegionTenantHeaderView):
 
 
 class TagCLView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, enterprise_id, *args, **kwargs):
         data = []
-        app_tag_list = app_tag_repo.get_all_tag_list()
+        app_tag_list = app_tag_repo.get_all_tag_list(enterprise_id)
         if app_tag_list:
             for app_tag in app_tag_list:
                 data.append({
@@ -437,13 +424,13 @@ class TagCLView(JWTAuthApiView):
         result = general_message(200, "success", None, list=data)
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, enterprise_id, *args, **kwargs):
         name = request.data.get("name", None)
         result = general_message(200, "success", u"创建成功")
         if not name:
             result = general_message(400, "fail", u"参数不正确")
         try:
-            rst = app_tag_repo.create_tag(name)
+            rst = app_tag_repo.create_tag(enterprise_id, name)
             if not rst:
                 result = general_message(400, "fail", u"标签已存在")
         except Exception as e:
@@ -453,25 +440,25 @@ class TagCLView(JWTAuthApiView):
 
 
 class TagUDView(JWTAuthApiView):
-    def put(self, request, tag_id, *args, **kwargs):
+    def put(self, request, enterprise_id, tag_id, *args, **kwargs):
         name = request.data.get("name", None)
         result = general_message(200, "success", u"更新成功")
         if not name:
             result = general_message(400, "fail", u"参数不正确")
-        rst = app_tag_repo.update_tag_name(tag_id, name)
+        rst = app_tag_repo.update_tag_name(enterprise_id, tag_id, name)
         if not rst:
             result = general_message(400, "fail", u"更新失败")
         return Response(result, status=status.HTTP_200_OK)
 
-    def delete(self, request, tag_id, *args, **kwargs):
+    def delete(self, request, enterprise_id, tag_id, *args, **kwargs):
         result = general_message(200, "success", u"删除成功")
-        rst = app_tag_repo.delete_tag(tag_id)
+        rst = app_tag_repo.delete_tag(enterprise_id, tag_id)
         if not rst:
             result = general_message(400, "fail", u"删除失败")
         return Response(result, status=status.HTTP_200_OK)
 
 
-class AppTagCView(JWTAuthApiView):
+class AppTagCDView(JWTAuthApiView):
     def post(self, request, enterprise_id, app_id):
         tag_id = request.data.get("tag_id", None)
         result = general_message(200, "success", u"创建成功")
@@ -485,4 +472,19 @@ class AppTagCView(JWTAuthApiView):
         except Exception as e:
             logger.debug(e)
             result = general_message(404, "fail", u"创建失败")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def delete(self, request, enterprise_id, app_id):
+        tag_id = request.data.get("tag_id", None)
+        result = general_message(200, "success", u"删除成功")
+        if not tag_id:
+            result = general_message(400, "fail", u"请求参数错误")
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        if not app:
+            result = general_message(404, "fail", u"该应用不存在")
+        try:
+            app_tag_repo.delete_app_tag_relation(app, tag_id)
+        except Exception as e:
+            logger.debug(e)
+            result = general_message(404, "fail", u"删除失败")
         return Response(result, status=status.HTTP_200_OK)

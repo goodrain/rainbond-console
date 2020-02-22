@@ -115,5 +115,49 @@ class FileUploadService(object):
             upload_file.close()
             return 500, "上传失败", None
 
+    def upload_file_to_region_center_by_enterprise_id(self, enterprise_id, user_name, upload_file):
+        rst_list = []
+        regions = region_services.get_regions_by_enterprise_id(enterprise_id)
+        for region in regions:
+            url, token = region_services.get_region_access_info_by_enterprise_id(enterprise_id, region.region_name)
+            headers = {"Authorization": token}
+            logger.debug("request header : {0}".format(headers))
+            files = {'appTarFile': upload_file}
+            event_id = make_uuid()
+            import_record_params = {
+                "event_id": event_id,
+                "status": "uploading",
+                # "team_name": team_name,
+                "region": region.region_name,
+                "user_name": user_name
+            }
+            import_record = app_import_record_repo.create_app_import_record(**import_record_params)
+            data = {"eventId": event_id}
+            url += "/v2/app/upload"
+            logger.debug("upload url : {0}".format(url))
+            response = requests.post(url, data=data, files=files, headers=headers, verify=False)
+            if response.status_code == 200:
+                logger.debug("file upload success !")
+                import_record.status = "upload_success"
+                import_record.save()
+                upload_file.close()
+                rst_list.append({
+                    "status": 200,
+                    "msg": "上传成功",
+                    "data": import_record,
+                    "region": region.region_name
+                })
+            else:
+                logger.debug("file upload failed !")
+                import_record.delete()
+                upload_file.close()
+                rst_list.append({
+                    "status": 500,
+                    "msg": "上传失败",
+                    "data": None,
+                    "region": region.region_name
+                })
+        return rst_list
+
 
 upload_service = FileUploadService()

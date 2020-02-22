@@ -36,12 +36,14 @@ class RainbondCenterAppRepository(object):
         return RainbondCenterApp.objects.filter(enterprise_id=eid)
 
     def get_rainbond_apps_versions_by_eid(self, eid, name=None, tags=None, scope=None, page=1, page_size=10):
+        page = (page - 1) * page_size
+        limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
         where = 'WHERE C.enterprise_id="{eid}" AND C.is_complete=1 '.format(eid=eid)
-        group = """GROUP BY C.enterprise_id, C.app_id) CC
+        group = """GROUP BY C.enterprise_id, C.app_id {}) CC
         LEFT JOIN rainbond_center_app_tag_relation D
         ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
         LEFT JOIN rainbond_center_app_tag E
-        ON D.tag_id=E.ID """
+        ON D.tag_id=E.ID """.format(limit)
         if name:
             where += 'AND BB.app_name LIKE"{}%" '.format(name)
         if scope:
@@ -50,11 +52,84 @@ class RainbondCenterAppRepository(object):
             group += 'WHERE E.name="{}" '.format(tags[0])
             for tag in tags[1:]:
                 group += 'OR E.name="{}" '.format(tag)
-        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC "
+        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC;"
+        # sql1 = """SET GLOBAL group_concat_max_len = 40960000;"""
+        # sql2 = """SET SESSION group_concat_max_len = 40960000;"""
+        sql = """
+                SELECT CC.*,
+                CONCAT('[',
+                    GROUP_CONCAT(
+                        CONCAT('{"tag_id":"',E.ID,'"'),',',
+                        CONCAT('"name":"',E.name),'"}')
+                        ,']') as tags
+                FROM
+                (SELECT
+                    BB.ID,
+                    BB.app_id,
+                    BB.app_name,
+                    BB.create_user,
+                    BB.create_team,
+                    BB.pic,
+                    BB.dev_status,
+                    BB.describe,
+                    BB.details,
+                    BB.enterprise_id,
+                    BB.create_time,
+                    BB.update_time,
+                    BB.is_ingerit,
+                    BB.is_official,
+                    BB.install_number,
+                    BB.source,
+                    BB.scope,
+                    CONCAT('[',
+                    GROUP_CONCAT(
+                        CONCAT('"',C.version,'"'))
+                    ,']') as versions,
+                    CONCAT('[',
+                    GROUP_CONCAT(
+                        CONCAT('{"version":"',C.version,'"'),',',
+                        CONCAT('"is_complete":',C.is_complete),',',
+                        CONCAT('"app_alias":"',C.app_alias),'"}')
+                    ,']') as versions_info
+                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
+                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
+                LEFT JOIN rainbond_center_app_version C
+                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
+                C.version=B.version AND C.update_time=B.update_time
+                LEFT JOIN rainbond_center_app BB
+                ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
+            """
+        sql += where
+        sql += group
+        sql += order_by
+        conn = BaseConnection()
+        # conn.query(sql1)
+        # conn.query(sql2)
+        print sql
+        result = conn.query(sql)
+        return result
+
+    def get_rainbond_apps_versions_with_template_by_eid(self, eid, name=None, tags=None,
+                                                        scope=None, page=1, page_size=10):
         page = (page - 1) * page_size
-        limit = "LIMIT {page}, {page_size};".format(page=page, page_size=page_size)
-        sql1 = """SET GLOBAL group_concat_max_len = 102400;"""
-        sql2 = """SET SESSION group_concat_max_len = 102400;"""
+        limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
+        where = 'WHERE C.enterprise_id="{eid}" AND C.is_complete=1 '.format(eid=eid)
+        group = """GROUP BY C.enterprise_id, C.app_id {}) CC
+        LEFT JOIN rainbond_center_app_tag_relation D
+        ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
+        LEFT JOIN rainbond_center_app_tag E
+        ON D.tag_id=E.ID """.format(limit)
+        if name:
+            where += 'AND BB.app_name LIKE"{}%" '.format(name)
+        if scope:
+            where += 'AND BB.scope="{}" '.format(scope)
+        if tags:
+            group += 'WHERE E.name="{}" '.format(tags[0])
+            for tag in tags[1:]:
+                group += 'OR E.name="{}" '.format(tag)
+        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC;"
+        sql1 = """SET GLOBAL group_concat_max_len = 40960000;"""
+        sql2 = """SET SESSION group_concat_max_len = 40960000;"""
         sql = """
                 SELECT CC.*,
                 CONCAT('[',
@@ -103,7 +178,6 @@ class RainbondCenterAppRepository(object):
         sql += where
         sql += group
         sql += order_by
-        sql += limit
         conn = BaseConnection()
         conn.query(sql1)
         conn.query(sql2)
@@ -123,7 +197,7 @@ class RainbondCenterAppRepository(object):
             enterprise_id=enterprise_id, app_id=group_key,
             version=group_version,
             scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
-        if rcapps:
+        if rcapps and app:
             rcapps[0].pic = app.pic
             rcapps[0].group_name = app.app_name
             rcapps[0].describe = app.describe
@@ -132,7 +206,7 @@ class RainbondCenterAppRepository(object):
             enterprise_id="public", app_id=group_key,
             version=group_version,
             scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
-        if rcapps:
+        if rcapps and app:
             rcapps[0].pic = app.pic
             rcapps[0].group_name = app.app_name
             rcapps[0].describe = app.describe
@@ -164,7 +238,7 @@ class RainbondCenterAppRepository(object):
         rcapps = RainbondCenterAppVersion.objects.filter(
             app_id=group_key, version=group_version,
             enterprise_id__in=["public", enterprise_id]).order_by("-update_time")
-        if rcapps:
+        if rcapps and app:
             rcapp = rcapps.filter(enterprise_id=enterprise_id)
             # 优先获取企业下的应用
             if rcapp:

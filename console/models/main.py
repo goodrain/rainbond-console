@@ -134,6 +134,7 @@ class RainbondCenterAppTag(BaseModel):
         db_table = "rainbond_center_app_tag"
 
     name = models.CharField(max_length=32, unique=True, help_text=u"标签名称")
+    enterprise_id = models.CharField(max_length=32, unique=True, help_text=u"企业id")
     is_deleted = models.BooleanField(default=False, help_text=u"是否删除")
 
 

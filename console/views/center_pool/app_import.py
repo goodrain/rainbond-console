@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from console.services.file_upload_service import upload_service
 from console.views.base import RegionTenantHeaderView
+from console.views.base import JWTAuthApiView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.app_import_and_export_service import import_service
@@ -43,10 +44,10 @@ class ImportingRecordView(RegionTenantHeaderView):
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 
 
-class CenterAppUploadView(RegionTenantHeaderView):
+class CenterAppUploadView(JWTAuthApiView):
     @never_cache
-    @perm_required("import_and_export_service")
-    def post(self, request, *args, **kwargs):
+    # @perm_required("import_and_export_service")
+    def post(self, request, enterprise_id, *args, **kwargs):
         """
         上传应用包
         ---
@@ -68,8 +69,8 @@ class CenterAppUploadView(RegionTenantHeaderView):
             if not request.FILES or not upload_file:
                 return Response(general_message(400, "param error", "请指定需要导入的应用包"), status=400)
             file_name = upload_file.name
-            code, msg, import_record = upload_service.upload_file_to_region_center(self.tenant.tenant_name, self.user.nick_name,
-                                                                                   self.response_region, upload_file)
+            code, msg, import_record = upload_service.upload_file_to_region_center_by_enterprise_id(
+                enterprise_id, self.user.nick_name, upload_file)
             if code != 200:
                 return Response(general_message(code, "upload file faild", msg), status=code)
             bean = import_record.to_dict()

@@ -855,10 +855,10 @@ class MarketAppService(object):
                                                                         is_complete=False)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
-    def get_remote_market_apps(self, tenant, page, page_size, app_name):
+    def get_remote_market_apps(self, enterprise_id, page, page_size, app_name):
         data = {}
         try:
-            body = market_api.get_service_group_list(tenant.tenant_id, page, page_size, app_name)
+            body = market_api.get_service_group_list(enterprise_id, page, page_size, app_name)
             data = body.get("data")
         except (httplib2.ServerNotFoundError, region_api.CallApiError) as e:
             raise e
@@ -901,7 +901,7 @@ class MarketAppService(object):
                         }
                         app_list.append(app_dict)
         for app in app_list:
-            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
+            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(enterprise_id, app["group_key"],
                                                                           app["group_version_list"][0])
 
             is_upgrade = 0
@@ -938,8 +938,8 @@ class MarketAppService(object):
             result_list.append(rbapp)
         return total, result_list
 
-    def get_market_version_apps(self, tenant, app_name, group_key, version):
-        body = market_api.get_service_group_list(tenant.tenant_id, 1, 20, app_name)
+    def get_market_version_apps(self, enterprise_id, app_name, group_key, version):
+        body = market_api.get_service_group_list(enterprise_id, 1, 20, app_name)
         remote_apps = body["data"]['list']
         total = body["data"]['total']
         result_list = []
@@ -949,7 +949,7 @@ class MarketAppService(object):
                 app_list.append(app)
         if len(app_list) > 0:
             for app in app_list:
-                rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, app["group_key"],
+                rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(enterprise_id, app["group_key"],
                                                                               app["group_version"])
                 is_upgrade = 0
                 is_complete = False
@@ -1350,9 +1350,9 @@ class AppMarketSynchronizeService(object):
             rainbond_app_version.save()
         return rainbond_app, rainbond_app_version
 
-    def get_recommended_app_list(self, tenant, page, limit, app_name):
+    def get_recommended_app_list(self, enterprise_id, page, limit, app_name):
         try:
-            token = self.get_enterprise_access_token(tenant.enterprise_id, "market")
+            token = self.get_enterprise_access_token(enterprise_id, "market")
             if token:
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
