@@ -22,7 +22,7 @@ from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from console.constants import is_singleton
+from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()

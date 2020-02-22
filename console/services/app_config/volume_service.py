@@ -13,7 +13,7 @@ from console.utils.urlutil import is_path_legal
 from www.utils.crypt import make_uuid
 from console.services.exception import ErrVolumeTypeNotFound
 from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
-from console.constants import ComponentType, is_state
+from console.enum.component_enum import ComponentType, is_state
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -219,7 +219,7 @@ class AppVolumeService(object):
         if access_mode != "":
             return access_mode.upper()
         if volume_type == self.default_volume_type:
-            if service.extend_method == ComponentType.stateless_singleton:
+            if service.extend_method == ComponentType.stateless_singleton.value:
                 access_mode = "RWX"
             else:
                 access_mode = "RWO"
@@ -295,7 +295,7 @@ class AppVolumeService(object):
             raise ErrVolumeTypeNotFound
 
     def check_service_multi_node(self, service, settings):
-        if service.extend_method == ComponentType.state_singleton and service.min_node > 1:
+        if service.extend_method == ComponentType.state_singleton.value and service.min_node > 1:
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 

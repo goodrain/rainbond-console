@@ -54,7 +54,7 @@ from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from console.services.exception import ErrChangeServiceType
 from console.exception.main import ServiceHandleException
-from console.constants import ComponentType, is_singleton, is_state
+from console.enum.component_enum import ComponentType, is_singleton, is_state
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -1133,7 +1133,7 @@ class AppManageService(AppManageBase):
                 if tenant_service_volume["volume_type"] == "share-file" or tenant_service_volume["volume_type"] == "memoryfs":
                     continue
                 if tenant_service_volume["volume_type"] == "local":
-                    if old_extend_method == ComponentType.state_singleton:
+                    if old_extend_method == ComponentType.state_singleton.value:
                         raise ServiceHandleException(msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
                 if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):

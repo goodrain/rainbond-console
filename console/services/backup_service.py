@@ -5,7 +5,7 @@
 import json
 import logging
 
-from console.constants import is_state
+from console.enum.component_enum import is_state
 
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo

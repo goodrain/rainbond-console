@@ -22,7 +22,7 @@ from console.services.common_services import common_services
 from www.apiclient.regionapi import RegionInvokeApi
 
 from www.models.main import Tenants
-from coonsole.constants import ComponentType
+from console.enum.component_enum import ComponentType
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -284,8 +284,9 @@ class AppCheckService(object):
         service.min_memory = memory - memory % 32
         service.min_cpu = min_cpu
         # Set the deployment type based on the test results
-        logger.debug("save svc extend_method {0}".format(service_info.get("service_type", ComponentType.stateless_multiple)))
-        service.extend_method = service_info.get("service_type", ComponentType.stateless_multiple)
+        logger.debug("save svc extend_method {0}".format(service_info.get("service_type",
+                                                         ComponentType.stateless_multiple.value)))
+        service.extend_method = service_info.get("service_type", ComponentType.stateless_multiple.value)
         args = service_info.get("args", None)
         if args:
             service.cmd = " ".join(args)

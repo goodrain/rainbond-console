@@ -30,7 +30,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
-from console.constants import is_singleton
+from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger("default")
 

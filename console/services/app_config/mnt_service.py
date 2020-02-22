@@ -15,7 +15,7 @@ from console.repositories.group import group_service_relation_repo
 from console.services.app_config.volume_service import AppVolumeService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from console.constants import is_state
+from console.enum.component_enum import is_state
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
