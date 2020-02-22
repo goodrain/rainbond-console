@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from enum import IntEnum
+from enum import Enum
 
 
-class ComponentType(IntEnum):
-    stateless_singleton = 0
-    stateless_multiple = 1
-    state_singleton = 2
-    state_multiple = 3
+class ComponentType(Enum):
+    stateless_singleton = "stateless_singleton"
+    stateless_multiple = "stateless_multiple"
+    state_singleton = "state_singleton"
+    state_multiple = "state_multiple"
 
 
 def is_state(component_type):
