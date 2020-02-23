@@ -1,0 +1,1 @@
+alter table app_import_record add column `enterprise_id` varchar(64) default null;

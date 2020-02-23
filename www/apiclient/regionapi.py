@@ -1229,6 +1229,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def import_app_2_enterprise(self, region, enterprise_id, data):
+        """ import app to enterprise"""
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
+        url += "/v2/app/import"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
     def import_app(self, region, tenant_name, data):
         """导入应用"""
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -1245,12 +1253,33 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def get_enterprise_app_import_status(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_enterprise_import_file_dir(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def get_import_file_dir(self, region, tenant_name, event_id):
         """查询导入目录"""
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def delete_enterprise_import(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/" + event_id
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
         return res, body
 
     def delete_import(self, region, tenant_name, event_id):
@@ -1267,6 +1296,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def delete_enterprise_import_file_dir(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
         return res, body
 
     def delete_import_file_dir(self, region, tenant_name, event_id):

@@ -102,6 +102,7 @@ from console.views.center_pool.app_import import CenterAppImportView
 from console.views.center_pool.app_import import CenterAppTarballDirView
 from console.views.center_pool.app_import import CenterAppUploadView
 from console.views.center_pool.app_import import ImportingRecordView
+from console.views.center_pool.app_import import EnterpriseAppImportInitView
 from console.views.center_pool.apps import CenterAllMarketAppView
 from console.views.center_pool.apps import CenterAppListView
 from console.views.center_pool.apps import CenterAppManageView
@@ -847,18 +848,13 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/download$',
         DownloadMarketAppTemplateView.as_view()),
     # WIP
-    # 应用导入
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/upload$', CenterAppUploadView.as_view()),
+    # 创建应用导入记录
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import$', EnterpriseAppImportInitView.as_view()),
+    # 应用导入修改、查询、删除
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)$', CenterAppImportView.as_view()),
     # 应用包目录查询
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/dir$', CenterAppTarballDirView.as_view()),
-    # 应用导入记录
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/record$', ImportingRecordView.as_view()),
-    # 正在导入的应用查询
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/importing-apps$',
-        CenterAppImportingAppsView.as_view()),
-    # 应用导入状态查询
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)$',
-        CenterAppImportView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)/dir$',
+        CenterAppTarballDirView.as_view()),
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     # 下架应用

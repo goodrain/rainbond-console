@@ -4,6 +4,7 @@
 """
 import logging
 
+from console.exception.main import AbortRequest
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -46,7 +47,6 @@ class ImportingRecordView(RegionTenantHeaderView):
 
 class CenterAppUploadView(JWTAuthApiView):
     @never_cache
-    # @perm_required("import_and_export_service")
     def post(self, request, enterprise_id, *args, **kwargs):
         """
         上传应用包
@@ -85,7 +85,33 @@ class CenterAppUploadView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
 
-class CenterAppImportView(RegionTenantHeaderView):
+class EnterpriseAppImportInitView(JWTAuthApiView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+
+        """
+        eid = kwargs.get("enterprise_id", "")
+        unfinished_records = import_service.get_user_not_finish_import_record_in_enterprise(eid, self.user)
+        if unfinished_records:
+            r = unfinished_records[0]
+        else:
+            r = import_service.create_app_import_record_2_enterprise(eid, self.user.nick_name)
+        upload_url = import_service.get_upload_url(r.region, r.event_id)
+        data = {"status": r.status, "source_dir": r.source_dir, "event_id": r.event_id, "upload_url": upload_url}
+
+        return Response(general_message(200, "success", "查询成功", bean=data), status=200)
+
+
+class CenterAppImportView(JWTAuthApiView):
     @never_cache
     @perm_required("import_and_export_service")
     def post(self, request, event_id, *args, **kwargs):
@@ -117,14 +143,17 @@ class CenterAppImportView(RegionTenantHeaderView):
         try:
             scope = request.data.get("scope", None)
             file_name = request.data.get("file_name", None)
+            team_name = request.data.get("team_name", None)
             if not scope:
-                return Response(general_message(400, "param scope is null", "请指定导入应用可见范围"), status=400)
+                raise AbortRequest(msg="select the scope", msg_show="请选择导入应用可见范围")
+            if scope == "team" and not team_name:
+                raise AbortRequest(msg="select the team", msg_show="请选择要导入的团队")
             if not file_name:
-                return Response(general_message(400, "file name is null", "文件名称为空"), status=400)
+                raise AbortRequest(msg="file name is null", msg_show="请选择要导入的文件")
             if not event_id:
-                return Response(general_message(400, "event id is not found", "参数错误"), status=400)
+                raise AbortRequest(msg="event is not found", msg_show="参数错误，未提供事件ID")
             files = file_name.split(",")
-            import_service.start_import_apps(self.tenant, self.response_region, scope, event_id, files)
+            import_service.start_import_apps(scope, event_id, files, team_name)
             result = general_message(200, 'success', "操作成功，正在导入")
         except Exception as e:
             logger.exception(e)
@@ -153,10 +182,9 @@ class CenterAppImportView(RegionTenantHeaderView):
         sid = None
         try:
             sid = transaction.savepoint()
-            import_record, apps_status = import_service.get_and_update_import_status(self.tenant, self.response_region,
-                                                                                     event_id)
+            record, apps_status = import_service.get_and_update_import_by_event_id(event_id)
             transaction.savepoint_commit(sid)
-            result = general_message(200, 'success', "查询成功", bean=import_record.to_dict(), list=apps_status)
+            result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=apps_status)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -181,7 +209,7 @@ class CenterAppImportView(RegionTenantHeaderView):
               paramType: path
         """
         try:
-            import_service.delete_import_app_dir(self.tenant, self.response_region, event_id)
+            import_service.delete_import_app_dir_by_event_id(event_id)
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
@@ -189,7 +217,7 @@ class CenterAppImportView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class CenterAppTarballDirView(RegionTenantHeaderView):
+class CenterAppTarballDirView(JWTAuthApiView):
     @never_cache
     @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
@@ -209,11 +237,11 @@ class CenterAppTarballDirView(RegionTenantHeaderView):
               paramType: query
         """
         try:
-            event_id = request.GET.get("event_id", None)
+            event_id = kwargs.get("event_id", None)
             if not event_id:
                 return Response(general_message(400, "event id is null", "请指明需要查询的event id"), status=400)
 
-            apps = import_service.get_import_app_dir(self.tenant, self.response_region, event_id)
+            apps = import_service.get_import_app_dir(event_id)
             result = general_message(200, "success", "查询成功", list=apps)
         except Exception as e:
             logger.exception(e)

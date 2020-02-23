@@ -511,6 +511,7 @@ class AppImportRecord(BaseModel):
     team_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"正在导入的团队名称")
     region = models.CharField(max_length=64, null=True, blank=True, help_text=u"数据中心")
     user_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"操作人")
+    enterprise_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"企业id")
 
 
 class GroupAppBackupRecord(BaseModel):
