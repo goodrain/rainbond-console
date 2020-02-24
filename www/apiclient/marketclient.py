@@ -166,6 +166,12 @@ class MarketOpenAPI(HttpClient):
         data = self._unpack(body)
         return res, data
 
+    def get_enterprise_share_hub_info(self, eid, repo_type):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_enterprise_id(eid)
+        url += "/openapi/console/v1/enter-market/config?repo_type={0}".format(repo_type)
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        return self._unpack(body)
+
     def get_share_hub_info(self, tenant_id, repo_type):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enter-market/config?repo_type={0}".format(repo_type)

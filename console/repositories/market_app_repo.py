@@ -4,8 +4,6 @@
 """
 import logging
 
-from django.db.models import Max
-
 from console.models.main import AppExportRecord
 from console.models.main import AppImportRecord
 from console.models.main import RainbondCenterApp
@@ -108,7 +106,6 @@ class RainbondCenterAppRepository(object):
         conn = BaseConnection()
         # conn.query(sql1)
         # conn.query(sql2)
-        print sql
         result = conn.query(sql)
         return result
 
@@ -184,7 +181,6 @@ class RainbondCenterAppRepository(object):
         conn = BaseConnection()
         conn.query(sql1)
         conn.query(sql2)
-        print sql
         result = conn.query(sql)
         return result
 
@@ -271,7 +267,6 @@ class RainbondCenterAppRepository(object):
         logger.warning("Enterprise ID: {0}; Group Key: {1};".format(enterprise_id, group_key))
         return None
 
-
     def bulk_create_rainbond_apps(self, rainbond_apps):
         RainbondCenterApp.objects.bulk_create(rainbond_apps)
 
@@ -325,6 +320,10 @@ class AppImportRepository(object):
     def get_user_unfinished_import_record(self, team_name, user_name):
         return AppImportRecord.objects.filter(
             user_name=user_name, team_name=team_name).exclude(status__in=["success", "failed"])
+
+    def get_user_not_finished_import_record_in_enterprise(self, eid, user_name):
+        return AppImportRecord.objects.filter(
+            user_name=user_name, enterprise_id=eid).exclude(status__in=["success", "failed"])
 
 
 rainbond_app_repo = RainbondCenterAppRepository()
