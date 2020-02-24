@@ -33,10 +33,13 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_by_eid(self, eid):
         return RainbondCenterApp.objects.filter(enterprise_id=eid)
 
+    def get_rainbond_app_version_by_id(self, eid, app_id):
+        return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
+
     def get_rainbond_apps_versions_by_eid(self, eid, name=None, tags=None, scope=None, page=1, page_size=10):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
-        where = 'WHERE C.enterprise_id="{eid}" AND C.is_complete=1 '.format(eid=eid)
+        where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
         group = """GROUP BY C.enterprise_id, C.app_id {}) CC
         LEFT JOIN rainbond_center_app_tag_relation D
         ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
@@ -94,7 +97,7 @@ class RainbondCenterAppRepository(object):
                 LEFT JOIN rainbond_center_app_version C
                 ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
                 C.version=B.version AND C.update_time=B.update_time
-                LEFT JOIN rainbond_center_app BB
+                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
                 ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
             """
         sql += where
@@ -110,7 +113,7 @@ class RainbondCenterAppRepository(object):
                                                         scope=None, page=1, page_size=10):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
-        where = 'WHERE C.enterprise_id="{eid}" AND C.is_complete=1 '.format(eid=eid)
+        where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
         group = """GROUP BY C.enterprise_id, C.app_id {}) CC
         LEFT JOIN rainbond_center_app_tag_relation D
         ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
@@ -169,7 +172,7 @@ class RainbondCenterAppRepository(object):
                 LEFT JOIN rainbond_center_app_version C
                 ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
                 C.version=B.version AND C.update_time=B.update_time
-                LEFT JOIN rainbond_center_app BB
+                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
                 ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
             """
         sql += where
