@@ -33,6 +33,9 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_by_eid(self, eid):
         return RainbondCenterApp.objects.filter(enterprise_id=eid)
 
+    def get_rainbond_app_version_by_record_id(self, record_id):
+        return RainbondCenterAppVersion.objects.filter(record_id=record_id).first()
+
     def get_rainbond_app_version_by_id(self, eid, app_id):
         return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
 
@@ -184,6 +187,93 @@ class RainbondCenterAppRepository(object):
         result = conn.query(sql)
         return result
 
+    def get_rainbond_app_versions_by_id(self, eid, app_id):
+        where = 'WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND BB.app_id="{app_id}";'.format(
+            eid=eid, app_id=app_id)
+        sql = """
+                SELECT
+                    BB.ID,
+                    BB.app_id,
+                    BB.app_name,
+                    BB.create_user,
+                    BB.create_team,
+                    BB.pic,
+                    BB.dev_status,
+                    BB.describe,
+                    BB.details,
+                    BB.enterprise_id,
+                    BB.create_time,
+                    BB.update_time,
+                    BB.is_ingerit,
+                    BB.is_official,
+                    BB.install_number,
+                    BB.source,
+                    BB.scope,
+                    C.app_template,
+                    C.version,
+                    C.is_complete,
+                    C.app_alias,
+                    C.update_time,
+                    C.create_time
+                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
+                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
+                LEFT JOIN rainbond_center_app_version C
+                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
+                C.version=B.version AND C.update_time=B.update_time
+                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
+                ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
+            """
+        sql += where
+        conn = BaseConnection()
+        print sql
+        result = conn.query(sql)
+        return result
+
+    def get_rainbond_app_version_by_app_id(self, eid, app_id, version):
+        where = """
+            WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND 
+            BB.app_id="{app_id}" AND C.version="{version}";
+            """.format(
+            eid=eid, app_id=app_id, version=version)
+        sql = """
+                SELECT
+                    BB.ID,
+                    BB.app_id,
+                    BB.app_name,
+                    BB.create_user,
+                    BB.create_team,
+                    BB.pic,
+                    BB.dev_status,
+                    BB.describe,
+                    BB.details,
+                    BB.enterprise_id,
+                    BB.create_time,
+                    BB.update_time,
+                    BB.is_ingerit,
+                    BB.is_official,
+                    BB.install_number,
+                    BB.source,
+                    BB.scope,
+                    C.app_template,
+                    C.version,
+                    C.is_complete,
+                    C.app_alias,
+                    C.update_time,
+                    C.create_time
+                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
+                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
+                LEFT JOIN rainbond_center_app_version C
+                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
+                C.version=B.version AND C.update_time=B.update_time
+                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
+                ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
+            """
+        sql += where
+        conn = BaseConnection()
+        print sql
+        result = conn.query(sql)
+        return result
+
     def get_rainbond_app_by_key(self, group_key):
         rcapps = RainbondCenterApp.objects.filter(group_key=group_key).all()
         if rcapps:
@@ -213,18 +303,20 @@ class RainbondCenterAppRepository(object):
         return None
 
     def list_by_key_time(self, group_key, time):
-        rcapps = RainbondCenterApp.objects.filter(group_key=group_key, update_time__gte=time, is_complete=True).all()
+        rcapps = RainbondCenterAppVersion.objects.filter(
+            app_id=group_key, update_time__gte=time, is_complete=True).all()
         if rcapps:
             return rcapps
         return None
 
-    def get_rainbond_app_qs_by_key(self, eid, group_key):
+    def get_rainbond_app_qs_by_key(self, eid, app_id):
         """使用group_key获取一个云市应用的所有版本查询集合"""
-        rbca = RainbondCenterApp.objects.filter(
-            enterprise_id=eid, group_key=group_key, scope__in=["team", "enterprise", "goodrain"])
+        rbca = RainbondCenterAppVersion.objects.filter(
+            enterprise_id=eid, app_id=app_id, scope__in=["team", "enterprise", "goodrain"]
+        ).values().annotate("update_time")
         if not rbca:
             # 兼容旧数据
-            rbca = RainbondCenterApp.objects.filter(enterprise_id="public", group_key=group_key)
+            rbca = RainbondCenterAppVersion.objects.filter(enterprise_id="public", app_id=app_id)
         return rbca
 
     def get_rainbond_app_by_key_version(self, group_key, version):

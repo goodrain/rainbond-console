@@ -1,6 +1,7 @@
 # coding: utf-8
 """升级从云市安装的应用"""
 import json
+from addict import Dict
 import logging
 from copy import deepcopy
 
@@ -27,6 +28,8 @@ from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
 from console.views.base import RegionTenantHeaderView
+from www.apiclient.marketclient import MarketOpenAPIV2
+from www.apiclient.marketclient import MarketOpenAPI
 
 logger = logging.getLogger('default')
 
@@ -35,41 +38,100 @@ class GroupAppView(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """查询当前组下的云市应用"""
         group_id = int(group_id)
+        apps_versions_templates = {}
+        apps_plugins_templates = {}
+        apps_list = {}
         group = group_service.get_group_or_404(self.tenant, self.response_region, group_id)
-
-        service_group_keys = group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True)
-
-        def yield_app_info():
-            for group_key in set(service_group_keys):
-                app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(self.tenant.enterprise_id, group_key)
-                app = app_qs.first()
-                if not app:
+        service_group_keys = set(group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True))
+        apps = MarketOpenAPIV2().get_apps_versions(self.tenant.tenant_id)
+        if apps:
+            for app in apps:
+                if not app["app_versions"]:
                     continue
-                upgrade_versions = upgrade_service.get_app_upgrade_versions(self.tenant, group_id, group_key)
+                apps_list[app["app_key_id"]] = [app_version["app_version"] for app_version in app["app_versions"]]
+            for group_key in service_group_keys:
+                if group_key in apps_list:
+                    apps_versions_templates[group_key] = {}
+                    apps_plugins_templates[group_key] = {}
+                    for app_version in apps_list[group_key]:
+                        apps_versions_templates[group_key][app_version] = None
+                        apps_plugins_templates[group_key][app_version] = None
+                        app_template = MarketOpenAPI().get_app_template(
+                            self.tenant.tenant_id, group_key, app_version)
+                        if app_template:
+                            apps_versions_templates[group_key][app_version] = \
+                                app_template["data"]["bean"]["template_content"]
+                        plugins = MarketOpenAPI().get_plugin_templates(
+                            self.tenant.tenant_id, group_key, app_version)
+                        if plugins:
+                            apps_plugins_templates[group_key][app_version] = plugins["data"]["bean"]["template_content"]
+        def yield_app_info():
+            for group_key in service_group_keys:
+                app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(self.tenant.enterprise_id, group_key)
+                app = app_qs[0]
+                # if not app:
+                #     continue
+                # upgrade_versions = upgrade_service.get_app_upgrade_versions(self.tenant, group_id, group_key)
+                cloud_version = None
+                if app:
+                    dat = {
+                        'group_key': app.app_id,
+                        'group_name': app.app_name,
+                        'share_user': app.create_user,
+                        'share_team': app.create_team,
+                        'tenant_service_group_id': app.group_id,
+                        'pic': app.pic,
+                        'source': app.source,
+                        'describe': app.describe,
+                        'enterprise_id': app.enterprise_id,
+                        'is_official': app.is_official,
+                        'details': app.details,
+                        'min_memory': group_service.get_service_group_memory(app.app_template),
+
+                    }
+                else:
+                    dat = None
+                    cloud_version = None
+                    # app = MarketOpenAPIV2().get_app_versions(self.tenant.tenant_id, group_key)
+                    for app in apps:
+                        if app["app_key_id"] == group_key:
+                            dat = {
+                                'group_key': app["app_key_id"],
+                                'group_name': app["name"],
+                                'share_user': app["enterprise"]["name"],
+                                'share_team': None,
+                                'tenant_service_group_id': None,
+                                'pic': app.get("logo"),
+                                'source': "cloud",
+                                'describe': app.get("desc"),
+                                'enterprise_id': app.get("enterprise_id"),
+                                'is_official': app.get("is_official"),
+                                'details': app.get("details"),
+                                'min_memory': None,
+                            }
+                            cloud_version = app
+                    if not dat:
+                        continue
+                upgrade_versions = upgrade_service.get_app_upgrade_versions(
+                    self.tenant, group_id, group_key,
+                    apps_versions_templates.get(group_key),
+                    apps_plugins_templates.get(group_key)
+                )
                 not_upgrade_record = upgrade_service.get_app_not_upgrade_record(
                     self.tenant.tenant_id, group_id, group_key)
                 services = group_service.get_rainbond_services(int(group_id), group_key)
-                yield {
-                    'current_version': upgrade_service.get_old_version(group_key, services.values_list('service_id',
-                                                                                                       flat=True)),
+                # yield {
+                #     'current_version': upgrade_service.get_old_version(group_key, services.values_list(
+                #         'service_id', flat=True)),
+                dat.update({
+                    'current_version': upgrade_service.get_old_version(
+                        group_key, services.values_list('service_id', flat=True), cloud_version),
                     'can_upgrade': bool(upgrade_versions),
                     'upgrade_versions': list(upgrade_versions),
                     'not_upgrade_record_id': not_upgrade_record.ID,
                     'not_upgrade_record_status': not_upgrade_record.status,
-                    'group_key': app.group_key,
-                    'group_name': app.group_name,
-                    'share_user': app.share_user,
-                    'share_team': app.share_team,
-                    'tenant_service_group_id': app.tenant_service_group_id,
-                    'pic': app.pic,
-                    'source': app.source,
-                    'describe': app.describe,
-                    'enterprise_id': app.enterprise_id,
-                    'is_official': app.is_official,
-                    'details': app.details,
-                    'min_memory': group_service.get_service_group_memory(app.app_template),
-                }
-
+                })
+                yield dat
         return MessageResponse(msg="success", list=[app_info for app_info in yield_app_info()])
 
 
