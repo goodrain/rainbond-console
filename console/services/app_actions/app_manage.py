@@ -53,6 +53,9 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
+from console.models.main import ServiceShareRecordEvent
+from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.repositories.migration_repo import migrate_repo
 from console.services.exception import ErrChangeServiceType
 from console.exception.main import ServiceHandleException
 from console.enum.component_enum import ComponentType, is_singleton, is_state
@@ -823,12 +826,34 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 507, u"删除异常"
 
+    def get_etcd_keys(self, tenant, service):
+        logger.debug("ready delete etcd data while delete service")
+        keys = []
+        # 删除代码检测的etcd数据
+        keys.append(service.check_uuid)
+        # 删除分享应用的etcd数据
+        events = ServiceShareRecordEvent.objects.filter(service_id=service.service_id)
+        if events and events[0].region_share_id:
+            logger.debug("ready for delete etcd service share data")
+            for event in events:
+                keys.append(event.region_share_id)
+        # 删除恢复迁移的etcd数据
+        group_id = service_group_relation_repo.get_group_id_by_service(service)
+        if group_id:
+            migrate_record = migrate_repo.get_by_original_group_id(group_id)
+            if migrate_record:
+                for record in migrate_record:
+                    keys.append(record.restore_id)
+        return keys
+
     def truncate_service(self, tenant, service, user=None):
         """彻底删除组件"""
 
         try:
+            data = {}
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id)
+                                      service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -1103,8 +1128,10 @@ class AppManageService(AppManageBase):
         """二次删除组件"""
 
         try:
+            data = {}
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id)
+                                      service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)

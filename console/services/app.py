@@ -473,6 +473,9 @@ class AppService(object):
                 "volume_name": mnt.mnt_name
             } for mnt in mnt_info]
 
+        # etcd keys
+        data["etcd_key"] = service.check_uuid
+
         # runtime os name
         data["os_type"] = label_service.get_service_os_name(service)
         # 数据中心创建
@@ -649,6 +652,8 @@ class AppService(object):
             data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
+        # etcd keys
+        data["etcd_key"] = service.check_uuid
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)

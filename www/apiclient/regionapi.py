@@ -140,7 +140,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def delete_service(self, region, tenant_name, service_alias, enterprise_id):
+    def delete_service(self, region, tenant_name, service_alias, enterprise_id, data):
         """删除组件"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -149,7 +149,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             + service_alias + "?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
         return body
 
     def build_service(self, region, tenant_name, service_alias, body):
