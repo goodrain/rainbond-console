@@ -60,6 +60,11 @@ class AppVolumeService(object):
         {"volume_type": "local", "name_show": "本地存储"}
         ]
 
+    def is_simple_volume_type(self, volume_type):
+        if volume_type in self.simple_volume_type:
+            return True
+        return False
+
     def ensure_volume_share_policy(self, tenant, service):
         volumes = self.get_service_volumes(tenant, service)
         for vo in volumes:

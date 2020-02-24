@@ -45,6 +45,17 @@ class TenantServiceInfoRepository(object):
     def get_services_by_service_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
+    def get_services_with_volume_type(self, service_ids):
+        svc_ids = "'{0}'".format("','".join(svc_id for svc_id in service_ids))
+        conn = BaseConnection()
+        sql = """
+        select svc.*, vo.volume_type \
+        from tenant_service svc left join tenant_service_volume vo on svc.service_id = vo.service_id \
+        where svc.service_id in ({svc_ids})
+        """.format(svc_ids=svc_ids)
+        row = conn.query(sql)
+        return row
+
     def get_service_by_tenant_and_id(self, tenant_id, service_id):
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id)
         if services:
@@ -286,8 +297,7 @@ class AppTagRepository(object):
             app_tag = RainbondCenterAppTag.objects.get(ID=tag_id, enterprise_id=enterprise_id)
             app_tag.name = name
             app_tag.save()
-        except Exception as e:
-            print e
+        except Exception:
             status = False
         return status
 
