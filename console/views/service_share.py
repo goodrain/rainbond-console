@@ -1,29 +1,20 @@
 # -*- coding: utf-8 -*-
 import datetime
 import logging
-import json
 
 from django.db.models import Q
 from rest_framework.response import Response
-from rest_framework import status
 
-from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
-from console.models.main import RainbondCenterApp
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
-from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.enterprise_services import enterprise_services
-from console.services.group_service import group_service
 from console.services.share_services import share_service
-from console.services.user_services import user_services
 from console.utils.reqparse import parse_argument
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.apiclient.marketclient import MarketOpenAPIV2
-from www.apiclient.marketclient import MarketOpenAPI
 from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
@@ -519,4 +510,3 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
             data = share_service.get_app_list(self.tenant.tenant_id, scope)
         result = general_message(200, "get shared apps list complete", None, bean=data)
         return Response(result, status=200)
-

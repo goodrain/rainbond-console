@@ -787,7 +787,6 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
-
     def get_rain_bond_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         app = rainbond_app_repo.get_rainbond_app_by_key_and_version(enterprise_id, group_key, group_version)
         if not app:

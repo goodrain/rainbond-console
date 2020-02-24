@@ -4,7 +4,6 @@ import json
 import logging
 
 from django.db import transaction
-from django.db.models import Q
 
 from console.appstore.appstore import app_store
 from console.exception.main import AbortRequest
@@ -16,7 +15,6 @@ from console.models.main import ServiceShareRecordEvent
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.market_app_repo import app_export_record_repo
-from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.plugin import service_plugin_config_repo
@@ -1030,7 +1028,7 @@ class ShareService(object):
         if not last_shared:
             app_list = self.get_local_apps_versions()
             dt["app_list"] = app_list
-            dt["scope"] =app_list.first().scope if app_list else "team"
+            dt["scope"] = app_list.first().scope if app_list else "team"
         else:
             if last_shared.scope == "goodrain":
                 markets = self.get_cloud_markets(tenant_id)

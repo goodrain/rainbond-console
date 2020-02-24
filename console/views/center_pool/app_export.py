@@ -13,8 +13,7 @@ from rest_framework.response import Response
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
-from console.views.base import RegionTenantHeaderView, AlowAnyApiView, JWTAuthApiView
-from www.decorator import perm_required
+from console.views.base import AlowAnyApiView, JWTAuthApiView
 from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger('default')

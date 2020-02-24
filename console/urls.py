@@ -106,7 +106,6 @@ from console.views.center_pool.app_import import EnterpriseAppImportInitView
 from console.views.center_pool.apps import CenterAllMarketAppView
 from console.views.center_pool.apps import CenterAppCLView
 from console.views.center_pool.apps import CenterAppUDView
-from console.views.center_pool.apps import CenterAppManageView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.apps import CenterVersionlMarversionketAppView
 from console.views.center_pool.apps import DownloadMarketAppTemplateView

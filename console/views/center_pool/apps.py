@@ -241,7 +241,6 @@ class CenterAppCLView(JWTAuthApiView):
         return MessageResponse(
             "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
 
-
     @never_cache
     def post(self, request, enterprise_id, *args, **kwargs):
         app_name = request.data.get("name")

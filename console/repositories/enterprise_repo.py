@@ -44,7 +44,7 @@ class TenantEnterpriseRepo(object):
         tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
         if not tenant_ids:
             return []
-        group_ids =  ServiceGroup.objects.filter(tenant_id__in=tenant_ids).values_list("ID")
+        group_ids = ServiceGroup.objects.filter(tenant_id__in=tenant_ids).values_list("ID")
         if not group_ids:
             return []
         return ServiceGroupRelation.objects.filter(group_id__in=group_ids).values_list("service_id")

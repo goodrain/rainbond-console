@@ -17,7 +17,6 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
-from console.models.main import RegionConfig
 from console.views.base import JWTAuthApiView
 
 region_api = RegionInvokeApi()
@@ -63,7 +62,7 @@ class EnterpriseAppOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         try:
             service_groups = enterprise_repo.get_enterprise_apps(enterprise_id)
-            services_ids = enterprise_repo.get_enterprise_services(enterprise_id)
+            # services_ids = enterprise_repo.get_enterprise_services(enterprise_id)
             service_groups_nums = len(service_groups)
             service_groups_running_nums = 0
             service_nums = 0

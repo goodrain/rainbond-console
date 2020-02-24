@@ -8,7 +8,6 @@ import string
 from django.core.paginator import Paginator
 
 from console.repositories.enterprise_repo import enterprise_repo
-from console.services.service_services import base_service
 from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
