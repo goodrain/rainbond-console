@@ -48,6 +48,7 @@ from console.services.app_config import AppMntService
 from console.services.app_config import AppPortService
 from console.services.app_config import AppServiceRelationService
 from console.services.app_config import AppVolumeService
+from www.models.main import ServiceGroupRelation
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
@@ -55,6 +56,9 @@ from www.utils.crypt import make_uuid
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.repositories.migration_repo import migrate_repo
+from console.services.exception import ErrChangeServiceType
+from console.exception.main import ServiceHandleException
+from console.enum.component_enum import ComponentType, is_singleton, is_state
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -758,9 +762,12 @@ class AppManageService(AppManageBase):
         """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
-            return 400, "节点数量需在1到100之间"
+            raise ServiceHandleException(status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
         if new_node == service.min_node:
-            return 409, "节点没有变化，无需升级"
+            raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
+
+        if new_node > 1 and is_singleton(service.extend_method):
+            raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
 
         if service.create_status == "complete":
             body = dict()
@@ -773,14 +780,13 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                raise ServiceHandleException(status_code=507, msg="component error", msg_show="组件异常")
             except region_api.ResourceNotEnoughError as e:
                 logger.exception(e)
-                return 412, e.msg
+                raise ServiceHandleException(status_code=412, msg="resource not enough", msg_show=e.msg)
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                raise ServiceHandleException(status_code=409, msg="just wait a moment", msg_show="操作过于频繁，请稍后再试")
 
     def delete(self, user, tenant, service, is_force):
         # 判断组件是否是运行状态
@@ -939,6 +945,10 @@ class AppManageService(AppManageBase):
                 r_data.pop("ID")
                 relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
+        # 如果组件被其他应用下的组件依赖，将组件对应的关系删除
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        if relations:
+            relations.delete()
         # 如果组件关系回收站有被此组件依赖的组件，将信息及其对应的数据中心的依赖关系删除
         recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
         if recycle_relations:
@@ -984,6 +994,23 @@ class AppManageService(AppManageBase):
             dep_service_names = ",".join(list(services))
             return True, dep_service_names
         return False, ""
+
+    def __is_service_related_by_other_app_service(self, tenant, service):
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        group_ids = []
+        if tsrs:
+            sids = list(set([tsr.service_id for tsr in tsrs]))
+            service_group = ServiceGroupRelation.objects.get(
+                service_id=service.service_id, tenant_id=tenant.tenant_id)
+            groups = ServiceGroupRelation.objects.filter(service_id__in=sids, tenant_id=tenant.tenant_id)
+            for group in groups:
+                group_ids.append(group.group_id)
+            if group_ids and service_group.group_id in group_ids:
+                group_ids.remove(service_group.group_id)
+            if not group_ids:
+                return False
+            return True
+        return False
 
     def __is_service_running(self, tenant, service):
         try:
@@ -1050,6 +1077,11 @@ class AppManageService(AppManageBase):
         if self.__is_service_has_plugins(service):
             code = 412
             msg = "当前组件安装了插件， 您确定要删除吗？"
+            return code, msg
+        # 判断是否被其他应用下的组件依赖
+        if self.__is_service_related_by_other_app_service(tenant, service):
+            code = 412
+            msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
             return code, msg
 
         if not is_force:
@@ -1122,6 +1154,9 @@ class AppManageService(AppManageBase):
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        if relations:
+            relations.delete()
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
@@ -1145,3 +1180,36 @@ class AppManageService(AppManageBase):
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"
+
+    def change_service_type(self, tenant, service, extend_method):
+        # 存储限制
+        tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
+        if tenant_service_volumes:
+            old_extend_method = service.extend_method
+            for tenant_service_volume in tenant_service_volumes:
+                if tenant_service_volume["volume_type"] == "share-file" or tenant_service_volume["volume_type"] == "memoryfs":
+                    continue
+                if tenant_service_volume["volume_type"] == "local":
+                    if old_extend_method == ComponentType.state_singleton.value:
+                        raise ServiceHandleException(msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
+                if tenant_service_volume.get("access_mode", "") == "RWO":
+                    if not is_state(extend_method):
+                        raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
+        # 实例个数限制
+        if is_singleton(extend_method) and service.min_node > 1:
+            raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
+
+        if service.create_status != "complete":
+            service.extend_method = extend_method
+            service.save()
+            return
+
+        data = dict()
+        data["extend_method"] = extend_method
+        try:
+            region_api.update_service(service.service_region, tenant.tenant_name, service.service_alias, data)
+            service.extend_method = extend_method
+            service.save()
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise ErrChangeServiceType

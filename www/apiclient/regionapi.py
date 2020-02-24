@@ -1239,20 +1239,28 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, None, region=region)
         return body
 
-    def export_app(self, region, tenant_name, data):
+    def export_app(self, region, enterprise_id, data):
         """导出应用"""
-        url, token = self.__get_region_access_info(tenant_name, region)
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
         url += "/v2/app/export"
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data).encode('utf-8'))
         return res, body
 
-    def get_app_export_status(self, region, tenant_name, event_id):
+    def get_app_export_status(self, region, enterprise_id, event_id):
         """查询应用导出状态"""
-        url, token = self.__get_region_access_info(tenant_name, region)
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
         url = url + "/v2/app/export/" + event_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def import_app_2_enterprise(self, region, enterprise_id, data):
+        """ import app to enterprise"""
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
+        url += "/v2/app/import"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
     def import_app(self, region, tenant_name, data):
@@ -1271,12 +1279,33 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def get_enterprise_app_import_status(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_enterprise_import_file_dir(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def get_import_file_dir(self, region, tenant_name, event_id):
         """查询导入目录"""
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def delete_enterprise_import(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/" + event_id
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
         return res, body
 
     def delete_import(self, region, tenant_name, event_id):
@@ -1293,6 +1322,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def delete_enterprise_import_file_dir(self, region, eid, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
+        url = url + "/v2/app/import/ids/" + event_id
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region)
         return res, body
 
     def delete_import_file_dir(self, region, tenant_name, event_id):
@@ -1567,4 +1603,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + region.region_tenant_name + "/gateway/certificate"
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
+
+    def get_region_resources(self, enterprise_id, region_name):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/cluster"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
         return res, body

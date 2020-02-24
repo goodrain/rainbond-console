@@ -16,7 +16,7 @@ class AppStore(object):
     def __init__(self):
         pass
 
-    def get_image_connection_info(self, scope, team_name):
+    def get_image_connection_info(self, scope, eid, team_name):
         """
         :param scope: enterprise(企业) team(团队) goodrain(好雨云市)
         :param team_name: 租户名称
@@ -29,17 +29,18 @@ class AppStore(object):
             if not team:
                 return {}
             if scope.startswith("goodrain"):
-                info = market_api.get_share_hub_info(team.tenant_id, "image")
+                info = market_api.get_enterprise_share_hub_info(eid, "image")
                 return info["image_repo"]
             else:
                 image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
+                namespace = eid if scope == "enterprise" else team_name
                 if not image_config or not image_config[0].enable:
-                    return {"hub_url": 'goodrain.me', "namespace": team_name}
+                    return {"hub_url": 'goodrain.me', "namespace": namespace}
                 image_config_dict = eval(image_config[0].value)
                 hub_url = image_config_dict.get("hub_url", None)
                 hub_user = image_config_dict.get("hub_user", None)
                 hub_password = image_config_dict.get("hub_password", None)
-                namespace = image_config_dict.get("namespace", team_name)
+                namespace = image_config_dict.get("namespace", namespace)
                 is_trust = hub_url == 'hub.goodrain.com'
                 image_info = {
                     "hub_url": hub_url,

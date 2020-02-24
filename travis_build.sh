@@ -24,6 +24,12 @@ function release(){
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
      docker push rainbond/rbd-app-ui:${VERSION}
+     if [ ${DOMESTIC_BASE_NAME} ];
+			then
+				docker tag "rainbond/rbd-app-ui:${VERSION}" "${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rbd-app-ui:${VERSION}"
+				docker login -u "$DOMESTIC_DOCKER_USERNAME" -p "$DOMESTIC_DOCKER_PASSWORD" ${DOMESTIC_BASE_NAME}
+				docker push "${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rbd-app-ui:${VERSION}"
+			fi
   fi
 }
 

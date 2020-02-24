@@ -57,6 +57,14 @@ class ServiceHandleException(Exception):
                                error_code=self.error_code)
 
 
+class RegionNotFound(ServiceHandleException):
+    """
+    region not found exception
+    """
+    def __init__(self, msg):
+        super(RegionNotFound, self).__init__("region not found")
+
+
 class AbortRequest(ServiceHandleException):
     """终止请求"""
     pass

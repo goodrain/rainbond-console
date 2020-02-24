@@ -46,8 +46,7 @@ def validate_domain(domain):
         return False, "域名长度不能超过{}".format(dns1123_subdomain_max_length)
 
     dns1123_label_fmt = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-    dns1123_subdomain_fmt = dns1123_label_fmt + \
-        "(\\." + dns1123_label_fmt + ")*"
+    dns1123_subdomain_fmt = dns1123_label_fmt + "(\\." + dns1123_label_fmt + ")*"
     fmt = "^" + dns1123_subdomain_fmt + "$"
     wildcard_dns1123_subdomain_fmt = "\\*\\." + dns1123_subdomain_fmt
     wildcard_fmt = "^" + wildcard_dns1123_subdomain_fmt + "$"
@@ -705,7 +704,7 @@ class SecondLevelDomainView(AppBaseView):
                 self.service.service_region)
             sld_suffix = "{0}.{1}".format(self.tenant.tenant_name, http_domain)
             result = general_message(200, "success", "查询成功", {
-                                     "sld_suffix": sld_suffix})
+                "sld_suffix": sld_suffix})
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -876,8 +875,7 @@ class DomainQueryView(RegionTenantHeaderView):
                     domain_dict["certificate_alias"] = ''
                 else:
                     domain_dict["certificate_alias"] = certificate_info.alias
-                domain_dict["domain_name"] = tenant_tuple[5] + \
-                    "://" + tenant_tuple[0]
+                domain_dict["domain_name"] = tenant_tuple[5] + "://" + tenant_tuple[0]
                 domain_dict["type"] = tenant_tuple[1]
                 domain_dict["is_senior"] = tenant_tuple[2]
                 domain_dict["group_name"] = group_name
@@ -969,11 +967,142 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
 
                     cursor = connection.cursor()
                     cursor.execute(
-                        """select end_point, type, protocol, service_name, service_alias, container_port, tcp_rule_id,
-                           service_id, is_outer_service from
-                          service_tcp_domain where tenant_id='{0}' and region_id='{1}' order by type desc LIMIT {2},{3};""".
-                        format(tenant.tenant_id, region.region_id, start, end))
+                        """
+                            select end_point, type,
+                            protocol, service_name,
+                            service_alias, container_port,
+                            tcp_rule_id, service_id,
+                            is_outer_service
+                            from service_tcp_domain
+                            where tenant_id='{0}' and region_id='{1}' order by type desc
+                            LIMIT {2},{3};
+                        """.format(tenant.tenant_id, region.region_id, start, end))
                     tenant_tuples = cursor.fetchall()
+            except Exception as e:
+                logger.exception(e)
+                result = general_message(405, "faild", "查询数据库失败")
+                return Response(result)
+
+            # 拼接展示数据
+            domain_list = list()
+            for tenant_tuple in tenant_tuples:
+                service = service_repo.get_service_by_service_id(
+                    tenant_tuple[7])
+                service_alias = service.service_cname if service else ''
+                group_name = ''
+                group_id = 0
+                if service:
+                    gsr = group_service_relation_repo.get_group_by_service_id(
+                        service.service_id)
+                    if gsr:
+                        group = group_repo.get_group_by_id(int(gsr.group_id))
+                        group_name = group.group_name if group else ''
+                        group_id = int(gsr.group_id)
+                domain_dict = dict()
+                domain_dict["end_point"] = tenant_tuple[0]
+                domain_dict["type"] = tenant_tuple[1]
+                domain_dict["protocol"] = tenant_tuple[2]
+                domain_dict["group_name"] = group_name
+                domain_dict["service_alias"] = tenant_tuple[3]
+                domain_dict["container_port"] = tenant_tuple[5]
+                domain_dict["service_cname"] = service_alias
+                domain_dict["tcp_rule_id"] = tenant_tuple[6]
+                domain_dict["service_id"] = tenant_tuple[7]
+                domain_dict["is_outer_service"] = tenant_tuple[8]
+                domain_dict["group_id"] = group_id
+                domain_dict["service_source"] = service.service_source if service else ''
+
+                domain_list.append(domain_dict)
+            bean = dict()
+            bean["total"] = total
+            result = general_message(
+                200, "success", "查询成功", list=domain_list, bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+
+# 查询应用下策略
+class AppServiceDomainQueryView(RegionTenantHeaderView):
+    def get(self, request, enterprise_id, team_name, app_id, *args, **kwargs):
+        try:
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
+            search_conditions = request.GET.get("search_conditions", None)
+            tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
+            region = region_repo.get_region_by_region_name(
+                self.response_region)
+            try:
+                tenant_tuples, total = domain_service.get_app_service_domain_list(
+                    region, tenant, app_id, search_conditions, page, page_size)
+
+            except Exception as e:
+                logger.exception(e)
+                result = general_message(405, "faild", "查询数据库失败")
+                return Response(result)
+
+            # 拼接展示数据
+            domain_list = list()
+            for tenant_tuple in tenant_tuples:
+                service = service_repo.get_service_by_service_id(
+                    tenant_tuple[9])
+                service_alias = service.service_cname if service else ''
+                group_name = ''
+                group_id = 0
+                if service:
+                    gsr = group_service_relation_repo.get_group_by_service_id(
+                        service.service_id)
+                    if gsr:
+                        group = group_repo.get_group_by_id(int(gsr.group_id))
+                        group_name = group.group_name if group else ''
+                        group_id = int(gsr.group_id)
+                domain_dict = dict()
+                certificate_info = domain_repo.get_certificate_by_pk(
+                    int(tenant_tuple[3]))
+                if not certificate_info:
+                    domain_dict["certificate_alias"] = ''
+                else:
+                    domain_dict["certificate_alias"] = certificate_info.alias
+                domain_dict["domain_name"] = tenant_tuple[5] + "://" + tenant_tuple[0]
+                domain_dict["type"] = tenant_tuple[1]
+                domain_dict["is_senior"] = tenant_tuple[2]
+                domain_dict["group_name"] = group_name
+                domain_dict["service_cname"] = service_alias
+                domain_dict["service_alias"] = tenant_tuple[6]
+                domain_dict["container_port"] = tenant_tuple[7]
+                domain_dict["http_rule_id"] = tenant_tuple[8]
+                domain_dict["service_id"] = tenant_tuple[9]
+                domain_dict["domain_path"] = tenant_tuple[10]
+                domain_dict["domain_cookie"] = tenant_tuple[11]
+                domain_dict["domain_heander"] = tenant_tuple[12]
+                domain_dict["the_weight"] = tenant_tuple[13]
+                domain_dict["is_outer_service"] = tenant_tuple[14]
+                domain_dict["group_id"] = group_id
+                domain_list.append(domain_dict)
+            bean = dict()
+            bean["total"] = total
+            result = general_message(
+                200, "success", "查询成功", list=domain_list, bean=bean)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+        return Response(result)
+
+
+class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
+    # 查询应用下tcp/udp策略
+    def get(self, request, enterprise_id, team_name, app_id, *args, **kwargs):
+        try:
+            page = int(request.GET.get("page", 1))
+            page_size = int(request.GET.get("page_size", 10))
+            search_conditions = request.GET.get("search_conditions", None)
+            tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
+            region = region_repo.get_region_by_region_name(
+                self.response_region)
+            try:
+                tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(
+                    region, tenant, app_id, search_conditions, page, page_size)
             except Exception as e:
                 logger.exception(e)
                 result = general_message(405, "faild", "查询数据库失败")
@@ -1257,6 +1386,12 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     def put(self, request, rule_id, *args, **kwargs):
         value = parse_item(request, 'value', required=True,
                            error='value is a required parameter')
+        try:
+            self.check_set_header(value["set_headers"])
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, "forbidden custom header name", FORBIDDEN_MESSAGE)
+            return Response(result, status=400)
         service_domain = get_object_or_404(
             ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
         service = get_object_or_404(
@@ -1285,3 +1420,15 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
             result = general_message(
                 409, "upgrade configuration failed", "操作过于频繁，请稍后再试")
             return Response(result, status=409)
+
+    def check_set_header(self, set_headers):
+        r = re.compile('([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
+        for header in set_headers:
+            if header["key"]:
+                if not r.match(header["key"]):
+                    raise Exception("forbidden key: {0}".format(header["key"]))
+
+
+FORBIDDEN_MESSAGE = "自定义请求头只可以使用小写英文字母、数字、下划线、中划线，并以英文字母开头结尾"
+# name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character
+# (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')

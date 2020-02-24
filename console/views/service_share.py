@@ -5,16 +5,13 @@ import logging
 from django.db.models import Q
 from rest_framework.response import Response
 
-from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
 from console.services.enterprise_services import enterprise_services
-from console.services.group_service import group_service
 from console.services.share_services import share_service
-from console.services.user_services import user_services
 from console.utils.reqparse import parse_argument
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
@@ -22,6 +19,7 @@ from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -169,68 +167,22 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        try:
-            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-            if not share_record:
-                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-                return Response(result, status=404)
-            if share_record.is_success or share_record.step >= 3:
-                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-                return Response(result, status=400)
-            # 获取分享应用基本信息
-            data = dict()
-            share_group_info = dict()
-            share_group = share_service.check_whether_have_share_history(group_id=share_record.group_id)
-            if share_group:
-                share_group_info["group_key"] = share_group.group_key
-                share_group_info["group_name"] = share_group.group_name
-                share_group_info["version"] = share_group.version
-                share_group_info["describe"] = share_group.describe
-                share_group_info["scope"] = share_group.scope
-                share_group_info["share_id"] = share_group.ID
-                share_group_info["pic"] = share_group.pic
-                share_group_info["share_team"] = share_group.share_team
-                share_group_info["share_user"] = share_group.share_user
-                share_group_info["is_shared"] = True
-                data["share_group_info"] = share_group_info
-            else:
-                try:
-                    user = user_services.get_user_by_user_name(user_name=request.user)
-                    if not user:
-                        result = general_message(400, "user failed", "数据紊乱，非当前用户操作页面")
-                        return Response(result, status=400)
-                except UserNotExistError as e:
-                    result = general_message(400, e.message, "用户不存在")
-                    return Response(result, status=400)
-                code, msg, group = group_service.get_group_by_id(
-                    tenant=self.team, region=self.response_region, group_id=share_record.group_id)
-                if code == 200:
-                    share_group_info["group_key"] = make_uuid()
-                    share_group_info["group_name"] = group.get("group_name")
-                    share_group_info["version"] = 'v1.0'
-                    share_group_info["describe"] = 'This is a default description.'
-                    share_group_info["scope"] = 'team'
-                    share_group_info["share_id"] = share_record.group_id
-                    share_group_info["pic"] = ''
-                    share_group_info["share_team"] = team_name
-                    share_group_info["share_user"] = str(user.user_id)
-                    share_group_info["is_shared"] = False
-                    data["share_group_info"] = share_group_info
-                else:
-                    result = general_message(code=code, msg="failed", msg_show=msg)
-                    return Response(result, status=code)
-            service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id)
-            data["share_service_list"] = service_info_list
-            plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
-            data["share_plugin_list"] = plugins
-            result = general_message(200, "query success", "获取成功", bean=data)
-            return Response(result, status=200)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        data = dict()
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+        if not share_record:
+            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+            return Response(result, status=404)
+        if share_record.is_success or share_record.step >= 3:
+            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+            return Response(result, status=400)
+
+        service_info_list = share_service.query_share_service_info(
+            team=self.team, group_id=share_record.group_id)
+        data["share_service_list"] = service_info_list
+        plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
+        data["share_plugin_list"] = plugins
+        result = general_message(200, "query success", "获取成功", bean=data)
+        return Response(result, status=200)
 
     @perm_required('share_service')
     def post(self, request, team_name, share_id, *args, **kwargs):
@@ -264,7 +216,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 result = general_message(400, "share info can not be empty", "分享信息不能为空")
                 return Response(result, status=400)
             share_group_info = request.data.get("share_group_info", None)
-            if share_group_info["scope"] == "goodrain":
+            if share_group_info and share_group_info["scope"] == "goodrain":
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.team.enterprise_id)
                 if not enterprise.is_active:
                     return Response(general_message(10407, "enterprise is not active", "企业未激活"), status=403)
@@ -275,6 +227,15 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             if not share_group_info.get("group_key", None):
                 result = general_message(400, "share group key can not be empty", "分享应用信息不全")
                 return Response(result, status=400)
+
+            if share_app_info:
+                for app in share_app_info:
+                    extend_method = app.get("extend_method", "")
+                    if is_singleton(extend_method):
+                        extend_method_map = app.get("extend_method_map")
+                        if extend_method_map and extend_method_map.get("max_node", 1) > 1:
+                            result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
+                            return Response(result, status=400)
 
             # 继续给app_template_incomplete赋值
             code, msg, bean = share_service.create_share_info(
@@ -499,4 +460,63 @@ class ShareRecordView(RegionTenantHeaderView):
                 return Response(result, status=200)
         result = general_message(
             200, "the current application is not Shared or Shared", "当前应用未分享或已分享", bean=share_record.to_dict())
+        return Response(result, status=200)
+
+
+class ShareServicesListView(RegionTenantHeaderView):
+    @perm_required('share_service')
+    def get(self, request, team_name, *args, **kwargs):
+        try:
+            share_services = share_repo.get_shared_apps_by_team(team_name)
+        except Exception as e:
+            logger.debug(e)
+            return Response(error_message(e.message), status=404)
+        data = map(share_service.get_shared_services_list, share_services)
+        rst = general_message(
+                200, "get shared apps list complete", None, bean=data)
+        return Response(rst, status=200)
+
+
+class ServiceGroupAppCView(RegionTenantHeaderView):
+    @perm_required('share_service')
+    def post(self, request, team_name, *args, **kwargs):
+        name = request.data.get("name")
+        describe = request.data.get("describe", 'This is a default description.')
+        pic = request.data.get("pic")
+        scope = request.data.get("scope")
+        details = request.data.get("details")
+        app_id = make_uuid()
+        dev_status = request.data.get("dev_status")
+
+        data = {
+            "name": name,
+            "describe": describe,
+            "pic": pic,
+            "app_id": app_id,
+            "dev_status": dev_status,
+            "share_team": team_name,
+            "source": "local",
+            "scope": scope,
+            "details": details,
+        }
+        if not (name and scope):
+            result = general_message(400, "error params", None)
+            return Response(result, status=200)
+        if scope == "goodrain":
+            share_service.create_cloud_app(self.tenant.tenant_id, data)
+        else:
+            share_repo.create_app(data)
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
+
+
+class ServiceGroupSharedApps(RegionTenantHeaderView):
+    @perm_required('share_service')
+    def get(self, request, team_name, group_id, *args, **kwargs):
+        scope = request.GET.get("scope", None)
+        if not scope:
+            data = share_service.get_last_shared_app_and_app_list(self.tenant.tenant_id, group_id)
+        else:
+            data = share_service.get_app_list(self.tenant.tenant_id, scope)
+        result = general_message(200, "get shared apps list complete", None, bean=data)
         return Response(result, status=200)

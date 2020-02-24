@@ -34,13 +34,5 @@ pytest-mock==1.10.4
 drf-yasg==1.16.1
 python-gitlab==1.13.0
 PyGithub==1.44.1
+enum34==1.1.6
 -e git+https://github.com/goodrain/market-api-python.git#egg=rainbond_market_client
-
-
-
-
-
-
-
-
-

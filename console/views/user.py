@@ -9,6 +9,9 @@ from rest_framework.response import Response
 from console.exception.exceptions import SameIdentityError, UserNotExistError
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.enterprise_services import enterprise_services
+from console.services.exception import ErrAdminUserDoesNotExist
+from console.services.exception import ErrCannotDelLastAdminUser
 from console.views.base import BaseApiView, JWTAuthApiView, AlowAnyApiView
 from www.apiclient.baseclient import HttpClient
 from console.services.auth import login, logout
@@ -272,3 +275,55 @@ class UserAddPemView(JWTAuthApiView):
             code = 500
             result = error_message(e.message)
         return Response(result, status=code)
+
+
+class AdminUserLCView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        users = user_services.get_admin_users(enterprise_id)
+        result = general_message(200, "success", "获取企业管理员列表成功", list=users)
+        return Response(result)
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        user_id = request.data.get("user_id")
+        try:
+            user = user_services.get_user_by_user_id(user_id)
+            ent = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+            if ent is None:
+                result = general_message(404, "no found", "未找到该企业")
+            else:
+                user_services.create_admin_user(user, ent)
+                result = general_message(201, "success", None)
+        except UserNotExistError:
+            result = general_message(404, "no found", "未找到该用户")
+        return Response(result, status=201)
+
+
+class AdminUserDView(JWTAuthApiView):
+    def delete(self, request, enterprise_id, user_id, *args, **kwargs):
+        if str(request.user.user_id) == user_id:
+            result = general_message(400, "fail", "不可删除自己")
+            return Response(result, 400)
+        try:
+            user_services.delete_admin_user(user_id)
+            result = general_message(200, "success", None)
+            return Response(result, 200)
+        except ErrAdminUserDoesNotExist as e:
+            logger.debug(e)
+            result = general_message(400, "用户'{}'不是企业管理员".format(user_id), None)
+            return Response(result, 400)
+        except ErrCannotDelLastAdminUser as e:
+            logger.debug(e)
+            result = general_message(400, "fail", None)
+            return Response(result, 400)
+
+
+class EnterPriseUsersCLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        name = request.GET.get("name")
+        users = user_services.get_user_by_eid(enterprise_id, name)
+        if users:
+            data = users.values("email", "nick_name", "user_id")
+            result = general_message(200, "success", None, list=data)
+        else:
+            result = general_message(200, "success", None)
+        return Response(result, status=200)

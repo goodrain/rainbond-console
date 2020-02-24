@@ -187,5 +187,7 @@ class EnterpriseServices(object):
         setattr(ent, "appstore_name", appstore_name)
         return ent
 
+    # def get_services_status_by_service_ids(self, region_name, enterprise_id, service_ids):
+
 
 enterprise_services = EnterpriseServices()
