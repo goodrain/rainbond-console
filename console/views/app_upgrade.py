@@ -1,7 +1,6 @@
 # coding: utf-8
 """升级从云市安装的应用"""
 import json
-from addict import Dict
 import logging
 from copy import deepcopy
 
@@ -65,6 +64,7 @@ class GroupAppView(RegionTenantHeaderView):
                             self.tenant.tenant_id, group_key, app_version)
                         if plugins:
                             apps_plugins_templates[group_key][app_version] = plugins["data"]["bean"]["template_content"]
+
         def yield_app_info():
             for group_key in service_group_keys:
                 app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(self.tenant.enterprise_id, group_key)

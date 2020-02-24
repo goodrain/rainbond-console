@@ -996,7 +996,7 @@ class MarketAppService(object):
                 result_list.append(rbapp)
         return total, result_list
 
-    def  list_upgradeable_versions(self, tenant, service, apps_versions_templates, apps_plugins_templates):
+    def list_upgradeable_versions(self, tenant, service, apps_versions_templates, apps_plugins_templates):
         """
         list the upgradeable versions of the rainbond center app
         corresponding to the tenant and service

@@ -29,4 +29,5 @@ class ApplyService(object):
         applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
         return applicant.delete()
 
+
 apply_service = ApplyService()

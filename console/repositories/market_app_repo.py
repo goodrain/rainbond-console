@@ -231,8 +231,8 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_version_by_app_id(self, eid, app_id, version):
         where = """
-            WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND 
-            BB.app_id="{app_id}" AND C.version="{version}";
+            WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND
+             BB.app_id="{app_id}" AND C.version="{version}";
             """.format(
             eid=eid, app_id=app_id, version=version)
         sql = """

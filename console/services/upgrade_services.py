@@ -11,7 +11,6 @@ from console.exception.main import AbortRequest
 from console.exception.main import RbdAppNotFound
 from console.exception.main import RecordNotFound
 from console.models.main import AppUpgradeRecord
-from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceUpgradeRecord

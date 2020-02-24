@@ -46,6 +46,7 @@ class PropertiesChanges(object):
             app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
         except RecordNotFound:
             apps = json.loads(version_template).get("apps")
+
             def func(x):
                 result = x.get("service_share_uuid", None) == self.service_source.service_share_uuid \
                          or x.get("service_key", None) == self.service_source.service_share_uuid
@@ -53,7 +54,7 @@ class PropertiesChanges(object):
             app = next(iter(filter(lambda x: func(x), apps)), None)
         try:
             self.plugins = rbd_center_app_service.get_plugins(eid, version, self.service_source)
-        except:
+        except Exception:
             if plugin_template:
                 # plugins = MarketOpenAPI().get_plugin_templates(
                 #     self.tenant.tenant_id, self.service_source.group_key, version)
