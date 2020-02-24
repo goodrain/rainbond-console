@@ -42,6 +42,9 @@ class TeamService(object):
             raise Tenants.DoesNotExist
         return Tenants.objects.get(tenant_name=tenant_name)
 
+    def get_enterprise_tenant_by_tenant_name(self, enterprise_id, tenant_name):
+        return Tenants.objects.filter(tenant_name=tenant_name, enterprise_id=enterprise_id).first()
+
     def get_team_by_team_alias_and_eid(self, team_alias, enterprise_id):
         return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
 
