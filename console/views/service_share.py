@@ -22,6 +22,7 @@ from www.decorator import perm_required
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -264,7 +265,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 result = general_message(400, "share info can not be empty", "分享信息不能为空")
                 return Response(result, status=400)
             share_group_info = request.data.get("share_group_info", None)
-            if share_group_info["scope"] == "goodrain":
+            if share_group_info and share_group_info["scope"] == "goodrain":
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.team.enterprise_id)
                 if not enterprise.is_active:
                     return Response(general_message(10407, "enterprise is not active", "企业未激活"), status=403)
@@ -275,6 +276,15 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             if not share_group_info.get("group_key", None):
                 result = general_message(400, "share group key can not be empty", "分享应用信息不全")
                 return Response(result, status=400)
+
+            if share_app_info:
+                for app in share_app_info:
+                    extend_method = app.get("extend_method", "")
+                    if is_singleton(extend_method):
+                        extend_method_map = app.get("extend_method_map")
+                        if extend_method_map and extend_method_map.get("max_node", 1) > 1:
+                            result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
+                            return Response(result, status=400)
 
             # 继续给app_template_incomplete赋值
             code, msg, bean = share_service.create_share_info(

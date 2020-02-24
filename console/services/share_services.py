@@ -30,6 +30,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
+from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger("default")
 
@@ -235,8 +236,6 @@ class ShareService(object):
             service_volume_map = self.get_service_volume_by_ids(array_ids)
             # dependent volume
             dep_mnt_map = self.get_dep_mnts_by_ids(team.tenant_id, array_ids)
-            # 查询组件伸缩方式信息
-            extend_method_map = self.get_service_extend_method_by_keys(array_keys)
             # 获取组件的健康检测设置
             probe_map = self.get_service_probes(array_ids)
 
@@ -274,27 +273,18 @@ class ShareService(object):
                 data['creater'] = service.creater
                 data["cmd"] = service.cmd
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
-                extend_method = extend_method_map.get(service.service_key)
-                if extend_method:
-                    e_m = dict()
-                    e_m['min_node'] = service.min_node
-                    e_m['max_node'] = extend_method.max_node
-                    e_m['step_node'] = extend_method.step_node
-                    e_m['min_memory'] = service.min_memory - service.min_memory % 32
-                    e_m['max_memory'] = extend_method.max_memory
-                    e_m['step_memory'] = extend_method.step_memory
-                    e_m['is_restart'] = extend_method.is_restart
-                    data['extend_method_map'] = e_m
+                e_m = dict()
+                e_m['step_node'] = 1
+                e_m['min_memory'] = service.min_memory
+                e_m['max_memory'] = 65536
+                e_m['step_memory'] = 128
+                e_m['is_restart'] = 0
+                e_m['min_node'] = service.min_node
+                if is_singleton(service.extend_method):
+                    e_m['max_node'] = 1
                 else:
-                    data['extend_method_map'] = {
-                        "min_node": service.min_node,
-                        "max_node": 20,
-                        "step_node": 1,
-                        "min_memory": service.min_memory,
-                        "max_memory": 65536,
-                        "step_memory": 128,
-                        "is_restart": 0
-                    }
+                    e_m['max_node'] = 20
+                data['extend_method_map'] = e_m
                 data['port_map_list'] = list()
                 if service_port_map.get(service.service_id):
                     for port in service_port_map.get(service.service_id):
