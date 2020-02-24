@@ -18,6 +18,7 @@ from console.services.app_config import compile_env_service
 from console.services.app_config import env_var_service
 from console.services.app_config import port_service
 from console.services.app_config import volume_service
+from console.services.app_config import label_service
 from console.services.common_services import common_services
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -300,7 +301,9 @@ class AppCheckService(object):
         envs = service_info.get("envs", None)
         ports = service_info.get("ports", None)
         volumes = service_info.get("volumes", None)
-
+        service_runtime_os = service_info.get("os", "linux")
+        if service_runtime_os == "windows":
+            label_service.set_service_os_label(tenant, service, service_runtime_os)
         code, msg = self.__save_compile_env(tenant, service, service.language)
         if code != 200:
             return code, msg

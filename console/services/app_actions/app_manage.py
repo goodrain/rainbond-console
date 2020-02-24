@@ -48,6 +48,7 @@ from console.services.app_config import AppMntService
 from console.services.app_config import AppPortService
 from console.services.app_config import AppServiceRelationService
 from console.services.app_config import AppVolumeService
+from www.models.main import ServiceGroupRelation
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
@@ -914,6 +915,10 @@ class AppManageService(AppManageBase):
                 r_data.pop("ID")
                 relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
+        # 如果组件被其他应用下的组件依赖，将组件对应的关系删除
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        if relations:
+            relations.delete()
         # 如果组件关系回收站有被此组件依赖的组件，将信息及其对应的数据中心的依赖关系删除
         recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
         if recycle_relations:
@@ -959,6 +964,23 @@ class AppManageService(AppManageBase):
             dep_service_names = ",".join(list(services))
             return True, dep_service_names
         return False, ""
+
+    def __is_service_related_by_other_app_service(self, tenant, service):
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        group_ids = []
+        if tsrs:
+            sids = list(set([tsr.service_id for tsr in tsrs]))
+            service_group = ServiceGroupRelation.objects.get(
+                service_id=service.service_id, tenant_id=tenant.tenant_id)
+            groups = ServiceGroupRelation.objects.filter(service_id__in=sids, tenant_id=tenant.tenant_id)
+            for group in groups:
+                group_ids.append(group.group_id)
+            if group_ids and service_group.group_id in group_ids:
+                group_ids.remove(service_group.group_id)
+            if not group_ids:
+                return False
+            return True
+        return False
 
     def __is_service_running(self, tenant, service):
         try:
@@ -1025,6 +1047,11 @@ class AppManageService(AppManageBase):
         if self.__is_service_has_plugins(service):
             code = 412
             msg = "当前组件安装了插件， 您确定要删除吗？"
+            return code, msg
+        # 判断是否被其他应用下的组件依赖
+        if self.__is_service_related_by_other_app_service(tenant, service):
+            code = 412
+            msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
             return code, msg
 
         if not is_force:
@@ -1095,6 +1122,9 @@ class AppManageService(AppManageBase):
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        if relations:
+            relations.delete()
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)

@@ -185,6 +185,7 @@ class TopologicalService(object):
             port_map[port.container_port] = port_info
         result["port_list"] = port_map
         # pod节点信息
+        region_data = dict()
         try:
             status_data = region_api.check_service_status(
                 region=region_name,
@@ -199,13 +200,12 @@ class TopologicalService(object):
                 service_alias=service.service_alias,
                 enterprise_id=team.enterprise_id)
             region_data["pod_list"] = pod_list["list"]
-        except Exception as e:
-            logger.exception(e)
-            region_data = dict()
-            if service.create_status != "complete":
+        except region_api.CallApiError as e:
+            if e.message["httpcode"] == 404:
+                region_data = {"status_cn": "创建中", "cur_status": "creating"}
+            elif service.create_status != "complete":
                 region_data = {"status_cn": "创建中", "cur_status": "creating"}
 
-        # result["region_data"] = region_data
         result = dict(result, **region_data)
 
         # 依赖组件信息
