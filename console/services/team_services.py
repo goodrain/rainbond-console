@@ -42,6 +42,9 @@ class TeamService(object):
             raise Tenants.DoesNotExist
         return Tenants.objects.get(tenant_name=tenant_name)
 
+    def get_enterprise_tenant_by_tenant_name(self, enterprise_id, tenant_name):
+        return Tenants.objects.filter(tenant_name=tenant_name, enterprise_id=enterprise_id).first()
+
     def get_team_by_team_alias_and_eid(self, team_alias, enterprise_id):
         return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
 
@@ -365,6 +368,9 @@ class TeamService(object):
     def get_current_user_tenants(self, user_id):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
         return tenants
+
+    def get_active_user_tenants(self, user_id):
+        return team_repo.get_active_tenants_by_user_id(user_id=user_id)
 
     @transaction.atomic
     def change_tenant_admin(self, user_id, other_user_id, tenant_name):

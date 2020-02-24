@@ -13,17 +13,16 @@ from rest_framework.response import Response
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
-from console.views.base import RegionTenantHeaderView, AlowAnyApiView
-from www.decorator import perm_required
+from console.views.base import AlowAnyApiView, JWTAuthApiView
 from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger('default')
 
 
-class CenterAppExportView(RegionTenantHeaderView):
+class CenterAppExportView(JWTAuthApiView):
     @never_cache
-    @perm_required("tenant_access")
-    def get(self, request, *args, **kwargs):
+    # @perm_required("tenant_access")
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         获取应用导出状态
         ---
@@ -35,18 +34,19 @@ class CenterAppExportView(RegionTenantHeaderView):
               paramType: path
         """
         try:
-            group_key = request.GET.get("group_key", None)
-            group_version = request.GET.get("group_version", None)
-            if not group_key or not group_version:
+            app_id = request.GET.get("app_id", None)
+            app_version = request.GET.get("app_version", None)
+            if not app_id or not app_version:
                 return Response(general_message(400, "app id is null", "请指明需要查询的应用"), status=400)
 
             result_list = []
-            group_version_list = group_version.split("#")
-            for version in group_version_list:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, version)
+            app_version_list = app_version.split("#")
+            for version in app_version_list:
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
+                    self.user.enterprise_id, app_id, version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-                code, msg, result = export_service.get_export_status(self.tenant, app)
+                code, msg, result = export_service.get_export_status(enterprise_id, app)
                 if code != 200:
                     return Response(general_message(code, "get export info error ", msg), status=code)
                 result_list.append(result)
@@ -59,8 +59,8 @@ class CenterAppExportView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("import_and_export_service")
-    def post(self, request, *args, **kwargs):
+    # @perm_required("import_and_export_service")
+    def post(self, request, enterprise_id, *args, **kwargs):
         """
         导出应用市场应用
         ---
@@ -77,10 +77,10 @@ class CenterAppExportView(RegionTenantHeaderView):
               paramType: form
         """
         try:
-            group_key = request.data.get("group_key", None)
-            group_version = request.data.get("group_version", [])
+            app_id = request.data.get("app_id", None)
+            app_versions = request.data.get("app_versions", [])
             export_format = request.data.get("format", None)
-            if not group_key or not group_version:
+            if not app_id or not app_versions:
                 return Response(general_message(400, "app id is null", "请指明需要导出的应用"), status=400)
             if not export_format or export_format not in (
                     "rainbond-app",
@@ -88,12 +88,13 @@ class CenterAppExportView(RegionTenantHeaderView):
             ):
                 return Response(general_message(400, "export format is illegal", "请指明导出格式"), status=400)
             new_export_record_list = []
-            for version in group_version:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, version)
+            for version in app_versions:
+                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
+                    self.user.enterprise_id, app_id, version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
-                code, msg, new_export_record = export_service.export_current_app(self.tenant, export_format, app)
+                code, msg, new_export_record = export_service.export_current_app(enterprise_id, export_format, app)
                 if code != 200:
                     return Response(general_message(code, "export error", msg), status=code)
 

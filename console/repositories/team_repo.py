@@ -3,12 +3,16 @@ import logging
 
 from django.db.models import Q
 
+from console.exception.exceptions import TenantNotExistError
 from console.models.main import RegionConfig
 from console.models.main import TeamGitlabInfo
 from console.repositories.base import BaseConnection
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
 from www.models.main import Users
+from www.models.main import ServiceGroup
+from www.models.main import TenantRegionInfo
+from www.models.main import TenantEnterprise
 
 logger = logging.getLogger("default")
 
@@ -36,10 +40,47 @@ class TeamRepo(object):
         user_list = Users.objects.filter(user_id__in=user_id_list)
         return user_list
 
-    def get_tenants_by_user_id(self, user_id):
+    def get_tenants_by_user_id(self, user_id, name=None):
+        tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
+        if name:
+            tenants = Tenants.objects.filter(
+                ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
+        else:
+            tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
+        return tenants
+
+    def get_tenants_by_user_id_and_eid(self, eid, user_id, name=None):
+        enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
+        if not enterprise:
+            return enterprise
+        tenant_ids = PermRelTenant.objects.filter(
+            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True)
+        if name:
+            tenants = Tenants.objects.filter(
+                ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
+        else:
+            tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
+        return tenants
+
+    def get_active_tenants_by_user_id(self, user_id):
+        active_tenants_list = []
         tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
         tenants = Tenants.objects.filter(ID__in=tenant_ids)
-        return tenants
+        if tenants:
+            for tenant in tenants:
+                active_tenants_list.append({
+                    "tenant_id": tenant.tenant_id,
+                    "team_alias": tenant.tenant_alias,
+                    "owner": tenant.creater,
+                    "enterprise_id": tenant.enterprise_id,
+                    "create_time": tenant.create_time,
+                    "team_name": tenant.tenant_name,
+                    "region": tenant.region,
+                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id))
+                })
+            active_tenants_list.sort(key=lambda x: x["num"])
+            active_tenants_list = active_tenants_list[:3]
+        return active_tenants_list
 
     def get_user_perms_in_permtenant(self, user_id, tenant_id):
         tenant_perms = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id)
@@ -106,7 +147,10 @@ class TeamRepo(object):
         PermRelTenant.objects.filter(Q(user_id=user_id, tenant_id=tenant_id) & ~Q(identity='owner')).delete()
 
     def get_team_by_team_id(self, team_id):
-        return Tenants.objects.get(tenant_id=team_id)
+        try:
+            return Tenants.objects.get(tenant_id=team_id)
+        except Exception:
+            raise TenantNotExistError
 
     def get_teams_by_enterprise_id(self, enterprise_id, user_id=None, query=None):
         q = Q(enterprise_id=enterprise_id)
@@ -232,6 +276,12 @@ class TeamRepo(object):
         conn = BaseConnection()
         result = conn.query(sql)
         return result[0].get("total")
+
+    def get_team_regions(self, team_id):
+        return TenantRegionInfo.objects.filter(tenant_id=team_id)
+
+    def get_teams_by_create_user(self, enterprise_id, user_id):
+        return Tenants.objects.filter(creater=user_id, enterprise_id=enterprise_id)
 
 
 class TeamGitlabRepo(object):

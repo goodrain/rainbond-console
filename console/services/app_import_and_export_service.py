@@ -21,6 +21,7 @@ from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.exception.main import RegionNotFound, RecordNotFound
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -49,11 +50,11 @@ class AppExportService(object):
         new_export_record = app_export_record_repo.create_app_export_record(**params)
         return 200, "success", new_export_record
 
-    def export_current_app(self, team, export_format, app):
+    def export_current_app(self, enterprise_id, export_format, app):
         event_id = make_uuid()
         data = {
             "event_id": event_id,
-            "group_key": app.group_key,
+            "group_key": app.app_id,
             "version": app.version,
             "format": export_format,
             "group_metadata": self.__get_group_metata(app)
@@ -61,8 +62,8 @@ class AppExportService(object):
         region = self.get_app_share_region(app)
         if region is None:
             return 404, '无法查找当前应用分享所在数据中心', None
-        region_api.export_app(region, team.tenant_name, data)
-        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(team.enterprise_id, app.group_key,
+        region_api.export_app(region, enterprise_id, data)
+        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(enterprise_id, app.app_id,
                                                                                      app.version, export_format)
         if export_record:
             logger.debug("update export record !")
@@ -73,8 +74,8 @@ class AppExportService(object):
             new_export_record = export_record
         else:
             logger.debug("create export record !")
-            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.group_key, app.version,
-                                                                   team.enterprise_id)
+            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.app_id, app.version,
+                                                                   enterprise_id)
             if code != 200:
                 return code, msg, None
         return 200, "success", new_export_record
@@ -113,7 +114,7 @@ class AppExportService(object):
         if first_app:
             region = first_app.get("service_region", None)
         else:
-            group = group_repo.get_group_by_id(app.tenant_service_group_id)
+            group = group_repo.get_group_by_id(app.group_id)
             if group:
                 region = group.region_name
             else:
@@ -135,9 +136,9 @@ class AppExportService(object):
         else:
             return None
 
-    def get_export_status(self, team, app):
+    def get_export_status(self, enterprise_id, app):
         app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(
-            team.enterprise_id, app.group_key, app.version)
+            enterprise_id, app.app_id, app.version)
         rainbond_app_init_data = {
             "is_export_before": False,
         }
@@ -152,7 +153,7 @@ class AppExportService(object):
             for export_record in app_export_records:
                 if export_record.event_id and export_record.status == "exporting":
                     try:
-                        res, body = region_api.get_app_export_status(region, team.tenant_name, export_record.event_id)
+                        res, body = region_api.get_app_export_status(region, enterprise_id, export_record.event_id)
                         result_bean = body["bean"]
                         if result_bean["status"] in ("failed", "success"):
                             export_record.status = result_bean["status"]
@@ -249,22 +250,74 @@ class AppExportService(object):
 
 
 class AppImportService(object):
-    def start_import_apps(self, tenant, region, scope, event_id, file_names):
+    def start_import_apps(self, scope, event_id, file_names, team_name=None):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
         import_record.scope = scope
+        if team_name:
+            import_record.team_name = team_name
 
-        service_slug = app_store.get_slug_connection_info(scope, tenant.tenant_name)
-        service_image = app_store.get_image_connection_info(scope, tenant.tenant_name)
-        data = {"service_slug": service_slug, "service_image": service_image, "event_id": event_id, "apps": file_names}
-        logger.debug("params {0}".format(json.dumps(data)))
-        res, body = region_api.import_app(region, tenant.tenant_name, data)
-        logger.debug("response body {0}".format(body))
+        service_image = app_store.get_image_connection_info(scope, import_record.enterprise_id, team_name)
+        data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
+        if scope == "enterprise":
+            region_api.import_app_2_enterprise(import_record.region, import_record.enterprise_id, data)
+        else:
+            res, body = region_api.import_app(import_record.region, team_name, data)
         import_record.status = "importing"
         import_record.save()
+
+    def get_and_update_import_by_event_id(self, event_id):
+        import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
+        # get import status from region
+        res, body = region_api.get_enterprise_app_import_status(import_record.region, import_record.enterprise_id, event_id)
+        status = body["bean"]["status"]
+        if import_record.status != "success":
+            if status == "success":
+                logger.debug("app import success !")
+                self.__save_enterprise_import_info(import_record.enterprise_id, import_record.scope, body["bean"]["metadata"])
+                import_record.source_dir = body["bean"]["source_dir"]
+                import_record.format = body["bean"]["format"]
+                import_record.status = "success"
+                import_record.save()
+                # 成功以后删除数据中心目录数据
+                try:
+                    region_api.delete_enterprise_import_file_dir(import_record.region, import_record.enterprise_id, event_id)
+                except Exception as e:
+                    logger.exception(e)
+            else:
+                import_record.status = status
+                import_record.save()
+        apps_status = self.__wrapp_app_import_status(body["bean"]["apps"])
+
+        failed_num = 0
+        success_num = 0
+        for i in apps_status:
+            if i.get("status") == "success":
+                success_num += 1
+                import_record.status = "partial_success"
+                import_record.save()
+            elif i.get("status") == "failed":
+                failed_num += 1
+        if success_num == len(apps_status):
+            import_record.status = "success"
+            import_record.save()
+        elif failed_num == len(apps_status):
+            import_record.status = "failed"
+            import_record.save()
+        if status == "uploading":
+            import_record.status = status
+            import_record.save()
+
+        return import_record, apps_status
 
     def get_and_update_import_status(self, tenant, region, event_id):
         """获取并更新导入状态"""
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
         # 去数据中心请求导入状态
         res, body = region_api.get_app_import_status(region, tenant.tenant_name, event_id)
         status = body["bean"]["status"]
@@ -321,9 +374,12 @@ class AppImportService(object):
             status_list.append({"file_name": kv_map_list[0], "status": kv_map_list[1]})
         return status_list
 
-    def get_import_app_dir(self, tenant, region, event_id):
+    def get_import_app_dir(self, event_id):
         """获取应用目录下的包"""
-        res, body = region_api.get_import_file_dir(region, tenant.tenant_name, event_id)
+        import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
+        res, body = region_api.get_enterprise_import_file_dir(import_record.region, import_record.enterprise_id, event_id)
         app_tars = body["bean"]["apps"]
         return app_tars
 
@@ -343,6 +399,15 @@ class AppImportService(object):
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record
 
+    def delete_import_app_dir_by_event_id(self, event_id):
+        try:
+            import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+            region_api.delete_enterprise_import(import_record.region, import_record.enterprise_id, event_id)
+        except Exception as e:
+            logger.exception(e)
+
+        app_import_record_repo.delete_by_event_id(event_id)
+
     def delete_import_app_dir(self, tenant, region, event_id):
         try:
             region_api.delete_import(region, tenant.tenant_name, event_id)
@@ -350,6 +415,47 @@ class AppImportService(object):
             logger.exception(e)
 
         app_import_record_repo.delete_by_event_id(event_id)
+
+    def __save_enterprise_import_info(self, eid, scope, metadata):
+        rainbond_apps = []
+        metadata = json.loads(metadata)
+        key_and_version_list = []
+        for app_template in metadata:
+            app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(
+                eid, app_template["group_key"], app_template["group_version"])
+            if app:
+                app.scope = scope
+                app.describe = app_template.pop("describe", "")
+                app.app_template = json.dumps(app_template)
+                app.template_version = app_template.get("template_version", "")
+                app.is_complete = True
+                app.save()
+                continue
+            image_base64_string = app_template.pop("image_base64_string", "")
+            pic_url = ""
+            if image_base64_string:
+                pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
+
+            key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
+            if key_and_version in key_and_version_list:
+                continue
+            key_and_version_list.append(key_and_version)
+            rainbond_app = RainbondCenterApp(
+                enterprise_id=eid,
+                group_key=app_template["group_key"],
+                group_name=app_template["group_name"],
+                version=app_template['group_version'],
+                share_user=0,
+                record_id=0,
+                source="import",
+                scope=scope,
+                describe=app_template.pop("describe", ""),
+                pic=pic_url,
+                app_template=json.dumps(app_template),
+                is_complete=True,
+                template_version=app_template.get("template_version", ""))
+            rainbond_apps.append(rainbond_app)
+        rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
     def __save_import_info(self, tenant, scope, metadata):
         rainbond_apps = []
@@ -417,6 +523,9 @@ class AppImportService(object):
                 importing_list.append(apps_status)
         return importing_list
 
+    def get_user_not_finish_import_record_in_enterprise(self, eid, user):
+        return app_import_record_repo.get_user_not_finished_import_record_in_enterprise(eid, user.nick_name)
+
     def get_user_unfinished_import_record(self, tenant, user):
         return app_import_record_repo.get_user_unfinished_import_record(tenant.tenant_name, user.nick_name)
 
@@ -427,8 +536,21 @@ class AppImportService(object):
             "status": "uploading",
             "team_name": team_name,
             "region": region,
-            "user_name": user_name,
-            "source_dir": "/grdata/app/import/{0}".format(event_id)
+            "user_name": user_name
+        }
+        return app_import_record_repo.create_app_import_record(**import_record_params)
+
+    def create_app_import_record_2_enterprise(self, eid, user_name):
+        event_id = make_uuid()
+        region = region_repo.get_region_by_enterprise_id(eid)
+        if not region:
+            raise RegionNotFound("region not found")
+        import_record_params = {
+            "event_id": event_id,
+            "status": "uploading",
+            "enterprise_id": eid,
+            "region": region.region_name,
+            "user_name": user_name
         }
         return app_import_record_repo.create_app_import_record(**import_record_params)
 

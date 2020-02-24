@@ -157,6 +157,7 @@ class UserAllTeamView(JWTAuthApiView):
         code = 200
         try:
             tenants = team_services.get_current_user_tenants(user_id=user.user_id)
+            active_tenants = team_services.get_active_user_tenants(user_id=user.user_id)
             if tenants:
                 teams_list = list()
                 for tenant in tenants:
@@ -164,9 +165,17 @@ class UserAllTeamView(JWTAuthApiView):
                         "team_name": tenant.tenant_name,
                         "team_alias": tenant.tenant_alias,
                         "team_id": tenant.tenant_id,
-                        "create_time": tenant.create_time
+                        "create_time": tenant.create_time,
+                        "region": tenant.region,
+                        "enterprise_id": tenant.enterprise_id,
+                        "owner": tenant.creater,
                     })
-                result = general_message(200, "team query success", "成功获取该用户加入的团队", list=teams_list)
+                data = {
+                    "active_teams": active_tenants,
+                    "new_join_team": teams_list[0],
+                    "teams": teams_list
+                }
+                result = general_message(200, "team query success", "成功获取该用户加入的团队", bean=data, list=teams_list)
             else:
                 teams_list = []
                 result = general_message(200, "team query success", "该用户没有加入团队", bean=teams_list)

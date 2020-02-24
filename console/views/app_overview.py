@@ -101,8 +101,8 @@ class AppDetailView(AppBaseView):
                 if not service_source:
                     result = general_message(200, "success", "查询成功", bean=bean)
                     return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                 service_source.version)
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                    self.tenant.enterprise_id, service_source.group_key, service_source.version)
                 if not rain_app:
                     result = general_message(200, "success", "当前云市组件已删除", bean=bean)
                     return Response(result, status=result["code"])
@@ -209,8 +209,8 @@ class AppBriefView(AppBaseView):
                 if not service_source:
                     result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
                     return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                 service_source.version)
+                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                    self.tenant.enterprise_id, service_source.group_key, service_source.version)
                 if not rain_app:
                     result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
                     return Response(result, status=result["code"])
@@ -712,8 +712,8 @@ class BuildSourceinfo(AppBaseView):
                             bean["install_from_cloud"] = True
                             bean["app_detail_url"] = rain_app.describe
                     if not rain_app:
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                         service_source.version)
+                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                            self.tenant.enterprise_id, service_source.group_key, service_source.version)
                     if rain_app:
                         bean["rain_app_name"] = rain_app.group_name
                         bean["details"] = rain_app.details

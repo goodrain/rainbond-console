@@ -147,5 +147,8 @@ class RegionRepo(object):
         region.delete()
         return region
 
+    def get_region_by_enterprise_id(self, eid):
+        return TenantRegionInfo.objects.get(enterprise_id=eid)
+
 
 region_repo = RegionRepo()
