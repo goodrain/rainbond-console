@@ -10,6 +10,7 @@ from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
@@ -460,6 +461,42 @@ class ShareRecordView(RegionTenantHeaderView):
                 return Response(result, status=200)
         result = general_message(
             200, "the current application is not Shared or Shared", "当前应用未分享或已分享", bean=share_record.to_dict())
+        return Response(result, status=200)
+
+
+class ShareRecordHistoryView(RegionTenantHeaderView):
+    def get(self, request, team_name, group_id, *args, **kwargs):
+        """
+        查询是否有未确认分享订单记录
+        ---
+        parameter:
+            - name: team_name
+              description: 团队名
+              required: true
+              type: string
+              paramType: path
+            - name: group_id
+              description: 应用id
+              required: true
+              type: string
+              paramType: path
+        """
+        data = []
+        share_records = share_repo.get_service_share_records_by_groupid(group_id=group_id)
+        if share_records:
+            for share_record in share_records:
+                app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
+                app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+                data.append({
+                    "app_id": share_record.app_id,
+                    "app_alias": app.alias,
+                    "app_version": app_version.version,
+                    "scope": app.scope,
+                    "create_time": share_record.create_time,
+                    "step": share_record.step,
+                    "is_success": share_record.is_success
+                })
+        result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
 

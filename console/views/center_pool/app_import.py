@@ -113,7 +113,6 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
 
 class CenterAppImportView(JWTAuthApiView):
     @never_cache
-    @perm_required("import_and_export_service")
     def post(self, request, event_id, *args, **kwargs):
         """
         导入应用包
@@ -161,7 +160,6 @@ class CenterAppImportView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("import_and_export_service")
     @transaction.atomic
     def get(self, request, event_id, *args, **kwargs):
         """

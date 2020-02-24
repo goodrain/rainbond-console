@@ -1014,6 +1014,13 @@ class JoinTeamView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+    def put(self, request, *args, **kwargs):
+        user_id = self.user.user_id
+        team_name = request.data.get("team_name")
+        apply_service.create_applicants(user_id=user_id, team_name=team_name)
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
+
     # 用户加入团队，给管理员发送站内信
     def send_user_message_to_tenantadmin(self, admins, team_name, nick_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
