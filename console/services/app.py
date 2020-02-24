@@ -472,7 +472,7 @@ class AppService(object):
             } for mnt in mnt_info]
 
         # etcd keys
-        data["etcd_keys"] = ["/servicecheck/{0}".format(service.check_uuid)]
+        data["etcd_key"] = service.check_uuid
 
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
@@ -650,7 +650,7 @@ class AppService(object):
         data["kind"] = service.service_source
 
         # etcd keys
-        data["etcd_keys"] = ["/servicecheck/{0}".format(service.check_uuid)]
+        data["etcd_key"] = service.check_uuid
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)

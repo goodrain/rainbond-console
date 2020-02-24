@@ -824,20 +824,20 @@ class AppManageService(AppManageBase):
         logger.debug("ready delete etcd data while delete service")
         keys = []
         # 删除代码检测的etcd数据
-        keys.append("/servicecheck/{0}".format(service.check_uuid))
+        keys.append(service.check_uuid)
         # 删除分享应用的etcd数据
         events = ServiceShareRecordEvent.objects.filter(service_id=service.service_id)
         if events and events[0].region_share_id:
             logger.debug("ready for delete etcd service share data")
             for event in events:
-                keys.append("/rainbond/shareresult/{0}".format(event.region_share_id))
+                keys.append(event.region_share_id)
         # 删除恢复迁移的etcd数据
         group_id = service_group_relation_repo.get_group_id_by_service(service)
         if group_id:
             migrate_record = migrate_repo.get_by_original_group_id(group_id)
             if migrate_record:
                 for record in migrate_record:
-                    keys.append("/rainbond/backup_restore/{0}".format(record.restore_id))
+                    keys.append(record.restore_id)
         return keys
 
     def truncate_service(self, tenant, service, user=None):
@@ -845,7 +845,7 @@ class AppManageService(AppManageBase):
 
         try:
             data = {}
-            data["keys"] = self.get_etcd_keys(tenant, service)
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
                                       service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
@@ -1097,7 +1097,7 @@ class AppManageService(AppManageBase):
 
         try:
             data = {}
-            data["keys"] = self.get_etcd_keys(tenant, service)
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
                                       service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
