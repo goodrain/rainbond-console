@@ -250,7 +250,6 @@ class CenterAppTarballDirView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    @perm_required("import_and_export_service")
     def post(self, request, *args, **kwargs):
         """
         批量导入时创建一个目录
@@ -271,7 +270,6 @@ class CenterAppTarballDirView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    @perm_required("import_and_export_service")
     def delete(self, request, *args, **kwargs):
         """
         删除导入
