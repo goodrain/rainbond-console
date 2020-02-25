@@ -22,6 +22,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from console.exception.main import RegionNotFound, RecordNotFound
+from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -542,7 +543,10 @@ class AppImportService(object):
 
     def create_app_import_record_2_enterprise(self, eid, user_name):
         event_id = make_uuid()
-        region = region_repo.get_region_by_enterprise_id(eid)
+        try:
+            region = region_repo.get_region_by_enterprise_id(eid)
+        except TenantRegionInfo.DoesNotExist:
+            raise RegionNotFound("region not found")
         if not region:
             raise RegionNotFound("region not found")
         import_record_params = {
