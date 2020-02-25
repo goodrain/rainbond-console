@@ -221,16 +221,22 @@ class UserService(object):
             rf=rf)
         return user
 
-    def create_user_set_password(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
+    def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip):
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
-            phone=phone,
             sso_user_id="",
             enterprise_id=enterprise.enterprise_id,
             is_active=False,
             rf=rf,
             client_ip=client_ip)
+        user.set_password(raw_password)
+        return user
+
+    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password):
+        user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
+        user.nick_name = user_name
+        user.email = email
         user.set_password(raw_password)
         return user
 
@@ -304,11 +310,12 @@ class UserService(object):
     def get_user_by_user_id(self, user_id):
         return user_repo.get_user_by_user_id(user_id=user_id)
 
-    def get_user_by_eid(self, eid, name):
+    def get_user_by_eid(self, eid, name, page, page_size):
         users = user_repo.get_enterprise_users(eid)
         if name:
             users = users.filter(nick_name__contains=name)
-        return users
+        total = users.count()
+        return users[(page-1)*page_size: page*page_size], total
 
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新构建"""
