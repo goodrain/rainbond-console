@@ -175,7 +175,6 @@ class GroupService(object):
         service_list = service_repo.get_services_in_multi_apps_with_app_info(group_ids)
         # memory info
         service_ids = [service.service_id for service in service_list]
-        # TODO  添加内存信息
         status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
         logger.debug("status_list is : {0}".format(status_list))
         service_status = dict()
