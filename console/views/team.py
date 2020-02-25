@@ -1230,7 +1230,6 @@ class AdminAddUserView(JWTAuthApiView):
         try:
             tenant_name = request.data.get("tenant_name", None)
             user_name = request.data.get("user_name", None)
-            phone = request.data.get("phone", None)
             email = request.data.get("email", None)
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
