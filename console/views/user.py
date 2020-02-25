@@ -355,7 +355,6 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         try:
             tenant_name = request.data.get("tenant_name", None)
             user_name = request.data.get("user_name", None)
-            phone = request.data.get("phone", None)
             email = request.data.get("email", None)
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
@@ -385,7 +384,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
                 # 创建用户
                 user = user_services.create_user_set_password(
-                    user_name, phone, email, password, "admin add", enterprise, client_ip)
+                    user_name, email, password, "admin add", enterprise, client_ip)
                 # 创建用户团队关系表
                 if tenant_name:
                     team_services.create_tenant_role(
@@ -404,7 +403,6 @@ class EnterPriseUsersCLView(JWTAuthApiView):
 class EnterPriseUsersUDView(JWTAuthApiView):
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
         user_name = request.data.get("user_name", None)
-        phone = request.data.get("phone", None)
         email = request.data.get("email", None)
         password = request.data.get("password", None)
         re_password = request.data.get("re_password", None)
@@ -412,7 +410,7 @@ class EnterPriseUsersUDView(JWTAuthApiView):
         if not is_pass:
             result = general_message(403, "user information is not passed", msg)
             return Response(result, 403)
-        user = user_services.update_user_set_password(enterprise_id, user_id, user_name, phone, email, password)
+        user = user_services.update_user_set_password(enterprise_id, user_id, user_name, email, password)
         user.save()
         result = general_message(200, "success", "更新用户成功")
         return Response(result, status=200)

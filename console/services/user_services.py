@@ -221,11 +221,10 @@ class UserService(object):
             rf=rf)
         return user
 
-    def create_user_set_password(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
+    def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip):
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
-            phone=phone,
             sso_user_id="",
             enterprise_id=enterprise.enterprise_id,
             is_active=False,
@@ -234,11 +233,10 @@ class UserService(object):
         user.set_password(raw_password)
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, user_name, phone, email, raw_password):
+    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
         user.nick_name = user_name
         user.email = email
-        user.phone = phone
         user.set_password(raw_password)
         return user
 
