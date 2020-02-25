@@ -222,7 +222,6 @@ class CenterAppImportView(JWTAuthApiView):
 
 class CenterAppTarballDirView(JWTAuthApiView):
     @never_cache
-    @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         查询应用包目录
