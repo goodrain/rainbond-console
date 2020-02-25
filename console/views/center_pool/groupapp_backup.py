@@ -70,12 +70,12 @@ class GroupAppsBackupView(RegionTenantHeaderView):
                 self.tenant, self.region_name, group_id)
             if running_state_services:
                 return Response(general_message(code=4121, msg="state service is running", msg_show="有状态组件未关闭",
-                                                bean={"service_cnames": running_state_services}), status=412)
+                                                list=running_state_services), status=412)
             # if service use custom service, can't backup
             use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id)
             if use_custom_svc:
                 return Response(general_message(code=4122, msg="use custom volume", msg_show="组件使用了自定义存储",
-                                                bean={"service_cnames": use_custom_svc}), status=412)
+                                                list=use_custom_svc), status=412)
 
         back_up_record = groupapp_backup_service.backup_group_apps(
             self.tenant, self.user, self.region_name, group_id, mode, note)
