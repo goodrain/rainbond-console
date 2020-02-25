@@ -1230,7 +1230,6 @@ class AdminAddUserView(JWTAuthApiView):
         try:
             tenant_name = request.data.get("tenant_name", None)
             user_name = request.data.get("user_name", None)
-            phone = request.data.get("phone", None)
             email = request.data.get("email", None)
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
@@ -1263,7 +1262,7 @@ class AdminAddUserView(JWTAuthApiView):
                 enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 # 创建用户
                 user = user_services.create_user_set_password(
-                    user_name, phone, email, password, "admin add", enterprise, client_ip)
+                    user_name, email, password, "admin add", enterprise, client_ip)
                 # 创建用户团队关系表
                 team_services.create_tenant_role(
                     user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)

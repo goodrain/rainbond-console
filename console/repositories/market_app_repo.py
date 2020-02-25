@@ -43,7 +43,7 @@ class RainbondCenterAppRepository(object):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
         where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
-        group = """GROUP BY C.enterprise_id, C.app_id {}) CC
+        group = """GROUP BY BB.enterprise_id, BB.app_id {}) CC
         LEFT JOIN rainbond_center_app_tag_relation D
         ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
         LEFT JOIN rainbond_center_app_tag E
@@ -56,7 +56,7 @@ class RainbondCenterAppRepository(object):
             group += 'WHERE E.name="{}" '.format(tags[0])
             for tag in tags[1:]:
                 group += 'OR E.name="{}" '.format(tag)
-        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC;"
+        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC, CC.update_time DESC;"
         # sql1 = """SET GLOBAL group_concat_max_len = 40960000;"""
         # sql2 = """SET SESSION group_concat_max_len = 40960000;"""
         sql = """
@@ -117,7 +117,7 @@ class RainbondCenterAppRepository(object):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
         where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
-        group = """GROUP BY C.enterprise_id, C.app_id {}) CC
+        group = """GROUP BY BB.enterprise_id, BB.app_id {}) CC
         LEFT JOIN rainbond_center_app_tag_relation D
         ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
         LEFT JOIN rainbond_center_app_tag E
@@ -130,7 +130,7 @@ class RainbondCenterAppRepository(object):
             group += 'WHERE E.name="{}" '.format(tags[0])
             for tag in tags[1:]:
                 group += 'OR E.name="{}" '.format(tag)
-        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC;"
+        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC, CC.update_time DESC;"
         sql1 = """SET GLOBAL group_concat_max_len = 40960000;"""
         sql2 = """SET SESSION group_concat_max_len = 40960000;"""
         sql = """
@@ -225,7 +225,6 @@ class RainbondCenterAppRepository(object):
             """
         sql += where
         conn = BaseConnection()
-        print sql
         result = conn.query(sql)
         return result
 
@@ -270,7 +269,6 @@ class RainbondCenterAppRepository(object):
             """
         sql += where
         conn = BaseConnection()
-        print sql
         result = conn.query(sql)
         return result
 

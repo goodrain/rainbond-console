@@ -30,9 +30,13 @@ class TenantEnterpriseRepo(object):
 
     def get_enterprises_by_user_id(self, user_id):
         try:
+            user = user_repo.get_user_by_user_id(user_id)
             tenant_ids = team_repo.get_tenants_by_user_id(user_id).values_list("tenant_id", flat=True)
             enterprise_ids = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True)
-            return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
+            enterprises = TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
+            if not enterprises:
+                enterprises = TenantEnterprise.objects.filter(enterprise_id=user.enterprise_id)
+            return enterprises
         except Exception:
             raise ExterpriseNotExistError
 

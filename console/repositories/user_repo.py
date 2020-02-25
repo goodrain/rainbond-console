@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
 
+from console.exception.exceptions import UserFavoriteNotExistError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.base import BaseConnection
+from console.models.main import UserFavorite
 from www.models.main import Users
 
 
@@ -12,6 +14,9 @@ class UserRepo(object):
         if not u:
             raise UserNotExistError("用户{}不存在".format(user_id))
         return u[0]
+
+    def get_enterprise_user_by_id(self, enterprise_id, user_id):
+        return Users.objects.filter(user_id=user_id, enterprise_id=enterprise_id).first()
 
     def get_by_username(self, username):
         return Users.objects.get(nick_name=username)
@@ -167,6 +172,69 @@ class UserRepo(object):
         conn = BaseConnection()
         result = conn.query(sql)
         return result[0].get("total")
+
+    def get_user_favorite(self, user_id):
+        return UserFavorite.objects.filter(user_id=user_id).order_by("custom_sort")
+
+    def get_user_favorite_by_name(self, user_id, name):
+        return UserFavorite.objects.filter(user_id=user_id, name=name)
+
+    def get_user_favorite_by_ID(self, user_id, favorite_id):
+        try:
+            return UserFavorite.objects.get(user_id=user_id, ID=favorite_id)
+        except Exception:
+            raise UserFavoriteNotExistError
+
+    def get_user_default_favorite(self, user_id):
+        return UserFavorite.objects.filter(user_id=user_id, is_default=True).first()
+
+    def create_user_favorite(self, user_id, name, url, is_default):
+        user_favorites = self.get_user_favorite(user_id)
+        if user_favorites:
+            custom_sort = user_favorites.last().custom_sort + 1
+        else:
+            custom_sort = 0
+        UserFavorite.objects.create(
+            user_id=user_id,
+            name=name,
+            url=url,
+            custom_sort=custom_sort,
+            is_default=is_default
+        )
+
+    def update_user_favorite(self, user_favorite, name, url, custom_sort, is_default):
+        rst = True
+        try:
+            user_favorite.name = name
+            user_favorite.url = url
+            user_favorite.is_default = is_default
+            if custom_sort != user_favorite.custom_sort:
+                user_favorites = self.get_user_favorite(user_favorite.user_id)
+                if custom_sort < user_favorite.custom_sort:
+                    operate_user_favorites = user_favorites[custom_sort: user_favorite.custom_sort]
+                    for operate_user_favorite in operate_user_favorites:
+                        print operate_user_favorite.ID
+                        operate_user_favorite.custom_sort += 1
+                        operate_user_favorite.save()
+                elif custom_sort > user_favorite.custom_sort:
+                    operate_user_favorites = user_favorites[user_favorite.custom_sort+1: custom_sort+1]
+                    for operate_user_favorite in operate_user_favorites:
+                        operate_user_favorite.custom_sort -= 1
+                        operate_user_favorite.save()
+            user_favorite.custom_sort = custom_sort
+            user_favorite.save()
+        except Exception:
+            rst = False
+        return rst
+
+    def delete_user_favorite_by_id(self, user_id, favorite_id):
+        user_favorites = self.get_user_favorite(user_id)
+        tar_user_favorite = self.get_user_favorite_by_ID(user_id, favorite_id)
+        operate_user_favorites = user_favorites[tar_user_favorite.custom_sort:]
+        for operate_user_favorite in operate_user_favorites:
+            operate_user_favorite.custom_sort -= 1
+            operate_user_favorite.save()
+        tar_user_favorite.delete()
 
 
 user_repo = UserRepo()
