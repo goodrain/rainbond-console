@@ -11,9 +11,7 @@ from rest_framework.response import Response
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import tcp_domain
-from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
@@ -452,49 +450,54 @@ class TeamAppSortViewView(RegionTenantHeaderView):
             app_num_dict = {"total": total}
             start = (page - 1) * page_size
             end = page * page_size
-            app_list = []
             if groups:
-                for group in groups:
-                    app_dict = dict()
-                    app_dict["group_name"] = group.group_name
-                    app_dict["group_id"] = group.ID
-                    # 分享记录和备份记录
-                    share_record_num = share_repo.get_app_share_record_count_by_groupid(group_id=group.ID)
-                    app_dict["share_record_num"] = share_record_num
-                    backup_records = backup_record_repo.get_group_backup_records(
-                        self.team.tenant_id, self.response_region, group.ID)
-                    backup_record_num = len(backup_records)
-                    app_dict["backup_record_num"] = backup_record_num
-                    # 组件数量记录
-                    services = group_service_relation_repo.get_services_by_group(group.ID)
-                    services_num = len(services)
-                    app_dict["services_num"] = services_num
+                group_ids = [group.ID for group in groups]
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region,
+                                                         self.team_name, self.team.enterprise_id)
+            apps = apps[start:end]
+            return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
+            # if groups:
+            #     for group in groups:
+            #         app_dict = dict()
+            #         app_dict["group_name"] = group.group_name
+            #         app_dict["group_id"] = group.ID
+            #         # 分享记录和备份记录
+            #         share_record_num = share_repo.get_app_share_record_count_by_groupid(group_id=group.ID)
+            #         app_dict["share_record_num"] = share_record_num
+            #         backup_records = backup_record_repo.get_group_backup_records(
+            #             self.team.tenant_id, self.response_region, group.ID)
+            #         backup_record_num = len(backup_records)
+            #         app_dict["backup_record_num"] = backup_record_num
+            #         # 组件数量记录
+            #         services = group_service_relation_repo.get_services_by_group(group.ID)
+            #         services_num = len(services)
+            #         app_dict["services_num"] = services_num
 
-                    run_service_num = 0
-                    if services:
-                        service_ids = []
-                        for service in services:
-                            service_ids.append(service.service_id)
+            #         run_service_num = 0
+            #         if services:
+            #             service_ids = []
+            #             for service in services:
+            #                 service_ids.append(service.service_id)
 
-                        status_list = base_service.status_multi_service(
-                            region=self.response_region,
-                            tenant_name=self.team_name,
-                            service_ids=service_ids,
-                            enterprise_id=self.team.enterprise_id)
-                        if status_list:
-                            for status in status_list:
-                                if status["status"] in ["running", "upgrade", "starting", "some_abnormal"]:
-                                    run_service_num += 1
+            #             status_list = base_service.status_multi_service(
+            #                 region=self.response_region,
+            #                 tenant_name=self.team_name,
+            #                 service_ids=service_ids,
+            #                 enterprise_id=self.team.enterprise_id)
+            #             if status_list:
+            #                 for status in status_list:
+            #                     if status["status"] in ["running", "upgrade", "starting", "some_abnormal"]:
+            #                         run_service_num += 1
 
-                    app_dict["run_service_num"] = run_service_num
-                    app_list.append(app_dict)
+            #         app_dict["run_service_num"] = run_service_num
+            #         app_list.append(app_dict)
 
-                # 排序
-                app_list.sort(key=lambda x: x['run_service_num'], reverse=True)
+            #     # 排序
+            #     app_list.sort(key=lambda x: x['run_service_num'], reverse=True)
 
-            apps_list = app_list[start:end]
-            result = general_message(200, "success", "查询成功", list=apps_list, bean=app_num_dict)
-            return Response(result, status=200)
+            # apps_list = app_list[start:end]
+            # result = general_message(200, "success", "查询成功", list=apps_list, bean=app_num_dict)
+            # return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
