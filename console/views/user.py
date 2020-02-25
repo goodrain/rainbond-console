@@ -6,7 +6,10 @@ from django.conf import settings
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.exceptions import SameIdentityError, UserNotExistError
+from console.exception.exceptions import SameIdentityError
+from console.exception.exceptions import UserNotExistError
+from console.repositories.user_repo import user_repo
+from console.repositories.team_repo import team_repo
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.enterprise_services import enterprise_services
@@ -319,11 +322,110 @@ class AdminUserDView(JWTAuthApiView):
 
 class EnterPriseUsersCLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        name = request.GET.get("name")
-        users = user_services.get_user_by_eid(enterprise_id, name)
+        name = request.GET.get("query")
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        data = []
+        try:
+            users, total = user_services.get_user_by_eid(enterprise_id, name, page, page_size)
+        except Exception as e:
+            logger.debug(e)
+            users = []
+            total = 0
         if users:
-            data = users.values("email", "nick_name", "user_id")
-            result = general_message(200, "success", None, list=data)
-        else:
-            result = general_message(200, "success", None)
+            for user in users:
+                default_favorite_name = None
+                default_favorite_url = None
+                user_default_favorite = user_repo.get_user_default_favorite(user.user_id)
+                if user_default_favorite:
+                    default_favorite_name = user_default_favorite.name
+                    default_favorite_url = user_default_favorite.url
+                data.append({
+                    "email": user.email,
+                    "nick_name": user.nick_name,
+                    "user_id": user.user_id,
+                    "create_time": user.create_time,
+                    "default_favorite_name": default_favorite_name,
+                    "default_favorite_url": default_favorite_url,
+                })
+        result = general_message(200, "success", None, list=data, page_size=page_size, page=page, total=total)
+        return Response(result, status=200)
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        try:
+            tenant_name = request.data.get("tenant_name", None)
+            user_name = request.data.get("user_name", None)
+            phone = request.data.get("phone", None)
+            email = request.data.get("email", None)
+            password = request.data.get("password", None)
+            re_password = request.data.get("re_password", None)
+            role_ids = request.data.get("role_ids", None)
+            if len(password) < 8:
+                result = general_message(400, "len error", "密码长度最少为8位")
+                return Response(result)
+            if role_ids:
+                try:
+                    role_id_list = [int(id) for id in role_ids.split(",")]
+                except Exception as e:
+                    logger.exception(e)
+                    code = 400
+                    result = general_message(code, "params is empty", "参数格式不正确")
+                    return Response(result, status=code)
+                for id in role_id_list:
+                    if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
+                        code = 400
+                        result = general_message(code, "The role does not exist", "该角色在团队中不存在")
+                        return Response(result, status=code)
+                # 校验用户信息
+                is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+                if not is_pass:
+                    result = general_message(403, "user information is not passed", msg)
+                    return Response(result)
+                client_ip = user_services.get_client_ip(request)
+                enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+                # 创建用户
+                user = user_services.create_user_set_password(
+                    user_name, phone, email, password, "admin add", enterprise, client_ip)
+                # 创建用户团队关系表
+                if tenant_name:
+                    team_services.create_tenant_role(
+                        user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
+                user.is_active = True
+                user.save()
+                result = general_message(200, "success", "添加用户成功")
+            else:
+                result = general_message(400, "not role", "创建用户时角色不能为空")
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, e.message, "系统异常")
+        return Response(result)
+
+
+class EnterPriseUsersUDView(JWTAuthApiView):
+    def put(self, request, enterprise_id, user_id, *args, **kwargs):
+        user_name = request.data.get("user_name", None)
+        phone = request.data.get("phone", None)
+        email = request.data.get("email", None)
+        password = request.data.get("password", None)
+        re_password = request.data.get("re_password", None)
+        is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+        if not is_pass:
+            result = general_message(403, "user information is not passed", msg)
+            return Response(result, 403)
+        user = user_services.update_user_set_password(enterprise_id, user_id, user_name, phone, email, password)
+        user.save()
+        result = general_message(200, "success", "更新用户成功")
+        return Response(result, status=200)
+
+    def delete(self, request, enterprise_id, user_id, *args, **kwargs):
+        user = user_repo.get_enterprise_user_by_id(enterprise_id, user_id)
+        if not user:
+            result = general_message(400, "fail", "未找到该用户")
+            return Response(result, 403)
+        teams = team_repo.get_tenants_by_user_id(user_id)
+        if teams:
+            result = general_message(400, "fail", "该用户拥有团队，或加入其他团队，不能删除")
+            return Response(result, 403)
+        user.delete()
+        result = general_message(200, "success", "删除用户成功")
         return Response(result, status=200)
