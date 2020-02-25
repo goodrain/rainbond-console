@@ -72,7 +72,7 @@ class AppMntService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         state_services = []  # 有状态组件
         for svc in services:
-            if not is_state(svc.extend_method):
+            if is_state(svc.extend_method):
                 state_services.append(svc)
         state_service_ids = [svc.service_id for svc in state_services]
 
