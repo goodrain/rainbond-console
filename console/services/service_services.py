@@ -41,7 +41,7 @@ class BaseService(object):
         services = dsn.query(query_sql)
         return services
 
-    def get_group_services_list(self, team_id, region_name, group_id, query):
+    def get_group_services_list(self, team_id, region_name, group_id, query=""):
         dsn = BaseConnection()
         query_sql = '''
             SELECT
