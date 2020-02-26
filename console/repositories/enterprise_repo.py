@@ -32,10 +32,10 @@ class TenantEnterpriseRepo(object):
         try:
             user = user_repo.get_user_by_user_id(user_id)
             tenant_ids = team_repo.get_tenants_by_user_id(user_id).values_list("tenant_id", flat=True)
-            enterprise_ids = TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True)
+            enterprise_ids = list(TenantRegionInfo.objects.filter(
+                tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True))
+            enterprise_ids.append(user.enterprise_id)
             enterprises = TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
-            if not enterprises:
-                enterprises = TenantEnterprise.objects.filter(enterprise_id=user.enterprise_id)
             return enterprises
         except Exception:
             raise ExterpriseNotExistError
@@ -196,7 +196,7 @@ class TenantEnterpriseRepo(object):
         return result[0]["total"]
 
     def get_enterprise_user_request_join(self, enterprise_id, user_id):
-        team_ids = self.get_enterprise_user_teams(enterprise_id, user_id).values_list("tenant_id", flat=True)
+        team_ids = self.get_enterprise_teams(enterprise_id).values_list("tenant_id", flat=True)
         return Applicants.objects.filter(
             user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
 
