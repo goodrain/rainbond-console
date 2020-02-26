@@ -71,7 +71,7 @@ class ServiceRepo(object):
     def get_team_service_num_by_team_id(self, team_id, region_name):
         return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).count()
 
-    def get_group_service_by_group_id(self, group_id, region_name, team_id, team_name, enterprise_id, query):
+    def get_group_service_by_group_id(self, group_id, region_name, team_id, team_name, enterprise_id, query=""):
         group_services_list = base_service.get_group_services_list(team_id, region_name, group_id, query)
         if not group_services_list:
             return []
