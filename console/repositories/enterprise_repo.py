@@ -196,7 +196,7 @@ class TenantEnterpriseRepo(object):
         return result[0]["total"]
 
     def get_enterprise_user_request_join(self, enterprise_id, user_id):
-        team_ids = self.get_enterprise_user_teams(enterprise_id, user_id).values_list("tenant_id", flat=True)
+        team_ids = self.get_enterprise_teams(enterprise_id).values_list("tenant_id", flat=True)
         return Applicants.objects.filter(
             user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
 
