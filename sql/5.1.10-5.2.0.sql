@@ -17,3 +17,18 @@ alter table tenant_service_delete modify volume_type varchar(64) DEFAULT NULL;
 
 -- tenant_service_recycle_bin
 alter table tenant_service_recycle_bin modify volume_type varchar(64) DEFAULT NULL;
+
+-- rainbond_center_app
+alter table rainbond_center_app change group_key app_id varchar(64) DEFAULT NULL;
+alter table rainbond_center_app change group_name app_name varchar(64) DEFAULT NULL;
+alter table rainbond_center_app change version dev_status varchar(64) DEFAULT 'release';
+alter table rainbond_center_app change share_user create_user varchar(64) DEFAULT NULL;
+alter table rainbond_center_app change share_team create_team varchar(64) DEFAULT NULL;
+alter table rainbond_center_app drop column template_version;
+alter table rainbond_center_app drop column is_complete;
+alter table rainbond_center_app drop column app_template;
+alter table rainbond_center_app drop column record_id;
+-- TODO create_user， create_team, app_template, record_id字段不明确
+
+-- app_import_record
+alter table app_import_record add column `enterprise_id` varchar(64) default null;
