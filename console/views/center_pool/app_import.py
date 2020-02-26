@@ -15,7 +15,6 @@ from console.views.base import JWTAuthApiView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.app_import_and_export_service import import_service
-from console.exception.main import RegionNotFound
 
 logger = logging.getLogger('default')
 
@@ -101,17 +100,13 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
 
         """
         eid = kwargs.get("enterprise_id", "")
-        try:
-            unfinished_records = import_service.get_user_not_finish_import_record_in_enterprise(eid, self.user)
-            if unfinished_records:
-                r = unfinished_records[0]
-            else:
-                r = import_service.create_app_import_record_2_enterprise(eid, self.user.nick_name)
-            upload_url = import_service.get_upload_url(r.region, r.event_id)
-            data = {"status": r.status, "source_dir": r.source_dir, "event_id": r.event_id, "upload_url": upload_url}
-        except RegionNotFound as e:
-            logger.exception(e)
-            return Response(general_message(500, "init import record error", "没有可用数据中心"), status=500)
+        unfinished_records = import_service.get_user_not_finish_import_record_in_enterprise(eid, self.user)
+        if unfinished_records:
+            r = unfinished_records[0]
+        else:
+            r = import_service.create_app_import_record_2_enterprise(eid, self.user.nick_name)
+        upload_url = import_service.get_upload_url(r.region, r.event_id)
+        data = {"status": r.status, "source_dir": r.source_dir, "event_id": r.event_id, "upload_url": upload_url}
 
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 
