@@ -834,6 +834,8 @@ urlpatterns = [
     # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$',
+        BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseInfo.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),

@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from console.services.enterprise_services import enterprise_services
 from console.views.base import RegionTenantHeaderView
+from console.views.base import JWTAuthApiView
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.decorator import perm_required
@@ -81,10 +82,10 @@ class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class BindMarketEnterpriseOptimizAccessTokenView(RegionTenantHeaderView):
+class BindMarketEnterpriseOptimizAccessTokenView(JWTAuthApiView):
     @never_cache
-    @perm_required("tenant.tenant_access")
-    def post(self, request, *args, **kwargs):
+    # @perm_required("tenant.tenant_access")
+    def post(self, request, enterprise_id, *args, **kwargs):
         """
         优化云市绑定企业账号
         ---
@@ -108,7 +109,6 @@ class BindMarketEnterpriseOptimizAccessTokenView(RegionTenantHeaderView):
         """
         try:
             logger.debug("bind market access token")
-            enterprise_id = request.data.get('enterprise_id')
             ret = request.data.get('market_info')
             market_info = eval(base64.decodestring(ret))
             market_client_id = market_info.get('eid')
