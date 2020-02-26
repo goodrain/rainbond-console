@@ -58,8 +58,8 @@ class RainbondCenterApp(BaseModel):
 
     app_id = models.CharField(max_length=32, help_text=u"应用包")
     app_name = models.CharField(max_length=64, help_text=u"应用包名")
-    create_user = models.IntegerField(help_text=u"创建人id")
-    create_team = models.CharField(max_length=64, help_text=u"来源应用所属团队")
+    create_user = models.IntegerField(null=True, blank=True, help_text=u"创建人id")
+    create_team = models.CharField(max_length=64, null=True, blank=True,  help_text=u"来源应用所属团队")
     pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
