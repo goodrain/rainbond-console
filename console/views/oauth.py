@@ -76,6 +76,7 @@ class OauthService(JWTAuthApiView):
                     "is_auto_login": l_service.is_auto_login,
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
+                    "enterprise_id": l_service.eid,
                 })
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)

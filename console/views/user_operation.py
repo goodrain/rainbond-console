@@ -396,7 +396,7 @@ class UserDetailsView(JWTAuthApiView):
 
 
 class UserFavoriteLCView(JWTAuthApiView):
-    def get(self, request):
+    def get(self, request, enterprise_id):
         data = []
         try:
             user_favorites = user_repo.get_user_favorite(request.user.user_id)
@@ -416,7 +416,7 @@ class UserFavoriteLCView(JWTAuthApiView):
         result = general_message(200, "success", None, list=data)
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request):
+    def post(self, request, enterprise_id):
         name = request.data.get("name")
         url = request.data.get("url")
         is_default = request.data.get("is_default", False)
@@ -440,7 +440,7 @@ class UserFavoriteLCView(JWTAuthApiView):
 
 
 class UserFavoriteUDView(JWTAuthApiView):
-    def put(self, request, favorite_id):
+    def put(self, request, enterprise_id, favorite_id):
         result = general_message(200, "success", "更新成功")
         name = request.data.get("name")
         url = request.data.get("url")
@@ -458,7 +458,7 @@ class UserFavoriteUDView(JWTAuthApiView):
             result = general_message(404, "fail", "收藏视图不存在")
         return Response(result, status=status.HTTP_200_OK)
 
-    def delete(self, request, favorite_id):
+    def delete(self, request, enterprise_id, favorite_id):
         result = general_message(200, "success", "删除成功")
         try:
             user_repo.delete_user_favorite_by_id(request.user.user_id, favorite_id)
