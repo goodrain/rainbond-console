@@ -195,8 +195,6 @@ class GroupServiceView(RegionTenantHeaderView):
                 return Response(result, status=code)
 
             query = request.GET.get("query", "")
-            if query == "undefined":
-                query = ""
 
             tenant_actions = list(self.user.actions.tenant_actions)
             service_actions = list(self.user.actions.service_actions)
@@ -452,8 +450,6 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         """
         try:
             query = request.GET.get("query", "")
-            if query == "undefined":
-                query = ""
             page = int(request.GET.get("page", 1))
             page_size = int(request.GET.get("page_size", 10))
             groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)

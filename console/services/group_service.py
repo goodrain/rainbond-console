@@ -126,7 +126,7 @@ class GroupService(object):
             group_service_relation_repo.create_service_group_relation(**params)
         return 200, "success"
 
-    def get_groups_and_services(self, tenant, region, query):
+    def get_groups_and_services(self, tenant, region):
         groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region)
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
