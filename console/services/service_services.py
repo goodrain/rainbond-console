@@ -41,7 +41,7 @@ class BaseService(object):
         services = dsn.query(query_sql)
         return services
 
-    def get_group_services_list(self, team_id, region_name, group_id):
+    def get_group_services_list(self, team_id, region_name, group_id, query):
         dsn = BaseConnection()
         query_sql = '''
             SELECT
@@ -63,10 +63,11 @@ class BaseService(object):
                 t.tenant_id = "{team_id}"
                 AND t.service_region = "{region_name}"
                 AND r.group_id = "{group_id}"
+                AND t.service_cname like "%{service_cname}%"
             ORDER BY
                 t.update_time DESC;
         '''.format(
-            team_id=team_id, region_name=region_name, group_id=group_id)
+            team_id=team_id, region_name=region_name, group_id=group_id, service_cname=query)
         services = dsn.query(query_sql)
         return services
 

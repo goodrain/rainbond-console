@@ -189,35 +189,20 @@ class GroupServiceView(RegionTenantHeaderView):
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
             group_id = request.GET.get("group_id", None)
+            if group_id is None or not group_id.isdigit():
+                code = 400
+                result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
+                return Response(result, status=code)
+
+            query = request.GET.get("query", "")
+            if query == "undefined":
+                query = ""
+
             tenant_actions = list(self.user.actions.tenant_actions)
             service_actions = list(self.user.actions.service_actions)
-            if group_id != "-1":
-                if group_id is None or not group_id.isdigit():
-                    code = 400
-                    result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
-                    return Response(result, status=code)
-                team_id = self.team.tenant_id
-                group_count = group_repo.get_group_count_by_team_id_and_group_id(
-                    team_id=team_id, group_id=group_id)
-                if group_count == 0:
-                    code = 202
-                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
-                    return Response(result, status=200)
-                group_service_list = service_repo.get_group_service_by_group_id(
-                    group_id=group_id,
-                    region_name=self.response_region,
-                    team_id=self.team.tenant_id,
-                    team_name=self.team_name,
-                    enterprise_id=self.team.enterprise_id)
-                paginator = Paginator(group_service_list, page_size)
-                try:
-                    group_service_list = paginator.page(page).object_list
-                except PageNotAnInteger:
-                    group_service_list = paginator.page(1).object_list
-                except EmptyPage:
-                    group_service_list = paginator.page(paginator.num_pages).object_list
-                result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
-            else:
+
+            if group_id == "-1":
+                # query service which not belong to any app
                 no_group_service_list = service_repo.get_no_group_service_status_by_group_id(
                     team_name=self.team_name,
                     team_id=self.team.tenant_id,
@@ -231,6 +216,29 @@ class GroupServiceView(RegionTenantHeaderView):
                 except EmptyPage:
                     no_group_service_list = paginator.page(paginator.num_pages).object_list
                 result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=paginator.count)
+                result["data"]["bean"] = {"tenant_actions": tenant_actions, "service_actions": service_actions}
+                return Response(result, status=code)
+
+            team_id = self.team.tenant_id
+            group_count = group_repo.get_group_count_by_team_id_and_group_id(team_id=team_id, group_id=group_id)
+            if group_count == 0:
+                result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
+                return Response(result, status=200)
+            group_service_list = service_repo.get_group_service_by_group_id(
+                group_id=group_id,
+                region_name=self.response_region,
+                team_id=self.team.tenant_id,
+                team_name=self.team_name,
+                enterprise_id=self.team.enterprise_id,
+                query=query)
+            paginator = Paginator(group_service_list, page_size)
+            try:
+                group_service_list = paginator.page(page).object_list
+            except PageNotAnInteger:
+                group_service_list = paginator.page(1).object_list
+            except EmptyPage:
+                group_service_list = paginator.page(paginator.num_pages).object_list
+            result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
             result["data"]["bean"] = {"tenant_actions": tenant_actions, "service_actions": service_actions}
             return Response(result, status=code)
         except GroupNotExistError as e:
@@ -443,9 +451,12 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         总览 团队应用信息
         """
         try:
+            query = request.GET.get("query", "")
+            if query == "undefined":
+                query = ""
             page = int(request.GET.get("page", 1))
             page_size = int(request.GET.get("page_size", 10))
-            groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region)
+            groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)
             total = len(groups)
             app_num_dict = {"total": total}
             start = (page - 1) * page_size

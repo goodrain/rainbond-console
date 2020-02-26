@@ -126,7 +126,7 @@ class GroupService(object):
             group_service_relation_repo.create_service_group_relation(**params)
         return 200, "success"
 
-    def get_groups_and_services(self, tenant, region):
+    def get_groups_and_services(self, tenant, region, query):
         groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region)
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
@@ -135,7 +135,6 @@ class GroupService(object):
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
         for k, v in service_group_map.iteritems():
-
             service_list = group_services_map.get(v, None)
             service_info = service_id_map.get(k, None)
             if service_info:
@@ -144,10 +143,6 @@ class GroupService(object):
                 else:
                     service_list.append(service_info)
                 service_id_map.pop(k)
-        # # 未分应用应用
-        # uncategory_services = []
-        # for k, v in service_id_map.iteritems():
-        #     uncategory_services.append(v)
 
         result = []
         for g in groups:
@@ -156,11 +151,6 @@ class GroupService(object):
             bean["group_name"] = g.group_name
             bean["service_list"] = group_services_map.get(g.ID)
             result.insert(0, bean)
-        # result.append({
-        #     "group_id": -1,
-        #     "group_name": "未分应用",
-        #     "service_list": uncategory_services
-        # })
 
         return result
 
