@@ -8,6 +8,7 @@ import re
 
 from django.db import transaction
 
+from console.repositories.share_repo import share_repo
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
@@ -16,6 +17,7 @@ from console.repositories.group import group_service_relation_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
 from www.models.main import ServiceGroup
+from console.services.service_services import base_service
 
 logger = logging.getLogger("default")
 
@@ -168,6 +170,65 @@ class GroupService(object):
         service_ids = [gs.service_id for gs in gsr]
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
+
+    def get_multi_apps_all_info(self, group_ids, region, tenant_name, enterprise_id):
+        service_list = service_repo.get_services_in_multi_apps_with_app_info(group_ids)
+        # memory info
+        service_ids = [service.service_id for service in service_list]
+        status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
+        logger.debug("status_list is : {0}".format(status_list))
+        service_status = dict()
+        for status in status_list:
+            service_status[status["service_id"]] = status
+
+        for service in service_list:
+            service.status = service_status[service.service_id]["status"]
+            service.used_mem = service_status[service.service_id]["used_mem"]
+
+        apps = dict()
+        for service in service_list:
+            if not apps.get(service.group_id):
+                apps[service.group_id] = {"group_id": service.group_id, "group_name": service.group_name}
+            if not apps[service.group_id].get("service_list"):
+                apps[service.group_id]["service_list"] = []
+            apps[service.group_id]["service_list"].append(service)
+
+        share_list = share_repo.get_multi_app_share_records(group_ids)
+        share_records = dict()
+        for share_info in share_list:
+            if not share_records.get(int(share_info.group_id)):
+                share_records[int(share_info.group_id)] = {"share_app_num": 0}
+            if share_info and share_info.step == 3:
+                share_records[int(share_info.group_id)]["share_app_num"] += 1
+
+        backup_list = backup_record_repo.get_multi_apps_backup_records(group_ids)
+        backup_records = dict()
+        for backup_info in backup_list:
+            if not backup_records.get(int(backup_info.group_id)):
+                backup_records[int(backup_info.group_id)] = {"backup_record_num": 0}
+            backup_records[int(backup_info.group_id)]["backup_record_num"] += 1
+
+        app_list = []
+        for group_id, app in apps.iteritems():
+            app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
+            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
+            app["services_num"] = len(app["service_list"])
+            if not app.get("run_service_num"):
+                app["run_service_num"] = 0
+            if not app.get("used_mem"):
+                app["used_mem"] = 0
+            if not app.get("allocate_mem"):
+                app["allocate_mem"] = 0
+            for svc in app["service_list"]:
+                app["used_mem"] += svc.used_mem
+                app["allocate_mem"] += svc.min_memory
+                if svc.status in ["running", "upgrade", "starting", "some_abnormal"]:
+                    app["run_service_num"] += 1
+
+            app.pop("service_list")
+            app_list.append(app)
+
+        return app_list
 
     def get_app_services_with_volume_type(self, group_id):
         """ get all services with volume type in app """

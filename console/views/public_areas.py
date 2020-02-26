@@ -11,9 +11,7 @@ from rest_framework.response import Response
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import tcp_domain
-from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
@@ -59,13 +57,9 @@ class AllServiceInfo(RegionTenantHeaderView):
             service_ids = request.data["service_ids"]
             print(service_ids)
             if len(service_ids) > 0:
-                status_list = base_service.status_multi_service(
-                    region=self.response_region,
-                    tenant_name=self.team_name,
-                    service_ids=service_ids,
-                    enterprise_id=self.team.enterprise_id)
-                result = general_message(
-                    code, "success", "批量获取状态成功", list=status_list)
+                status_list = base_service.status_multi_service(region=self.response_region, tenant_name=self.team_name,
+                                                                service_ids=service_ids, enterprise_id=self.team.enterprise_id)
+                result = general_message(code, "success", "批量获取状态成功", list=status_list)
                 return Response(result, status=code)
         except Exception as e:
             code = 500
@@ -93,68 +87,48 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["user_nums"] = user_nums
             team_service_num = service_repo.get_team_service_num_by_team_id(
                 team_id=self.team.tenant_id, region_name=self.response_region)
-            source = common_services.get_current_region_used_resource(
-                self.team, self.response_region)
+            source = common_services.get_current_region_used_resource(self.team, self.response_region)
             # 获取tcp和http策略数量
-            region = region_repo.get_region_by_region_name(
-                self.response_region)
-            total_tcp_domain = tcp_domain.get_all_domain_count_by_tenant_and_region(
-                self.team.tenant_id, region.region_id)
+            region = region_repo.get_region_by_region_name(self.response_region)
+            total_tcp_domain = tcp_domain.get_all_domain_count_by_tenant_and_region(self.team.tenant_id, region.region_id)
             overview_detail["total_tcp_domain"] = total_tcp_domain
 
-            total_http_domain = domain_repo.get_all_domain_count_by_tenant_and_region_id(
-                self.team.tenant_id, region.region_id)
+            total_http_domain = domain_repo.get_all_domain_count_by_tenant_and_region_id(self.team.tenant_id, region.region_id)
             overview_detail["total_http_domain"] = total_http_domain
 
             # 获取分享应用数量
-            groups = group_repo.get_tenant_region_groups(
-                self.team.tenant_id, region.region_name)
+            groups = group_repo.get_tenant_region_groups(self.team.tenant_id, region.region_name)
             share_app_num = 0
             if groups:
                 for group in groups:
-                    share_record = share_repo.get_service_share_record_by_groupid(
-                        group_id=group.ID)
+                    share_record = share_repo.get_service_share_record_by_groupid(group_id=group.ID)
                     if share_record and share_record.step == 3:
                         share_app_num += 1
             overview_detail["share_app_num"] = share_app_num
 
             if source:
-                team_app_num = group_repo.get_tenant_region_groups_count(
-                    self.team.tenant_id, self.response_region)
+                team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
                 overview_detail["team_app_num"] = team_app_num
                 overview_detail["team_service_num"] = team_service_num
-                overview_detail["team_service_memory_count"] = int(
-                    source["memory"])
-                overview_detail["team_service_total_disk"] = int(
-                    source["disk"])
-                overview_detail["team_service_total_cpu"] = int(
-                    source["limit_cpu"])
-                overview_detail["team_service_total_memory"] = int(
-                    source["limit_memory"])
-                overview_detail["team_service_use_cpu"] = int(
-                    source["cpu"])
+                overview_detail["team_service_memory_count"] = int(source["memory"])
+                overview_detail["team_service_total_disk"] = int(source["disk"])
+                overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
+                overview_detail["team_service_total_memory"] = int(source["limit_memory"])
+                overview_detail["team_service_use_cpu"] = int(source["cpu"])
                 cpu_usage = 0
                 memory_usage = 0
                 if int(source["limit_cpu"]) != 0:
-                    cpu_usage = float(
-                        int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
+                    cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
                 if int(source["limit_memory"]) != 0:
-                    memory_usage = float(
-                        int(source["memory"])) / float(int(source["limit_memory"])) * 100
+                    memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
                 overview_detail["cpu_usage"] = round(cpu_usage, 2)
                 overview_detail["memory_usage"] = round(memory_usage, 2)
                 overview_detail["eid"] = self.team.enterprise_id
 
             return Response(general_message(200, "success", "查询成功", bean=overview_detail))
         else:
-            data = {
-                "user_nums": 1,
-                "team_service_num": 0,
-                "total_memory": 0,
-                "eid": self.team.enterprise_id,
-            }
-            result = general_message(
-                200, "success", "团队信息总览获取成功", bean=data)
+            data = {"user_nums": 1, "team_service_num": 0, "total_memory": 0, "eid": self.team.enterprise_id}
+            result = general_message(200, "success", "团队信息总览获取成功", bean=data)
             return Response(result, status=200)
 
 
@@ -173,8 +147,7 @@ class ServiceGroupView(RegionTenantHeaderView):
         try:
             code = 200
 
-            groups_services = group_service.get_groups_and_services(
-                self.tenant, self.response_region)
+            groups_services = group_service.get_groups_and_services(self.tenant, self.response_region)
             return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
         except Exception as e:
             logger.exception(e)
@@ -221,16 +194,14 @@ class GroupServiceView(RegionTenantHeaderView):
             if group_id != "-1":
                 if group_id is None or not group_id.isdigit():
                     code = 400
-                    result = general_message(
-                        code, "group_id is missing or not digit!", "group_id缺失或非数字")
+                    result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
                     return Response(result, status=code)
                 team_id = self.team.tenant_id
                 group_count = group_repo.get_group_count_by_team_id_and_group_id(
                     team_id=team_id, group_id=group_id)
                 if group_count == 0:
                     code = 202
-                    result = general_message(
-                        code, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
+                    result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
                     return Response(result, status=200)
                 group_service_list = service_repo.get_group_service_by_group_id(
                     group_id=group_id,
@@ -244,10 +215,8 @@ class GroupServiceView(RegionTenantHeaderView):
                 except PageNotAnInteger:
                     group_service_list = paginator.page(1).object_list
                 except EmptyPage:
-                    group_service_list = paginator.page(
-                        paginator.num_pages).object_list
-                result = general_message(
-                    code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
+                    group_service_list = paginator.page(paginator.num_pages).object_list
+                result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
             else:
                 no_group_service_list = service_repo.get_no_group_service_status_by_group_id(
                     team_name=self.team_name,
@@ -260,12 +229,9 @@ class GroupServiceView(RegionTenantHeaderView):
                 except PageNotAnInteger:
                     no_group_service_list = paginator.page(1).object_list
                 except EmptyPage:
-                    no_group_service_list = paginator.page(
-                        paginator.num_pages).object_list
-                result = general_message(
-                    code, "query success", "应用查询成功", list=no_group_service_list, total=paginator.count)
-            result["data"]["bean"] = {
-                "tenant_actions": tenant_actions, "service_actions": service_actions}
+                    no_group_service_list = paginator.page(paginator.num_pages).object_list
+                result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=paginator.count)
+            result["data"]["bean"] = {"tenant_actions": tenant_actions, "service_actions": service_actions}
             return Response(result, status=code)
         except GroupNotExistError as e:
             logger.exception(e)
@@ -324,11 +290,9 @@ class ServiceEventsView(RegionTenantHeaderView):
                     event_service_dynamic_list = event_service_dynamic_list + events
                     total = total + event_count
                 except Exception as e:
-                    logger.error(
-                        "Region api return error {0}, ignore it".format(e))
+                    logger.error("Region api return error {0}, ignore it".format(e))
 
-            event_service_dynamic_list = sorted(
-                event_service_dynamic_list, self.__sort_events)
+            event_service_dynamic_list = sorted(event_service_dynamic_list, self.__sort_events)
 
             service_ids = []
             for event in event_service_dynamic_list:
@@ -346,13 +310,11 @@ class ServiceEventsView(RegionTenantHeaderView):
                             event["service_name"] = service.service_cname
                 event_service_list.append(event)
 
-            event_paginator = JuncheePaginator(
-                event_service_list, int(page_size))
+            event_paginator = JuncheePaginator(event_service_list, int(page_size))
             event_page_list = event_paginator.page(page)
             total = event_paginator.count
             event_list = [event for event in event_page_list]
-            result = general_message(
-                200, 'success', "查询成功", list=event_list, total=total)
+            result = general_message(200, 'success', "查询成功", list=event_list, total=total)
             return Response(result, status=result["code"])
 
         except Exception as e:
@@ -419,8 +381,7 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
                 team_id=self.team.tenant_id, region_name=self.response_region, query_key=query_key, fields=fields, order=order)
             if services_list:
                 try:
-                    service_ids = [service["service_id"]
-                                   for service in services_list]
+                    service_ids = [service["service_id"] for service in services_list]
                     status_list = base_service.status_multi_service(
                         region=self.response_region,
                         tenant_name=self.team_name,
@@ -430,35 +391,28 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
                     statuscn_cache = {}
                     for status in status_list:
                         status_cache[status["service_id"]] = status["status"]
-                        statuscn_cache[status["service_id"]
-                                       ] = status["status_cn"]
+                        statuscn_cache[status["service_id"]] = status["status_cn"]
                     result = []
                     for service in services_list:
                         if service["group_id"] is None:
                             service["group_name"] = "未分组"
                             service["group_id"] = "-1"
                         if service_status == "all":
-                            service["status_cn"] = statuscn_cache.get(
-                                service["service_id"], "未知")
-                            status = status_cache.get(
-                                service["service_id"], "unknow")
+                            service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
+                            status = status_cache.get(service["service_id"], "unknow")
                             if status == "unknow" and service["create_status"] != "complete":
                                 service["status"] = "creating"
                                 service["status_cn"] = "创建中"
                             else:
-                                service["status"] = status_cache.get(
-                                    service["service_id"], "unknow")
-                                service["status_cn"] = get_status_info_map(
-                                    service["status"]).get("status_cn")
+                                service["status"] = status_cache.get(service["service_id"], "unknow")
+                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                             if service["status"] == "closed" or service["status"] == "undeploy":
                                 service["min_memory"] = 0
                             result.append(service)
                         else:
                             if status_cache.get(service.service_id) == service_status:
-                                service["status"] = status_cache.get(
-                                    service.service_id, "unknow")
-                                service["status_cn"] = get_status_info_map(
-                                    service["status"]).get("status_cn")
+                                service["status"] = status_cache.get(service.service_id, "unknow")
+                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                                 if service["status"] == "closed" or service["status"] == "undeploy":
                                     service["min_memory"] = 0
                                 result.append(service)
@@ -468,10 +422,8 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
                     except PageNotAnInteger:
                         result = paginator.page(1).object_list
                     except EmptyPage:
-                        result = paginator.page(
-                            paginator.num_pages).object_list
-                    result = general_message(
-                        200, "query user success", "查询用户成功", list=result, total=paginator.count)
+                        result = paginator.page(paginator.num_pages).object_list
+                    result = general_message(200, "query user success", "查询用户成功", list=result, total=paginator.count)
                 except Exception as e:
                     logger.exception(e)
                     return Response(services_list, status=200)
@@ -493,58 +445,17 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         try:
             page = int(request.GET.get("page", 1))
             page_size = int(request.GET.get("page_size", 10))
-            groups = group_repo.get_tenant_region_groups(
-                self.team.tenant_id, self.response_region)
+            groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region)
             total = len(groups)
             app_num_dict = {"total": total}
             start = (page - 1) * page_size
             end = page * page_size
-            app_list = []
             if groups:
-                for group in groups:
-                    app_dict = dict()
-                    app_dict["group_name"] = group.group_name
-                    app_dict["group_id"] = group.ID
-                    # 分享记录和备份记录
-                    share_record_num = share_repo.get_app_share_record_count_by_groupid(
-                        group_id=group.ID)
-                    app_dict["share_record_num"] = share_record_num
-                    backup_records = backup_record_repo.get_group_backup_records(
-                        self.team.tenant_id, self.response_region, group.ID)
-                    backup_record_num = len(backup_records)
-                    app_dict["backup_record_num"] = backup_record_num
-                    # 组件数量记录
-                    services = group_service_relation_repo.get_services_by_group(
-                        group.ID)
-                    services_num = len(services)
-                    app_dict["services_num"] = services_num
-
-                    run_service_num = 0
-                    if services:
-                        service_ids = []
-                        for service in services:
-                            service_ids.append(service.service_id)
-
-                        status_list = base_service.status_multi_service(
-                            region=self.response_region,
-                            tenant_name=self.team_name,
-                            service_ids=service_ids,
-                            enterprise_id=self.team.enterprise_id)
-                        if status_list:
-                            for status in status_list:
-                                if status["status"] in ["running", "upgrade", "starting", "some_abnormal"]:
-                                    run_service_num += 1
-
-                    app_dict["run_service_num"] = run_service_num
-                    app_list.append(app_dict)
-
-                # 排序
-                app_list.sort(key=lambda x: x['run_service_num'], reverse=True)
-
-            apps_list = app_list[start:end]
-            result = general_message(
-                200, "success", "查询成功", list=apps_list, bean=app_num_dict)
-            return Response(result, status=200)
+                group_ids = [group.ID for group in groups]
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region,
+                                                         self.team_name, self.team.enterprise_id)
+            apps = apps[start:end]
+            return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -577,8 +488,7 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
                     for service_env in service_envs:
                         if service_env[0] not in attr_name_list:
                             attr_name_list.append(service_env[0])
-                result = general_message(
-                    200, "success", "查询成功", list=attr_name_list)
+                result = general_message(200, "success", "查询成功", list=attr_name_list)
                 return Response(result)
 
             # 查询变量值
@@ -595,8 +505,7 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
                     for service_env in service_envs:
                         if service_env[0] not in attr_value_list:
                             attr_value_list.append(service_env[0])
-                result = general_message(
-                    200, "success", "查询成功", list=attr_value_list)
+                result = general_message(200, "success", "查询成功", list=attr_value_list)
                 return Response(result)
         except Exception as e:
             logger.exception(e)
