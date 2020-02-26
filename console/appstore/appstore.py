@@ -26,7 +26,7 @@ class AppStore(object):
         """
         try:
             team = team_repo.get_team_by_team_name(team_name)
-            if not team:
+            if not team and scope == "team":
                 return {}
             if scope.startswith("goodrain"):
                 info = market_api.get_enterprise_share_hub_info(eid, "image")
