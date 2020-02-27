@@ -70,6 +70,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                         "store_name": store_name,
                         "store_id": store_id,
                     },
+                    "record_id": share_record.ID,
                 })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
