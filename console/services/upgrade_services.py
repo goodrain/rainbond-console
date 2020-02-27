@@ -44,7 +44,7 @@ class UpgradeService(object):
             if group_key not in set(service_group_keys or []):
                 raise AbortRequest(
                     msg="the rainbond app is not in the group",
-                    msg_show="该组中没有这个云市组件",
+                    msg_show="该应用中没有这个云市组件",
                     status_code=404
                 )
             tenant = Tenants.objects.get(tenant_id=tenant_id)

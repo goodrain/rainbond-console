@@ -45,7 +45,7 @@ class ShareService(object):
         if service_list:
             can_publish_list = [service for service in service_list if service.service_source != "market"]
             if not can_publish_list:
-                data = {"code": 400, "success": False, "msg_show": "此组中的组件全部来源于云市,无法发布", "list": list(), "bean": dict()}
+                data = {"code": 400, "success": False, "msg_show": "此应用中的组件全部来源于共享库或应用商店,无法再次发布", "list": [], "bean": {}}
                 return data
             else:
                 # 批量查询组件状态
@@ -62,7 +62,7 @@ class ShareService(object):
                         "bean": dict()}
                 return data
         else:
-            data = {"code": 400, "success": False, "msg_show": "当前组内无组件", "list": list(), "bean": dict()}
+            data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
             return data
 
     def check_whether_have_share_history(self, group_id):
