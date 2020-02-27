@@ -7,6 +7,7 @@ import httplib2
 import httplib
 import json
 from django.db.models import F
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,7 +15,7 @@ from rest_framework import status
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
 from console.repositories.team_repo import team_repo
@@ -107,6 +108,7 @@ class CenterAppListView(JWTAuthApiView):
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
     @perm_required("create_service")
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
         创建应用市场应用
@@ -159,7 +161,9 @@ class CenterAppView(RegionTenantHeaderView):
                                                install_from_cloud)
             if not install_from_cloud:
                 RainbondCenterApp.objects.filter(
-                    group_key=group_key, version=group_version).update(install_number=F("install_number") + 1)
+                    app_id=group_key).update(install_number=F("install_number") + 1)
+                RainbondCenterAppVersion.objects.filter(
+                    app_id=group_key, version=group_version).update(install_number=F("install_number") + 1)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:

@@ -92,8 +92,8 @@ class MarketAppService(object):
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
             tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id,
-                                                                      market_app.group_key,
-                                                                      market_app.version, market_app.group_name)
+                                                                      market_app.app_id,
+                                                                      market_app.version, market_app.app_name)
             plugins = app_templates.get("plugins", [])
             if plugins:
                 status, msg = self.__create_plugin_for_tenant(region, user, tenant, plugins)
@@ -107,9 +107,9 @@ class MarketAppService(object):
                 # Record the application's installation source information
                 service_source_data = {
                     "group_key":
-                        market_app.group_key,
+                        market_app.app_id,
                     "version":
-                        market_app.version,
+                        market_app.dev_status,
                     "service_share_uuid":
                         app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get(
                             "service_key"),
@@ -450,14 +450,14 @@ class MarketAppService(object):
         plugin_build_version.save()
         return 200, "success"
 
-    def __create_tenant_service_group(self, region, tenant_id, group_id, group_key, group_version, group_alias):
+    def __create_tenant_service_group(self, region, tenant_id, group_id, app_key, app_version, app_name):
         group_name = self.__generator_group_name("gr")
         params = {
             "tenant_id": tenant_id,
             "group_name": group_name,
-            "group_alias": group_alias,
-            "group_key": group_key,
-            "group_version": group_version,
+            "group_alias": app_name,
+            "group_key": app_key,
+            "group_version": app_version,
             "region_name": region,
             "service_group_id": 0 if group_id == -1 else group_id
         }
@@ -775,7 +775,6 @@ class MarketAppService(object):
         sql += where
         sql += sql1
         sql += limit
-        print sql
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -838,22 +837,17 @@ class MarketAppService(object):
     # can not save in local db
     def get_app_from_cloud(self, tenant, group_key, group_version, install=False):
         try:
-            app_template = market_api.get_remote_app_templates(tenant.tenant_id, group_key, group_version,
+            app_template = market_api.get_remote_app_templates(tenant.enterprise_id, group_key, group_version,
                                                                install=install)
             if app_template:
                 rainbond_app = RainbondCenterApp(
-                    group_key=app_template["group_key"],
-                    group_name=app_template["group_name"],
-                    version=app_template['group_version'],
-                    share_user=0,
-                    record_id=0,
-                    share_team=tenant.tenant_name,
+                    app_id=app_template["group_key"],
+                    app_name=app_template["group_name"],
+                    dev_status=app_template['group_version'],
                     source="import",
                     scope="goodrain",
                     describe=app_template.get("app_detail_url", ""),
-                    app_template=app_template["template_content"],
-                    is_complete=True,
-                    template_version=app_template.get("template_version", ""))
+                    app_template=app_template["template_content"])
                 return rainbond_app
             return None
         except HttpClient.CallApiError as e:

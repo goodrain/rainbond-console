@@ -298,7 +298,7 @@ class RainbondCenterAppRepository(object):
             scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
         if rcapps and app:
             rcapps[0].pic = app.pic
-            rcapps[0].group_name = app.app_name
+            rcapps[0].app_name = app.app_name
             rcapps[0].describe = app.describe
             return rcapps[0]
         rcapps = RainbondCenterAppVersion.objects.filter(
@@ -307,7 +307,7 @@ class RainbondCenterAppRepository(object):
             scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
         if rcapps and app:
             rcapps[0].pic = app.pic
-            rcapps[0].group_name = app.app_name
+            rcapps[0].app_name = app.app_name
             rcapps[0].describe = app.describe
             return rcapps[0]
         return None
@@ -371,6 +371,12 @@ class RainbondCenterAppRepository(object):
 
     def bulk_create_rainbond_apps(self, rainbond_apps):
         RainbondCenterApp.objects.bulk_create(rainbond_apps)
+
+    def bulk_create_rainbond_app_versions(self, rainbond_app_versions):
+        RainbondCenterAppVersion.objects.bulk_create(rainbond_app_versions)
+
+    def get_rainbond_app_version_by_app_id_and_version(self, app_id, version):
+        return RainbondCenterAppVersion.objects.filter(app_id=app_id, version=version).first()
 
     def get_rainbond_app_by_record_id(self, record_id):
         rcapps = RainbondCenterApp.objects.filter(record_id=record_id)
