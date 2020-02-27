@@ -2,7 +2,9 @@
 """
   Created on 18/1/16.
 """
+import logging
 from docker_image import reference
+from django.db import transaction
 
 from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
@@ -13,6 +15,8 @@ from console.repositories.base import BaseConnection
 from www.models.main import ServiceWebhooks
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServiceInfoDelete
+
+logger = logging.getLogger('default')
 
 
 class TenantServiceInfoRepository(object):
@@ -259,12 +263,12 @@ class AppTagRepository(object):
             tag_id=tag_id
         )
 
+    @transaction.atomic
     def create_app_tags_relation(self, app, tag_ids):
         relation_list = []
         RainbondCenterAppTagsRelation.objects.filter(
             enterprise_id=app.enterprise_id,
-            app_id=app.app_id,
-            tag_id__in=tag_ids
+            app_id=app.app_id
         ).delete()
         for tag_id in tag_ids:
             relation_list.append(RainbondCenterAppTagsRelation(

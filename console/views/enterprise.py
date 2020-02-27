@@ -150,6 +150,10 @@ class EnterpriseTeams(JWTAuthApiView):
                             role = "owner"
                         else:
                             role = None
+                    region_name_list = []
+                    region_list = team_repo.get_team_regions(team.tenant_id)
+                    if region_list:
+                        region_name_list = region_list.values_list("region_name", flat=True)
                     teams_list.append({
                         "tenant_id": team.tenant_id,
                         "team_alias": team.tenant_alias,
@@ -159,6 +163,7 @@ class EnterpriseTeams(JWTAuthApiView):
                         "create_time": team.create_time,
                         "team_name": team.tenant_name,
                         "region": team.region,
+                        "region_list": region_name_list,
                         "role": role,
                     })
             data = {
@@ -194,12 +199,17 @@ class EnterpriseUserTeams(JWTAuthApiView):
                             role = "owner"
                         else:
                             role = None
+                    region_name_list = []
+                    region_list = team_repo.get_team_regions(tenant.tenant_id)
+                    if region_list:
+                        region_name_list = region_list.values_list("region_name", flat=True)
                     teams_list.append({
                         "team_name": tenant.tenant_name,
                         "team_alias": tenant.tenant_alias,
                         "team_id": tenant.tenant_id,
                         "create_time": tenant.create_time,
                         "region": tenant.region,
+                        "region_list": region_name_list,
                         "enterprise_id": tenant.enterprise_id,
                         "owner": tenant.creater,
                         "owner_name": user.nick_name,
@@ -256,6 +266,10 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     })
             if join_tenants:
                 for tenant in join_tenants:
+                    region_name_list = []
+                    region_list = team_repo.get_team_regions(tenant.tenant_id)
+                    if region_list:
+                        region_name_list = region_list.values_list("region_name", flat=True)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
                     user = user_repo.get_user_by_user_id(tenant_info.creater)
                     new_join_team.append({
@@ -264,6 +278,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "team_id": tenant.team_id,
                         "create_time": tenant_info.create_time,
                         "region": tenant_info.region,
+                        "region_list": region_name_list,
                         "enterprise_id": tenant_info.enterprise_id,
                         "owner": tenant_info.creater,
                         "owner_name": user.nick_name,

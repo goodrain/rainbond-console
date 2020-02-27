@@ -91,6 +91,11 @@ class TenantEnterpriseRepo(object):
                     role = "owner"
                 else:
                     role = None
+            region_name_list = []
+            user = user_repo.get_user_by_user_id(tenant.creater)
+            region_list = team_repo.get_team_regions(tenant.tenant_id)
+            if region_list:
+                region_name_list = region_list.values_list("region_name", flat=True)
             active_tenants_list.append({
                 "tenant_id": tenant.tenant_id,
                 "team_alias": tenant.tenant_alias,
@@ -100,6 +105,7 @@ class TenantEnterpriseRepo(object):
                 "create_time": tenant.create_time,
                 "team_name": tenant.tenant_name,
                 "region": tenant.region,
+                "region_list": region_name_list,
                 "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
                 "role": role
             })

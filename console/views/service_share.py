@@ -489,7 +489,7 @@ class ShareRecordHistoryView(RegionTenantHeaderView):
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
                 data.append({
                     "app_id": share_record.app_id,
-                    "app_alias": app.alias,
+                    "app_name": app.app_name,
                     "app_version": app_version.version,
                     "scope": app.scope,
                     "create_time": share_record.create_time,
