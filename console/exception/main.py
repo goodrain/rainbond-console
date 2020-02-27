@@ -37,26 +37,6 @@ class CallRegionAPIException(Exception):
             "Region api return code {0},error message {1}".format(code, message))
 
 
-class ConflictException(Exception):
-    def __init__(self, msg, msg_show=None, status_code=409, error_code=None):
-        """
-        :param msg: 错误信息(英文)
-        :param msg_show: 错误信息(中文)
-        :param status_code: http 状态码
-        :param error_code: 错误码
-        """
-        super(Exception, self).__init__(status_code, error_code, msg, msg_show)
-        self.msg = msg
-        self.msg_show = msg_show or self.msg
-        self.status_code = status_code
-        self.error_code = error_code or status_code
-
-    @property
-    def response(self):
-        return MessageResponse(self.msg, msg_show=self.msg_show, status_code=self.status_code,
-                               error_code=self.error_code)
-
-
 class ServiceHandleException(Exception):
     def __init__(self, msg, msg_show=None, status_code=400, error_code=None):
         """

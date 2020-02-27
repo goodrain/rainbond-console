@@ -14,7 +14,7 @@ from .plugin_version import PluginBuildVersionService
 from console.constants import PluginCategoryConstants
 from console.constants import PluginInjection
 from console.constants import PluginMetaType
-from console.exception.main import ConflictException
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import port_repo
@@ -72,7 +72,7 @@ class AppPluginService(object):
     def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
-            raise ConflictException(msg="plugin has installed", msg_show="组件已安装该插件")
+            raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
         plugin_version_info = plugin_version_repo.get_by_id_and_version(plugin_id, build_version)
         min_memory = plugin_version_info.min_memory
         min_cpu = plugin_version_info.min_cpu
@@ -183,7 +183,7 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 if not self.__check_ports_for_config_items(ports, items):
-                    raise ConflictException(msg="do not support protocol", msg_show="插件支持的协议与组件端口协议不一致")
+                    raise ServiceHandleException(msg="do not support protocol", status_code=409, msg_show="插件支持的协议与组件端口协议不一致")
                 for port in ports:
                     attrs_map = dict()
                     for item in items:
@@ -205,11 +205,12 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
                 if not dep_services:
-                    raise ConflictException(msg="can't use this plugin", msg_show="组件没有依赖其他组件，不能安装此插件")
+                    raise ServiceHandleException(msg="can't use this plugin", status_code=409, msg_show="组件没有依赖其他组件，不能安装此插件")
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     if not self.__check_ports_for_config_items(ports, items):
-                        raise ConflictException(msg="do not support protocol", msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
+                        raise ServiceHandleException(msg="do not support protocol", status_code=409,
+                                                     msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
                     for port in ports:
                         attrs_map = dict()
                         for item in items:
@@ -471,7 +472,7 @@ class AppPluginService(object):
 
     def create_plugin_4marketsvc(self, region_name, tenant, service, version, plugins):
         """
-        raise ConflictException
+        raise ServiceHandleException
         """
         plugin_version_service.update_plugin_build_status(region_name, tenant)
         plugins = plugins if plugins is not None else []

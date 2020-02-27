@@ -12,7 +12,6 @@ from django.db.models import Q
 
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
-from console.exception.main import ConflictException
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
@@ -352,7 +351,7 @@ class MarketAppService(object):
     def __create_service_pluginsv2(self, tenant, service, version, plugins):
         try:
             app_plugin_service.create_plugin_4marketsvc(tenant.region, tenant, service, version, plugins)
-        except ConflictException as e:
+        except ServiceHandleException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
 
     def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars,

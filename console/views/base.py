@@ -27,7 +27,6 @@ from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
-from console.exception.main import ConflictException
 from console.repositories.enterprise_repo import enterprise_repo
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -275,8 +274,6 @@ def custom_exception_handler(exc, context):
         data = {"code": 10400, "msg": "invalid license", "msg_show": "license不正确或已过期"}
         return Response(data, status=401)
     if isinstance(exc, ServiceHandleException):
-        return exc.response
-    elif isinstance(exc, ConflictException):
         return exc.response
     elif isinstance(exc, ResourceNotEnoughException):
         data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}
