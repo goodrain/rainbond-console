@@ -79,9 +79,8 @@ class GroupService(object):
     def get_group_by_id(self, tenant, region, group_id):
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
-            return 404, u"应用不存在", None
-        rt_bean = {"group_id": group.ID, "group_name": group.group_name}
-        return 200, u"success", rt_bean
+            raise ServiceHandleException(status_code=404, msg="app not found", msg_show="应用不存在")
+        return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note}
 
     def get_app_by_id(self, app_id):
         return group_repo.get_app_by_pk(app_id)

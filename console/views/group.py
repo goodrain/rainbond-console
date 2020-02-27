@@ -68,7 +68,15 @@ class TenantGroupView(RegionTenantHeaderView):
             if group_note and len(group_note) > 2048:
                 return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
             data = group_service.add_group(self.tenant, self.response_region, group_name, group_note)
-            result = general_message(200, "success", "创建成功", bean=data.to_dict())
+            bean = {
+                "group_note": data.note,
+                "region_name": data.region_name,
+                "tenant_id": data.tenant_id,
+                "group_name": data.group_name,
+                "is_default": data.is_default,
+                "group_id": data.ID,
+                }
+            result = general_message(200, "success", "创建成功", bean=bean)
         except ServiceHandleException as e:
             result = general_message(400, e.msg, e.msg_show)
             return Response(result, status=400)
@@ -175,7 +183,7 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         """
         try:
             group_id = int(kwargs.get("group_id", None))
-            code, msg, data = group_service.get_group_by_id(self.tenant, self.response_region, int(group_id))
+            data = group_service.get_group_by_id(self.tenant, self.response_region, int(group_id))
             data["create_status"] = "complete"
             data["compose_id"] = None
             if group_id != -1:
@@ -183,11 +191,9 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                 if compose_group:
                     data["create_status"] = compose_group.create_status
                     data["compose_id"] = compose_group.compose_id
-
-            if code != 200:
-                result = general_message(code, "group query error", msg)
-            else:
-                result = general_message(code, "success", msg, bean=data)
+            result = general_message(200, "success", "success", bean=data)
+        except ServiceHandleException as e:
+            result = general_message(e.status_code, e.msg, e.msg_show)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
