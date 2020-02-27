@@ -997,6 +997,7 @@ class ServiceGroup(BaseModel):
     group_name = models.CharField(max_length=128, help_text=u"组名")
     region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
+    note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
 
 
 class ServiceGroupRelation(BaseModel):

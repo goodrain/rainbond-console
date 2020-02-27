@@ -63,7 +63,7 @@ class TenantServiceInfoRepository(object):
     def get_services_in_multi_apps_with_app_info(self, group_ids):
         ids = "{0}".format(",".join(str(group_id) for group_id in group_ids))
         sql = """
-        select svc.*, sg.id as group_id, sg.group_name, sg.region_name, sg.is_default
+        select svc.*, sg.id as group_id, sg.group_name, sg.region_name, sg.is_default, sg.note
         from tenant_service svc
             left join service_group_relation sgr on svc.service_id = sgr.service_id
             left join service_group sg on sg.id = sgr.group_id
