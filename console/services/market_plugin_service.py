@@ -459,7 +459,7 @@ class MarketPluginService(object):
             return 404, 'plugin not exist', '插件不存在'
 
         if plugin.origin in ['market', 'local_market']:
-            return 400, 'plugin from market', '插件来源于市场，无法分享'
+            return 400, 'plugin from market', '插件来源于共享库或应用商店，无法再次分享'
 
         build_info = plugin_svc.get_tenant_plugin_newest_versions(region_name, tenant, plugin_id)
         if not build_info:
