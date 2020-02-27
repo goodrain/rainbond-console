@@ -14,7 +14,7 @@ from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterApp, RainbondCenterAppRead
 from console.models.main import RainbondCenterAppVersion
 from console.repositories.base import BaseConnection
 from console.repositories.app import service_source_repo
@@ -33,7 +33,6 @@ from console.services.app_actions.properties_changes import has_changes
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppMntService
 from console.services.app_config import env_var_service
-from console.services.app_config import label_service
 from console.services.app_config import port_service
 from console.services.app_config import probe_service
 from console.services.app_config import volume_service
@@ -484,8 +483,6 @@ class MarketAppService(object):
                 if probe_ids:
                     service_prob_id_map[service.service_id] = probe_ids
 
-                # 添加组件有无状态标签
-                label_service.update_service_state_label(tenant, new_service)
                 new_service_list.append(new_service)
             return new_service_list
         except Exception as e:
@@ -649,7 +646,7 @@ class MarketAppService(object):
         extend_method = app["extend_method"]
         if extend_method:
             if extend_method == "state":
-                tenant_service.extend_method = ComponentType.state_singleton.value
+                tenant_service.extend_method = ComponentType.state_multiple.value
             elif extend_method == "stateless":
                 tenant_service.extend_method = ComponentType.stateless_multiple.value
             else:
@@ -836,7 +833,7 @@ class MarketAppService(object):
             app_template = market_api.get_remote_app_templates(tenant.enterprise_id, group_key, group_version,
                                                                install=install)
             if app_template:
-                rainbond_app = RainbondCenterApp(
+                rainbond_app = RainbondCenterAppRead(
                     app_id=app_template["group_key"],
                     app_name=app_template["group_name"],
                     dev_status=app_template['group_version'],
@@ -844,6 +841,7 @@ class MarketAppService(object):
                     scope="goodrain",
                     describe=app_template.get("app_detail_url", ""),
                     app_template=app_template["template_content"])
+
                 return rainbond_app
             return None
         except HttpClient.CallApiError as e:
