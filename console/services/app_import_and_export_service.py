@@ -9,7 +9,7 @@ import logging
 import urllib2
 
 from console.appstore.appstore import app_store
-from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.group import group_repo
 from console.repositories.market_app_repo import app_export_record_repo
 from console.repositories.market_app_repo import app_import_record_repo
@@ -419,16 +419,23 @@ class AppImportService(object):
 
     def __save_enterprise_import_info(self, eid, scope, metadata):
         rainbond_apps = []
+        rainbond_app_versions = []
         metadata = json.loads(metadata)
         key_and_version_list = []
         for app_template in metadata:
-            app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(
-                eid, app_template["group_key"], app_template["group_version"])
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(eid, app_template["group_key"])
             # if app exists, update it
             if app:
                 app.scope = scope
                 app.describe = app_template.pop("describe", "")
                 app.save()
+                app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
+                    app.app_id, app_template["group_version"])
+                if app_version:
+                    app_version.scope = scope,
+                    app_version.app_template = json.dumps(app_template)
+                    app_version.template_version = app_template["template_version"]
+                    app_version.save()
                 continue
             image_base64_string = app_template.pop("image_base64_string", "")
             pic_url = ""
@@ -443,14 +450,25 @@ class AppImportService(object):
                 enterprise_id=eid,
                 app_id=app_template["group_key"],
                 app_name=app_template["group_name"],
-                dev_status=app_template['group_version'],
-                create_user=0,
                 source="import",
                 scope=scope,
                 describe=app_template.pop("describe", ""),
                 pic=pic_url,
             )
             rainbond_apps.append(rainbond_app)
+            rainbond_app_version = RainbondCenterAppVersion(
+                scope=rainbond_app.scope,
+                enterprise_id=rainbond_app.enterprise_id,
+                app_id=rainbond_app.app_id,
+                app_template=json.dumps(app_template),
+                version=app_template["group_version"],
+                template_version=app_template["template_version"],
+                record_id=0,
+                share_user=0,
+                is_complete=1,
+            )
+            rainbond_app_versions.append(rainbond_app_version)
+        rainbond_app_repo.bulk_create_rainbond_app_versions(rainbond_app_versions)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
     def __save_import_info(self, tenant, scope, metadata):
