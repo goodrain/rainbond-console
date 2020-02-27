@@ -18,6 +18,7 @@ from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
 from www.models.main import ServiceGroup
 from console.services.service_services import base_service
+from console.repositories.plugin import service_plugin_config_repo
 
 logger = logging.getLogger("default")
 
@@ -175,10 +176,23 @@ class GroupService(object):
             service.status = service_status[service.service_id]["status"]
             service.used_mem = service_status[service.service_id]["used_mem"]
 
+        plugin_list = service_plugin_config_repo.get_multi_service_plugin_all_config(service_ids)
+        plugins = dict()
+        for plugin in plugin_list:
+            if not plugins.get(plugin.service_id):
+                plugins[plugin.service_id] = 0
+            plugins[plugin.service_id] += plugin.min_memory
+
         apps = dict()
         for service in service_list:
+            # memory used for plugin
+            service.min_memory += plugins.get(service.service_id, 0)
             if not apps.get(service.group_id):
-                apps[service.group_id] = {"group_id": service.group_id, "group_name": service.group_name}
+                apps[service.group_id] = {
+                    "group_id": service.group_id,
+                    "group_name": service.group_name,
+                    "group_note": service.note,
+                    }
             if not apps[service.group_id].get("service_list"):
                 apps[service.group_id]["service_list"] = []
             apps[service.group_id]["service_list"].append(service)
@@ -188,7 +202,7 @@ class GroupService(object):
         for share_info in share_list:
             if not share_records.get(int(share_info.group_id)):
                 share_records[int(share_info.group_id)] = {"share_app_num": 0}
-            if share_info and share_info.step == 3:
+            if share_info:
                 share_records[int(share_info.group_id)]["share_app_num"] += 1
 
         backup_list = backup_record_repo.get_multi_apps_backup_records(group_ids)
@@ -210,9 +224,10 @@ class GroupService(object):
             if not app.get("allocate_mem"):
                 app["allocate_mem"] = 0
             for svc in app["service_list"]:
-                app["used_mem"] += svc.used_mem
                 app["allocate_mem"] += svc.min_memory
                 if svc.status in ["running", "upgrade", "starting", "some_abnormal"]:
+                    # if is running used_mem ++
+                    app["used_mem"] += svc.min_memory
                     app["run_service_num"] += 1
 
             app.pop("service_list")

@@ -32,3 +32,57 @@ alter table rainbond_center_app drop column record_id;
 
 -- app_import_record
 alter table app_import_record add column `enterprise_id` varchar(64) default null;
+
+CREATE TABLE `rainbond_center_app_version` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `enterprise_id` varchar(32) NOT NULL,
+  `app_id` varchar(32) NOT NULL,
+  `version` varchar(32) NOT NULL,
+  `app_alias` varchar(32) NOT NULL DEFAULT 'NA',
+  `app_version_info` varchar(255) NOT NULL,
+  `record_id` int(11) NOT NULL,
+  `share_user` int(11) NOT NULL,
+  `share_team` varchar(64) NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `dev_status` varchar(32) DEFAULT NULL,
+  `source` varchar(15) DEFAULT NULL,
+  `scope` varchar(15) DEFAULT NULL,
+  `app_template` longtext NOT NULL,
+  `template_version` varchar(10) NOT NULL,
+  `create_time` datetime(6) DEFAULT NULL,
+  `update_time` datetime(6) DEFAULT NULL,
+  `upgrade_time` varchar(30) NOT NULL,
+  `install_number` int(11) NOT NULL,
+  `is_official` tinyint(1) NOT NULL,
+  `is_ingerit` tinyint(1) NOT NULL,
+  `is_complete` tinyint(1) NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `rainbond_center_app_vers_app_id_version_enterpris_d5151505_uniq` (`app_id`,`version`,`enterprise_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `rainbond_center_app_tag_relation` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `enterprise_id` varchar(36) NOT NULL,
+  `app_id` varchar(32) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `rainbond_center_app_tag` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) NOT NULL,
+  `enterprise_id` varchar(32) NOT NULL,
+  `is_deleted` tinyint(1) NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8;
+
+alter table service_share_record add column app_id varchar(64) NOT NULL;
+alter table service_share_record add column scope varchar(64) NOT NULL;
+alter table service_share_record add column share_app_market_id varchar(64) NOT NULL;
+
+alter table service_group add column note varchar(2048) NOT NULL;
+
+alter table service_plugin_config_var add column min_memory int(11) NOT NULL;
+alter table service_plugin_config_var add column min_cpu int(11) NOT NULL;
+alter table service_plugin_config_var add column plugin_status tinyint(1) NOT NULL;

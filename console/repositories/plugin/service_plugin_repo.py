@@ -89,3 +89,6 @@ class ServicePluginConfigVarRepository(object):
 
     def get_service_plugin_all_config(self, service_id):
         return ServicePluginConfigVar.objects.filter(service_id=service_id)
+
+    def get_multi_service_plugin_all_config(self, service_ids):
+        return ServicePluginConfigVar.objects.filter(service_id__in=service_ids)
