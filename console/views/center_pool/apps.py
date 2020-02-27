@@ -279,12 +279,9 @@ class CenterAppCLView(JWTAuthApiView):
         else:
             app = share_repo.create_app(data)
             if tag_ids:
-                try:
-                    app_tag_repo.create_app_tags_relation(app, tag_ids)
-                except Exception as e:
-                    logger.debug(e)
+                tags = app_tag_repo.create_app_tags_relation(app, tag_ids)
+                if tags is None:
                     app.delete()
-
         result = general_message(200, "success", None)
         return Response(result, status=200)
 
