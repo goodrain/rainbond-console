@@ -241,27 +241,18 @@ class AppTagRepository(object):
 
     @transaction.atomic
     def create_app_tags_relation(self, app, tag_ids):
-        sid = transaction.savepoint()
-        try:
-            relation_list = []
-            RainbondCenterAppTagsRelation.objects.filter(
+        relation_list = []
+        RainbondCenterAppTagsRelation.objects.filter(
+            enterprise_id=app.enterprise_id,
+            app_id=app.app_id
+        ).delete()
+        for tag_id in tag_ids:
+            relation_list.append(RainbondCenterAppTagsRelation(
                 enterprise_id=app.enterprise_id,
-                app_id=app.app_id
-            ).delete()
-            for tag_id in tag_ids:
-                relation_list.append(RainbondCenterAppTagsRelation(
-                    enterprise_id=app.enterprise_id,
-                    app_id=app.app_id,
-                    tag_id=tag_id
-                ))
-            tags = RainbondCenterAppTagsRelation.objects.bulk_create(relation_list)
-            transaction.savepoint_commit(sid)
-            return tags
-        except Exception as e:
-            logger.debug(e)
-            if sid:
-                transaction.savepoint_rollback(sid)
-            return None
+                app_id=app.app_id,
+                tag_id=tag_id
+            ))
+        return RainbondCenterAppTagsRelation.objects.bulk_create(relation_list)
 
     def delete_app_tag_relation(self, app, tag_id):
         return RainbondCenterAppTagsRelation.objects.filter(
