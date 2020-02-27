@@ -19,6 +19,7 @@ from console.utils.shortcuts import get_object_or_404
 from www.models.main import ServiceGroup
 from console.services.service_services import base_service
 from console.repositories.plugin import app_plugin_relation_repo
+from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
 
@@ -27,36 +28,30 @@ class GroupService(object):
     def get_tenant_groups_by_region(self, tenant, region_name):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
-    def check_group_name(self, group_name):
+    def check_group_name(self, tenant, region_name, group_name):
+        if not group_name:
+            raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 15:
-            return False, u"应用名称最多支持15个字符"
+            raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称最多支持15个字符")
         r = re.compile(u'^[a-zA-Z0-9_\\.\\-\u4e00-\u9fa5]+$')
         if not r.match(group_name.decode("utf-8")):
-            return False, u"应用名称只支持中英文, 数字, 下划线, 中划线和点"
-        return True, u"success"
+            raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
-    def add_group(self, tenant, region_name, group_name):
-        if not group_name:
-            return 400, u"应用名称不能为空", None
-        is_pass, msg = self.check_group_name(group_name)
-        if not is_pass:
-            return 400, msg, None
-        new_group = group_repo.add_group(tenant.tenant_id, region_name, group_name)
-        return 200, u"添加成功", new_group
-
-    def update_group(self, tenant, region_name, group_id, group_name):
-        if not group_id or group_id < 0:
-            return 400, u"应用ID不合法", None
-        if not group_name:
-            return 400, u"应用名不能为空", None
-        is_pass, msg = self.check_group_name(group_name)
-        if not is_pass:
-            return 400, msg, None
+    def add_group(self, tenant, region_name, group_name, group_note=""):
+        self.check_group_name(tenant, region_name, group_name)
         group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
         if group:
-            return 403, u"应用名{0}已存在".format(group_name), None
-        group_repo.update_group_name(group_id, group_name)
-        return 200, u"修改成功", group_name
+            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(group_name))
+        return group_repo.add_group(tenant.tenant_id, region_name, group_name, group_note)
+
+    def update_group(self, tenant, region_name, group_id, group_name, group_note=""):
+        if not group_id or group_id < 0:
+            raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
+        self.check_group_name(tenant, region_name, group_name)
+        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
+        if group and group.ID != group_id:
+            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(group_name))
+        group_repo.update_group_name(group_id, group_name, group_note)
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or group_id < 0:

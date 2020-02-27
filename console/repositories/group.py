@@ -14,9 +14,9 @@ class GroupRepository(object):
     def list_tenant_group_on_region(self, tenant, region_name):
         return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
 
-    def add_group(self, tenant_id, region_name, group_name, is_default=False):
+    def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False):
         group = ServiceGroup.objects.create(
-            tenant_id=tenant_id, region_name=region_name, group_name=group_name, is_default=is_default)
+            tenant_id=tenant_id, region_name=region_name, group_name=group_name, note=group_note, is_default=is_default)
         return group
 
     def get_group_by_unique_key(self, tenant_id, region_name, group_name):
@@ -38,8 +38,8 @@ class GroupRepository(object):
         except ServiceGroup.DoesNotExist:
             return None
 
-    def update_group_name(self, group_id, new_group_name):
-        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name)
+    def update_group_name(self, group_id, new_group_name, group_note=""):
+        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note)
 
     def delete_group_by_pk(self, group_id):
         logger.debug("delete group id {0}".format(group_id))

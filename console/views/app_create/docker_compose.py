@@ -104,19 +104,20 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         hub_user = request.data.get("user_name", "")
         hub_pass = request.data.get("password", "")
         yaml_content = request.data.get("yaml_content", "")
+        group_note = request.data.get("group_note", "")
+        if group_note and len(group_note) > 2048:
+            return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
+        if not group_name:
+            return Response(general_message(400, 'params error', "请指明需要创建的compose组名"), status=400)
+        if not yaml_content:
+            return Response(general_message(400, "params error", "未指明yaml内容"), status=400)
         try:
-            if not group_name:
-                return Response(general_message(400, 'params error', "请指明需要创建的compose组名"), status=400)
-            if not yaml_content:
-                return Response(general_message(400, "params error", "未指明yaml内容"), status=400)
             # Parsing yaml determines whether the input is illegal
             code, msg, json_data = compose_service.yaml_to_json(yaml_content)
             if code != 200:
                 return Response(general_message(code, "parse yaml error", msg), status=code)
             # 创建组
-            code, msg, group_info = group_service.add_group(self.tenant, self.response_region, group_name)
-            if code != 200:
-                return Response(general_message(code, "create group error", msg), status=code)
+            group_info = group_service.add_group(self.tenant, self.response_region, group_name, group_note)
             code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region, group_info.ID,
                                                                             yaml_content, hub_user, hub_pass)
             if code != 200:
@@ -294,9 +295,7 @@ class ComposeCheckUpdate(ComposeGroupBaseView):
             if not yaml_content and not group_name:
                 return Response(general_message(400, "params error", "请填入需要修改的参数"), status=400)
             if group_name:
-                code, msg, group = group_service.update_group(self.tenant, self.response_region, group_id, group_name)
-                if code != 200:
-                    return Response(general_message(code, "group name change error", msg), status=code)
+                group_service.update_group(self.tenant, self.response_region, group_id, group_name)
             if yaml_content:
                 code, msg, json_data = compose_service.yaml_to_json(yaml_content)
                 if code != 200:
