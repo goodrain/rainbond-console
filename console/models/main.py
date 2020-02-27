@@ -116,13 +116,13 @@ class RainbondCenterAppVersion(BaseModel):
     enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     app_id = models.CharField(max_length=32, help_text=u"应用id")
     version = models.CharField(max_length=32, help_text=u"版本")
-    app_alias = models.CharField(max_length=32, help_text=u"别名")
+    version_alias = models.CharField(max_length=32, default="NA", help_text=u"别名")
     app_version_info = models.CharField(max_length=255, help_text=u"版本信息")
     record_id = models.IntegerField(help_text=u"分享流程id，控制一个分享流程产出一个实体")
     share_user = models.IntegerField(help_text=u"分享人id")
     share_team = models.CharField(max_length=64, help_text=u"来源应用所属团队")
     group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
-    dev_status = models.CharField(max_length=32, default=None, help_text=u"开发状态")
+    dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     scope = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用分享范围")
     app_template = models.TextField(help_text=u"全量应用与插件配置信息")
@@ -157,7 +157,7 @@ class RainbondCenterAppTagsRelation(BaseModel):
         db_table = "rainbond_center_app_tag_relation"
 
     enterprise_id = models.CharField(max_length=36, default="public", help_text=u"企业id")
-    app_id = models.CharField(max_length=32, unique=True, help_text=u"当前应用")
+    app_id = models.CharField(max_length=32, help_text=u"当前应用")
     tag_id = models.IntegerField(help_text=u"标签id")
 
 
@@ -168,7 +168,7 @@ class RainbondCenterAppTag(BaseModel):
         db_table = "rainbond_center_app_tag"
 
     name = models.CharField(max_length=32, unique=True, help_text=u"标签名称")
-    enterprise_id = models.CharField(max_length=32, unique=True, help_text=u"企业id")
+    enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     is_deleted = models.BooleanField(default=False, help_text=u"是否删除")
 
 

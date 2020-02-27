@@ -1017,7 +1017,7 @@ class JoinTeamView(JWTAuthApiView):
     def put(self, request, *args, **kwargs):
         user_id = self.user.user_id
         team_name = request.data.get("team_name")
-        apply_service.create_applicants(user_id=user_id, team_name=team_name)
+        apply_service.delete_applicants(user_id=user_id, team_name=team_name)
         result = general_message(200, "success", None)
         return Response(result, status=200)
 

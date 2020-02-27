@@ -205,6 +205,7 @@ class CenterAppCLView(JWTAuthApiView):
         """
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
+        is_complete = request.GET.get("is_complete", None)
         tags = request.GET.get("tags", [])
         if tags:
             tags = json.loads(tags)
@@ -212,7 +213,7 @@ class CenterAppCLView(JWTAuthApiView):
         page_size = int(request.GET.get("page_size", 10))
         app_list = []
         apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
-            enterprise_id, app_name, tags, scope, page, page_size)
+            enterprise_id, app_name, tags, scope, is_complete, page, page_size)
         if apps and apps[0].app_name:
             for app in apps:
                 versions_info = (json.loads(app.versions_info) if app.versions_info else [])
@@ -278,7 +279,11 @@ class CenterAppCLView(JWTAuthApiView):
         else:
             app = share_repo.create_app(data)
             if tag_ids:
-                app_tag_repo.create_app_tags_relation(app, tag_ids)
+                try:
+                    app_tag_repo.create_app_tags_relation(app, tag_ids)
+                except Exception as e:
+                    logger.debug(e)
+                    app.delete()
         result = general_message(200, "success", None)
         return Response(result, status=200)
 
@@ -589,7 +594,7 @@ class TagCLView(JWTAuthApiView):
         except Exception as e:
             logger.debug(e)
             result = general_message(400, "fail", u"创建失败")
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=result.get("code", 200))
 
 
 class TagUDView(JWTAuthApiView):
@@ -601,14 +606,14 @@ class TagUDView(JWTAuthApiView):
         rst = app_tag_repo.update_tag_name(enterprise_id, tag_id, name)
         if not rst:
             result = general_message(400, "fail", u"更新失败")
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, tag_id, *args, **kwargs):
         result = general_message(200, "success", u"删除成功")
         rst = app_tag_repo.delete_tag(enterprise_id, tag_id)
         if not rst:
             result = general_message(400, "fail", u"删除失败")
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=result.get("code", 200))
 
 
 class AppTagCDView(JWTAuthApiView):
@@ -625,7 +630,7 @@ class AppTagCDView(JWTAuthApiView):
         except Exception as e:
             logger.debug(e)
             result = general_message(404, "fail", u"创建失败")
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, app_id):
         tag_id = request.data.get("tag_id", None)
@@ -640,4 +645,4 @@ class AppTagCDView(JWTAuthApiView):
         except Exception as e:
             logger.debug(e)
             result = general_message(404, "fail", u"删除失败")
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=result.get("code", 200))
