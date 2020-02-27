@@ -27,6 +27,15 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_by_id(self, id):
         return RainbondCenterApp.objects.filter(ID=id)
 
+    def get_rainbond_app_by_key_and_version_eid(self, eid, app_id, dev_status):
+        rcapps = RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id, dev_status=dev_status)
+        if rcapps:
+            return rcapps[0]
+        rcapps = RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id, dev_status=dev_status)
+        if rcapps:
+            return rcapps[0]
+        return None
+
     def get_rainbond_app_by_app_id(self, eid, app_id):
         return RainbondCenterApp.objects.filter(app_id=app_id, enterprise_id=eid).first()
 

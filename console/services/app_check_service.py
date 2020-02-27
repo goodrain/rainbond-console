@@ -18,10 +18,12 @@ from console.services.app_config import compile_env_service
 from console.services.app_config import env_var_service
 from console.services.app_config import port_service
 from console.services.app_config import volume_service
+from console.services.app_config import label_service
 from console.services.common_services import common_services
 from www.apiclient.regionapi import RegionInvokeApi
 
 from www.models.main import Tenants
+from console.enum.component_enum import ComponentType
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -72,10 +74,8 @@ class AppCheckService(object):
                 tenant = Tenants.objects.get(tenant_name=tenant.tenant_name)
                 try:
                     service_code_clone_url = instance.get_clone_url(service.git_url)
-                    print service_code_clone_url
                 except Exception as e:
                     logger.debug(e)
-                    print e
                     return 400, u"Access Token 已过期", None
             else:
                 service_code_clone_url = service.git_url
@@ -285,7 +285,9 @@ class AppCheckService(object):
         service.min_memory = memory - memory % 32
         service.min_cpu = min_cpu
         # Set the deployment type based on the test results
-        service.extend_method = "state" if service_info["deploy_type"] == "StatefulServiceType" else "stateless"
+        logger.debug("save svc extend_method {0}".format(service_info.get("service_type",
+                                                         ComponentType.stateless_multiple.value)))
+        service.extend_method = service_info.get("service_type", ComponentType.stateless_multiple.value)
         args = service_info.get("args", None)
         if args:
             service.cmd = " ".join(args)
@@ -300,7 +302,9 @@ class AppCheckService(object):
         envs = service_info.get("envs", None)
         ports = service_info.get("ports", None)
         volumes = service_info.get("volumes", None)
-
+        service_runtime_os = service_info.get("os", "linux")
+        if service_runtime_os == "windows":
+            label_service.set_service_os_label(tenant, service, service_runtime_os)
         code, msg = self.__save_compile_env(tenant, service, service.language)
         if code != 200:
             return code, msg
@@ -396,8 +400,11 @@ class AppCheckService(object):
                         logger.error("service.check", "save service check info port error {0}".format(msg))
                         # return code, msg
                 else:
+                    settings = {}
+                    settings["volume_capacity"] = volume["volume_capacity"]
                     code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                               volume["volume_type"], volume_name)
+                                                                               volume["volume_type"],
+                                                                               volume_name, None, settings)
                     if code != 200:
                         logger.error("service.check", "save service check info port error {0}".format(msg))
                         # return code, msg

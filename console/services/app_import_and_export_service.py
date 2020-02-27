@@ -22,6 +22,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from console.exception.main import RegionNotFound, RecordNotFound
+from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -423,12 +424,10 @@ class AppImportService(object):
         for app_template in metadata:
             app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(
                 eid, app_template["group_key"], app_template["group_version"])
+            # if app exists, update it
             if app:
                 app.scope = scope
                 app.describe = app_template.pop("describe", "")
-                app.app_template = json.dumps(app_template)
-                app.template_version = app_template.get("template_version", "")
-                app.is_complete = True
                 app.save()
                 continue
             image_base64_string = app_template.pop("image_base64_string", "")
@@ -442,18 +441,15 @@ class AppImportService(object):
             key_and_version_list.append(key_and_version)
             rainbond_app = RainbondCenterApp(
                 enterprise_id=eid,
-                group_key=app_template["group_key"],
-                group_name=app_template["group_name"],
-                version=app_template['group_version'],
-                share_user=0,
-                record_id=0,
+                app_id=app_template["group_key"],
+                app_name=app_template["group_name"],
+                dev_status=app_template['group_version'],
+                create_user=0,
                 source="import",
                 scope=scope,
                 describe=app_template.pop("describe", ""),
                 pic=pic_url,
-                app_template=json.dumps(app_template),
-                is_complete=True,
-                template_version=app_template.get("template_version", ""))
+            )
             rainbond_apps.append(rainbond_app)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
@@ -542,7 +538,10 @@ class AppImportService(object):
 
     def create_app_import_record_2_enterprise(self, eid, user_name):
         event_id = make_uuid()
-        region = region_repo.get_region_by_enterprise_id(eid)
+        try:
+            region = region_repo.get_region_by_enterprise_id(eid)
+        except TenantRegionInfo.DoesNotExist:
+            raise RegionNotFound("region not found")
         if not region:
             raise RegionNotFound("region not found")
         import_record_params = {

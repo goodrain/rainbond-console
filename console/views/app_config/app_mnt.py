@@ -5,7 +5,6 @@
 import json
 import logging
 
-from django.db.models import Q
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -56,21 +55,28 @@ class AppMntView(AppBaseView):
 
         """
         query = request.GET.get("query", "")
+        if query == "undefined":
+            query = ""
         query_type = request.GET.get("type", "mnt")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         volume_types = parse_argument(request, 'volume_types', value_type=list)
+        is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
+
+        if query == "undefined":
+            query = ""
+        if volume_types is not None and ('config-file' in volume_types):
+            is_config = True
 
         if query_type == "mnt":
             mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_types)
         elif query_type == "unmnt":
-            q = Q(volume_type__in=volume_types) if volume_types else Q()
             services = app_service.get_app_list(
                 self.tenant.pk, self.user, self.tenant.tenant_id, self.service.service_region, query)
 
             services_ids = [s.service_id for s in services]
-            mnt_list, total = mnt_service.get_service_unmnt_details(
-                self.tenant, self.service, services_ids, page, page_size, q)
+            mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids,
+                                                                          page, page_size, is_config)
         else:
             return Response(general_message(400, "param error", "参数错误"), status=400)
         result = general_message(200, "success", "查询成功", list=mnt_list, total=total)

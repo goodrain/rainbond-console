@@ -1386,6 +1386,12 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     def put(self, request, rule_id, *args, **kwargs):
         value = parse_item(request, 'value', required=True,
                            error='value is a required parameter')
+        try:
+            self.check_set_header(value["set_headers"])
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, "forbidden custom header name", FORBIDDEN_MESSAGE)
+            return Response(result, status=400)
         service_domain = get_object_or_404(
             ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
         service = get_object_or_404(
@@ -1414,3 +1420,15 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
             result = general_message(
                 409, "upgrade configuration failed", "操作过于频繁，请稍后再试")
             return Response(result, status=409)
+
+    def check_set_header(self, set_headers):
+        r = re.compile('([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
+        for header in set_headers:
+            if header["key"]:
+                if not r.match(header["key"]):
+                    raise Exception("forbidden key: {0}".format(header["key"]))
+
+
+FORBIDDEN_MESSAGE = "自定义请求头只可以使用小写英文字母、数字、下划线、中划线，并以英文字母开头结尾"
+# name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character
+# (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')

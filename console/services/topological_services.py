@@ -25,6 +25,7 @@ class TopologicalService(object):
         json_data = {}
         json_svg = {}
         service_status_map = {}
+
         # 批量查询组件状态
         if len(service_list) > 0:
             try:
@@ -39,16 +40,22 @@ class TopologicalService(object):
                 logger.exception(e)
 
         # 拼接组件状态
+        try:
+            dynamic_services_info = region_api.get_dynamic_services_pods(
+                region, team_name, [service.service_id for service in service_list])
+            dynamic_services_list = dynamic_services_info["list"]
+        except Exception as e:
+            logger.debug(e)
+            dynamic_services_list = []
+
         for service_info in service_list:
-            node_num = service_info.min_node
-            if service_info.create_status == "complete":
-                try:
-                    pods = region_api.get_service_pods(region, team_name, service_info.service_alias, enterprise_id)
-                    if pods["bean"] and pods["bean"].get("new_pods"):
-                        node_num = len(pods["bean"]["new_pods"])
-                # get pod list before service create will occurred error
-                except Exception as e:
-                    pass
+            node_num = 0
+            if dynamic_services_list:
+                for dynamic_service in dynamic_services_list:
+                    if dynamic_service["service_id"] == service_info.service_id:
+                        node_num += 1
+            else:
+                node_num = service_info.min_node
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
@@ -178,6 +185,7 @@ class TopologicalService(object):
             port_map[port.container_port] = port_info
         result["port_list"] = port_map
         # pod节点信息
+        region_data = dict()
         try:
             status_data = region_api.check_service_status(
                 region=region_name,
@@ -192,13 +200,12 @@ class TopologicalService(object):
                 service_alias=service.service_alias,
                 enterprise_id=team.enterprise_id)
             region_data["pod_list"] = pod_list["list"]
-        except Exception as e:
-            logger.exception(e)
-            region_data = dict()
-            if service.create_status != "complete":
+        except region_api.CallApiError as e:
+            if e.message["httpcode"] == 404:
+                region_data = {"status_cn": "创建中", "cur_status": "creating"}
+            elif service.create_status != "complete":
                 region_data = {"status_cn": "创建中", "cur_status": "creating"}
 
-        # result["region_data"] = region_data
         result = dict(result, **region_data)
 
         # 依赖组件信息

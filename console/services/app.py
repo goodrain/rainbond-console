@@ -29,6 +29,7 @@ from console.repositories.perm_repo import role_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
+from console.services.app_config import label_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume
@@ -40,6 +41,7 @@ from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
 from console.utils.validation import validate_endpoint_address
+from console.enum.component_enum import ComponentType
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -72,7 +74,7 @@ class AppService(object):
         tenant_service.image = "goodrain.me/runner"
         tenant_service.cmd = ""
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless"
+        tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
         tenant_service.min_node = 1
         tenant_service.min_memory = 128
@@ -184,7 +186,7 @@ class AppService(object):
         # tenant_service.image = "goodrain.me/runner"
         # tenant_service.cmd = "start web"
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless"
+        tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","
         tenant_service.min_node = 1
         tenant_service.min_memory = 128
@@ -252,7 +254,7 @@ class AppService(object):
         tenant_service.image = "third_party"
         tenant_service.cmd = ""
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless"
+        tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
         tenant_service.min_node = len(end_point)
         tenant_service.min_memory = 0
@@ -471,6 +473,11 @@ class AppService(object):
                 "volume_name": mnt.mnt_name
             } for mnt in mnt_info]
 
+        # etcd keys
+        data["etcd_key"] = service.check_uuid
+
+        # runtime os name
+        data["os_type"] = label_service.get_service_os_name(service)
         # 数据中心创建
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成
@@ -512,7 +519,6 @@ class AppService(object):
         data["volumes_info"] = []
         data["enterprise_id"] = tenant.enterprise_id
         data["service_name"] = service.service_name
-        data["service_label"] = "StatefulServiceType" if service.extend_method == "state" else "StatelessServiceType"
         return data
 
     def __handle_service_ports(self, tenant, service, ports):
@@ -547,9 +553,9 @@ class AppService(object):
                 "port": container_port,
                 "cmd": "",
                 "http_header": "",
-                "initial_delay_second": 2,
+                "initial_delay_second": 4,
                 "period_second": 3,
-                "timeout_second": 30,
+                "timeout_second": 5,
                 "failure_threshold": 3,
                 "success_threshold": 1,
                 "is_used": True,
@@ -646,6 +652,8 @@ class AppService(object):
             data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
 
+        # etcd keys
+        data["etcd_key"] = service.check_uuid
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)

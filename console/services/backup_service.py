@@ -5,6 +5,8 @@
 import json
 import logging
 
+from console.enum.component_enum import is_state
+
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -41,9 +43,11 @@ from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import AuthCode
 from www.utils.crypt import make_uuid
+from console.services.app_config.volume_service import AppVolumeService
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+volume_service = AppVolumeService()
 
 KEY = "GOODRAINLOVE"
 
@@ -70,11 +74,20 @@ class GroupAppBackupService(object):
         # 处于运行中的有状态
         running_state_services = []
         for service in services:
-            if service.extend_method == "state":
+            if is_state(service.extend_method):
                 if service_status_map.get(service.service_id) not in ("closed", "undeploy"):
                     running_state_services.append(service.service_cname)
 
         return 200, running_state_services
+
+    def check_backup_app_used_custom_volume(self, group_id):
+        services = group_service.get_app_services_with_volume_type(group_id)
+        use_custom_svc = []
+        for svc in services:
+            if not volume_service.is_simple_volume_type(svc.volume_type):
+                use_custom_svc.append(svc.service_cname)
+
+        return use_custom_svc
 
     def is_hub_info_configed(self):
         image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
