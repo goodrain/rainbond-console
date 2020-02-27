@@ -211,6 +211,8 @@ from console.views.service_share import ShareRecordView
 from console.views.service_share import ServiceGroupSharedApps
 from console.views.service_share import ShareRecordHistoryView
 from console.views.service_share import ServiceGroupAppCView
+from console.views.service_share import CloudAppModelMarkets
+from console.views.service_share import CloudAppModelMarketInfo
 from console.views.service_version import AppVersionManageView
 from console.views.service_version import AppVersionsView
 from console.views.services_toplogical import GroupServiceDetView
@@ -859,6 +861,9 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag$', TagCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/tag$', AppTagCDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', CloudAppModelMarkets.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/market/(?P<market_id>[\w\-]+)/app-models$',
+        CloudAppModelMarketInfo.as_view()),
 
     # 应用导出
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),

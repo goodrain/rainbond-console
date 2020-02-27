@@ -280,8 +280,24 @@ class MarketOpenAPIV2(HttpClient):
             return body
         return None
 
+    def get_apps_versions_by_eid(self, eid, market_id):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_enterprise_id(eid)
+        url = url + "/openapi/v2/enter-market/apps"
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        if res.get("status") == 200 and isinstance(body, list):
+            return body
+        return None
+
     def get_markets(self, tenant_id):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
+        url = url + "/openapi/v2/enter-markets"
+        res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
+        if res.get("status") == 200 and not body.get("error_code"):
+            return body
+        return None
+
+    def get_markets_by_eid(self, eid):
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_enterprise_id(eid)
         url = url + "/openapi/v2/enter-markets"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
         if res.get("status") == 200 and not body.get("error_code"):

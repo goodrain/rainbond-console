@@ -116,7 +116,7 @@ class ShareRepo(object):
         return RainbondCenterApp.objects.all().order_by("-create_time")
 
     def get_app_by_app_id(self, app_id):
-        return RainbondCenterApp.objects.filter(group_key=app_id).first()
+        return RainbondCenterApp.objects.filter(app_id=app_id).first()
 
     def get_app_versions_by_app_id(self, app_id):
         return RainbondCenterAppVersion.objects.filter(app_id=app_id)

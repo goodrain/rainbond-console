@@ -218,10 +218,11 @@ class ShareService(object):
         return None
 
     def query_share_service_info(self, team, group_id):
-        service_last_share_info, _ = self.get_last_shared_app_version(team.tenant_id, group_id)
-        service_last_share_info = service_last_share_info.get("apps")
+        service_last_share_info = self.get_last_shared_app_version(team.tenant_id, group_id)
         if service_last_share_info:
-            service_last_share_info = {service["service_id"]: service for service in service_last_share_info}
+            service_last_share_info = service_last_share_info.get("apps")
+            if service_last_share_info:
+                service_last_share_info = {service["service_id"]: service for service in service_last_share_info}
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
@@ -733,16 +734,17 @@ class ShareService(object):
         sid = transaction.savepoint()
         try:
             group_info = share_info["share_group_info"]
+
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
             app_templete = {}
             # 处理基本信息
             try:
                 app_templete["template_version"] = "v2"
-                app_templete["group_key"] = group_info["group_key"]
-                app_templete["group_name"] = group_info["group_name"]
-                app_templete["group_version"] = group_info["version"]
-                app_templete["group_dev_status"] = group_info["dev_status"]
+                app_templete["group_key"] = group_info.get("app_model_id")
+                app_templete["group_name"] = group_info.get("app_model_name")
+                app_templete["group_version"] = group_info.get("version")
+                app_templete["group_dev_status"] = group_info.get("dev_status")
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -757,7 +759,7 @@ class ShareService(object):
                     for plugin_info in plugins:
                         # one account for one plugin
                         share_image_info = app_store.get_image_connection_info(
-                            group_info["scope"], share_team.tenant_name)
+                            group_info.get("scope"), share_team.tenant_name)
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
@@ -794,7 +796,7 @@ class ShareService(object):
                         # slug组件
                         # if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
                         if delivered_type_map[service['service_id']] == "slug":
-                            service['service_slug'] = app_store.get_slug_connection_info(group_info["scope"],
+                            service['service_slug'] = app_store.get_slug_connection_info(group_info.get("scope"),
                                                                                          share_team.tenant_name)
                             service["share_type"] = "slug"
                             if not service['service_slug']:
@@ -803,7 +805,7 @@ class ShareService(object):
                                 return 400, "获取源码包上传地址错误", None
                         else:
                             service["service_image"] = app_store.get_image_connection_info(
-                                group_info["scope"], share_team.tenant_name)
+                                group_info.get("scope"), share_team.tenant_name)
                             service["share_type"] = "image"
                             if not service["service_image"]:
                                 if sid:
@@ -840,17 +842,18 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 return 500, "组件信息处理发生错误", None
-            if group_info["scope"].startswith("goodrain"):
+            if group_info.get("scope").startswith("goodrain"):
                 scope = "goodrain"
                 share_record.scope = "goodrain"
             else:
-                scope = group_info["scope"]
+                scope = group_info.get("scope")
                 share_record.scope = "local"
 
             app = RainbondCenterAppVersion(
-                app_id=group_info["group_key"],
-                version=group_info["version"],
-                app_version_info=group_info["app_version_info"],
+                app_id=group_info.get("app_model_id"),
+                version=group_info.get("version"),
+                app_version_info=group_info.get("app_version_info"),
+                version_alias=group_info.get("version_alias"),
                 record_id=share_record.ID,
                 share_user=share_user.user_id,
                 share_team=share_team.tenant_name,
@@ -863,10 +866,10 @@ class ShareService(object):
             )
             app.save()
             share_record.step = 2
-            share_record.app_id = group_info["group_key"]
-            share_record.share_version = group_info["version"]
-            share_record.share_app_market_id = group_info["share_app_market_id"]
-            share_record.share_app_market_name = group_info["share_app_market_name"]
+            share_record.scope = scope
+            share_record.app_id = group_info.get("app_model_id")
+            share_record.share_version = group_info.get("version")
+            share_record.share_app_market_id = group_info.get("share_app_market_id")
             share_record.update_time = datetime.datetime.now()
             share_record.save()
             # 提交事务
@@ -984,6 +987,10 @@ class ShareService(object):
         share_services = MarketOpenAPIV2().get_apps_versions(tenant_id)
         return share_services
 
+    def get_cloud_apps_versions_by_eid(self, enterprise_id, market_id):
+        share_services = MarketOpenAPIV2().get_apps_versions_by_eid(enterprise_id, market_id)
+        return share_services
+
     def get_cloud_app_version(self, tenant_id, app_id, version):
         rst = MarketOpenAPI().get_app_template(tenant_id, app_id, version)
         data = rst.get("data")
@@ -1000,16 +1007,20 @@ class ShareService(object):
         markets = MarketOpenAPIV2().get_markets(tenant_id)
         return markets
 
+    def get_cloud_markets_by_eid(self, enterprise_id):
+        markets = MarketOpenAPIV2().get_markets_by_eid(enterprise_id)
+        return markets
+
     def get_local_apps_versions(self):
         app_list = []
         apps = share_repo.get_local_apps()
         if apps:
             for app in apps:
                 app_versions = list(set(share_repo.get_app_versions_by_app_id(
-                    app.group_key).values_list("version", flat=True)))
+                    app.app_id).values_list("version", flat=True)))
                 app_list.append({
-                    "app_name": app.group_name,
-                    "app_id": app.group_key,
+                    "app_name": app.app_name,
+                    "app_id": app.app_id,
                     "pic": app.pic,
                     "app_describe": app.describe,
                     "dev_status": app.dev_status,
@@ -1022,12 +1033,12 @@ class ShareService(object):
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id)
         dt = {}
         dt["market_list"] = []
-        dt["app_list"] = []
+        dt["local_app_model_list"] = []
         dt["last_shared_app"] = {}
         dt["scope"] = "team"
         if not last_shared:
             app_list = self.get_local_apps_versions()
-            dt["app_list"] = app_list
+            dt["local_app_model_list"] = app_list
             dt["scope"] = app_list.first().scope if app_list else "team"
         else:
             if last_shared.scope == "goodrain":
@@ -1036,6 +1047,7 @@ class ShareService(object):
                     "market_id": markets["market_id"],
                     "name": markets["name"],
                     "eid": markets["eid"],
+                    "app_model_list": [],
                 })
                 apps_versions = share_service.get_cloud_apps_versions(tenant_id)
                 if apps_versions:
@@ -1045,7 +1057,7 @@ class ShareService(object):
                         if app_versions:
                             for version in app_versions:
                                 versions.append(version.get("app_version"))
-                        dt["app_list"].append({
+                        dt["market_list"][-1]["app_model_list"].append({
                             "app_name": app.get("name"),
                             "app_id": app.get("app_key_id"),
                             "version": versions,
@@ -1067,17 +1079,18 @@ class ShareService(object):
                     dt["scope"] = "goodrain"
             else:
                 last_shared_app_info = share_repo.get_app_by_app_id(last_shared.app_id)
-                dt["last_shared_app"] = {
-                    "app_name": last_shared_app_info.group_name,
-                    "app_id": last_shared.app_id,
-                    "version": last_shared.share_version,
-                    "pic": last_shared_app_info.pic,
-                    "app_describe": last_shared_app_info.describe,
-                    "dev_status": last_shared_app_info.dev_status,
-                    "scope": last_shared_app_info.scope
-                }
+                if last_shared_app_info:
+                    dt["last_shared_app"] = {
+                        "app_name": last_shared_app_info.app_name,
+                        "app_id": last_shared.app_id,
+                        "version": last_shared.share_version,
+                        "pic": last_shared_app_info.pic,
+                        "app_describe": last_shared_app_info.describe,
+                        "dev_status": last_shared_app_info.dev_status,
+                        "scope": last_shared_app_info.scope
+                    }
                 app_list = self.get_local_apps_versions()
-                dt["app_list"] = app_list
+                dt["local_app_model_list"] = app_list
                 dt["scope"] = last_shared_app_info.scope
         return dt
 
@@ -1096,7 +1109,7 @@ class ShareService(object):
     def get_app_list(self, tenant_id, scope):
         dt = {}
         dt["market_list"] = []
-        dt["app_list"] = []
+        dt["local_app_model_list"] = []
         dt["scope"] = scope
         if scope == "cloud":
             markets = self.get_cloud_markets(tenant_id)
@@ -1104,6 +1117,7 @@ class ShareService(object):
                 "market_id": markets["market_id"],
                 "name": markets["name"],
                 "eid": markets["eid"],
+                "app_model_list": [],
             })
             apps_versions = share_service.get_cloud_apps_versions(tenant_id)
             if apps_versions:
@@ -1113,7 +1127,7 @@ class ShareService(object):
                     if app_versions:
                         for version in app_versions:
                             versions.append(version.get("app_version"))
-                    dt["app_list"].append({
+                    dt["market_list"][-1]["app_model_list"].append({
                         "app_name": app.get("name"),
                         "app_id": app.get("app_key_id"),
                         "version": versions,
@@ -1124,7 +1138,7 @@ class ShareService(object):
                     })
         else:
             app_list = self.get_local_apps_versions()
-            dt["app_list"] = app_list
+            dt["local_app_model_list"] = app_list
         return dt
 
     def create_cloud_app(self, tenant_id, data):
