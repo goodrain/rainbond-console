@@ -96,7 +96,7 @@ class RainbondCenterAppRepository(object):
                     GROUP_CONCAT(
                         CONCAT('{"version":"',C.version,'"'),',',
                         CONCAT('"is_complete":',C.is_complete),',',
-                        CONCAT('"app_alias":"',C.app_alias),'"}')
+                        CONCAT('"version_alias":"',C.app_alias),'"}')
                     ,']') as versions_info
                 FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
                       FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
@@ -170,7 +170,7 @@ class RainbondCenterAppRepository(object):
                     GROUP_CONCAT(
                         CONCAT('{"version":"',C.version,'"'),',',
                         CONCAT('"is_complete":',C.is_complete),',',
-                        CONCAT('"app_alias":"',C.app_alias),'",',
+                        CONCAT('"version_alias":"',C.app_alias),'",',
                         CONCAT('"app_template":',C.app_template),'}')
                     ,']') as versions_info
                 FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
@@ -215,7 +215,7 @@ class RainbondCenterAppRepository(object):
                     C.app_template,
                     C.version,
                     C.is_complete,
-                    C.app_alias,
+                    C.version_alias,
                     C.update_time,
                     C.create_time
                 FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
@@ -259,7 +259,7 @@ class RainbondCenterAppRepository(object):
                     C.app_template,
                     C.version,
                     C.is_complete,
-                    C.app_alias,
+                    C.version_alias,
                     C.update_time,
                     C.create_time
                 FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time

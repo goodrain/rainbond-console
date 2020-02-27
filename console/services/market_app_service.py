@@ -1310,7 +1310,7 @@ class AppMarketSynchronizeService(object):
                 enterprise_id=enterprise_id,
                 app_id=app_templates["group_key"],
                 version=app_templates['group_version'],
-                app_alias="NA",
+                version_alias="NA",
                 app_version_info=app_templates['info'],
                 share_user=0,
                 record_id=0,

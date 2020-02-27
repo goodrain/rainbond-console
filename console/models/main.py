@@ -82,7 +82,7 @@ class RainbondCenterAppVersion(BaseModel):
     enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     app_id = models.CharField(max_length=32, help_text=u"应用id")
     version = models.CharField(max_length=32, help_text=u"版本")
-    app_alias = models.CharField(max_length=32, default="NA", help_text=u"别名")
+    version_alias = models.CharField(max_length=32, default="NA", help_text=u"别名")
     app_version_info = models.CharField(max_length=255, help_text=u"版本信息")
     record_id = models.IntegerField(help_text=u"分享流程id，控制一个分享流程产出一个实体")
     share_user = models.IntegerField(help_text=u"分享人id")
