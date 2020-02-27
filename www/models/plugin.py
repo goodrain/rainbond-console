@@ -106,6 +106,8 @@ class TenantServicePluginRelation(BaseModel):
     service_meta_type = models.CharField(max_length=32, choices=data_type, help_text=u"依赖数据类型")
     plugin_status = models.BooleanField(default=True, blank=True, help_text=u"插件状态")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    min_memory = models.IntegerField(help_text=u"构建内存大小")
+    min_cpu = models.IntegerField(help_text=u"构建cpu大小")
 
 
 class TenantServicePluginAttr(BaseModel):
@@ -149,9 +151,6 @@ class ServicePluginConfigVar(BaseModel):
     attrs = models.CharField(max_length=1024, help_text=u"键值对", default="")
     protocol = models.CharField(max_length=16, help_text=u"端口协议", default="")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    min_memory = models.IntegerField(help_text=u"构建内存大小")
-    min_cpu = models.IntegerField(help_text=u"构建cpu大小")
-    plugin_status = models.BooleanField(default=True, blank=True, help_text=u"插件状态")
 
 
 class ConstKey():

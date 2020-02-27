@@ -18,7 +18,7 @@ from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
 from www.models.main import ServiceGroup
 from console.services.service_services import base_service
-from console.repositories.plugin import service_plugin_config_repo
+from console.repositories.plugin import app_plugin_relation_repo
 
 logger = logging.getLogger("default")
 
@@ -176,12 +176,14 @@ class GroupService(object):
             service.status = service_status[service.service_id]["status"]
             service.used_mem = service_status[service.service_id]["used_mem"]
 
-        plugin_list = service_plugin_config_repo.get_multi_service_plugin_all_config(service_ids)
+        plugin_list = app_plugin_relation_repo.get_multi_service_plugin(service_ids)
         plugins = dict()
         for plugin in plugin_list:
             if not plugins.get(plugin.service_id):
                 plugins[plugin.service_id] = 0
-            plugins[plugin.service_id] += plugin.min_memory
+            if plugin.plugin_status:
+                # if plugin is turn on means component is using this plugin
+                plugins[plugin.service_id] += plugin.min_memory
 
         apps = dict()
         for service in service_list:

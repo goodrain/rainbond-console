@@ -11,7 +11,7 @@ from enum import IntEnum
 from console.exception.main import EnvAlreadyExist
 from console.exception.main import ErrDepVolumeNotFound
 from console.exception.main import ErrInvalidVolume
-from console.exception.main import ErrPluginAlreadyInstalled
+from console.exception.main import ServiceHandleException
 from console.exception.main import InnerPortNotFound
 from console.exception.main import InvalidEnvName
 from console.exception.main import ServiceRelationAlreadyExist
@@ -831,7 +831,7 @@ class MarketService(object):
         add = plugins.get("add", [])
         try:
             app_plugin_service.create_plugin_4marketsvc(self.tenant.region, self.tenant, self.service, self.version, add)
-        except ErrPluginAlreadyInstalled as e:
+        except ServiceHandleException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
 
         delete = plugins.get("delete", [])
