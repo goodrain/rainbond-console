@@ -15,6 +15,7 @@ from console.repositories.group import group_service_relation_repo
 from console.services.app_config.volume_service import AppVolumeService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
+from console.enum.component_enum import is_state
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -57,6 +58,59 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
+    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config=False):
+        """
+        1. 获取租户下其他所有组件列表，方便后续进行名称的冗余
+        2. 获取其他组件的所有可共享的存储
+        3. 获取已经使用的存储，方便后续过滤
+        4. 遍历存储，组装信息
+        """
+
+        for serviceID in service_ids:
+            if serviceID == service.service_id:
+                service_ids.remove(serviceID)
+        services = service_repo.get_services_by_service_ids(service_ids)
+        state_services = []  # 有状态组件
+        for svc in services:
+            if is_state(svc.extend_method):
+                state_services.append(svc)
+        state_service_ids = [svc.service_id for svc in state_services]
+
+        current_tenant_services_id = service_ids
+        # 已挂载的组件路径
+        mounted_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name', flat=True)
+        # 当前未被挂载的共享路径
+        service_volumes = []
+        # 配置文件无论组件是否是共享存储都可以共享，只需过滤掉已经挂载的存储；其他存储类型则需要考虑排除有状态组件的存储
+        if is_config:
+            service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type=self.CONFIG) \
+                .exclude(volume_name__in=mounted_names)
+        else:
+            service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type=self.SHARE) \
+                .exclude(volume_name__in=mounted_names).exclude(service_id__in=state_service_ids)
+        # TODO 使用函数进行存储的排查，确定哪些存储不可以进行共享，哪些存储可以共享，而不是现在这样简单的提供一个self.SHARE
+
+        total = len(service_volumes)
+        volume_paginator = JuncheePaginator(service_volumes, int(page_size))
+        page_volumes = volume_paginator.page(page)
+        un_mount_dependencies = []
+        for volume in page_volumes:
+            gs_rel = group_service_relation_repo.get_group_by_service_id(volume.service_id)
+            group = None
+            if gs_rel:
+                group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
+            un_mount_dependencies.append({
+                "dep_app_name": services.get(service_id=volume.service_id).service_cname,
+                "dep_app_group": group.group_name if group else '未分组',
+                "dep_vol_name": volume.volume_name,
+                "dep_vol_path": volume.volume_path,
+                "dep_vol_type": volume.volume_type,
+                "dep_vol_id": volume.ID,
+                "dep_group_id": group.ID if group else -1,
+                "dep_app_alias": services.get(service_id=volume.service_id).service_alias
+            })
+        return un_mount_dependencies, total
+
     def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size, q):
 
         services = service_repo.get_services_by_service_ids(service_ids)
@@ -74,8 +128,9 @@ class AppMntService(object):
         for volume in copy_volumes:
             service_obj = service_repo.get_service_by_service_id(volume.service_id)
             if service_obj:
-                if service_obj.extend_method != "stateless" and volume.volume_type != "config-file":
-                    volumes.remove(volume)
+                if is_state(service_obj.extend_method):
+                    if volume.volume_type != "config-file":
+                        volumes.remove(volume)
         total = len(volumes)
         volume_paginator = JuncheePaginator(volumes, int(page_size))
         page_volumes = volume_paginator.page(page)
@@ -124,7 +179,7 @@ class AppMntService(object):
         raise ErrDepVolumeNotFound
         """
         tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
-        local_path = [l_path.volume_path for l_path in tenant_service_volumes]
+        local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
         code, msg = volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
         if code != 200:
             logger.debug("Service id: {0}; ingore mnt; msg: {1}".format(service.service_id, msg))

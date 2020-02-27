@@ -25,6 +25,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.enum.component_enum import ComponentType
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -108,7 +109,7 @@ class ComposeService(object):
                     # 组件列表
                     name_service_map = {}
                     for service_info in service_info_list:
-                        service_cname = service_info.get("image_alias", service_info["image_alias"])
+                        service_cname = service_info.get("cname", service_info["image_alias"])
                         image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
                         # 保存信息
                         service = self.__init_compose_service(tenant, user, service_cname, image, region)
@@ -183,7 +184,7 @@ class ComposeService(object):
         tenant_service.desc = "docker compose application"
         tenant_service.category = "app_publish"
         tenant_service.setting = ""
-        tenant_service.extend_method = "stateless"
+        tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","
         tenant_service.min_node = 1
         tenant_service.min_memory = 128

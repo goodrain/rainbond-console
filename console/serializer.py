@@ -66,9 +66,9 @@ class ProbeSerilizer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
         help_text=u"http请求头，key=value,key2=value2")
-    initial_delay_second = serializers.IntegerField(default=1, required=False, help_text=u"初始化等候时间")
+    initial_delay_second = serializers.IntegerField(default=4, required=False, help_text=u"初始化等候时间")
     period_second = serializers.IntegerField(default=3, required=False, help_text=u"检测间隔时间")
-    timeout_second = serializers.IntegerField(default=30, required=False, help_text=u"检测超时时间")
+    timeout_second = serializers.IntegerField(default=5, required=False, help_text=u"检测超时时间")
     failure_threshold = serializers.IntegerField(default=3, required=False, help_text=u"标志为失败的检测次数")
     success_threshold = serializers.IntegerField(default=1, required=False, help_text=u"标志为成功的检测次数")
     is_used = serializers.BooleanField(required=False, default=True, help_text=u"是否启用")
@@ -89,9 +89,9 @@ class ProbeUpdateSerilizer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
         help_text=u"http请求头，key=value,key2=value2")
-    initial_delay_second = serializers.IntegerField(default=1, required=False, help_text=u"初始化等候时间")
+    initial_delay_second = serializers.IntegerField(default=4, required=False, help_text=u"初始化等候时间")
     period_second = serializers.IntegerField(default=3, required=False, help_text=u"检测间隔时间")
-    timeout_second = serializers.IntegerField(default=30, required=False, help_text=u"检测超时时间")
+    timeout_second = serializers.IntegerField(default=5, required=False, help_text=u"检测超时时间")
     failure_threshold = serializers.IntegerField(default=3, required=False, help_text=u"标志为失败的检测次数")
     success_threshold = serializers.IntegerField(default=1, required=False, help_text=u"标志为成功的检测次数")
     is_used = serializers.BooleanField(required=False, default=True, help_text=u"是否启用")
@@ -104,6 +104,6 @@ class TenantServiceUpdateSerilizer(serializers.Serializer):
     docker_cmd = serializers.CharField(max_length=2048, required=False, help_text=u"镜像创建命令")
     git_url = serializers.CharField(max_length=100, required=False, help_text=u"code代码仓库")
     min_memory = serializers.IntegerField(required=False, help_text=u"内存大小单位（M）")
-    extend_method = serializers.CharField(max_length=15, required=False, help_text=u"伸缩方式")
+    extend_method = serializers.CharField(max_length=32, required=False, help_text=u"组件类型")
     user_name = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text=u"拉取仓库需要的用户名")
     password = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text=u"拉取仓库需要的密码")

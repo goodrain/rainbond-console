@@ -113,7 +113,6 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
 
 class CenterAppImportView(JWTAuthApiView):
     @never_cache
-    @perm_required("import_and_export_service")
     def post(self, request, event_id, *args, **kwargs):
         """
         导入应用包
@@ -161,7 +160,6 @@ class CenterAppImportView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("import_and_export_service")
     @transaction.atomic
     def get(self, request, event_id, *args, **kwargs):
         """
@@ -219,7 +217,6 @@ class CenterAppImportView(JWTAuthApiView):
 
 class CenterAppTarballDirView(JWTAuthApiView):
     @never_cache
-    @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         查询应用包目录
@@ -248,7 +245,6 @@ class CenterAppTarballDirView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    @perm_required("import_and_export_service")
     def post(self, request, *args, **kwargs):
         """
         批量导入时创建一个目录
@@ -269,7 +265,6 @@ class CenterAppTarballDirView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    @perm_required("import_and_export_service")
     def delete(self, request, *args, **kwargs):
         """
         删除导入

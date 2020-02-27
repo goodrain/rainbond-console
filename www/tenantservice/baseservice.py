@@ -206,7 +206,6 @@ class BaseTenantService(object):
         data["ports_info"] = []
         data["envs_info"] = []
         data["volumes_info"] = []
-        data["service_label"] = "StatefulServiceType" if newTenantService.extend_method == "state" else "StatelessServiceType"
 
         depend_ids = [{
             "dep_order": dep.dep_order,
@@ -460,7 +459,7 @@ class BaseTenantService(object):
                 self.saveServiceEnvVar(
                     service.tenant_id, service.service_id, -1, u"密码", env_prefix + "_PASS", password, False, scope="both")
             port.save()
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
 
     # 检查事件是否超时，组件起停操作30s超时，其他操作3m超时
@@ -792,9 +791,9 @@ class BaseTenantService(object):
                     port=container_port,
                     cmd="",
                     http_header="",
-                    initial_delay_second=2,
+                    initial_delay_second=4,
                     period_second=3,
-                    timeout_second=30,
+                    timeout_second=5,
                     failure_threshold=3,
                     success_threshold=1,
                     is_used=True,

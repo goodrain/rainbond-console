@@ -57,6 +57,7 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.enum.component_enum import ComponentType
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -579,13 +580,26 @@ class MarketAppService(object):
         if not volumes:
             return 200, "success"
         for volume in volumes:
-            if "file_content" in volume.keys():
+            if "file_content" in volume.keys() and volume["file_content"] != "":
                 code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
                                                                            volume["volume_type"], volume["volume_name"],
                                                                            volume["file_content"])
             else:
+                settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
+                                                                            volume.get("access_mode"),
+                                                                            volume.get("share_policy"),
+                                                                            volume.get("backup_policy"),
+                                                                            None, volume.get("volume_provider_name"))
+                if settings["changed"]:
+                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
+                    volume["volume_type"] = settings["volume_type"]
+                    if volume["volume_type"] == "share-file":
+                        volume["volume_capacity"] = 0
+                else:
+                    settings["volume_capacity"] = volume.get("volume_capacity", 0)
                 code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                           volume["volume_type"], volume["volume_name"])
+                                                                           volume["volume_type"], volume["volume_name"], None,
+                                                                           settings)
             if code != 200:
                 logger.error("save market app volume error".format(msg))
                 return code, msg
@@ -635,7 +649,16 @@ class MarketAppService(object):
         tenant_service.desc = "market app "
         tenant_service.category = "app_publish"
         tenant_service.setting = ""
-        tenant_service.extend_method = app["extend_method"]
+        # handle service type
+        extend_method = app["extend_method"]
+        if extend_method:
+            if extend_method == "state":
+                tenant_service.extend_method = ComponentType.state_singleton.value
+            elif extend_method == "stateless":
+                tenant_service.extend_method = ComponentType.stateless_multiple.value
+            else:
+                tenant_service.extend_method = extend_method
+
         tenant_service.env = ","
         tenant_service.min_node = app["extend_method_map"]["min_node"]
         tenant_service.min_memory = app["extend_method_map"]["min_memory"]

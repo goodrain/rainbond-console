@@ -6,6 +6,9 @@ from console.models.main import GroupAppBackupRecord
 
 
 class GroupAppBackupRecordRespository(object):
+    def get_multi_apps_backup_records(self, group_ids):
+        return GroupAppBackupRecord.objects.filter(group_id__in=group_ids)
+
     def get_group_backup_records(self, team_id, region_name, group_id):
         return GroupAppBackupRecord.objects.filter(team_id=team_id, region=region_name, group_id=group_id)
 

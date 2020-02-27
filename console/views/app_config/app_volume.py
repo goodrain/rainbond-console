@@ -4,7 +4,6 @@
 """
 import logging
 
-from django.db.models import Q
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -19,6 +18,20 @@ from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+
+
+class AppVolumeOptionsView(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        """
+        获取组件可用的存储列表
+        ---
+        parameters:
+        """
+        volume_types = volume_service.get_service_support_volume_options(self.tenant, self.service)
+        result = general_message(200, "success", "查询成功", list=volume_types)
+        return Response(result, status=result["code"])
 
 
 class AppVolumeView(AppBaseView):
@@ -40,31 +53,19 @@ class AppVolumeView(AppBaseView):
               type: string
               paramType: path
         """
-        volume_types = parse_argument(request, 'volume_types', value_type=list)
-        try:
-            q = Q(volume_type__in=volume_types) if volume_types else Q()
-            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service).filter(q)
-
-            volumes_list = []
-            if tenant_service_volumes:
-                for tenant_service_volume in tenant_service_volumes:
-                    volume_dict = dict()
-                    volume_dict["service_id"] = tenant_service_volume.service_id
-                    volume_dict["category"] = tenant_service_volume.category
-                    volume_dict["host_path"] = tenant_service_volume.host_path
-                    volume_dict["volume_type"] = tenant_service_volume.volume_type
-                    volume_dict["volume_path"] = tenant_service_volume.volume_path
-                    volume_dict["volume_name"] = tenant_service_volume.volume_name
-                    volume_dict["ID"] = tenant_service_volume.ID
-                    if tenant_service_volume.volume_type == "config-file":
-                        cf_file = volume_repo.get_service_config_file(tenant_service_volume.ID)
-                        if cf_file:
-                            volume_dict["file_content"] = cf_file.file_content
-                    volumes_list.append(volume_dict)
-            result = general_message(200, "success", "查询成功", list=volumes_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
+        tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
+        volumes_list = []
+        if is_config:
+            for tenant_service_volume in tenant_service_volumes:
+                cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
+                if cf_file:
+                    tenant_service_volume["file_content"] = cf_file.file_content
+                volumes_list.append(tenant_service_volume)
+        else:
+            for vo in tenant_service_volumes:
+                volumes_list.append(vo)
+        result = general_message(200, "success", "查询成功", list=volumes_list)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -105,17 +106,29 @@ class AppVolumeView(AppBaseView):
         volume_type = request.data.get("volume_type", None)
         volume_path = request.data.get("volume_path", None)
         file_content = request.data.get("file_content", None)
-        try:
+        volume_capacity = request.data.get("volume_capacity", 0)
+        provider_name = request.data.get("volume_provider_name", '')
+        access_mode = request.data.get("access_mode", '')
+        share_policy = request.data.get('share_policy', '')
+        backup_policy = request.data.get('back_policy', '')
+        reclaim_policy = request.data.get('reclaim_policy', '')  # TODO fanyangyang 使用serialer进行参数校验
+        allow_expansion = request.data.get('allow_expansion', False)
+        settings = {}
+        settings['volume_capacity'] = volume_capacity
+        settings['provider_name'] = provider_name
+        settings['access_mode'] = access_mode
+        settings['share_policy'] = share_policy
+        settings['backup_policy'] = backup_policy
+        settings['reclaim_policy'] = reclaim_policy
+        settings['allow_expansion'] = allow_expansion
 
-            code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                                volume_name, file_content)
-            if code != 200:
-                result = general_message(code, "add volume error", msg)
-                return Response(result, status=code)
-            result = general_message(code, msg, u"持久化路径添加成功", bean=data.to_dict())
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
+                                                            volume_name, file_content, settings)
+        if code != 200:
+            result = general_message(code, "add volume error", msg)
+            return Response(result, status=code)
+        result = general_message(code, msg, u"持久化路径添加成功", bean=data.to_dict())
+
         return Response(result, status=result["code"])
 
 

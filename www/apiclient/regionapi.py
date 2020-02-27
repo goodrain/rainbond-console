@@ -140,7 +140,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def delete_service(self, region, tenant_name, service_alias, enterprise_id):
+    def delete_service(self, region, tenant_name, service_alias, enterprise_id, data):
         """删除组件"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -149,7 +149,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             + service_alias + "?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
         return body
 
     def build_service(self, region, tenant_name, service_alias, body):
@@ -347,6 +347,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, None, region=region)
         return body
 
+    def get_dynamic_services_pods(self, region, tenant_name, services_ids):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods?service_ids={}".format(",".join(services_ids))
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
     def pod_detail(self, region, tenant_name, service_alias, pod_name):
         """获取组件pod信息"""
 
@@ -524,6 +532,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
+
+    def get_volume_options(self, region, tenant_name):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/volume-options"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_service_volumes_status(self, region, tenant_name, service_alias):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        tenant_name = tenant_region.region_tenant_name
+        url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes-status".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
 
     def get_service_volumes(self, region, tenant_name, service_alias, enterprise_id):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)

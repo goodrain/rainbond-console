@@ -9,6 +9,14 @@ elif [ "$1" = "init" ];then
     python manage.py makemigrations console
     python manage.py migrate
 else
-    python upgrade.py
-    exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --debug --workers=4 --log-file - --access-logfile - --error-logfile -
+    # check database
+    if mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASS} -e "use console;" > /dev/null; then
+        mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASS} -e "select * from console.region_info" || ./entrypoint.sh init && echo -e "\033[32;1mDatabase initialization completed\033[0m"
+        python default_region.py
+        python upgrade.py
+        exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --debug --workers=4 --log-file - --access-logfile - --error-logfile -
+    else
+        echo -e "\033[32;1mDatabase not ready\033[0m"
+        exit 1
+    fi
 fi

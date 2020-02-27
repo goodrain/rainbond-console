@@ -3,6 +3,8 @@
   Created on 18/1/30.
 """
 from www.models.label import ServiceLabels, NodeLabels, Labels
+from www.utils.crypt import make_uuid
+import datetime
 
 
 class ServiceLabelsReporsitory(object):
@@ -15,8 +17,8 @@ class ServiceLabelsReporsitory(object):
     def delete_service_all_labels(self, service_id):
         ServiceLabels.objects.filter(service_id=service_id).delete()
 
-    def get_service_label(self, label_id):
-        return ServiceLabels.objects.filter(label_id=label_id).first()
+    def get_service_label(self, service_id, label_id):
+        return ServiceLabels.objects.filter(service_id=service_id, label_id=label_id).first()
 
 
 class NodeLabelsReporsitory(object):
@@ -41,6 +43,14 @@ class LabelsReporsitory(object):
     def get_all_labels(self):
         labels = Labels.objects.all()
         return labels
+
+    def create_label(self, label_name, label_alias):
+        label_id = make_uuid("labels")
+        create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        label = Labels(
+            label_id=label_id, label_name=label_name, label_alias=label_alias, create_time=create_time)
+        label.save()
+        return label
 
     def get_labels_by_label_name(self, label_name):
         return Labels.objects.filter(label_name=label_name).first()
