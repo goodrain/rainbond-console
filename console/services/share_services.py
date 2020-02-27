@@ -1024,55 +1024,82 @@ class ShareService(object):
                 })
         return app_list
 
-    def get_last_shared_app_and_app_list(self, tenant_id, group_id):
-        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id)
-        dt = {}
-        dt["market_list"] = []
-        dt["local_app_model_list"] = []
-        dt["last_shared_app"] = {}
-        dt["scope"] = "team"
-        if not last_shared:
-            app_list = self.get_local_apps_versions()
-            dt["local_app_model_list"] = app_list
-            dt["scope"] = app_list.first().scope if app_list else "team"
-        else:
-            if last_shared.scope == "goodrain":
-                markets = self.get_cloud_markets(tenant_id)
-                dt["market_list"].append({
-                    "market_id": markets["market_id"],
-                    "name": markets["name"],
-                    "eid": markets["eid"],
-                    "app_model_list": [],
+    def get_team_local_apps_versions(self, enterprise_id, team_id):
+        app_list = []
+        apps = share_repo.get_enterprise_team_apps(enterprise_id, team_id)
+        if apps:
+            for app in apps:
+                app_versions = list(share_repo.get_last_app_versions_by_app_id(
+                    app.app_id))
+                app_list.append({
+                    "app_name": app.app_name,
+                    "app_id": app.app_id,
+                    "pic": app.pic,
+                    "app_describe": app.describe,
+                    "dev_status": app.dev_status,
+                    "versions": app_versions,
+                    "scope": app.scope,
                 })
-                apps_versions = share_service.get_cloud_apps_versions(tenant_id)
-                if apps_versions:
-                    for app in apps_versions:
-                        versions = []
-                        app_versions = app.get("app_versions")
-                        if app_versions:
-                            for version in app_versions:
-                                versions.append(version.get("app_version"))
-                        dt["market_list"][-1]["app_model_list"].append({
+        return app_list
+
+    def get_team_local_app_version(self, enterprise_id, team_id):
+        app_list = []
+        apps = share_repo.get_enterprise_team_apps(enterprise_id, team_id)
+        if apps:
+            for app in apps:
+                app_versions = list(set(share_repo.get_app_versions_by_app_id(
+                    app.app_id).values_list("version", flat=True)))
+                app_list.append({
+                    "app_name": app.app_name,
+                    "app_id": app.app_id,
+                    "pic": app.pic,
+                    "app_describe": app.describe,
+                    "dev_status": app.dev_status,
+                    "version": app_versions,
+                    "scope": app.scope,
+                })
+        return app_list
+
+    def get_last_shared_app_and_app_list(self, enterprise_id, tenant_id, group_id, scope, market_id):
+        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, scope)
+        dt = {}
+        dt["app_model_list"] = []
+        dt["last_shared_app"] = {}
+        dt["scope"] = scope
+        if scope == "goodrain":
+            apps_versions = share_service.get_cloud_apps_versions(tenant_id)
+            if apps_versions:
+                for app in apps_versions:
+                    versions = []
+                    app_versions = app.get("app_versions")
+                    if app_versions:
+                        for version in app_versions:
+                            versions.append({
+                                "app_version": version.get("app_version"),
+                                "describe": version.get("describe"),
+                                "version_alias": version.get("version_alias"),
+                            })
+                    dt["app_model_list"].append({
+                        "app_name": app.get("name"),
+                        "app_id": app.get("app_key_id"),
+                        "versions": versions,
+                        "pic": app.get("pic"),
+                        "app_describe": app.get("desc"),
+                        "dev_status": app.get("dev_status"),
+                        "scope": ("goodrain:" + app.get("publish_type")).strip(":")
+                    })
+                    if last_shared and app.get("app_key_id") == last_shared.app_id:
+                        dt["last_shared_app"] = {
                             "app_name": app.get("name"),
                             "app_id": app.get("app_key_id"),
-                            "version": versions,
+                            "version": last_shared.share_version,
                             "pic": app.get("pic"),
-                            "app_describe": app.get("desc"),
+                            "describe": app.get("desc"),
                             "dev_status": app.get("dev_status"),
                             "scope": ("goodrain:" + app.get("publish_type")).strip(":")
-                        })
-                        if app.get("app_key_id") == last_shared.app_id:
-                            dt["last_shared_app"] = {
-                                "app_name": app.get("name"),
-                                "app_id": app.get("app_key_id"),
-                                "version": last_shared.share_version,
-                                "pic": app.get("pic"),
-                                "app_describe": app.get("desc"),
-                                "dev_status": app.get("dev_status"),
-                                "scope": ("goodrain:" + app.get("publish_type")).strip(":")
-                            }
-                    dt["scope"] = "goodrain"
-            else:
+                        }
+        else:
+            if last_shared:
                 last_shared_app_info = share_repo.get_app_by_app_id(last_shared.app_id)
                 if last_shared_app_info:
                     dt["last_shared_app"] = {
@@ -1084,9 +1111,8 @@ class ShareService(object):
                         "dev_status": last_shared_app_info.dev_status,
                         "scope": last_shared_app_info.scope
                     }
-                app_list = self.get_local_apps_versions()
-                dt["local_app_model_list"] = app_list
-                dt["scope"] = last_shared_app_info.scope
+            app_list = self.get_team_local_apps_versions(enterprise_id, tenant_id)
+            dt["app_model_list"] = app_list
         return dt
 
     def get_last_shared_app_version(self, tenant_id, group_id):
@@ -1101,10 +1127,10 @@ class ShareService(object):
             dt = (json.loads(app_version.app_template), app_version.app_version_info)
         return dt
 
-    def get_app_list(self, tenant_id, scope):
+    def get_app_list(self, enterprise_id, tenant_id, scope, market_id):
         dt = {}
-        dt["market_list"] = []
-        dt["local_app_model_list"] = []
+        dt["market_id"] = market_id
+        dt["app_model_list"] = []
         dt["scope"] = scope
         if scope == "cloud":
             markets = self.get_cloud_markets(tenant_id)
@@ -1122,7 +1148,7 @@ class ShareService(object):
                     if app_versions:
                         for version in app_versions:
                             versions.append(version.get("app_version"))
-                    dt["market_list"][-1]["app_model_list"].append({
+                    dt["app_model_list"].append({
                         "app_name": app.get("name"),
                         "app_id": app.get("app_key_id"),
                         "version": versions,
@@ -1132,7 +1158,7 @@ class ShareService(object):
                         "scope": ("goodrain:" + app.get("publish_type")).strip(":")
                     })
         else:
-            app_list = self.get_local_apps_versions()
+            app_list = self.get_team_local_apps_versions(enterprise_id, tenant_id)
             dt["local_app_model_list"] = app_list
         return dt
 
