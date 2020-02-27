@@ -384,7 +384,7 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view()),
 
     # 团队应用模块（5.1）
-    url(r'^teams/(?P<team_name>[\w\-]+)/overview/app/over$', TeamAppSortViewView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view()),
 
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view()),
