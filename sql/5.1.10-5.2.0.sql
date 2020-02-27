@@ -83,6 +83,5 @@ alter table service_share_record add column share_app_market_id varchar(64) NOT 
 
 alter table service_group add column note varchar(2048) NOT NULL;
 
-alter table service_plugin_config_var add column min_memory int(11) NOT NULL;
-alter table service_plugin_config_var add column min_cpu int(11) NOT NULL;
-alter table service_plugin_config_var add column plugin_status tinyint(1) NOT NULL;
+alter table tenant_service_plugin_relation add column min_memory int(11) NOT NULL;
+alter table tenant_service_plugin_relation add column min_cpu int(11) NOT NULL;

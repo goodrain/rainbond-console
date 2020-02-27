@@ -12,7 +12,7 @@ from django.db.models import Q
 
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
-from console.exception.main import ErrPluginAlreadyInstalled
+from console.exception.main import ConflictException
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
@@ -340,10 +340,7 @@ class MarketAppService(object):
                         data["switch"] = True
                         data["version_id"] = build_version
                         data.update(region_config)
-                        code, msg, relation = app_plugin_service.create_service_plugin_relation(
-                            service.service_id, plugin_id, build_version, "", True)
-                        if code != 200:
-                            raise Exception("msg")
+                        app_plugin_service.create_service_plugin_relation(service.service_id, plugin_id, build_version)
 
                         region_api.install_service_plugin(service.service_region, tenant.tenant_name,
                                                           service.service_alias,
@@ -355,7 +352,7 @@ class MarketAppService(object):
     def __create_service_pluginsv2(self, tenant, service, version, plugins):
         try:
             app_plugin_service.create_plugin_4marketsvc(tenant.region, tenant, service, version, plugins)
-        except ErrPluginAlreadyInstalled as e:
+        except ConflictException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
 
     def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars,
