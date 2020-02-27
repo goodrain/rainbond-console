@@ -7,6 +7,7 @@ import httplib2
 import httplib
 import json
 from django.db.models import F
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from rest_framework import status
@@ -107,6 +108,7 @@ class CenterAppListView(JWTAuthApiView):
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
     @perm_required("create_service")
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
         创建应用市场应用
