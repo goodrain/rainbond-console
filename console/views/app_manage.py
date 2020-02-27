@@ -152,7 +152,7 @@ class DeployAppView(AppBaseView):
             result = general_message(code, "success", "操作成功", bean=bean)
         except ErrServiceSourceNotFound as e:
             logger.exception(e)
-            return Response(general_message(412, e.message, "无法找到云市组件的构建源"), status=412)
+            return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
