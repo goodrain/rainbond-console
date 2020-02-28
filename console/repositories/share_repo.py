@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from django.db.models import Q, Max
 from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondCenterPlugin, RainbondCenterAppVersion
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, ServiceInfo, \
@@ -109,17 +110,32 @@ class ShareRepo(object):
         return RainbondCenterApp.objects.filter(
             tenant_service_group_id=group_id, is_complete=True).order_by("-create_time")
 
-    def get_last_shared_app_version_by_group_id(self, group_id):
-        return ServiceShareRecord.objects.filter(group_id=group_id, is_success=True).order_by("-create_time").first()
+    def get_last_shared_app_version_by_group_id(self, group_id, scope):
+        return ServiceShareRecord.objects.filter(
+            group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
 
     def get_local_apps(self):
         return RainbondCenterApp.objects.all().order_by("-create_time")
+
+    def get_enterprise_team_apps(self, enterprise_id, team_id):
+        return RainbondCenterApp.objects.filter(
+            Q(enterprise_id=enterprise_id, create_team=team_id) | Q(enterprise_id=enterprise_id, scope="enterprise")
+        ).order_by("-create_time")
 
     def get_app_by_app_id(self, app_id):
         return RainbondCenterApp.objects.filter(app_id=app_id).first()
 
     def get_app_versions_by_app_id(self, app_id):
         return RainbondCenterAppVersion.objects.filter(app_id=app_id)
+
+    def get_last_app_versions_by_app_id(self, app_id):
+        return RainbondCenterAppVersion.objects.filter(app_id=app_id).extra(
+            select={'describe': 'app_version_info'}
+        ).values(
+            "version", "version_alias", "describe"
+        ).order_by("upgrade_time").annotate(
+            Max("upgrade_time")
+        ).values("version", "version_alias", "describe")
 
     def get_app_version(self, app_id, version):
         return RainbondCenterAppVersion.objects.filter(app_id=app_id, version=version).order_by("-create_time").first()
@@ -207,6 +223,9 @@ class ShareRepo(object):
 
     def get_service_share_records_by_groupid(self, group_id):
         return ServiceShareRecord.objects.filter(group_id=group_id)
+
+    def get_service_share_record_by_id(self, group_id, record_id):
+        return ServiceShareRecord.objects.filter(group_id=group_id, ID=record_id).first()
 
     def get_multi_app_share_records(self, group_ids):
         return ServiceShareRecord.objects.filter(group_id__in=group_ids)
