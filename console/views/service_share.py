@@ -11,7 +11,6 @@ from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.services.enterprise_services import enterprise_services
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
 from console.views.base import RegionTenantHeaderView
@@ -262,6 +261,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               paramType: path
         """
         data = dict()
+        scope = request.GET.get("scope")
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -271,7 +271,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             return Response(result, status=400)
 
         service_info_list = share_service.query_share_service_info(
-            team=self.team, group_id=share_record.group_id)
+            team=self.team, group_id=share_record.group_id, scope=scope)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
         data["share_plugin_list"] = plugins
@@ -309,17 +309,13 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             if not request.data:
                 result = general_message(400, "share info can not be empty", "分享信息不能为空")
                 return Response(result, status=400)
-            share_group_info = request.data.get("share_group_info", None)
-            if share_group_info and share_group_info["scope"] == "goodrain":
-                enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.team.enterprise_id)
-                if not enterprise.is_active:
-                    return Response(general_message(10407, "enterprise is not active", "企业未激活"), status=403)
+            app_version_info = request.data.get("app_version_info", None)
             share_app_info = request.data.get("share_service_list", None)
-            if not share_group_info or not share_app_info:
+            if not app_version_info or not share_app_info:
                 result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
                 return Response(result, status=400)
-            if not share_group_info.get("group_key", None):
-                result = general_message(400, "share group key can not be empty", "分享应用信息不全")
+            if not app_version_info.get("app_model_id", None):
+                result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
                 return Response(result, status=400)
 
             if share_app_info:
@@ -656,11 +652,11 @@ class CloudAppModelMarkets(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         markets = share_service.get_cloud_markets_by_eid(enterprise_id)
         data = []
-        if markets:
+        for market in markets:
             data.append({
-                "market_id": markets["market_id"],
-                "name": markets["name"],
-                "eid": markets["eid"],
+                "market_id": market["market_id"],
+                "name": market["name"],
+                "eid": market["eid"],
             })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)

@@ -218,8 +218,8 @@ class ShareService(object):
         logger.debug("======>get services deploy version failure")
         return None
 
-    def query_share_service_info(self, team, group_id):
-        service_last_share_info = self.get_last_shared_app_version(team.tenant_id, group_id)
+    def query_share_service_info(self, team, group_id, scope=None):
+        service_last_share_info = self.get_last_shared_app_version(team.tenant_id, group_id, scope)
         if service_last_share_info:
             service_last_share_info = service_last_share_info.get("apps")
             if service_last_share_info:
@@ -728,7 +728,32 @@ class ShareService(object):
         # 开启事务
         sid = transaction.savepoint()
         try:
-            group_info = share_info["share_group_info"]
+            share_version_info = share_info["share_version_info"]
+            app_model_id = share_version_info.get("app_model_id")
+            version = share_version_info.get("version")
+            target = share_version_info.get("target")
+            version_alias = share_version_info.get("version_alias")
+            version_describe = share_version_info.get("version_describe")
+            market_id = None
+            scope = None
+            if target:
+                market_id = target.get("market_id")
+            if market_id:
+                try:
+                    cloud_app_version, _ = self.get_cloud_app_version(share_team.tenant_id, app_model_id, version)
+                    scope = "goodrain"
+                    app_model_name = cloud_app_version.get("group_name")
+                except Exception as e:
+                    logger.debug(e)
+                    return 400, "云端应用模型不存在", None
+            else:
+                local_app_version = RainbondCenterApp.objects.filter(app_id=app_model_id).first()
+                if not scope:
+                    return 400, "本地应用模型不存在", None
+                scope = local_app_version.scope
+                app_model_name = local_app_version.app_name
+            if scope is None or app_model_name is None:
+                return 400, "参数错误", None
 
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
@@ -736,10 +761,10 @@ class ShareService(object):
             # 处理基本信息
             try:
                 app_templete["template_version"] = "v2"
-                app_templete["group_key"] = group_info.get("app_model_id")
-                app_templete["group_name"] = group_info.get("app_model_name")
-                app_templete["group_version"] = group_info.get("version")
-                app_templete["group_dev_status"] = group_info.get("dev_status")
+                app_templete["group_key"] = app_model_id
+                app_templete["group_name"] = app_model_name
+                app_templete["group_version"] = version
+                app_templete["group_dev_status"] = ""
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -754,7 +779,7 @@ class ShareService(object):
                     for plugin_info in plugins:
                         # one account for one plugin
                         share_image_info = app_store.get_image_connection_info(
-                            group_info.get("scope"), share_team.tenant_name)
+                            scope, share_team.tenant_name)
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
@@ -791,8 +816,7 @@ class ShareService(object):
                         # slug组件
                         # if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
                         if delivered_type_map[service['service_id']] == "slug":
-                            service['service_slug'] = app_store.get_slug_connection_info(group_info.get("scope"),
-                                                                                         share_team.tenant_name)
+                            service['service_slug'] = app_store.get_slug_connection_info(scope, share_team.tenant_name)
                             service["share_type"] = "slug"
                             if not service['service_slug']:
                                 if sid:
@@ -800,7 +824,7 @@ class ShareService(object):
                                 return 400, "获取源码包上传地址错误", None
                         else:
                             service["service_image"] = app_store.get_image_connection_info(
-                                group_info.get("scope"), share_team.tenant_name)
+                                scope, share_team.tenant_name)
                             service["share_type"] = "image"
                             if not service["service_image"]:
                                 if sid:
@@ -837,18 +861,12 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 return 500, "组件信息处理发生错误", None
-            if group_info.get("scope").startswith("goodrain"):
-                scope = "goodrain"
-                share_record.scope = "goodrain"
-            else:
-                scope = group_info.get("scope")
-                share_record.scope = "local"
-
-            app = RainbondCenterAppVersion(
-                app_id=group_info.get("app_model_id"),
-                version=group_info.get("version"),
-                app_version_info=group_info.get("app_version_info"),
-                version_alias=group_info.get("version_alias"),
+            share_record.scope = scope
+            app_version = RainbondCenterAppVersion(
+                app_id=app_model_id,
+                version=version,
+                app_version_info=version_describe,
+                version_alias=version_alias,
                 record_id=share_record.ID,
                 share_user=share_user.user_id,
                 share_team=share_team.tenant_name,
@@ -859,12 +877,12 @@ class ShareService(object):
                 template_version="v2",
                 enterprise_id=share_team.enterprise_id
             )
-            app.save()
+            app_version.save()
             share_record.step = 2
             share_record.scope = scope
-            share_record.app_id = group_info.get("app_model_id")
-            share_record.share_version = group_info.get("version")
-            share_record.share_app_market_id = group_info.get("share_app_market_id")
+            share_record.app_id = app_model_id
+            share_record.share_version = version
+            share_record.share_app_market_id = market_id
             share_record.update_time = datetime.datetime.now()
             share_record.save()
             # 提交事务
@@ -1115,8 +1133,8 @@ class ShareService(object):
             dt["app_model_list"] = app_list
         return dt
 
-    def get_last_shared_app_version(self, tenant_id, group_id):
-        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id)
+    def get_last_shared_app_version(self, tenant_id, group_id, scope=None):
+        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, scope)
         if not last_shared:
             return None
         if last_shared.scope == "goodrain":
