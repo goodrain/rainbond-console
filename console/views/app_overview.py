@@ -709,7 +709,6 @@ class BuildSourceinfo(AppBaseView):
                             bean["app_detail_url"] = app.describe
 
                     if not app:
-                        # TODO fanyangyang repo return app_version
                         app, app_version = market_app_service.get_rainbond_app_and_version(
                             self.tenant.enterprise_id, service_source.group_key, service_source.version)
 
