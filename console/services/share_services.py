@@ -10,6 +10,7 @@ from console.exception.main import AbortRequest
 from console.exception.main import ServiceHandleException
 from console.exception.main import RbdAppNotFound
 from console.models.main import PluginShareRecordEvent
+from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.app_config import mnt_repo
