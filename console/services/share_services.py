@@ -862,7 +862,7 @@ class ShareService(object):
                 logger.exception(e)
                 return 500, "组件信息处理发生错误", None
             share_record.scope = scope
-            app = RainbondCenterAppVersion(
+            app_version = RainbondCenterAppVersion(
                 app_id=app_model_id,
                 version=version,
                 app_version_info=version_describe,
@@ -877,7 +877,7 @@ class ShareService(object):
                 template_version="v2",
                 enterprise_id=share_team.enterprise_id
             )
-            app.save()
+            app_version.save()
             share_record.step = 2
             share_record.scope = scope
             share_record.app_id = app_model_id
