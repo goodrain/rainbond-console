@@ -8,6 +8,7 @@ from console.models.main import AppExportRecord
 from console.models.main import AppImportRecord
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
+from console.models.main import RainbondCenterAppTagsRelation
 from console.utils.shortcuts import get_object_or_404
 from www.db.base import BaseConnection
 
@@ -290,27 +291,35 @@ class RainbondCenterAppRepository(object):
             return rcapps
         return None
 
-    def get_rainbond_app_by_key_and_version(self, enterprise_id, group_key, group_version):
-        app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
-        rcapps = RainbondCenterAppVersion.objects.filter(
-            enterprise_id=enterprise_id, app_id=group_key,
-            version=group_version,
-            scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
-        if rcapps and app:
-            rcapps[0].pic = app.pic
-            rcapps[0].app_name = app.app_name
-            rcapps[0].describe = app.describe
-            return rcapps[0]
-        rcapps = RainbondCenterAppVersion.objects.filter(
-            enterprise_id="public", app_id=group_key,
-            version=group_version,
-            scope__in=["gooodrain", "team", "enterprise"]).order_by("-update_time")
-        if rcapps and app:
-            rcapps[0].pic = app.pic
-            rcapps[0].app_name = app.app_name
-            rcapps[0].describe = app.describe
-            return rcapps[0]
-        return None
+    def add_rainbond_install_num(self, enterprise_id, app_id, app_version):
+        app = RainbondCenterApp.objects.get(enterprise_id=enterprise_id, app_id=app_id)
+        app.install_number += 1
+        app.save()
+
+        app_version = RainbondCenterAppVersion.objects.get(
+            enterprise_id=enterprise_id, app_id=app_id, version=app_version)
+        app_version.install_number += 1
+        app_version.save()
+
+    def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
+        app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=app_id).first()
+        app_version = RainbondCenterAppVersion.objects.filter(
+            enterprise_id=enterprise_id,
+            app_id=app_id,
+            version=app_version,
+            scope__in=["gooodrain", "team", "enterprise"],
+        ).first()
+        if app_version and app:
+            return app, app_version
+        app_version = RainbondCenterAppVersion.objects.filter(
+            enterprise_id="public",
+            app_id=app_id,
+            version=app_version,
+            scope__in=["gooodrain", "team", "enterprise"],
+        ).first()
+        if app_version and app:
+            return app, app_version
+        return None, None
 
     def list_by_key_time(self, group_key, time):
         rcapps = RainbondCenterAppVersion.objects.filter(
@@ -383,6 +392,15 @@ class RainbondCenterAppRepository(object):
         if rcapps:
             return rcapps[0]
         return None
+
+    def delete_app_tag_by_id(self, enterprise_id, app_id):
+        RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
+
+    def delete_app_version_by_id(self, enterprise_id, app_id):
+        RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
+
+    def delete_app_by_id(self, enterprise_id, app_id):
+        RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
 
 
 class AppExportRepository(object):

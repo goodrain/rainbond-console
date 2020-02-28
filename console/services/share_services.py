@@ -8,13 +8,14 @@ from django.db import transaction
 from console.appstore.appstore import app_store
 from console.exception.main import AbortRequest
 from console.exception.main import ServiceHandleException
+from console.exception.main import RbdAppNotFound
 from console.models.main import PluginShareRecordEvent
-from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.market_app_repo import app_export_record_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.plugin import service_plugin_config_repo
@@ -508,19 +509,19 @@ class ShareService(object):
 
     @transaction.atomic
     def sync_event(self, user, region_name, tenant_name, record_event):
-        rc_apps = RainbondCenterApp.objects.filter(record_id=record_event.record_id)
-        if not rc_apps:
-            return 404, "分享的应用不存在", None
-        rc_app = rc_apps[0]
+        app_versions = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
+        if not app_versions:
+            raise RbdAppNotFound("分享的应用不存在")
+        app_version = app_versions[0]
         event_type = "share-yb"
-        if rc_app.scope.startswith("goodrain"):
+        if app_version.scope.startswith("goodrain"):
             event_type = "share-ys"
         event = self.create_publish_event(record_event, user.nick_name, event_type)
         record_event.event_id = event.event_id
-        app_templetes = json.loads(rc_app.app_template)
+        app_templetes = json.loads(app_version.app_template)
         apps = app_templetes.get("apps", None)
         if not apps:
-            return 500, "分享的应用信息获取失败", None
+            raise ServiceHandleException(msg="get share app info failed", msg_show="分享的应用信息获取失败", status_code=500)
         new_apps = list()
         sid = transaction.savepoint()
         try:
@@ -529,16 +530,15 @@ class ShareService(object):
                 if app["service_key"] == record_event.service_key:
                     body = {
                         "service_key": app["service_key"],
-                        "app_version": rc_app.version,
+                        "app_version": app_version.version,
                         "event_id": event.event_id,
                         "share_user": user.nick_name,
-                        "share_scope": rc_app.scope,
+                        "share_scope": app_version.scope,
                         "image_info": app.get("service_image", None),
                         "slug_info": app.get("service_slug", None)
                     }
                     try:
-                        res, re_body = region_api.share_service(
-                            region_name, tenant_name, record_event.service_alias, body)
+                        res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
                         if bean:
                             record_event.region_share_id = bean.get("share_id", None)
@@ -555,37 +555,37 @@ class ShareService(object):
                             new_apps.append(app)
                         else:
                             transaction.savepoint_rollback(sid)
-                            return 400, "数据中心分享错误", None
+                            raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
                     except region_api.CallApiFrequentError as e:
                         logger.exception(e)
-                        return 409, u"操作过于频繁，请稍后再试", None
+                        raise ServiceHandleException(msg="wait a moment please", msg_show="操作过于频繁，请稍后再试", status_code=409)
                     except Exception as e:
                         logger.exception(e)
                         transaction.savepoint_rollback(sid)
                         if re_body:
                             logger.error(re_body)
-                        return 500, "数据中心分享错误", None
+                        raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误", status_code=500)
                 else:
                     new_apps.append(app)
             app_templetes["apps"] = new_apps
-            rc_app.app_template = json.dumps(app_templetes)
-            rc_app.update_time = datetime.datetime.now()
-            rc_app.save()
+            app_version.app_template = json.dumps(app_templetes)
+            app_version.update_time = datetime.datetime.now()
+            app_version.save()
             transaction.savepoint_commit(sid)
-            return 200, "数据中心分享开始", record_event
+            return record_event
         except Exception as e:
             logger.exception(e)
             if sid:
                 transaction.savepoint_rollback(sid)
-            return 500, "应用分享介质同步发生错误", None
+            raise ServiceHandleException(msg="share failed", msg_show="应用分享介质同步发生错误", status_code=500)
 
     @transaction.atomic
     def sync_service_plugin_event(self, user, region_name, tenant_name, record_id, record_event):
-        rc_apps = RainbondCenterApp.objects.filter(record_id=record_id)
-        if not rc_apps:
-            return 404, "分享的应用不存在", None
-        rc_app = rc_apps[0]
-        app_template = json.loads(rc_app.app_template)
+        apps_versions = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
+        if not apps_versions:
+            raise RbdAppNotFound("分享的应用不存在")
+        apps_version = apps_versions[0]
+        app_template = json.loads(apps_version.app_template)
         plugins_info = app_template["plugins"]
         plugin_list = []
         for plugin in plugins_info:
@@ -597,7 +597,7 @@ class ShareService(object):
                     "plugin_key": plugin["plugin_key"],
                     "event_id": event_id,
                     "share_user": user.nick_name,
-                    "share_scope": rc_app.scope,
+                    "share_scope": apps_version.scope,
                     "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else "",
                 }
 
@@ -607,7 +607,7 @@ class ShareService(object):
                     sid = transaction.savepoint()
                     if not data:
                         transaction.savepoint_rollback(sid)
-                        return 400, "数据中心分享错误", None
+                        raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
 
                     record_event.region_share_id = data.get("share_id", None)
                     record_event.event_id = data.get("event_id", None)
@@ -623,13 +623,13 @@ class ShareService(object):
                     logger.exception(e)
                     if sid:
                         transaction.savepoint_rollback(sid)
-                    return 500, "插件分享事件同步发生错误", None
+                    raise ServiceHandleException(msg="share failed", msg_show="插件分享事件同步发生错误", status_code=500)
 
             plugin_list.append(plugin)
         app_template["plugins"] = plugin_list
-        rc_app.app_template = json.dumps(app_template)
-        rc_app.save()
-        return 200, "success", record_event
+        apps_version.app_template = json.dumps(app_template)
+        apps_version.save()
+        return record_event
 
     def get_sync_plugin_events(self, region_name, tenant_name, record_event):
         res, body = region_api.share_plugin_result(region_name, tenant_name, record_event.plugin_id,

@@ -43,8 +43,9 @@ class MarketAppInstallView(BaseOpenAPIView):
             app_version = market_client.download_app_by_order(order_id=data["order_id"])
             if not app_version:
                 return Response(FailSerializer({"msg": "download app metadata failure"}), status=status.HTTP_400_BAD_REQUEST)
-            rainbond_app = market_app_service.conversion_cloud_version_to_app(app_version)
-            market_app_service.install_service(tenant, app.region_name, request.user, app.ID, rainbond_app, True, True)
+            rainbond_app, rainbond_app_version = market_app_service.conversion_cloud_version_to_app(app_version)
+            market_app_service.install_service(tenant, app.region_name, request.user, app.ID,
+                                               rainbond_app, rainbond_app_version, True, True)
             services = group_service.get_group_services(data["app_id"])
             appInfo = model_to_dict(app)
             appInfo["enterprise_id"] = tenant.enterprise_id

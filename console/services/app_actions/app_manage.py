@@ -646,22 +646,22 @@ class AppManageService(AppManageBase):
                 try:
                     if service_source:
                         old_extent_info = json.loads(service_source.extend_info)
-                        rain_app = None
+                        app_version = None
                         # install from cloud
                         install_from_cloud = False
                         if old_extent_info.get("install_from_cloud", False):
                             install_from_cloud = True
                             # TODO:Skip the subcontract structure to avoid loop introduction
                             from console.services.market_app_service import market_app_service
-                            rain_app = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
-                                                                             service_source.version)
+                            _, app_version = market_app_service.get_app_from_cloud(
+                                tenant, service_source.group_key, service_source.version)
                         # install from local cloud
                         else:
-                            rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                            _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
                                 service_source.group_key, service_source.version)
-                        if rain_app:
+                        if app_version:
                             # 解析app_template的json数据
-                            apps_template = json.loads(rain_app.app_template)
+                            apps_template = json.loads(app_version.app_template)
                             apps_list = apps_template.get("apps")
                             if service_source.extend_info:
                                 extend_info = json.loads(service_source.extend_info)

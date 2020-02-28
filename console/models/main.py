@@ -108,11 +108,6 @@ class RainbondCenterApp(BaseModel):
     details = models.TextField(null=True, blank=True, help_text=u"应用详情")
 
 
-class RainbondCenterAppRead(RainbondCenterApp):
-    app_template = models.TextField(help_text=u"全量应用与插件配置信息")
-    version = models.CharField(max_length=32, help_text=u"版本")
-
-
 class RainbondCenterAppVersion(BaseModel):
     """云市应用版本"""
     class Meta:

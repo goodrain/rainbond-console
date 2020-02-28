@@ -101,53 +101,49 @@ class AppDetailView(AppBaseView):
                 if not service_source:
                     result = general_message(200, "success", "查询成功", bean=bean)
                     return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                rainbond_app, rainbond_app_version = rainbond_app_repo.get_rainbond_app_and_version(
                     self.tenant.enterprise_id, service_source.group_key, service_source.version)
-                if not rain_app:
+                if not rainbond_app:
                     result = general_message(200, "success", "当前云市组件已删除", bean=bean)
                     return Response(result, status=result["code"])
-                else:
-                    bean.update({"rain_app_name": rain_app.group_name})
-                    apps_template = json.loads(rain_app.app_template)
-                    apps_list = apps_template.get("apps")
-                    for app in apps_list:
-                        if app["service_key"] == self.service.service_key:
-                            if self.service.deploy_version and int(
-                                    app["deploy_version"]) > int(
-                                    self.service.deploy_version):
-                                self.service.is_upgrate = True
-                                self.service.save()
-                                bean.update({"service": service_model})
-                    try:
-                        apps_template = json.loads(rain_app.app_template)
-                        apps_list = apps_template.get("apps")
-                        service_source = service_source_repo.get_service_source(
-                            self.service.tenant_id, self.service.service_id)
-                        if service_source and service_source.extend_info:
-                            extend_info = json.loads(service_source.extend_info)
-                            if extend_info:
-                                for app in apps_list:
-                                    if "service_share_uuid" in app:
-                                        if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                            new_version = int(app["deploy_version"])
-                                            old_version = int(extend_info["source_deploy_version"])
-                                            if new_version > old_version:
-                                                self.service.is_upgrate = True
-                                                self.service.save()
-                                                service_model["is_upgrade"] = True
-                                                bean.update({"service": service_model})
-                                    elif "service_share_uuid" not in app and "service_key" in app:
-                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
-                                            new_version = int(app["deploy_version"])
-                                            old_version = int(extend_info["source_deploy_version"])
-                                            if new_version > old_version:
-                                                self.service.is_upgrate = True
-                                                self.service.save()
-                                                service_model["is_upgrade"] = True
-                                                bean.update({"service": service_model})
 
-                    except Exception as e:
-                        logger.exception(e)
+                bean.update({"rain_app_name": rainbond_app.app_name})
+                apps_template = json.loads(rainbond_app_version.app_template)
+                apps_list = apps_template.get("apps")
+                for app in apps_list:
+                    if app["service_key"] == self.service.service_key:
+                        if self.service.deploy_version and int(app["deploy_version"]) > int(self.service.deploy_version):
+                            self.service.is_upgrate = True
+                            self.service.save()
+                            bean.update({"service": service_model})
+                try:
+                    apps_template = json.loads(rainbond_app_version.app_template)
+                    apps_list = apps_template.get("apps")
+                    service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
+                    if service_source and service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if extend_info:
+                            for app in apps_list:
+                                if "service_share_uuid" in app:
+                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
+                                elif "service_share_uuid" not in app and "service_key" in app:
+                                    if app["service_key"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
+                except Exception as e:
+                    logger.exception(e)
 
             if self.service.service_source == AppConstants.DOCKER_COMPOSE:
                 if self.service.create_status != "complete":
@@ -164,12 +160,10 @@ class AppDetailView(AppBaseView):
                     if service_endpoints.endpoints_type == "api":
                         # 从环境变量中获取域名，没有在从请求中获取
                         host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-                        bean["api_url"] = "http://" + host + "/console/" + \
-                            "third_party/{0}".format(self.service.service_id)
+                        bean["api_url"] = "http://" + host + "/console/" + "third_party/{0}".format(self.service.service_id)
                         key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
                         if key_repo:
-                            bean["api_service_key"] = pickle.loads(
-                                base64.b64decode(key_repo.secret_key)).get("secret_key")
+                            bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
                     if service_endpoints.endpoints_type == "discovery":
                         # 返回类型和key
                         endpoints_info_dict = json.loads(service_endpoints.endpoints_info)
@@ -209,9 +203,9 @@ class AppBriefView(AppBaseView):
                 if not service_source:
                     result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
                     return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                rainbond_app, rainbond_app_version = market_app_service.get_rainbond_app_and_version(
                     self.tenant.enterprise_id, service_source.group_key, service_source.version)
-                if not rain_app:
+                if not rainbond_app:
                     result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
                     return Response(result, status=result["code"])
             result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
@@ -703,24 +697,29 @@ class BuildSourceinfo(AppBaseView):
             if self.service.service_source == 'market':
                 if service_source:
                     # get from cloud
-                    rain_app = None
+                    app = None
+                    app_version = None
                     if service_source.extend_info:
                         extend_info = json.loads(service_source.extend_info)
                         if extend_info and extend_info.get("install_from_cloud", False):
-                            rain_app = market_app_service.get_app_from_cloud(self.tenant, service_source.group_key,
-                                                                             service_source.version)
+                            app, app_version = market_app_service.get_app_from_cloud(
+                                self.tenant, service_source.group_key, service_source.version)
+
                             bean["install_from_cloud"] = True
-                            bean["app_detail_url"] = rain_app.describe
-                    if not rain_app:
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
+                            bean["app_detail_url"] = app.describe
+
+                    if not app:
+                        # TODO fanyangyang repo return app_version
+                        app, app_version = market_app_service.get_rainbond_app_and_version(
                             self.tenant.enterprise_id, service_source.group_key, service_source.version)
-                    if rain_app:
-                        bean["rain_app_name"] = rain_app.group_name
-                        bean["details"] = rain_app.details
-                        logger.debug("app_version: {}".format(rain_app.version))
-                        bean["app_version"] = rain_app.version
-                        bean["version"] = rain_app.version
-                        bean["group_key"] = rain_app.group_key
+
+                    if app and app_version:
+                        bean["rain_app_name"] = app.app_name
+                        bean["details"] = app.details
+                        logger.debug("app_version: {}".format(app_version.version))
+                        bean["app_version"] = app_version.version
+                        bean["version"] = app_version.version
+                        bean["group_key"] = app.app_id
             result = general_message(200, "success", "查询成功", bean=bean)
         except ServiceHandleException as e:
             raise e
