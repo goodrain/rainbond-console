@@ -110,7 +110,10 @@ class ShareRepo(object):
         return RainbondCenterApp.objects.filter(
             tenant_service_group_id=group_id, is_complete=True).order_by("-create_time")
 
-    def get_last_shared_app_version_by_group_id(self, group_id, scope):
+    def get_last_shared_app_version_by_group_id(self, group_id, scope=None):
+        if not scope:
+            return ServiceShareRecord.objects.filter(
+                group_id=group_id, is_success=True).order_by("-create_time").first()
         return ServiceShareRecord.objects.filter(
             group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
 

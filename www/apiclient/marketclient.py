@@ -300,7 +300,7 @@ class MarketOpenAPIV2(HttpClient):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_enterprise_id(eid)
         url = url + "/openapi/v2/enter-markets"
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
-        if res.get("status") == 200 and not body.get("error_code"):
+        if res.get("status") == 200 and not isinstance(body, list):
             return body
         return None
 
