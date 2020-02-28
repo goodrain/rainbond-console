@@ -11,6 +11,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
+from console.exception.main import RegionNotFound, ServiceHandleException
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
 from console.views.base import AlowAnyApiView, JWTAuthApiView
@@ -42,13 +43,10 @@ class CenterAppExportView(JWTAuthApiView):
             result_list = []
             app_version_list = app_version.split("#")
             for version in app_version_list:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
-                    self.user.enterprise_id, app_id, version)
+                app = market_app_service.get_rainbond_app_and_version(self.user.enterprise_id, app_id, version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-                code, msg, result = export_service.get_export_status(enterprise_id, app)
-                if code != 200:
-                    return Response(general_message(code, "get export info error ", msg), status=code)
+                result = export_service.get_export_status(enterprise_id, app)
                 result_list.append(result)
 
             result = general_message(200, "success", "查询成功", list=result_list)
@@ -89,20 +87,21 @@ class CenterAppExportView(JWTAuthApiView):
                 return Response(general_message(400, "export format is illegal", "请指明导出格式"), status=400)
             new_export_record_list = []
             for version in app_versions:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
-                    self.user.enterprise_id, app_id, version)
+                app, app_version = market_app_service.get_rainbond_app_and_version(self.user.enterprise_id, app_id, version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
-                code, msg, new_export_record = export_service.export_current_app(enterprise_id, export_format, app)
-                if code != 200:
-                    return Response(general_message(code, "export error", msg), status=code)
+                new_export_record = export_service.export_current_app(enterprise_id, export_format, app, app_version)
 
                 new_export_record_list.append(new_export_record.to_dict())
 
             result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
         except ResourceNotEnoughException as re:
             raise re
+        except RegionNotFound as e:
+            return Response(general_message(404, e.msg, e.msg_show), status=404)
+        except ServiceHandleException as e:
+            raise e
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)

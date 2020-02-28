@@ -21,7 +21,7 @@ from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.exception.main import RegionNotFound, RecordNotFound
+from console.exception.main import RegionNotFound, RecordNotFound, ServiceHandleException
 from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
@@ -51,18 +51,18 @@ class AppExportService(object):
         new_export_record = app_export_record_repo.create_app_export_record(**params)
         return 200, "success", new_export_record
 
-    def export_current_app(self, enterprise_id, export_format, app):
+    def export_current_app(self, enterprise_id, export_format, app, app_version):
         event_id = make_uuid()
         data = {
             "event_id": event_id,
             "group_key": app.app_id,
             "version": app.version,
             "format": export_format,
-            "group_metadata": self.__get_group_metata(app)
+            "group_metadata": self.__get_group_metata(app, app_version)
         }
         region = self.get_app_share_region(app)
         if region is None:
-            return 404, '无法查找当前应用分享所在数据中心', None
+            raise RegionNotFound("数据中心未找到")
         region_api.export_app(region, enterprise_id, data)
         export_record = app_export_record_repo.get_enter_export_record_by_unique_key(enterprise_id, app.app_id,
                                                                                      app.version, export_format)
@@ -78,10 +78,10 @@ class AppExportService(object):
             code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.app_id, app.version,
                                                                    enterprise_id)
             if code != 200:
-                return code, msg, None
-        return 200, "success", new_export_record
+                raise ServiceHandleException(msg=msg, status_code=code, msg_show=msg)
+        return new_export_record
 
-    def __get_group_metata(self, app):
+    def __get_group_metata(self, app, app_version):
         picture_path = app.pic
         suffix = picture_path.split('.')[-1]
         describe = app.describe
@@ -91,7 +91,7 @@ class AppExportService(object):
             logger.warning("path: {}; error encoding image: {}".format(picture_path, e))
             image_base64_string = ""
 
-        app_template = json.loads(app.app_template)
+        app_template = json.loads(app_version.app_template)
         app_template["suffix"] = suffix
         app_template["describe"] = describe
         app_template["image_base64_string"] = image_base64_string
@@ -149,7 +149,7 @@ class AppExportService(object):
 
         region = self.get_app_share_region(app)
         if region is None:
-            return 404, '无法查找当前应用分享所在数据中心', None
+            raise RegionNotFound("数据中心未找到")
         if app_export_records:
             for export_record in app_export_records:
                 if export_record.event_id and export_record.status == "exporting":
@@ -183,7 +183,7 @@ class AppExportService(object):
                     })
 
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
-        return 200, "success", result
+        return result
 
     def __get_down_url(self, region_name, raw_url):
         region = region_repo.get_region_by_region_name(region_name)

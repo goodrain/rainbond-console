@@ -6,6 +6,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
+from console.exception.main import RbdAppNotFound
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
@@ -400,12 +401,15 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             if not events:
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
-            code, msg, record_event = share_service.sync_event(self.user, self.response_region, team_name, events[0])
+            record_event = share_service.sync_event(self.user, self.response_region, team_name, events[0])
             bean = record_event.to_dict() if record_event is not None else None
-            result = general_message(code, "sync share event", msg, bean=bean)
-            return Response(result, status=code)
+            result = general_message(200, "sync share event", "分享完成", bean=bean)
+            return Response(result, status=200)
         except ServiceHandleException as e:
             raise e
+        except RbdAppNotFound as e:
+            result = general_message(404, "app not found", e.msg)
+            return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -455,12 +459,15 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
 
-            code, msg, bean = share_service.sync_service_plugin_event(
+            bean = share_service.sync_service_plugin_event(
                 self.user, self.response_region, self.tenant.tenant_name, share_id, events[0])
-            result = general_message(code, "sync share event", msg, bean=bean.to_dict())
-            return Response(result, status=code)
+            result = general_message(200, "sync share event", "分享成功", bean=bean.to_dict())
+            return Response(result, status=200)
         except ServiceHandleException as e:
             raise e
+        except RbdAppNotFound as e:
+            result = general_message(404, "app not found", e.msg)
+            return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

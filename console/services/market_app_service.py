@@ -9,6 +9,7 @@ import socket
 import httplib2
 from addict import Dict
 from django.db.models import Q
+from django.db import transaction
 
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
@@ -33,7 +34,6 @@ from console.services.app_actions.properties_changes import has_changes
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppMntService
 from console.services.app_config import env_var_service
-from console.services.app_config import label_service
 from console.services.app_config import port_service
 from console.services.app_config import probe_service
 from console.services.app_config import volume_service
@@ -79,7 +79,7 @@ class MarketAppService(object):
         }
         return market_api_v2.create_market_app_by_enterprise_id(enterprise_id, body)
 
-    def install_service(self, tenant, region, user, group_id, market_app, is_deploy, install_from_cloud):
+    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy, install_from_cloud):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -88,11 +88,11 @@ class MarketAppService(object):
         app_plugin_map = {}  # 新装组件对应的安装的插件映射
         old_new_id_map = {}  # 新旧组件映射关系
         try:
-            app_templates = json.loads(market_app.app_template)
+            app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
             tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id,
                                                                       market_app.app_id,
-                                                                      market_app.version, market_app.app_name)
+                                                                      market_app_version.version, market_app.app_name)
             plugins = app_templates.get("plugins", [])
             if plugins:
                 status, msg = self.__create_plugin_for_tenant(region, user, tenant, plugins)
@@ -484,8 +484,6 @@ class MarketAppService(object):
                 if probe_ids:
                     service_prob_id_map[service.service_id] = probe_ids
 
-                # 添加组件有无状态标签
-                label_service.update_service_state_label(tenant, new_service)
                 new_service_list.append(new_service)
             return new_service_list
         except Exception as e:
@@ -649,7 +647,7 @@ class MarketAppService(object):
         extend_method = app["extend_method"]
         if extend_method:
             if extend_method == "state":
-                tenant_service.extend_method = ComponentType.state_singleton.value
+                tenant_service.extend_method = ComponentType.state_multiple.value
             elif extend_method == "stateless":
                 tenant_service.extend_method = ComponentType.stateless_multiple.value
             else:
@@ -806,16 +804,19 @@ class MarketAppService(object):
             return 404, None
         return 200, app
 
-    def get_rain_bond_app_by_key_and_version(self, enterprise_id, group_key, group_version):
-        app = rainbond_app_repo.get_rainbond_app_by_key_and_version(enterprise_id, group_key, group_version)
-        if not app:
-            return 404, None
-        return 200, app
+    def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
+        app, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_id, app_version)
+        if not app or not app_version:
+            raise RbdAppNotFound("未找到该应用")
+        return app, app_version
+
+    def update_rainbond_app_install_num(self, enterprise_id, app_id, app_version):
+        rainbond_app_repo.add_rainbond_install_num(enterprise_id, app_id, app_version)
 
     def get_service_app_from_cloud(self, tenant, group_key, group_version, service_source):
-        rain_app = self.get_app_from_cloud(tenant, group_key, group_version)
-        if rain_app:
-            apps_template = json.loads(rain_app.app_template)
+        _, market_app_version = self.get_app_from_cloud(tenant, group_key, group_version)
+        if market_app_version:
+            apps_template = json.loads(market_app_version.app_template)
             apps = apps_template.get("apps")
 
             def func(x):
@@ -833,8 +834,7 @@ class MarketAppService(object):
     # can not save in local db
     def get_app_from_cloud(self, tenant, group_key, group_version, install=False):
         try:
-            app_template = market_api.get_remote_app_templates(tenant.enterprise_id, group_key, group_version,
-                                                               install=install)
+            app_template = market_api.get_remote_app_templates(tenant.enterprise_id, group_key, group_version, install=install)
             if app_template:
                 rainbond_app = RainbondCenterApp(
                     app_id=app_template["group_key"],
@@ -842,31 +842,42 @@ class MarketAppService(object):
                     dev_status=app_template['group_version'],
                     source="import",
                     scope="goodrain",
-                    describe=app_template.get("app_detail_url", ""),
-                    app_template=app_template["template_content"])
-                return rainbond_app
+                    describe=app_template.get("desc", ""),
+                    create_time=app_template["create_time"],
+                    update_time=app_template["update_time"])
+                rainbond_app_version = RainbondCenterAppVersion(
+                    app_template=app_template["template_content"],
+                    version=app_template["group_version"],
+                    template_version=app_template["template_version"],
+                    app_version_info=app_template["info"],
+                    is_official=app_template["is_official"])
+                return rainbond_app, rainbond_app_version
             return None
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403,
-                                             error_code=10407)
-            else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500,
-                                             error_code=500)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def conversion_cloud_version_to_app(self, cloud_version):
-        return RainbondCenterApp(
-                    group_key=cloud_version.app_key_id,
-                    group_name="",
-                    version=cloud_version.app_version,
-                    share_user=0,
-                    record_id=0,
-                    source="cloud",
-                    scope="market",
-                    app_template=json.dumps(cloud_version.templete.to_dict()),
-                    is_complete=True,
-                    template_version=cloud_version.templete_version)
+        app = RainbondCenterApp(
+            app_id=cloud_version.app_key_id,
+            app_name="",
+            share_user=0,
+            source="cloud",
+            scope="market")
+        app_version = RainbondCenterAppVersion(
+            app_id=cloud_version.app_key_id,
+            app_name="",
+            version=cloud_version.app_version,
+            share_user=0,
+            record_id=0,
+            source="cloud",
+            scope="market",
+            app_template=json.dumps(cloud_version.templete.to_dict()),
+            is_complete=True,
+            template_version=cloud_version.templete_version)
+        return app, app_version
 
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
@@ -1025,7 +1036,7 @@ class MarketAppService(object):
             extend_info = json.loads(service_source.extend_info)
             if extend_info and extend_info.get("install_from_cloud", False):
                 install_from_cloud = True
-                cur_rbd_app = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
+                cur_rbd_app, _ = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
         if not cur_rbd_app:
             cur_rbd_app = rainbond_app_repo.get_rainbond_app_version_by_app_id(
                 tenant.enterprise_id, service_source.group_key, service_source.version)[0]
@@ -1045,7 +1056,6 @@ class MarketAppService(object):
         result = []
         for item in rbd_center_apps:
             try:
-                # changes = pc.get_property_changes(tenant.enterprise_id, item.version)
                 changes = pc.get_property_changes(
                     tenant.enterprise_id, item.version,
                     version_template=apps_versions_templates.get(item.version),
@@ -1056,10 +1066,21 @@ class MarketAppService(object):
                 continue
             if not has_changes(changes):
                 continue
-            # logger.debug("changes: {}".format(json.dumps(changes)))
             result.append(item.version)
 
         return result
+
+    def delete_rainbond_app_all_info_by_id(self, enterprise_id, app_id):
+        sid = transaction.savepoint()
+        try:
+            rainbond_app_repo.delete_app_tag_by_id(enterprise_id, app_id)
+            rainbond_app_repo.delete_app_version_by_id(enterprise_id, app_id)
+            rainbond_app_repo.delete_app_by_id(enterprise_id, app_id)
+            transaction.savepoint_commit(sid)
+        except Exception as e:
+            logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
 
 
 class MarketTemplateTranslateService(object):
@@ -1270,18 +1291,17 @@ class MarketTemplateTranslateService(object):
 
 
 class AppMarketSynchronizeService(object):
-    def download_app_service_group_from_market(self, user, tenant, group_key, group_version):
-        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-            tenant.enterprise_id, group_key, group_version)
-        rainbond_app_version = rainbond_app_repo.get_rainbond_app_by_key(group_key)
-        if rainbond_app_version and rainbond_app.is_complete:
+    def download_app_service_group_from_market(self, user, tenant, app_id, app_version):
+        rainbond_app, rainbond_app_version = rainbond_app_repo.get_rainbond_app_and_version(
+            tenant.enterprise_id, app_id, app_version)
+        if rainbond_app and rainbond_app_version and rainbond_app_version.is_complete:
             return rainbond_app, rainbond_app_version
         try:
-            rainbond_app, rainbond_app_version = self.down_market_group_app_detail(user, tenant, group_key, group_version, "v2")
+            rainbond_app, rainbond_app_version = self.down_market_group_app_detail(user, tenant, app_id, app_version, "v2")
             return rainbond_app, rainbond_app_version
         except Exception as e:
             logger.exception(e)
-            logger.error('download app_group[{0}-{1}] from market failed!'.format(group_key, group_version))
+            logger.error('download app_group[{0}-{1}] from market failed!'.format(app_id, app_version))
             return None
 
     def down_market_group_app_detail(self, user, enterprise_id, group_key, group_version, template_version):

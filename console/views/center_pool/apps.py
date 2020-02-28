@@ -6,7 +6,7 @@ import logging
 import httplib2
 import httplib
 import json
-from django.db.models import F
+import datetime
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -15,7 +15,6 @@ from rest_framework import status
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
 from console.repositories.team_repo import team_repo
@@ -137,33 +136,30 @@ class CenterAppView(RegionTenantHeaderView):
         """
         try:
             group_id = request.data.get("group_id", -1)
-            group_key = request.data.get("group_key", None)
-            group_version = request.data.get("group_version", None)
+            app_id = request.data.get("app_id", None)
+            app_version = request.data.get("app_version", None)
             is_deploy = request.data.get("is_deploy", True)
             install_from_cloud = request.data.get("install_from_cloud", False)
-            if not group_key or not group_version:
+            if not app_id or not app_version:
                 return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
             if int(group_id) != -1:
-                code, _, _ = group_service.get_group_by_id(self.tenant, self.response_region, group_id)
-                if code != 200:
-                    return Response(general_message(400, "group not exist", "所选组不存在"), status=400)
+                group_service.get_group_by_id(self.tenant, self.response_region, group_id)
+            app = None
+            app_version_info = None
             if install_from_cloud:
-                app = market_app_service.get_app_from_cloud(self.tenant, group_key, group_version, True)
+                app, app_version_info = market_app_service.get_app_from_cloud(self.tenant, app_id, app_version, True)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
-                    self.user.enterprise_id, group_key, group_version)
+                app, app_version_info = market_app_service.get_rainbond_app_and_version(
+                    self.user.enterprise_id, app_id, app_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, is_deploy,
-                                               install_from_cloud)
+            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, app_version_info,
+                                               is_deploy, install_from_cloud)
             if not install_from_cloud:
-                RainbondCenterApp.objects.filter(
-                    app_id=group_key).update(install_number=F("install_number") + 1)
-                RainbondCenterAppVersion.objects.filter(
-                    app_id=group_key, version=group_version).update(install_number=F("install_number") + 1)
+                market_app_service.update_rainbond_app_install_num(self.user.enterprise_id, app_id, app_version)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
         except ResourceNotEnoughException as re:
@@ -322,14 +318,7 @@ class CenterAppUDView(JWTAuthApiView):
         return Response(result, status=200)
 
     def delete(self, request, enterprise_id, app_id, *args, **kwargs):
-        app = RainbondCenterApp.objects.filter(app_id=app_id, enterprise_id=enterprise_id)
-        if not app:
-            result = general_message(404, "no found app-model", None)
-            return Response(result, status=404)
-        app_model = rainbond_app_repo.get_rainbond_app_version_by_id(enterprise_id, app_id)
-        app.delete()
-        app_model.delete()
-        app_tag_repo.get_app_tags(enterprise_id, app_id).delete()
+        market_app_service.delete_rainbond_app_all_info_by_id(enterprise_id, app_id)
         result = general_message(200, "success", None)
         return Response(result, status=200)
 
@@ -362,7 +351,7 @@ class CenterAppManageView(JWTAuthApiView):
             app_version_list = request.data.get("app_versions", [])
             action = request.data.get("action", None)
             if not app_id:
-                return Response(general_message(400, "group_key is null", "请指明需要安装应用的group_key"), status=400)
+                return Response(general_message(400, "group_key is null", "请指明需要安装应用的app_id"), status=400)
             if not app_version_list:
                 return Response(general_message(400, "group_version_list is null", "请指明需要安装应用的版本"), status=400)
             if not action:
@@ -370,16 +359,18 @@ class CenterAppManageView(JWTAuthApiView):
             if action not in ("online", "offline"):
                 return Response(general_message(400, "action is not allow", "不允许的操作类型"), status=400)
             for app_version in app_version_list:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(
-                    self.user.enterprise_id, app_id, app_version)
-                if not app:
+                app, version = market_app_service.get_rainbond_app_and_version(self.user.enterprise_id, app_id, app_version)
+                if not version:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
                 if action == "online":
-                    app.is_complete = True
+                    version.is_complete = True
                 else:
-                    app.is_complete = False
+                    version.is_complete = False
+                app.update_time = datetime.datetime.now()
                 app.save()
+                version.update_time = datetime.datetime.now()
+                version.save()
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
