@@ -728,7 +728,7 @@ class ShareService(object):
         # 开启事务
         sid = transaction.savepoint()
         try:
-            group_info = share_info["share_group_info"]
+            group_info = share_info["share_version_info"]
 
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
@@ -847,8 +847,8 @@ class ShareService(object):
             app = RainbondCenterAppVersion(
                 app_id=group_info.get("app_model_id"),
                 version=group_info.get("version"),
-                app_version_info=group_info.get("app_version_info"),
-                version_alias=group_info.get("version_alias"),
+                app_version_info=group_info.get("version_describe"),
+                version_alias=group_info.get("version_alias", group_info.get("version")),
                 record_id=share_record.ID,
                 share_user=share_user.user_id,
                 share_team=share_team.tenant_name,
@@ -864,7 +864,7 @@ class ShareService(object):
             share_record.scope = scope
             share_record.app_id = group_info.get("app_model_id")
             share_record.share_version = group_info.get("version")
-            share_record.share_app_market_id = group_info.get("share_app_market_id")
+            share_record.share_app_market_id = group_info["target"]["market_id"]
             share_record.update_time = datetime.datetime.now()
             share_record.save()
             # 提交事务

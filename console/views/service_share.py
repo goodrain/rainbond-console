@@ -309,7 +309,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             if not request.data:
                 result = general_message(400, "share info can not be empty", "分享信息不能为空")
                 return Response(result, status=400)
-            share_group_info = request.data.get("share_group_info", None)
+            share_group_info = request.data.get("app_version_info", None)
             if share_group_info and share_group_info["scope"] == "goodrain":
                 enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.team.enterprise_id)
                 if not enterprise.is_active:
