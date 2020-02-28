@@ -924,10 +924,10 @@ class MarketAppService(object):
                 for app in remote_apps:
                     if app["group_version"] == group_version_list[0] and app["group_key"] == group_key:
                         app_dict = {
-                            "group_key": group_key,
+                            "app_id": group_key,
+                            "app_name": app.get("group_name", ""),
                             "group_version_list": group_version_list,
                             "update_version": app.get("update_version"),
-                            "group_name": app.get("group_name", ""),
                             "pic": app.get("pic", ""),
                             "info": app.get("info", ""),
                             "template_version": app.get("template_version", ""),
@@ -938,7 +938,7 @@ class MarketAppService(object):
                         }
                         app_list.append(app_dict)
         for app in app_list:
-            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(enterprise_id, app["group_key"],
+            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(enterprise_id, app["app_id"],
                                                                           app["group_version_list"][0])
 
             is_upgrade = 0
@@ -956,8 +956,8 @@ class MarketAppService(object):
                 except Exception as e:
                     logger.exception(e)
             rbapp = {
-                "group_key": app["group_key"],
-                "group_name": app["group_name"],
+                "app_id": app["app_id"],
+                "app_name": app["app_name"],
                 "version": app["group_version_list"],
                 "source": "market",
                 "scope": "goodrain",
@@ -1407,8 +1407,18 @@ class AppMarketSynchronizeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            return market_client.get_recommended_app_list_with_http_info(
+            apps, code, _ = market_client.get_recommended_app_list_with_http_info(
                 page=page, limit=limit, group_name=app_name, _request_timeout=3)
+            app_list = list()
+            page = apps.page
+            total = apps.total
+            if apps and apps.list:
+                for app in apps.list:
+                    app_info = app.to_dict()
+                    app_info["app_id"] = app_info.get("app_key_id", "")
+                    app_info["app_name"] = app_info.get("name", "")
+                    app_list.append(app_info)
+            return app_list, total, page
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
             raise e
