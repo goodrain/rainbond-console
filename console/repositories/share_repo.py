@@ -111,11 +111,13 @@ class ShareRepo(object):
             tenant_service_group_id=group_id, is_complete=True).order_by("-create_time")
 
     def get_last_shared_app_version_by_group_id(self, group_id, scope=None):
-        if not scope:
+        if scope == "goodrain":
             return ServiceShareRecord.objects.filter(
-                group_id=group_id, is_success=True).order_by("-create_time").first()
-        return ServiceShareRecord.objects.filter(
-            group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
+                group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
+        else:
+            return ServiceShareRecord.objects.filter(
+                group_id=group_id, scope__in=["team", "enterprise", None], is_success=True
+            ).order_by("-create_time").first()
 
     def get_local_apps(self):
         return RainbondCenterApp.objects.all().order_by("-create_time")
