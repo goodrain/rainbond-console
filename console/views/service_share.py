@@ -138,6 +138,71 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             return Response(result, status=500)
 
 
+class ServiceShareRecordInfoView(RegionTenantHeaderView):
+    def get(self, request, team_name, group_id, record_id, *args, **kwargs):
+        data = None
+        share_record = share_repo.get_service_share_record_by_id(group_id=group_id, record_id=record_id)
+        if share_record:
+            app_model_name = None
+            app_model_id = None
+            version = None
+            version_alias = None
+            upgrade_time = None
+            store_name = None
+            store_id = None
+            scope = share_record.scope
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
+            if app:
+                app_model_id = share_record.app_id
+                app_model_name = app.app_name
+                store_id = share_record.share_app_market_id
+                if store_id:
+                    market = share_service.get_cloud_markets(self.tenant.tenant_id)
+                    if market:
+                        store_name = market["name"]
+            app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+            if app_version:
+                version = app_version.version
+                version_alias = app_version.version_alias
+                upgrade_time = app_version.upgrade_time
+            data = {
+                "app_model_id": app_model_id,
+                "app_model_name": app_model_name,
+                "version": version,
+                "version_alias": version_alias,
+                "scope": scope,
+                "create_time": share_record.create_time,
+                "upgrade_time": upgrade_time,
+                "step": share_record.step,
+                "is_success": share_record.is_success,
+                "status": share_record.status,
+                "scope_target": {
+                    "store_name": store_name,
+                    "store_id": store_id,
+                },
+                "record_id": share_record.ID,
+            }
+        result = general_message(200, "success", None, bean=data)
+        return Response(result, status=200)
+
+    def put(self, request, team_name, group_id, record_id, *args, **kwargs):
+        status = request.data.get("status")
+        share_record = share_repo.get_service_share_record_by_id(group_id=group_id, record_id=record_id)
+        if share_record and status:
+            share_record.status = status
+            share_record.save()
+            result = general_message(200, "success", None, bean=share_record.to_dict())
+            return Response(result, status=200)
+
+    def delete(self, request, team_name, group_id, record_id, *args, **kwargs):
+        status = request.data.get("status")
+        share_record = share_repo.get_service_share_record_by_id(group_id=group_id, record_id=record_id)
+        if share_record and status:
+            share_record.delete()
+            result = general_message(200, "success", None)
+            return Response(result, status=200)
+
+
 class ServiceShareDeleteView(RegionTenantHeaderView):
     @perm_required('share_service')
     def delete(self, request, team_name, share_id, *args, **kwargs):
@@ -579,11 +644,11 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
     @perm_required('share_service')
     def get(self, request, team_name, group_id, *args, **kwargs):
         scope = request.GET.get("scope", None)
-        if not scope:
-            data = share_service.get_last_shared_app_and_app_list(self.tenant.tenant_id, group_id)
-        else:
-            data = share_service.get_app_list(self.tenant.tenant_id, scope)
-        result = general_message(200, "get shared apps list complete", None, bean=data)
+        market_id = request.GET.get("market_id", None)
+        data = share_service.get_last_shared_app_and_app_list(
+            self.tenant.enterprise_id, self.tenant.tenant_id, group_id, scope, market_id)
+        result = general_message(200, "get shared apps list complete", None,
+                                 bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)
 
 
