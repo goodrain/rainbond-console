@@ -69,7 +69,7 @@ class ListAppsView(ListAPIView):
             raise serializers.ValidationError("指定租户不存在")
         if not region_services.verify_team_region(team_name=data["team_alias"], region_name=data["region_name"]):
             raise serializers.ValidationError("指定数据中心租户未开通")
-        group_info = group_service.add_group(tenant, data["region_name"], data["app_name"], data["group_note"])
+        group_info = group_service.add_group(tenant, data["region_name"], data["app_name"], data.get("group_note"))
         re = AppBaseInfoSerializer(group_info)
         return Response(re.data, status=status.HTTP_201_CREATED)
 
