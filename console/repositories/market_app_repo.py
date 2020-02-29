@@ -52,7 +52,7 @@ class RainbondCenterAppRepository(object):
                                           is_complete=None, page=1, page_size=10):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
-        where = 'WHERE (BB.enterprise_id="{eid}" or BB.enterprise_id="public") '.format(eid=eid)
+        where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
         group = """GROUP BY BB.enterprise_id, BB.app_id {}) CC
         LEFT JOIN rainbond_center_app_tag_relation D
         ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
