@@ -938,8 +938,9 @@ class MarketAppService(object):
                         }
                         app_list.append(app_dict)
         for app in app_list:
-            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
-                enterprise_id, app["app_id"], app["group_version_list"][0])
+            rbc = rainbond_app_repo.get_enterpirse_app_by_key_and_version(enterprise_id, app["app_id"],
+                                                                          app["group_version_list"][0])
+
             is_upgrade = 0
             is_complete = False
             if rbc:
@@ -1325,7 +1326,6 @@ class AppMarketSynchronizeService(object):
         )
 
         if not rainbond_app:
-            version_alias = app_templates.get("version_alias", app_templates.get("group_version"))
             rainbond_app = RainbondCenterApp(
                 app_id=app_templates["group_key"],
                 app_name=app_templates["group_name"],
@@ -1343,7 +1343,7 @@ class AppMarketSynchronizeService(object):
                 enterprise_id=enterprise_id,
                 app_id=app_templates["group_key"],
                 version=app_templates['group_version'],
-                version_alias=version_alias,
+                version_alias="NA",
                 app_version_info=app_templates['info'],
                 share_user=0,
                 record_id=0,
