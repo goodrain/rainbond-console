@@ -142,7 +142,7 @@ class CenterAppImportView(JWTAuthApiView):
         try:
             scope = request.data.get("scope", None)
             file_name = request.data.get("file_name", None)
-            team_name = request.data.get("team_name", None)
+            team_name = request.data.get("tenant_name", None)
             if not scope:
                 raise AbortRequest(msg="select the scope", msg_show="请选择导入应用可见范围")
             if scope == "team" and not team_name:
