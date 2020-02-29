@@ -7,6 +7,7 @@ import logging
 from www.models.main import ServiceGroup
 from www.models.main import ServiceGroupRelation
 from console.repositories.app import service_repo
+from console.repositories.group import group_repo
 logger = logging.getLogger("default")
 
 
@@ -18,7 +19,6 @@ class SyncTenantServiceManager(object):
 
     def sync_service_info(self):
         try:
-            print "start process ..."
             pos = 0
             NUMBER_OF_SERVICES = 300
             flag = True
@@ -64,8 +64,7 @@ class SyncTenantServiceManager(object):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建
         group = ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, is_default=True).first()
         if not group:
-            group = ServiceGroup.objects.create(
-                tenant_id=tenant_id, region_name=region_name, group_name='默认应用', is_default=True)
+            return self.add_group(tenant_id=tenant_id, region_name=region_name, group_name="默认应用", is_default=True)
         return group
 
     def add_service_to_default_app(self, group_id, service):
