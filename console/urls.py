@@ -888,6 +888,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     # 下架应用
     # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", OauthService.as_view()),
 
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),

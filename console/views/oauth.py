@@ -117,6 +117,37 @@ class OauthService(JWTAuthApiView):
         return Response(rst, status=status.HTTP_200_OK)
 
 
+class EnterpriseOauthService(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        all_services_list = []
+        service = oauth_repo.get_conosle_oauth_service(enterprise_id)
+        all_services = oauth_repo.get_all_oauth_services(enterprise_id)
+        if all_services is not None:
+            for l_service in all_services:
+                api = get_oauth_instance(l_service.oauth_type, service, None)
+                authorize_url = api.get_authorize_url()
+                all_services_list.append({
+                    "service_id": l_service.ID,
+                    "enable": l_service.enable,
+                    "name": l_service.name,
+                    "client_id": l_service.client_id,
+                    "auth_url": l_service.auth_url,
+                    "redirect_uri": l_service.redirect_uri,
+                    "oauth_type": l_service.oauth_type,
+                    "home_url": l_service.home_url,
+                    "eid": l_service.eid,
+                    "access_token_url": l_service.access_token_url,
+                    "api_url": l_service.api_url,
+                    "client_secret": l_service.client_secret,
+                    "is_auto_login": l_service.is_auto_login,
+                    "is_git": l_service.is_git,
+                    "authorize_url": authorize_url,
+                    "enterprise_id": l_service.eid,
+                })
+        rst = {"data": {"list": all_services_list}}
+        return Response(rst, status=status.HTTP_200_OK)
+
+
 class OauthServiceInfo(JWTAuthApiView):
     def delete(self, request, service_id):
         try:
