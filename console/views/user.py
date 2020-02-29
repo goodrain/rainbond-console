@@ -362,6 +362,17 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             if len(password) < 8:
                 result = general_message(400, "len error", "密码长度最少为8位")
                 return Response(result)
+                # 校验用户信息
+            is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+            if not is_pass:
+                result = general_message(403, "user information is not passed", msg)
+                return Response(result)
+            client_ip = user_services.get_client_ip(request)
+            enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+            # 创建用户
+            user = user_services.create_user_set_password(
+                user_name, email, password, "admin add", enterprise, client_ip)
+            result = general_message(200, "success", "添加用户成功")
             if role_ids:
                 try:
                     role_id_list = [int(id) for id in role_ids.split(",")]
@@ -375,16 +386,6 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                         code = 400
                         result = general_message(code, "The role does not exist", "该角色在团队中不存在")
                         return Response(result, status=code)
-                # 校验用户信息
-                is_pass, msg = user_services.check_params(user_name, email, password, re_password)
-                if not is_pass:
-                    result = general_message(403, "user information is not passed", msg)
-                    return Response(result)
-                client_ip = user_services.get_client_ip(request)
-                enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
-                # 创建用户
-                user = user_services.create_user_set_password(
-                    user_name, email, password, "admin add", enterprise, client_ip)
                 # 创建用户团队关系表
                 if tenant_name:
                     team_services.create_tenant_role(
@@ -392,8 +393,6 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 user.is_active = True
                 user.save()
                 result = general_message(200, "success", "添加用户成功")
-            else:
-                result = general_message(400, "not role", "创建用户时角色不能为空")
         except Exception as e:
             logger.exception(e)
             result = general_message(500, e.message, "系统异常")

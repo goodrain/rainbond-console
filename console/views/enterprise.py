@@ -267,7 +267,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if join_tenants:
                 for tenant in join_tenants:
                     region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.tenant_id)
+                    region_list = team_repo.get_team_regions(tenant.team_id)
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)

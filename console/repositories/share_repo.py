@@ -83,7 +83,7 @@ class ShareRepo(object):
         return app
 
     def get_app_by_key(self, key):
-        app = RainbondCenterApp.objects.filter(group_key=key)
+        app = RainbondCenterApp.objects.filter(app_id=key)
         if app:
             return app[0]
         else:
