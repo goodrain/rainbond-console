@@ -147,6 +147,40 @@ class EnterpriseOauthService(JWTAuthApiView):
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
 
+    def post(self, request, enterprise_id, *args, **kwargs):
+        values = request.data.get("oauth_services")
+        try:
+            services = oauth_repo.create_or_update_console_oauth_services(values, enterprise_id)
+        except Exception as e:
+            logger.debug(e.message)
+            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
+        service = oauth_repo.get_conosle_oauth_service(enterprise_id)
+        api = get_oauth_instance(service.oauth_type, service, None)
+        authorize_url = api.get_authorize_url()
+        data = []
+        for service in services:
+            data.append(
+                {
+                    "service_id": service.ID,
+                    "name": service.name,
+                    "oauth_type": service.oauth_type,
+                    "client_id": service.client_id,
+                    "client_secret": service.client_secret,
+                    "enable": service.enable,
+                    "eid": service.eid,
+                    "redirect_uri": service.redirect_uri,
+                    "home_url": service.home_url,
+                    "auth_url": service.auth_url,
+                    "access_token_url": service.access_token_url,
+                    "api_url": service.api_url,
+                    "is_auto_login": service.is_auto_login,
+                    "is_git": service.is_git,
+                    "authorize_url": authorize_url,
+                }
+            )
+        rst = {"data": {"bean": {"oauth_services": data}}}
+        return Response(rst, status=status.HTTP_200_OK)
+
 
 class OauthServiceInfo(JWTAuthApiView):
     def delete(self, request, service_id):
