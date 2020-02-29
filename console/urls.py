@@ -292,6 +292,8 @@ from console.views.oauth import OauthType
 from console.views.oauth import OauthServiceInfo
 from console.views.oauth import OAuthServerUserAuthorize
 from console.views.oauth import OAuthGitCodeDetection
+from console.views.oauth import EnterpriseOauthService
+
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -886,6 +888,7 @@ urlpatterns = [
         CenterAppTarballDirView.as_view()),
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
     # 下架应用
     # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
 
