@@ -255,11 +255,11 @@ class ServicePluginConfigView(AppBaseView):
             return Response(general_message(400, "params error", "请指定插件版本"), status=400)
         try:
             result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
-            svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service, plugin_id)
+            svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
             pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
             if pbv:
                 result_bean["build_info"] = pbv.update_info
-                result_bean["memory"] = svc_plugin_relation.min_memory
+                result_bean["memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
             result = general_message(200, "success", "查询成功", bean=result_bean)
         except Exception as e:
             logger.exception(e)
