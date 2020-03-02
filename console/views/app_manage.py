@@ -25,6 +25,9 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message
 from console.enum.component_enum import is_support, is_state
+from www.apiclient.marketclient import MarketOpenAPI
+
+market_openapi = MarketOpenAPI()
 
 logger = logging.getLogger("default")
 
@@ -576,7 +579,7 @@ class MarketServiceUpgradeView(AppBaseView):
             return Response(result, status=result["code"])
 
         # List the versions that can be upgraded
-        versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
+        versions = market_app_service.get_component_upgradeable_versions(self.tenant, self.service)
         if versions is None:
             versions = []
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
