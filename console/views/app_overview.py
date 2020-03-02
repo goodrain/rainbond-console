@@ -198,17 +198,12 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
+            msg = "查询成功"
             if self.service.service_source == "market":
-                service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
-                if not service_source:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
-                    return Response(result, status=result["code"])
-                rainbond_app, rainbond_app_version = market_app_service.get_rainbond_app_and_version(
-                    self.tenant.enterprise_id, service_source.group_key, service_source.version)
-                if not rainbond_app:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
-                    return Response(result, status=result["code"])
-            result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
+                data = market_app_service.check_market_service_info(self.tenant, self.service)
+                if data:
+                    msg = data
+            result = general_message(200, "success", msg, bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
