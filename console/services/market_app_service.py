@@ -808,7 +808,7 @@ class MarketAppService(object):
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         if not service_source:
             logger.info("app has been delete on market:{0}".format(service.service_cname))
-            return "当前云市应用已删除"
+            raise RbdAppNotFound("当前云市应用已删除")
         extend_info_str = service_source.extend_info
         extend_info = json.loads(extend_info_str)
         if not extend_info.get("install_from_cloud", False):
@@ -816,12 +816,13 @@ class MarketAppService(object):
                 tenant.enterprise_id, service_source.group_key, service_source.version)
             if not rainbond_app or not rainbond_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
-                return "当前云市应用已删除"
+                raise RbdAppNotFound("当前云市应用已删除")
         try:
             resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
             if not resp.get("data"):
-                return "当前云市应用已删除"
-        except Exception:
+                raise RbdAppNotFound("当前云市应用已删除")
+        except region_api.CallApiError as e:
+            logger.exception("get market app failed: {0}".format(e))
             raise RbdAppNotFound("未找到该应用")
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
