@@ -8,6 +8,8 @@ import string
 from django.core.paginator import Paginator
 
 from console.repositories.enterprise_repo import enterprise_repo
+from console.services.service_services import base_service
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
@@ -15,6 +17,7 @@ from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
 
+region_api = RegionInvokeApi()
 notify_mail_list = ['21395930@qq.com', 'zhanghy@goodrain.com']
 
 
@@ -188,6 +191,41 @@ class EnterpriseServices(object):
         return ent
 
     # def get_services_status_by_service_ids(self, region_name, enterprise_id, service_ids):
-
+    def get_enterprise_runing_service(self, enterprise_id, regions):
+        service_groups_nums = 0
+        service_groups_running_nums = 0
+        service_nums = 0
+        service_running_nums = 0
+        group_services = base_service.get_enterprise_group_services(enterprise_id)
+        if group_services:
+            service_groups_nums = len(group_services)
+            running_service_ids = []
+            for region in regions:
+                data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
+                if data:
+                    region_service_ids = data.get("service_ids")
+                    if region_service_ids:
+                        running_service_ids.extend(region_service_ids)
+            running_service_ids = set(running_service_ids)
+            for group_service in group_services:
+                service_ids = eval(group_service.service_ids)
+                service_nums += len(service_ids)
+                is_running = set(service_ids) & running_service_ids
+                if is_running:
+                    service_groups_running_nums += 1
+                    service_running_nums += len(is_running)
+        data = {
+            "service_groups": {
+                "total": service_groups_nums,
+                "running": service_groups_running_nums,
+                "closed": service_groups_nums - service_groups_running_nums
+            },
+            "components": {
+                "total": service_nums,
+                "running": service_running_nums,
+                "closed": service_nums - service_running_nums
+            }
+        }
+        return data
 
 enterprise_services = EnterpriseServices()

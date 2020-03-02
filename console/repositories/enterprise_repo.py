@@ -2,6 +2,7 @@
 import logging
 
 from django.db.models import Q
+from django.db.models import Count
 
 from console.exception.exceptions import ExterpriseNotExistError
 from console.models.main import EnterpriseUserPerm
@@ -12,6 +13,7 @@ from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import Applicants
 from console.models.main import RainbondCenterApp
+from console.models.main import ServiceShareRecord
 
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo
@@ -54,13 +56,16 @@ class TenantEnterpriseRepo(object):
         return ServiceGroupRelation.objects.filter(group_id__in=group_ids).values_list("service_id")
 
     def get_enterprise_users(self, enterprise_id):
-        return Users.objects.filter(enterprise_id=enterprise_id, is_active=True)
+        return Users.objects.filter(enterprise_id=enterprise_id)
 
     def get_enterprise_user_teams(self, enterprise_id, user_id, name=None):
         return team_repo.get_tenants_by_user_id_and_eid(enterprise_id, user_id, name)
 
     def get_enterprise_user_join_teams(self, enterprise_id, user_id):
-        team_ids = self.get_enterprise_user_teams(enterprise_id, user_id).values_list("tenant_id", flat=True)
+        teams = self.get_enterprise_user_teams(enterprise_id, user_id)
+        if not teams:
+            return teams
+        team_ids = teams.values_list("tenant_id", flat=True)
         return Applicants.objects.filter(
             user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
 
@@ -72,7 +77,15 @@ class TenantEnterpriseRepo(object):
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
     def get_enterprise_shared_app_nums(self, enterprise_id):
-        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id).values("app_id").annotate()
+        teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        if not teams:
+            return 0
+        team_ids = teams.values_list("tenant_id", flat=True)
+        service_groups = ServiceGroup.objects.filter(tenant_id__in=team_ids)
+        if not service_groups:
+            return 0
+        group_ids = service_groups.values_list("ID", flat=True)
+        apps = ServiceShareRecord.objects.filter(group_id__in=group_ids, is_success=True, step=3)
         if not apps:
             return 0
         return len(set(apps.values_list("app_id", flat=True)))

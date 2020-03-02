@@ -49,7 +49,7 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_version_by_id(self, eid, app_id):
         return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
 
-    def get_rainbond_apps_versions_by_eid(self, eid, name=None, tags=None, scope=None,
+    def get_rainbond_apps_versions_by_eid(self, eid, name=None, tags=None, scope=None, team_names=None,
                                           is_complete=None, page=1, page_size=10):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
@@ -63,6 +63,15 @@ class RainbondCenterAppRepository(object):
             where += 'AND BB.app_name LIKE"{}%" '.format(name)
         if scope:
             where += 'AND BB.scope="{}" '.format(scope)
+        if team_names:
+            l = len(team_names)
+            if l == 1:
+                where += 'AND (BB.create_team="{}" OR BB.create_team is NULL) '.format(team_names[0])
+            else:
+                where += 'AND (BB.create_team="{}" '.format(team_names[0])
+                for team_name in team_names[1]:
+                    where += 'OR BB.create_team="{}" '.format(team_name)
+                where += 'OR BB.create_team is NULL") '
         if is_complete:
             where += 'AND C.is_complete={} '.format(is_complete)
         if tags:

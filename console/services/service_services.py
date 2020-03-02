@@ -159,5 +159,21 @@ class BaseService(object):
             logger.exception(e)
             return None
 
+    def get_enterprise_group_services(self, enterprise_id):
+        where = 'WHERE group_id IN (SELECT ID FROM service_group WHERE tenant_id IN (SELECT tenant_id FROM ' \
+                'tenant_info WHERE enterprise_id="{enterprise_id}")) '.format(enterprise_id=enterprise_id)
+        group_by = "GROUP BY group_id"
+        sql = """
+            SELECT
+                group_id,
+                CONCAT('[', GROUP_CONCAT(CONCAT('"', service_id, '"')), ']') as service_ids
+            FROM service_group_relation 
+        """
+        sql += where
+        sql += group_by
+        conn = BaseConnection()
+        result = conn.query(sql)
+        return result
+
 
 base_service = BaseService()

@@ -207,13 +207,19 @@ class CenterAppCLView(JWTAuthApiView):
         app_name = request.GET.get("app_name", None)
         is_complete = request.GET.get("is_complete", None)
         tags = request.GET.get("tags", [])
+        team_names = []
+        if scope == "team":
+            if not user_services.is_user_admin_in_current_enterprise(self.user, enterprise_id):
+                teams = team_repo.get_tenants_by_user_id(self.user.user_id)
+                if teams:
+                    team_names = teams.values_list("tenant_name", flat=True)
         if tags:
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         app_list = []
         apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
-            enterprise_id, app_name, tags, scope, is_complete, page, page_size)
+            enterprise_id, app_name, tags, scope, team_names, is_complete, page, page_size)
         if apps and apps[0].app_name:
             for app in apps:
                 versions_info = (json.loads(app.versions_info) if app.versions_info else [])
