@@ -7,6 +7,8 @@ import json
 import logging
 import os
 
+from django.db import transaction
+
 from addict import Dict
 
 from .plugin_config_service import PluginConfigService
@@ -41,6 +43,8 @@ logger = logging.getLogger("default")
 plugin_config_service = PluginConfigService()
 plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
+
+has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
 
 
 class AppPluginService(object):
@@ -158,6 +162,31 @@ class AppPluginService(object):
     def start_stop_service_plugin(self, service_id, plugin_id, is_active, cpu, memory):
         """启用停用插件"""
         app_plugin_relation_repo.update_service_plugin_status(service_id, plugin_id, is_active, cpu, memory)
+
+    @transaction.atomic
+    def install_new_plugin(self, region, tenant, service, plugin_id, plugin_version=None):
+        if not plugin_version:
+            plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+            plugin_version = plugin_version.build_version
+        logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
+        # 1.生成console数据，存储
+        self.save_default_plugin_config(tenant, service, plugin_id, plugin_version)
+        # 2.从console数据库取数据生成region数据
+        region_config = self.get_region_config_from_db(service, plugin_id, plugin_version)
+
+        data = dict()
+        data["plugin_id"] = plugin_id
+        data["switch"] = True
+        data["version_id"] = plugin_version
+        data.update(region_config)
+        self.create_service_plugin_relation(service.service_id, plugin_id, plugin_version)
+        try:
+            region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
+        except region_api.CallApiError as e:
+            if "body" in e.message:
+                if "msg" in e.message["body"]:
+                    if e.message["body"]["msg"] == "can not add this kind plugin, a same kind plugin has been linked":
+                        raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
         """console层保存默认的数据"""
@@ -529,23 +558,28 @@ class AppPluginService(object):
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
     def check_the_same_plugin(self, plugin_id, tenant_id, service_id):
-        plugin_list = []
+        plugin_ids = []
         categories = []
-        flag = False
         service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service_id)
+        if not service_plugins:
+            """ component has not installed plugin"""
+            return
+        """ filter the same category plugin"""
+        for i in service_plugins:
+            plugin_ids.append(i.plugin_id)
+        plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_ids)
+        for i in plugins:
+            categories.append(i.category)
+
+        # the trend to install plugin
         plugin_info = plugin_repo.get_plugin_by_plugin_id(tenant_id, plugin_id)
-        if len(service_plugins) != 0:
-            for i in service_plugins:
-                plugin_list.append(i.plugin_id)
-            plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_list)
-            for i in plugins:
-                categories.append(i.category)
-        if plugin_info.category.split(":")[0] == "net-plugin" and plugin_info.category in categories:
-            flag = True
-        if plugin_info.category == "net-plugin:in-and-out" and (
-                "net-plugin:up" in categories or "net-plugin:down" in categories):
-            flag = True
-        return flag
+
+        category_info = plugin_info.category.split(":")
+        if category_info[0] == "net-plugin":
+            if plugin_info.category in categories:
+                raise has_the_same_category_plugin
+            if category_info[1] == "in-and-out" and ("net-plugin:up" in categories or "net-plugin:down" in categories):
+                raise has_the_same_category_plugin
 
 
 class PluginService(object):
