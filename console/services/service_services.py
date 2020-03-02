@@ -167,7 +167,7 @@ class BaseService(object):
             SELECT
                 group_id,
                 CONCAT('[', GROUP_CONCAT(CONCAT('"', service_id, '"')), ']') as service_ids
-            FROM service_group_relation 
+            FROM service_group_relation
         """
         sql += where
         sql += group_by

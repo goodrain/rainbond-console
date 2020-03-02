@@ -64,8 +64,8 @@ class RainbondCenterAppRepository(object):
         if scope:
             where += 'AND BB.scope="{}" '.format(scope)
         if team_names:
-            l = len(team_names)
-            if l == 1:
+            team_names_count = len(team_names)
+            if team_names_count == 1:
                 where += 'AND (BB.create_team="{}" OR BB.create_team is NULL) '.format(team_names[0])
             else:
                 where += 'AND (BB.create_team="{}" '.format(team_names[0])

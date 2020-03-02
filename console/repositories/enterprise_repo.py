@@ -2,7 +2,6 @@
 import logging
 
 from django.db.models import Q
-from django.db.models import Count
 
 from console.exception.exceptions import ExterpriseNotExistError
 from console.models.main import EnterpriseUserPerm
@@ -12,7 +11,6 @@ from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import Applicants
-from console.models.main import RainbondCenterApp
 from console.models.main import ServiceShareRecord
 
 from www.models.main import TenantEnterprise

@@ -9,11 +9,9 @@ from www.utils.return_message import general_message
 
 from console.services.user_services import user_services
 from console.services.enterprise_services import enterprise_services
-from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.exceptions import UserRoleNotFoundException
-from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
