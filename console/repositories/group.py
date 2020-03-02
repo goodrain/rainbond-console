@@ -100,6 +100,16 @@ class GroupServiceRelationRepository(object):
             return sgrs[0]
         return None
 
+    def get_group_info_by_service_id(self, service_id):
+        sgrs = ServiceGroupRelation.objects.filter(service_id=service_id)
+        if not sgrs:
+            return None
+        relation = sgrs[0]
+        groups = ServiceGroup.objects.filter(ID=relation.group_id)
+        if not groups:
+            return None
+        return groups[0]
+
     def get_group_by_service_ids(self, service_ids):
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
         sgr_map = {s.service_id: s.group_id for s in sgr}
