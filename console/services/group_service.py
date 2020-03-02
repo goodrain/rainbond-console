@@ -100,6 +100,9 @@ class GroupService(object):
             region_name=response_region,
             pk=group_id)
 
+    def get_service_group_info(self, service_id):
+        return group_service_relation_repo.get_group_info_by_service_id(service_id)
+
     def get_services_group_name(self, service_ids):
         return group_service_relation_repo.get_group_by_service_ids(service_ids)
 
@@ -249,6 +252,14 @@ class GroupService(object):
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
+
+    def get_group_service_source(self, service_id):
+        """ get only one service source"""
+        return service_source_repo.get_service_sources_by_service_ids([service_id])
+
+    def get_service_source_by_group_key(self, group_key):
+        """ geet service source by group key"""
+        return service_source_repo.get_service_sources_by_group_key(group_key)
 
     # 应用内没有组件情况下删除应用
     @transaction.atomic

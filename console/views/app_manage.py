@@ -4,6 +4,7 @@
 """
 import logging
 
+from console.exception.main import RbdAppNotFound
 from console.exception.main import AbortRequest
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -25,6 +26,9 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message
 from console.enum.component_enum import is_support, is_state
+from www.apiclient.marketclient import MarketOpenAPI
+
+market_openapi = MarketOpenAPI()
 
 logger = logging.getLogger("default")
 
@@ -576,7 +580,9 @@ class MarketServiceUpgradeView(AppBaseView):
             return Response(result, status=result["code"])
 
         # List the versions that can be upgraded
-        versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
-        if versions is None:
-            versions = []
+        versions = []
+        try:
+            versions = market_app_service.get_component_upgradeable_versions(self.tenant, self.service)
+        except RbdAppNotFound:
+            return Response(status=404, data=general_message(404, "service lost", "未找到该组件"))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
