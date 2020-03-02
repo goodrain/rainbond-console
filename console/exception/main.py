@@ -79,7 +79,7 @@ class RecordNotFound(Exception):
         super(RecordNotFound, self).__init__(msg)
 
 
-class RbdAppNotFound(Exception):
+class RbdAppNotFound(ServiceHandleException):
     def __init__(self, msg):
         super(RbdAppNotFound, self).__init__(msg)
 
