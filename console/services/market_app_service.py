@@ -1024,6 +1024,8 @@ class MarketAppService(object):
     def get_component_upgradeable_versions(self, tenant, service):
         service_source = group_service.get_group_service_source(service.service_id)
         service_group_keys = set(service_source.values_list('group_key', flat=True))
+        if not service_source:
+            raise RbdAppNotFound("未找到该应用")
         group_key = service_source[0].group_key
         _, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
         version = version_template.get(group_key)
@@ -1051,7 +1053,7 @@ class MarketAppService(object):
         if not cur_rbd_app:
             rainbond_apps = rainbond_app_repo.get_rainbond_app_version_by_app_id(
                 tenant.enterprise_id, service_source.group_key, service_source.version)
-            if rainbond_apps and len(rainbond_apps) > 0:
+            if rainbond_apps:
                 cur_rbd_app = rainbond_apps[0]
         if cur_rbd_app is None:
             logger.warn("group key: {0}; version: {1}; service source not found".format(service_source.group_key,
