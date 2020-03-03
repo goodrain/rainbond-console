@@ -305,7 +305,6 @@ class TenantEnterpriseRepo(object):
         sql += where + "GROUP BY A.ID "
         sql1 = sql
         sql += limit
-        print sql
         conn.query(before_sql1)
         conn.query(before_sql2)
         count = len(conn.query(sql1))
