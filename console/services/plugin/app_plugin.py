@@ -183,8 +183,9 @@ class AppPluginService(object):
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
-            if e.status == 400:
-                raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
+            if "body" in e.message and "msg" in e.message["body"]:
+                if e.message["body"]["msg"] == "can not add this kind plugin, a same kind plugin has been linked":
+                    raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
         """console层保存默认的数据"""
