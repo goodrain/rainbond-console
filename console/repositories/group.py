@@ -81,6 +81,9 @@ class GroupRepository(object):
             return ServiceGroup.objects.filter(q)
         return ServiceGroup.objects.all()
 
+    def get_multi_app_info(self, app_ids):
+        return ServiceGroup.objects.filter(ID__in=app_ids)
+
 
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):
@@ -99,6 +102,16 @@ class GroupServiceRelationRepository(object):
         if sgrs:
             return sgrs[0]
         return None
+
+    def get_group_info_by_service_id(self, service_id):
+        sgrs = ServiceGroupRelation.objects.filter(service_id=service_id)
+        if not sgrs:
+            return None
+        relation = sgrs[0]
+        groups = ServiceGroup.objects.filter(ID=relation.group_id)
+        if not groups:
+            return None
+        return groups[0]
 
     def get_group_by_service_ids(self, service_ids):
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)

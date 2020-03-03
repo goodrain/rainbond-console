@@ -45,7 +45,8 @@ class PropertiesChanges(object):
             apps = rbd_center_app_service.get_version_apps(eid, version, self.service_source)
             app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
         except RecordNotFound:
-            apps = json.loads(version_template).get("apps")
+            template = json.loads(version_template)
+            apps = template.get("apps")
 
             def func(x):
                 result = x.get("service_share_uuid", None) == self.service_source.service_share_uuid \
