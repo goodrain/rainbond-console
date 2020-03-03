@@ -649,7 +649,7 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
         scope = request.GET.get("scope", None)
         market_id = request.GET.get("market_id", None)
         data = share_service.get_last_shared_app_and_app_list(
-            self.tenant.enterprise_id, self.tenant.tenant_id, group_id, scope, market_id)
+            self.tenant.enterprise_id, self.tenant, group_id, scope, market_id)
         result = general_message(200, "get shared apps list complete", None,
                                  bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)

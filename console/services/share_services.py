@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 import datetime
 import json
 import logging
@@ -875,7 +876,8 @@ class ShareService(object):
                 scope=scope,
                 app_template=json.dumps(app_templete),
                 template_version="v2",
-                enterprise_id=share_team.enterprise_id
+                enterprise_id=share_team.enterprise_id,
+                upgrade_time=time.time(),
             )
             app_version.save()
             share_record.step = 2
@@ -934,6 +936,7 @@ class ShareService(object):
             RainbondCenterAppVersion.objects.filter(app_id=app, version=None).delete()
             share_record.is_success = True
             share_record.step = 3
+            share_record.status = 1
             share_record.update_time = datetime.datetime.now()
             share_record.save()
         # 应用有更新，删除导出记录
