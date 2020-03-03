@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import json
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -62,7 +63,7 @@ class EnterpriseAppOverView(JWTAuthApiView):
         try:
             regions = region_repo.get_usable_regions()
             if not regions:
-                result = general_message(400, "no found regions", None)
+                result = general_message(404, "no found regions", None)
                 return Response(result, status=result.get("code"))
             data = enterprise_services.get_enterprise_runing_service(enterprise_id, regions)
         except Exception as e:
@@ -312,4 +313,25 @@ class EnterpriseMonitor(JWTAuthApiView):
             }
         }
         result = general_message(200, "success", None, bean=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseAppsLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        data = []
+        name = request.GET.get("name", None)
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(
+            enterprise_id, self.user, name, page, page_size)
+        if enterprise_apps:
+            for app in enterprise_apps:
+                data.append({
+                    "ID": app.ID,
+                    "group_name": app.group_name,
+                    "tenant_id": app.tenant_id,
+                    "service_list": json.loads(app.service_list) if app.service_list else []
+                })
+        result = general_message(200, "success", "获取成功", list=data,
+                                 total_count=apps_count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)

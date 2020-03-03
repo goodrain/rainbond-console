@@ -19,11 +19,31 @@ from www.models.main import ServiceGroup
 from www.models.main import ServiceGroupRelation
 from www.models.main import Users
 from www.models.main import Tenants
+from www.models.main import PermRelTenant
 
 logger = logging.getLogger("default")
 
 
 class TenantEnterpriseRepo(object):
+
+    def is_user_admin_in_enterprise(self, user, enterprise_id):
+        """判断用户在该企业下是否为管理员"""
+        if user.enterprise_id != enterprise_id:
+            return False
+        user_perms = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
+        if not user_perms:
+            users = user_repo.get_enterprise_users(enterprise_id).order_by("user_id")
+            if users:
+                admin_user = users[0]
+                # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
+                if admin_user.user_id == user.user_id:
+                    enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, enterprise_id, "admin")
+                    return True
+                else:
+                    return False
+        else:
+            return True
+
     def get_team_enterprises(self, tenant_id):
         enterprise_ids = TenantRegionInfo.objects.filter(tenant_id=tenant_id).values_list("enterprise_id", flat=True)
         return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
@@ -216,6 +236,73 @@ class TenantEnterpriseRepo(object):
         team_ids = self.get_enterprise_teams(enterprise_id).values_list("tenant_id", flat=True)
         return Applicants.objects.filter(
             user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
+
+    def get_enterprise_tenant_ids(self, enterprise_id, user=None):
+        if user is None:
+            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+            if not teams:
+                return None
+            team_ids = teams.values_list("tenant_id", flat=True)
+        elif self.is_user_admin_in_enterprise(user, enterprise_id):
+            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+            if not teams:
+                return None
+            team_ids = teams.values_list("tenant_id", flat=True)
+        else:
+            enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
+            if not enterprise:
+                return None
+            user_teams_perm = PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user.ID)
+            if not user_teams_perm:
+                return None
+            tenant_auto_ids = user_teams_perm.values_list("tenant_id", flat=True)
+            teams = Tenants.objects.filter(ID__in=tenant_auto_ids)
+            if not teams:
+                return None
+            team_ids = teams.values_list("tenant_id", flat=True)
+        tenants = TenantRegionInfo.objects.filter(tenant_id__in=team_ids)
+        if not tenants:
+            return None
+        else:
+            return tenants.values_list("region_tenant_id", flat=True)
+
+    def get_enterprise_app_list(self, enterprise_id, user, name, page, page_size):
+        tenant_ids = self.get_enterprise_tenant_ids(enterprise_id, user)
+        if not tenant_ids:
+            return None, 0
+        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
+        if name:
+            where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
+        limit = "LIMIT {page}, {page_size}".format(page=page-1, page_size=page_size)
+        conn = BaseConnection()
+        before_sql1 = """SET GLOBAL group_concat_max_len = 1024000;"""
+        before_sql2 = """SET SESSION group_concat_max_len = 1024000;"""
+        sql = """
+            SELECT
+                A.ID,
+                A.group_name,
+                A.tenant_id,
+                CONCAT('[',
+                    GROUP_CONCAT(
+                    CONCAT('{"service_cname":"',C.service_cname,'"'),',',
+                    CONCAT('"service_id":"',C.service_id,'"'),',',
+                    CONCAT('"service_key":"',C.service_key,'"'),',',
+                    CONCAT('"service_alias":"',C.service_alias),'"}')
+                ,']') AS service_list
+            FROM service_group A
+            LEFT JOIN service_group_relation B
+            ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
+            LEFT JOIN tenant_service C
+            ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
+            """
+        sql += where + "GROUP BY A.ID "
+        sql1 = sql
+        sql += limit
+        conn.query(before_sql1)
+        conn.query(before_sql2)
+        count = len(conn.query(sql1))
+        result = conn.query(sql)
+        return result, count
 
 
 class TenantEnterpriseUserPermRepo(object):
