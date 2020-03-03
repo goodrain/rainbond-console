@@ -5,6 +5,7 @@ from console.repositories.base import BaseConnection
 from console.services.service_services import base_service
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
+from www.models.main import ServiceGroupRelation
 from www.utils.status_translate import get_status_info_map
 
 logger = logging.getLogger("default")
@@ -69,7 +70,7 @@ class ServiceRepo(object):
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
 
     def get_team_service_num_by_team_id(self, team_id, region_name):
-        return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).count()
+        return ServiceGroupRelation.objects.filter(tenant_id=team_id, region_name=region_name).count()
 
     def get_group_service_by_group_id(self, group_id, region_name, team_id, team_name, enterprise_id, query=""):
         group_services_list = base_service.get_group_services_list(team_id, region_name, group_id, query)

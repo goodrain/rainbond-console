@@ -659,12 +659,13 @@ class CloudAppModelMarkets(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         markets = share_service.get_cloud_markets_by_eid(enterprise_id)
         data = []
-        for market in markets:
-            data.append({
-                "market_id": market["market_id"],
-                "name": market["name"],
-                "eid": market["eid"],
-            })
+        if markets:
+            for market in markets:
+                data.append({
+                    "market_id": market["market_id"],
+                    "name": market["name"],
+                    "eid": market["eid"],
+                })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 

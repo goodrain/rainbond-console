@@ -404,11 +404,6 @@ class EnterPriseUsersUDView(JWTAuthApiView):
         user_name = request.data.get("user_name", None)
         email = request.data.get("email", None)
         password = request.data.get("password", None)
-        re_password = request.data.get("re_password", None)
-        is_pass, msg = user_services.check_params(user_name, email, password, re_password)
-        if not is_pass:
-            result = general_message(403, "user information is not passed", msg)
-            return Response(result, 403)
         user = user_services.update_user_set_password(enterprise_id, user_id, user_name, email, password)
         user.save()
         result = general_message(200, "success", "更新用户成功")

@@ -11,7 +11,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import Applicants
-from console.models.main import RainbondCenterApp
+from console.models.main import ServiceShareRecord
 
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo
@@ -19,11 +19,31 @@ from www.models.main import ServiceGroup
 from www.models.main import ServiceGroupRelation
 from www.models.main import Users
 from www.models.main import Tenants
+from www.models.main import PermRelTenant
 
 logger = logging.getLogger("default")
 
 
 class TenantEnterpriseRepo(object):
+
+    def is_user_admin_in_enterprise(self, user, enterprise_id):
+        """判断用户在该企业下是否为管理员"""
+        if user.enterprise_id != enterprise_id:
+            return False
+        user_perms = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
+        if not user_perms:
+            users = user_repo.get_enterprise_users(enterprise_id).order_by("user_id")
+            if users:
+                admin_user = users[0]
+                # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
+                if admin_user.user_id == user.user_id:
+                    enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, enterprise_id, "admin")
+                    return True
+                else:
+                    return False
+        else:
+            return True
+
     def get_team_enterprises(self, tenant_id):
         enterprise_ids = TenantRegionInfo.objects.filter(tenant_id=tenant_id).values_list("enterprise_id", flat=True)
         return TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
@@ -54,13 +74,16 @@ class TenantEnterpriseRepo(object):
         return ServiceGroupRelation.objects.filter(group_id__in=group_ids).values_list("service_id")
 
     def get_enterprise_users(self, enterprise_id):
-        return Users.objects.filter(enterprise_id=enterprise_id, is_active=True)
+        return Users.objects.filter(enterprise_id=enterprise_id)
 
     def get_enterprise_user_teams(self, enterprise_id, user_id, name=None):
         return team_repo.get_tenants_by_user_id_and_eid(enterprise_id, user_id, name)
 
     def get_enterprise_user_join_teams(self, enterprise_id, user_id):
-        team_ids = self.get_enterprise_user_teams(enterprise_id, user_id).values_list("tenant_id", flat=True)
+        teams = self.get_enterprise_user_teams(enterprise_id, user_id)
+        if not teams:
+            return teams
+        team_ids = teams.values_list("tenant_id", flat=True)
         return Applicants.objects.filter(
             user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
 
@@ -72,7 +95,15 @@ class TenantEnterpriseRepo(object):
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
     def get_enterprise_shared_app_nums(self, enterprise_id):
-        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id).values("app_id").annotate()
+        teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        if not teams:
+            return 0
+        team_ids = teams.values_list("tenant_id", flat=True)
+        service_groups = ServiceGroup.objects.filter(tenant_id__in=team_ids)
+        if not service_groups:
+            return 0
+        group_ids = service_groups.values_list("ID", flat=True)
+        apps = ServiceShareRecord.objects.filter(group_id__in=group_ids, is_success=True, step=3)
         if not apps:
             return 0
         return len(set(apps.values_list("app_id", flat=True)))
@@ -205,6 +236,73 @@ class TenantEnterpriseRepo(object):
         team_ids = self.get_enterprise_teams(enterprise_id).values_list("tenant_id", flat=True)
         return Applicants.objects.filter(
             user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
+
+    def get_enterprise_tenant_ids(self, enterprise_id, user=None):
+        if user is None:
+            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+            if not teams:
+                return None
+            team_ids = teams.values_list("tenant_id", flat=True)
+        elif self.is_user_admin_in_enterprise(user, enterprise_id):
+            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+            if not teams:
+                return None
+            team_ids = teams.values_list("tenant_id", flat=True)
+        else:
+            enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
+            if not enterprise:
+                return None
+            user_teams_perm = PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user.ID)
+            if not user_teams_perm:
+                return None
+            tenant_auto_ids = user_teams_perm.values_list("tenant_id", flat=True)
+            teams = Tenants.objects.filter(ID__in=tenant_auto_ids)
+            if not teams:
+                return None
+            team_ids = teams.values_list("tenant_id", flat=True)
+        tenants = TenantRegionInfo.objects.filter(tenant_id__in=team_ids)
+        if not tenants:
+            return None
+        else:
+            return tenants.values_list("region_tenant_id", flat=True)
+
+    def get_enterprise_app_list(self, enterprise_id, user, name, page, page_size):
+        tenant_ids = self.get_enterprise_tenant_ids(enterprise_id, user)
+        if not tenant_ids:
+            return None, 0
+        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
+        if name:
+            where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
+        limit = "LIMIT {page}, {page_size}".format(page=page-1, page_size=page_size)
+        conn = BaseConnection()
+        before_sql1 = """SET GLOBAL group_concat_max_len = 1024000;"""
+        before_sql2 = """SET SESSION group_concat_max_len = 1024000;"""
+        sql = """
+            SELECT
+                A.ID,
+                A.group_name,
+                A.tenant_id,
+                CONCAT('[',
+                    GROUP_CONCAT(
+                    CONCAT('{"service_cname":"',C.service_cname,'"'),',',
+                    CONCAT('"service_id":"',C.service_id,'"'),',',
+                    CONCAT('"service_key":"',C.service_key,'"'),',',
+                    CONCAT('"service_alias":"',C.service_alias),'"}')
+                ,']') AS service_list
+            FROM service_group A
+            LEFT JOIN service_group_relation B
+            ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
+            LEFT JOIN tenant_service C
+            ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
+            """
+        sql += where + "GROUP BY A.ID "
+        sql1 = sql
+        sql += limit
+        conn.query(before_sql1)
+        conn.query(before_sql2)
+        count = len(conn.query(sql1))
+        result = conn.query(sql)
+        return result, count
 
 
 class TenantEnterpriseUserPermRepo(object):
