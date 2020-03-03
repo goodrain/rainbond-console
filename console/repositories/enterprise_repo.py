@@ -252,7 +252,7 @@ class TenantEnterpriseRepo(object):
             enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
             if not enterprise:
                 return None
-            user_teams_perm = PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user.ID)
+            user_teams_perm = PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user.user_id)
             if not user_teams_perm:
                 return None
             tenant_auto_ids = user_teams_perm.values_list("tenant_id", flat=True)
