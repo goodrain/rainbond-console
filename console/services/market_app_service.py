@@ -826,6 +826,8 @@ class MarketAppService(object):
                 raise app_not_found
         except region_api.CallApiError as e:
             logger.exception("get market app failed: {0}".format(e))
+            if e.status == 404:
+                raise app_not_found
             raise MarketAppLost("云市应用查询失败")
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
