@@ -729,12 +729,12 @@ class ShareService(object):
         # 开启事务
         sid = transaction.savepoint()
         try:
-            share_version_info = share_info["share_version_info"]
+            share_version_info = share_info["app_version_info"]
             app_model_id = share_version_info.get("app_model_id")
             version = share_version_info.get("version")
             target = share_version_info.get("target")
-            version_alias = share_version_info.get("version_alias")
-            version_describe = share_version_info.get("version_describe")
+            version_alias = share_version_info.get("version_alias", share_version_info.get("version", "NA"))
+            version_describe = share_version_info.get("describe", "this is a default describe.")
             market_id = None
             scope = None
             if target:
@@ -749,7 +749,7 @@ class ShareService(object):
                     return 400, "云端应用模型不存在", None
             else:
                 local_app_version = RainbondCenterApp.objects.filter(app_id=app_model_id).first()
-                if not scope:
+                if not local_app_version:
                     return 400, "本地应用模型不存在", None
                 scope = local_app_version.scope
                 app_model_name = local_app_version.app_name
@@ -780,7 +780,7 @@ class ShareService(object):
                     for plugin_info in plugins:
                         # one account for one plugin
                         share_image_info = app_store.get_image_connection_info(
-                            scope, share_team.tenant_name)
+                            scope, share_team.enterprise_id, share_team.tenant_name)
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
@@ -825,7 +825,7 @@ class ShareService(object):
                                 return 400, "获取源码包上传地址错误", None
                         else:
                             service["service_image"] = app_store.get_image_connection_info(
-                                scope, share_team.tenant_name)
+                                scope, share_team.enterprise_id, share_team.tenant_name)
                             service["share_type"] = "image"
                             if not service["service_image"]:
                                 if sid:
