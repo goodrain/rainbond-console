@@ -100,6 +100,9 @@ class GroupService(object):
             region_name=response_region,
             pk=group_id)
 
+    def get_service_group_info(self, service_id):
+        return group_service_relation_repo.get_group_info_by_service_id(service_id)
+
     def get_services_group_name(self, service_ids):
         return group_service_relation_repo.get_group_by_service_ids(service_ids)
 
@@ -156,8 +159,9 @@ class GroupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
-    def get_multi_apps_all_info(self, group_ids, region, tenant_name, enterprise_id):
-        service_list = service_repo.get_services_in_multi_apps_with_app_info(group_ids)
+    def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id):
+        app_list = group_repo.get_multi_app_info(app_ids)
+        service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
         # memory info
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
@@ -180,20 +184,19 @@ class GroupService(object):
                 plugins[plugin.service_id] += plugin.min_memory
 
         apps = dict()
+        for app in app_list:
+            apps[app.ID] = {
+                "group_id": app.ID,
+                "group_name": app.group_name,
+                "group_note": app.note,
+                "service_list": [],
+            }
         for service in service_list:
             # memory used for plugin
             service.min_memory += plugins.get(service.service_id, 0)
-            if not apps.get(service.group_id):
-                apps[service.group_id] = {
-                    "group_id": service.group_id,
-                    "group_name": service.group_name,
-                    "group_note": service.note,
-                    }
-            if not apps[service.group_id].get("service_list"):
-                apps[service.group_id]["service_list"] = []
             apps[service.group_id]["service_list"].append(service)
 
-        share_list = share_repo.get_multi_app_share_records(group_ids)
+        share_list = share_repo.get_multi_app_share_records(app_ids)
         share_records = dict()
         for share_info in share_list:
             if not share_records.get(int(share_info.group_id)):
@@ -201,7 +204,7 @@ class GroupService(object):
             if share_info:
                 share_records[int(share_info.group_id)]["share_app_num"] += 1
 
-        backup_list = backup_record_repo.get_multi_apps_backup_records(group_ids)
+        backup_list = backup_record_repo.get_multi_apps_backup_records(app_ids)
         backup_records = dict()
         for backup_info in backup_list:
             if not backup_records.get(int(backup_info.group_id)):
@@ -249,6 +252,14 @@ class GroupService(object):
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
+
+    def get_group_service_source(self, service_id):
+        """ get only one service source"""
+        return service_source_repo.get_service_sources_by_service_ids([service_id])
+
+    def get_service_source_by_group_key(self, group_key):
+        """ geet service source by group key"""
+        return service_source_repo.get_service_sources_by_group_key(group_key)
 
     # 应用内没有组件情况下删除应用
     @transaction.atomic
