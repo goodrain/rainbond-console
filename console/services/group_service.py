@@ -79,7 +79,7 @@ class GroupService(object):
     def get_group_by_id(self, tenant, region, group_id):
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
-            raise ServiceHandleException(status_code=404, msg="app not found", msg_show="应用不存在")
+            raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note}
 
     def get_app_by_id(self, app_id):
@@ -122,7 +122,6 @@ class GroupService(object):
                 "region_name": service.service_region
             }
             group_service_relation_repo.create_service_group_relation(**params)
-        return 200, "success"
 
     def get_groups_and_services(self, tenant, region):
         groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region)
