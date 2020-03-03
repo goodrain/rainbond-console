@@ -571,6 +571,7 @@ class AppGroupView(AppBaseView):
         """
 
         try:
+            # target app id
             group_id = request.data.get("group_id", None)
             if group_id is None:
                 return Response(general_message(400, "param error", "请指定修改的组"), status=400)
@@ -578,9 +579,9 @@ class AppGroupView(AppBaseView):
             if group_id == -1:
                 group_service.delete_service_group_relation_by_service_id(self.service.service_id)
             else:
-                code, msg, group = group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
-                if code != 200:
-                    return Response(general_message(code, "group not found", "未找到需要修改的组信息"))
+                # check target app exists or not
+                group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
+                # update service relation
                 group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
 
             result = general_message(200, "success", "修改成功")
