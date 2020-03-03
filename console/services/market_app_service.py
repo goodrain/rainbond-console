@@ -14,6 +14,7 @@ from django.db import transaction
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
 from console.exception.main import RbdAppNotFound
+from console.exception.main import MarketAppLost
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
@@ -804,6 +805,30 @@ class MarketAppService(object):
         if not app:
             return 404, None
         return 200, app
+
+    def check_market_service_info(self, tenant, service):
+        app_not_found = MarketAppLost("当前云市应用已删除")
+        service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
+        if not service_source:
+            logger.info("app has been delete on market:{0}".format(service.service_cname))
+            raise app_not_found
+        extend_info_str = service_source.extend_info
+        extend_info = json.loads(extend_info_str)
+        if not extend_info.get("install_from_cloud", False):
+            rainbond_app, rainbond_app_version = market_app_service.get_rainbond_app_and_version(
+                tenant.enterprise_id, service_source.group_key, service_source.version)
+            if not rainbond_app or not rainbond_app_version:
+                logger.info("app has been delete on market:{0}".format(service.service_cname))
+                raise app_not_found
+        try:
+            resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
+            if not resp.get("data"):
+                raise app_not_found
+        except region_api.CallApiError as e:
+            logger.exception("get market app failed: {0}".format(e))
+            if e.status == 404:
+                raise app_not_found
+            raise MarketAppLost("云市应用查询失败")
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_id, app_version)
