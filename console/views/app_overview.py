@@ -570,24 +570,20 @@ class AppGroupView(AppBaseView):
               paramType: form
         """
 
-        try:
-            # target app id
-            group_id = request.data.get("group_id", None)
-            if group_id is None:
-                return Response(general_message(400, "param error", "请指定修改的组"), status=400)
-            group_id = int(group_id)
-            if group_id == -1:
-                group_service.delete_service_group_relation_by_service_id(self.service.service_id)
-            else:
-                # check target app exists or not
-                group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
-                # update service relation
-                group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
+        # target app id
+        group_id = request.data.get("group_id", None)
+        if group_id is None:
+            return Response(general_message(400, "param error", "请指定修改的组"), status=400)
+        group_id = int(group_id)
+        if group_id == -1:
+            group_service.delete_service_group_relation_by_service_id(self.service.service_id)
+        else:
+            # check target app exists or not
+            group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
+            # update service relation
+            group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
 
-            result = general_message(200, "success", "修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
 
