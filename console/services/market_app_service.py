@@ -14,6 +14,7 @@ from django.db import transaction
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
 from console.exception.main import RbdAppNotFound
+from console.exception.main import MarketAppLost
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
@@ -806,7 +807,7 @@ class MarketAppService(object):
         return 200, app
 
     def check_market_service_info(self, tenant, service):
-        app_not_found = RbdAppNotFound("当前云市应用已删除")
+        app_not_found = MarketAppLost("当前云市应用已删除")
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         if not service_source:
             logger.info("app has been delete on market:{0}".format(service.service_cname))
@@ -825,7 +826,7 @@ class MarketAppService(object):
                 raise app_not_found
         except region_api.CallApiError as e:
             logger.exception("get market app failed: {0}".format(e))
-            raise RbdAppNotFound("未找到该应用")
+            raise MarketAppLost("云市应用查询失败")
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_id, app_version)

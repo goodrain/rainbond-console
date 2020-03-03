@@ -125,3 +125,8 @@ class ErrPluginAlreadyInstalled(Exception):
 class ErrDoNotSupportMultiDomain(Exception):
     def __init__(self, msg):
         super(ErrDoNotSupportMultiDomain, self).__init__(msg)
+
+
+class MarketAppLost(ServiceHandleException):
+    def __init__(self, msg):
+        super(MarketAppLost, self).__init__(msg)

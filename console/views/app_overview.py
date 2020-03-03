@@ -23,7 +23,7 @@ from console.constants import PluginCategoryConstants
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.oauth.oauth_types import support_oauth_type
 
-from console.exception.main import RbdAppNotFound
+from console.exception.main import MarketAppLost
 from console.exception.main import ServiceHandleException
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -203,7 +203,7 @@ class AppBriefView(AppBaseView):
             if self.service.service_source == "market":
                 try:
                     market_app_service.check_market_service_info(self.tenant, self.service)
-                except RbdAppNotFound as e:
+                except MarketAppLost as e:
                     msg = e.msg
             result = general_message(200, "success", msg, bean=self.service.to_dict())
         except Exception as e:
