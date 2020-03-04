@@ -22,7 +22,6 @@ from console.services.group_service import group_service
 from console.services.team_services import team_services
 from console.utils.certutil import analyze_cert
 from console.utils.certutil import cert_is_effective
-from console.exception.main import ServiceHandleException
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
