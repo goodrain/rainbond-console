@@ -325,6 +325,8 @@ class EnterpriseAppsLView(JWTAuthApiView):
                     "ID": app.ID,
                     "group_name": app.group_name,
                     "tenant_id": app.tenant_id,
+                    "tenant_name": app.tenant_name,
+                    "region_name": app.region_name,
                     "service_list": json.loads(app.service_list) if app.service_list else []
                 })
         result = general_message(200, "success", "获取成功", list=data,

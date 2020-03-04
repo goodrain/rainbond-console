@@ -252,7 +252,7 @@ class TenantEnterpriseRepo(object):
             enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
             if not enterprise:
                 return None
-            user_teams_perm = PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user.ID)
+            user_teams_perm = PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user.user_id)
             if not user_teams_perm:
                 return None
             tenant_auto_ids = user_teams_perm.values_list("tenant_id", flat=True)
@@ -282,11 +282,16 @@ class TenantEnterpriseRepo(object):
                 A.ID,
                 A.group_name,
                 A.tenant_id,
+                A.region_name,
+                D.tenant_name,
                 CONCAT('[',
                     GROUP_CONCAT(
                     CONCAT('{"service_cname":"',C.service_cname,'"'),',',
                     CONCAT('"service_id":"',C.service_id,'"'),',',
                     CONCAT('"service_key":"',C.service_key,'"'),',',
+                    CONCAT('"region_name":"',C.service_region,'"'),',',
+                    CONCAT('"tenant_id":"',D.tenant_id,'"'),',',
+                    CONCAT('"tenant_name":"',D.tenant_name,'"'),',',
                     CONCAT('"service_alias":"',C.service_alias),'"}')
                 ,']') AS service_list
             FROM service_group A
@@ -294,6 +299,8 @@ class TenantEnterpriseRepo(object):
             ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
             LEFT JOIN tenant_service C
             ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
+            LEFT JOIN tenant_info D
+            ON C.tenant_id=D.tenant_id
             """
         sql += where + "GROUP BY A.ID "
         sql1 = sql
