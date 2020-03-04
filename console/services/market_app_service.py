@@ -10,7 +10,6 @@ import httplib2
 from addict import Dict
 from django.db.models import Q
 from django.db import transaction
-
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
 from console.constants import AppConstants
 from console.exception.main import RbdAppNotFound
