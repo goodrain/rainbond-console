@@ -7,6 +7,8 @@ import string
 
 from django.core.paginator import Paginator
 
+from console.exception.main import ServiceHandleException
+
 from console.repositories.enterprise_repo import enterprise_repo
 from console.services.service_services import base_service
 from www.apiclient.regionapi import RegionInvokeApi
@@ -201,7 +203,12 @@ class EnterpriseServices(object):
             service_groups_nums = len(group_services)
             running_service_ids = []
             for region in regions:
-                data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
+                data = None
+                try:
+                    data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
+                except region_api.CallApiError as e:
+                    logger.exception(e)
+                    raise ServiceHandleException("get running app failed", "获取运行中组件失败", status_code=500)
                 if data:
                     region_service_ids = data.get("service_ids")
                     if region_service_ids:
