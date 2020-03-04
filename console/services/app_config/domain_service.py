@@ -22,6 +22,7 @@ from console.services.group_service import group_service
 from console.services.team_services import team_services
 from console.utils.certutil import analyze_cert
 from console.utils.certutil import cert_is_effective
+from console.exception.main import ServiceHandleException
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
@@ -56,8 +57,11 @@ class DomainService(object):
 
     def add_certificate(self, tenant, alias, certificate_id, certificate, private_key, certificate_type):
         self.__check_certificate_alias(tenant, alias)
-
-        cert_is_effective(certificate)
+        try:
+            cert_is_effective(certificate)
+        except ServiceHandleException as e:
+            logger.debug(e.msg)
+            return 400, e.msg_show, certificate
         certificate = base64.b64encode(certificate)
         certificate = domain_repo.add_certificate(
             tenant.tenant_id, alias, certificate_id, certificate, private_key, certificate_type)

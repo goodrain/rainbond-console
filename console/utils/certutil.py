@@ -71,7 +71,7 @@ def cert_is_effective(content):
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, content)
         has_expired = cert.has_expired()  # 是否过期
         if has_expired:
-            err_cert_expired
+            raise err_cert_expired
     except Exception as e:
         logger.warning("loading certificate: {}".format(e))
         raise err_invalid_cert

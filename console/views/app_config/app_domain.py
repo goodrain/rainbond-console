@@ -26,6 +26,7 @@ from console.utils.reqparse import parse_item
 from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from console.exception.main import ServiceHandleException
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.models.main import ServiceDomain
@@ -205,9 +206,13 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
-        domain_service.update_certificate(self.region_name, self.tenant, certificate_id,
+        try:
+            domain_service.update_certificate(self.region_name, self.tenant, certificate_id,
                                           new_alias, certificate, private_key, certificate_type)
-
+        except ServiceHandleException as e:
+            logger.debug(e.msg)
+            result = general_message(400, e.msg, e.msg_show)
+            return Response(result, status=result["code"])
         result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 
