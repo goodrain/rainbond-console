@@ -26,7 +26,6 @@ from console.utils.reqparse import parse_item
 from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
-from console.exception.main import ServiceHandleException
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.models.main import ServiceDomain
