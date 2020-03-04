@@ -60,7 +60,7 @@ class DomainService(object):
         certificate = base64.b64encode(certificate)
         certificate = domain_repo.add_certificate(
             tenant.tenant_id, alias, certificate_id, certificate, private_key, certificate_type)
-        return 200, "success", certificate
+        return certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
         certificate = domain_repo.get_certificate_by_alias(tenant.tenant_id, alias)
