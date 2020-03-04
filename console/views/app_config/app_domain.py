@@ -207,8 +207,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         try:
-            domain_service.update_certificate(self.region_name, self.tenant, certificate_id,
-                                          new_alias, certificate, private_key, certificate_type)
+            domain_service.update_certificate(
+                self.region_name, self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
         except ServiceHandleException as e:
             logger.debug(e.msg)
             result = general_message(400, e.msg, e.msg_show)
