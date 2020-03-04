@@ -917,20 +917,8 @@ class MarketAppService(object):
                                                                         is_complete=False)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
-    def get_enterprise_access_token(self, enterprise_id, access_target):
-        enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
-        try:
-            return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
-        except TenantEnterpriseToken.DoesNotExist:
-            return None
-
     def get_remote_market_apps(self, enterprise_id, page, page_size, app_name):
-        token = self.get_enterprise_access_token(enterprise_id, "market")
-        if token:
-            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
-        else:
-            market_client = get_default_market_client()
-        market_client.get_enterprise_market_app_and_version()
+        data = {}
         try:
             body = market_api.get_service_group_list(enterprise_id, page, page_size, app_name)
             data = body.get("data")
