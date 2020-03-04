@@ -131,6 +131,9 @@ class TenantCertificateView(RegionTenantHeaderView):
                 return Response(general_message(code, "add certificate error", msg), status=code)
             bean = {"alias": alias, "id": new_c.ID}
             result = general_message(200, "success", "操作成功", bean=bean)
+        except ServiceHandleException as e:
+            logger.debug(e.msg)
+            return Response(general_message(400, e.msg, e.msg_show), status=400)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

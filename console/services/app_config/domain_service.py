@@ -57,11 +57,7 @@ class DomainService(object):
 
     def add_certificate(self, tenant, alias, certificate_id, certificate, private_key, certificate_type):
         self.__check_certificate_alias(tenant, alias)
-        try:
-            cert_is_effective(certificate)
-        except ServiceHandleException as e:
-            logger.debug(e.msg)
-            return 400, e.msg_show, certificate
+        cert_is_effective(certificate)
         certificate = base64.b64encode(certificate)
         certificate = domain_repo.add_certificate(
             tenant.tenant_id, alias, certificate_id, certificate, private_key, certificate_type)
