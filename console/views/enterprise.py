@@ -60,16 +60,11 @@ class EnterpriseInfo(JWTAuthApiView):
 
 class EnterpriseAppOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        try:
-            regions = region_repo.get_usable_regions()
-            if not regions:
-                result = general_message(404, "no found regions", None)
-                return Response(result, status=result.get("code"))
-            data = enterprise_services.get_enterprise_runing_service(enterprise_id, regions)
-        except Exception as e:
-            logger.debug(e)
-            result = general_message(400, e, None)
-            return Response(result, status=status.HTTP_200_OK)
+        regions = region_repo.get_usable_regions()
+        if not regions:
+            result = general_message(404, "no found regions", None)
+            return Response(result, status=result.get("code"))
+        data = enterprise_services.get_enterprise_runing_service(enterprise_id, regions)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
