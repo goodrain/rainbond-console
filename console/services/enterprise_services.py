@@ -9,8 +9,9 @@ from django.core.paginator import Paginator
 
 from console.exception.main import ServiceHandleException
 
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
 from console.repositories.enterprise_repo import enterprise_repo
-from console.services.service_services import base_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
@@ -194,43 +195,61 @@ class EnterpriseServices(object):
 
     # def get_services_status_by_service_ids(self, region_name, enterprise_id, service_ids):
     def get_enterprise_runing_service(self, enterprise_id, regions):
-        service_groups_nums = 0
-        service_groups_running_nums = 0
-        service_nums = 0
-        service_running_nums = 0
-        group_services = base_service.get_enterprise_group_services(enterprise_id)
-        if group_services:
-            service_groups_nums = len(group_services)
-            running_service_ids = []
-            for region in regions:
-                data = None
-                try:
-                    data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
-                except region_api.CallApiError as e:
-                    logger.exception(e)
-                    raise ServiceHandleException("get running app failed", "获取运行中组件失败", status_code=500)
-                if data:
-                    region_service_ids = data.get("service_ids")
-                    if region_service_ids:
-                        running_service_ids.extend(region_service_ids)
-            running_service_ids = set(running_service_ids)
-            for group_service in group_services:
-                service_ids = eval(group_service.service_ids)
-                service_nums += len(service_ids)
-                is_running = set(service_ids) & running_service_ids
-                if is_running:
-                    service_groups_running_nums += 1
-                    service_running_nums += len(is_running)
+        app_total_num = 0
+        app_running_num = 0
+        component_total_num = 0
+        component_running_num = 0
+
+        # 1. get all teams
+        teams = enterprise_repo.get_enterprise_teams(enterprise_id)
+        if not teams:
+            return {
+                "service_groups": {"total": 0, "running": 0, "closed": 0},
+                "components": {"total": 0, "running": 0, "closed": 0}
+            }
+        # 2. get all apps in all teams
+        team_ids = [team.tenant_id for team in teams]
+        apps = group_repo.get_apps_in_multi_team(team_ids)
+        app_total_num = len(apps)
+
+        app_ids = [app.ID for app in apps]
+        app_relations = group_service_relation_repo.get_service_group_relation_by_groups(app_ids)
+        component_total_num = len(app_relations)
+
+        # 3. get all running component
+        running_component_ids = []
+        for region in regions:
+            data = None
+            try:
+                data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
+            except region_api.CallApiError as e:
+                logger.exception(e)
+                raise ServiceHandleException("get running app failed", "获取运行中组件失败", status_code=500)
+            if data and data.get("service_ids"):
+                running_component_ids.extend(data.get("service_ids"))
+        component_running_num = len(running_component_ids)
+
+        # 4 get all running app
+        component_and_app = dict()
+        for relation in app_relations:
+            component_and_app[relation.service_id] = relation.group_id
+
+        running_apps = []
+        for running_component in running_component_ids:
+            app = component_and_app[running_component]
+            if app not in running_apps:
+                running_apps.append(app)
+        app_running_num = len(running_apps)
         data = {
             "service_groups": {
-                "total": service_groups_nums,
-                "running": service_groups_running_nums,
-                "closed": service_groups_nums - service_groups_running_nums
+                "total": app_total_num,
+                "running": app_running_num,
+                "closed": app_total_num - app_running_num
             },
             "components": {
-                "total": service_nums,
-                "running": service_running_nums,
-                "closed": service_nums - service_running_nums
+                "total": component_total_num,
+                "running": component_running_num,
+                "closed": component_total_num - component_running_num
             }
         }
         return data
