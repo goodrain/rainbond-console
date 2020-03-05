@@ -130,3 +130,8 @@ class ErrDoNotSupportMultiDomain(Exception):
 class MarketAppLost(ServiceHandleException):
     def __init__(self, msg):
         super(MarketAppLost, self).__init__(msg)
+
+
+class CheckThirdpartEndpointFailed(ServiceHandleException):
+    def __init__(self, msg, msg_show=""):
+        super(CheckThirdpartEndpointFailed, self).__init__(msg=msg, msg_show=msg_show, status_code=500)
