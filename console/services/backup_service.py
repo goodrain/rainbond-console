@@ -81,11 +81,18 @@ class GroupAppBackupService(object):
         return 200, running_state_services
 
     def check_backup_app_used_custom_volume(self, group_id):
-        services = group_service.get_app_services_with_volume_type(group_id)
+        services = group_service.get_group_services(group_id)
+        service_list = dict()
+        for service in services:
+            service_list[service.service_id] = service.service_cname
+
+        service_ids = [service.service_id for service in services]
+        volumes = volume_repo.get_multi_service_volumes(service_ids)
+
         use_custom_svc = []
-        for svc in services:
-            if not volume_service.is_simple_volume_type(svc.volume_type):
-                use_custom_svc.append(svc.service_cname)
+        for volume in volumes:
+            if service_list[volume.service_id] not in use_custom_svc:
+                use_custom_svc.append(service_list[volume.service_id])
 
         return use_custom_svc
 

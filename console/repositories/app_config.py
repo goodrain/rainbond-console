@@ -188,6 +188,9 @@ class TenantServicePortRepository(object):
 
 
 class TenantServiceVolumnRepository(object):
+    def get_multi_service_volumes(self, service_ids):
+        return TenantServiceVolume.objects.filter(service_id__in=service_ids).exclude(volume_type=u"config-file")
+
     def get_service_volumes(self, service_id):
         return TenantServiceVolume.objects.filter(service_id=service_id).exclude(volume_type=u"config-file")
 
