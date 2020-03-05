@@ -1544,7 +1544,6 @@ class AppMarketSynchronizeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            data, code, _ = market_client.get_enterprise_market_list_with_http_info()
             apps, code, _ = market_client.get_recommended_app_list_with_http_info(
                 page=page, limit=limit, group_name=app_name, _request_timeout=3)
             app_list = list()
