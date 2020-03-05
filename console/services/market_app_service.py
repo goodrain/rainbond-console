@@ -1541,9 +1541,6 @@ class AppMarketSynchronizeService(object):
         try:
             token = self.get_enterprise_access_token(enterprise_id, "market")
             if token:
-                token.access_id = '7d3ed3d544faca36ca5554539862eb87'
-                token.access_token = '8bbc4fbd793a4836aaae29ed093463c4'
-                token.access_url = 'http://9000.gr054bca.23ehgni5.0196bd.grapps.cn/'
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
