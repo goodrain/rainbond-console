@@ -8,7 +8,6 @@ import re
 import validators
 
 from django.db import transaction
-from validators.utils import ValidationFailure
 
 from console.exception.main import AbortRequest
 from console.exception.main import CheckThirdpartEndpointFailed
@@ -412,6 +411,9 @@ class AppPortService(object):
 
         return 200, "success"
 
+    def close_thirdpart_outer(self, tenant, service, deal_port):
+        self.__close_outer(tenant, service, deal_port)
+
     def __close_outer(self, tenant, service, deal_port):
         deal_port.is_outer_service = False
         if service.create_status == "complete":
@@ -755,8 +757,18 @@ class EndpointService(object):
         if not body:
             raise CheckThirdpartEndpointFailed(msg="check endpoint failed", msg_show="检查实例地址失败")
 
-        endpoints = body.get("list", []).append(address)
-        self.check_endpoints(endpoints)
+        endpoint_list = body.get("list", [])
+        endpoints = [endpoint.address for endpoint in endpoint_list]
+        endpoints.append(address)
+        is_domain = self.check_endpoints(endpoints)
+
+        # close outer port
+        if is_domain:
+            from console.services.app_config import port_service
+            ports = port_service.get_service_ports(service)
+            if ports:
+                logger.debug("close third part port: {0}".format(ports[0].container_port))
+                port_service.close_thirdpart_outer(tenant, service, ports[0])
 
         data = {"address": address, "is_online": is_online}
 
@@ -770,6 +782,7 @@ class EndpointService(object):
             raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")
 
     def check_endpoints(self, endpoints):
+        is_domain = False
         for endpoint in endpoints:
             if "https://" in endpoint:
                 endpoint = endpoint.partition("https://")[2]
@@ -780,16 +793,14 @@ class EndpointService(object):
             is_domain = self.check_endpoint(endpoint)
             if is_domain and len(endpoints) > 1:
                 raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint")
+        return is_domain
 
     # check endpoint do not start with protocol and do not end with port, just hostname or ip
     def check_endpoint(self, endpoint):
-        try:
-            validators.ipv4(endpoint)
-            validators.ipv6(endpoint)
+        is_ipv4 = validators.ipv4(endpoint)
+        is_ipv6 = validators.ipv6(endpoint)
+        if is_ipv4 or is_ipv6:
             return False
-        except ValidationFailure:
-            try:
-                validators.domain(endpoint)
-                return True
-            except ValidationFailure:
-                raise CheckThirdpartEndpointFailed(msg="invalid endpoint")
+        if validators.domain(endpoint):
+            return True
+        raise CheckThirdpartEndpointFailed(msg="invalid endpoint")
