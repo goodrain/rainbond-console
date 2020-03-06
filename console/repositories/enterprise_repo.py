@@ -11,7 +11,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import Applicants
-from console.models.main import ServiceShareRecord
+from console.models.main import RainbondCenterApp
 
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo
@@ -95,15 +95,7 @@ class TenantEnterpriseRepo(object):
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
     def get_enterprise_shared_app_nums(self, enterprise_id):
-        teams = Tenants.objects.filter(enterprise_id=enterprise_id)
-        if not teams:
-            return 0
-        team_ids = teams.values_list("tenant_id", flat=True)
-        service_groups = ServiceGroup.objects.filter(tenant_id__in=team_ids)
-        if not service_groups:
-            return 0
-        group_ids = service_groups.values_list("ID", flat=True)
-        apps = ServiceShareRecord.objects.filter(group_id__in=group_ids, is_success=True, step=3)
+        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, source="local")
         if not apps:
             return 0
         return len(set(apps.values_list("app_id", flat=True)))
