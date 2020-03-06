@@ -227,10 +227,11 @@ class UserService(object):
             email=email,
             sso_user_id="",
             enterprise_id=enterprise.enterprise_id,
-            is_active=False,
+            is_active=True,
             rf=rf,
             client_ip=client_ip)
         user.set_password(raw_password)
+        user.save()
         return user
 
     def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password):

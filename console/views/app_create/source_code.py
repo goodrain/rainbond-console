@@ -166,7 +166,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 service_webhook.deploy_keyword = "deploy"
                 service_webhook.save()
                 try:
-                    git_service.create_hook(host=host, full_name_or_id=git_full_name,
+                    git_service.create_hook(host, git_full_name,
                                             endpoint='console/webhooks/' + new_service.service_id)
                     new_service.open_webhooks = True
                 except Exception as e:
