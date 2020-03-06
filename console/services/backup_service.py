@@ -7,6 +7,8 @@ import logging
 
 from console.enum.component_enum import is_state
 
+from console.exception.main import ServiceHandleException
+
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -81,11 +83,18 @@ class GroupAppBackupService(object):
         return 200, running_state_services
 
     def check_backup_app_used_custom_volume(self, group_id):
-        services = group_service.get_app_services_with_volume_type(group_id)
+        services = group_service.get_group_services(group_id)
+        service_list = dict()
+        for service in services:
+            service_list[service.service_id] = service.service_cname
+
+        service_ids = [service.service_id for service in services]
+        volumes = volume_repo.get_multi_service_volumes(service_ids)
+
         use_custom_svc = []
-        for svc in services:
-            if not volume_service.is_simple_volume_type(svc.volume_type):
-                use_custom_svc.append(svc.service_cname)
+        for volume in volumes:
+            if service_list[volume.service_id] not in use_custom_svc:
+                use_custom_svc.append(service_list[volume.service_id])
 
         return use_custom_svc
 
@@ -93,7 +102,7 @@ class GroupAppBackupService(object):
         image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
         return image_config is None
 
-    def backup_group_apps(self, tenant, user, region, group_id, mode, note):
+    def backup_group_apps(self, tenant, user, region, group_id, mode, note, force=False):
         s3_config = config_service.get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
@@ -111,9 +120,15 @@ class GroupAppBackupService(object):
             "mode": mode,
             "version": version,
             "s3_config": s3_config,
+            "force": force,
         }
         # 向数据中心发起备份任务
-        body = region_api.backup_group_apps(region, tenant.tenant_name, data)
+        try:
+            body = region_api.backup_group_apps(region, tenant.tenant_name, data)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            if e.status == 401:
+                raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
 
         bean = body["bean"]
         record_data = {
