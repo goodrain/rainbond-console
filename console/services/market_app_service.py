@@ -1562,7 +1562,8 @@ class AppMarketSynchronizeService(object):
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            return None
+            raise ServiceHandleException(
+                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=12345)
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
@@ -1592,7 +1593,8 @@ class AppMarketSynchronizeService(object):
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            return None
+            raise ServiceHandleException(
+                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=12345)
 
     def get_cloud_market_apps(self, enterprise_id, market_id):
         try:
@@ -1609,7 +1611,8 @@ class AppMarketSynchronizeService(object):
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            return None
+            raise ServiceHandleException(
+                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=12345)
 
     def create_cloud_market_app(self, enterprise_id, market_id, data):
         try:
@@ -1625,7 +1628,8 @@ class AppMarketSynchronizeService(object):
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            return None
+            raise ServiceHandleException(
+                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=12345)
 
     def create_cloud_market_app_version(self, enterprise_id, market_id, app_id, data):
         try:
@@ -1641,7 +1645,8 @@ class AppMarketSynchronizeService(object):
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            return None
+            raise ServiceHandleException(
+                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=12345)
 
 
 market_app_service = MarketAppService()
