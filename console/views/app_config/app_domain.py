@@ -116,23 +116,17 @@ class TenantCertificateView(RegionTenantHeaderView):
               paramType: form
 
         """
-        try:
-            alias = request.data.get("alias", None)
-            if len(alias) > 64:
-                return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
-            private_key = request.data.get("private_key", None)
-            certificate = request.data.get("certificate", None)
-            certificate_type = request.data.get("certificate_type", None)
-            certificate_id = make_uuid()
-            code, msg, new_c = domain_service.add_certificate(
-                self.tenant, alias, certificate_id, certificate, private_key, certificate_type)
-            if code != 200:
-                return Response(general_message(code, "add certificate error", msg), status=code)
-            bean = {"alias": alias, "id": new_c.ID}
-            result = general_message(200, "success", "操作成功", bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        alias = request.data.get("alias", None)
+        if len(alias) > 64:
+            return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
+        private_key = request.data.get("private_key", None)
+        certificate = request.data.get("certificate", None)
+        certificate_type = request.data.get("certificate_type", None)
+        certificate_id = make_uuid()
+        new_c = domain_service.add_certificate(
+            self.tenant, alias, certificate_id, certificate, private_key, certificate_type)
+        bean = {"alias": alias, "id": new_c.ID}
+        result = general_message(200, "success", "操作成功", bean=bean)
         return Response(result, status=result["code"])
 
 
@@ -205,9 +199,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
-        domain_service.update_certificate(self.region_name, self.tenant, certificate_id,
-                                          new_alias, certificate, private_key, certificate_type)
-
+        domain_service.update_certificate(
+                self.region_name, self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
         result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 

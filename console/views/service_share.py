@@ -649,7 +649,7 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
         scope = request.GET.get("scope", None)
         market_id = request.GET.get("market_id", None)
         data = share_service.get_last_shared_app_and_app_list(
-            self.tenant.enterprise_id, self.tenant.tenant_id, group_id, scope, market_id)
+            self.tenant.enterprise_id, self.tenant, group_id, scope, market_id)
         result = general_message(200, "get shared apps list complete", None,
                                  bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)
@@ -659,12 +659,13 @@ class CloudAppModelMarkets(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         markets = share_service.get_cloud_markets_by_eid(enterprise_id)
         data = []
-        for market in markets:
-            data.append({
-                "market_id": market["market_id"],
-                "name": market["name"],
-                "eid": market["eid"],
-            })
+        if markets:
+            for market in markets:
+                data.append({
+                    "market_id": market["market_id"],
+                    "name": market["name"],
+                    "eid": market["eid"],
+                })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 

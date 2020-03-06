@@ -672,6 +672,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
+    def get_enterprise_running_services(self, enterprise_id, region):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
+        url = url + "/v2/enterprise/" + enterprise_id + "/running-services"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        if res.get("status") == 200 and isinstance(body, dict):
+            return body
+        return None
+
     def get_docker_log_instance(self, region, tenant_name, service_alias, enterprise_id):
         """获取日志实体"""
 

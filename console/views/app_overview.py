@@ -23,6 +23,7 @@ from console.constants import PluginCategoryConstants
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.oauth.oauth_types import support_oauth_type
 
+from console.exception.main import MarketAppLost
 from console.exception.main import ServiceHandleException
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -198,17 +199,13 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
+            msg = "查询成功"
             if self.service.service_source == "market":
-                service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
-                if not service_source:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
-                    return Response(result, status=result["code"])
-                rainbond_app, rainbond_app_version = market_app_service.get_rainbond_app_and_version(
-                    self.tenant.enterprise_id, service_source.group_key, service_source.version)
-                if not rainbond_app:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
-                    return Response(result, status=result["code"])
-            result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
+                try:
+                    market_app_service.check_market_service_info(self.tenant, self.service)
+                except MarketAppLost as e:
+                    msg = e.msg
+            result = general_message(200, "success", msg, bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -573,23 +570,20 @@ class AppGroupView(AppBaseView):
               paramType: form
         """
 
-        try:
-            group_id = request.data.get("group_id", None)
-            if group_id is None:
-                return Response(general_message(400, "param error", "请指定修改的组"), status=400)
-            group_id = int(group_id)
-            if group_id == -1:
-                group_service.delete_service_group_relation_by_service_id(self.service.service_id)
-            else:
-                code, msg, group = group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
-                if code != 200:
-                    return Response(general_message(code, "group not found", "未找到需要修改的组信息"))
-                group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
+        # target app id
+        group_id = request.data.get("group_id", None)
+        if group_id is None:
+            return Response(general_message(400, "param error", "请指定修改的组"), status=400)
+        group_id = int(group_id)
+        if group_id == -1:
+            group_service.delete_service_group_relation_by_service_id(self.service.service_id)
+        else:
+            # check target app exists or not
+            group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
+            # update service relation
+            group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
 
-            result = general_message(200, "success", "修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
 

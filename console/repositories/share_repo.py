@@ -122,9 +122,11 @@ class ShareRepo(object):
     def get_local_apps(self):
         return RainbondCenterApp.objects.all().order_by("-create_time")
 
-    def get_enterprise_team_apps(self, enterprise_id, team_id):
+    def get_enterprise_team_apps(self, enterprise_id, team_name):
         return RainbondCenterApp.objects.filter(
-            Q(enterprise_id=enterprise_id, create_team=team_id) | Q(enterprise_id=enterprise_id, scope="enterprise")
+            Q(enterprise_id=enterprise_id, create_team=team_name) |
+            Q(enterprise_id=enterprise_id, scope="enterprise") |
+            Q(enterprise_id=enterprise_id, create_team=None, scope="team")
         ).order_by("-create_time")
 
     def get_app_by_app_id(self, app_id):

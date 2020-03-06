@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import json
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,11 +9,10 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
 from console.services.user_services import user_services
-from console.exception.exceptions import TenantNotExistError
+from console.services.enterprise_services import enterprise_services
 from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.exceptions import UserRoleNotFoundException
-from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
@@ -60,51 +60,11 @@ class EnterpriseInfo(JWTAuthApiView):
 
 class EnterpriseAppOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        try:
-            service_groups = enterprise_repo.get_enterprise_apps(enterprise_id)
-            # services_ids = enterprise_repo.get_enterprise_services(enterprise_id)
-            service_groups_nums = len(service_groups)
-            service_groups_running_nums = 0
-            service_nums = 0
-            service_running_nums = 0
-            if service_groups:
-                for service_group in service_groups:
-                    try:
-                        team = team_repo.get_team_by_team_id(service_group.tenant_id)
-                    except (TenantNotExistError, Exception):
-                        continue
-                    try:
-                        group_service_list = service_repo.get_group_service_by_group_id(
-                            service_group.ID, service_group.region_name,
-                            service_group.tenant_id, team.tenant_name, enterprise_id
-                        )
-                    except Exception:
-                        continue
-                    before_service_nums = service_running_nums
-                    service_nums += len(group_service_list)
-                    if group_service_list:
-                        for group_service in group_service_list:
-                            if group_service["status"] == "running":
-                                service_running_nums += 1
-                    if service_running_nums > before_service_nums:
-                        service_groups_running_nums += 1
-            data = {
-                "service_groups": {
-                    "total": service_groups_nums,
-                    "running": service_groups_running_nums,
-                    "closed": service_groups_nums - service_groups_running_nums
-                },
-                "components": {
-                    "total": service_nums,
-                    "running": service_running_nums,
-                    "closed": service_nums - service_running_nums
-                }
-            }
-        except Exception as e:
-            logger.debug(e)
-            result = general_message(400, e, None)
-            return Response(result, status=status.HTTP_200_OK)
-
+        regions = region_repo.get_usable_regions()
+        if not regions:
+            result = general_message(404, "no found regions", None)
+            return Response(result, status=result.get("code"))
+        data = enterprise_services.get_enterprise_runing_service(enterprise_id, regions)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -234,11 +194,10 @@ class EnterpriseTeamOverView(JWTAuthApiView):
         try:
             tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id)
             join_tenants = enterprise_repo.get_enterprise_user_join_teams(enterprise_id, request.user.user_id)
-            tenants = tenants[:3]
             active_tenants = enterprise_repo.get_enterprise_user_active_teams(enterprise_id, request.user.user_id)
             request_tenants = enterprise_repo.get_enterprise_user_request_join(enterprise_id, request.user.user_id)
             if tenants:
-                for tenant in tenants:
+                for tenant in tenants[:3]:
                     region_name_list = []
                     user = user_repo.get_user_by_user_id(tenant.creater)
                     region_list = team_repo.get_team_regions(tenant.tenant_id)
@@ -349,4 +308,27 @@ class EnterpriseMonitor(JWTAuthApiView):
             }
         }
         result = general_message(200, "success", None, bean=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseAppsLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        data = []
+        name = request.GET.get("name", None)
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(
+            enterprise_id, self.user, name, page, page_size)
+        if enterprise_apps:
+            for app in enterprise_apps:
+                data.append({
+                    "ID": app.ID,
+                    "group_name": app.group_name,
+                    "tenant_id": app.tenant_id,
+                    "tenant_name": app.tenant_name,
+                    "region_name": app.region_name,
+                    "service_list": json.loads(app.service_list) if app.service_list else []
+                })
+        result = general_message(200, "success", "获取成功", list=data,
+                                 total_count=apps_count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)

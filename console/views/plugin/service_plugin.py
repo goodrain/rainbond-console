@@ -86,40 +86,12 @@ class ServicePluginInstallView(AppBaseView):
         """
         result = {}
         build_version = request.data.get("build_version", None)
-        try:
-            if not plugin_id:
-                return Response(general_message(400, "params error", "参数错误"), status=400)
-            rst = app_plugin_service.check_the_same_plugin(plugin_id, self.tenant.tenant_id, self.service.service_id)
-            if rst:
-                return Response(general_message(400, "params error", u"该组件已存在相同功能插件"), status=400)
-            if not build_version:
-                plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
-                build_version = plugin_version.build_version
-            logger.debug("start install plugin ! plugin_id {0}  build_version {1}".format(plugin_id, build_version))
-            # 1.生成console数据，存储
-            app_plugin_service.save_default_plugin_config(self.tenant, self.service, plugin_id, build_version)
-            # 2.从console数据库取数据生成region数据
-            region_config = app_plugin_service.get_region_config_from_db(self.service, plugin_id, build_version)
+        if not plugin_id:
+            return Response(general_message(400, "params error", "参数错误"), status=400)
+        app_plugin_service.check_the_same_plugin(plugin_id, self.tenant.tenant_id, self.service.service_id)
+        app_plugin_service.install_new_plugin(self.response_region, self.tenant, self.service, plugin_id, build_version)
 
-            data = dict()
-            data["plugin_id"] = plugin_id
-            data["switch"] = True
-            data["version_id"] = build_version
-            data.update(region_config)
-            app_plugin_service.create_service_plugin_relation(self.service.service_id, plugin_id, build_version)
-            region_api.install_service_plugin(self.response_region, self.tenant.tenant_name, self.service.service_alias, data)
-
-            result = general_message(200, "success", "安装成功")
-        except Exception as e:
-            logger.exception(e)
-            app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
-            app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
-            if "body" in e.message:
-                if "msg" in e.message["body"]:
-                    if e.message["body"]["msg"] == "can not add this kind plugin, a same kind plugin has been linked":
-                        result = general_message(409, "install plugin fail", "网络类插件不能重复安装")
-            else:
-                result = general_message(500, e.message, "插件安装失败")
+        result = general_message(200, "success", "安装成功")
         return Response(result, status=result["code"])
 
     @perm_required('manage_service_plugin')

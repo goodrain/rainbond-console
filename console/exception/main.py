@@ -79,7 +79,7 @@ class RecordNotFound(Exception):
         super(RecordNotFound, self).__init__(msg)
 
 
-class RbdAppNotFound(Exception):
+class RbdAppNotFound(ServiceHandleException):
     def __init__(self, msg):
         super(RbdAppNotFound, self).__init__(msg)
 
@@ -125,3 +125,8 @@ class ErrPluginAlreadyInstalled(Exception):
 class ErrDoNotSupportMultiDomain(Exception):
     def __init__(self, msg):
         super(ErrDoNotSupportMultiDomain, self).__init__(msg)
+
+
+class MarketAppLost(ServiceHandleException):
+    def __init__(self, msg):
+        super(MarketAppLost, self).__init__(msg)
