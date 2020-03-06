@@ -583,10 +583,9 @@ class ShareService(object):
 
     @transaction.atomic
     def sync_service_plugin_event(self, user, region_name, tenant_name, record_id, record_event):
-        apps_versions = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
-        if not apps_versions:
+        apps_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
+        if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
-        apps_version = apps_versions[0]
         app_template = json.loads(apps_version.app_template)
         plugins_info = app_template["plugins"]
         plugin_list = []
@@ -602,11 +601,10 @@ class ShareService(object):
                     "share_scope": apps_version.scope,
                     "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else "",
                 }
-
+                sid = transaction.savepoint()
                 try:
                     res, body = region_api.share_plugin(region_name, tenant_name, plugin["plugin_id"], body)
                     data = body.get("bean")
-                    sid = transaction.savepoint()
                     if not data:
                         transaction.savepoint_rollback(sid)
                         raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
