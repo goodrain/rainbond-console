@@ -1665,7 +1665,7 @@ class AppMarketSynchronizeService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException(
-                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10409)
+                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             raise ServiceHandleException(
                 "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
