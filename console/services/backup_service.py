@@ -7,6 +7,8 @@ import logging
 
 from console.enum.component_enum import is_state
 
+from console.exception.main import ServiceHandleException
+
 from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -121,7 +123,12 @@ class GroupAppBackupService(object):
             "force": force,
         }
         # 向数据中心发起备份任务
-        body = region_api.backup_group_apps(region, tenant.tenant_name, data)
+        try:
+            body = region_api.backup_group_apps(region, tenant.tenant_name, data)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            if e.status == 401:
+                raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
 
         bean = body["bean"]
         record_data = {
