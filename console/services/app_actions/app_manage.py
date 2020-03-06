@@ -1197,7 +1197,8 @@ class AppManageService(AppManageBase):
                         raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
         # 实例个数限制
         if is_singleton(extend_method) and service.min_node > 1:
-            raise ServiceHandleException(msg="singleton service limit", msg_show="多实例组件不可修改为单实例组件")
+            raise ServiceHandleException(
+                msg="singleton service limit", msg_show="组件实例数为{0}，不可修改为单实例组件类型".format(service.min_node))
 
         if service.create_status != "complete":
             service.extend_method = extend_method

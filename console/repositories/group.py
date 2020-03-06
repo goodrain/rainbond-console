@@ -84,6 +84,9 @@ class GroupRepository(object):
     def get_multi_app_info(self, app_ids):
         return ServiceGroup.objects.filter(ID__in=app_ids)
 
+    def get_apps_in_multi_team(self, team_ids):
+        return ServiceGroup.objects.filter(tenant_id__in=team_ids)
+
 
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):

@@ -233,13 +233,6 @@ class GroupService(object):
 
         return app_list
 
-    def get_app_services_with_volume_type(self, group_id):
-        """ get all services with volume type in app """
-        gsr = group_service_relation_repo.get_services_by_group(group_id)
-        service_ids = [gs.service_id for gs in gsr]
-        services = service_repo.get_services_with_volume_type(service_ids)
-        return services
-
     def get_rainbond_services(self, group_id, group_key):
         """获取云市应用下的所有组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)

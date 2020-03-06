@@ -49,17 +49,6 @@ class TenantServiceInfoRepository(object):
     def get_services_by_service_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
-    def get_services_with_volume_type(self, service_ids):
-        svc_ids = "'{0}'".format("','".join(svc_id for svc_id in service_ids))
-        conn = BaseConnection()
-        sql = """
-        select svc.*, vo.volume_type \
-        from tenant_service svc left join tenant_service_volume vo on svc.service_id = vo.service_id \
-        where svc.service_id in ({svc_ids})
-        """.format(svc_ids=svc_ids)
-        row = conn.query(sql)
-        return row
-
     def get_services_in_multi_apps_with_app_info(self, group_ids):
         ids = "{0}".format(",".join(str(group_id) for group_id in group_ids))
         sql = """
