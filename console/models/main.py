@@ -214,7 +214,8 @@ class ServiceShareRecord(BaseModel):
     share_version = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用组发布版本")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")
-    status = models.IntegerField(default=0, help_text=u"当前发布状态")
+    # 0 发布中 1 发布完成 2 取消发布 3 删除发布
+    status = models.IntegerField(default=0, help_text=u"当前发布状态 0, 1, 2, 3")
     app_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"应用id")
     scope = models.CharField(max_length=64, null=True, blank=True, help_text=u"分享范围")
     share_app_market_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"分享应用商店id")
