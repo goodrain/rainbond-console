@@ -13,6 +13,7 @@ from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.share_services import share_service
+from console.services.market_app_service import market_sycn_service
 from console.utils.reqparse import parse_argument
 from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
@@ -657,14 +658,14 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
 
 class CloudAppModelMarkets(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        markets = share_service.get_cloud_markets_by_eid(enterprise_id)
+        markets = market_sycn_service.get_cloud_markets(enterprise_id)
         data = []
         if markets:
             for market in markets:
                 data.append({
-                    "market_id": market["market_id"],
-                    "name": market["name"],
-                    "eid": market["eid"],
+                    "market_id": market.market_id,
+                    "name": market.name,
+                    "eid": market.eid,
                 })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
@@ -672,23 +673,23 @@ class CloudAppModelMarkets(JWTAuthApiView):
 
 class CloudAppModelMarketInfo(JWTAuthApiView):
     def get(self, request, enterprise_id, market_id, *args, **kwargs):
-        apps_versions = share_service.get_cloud_apps_versions_by_eid(enterprise_id, market_id)
+        apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
         data = []
         if apps_versions:
             for app in apps_versions:
                 versions = []
-                app_versions = app.get("app_versions")
+                app_versions = app.app_versions
                 if app_versions:
                     for version in app_versions:
-                        versions.append(version.get("app_version"))
+                        versions.append(version.app_version)
                 data.append({
-                    "app_name": app.get("name"),
-                    "app_id": app.get("app_key_id"),
+                    "app_name": app.name,
+                    "app_id": app.app_key_id,
                     "version": versions,
-                    "pic": app.get("pic"),
-                    "app_describe": app.get("desc"),
-                    "dev_status": app.get("dev_status"),
-                    "scope": ("goodrain:" + app.get("publish_type")).strip(":")
+                    "pic": (app.logo if app.logo else app.pic),
+                    "app_describe": app.desc,
+                    "dev_status": app.dev_status,
+                    "scope": ("goodrain:" + app.publish_type).strip(":")
                 })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)

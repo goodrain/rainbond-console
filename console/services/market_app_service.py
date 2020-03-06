@@ -56,6 +56,7 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from market_client.rest import ApiException
 from console.enum.component_enum import ComponentType
 from console.services.upgrade_services import upgrade_service
 
@@ -1568,6 +1569,80 @@ class AppMarketSynchronizeService(object):
         try:
             return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
         except TenantEnterpriseToken.DoesNotExist:
+            return None
+
+    def get_cloud_markets(self, enterprise_id):
+        try:
+            token = self.get_enterprise_access_token(enterprise_id, "market")
+            if token:
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            else:
+                market_client = get_default_market_client()
+            markets = market_client.get_markets(_request_timeout=3)
+            return markets.list
+        except ApiException as e:
+            logger.exception(e)
+            print e
+            if e.status == 403:
+                raise ServiceHandleException(
+                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException(
+                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            print e
+            logger.exception(e)
+            raise e
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
+            return None
+
+    def get_cloud_market_apps(self, enterprise_id, market_id):
+        try:
+            token = self.get_enterprise_access_token(enterprise_id, "market")
+            if token:
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            else:
+                market_client = get_default_market_client()
+            markets = market_client.get_apps_with_version(
+                market_id, _request_timeout=10)
+            return markets.list
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
+            raise e
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
+            return None
+
+    def create_cloud_market_app(self, enterprise_id, market_id, data):
+        try:
+            token = self.get_enterprise_access_token(enterprise_id, "market")
+            if token:
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            else:
+                market_client = get_default_market_client()
+            markets = market_client.create_app(market_id, data=data, _request_timeout=10)
+            return markets
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
+            raise e
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
+            return None
+
+    def create_cloud_market_app_version(self, enterprise_id, market_id, app_id, data):
+        try:
+            token = self.get_enterprise_access_token(enterprise_id, "market")
+            if token:
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            else:
+                market_client = get_default_market_client()
+            markets = market_client.create_app_version(market_id, app_id, data=data, _request_timeout=10)
+            return markets
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
+            raise e
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
             return None
 
 
