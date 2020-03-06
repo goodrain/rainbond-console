@@ -195,12 +195,12 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             return Response(result, status=200)
 
     def delete(self, request, team_name, group_id, record_id, *args, **kwargs):
-        status = request.data.get("status")
         share_record = share_repo.get_service_share_record_by_id(group_id=group_id, record_id=record_id)
-        if share_record and status:
-            share_record.delete()
-            result = general_message(200, "success", None)
-            return Response(result, status=200)
+        if share_record:
+            share_record.status = 2
+            share_record.save()
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
 
 
 class ServiceShareDeleteView(RegionTenantHeaderView):
