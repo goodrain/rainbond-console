@@ -78,7 +78,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
                                                 list=custom_volumes), status=412)
 
         back_up_record = groupapp_backup_service.backup_group_apps(
-            self.tenant, self.user, self.region_name, group_id, mode, note)
+            self.tenant, self.user, self.region_name, group_id, mode, note, force)
 
         bean = back_up_record.to_dict()
         result = general_message(200, "success", "操作成功，正在备份中", bean=bean)

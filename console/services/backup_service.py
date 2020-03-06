@@ -100,7 +100,7 @@ class GroupAppBackupService(object):
         image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
         return image_config is None
 
-    def backup_group_apps(self, tenant, user, region, group_id, mode, note):
+    def backup_group_apps(self, tenant, user, region, group_id, mode, note, force=False):
         s3_config = config_service.get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
@@ -118,6 +118,7 @@ class GroupAppBackupService(object):
             "mode": mode,
             "version": version,
             "s3_config": s3_config,
+            "force": force,
         }
         # 向数据中心发起备份任务
         body = region_api.backup_group_apps(region, tenant.tenant_name, data)
