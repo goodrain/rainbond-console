@@ -1582,14 +1582,12 @@ class AppMarketSynchronizeService(object):
             return markets.list
         except ApiException as e:
             logger.exception(e)
-            print e
             if e.status == 403:
                 raise ServiceHandleException(
                     "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             raise ServiceHandleException(
                 "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
-            print e
             logger.exception(e)
             raise e
         except socket.timeout as e:
