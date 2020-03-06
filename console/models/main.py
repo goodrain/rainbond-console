@@ -112,7 +112,6 @@ class RainbondCenterAppVersion(BaseModel):
     """云市应用版本"""
     class Meta:
         db_table = "rainbond_center_app_version"
-        unique_together = ('app_id', 'version', 'enterprise_id')
     enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     app_id = models.CharField(max_length=32, help_text=u"应用id")
     version = models.CharField(max_length=32, help_text=u"版本")
