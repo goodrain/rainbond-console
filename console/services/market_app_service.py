@@ -109,7 +109,7 @@ class MarketAppService(object):
                     "group_key":
                         market_app.app_id,
                     "version":
-                        market_app.dev_status,
+                        market_app_version.version,
                     "service_share_uuid":
                         app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get(
                             "service_key"),
@@ -819,15 +819,17 @@ class MarketAppService(object):
             if not rainbond_app or not rainbond_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
                 raise app_not_found
-        try:
-            resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
-            if not resp.get("data"):
-                raise app_not_found
-        except region_api.CallApiError as e:
-            logger.exception("get market app failed: {0}".format(e))
-            if e.status == 404:
-                raise app_not_found
-            raise MarketAppLost("云市应用查询失败")
+        else:
+            # get from cloud
+            try:
+                resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
+                if not resp.get("data"):
+                    raise app_not_found
+            except region_api.CallApiError as e:
+                logger.exception("get market app failed: {0}".format(e))
+                if e.status == 404:
+                    raise app_not_found
+                raise MarketAppLost("云市应用查询失败")
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_id, app_version)

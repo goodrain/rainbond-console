@@ -7,7 +7,6 @@ import datetime
 import json
 import logging
 import os
-from re import split as re_split
 import pickle
 
 from django.conf import settings
@@ -21,10 +20,8 @@ from console.constants import AppConstants
 from console.constants import PluginCategoryConstants
 
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import support_oauth_type
 
 from console.exception.main import MarketAppLost
-from console.exception.main import ServiceHandleException
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.app import service_repo
@@ -659,66 +656,9 @@ class BuildSourceinfo(AppBaseView):
         查询构建源信息
         ---
         """
-        try:
-            service_source = service_source_repo.get_service_source(
-                team_id=self.service.tenant_id, service_id=self.service.service_id)
-
-            code_from = self.service.code_from
-            oauth_type = support_oauth_type.keys()
-            if code_from in oauth_type:
-                result_url = re_split("[:,@]", self.service.git_url)
-                self.service.git_url = result_url[0] + '//' + result_url[-1]
-            bean = {
-                "user_name": "",
-                "password": "",
-                "service_source": self.service.service_source,
-                "image": self.service.image,
-                "cmd": self.service.cmd,
-                "code_from": self.service.code_from,
-                "version": self.service.version,
-                "docker_cmd": self.service.docker_cmd,
-                "create_time": self.service.create_time,
-                "git_url": self.service.git_url,
-                "code_version": self.service.code_version,
-                "server_type": self.service.server_type,
-                "language": self.service.language,
-                "oauth_service_id": self.service.oauth_service_id,
-                "full_name": self.service.git_full_name
-            }
-            if service_source:
-                bean["user"] = service_source.user_name
-                bean["password"] = service_source.password
-            if self.service.service_source == 'market':
-                if service_source:
-                    # get from cloud
-                    app = None
-                    app_version = None
-                    if service_source.extend_info:
-                        extend_info = json.loads(service_source.extend_info)
-                        if extend_info and extend_info.get("install_from_cloud", False):
-                            app, app_version = market_app_service.get_app_from_cloud(
-                                self.tenant, service_source.group_key, service_source.version)
-
-                            bean["install_from_cloud"] = True
-                            bean["app_detail_url"] = app.describe
-
-                    if not app:
-                        app, app_version = market_app_service.get_rainbond_app_and_version(
-                            self.tenant.enterprise_id, service_source.group_key, service_source.version)
-
-                    if app and app_version:
-                        bean["rain_app_name"] = app.app_name
-                        bean["details"] = app.details
-                        logger.debug("app_version: {}".format(app_version.version))
-                        bean["app_version"] = app_version.version
-                        bean["version"] = app_version.version
-                        bean["group_key"] = app.app_id
-            result = general_message(200, "success", "查询成功", bean=bean)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        from console.services.service_services import base_service
+        bean = base_service.get_build_info(self.tenant, self.service)
+        result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
     @never_cache
