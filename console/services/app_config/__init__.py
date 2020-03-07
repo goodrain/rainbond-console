@@ -3,6 +3,7 @@
   Created on 18/1/17.
 """
 from .port_service import AppPortService
+from .port_service import EndpointService
 from .image_relation_service import AppImageRelationService
 from .env_service import AppEnvVarService, AppEnvService
 from .app_relation_service import AppServiceRelationService
@@ -15,6 +16,7 @@ from .extend_service import AppExtendService
 from .deploy_type_service import DeployTypeService
 
 port_service = AppPortService()
+endpoint_service = EndpointService()
 image_relation_service = AppImageRelationService()
 env_var_service = AppEnvVarService()
 volume_service = AppVolumeService()
