@@ -10,6 +10,7 @@ import os
 from addict import Dict
 from django.db import transaction
 from django.db.models import Q
+from docker_image import reference
 
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
@@ -32,6 +33,7 @@ from console.repositories.plugin import service_plugin_config_repo
 from console.services.app import app_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.rbd_center_app_service import rbd_center_app_service
+from goodrain_web import settings
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import PluginConfigGroup
@@ -687,9 +689,12 @@ class PluginService(object):
                 raise Exception("no config was found")
 
             needed_plugin_config = all_default_config[plugin_type]
+            ref = reference.Reference.parse(needed_plugin_config["image"])
+            _, name = ref.split_hostname()
+            image = settings.IMAGE_REPO + "/" + name
             code, msg, plugin_base_info = self.create_tenant_plugin(
                 tenant, user.user_id, region, needed_plugin_config["desc"], needed_plugin_config["plugin_alias"],
-                needed_plugin_config["category"], needed_plugin_config["build_source"], needed_plugin_config["image"],
+                needed_plugin_config["category"], needed_plugin_config["build_source"], image,
                 needed_plugin_config["code_repo"])
             plugin_base_info.origin = "local_market"
             plugin_base_info.origin_share_id = plugin_type
