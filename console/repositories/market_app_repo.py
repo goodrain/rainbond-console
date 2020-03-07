@@ -416,6 +416,17 @@ class AppExportRepository(object):
     def get_export_record_by_unique_key(self, group_key, version, export_format):
         return AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format).first()
 
+    def get_export_record(self, eid, app_id, app_version, export_format):
+        records = AppExportRecord.objects.filter(
+            group_key=app_id,
+            version=app_version,
+            format=export_format,
+            enterprise_id__in=[eid, "public"],
+            status="exporting")
+        if not records:
+            return None
+        return records[0]
+
     def get_enter_export_record_by_unique_key(self, enterprise_id, group_key, version, export_format):
         app_records = AppExportRecord.objects.filter(
             group_key=group_key, version=version, format=export_format, enterprise_id__in=[enterprise_id, "public"])
@@ -440,6 +451,12 @@ class AppExportRepository(object):
 
 
 class AppImportRepository(object):
+    def get_import_record(self, id):
+        records = AppImportRecord.objects.filter(ID=id)
+        if not records:
+            return None
+        return records[0]
+
     def get_import_record_by_event_id(self, event_id):
         return AppImportRecord.objects.filter(event_id=event_id).first()
 

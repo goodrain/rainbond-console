@@ -14,13 +14,13 @@ from rest_framework.response import Response
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_config import port_service
+from console.services.app_config import endpoint_service
 from console.services.group_service import group_service
 from console.utils.validation import validate_endpoint_address
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.decorator import perm_required
 from www.models.main import Tenants
 from www.models.main import TenantServiceInfo
@@ -322,39 +322,10 @@ class ThirdPartyAppPodsView(AppBaseView):
         is_online = request.data.get("is_online", True)
         if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
-        try:
-            res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
-                                                                self.service.service_alias)
-            if res.status != 200:
-                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
-            endpoint_list = body["list"]
-            for endpoint in endpoint_list:
-                errs, _ = check_endpoints([endpoint["address"], address])
-                if len(errs) > 0:
-                    return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名组件实例地址"), status=400)
-        except Exception as e:
-            logger.exception(e)
-        try:
-            endpoint_dict = dict()
-            endpoint_dict["address"] = address
-            endpoint_dict["is_online"] = is_online
-            res, body = region_api.post_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                                      self.service.service_alias, endpoint_dict)
-            if res.status != 200:
-                return Response(general_message(412, "region add endpoint failure", "数据中心添加失败"), status=412)
-            result = general_message(200, "success", "添加成功")
-            return Response(result)
-        except region_api.CallApiFrequentError as e:
-            logger.exception(e)
-            return 409, u"操作过于频繁，请稍后再试"
-        except RegionApiBaseHttpClient.InvalidLicenseError as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            if e.status == 400:
-                return Response(general_message(400, "region delete error", "实例已存在({})".format(address)), status=400)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        endpoint_service.add_endpoint(self.tenant, self.service, address, is_online)
+
+        result = general_message(200, "success", "添加成功")
+        return Response(result)
 
     @never_cache
     @perm_required('delete_endpoint')

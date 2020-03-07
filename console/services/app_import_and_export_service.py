@@ -3,14 +3,12 @@
   Created on 18/5/15.
 """
 import base64
-import datetime
 import json
 import logging
 import urllib2
 
 from console.appstore.appstore import app_store
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
-from console.repositories.group import group_repo
 from console.repositories.market_app_repo import app_export_record_repo
 from console.repositories.market_app_repo import app_import_record_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -21,7 +19,9 @@ from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.exception.main import RegionNotFound, RecordNotFound, ServiceHandleException
+from console.exception.main import RegionNotFound, RecordNotFound
+from console.exception.main import ExportAppError
+from console.exception.main import RbdAppNotFound
 from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
@@ -51,37 +51,52 @@ class AppExportService(object):
         new_export_record = app_export_record_repo.create_app_export_record(**params)
         return 200, "success", new_export_record
 
-    def export_current_app(self, enterprise_id, export_format, app, app_version):
+    def export_app(self, eid, app_id, version, export_format):
+        app, app_version = rainbond_app_repo.get_rainbond_app_and_version(eid, app_id, version)
+        if not app or not app_version:
+            raise RbdAppNotFound("未找到该应用")
+
+        # get region
+        region = self.get_app_share_region(app, app_version)
+        if region is None:
+            raise RegionNotFound("数据中心未找到")
+
+        export_record = app_export_record_repo.get_export_record(eid, app_id, version, export_format)
+        if export_record:
+            if export_record.status == "success":
+                raise ExportAppError(msg="exported", mes_show="已存在该导出记录", status_code=409)
+            if export_record.status == "exporting":
+                logger.debug("export record exists: event_id :{0}".format(export_record.event_id))
+                return export_record
+        # did not export, make a new export record
+        # make export data
         event_id = make_uuid()
         data = {
             "event_id": event_id,
             "group_key": app.app_id,
-            "version": app.version,
+            "version": app_version.version,
             "format": export_format,
-            "group_metadata": self.__get_group_metata(app, app_version)
+            "group_metadata": self.__get_app_metata(app, app_version)
         }
-        region = self.get_app_share_region(app)
-        if region is None:
-            raise RegionNotFound("数据中心未找到")
-        region_api.export_app(region, enterprise_id, data)
-        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(enterprise_id, app.app_id,
-                                                                                     app.version, export_format)
-        if export_record:
-            logger.debug("update export record !")
-            export_record.event_id = event_id
-            export_record.status = "exporting"
-            export_record.update_time = datetime.datetime.now()
-            export_record.save()
-            new_export_record = export_record
-        else:
-            logger.debug("create export record !")
-            code, msg, new_export_record = self.create_export_repo(event_id, export_format, app.app_id, app.version,
-                                                                   enterprise_id)
-            if code != 200:
-                raise ServiceHandleException(msg=msg, status_code=code, msg_show=msg)
-        return new_export_record
 
-    def __get_group_metata(self, app, app_version):
+        try:
+            region_api.export_app(region, eid, data)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise ExportAppError()
+
+        params = {
+            "event_id": event_id,
+            "group_key": app_id,
+            "version": version,
+            "format": export_format,
+            "status": "exporting",
+            "enterprise_id": eid,
+        }
+
+        return app_export_record_repo.create_app_export_record(**params)
+
+    def __get_app_metata(self, app, app_version):
         picture_path = app.pic
         suffix = picture_path.split('.')[-1]
         describe = app.describe
@@ -108,38 +123,16 @@ class AppExportService(object):
         response.close()
         return image_base64_string
 
-    def get_app_share_region(self, app):
-        app_template = json.loads(app.app_template)
-        apps = app_template["apps"]
-        first_app = apps[0]
-        if first_app:
-            region = first_app.get("service_region", None)
-        else:
-            group = group_repo.get_group_by_id(app.group_id)
-            if group:
-                region = group.region_name
-            else:
-                region = None
-
-        if region:
-            region_config = region_repo.get_region_by_region_name(region)
-            if region_config:
-                return region
-            region = None
-        else:
-            region = None
-        if not region and app.source == "market":
-            regions = region_repo.get_usable_regions()
-            if not regions:
-                return None
-            else:
-                return regions[0].region_name
-        else:
+    def get_app_share_region(self, app, app_version):
+        import_record_id = app_version.record_id
+        import_record = app_import_record_repo.get_import_record(import_record_id)
+        if not import_record:
             return None
+        return import_record.region
 
-    def get_export_status(self, enterprise_id, app):
+    def get_export_status(self, enterprise_id, app, app_version):
         app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(
-            enterprise_id, app.app_id, app.version)
+            enterprise_id, app.app_id, app_version.version)
         rainbond_app_init_data = {
             "is_export_before": False,
         }
@@ -147,7 +140,7 @@ class AppExportService(object):
             "is_export_before": False,
         }
 
-        region = self.get_app_share_region(app)
+        region = self.get_app_share_region(app, app_version)
         if region is None:
             raise RegionNotFound("数据中心未找到")
         if app_export_records:
@@ -230,6 +223,7 @@ class AppExportService(object):
     def get_file_down_req(self, export_format, tenant_name, app):
         export_record = app_export_record_repo.get_export_record_by_unique_key(
             app.group_key, app.version, export_format)
+        # TODO fix get region bugs, this func need app and version two parameters
         region = self.get_app_share_region(app)
 
         download_url = self.__get_down_url(region, export_record.file_path)
@@ -278,7 +272,8 @@ class AppImportService(object):
         if import_record.status != "success":
             if status == "success":
                 logger.debug("app import success !")
-                self.__save_enterprise_import_info(import_record.enterprise_id, import_record.scope, body["bean"]["metadata"])
+                self.__save_enterprise_import_info(
+                    import_record.ID, import_record.enterprise_id, import_record.scope, body["bean"]["metadata"])
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
@@ -417,7 +412,7 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
-    def __save_enterprise_import_info(self, eid, scope, metadata):
+    def __save_enterprise_import_info(self, import_record_id, eid, scope, metadata):
         rainbond_apps = []
         rainbond_app_versions = []
         metadata = json.loads(metadata)
@@ -463,7 +458,7 @@ class AppImportService(object):
                 app_template=json.dumps(app_template),
                 version=app_template["group_version"],
                 template_version=app_template["template_version"],
-                record_id=0,
+                record_id=import_record_id,
                 share_user=0,
                 is_complete=1,
             )
