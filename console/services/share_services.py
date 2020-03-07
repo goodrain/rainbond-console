@@ -26,6 +26,7 @@ from console.services.group_service import group_service
 from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.service_services import base_service
+from console.services.market_app_service import market_sycn_service
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.marketclient import MarketOpenAPIV2
@@ -582,10 +583,9 @@ class ShareService(object):
 
     @transaction.atomic
     def sync_service_plugin_event(self, user, region_name, tenant_name, record_id, record_event):
-        apps_versions = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
-        if not apps_versions:
+        apps_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
+        if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
-        apps_version = apps_versions[0]
         app_template = json.loads(apps_version.app_template)
         plugins_info = app_template["plugins"]
         plugin_list = []
@@ -601,11 +601,10 @@ class ShareService(object):
                     "share_scope": apps_version.scope,
                     "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else "",
                 }
-
+                sid = transaction.savepoint()
                 try:
                     res, body = region_api.share_plugin(region_name, tenant_name, plugin["plugin_id"], body)
                     data = body.get("bean")
-                    sid = transaction.savepoint()
                     if not data:
                         transaction.savepoint_rollback(sid)
                         raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
@@ -929,7 +928,7 @@ class ShareService(object):
                 info = app.scope.split(":")
                 if len(info) > 1:
                     share_type = info[1]
-                app_market_url = self.publish_app_to_public_market(tenant, user.nick_name, app, share_type)
+                app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app, share_type)
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
@@ -943,9 +942,8 @@ class ShareService(object):
         app_export_record_repo.delete_by_key_and_version(app.app_id, app.version)
         return app_market_url
 
-    def publish_app_to_public_market(self, tenant, user_name, app, share_type="private"):
+    def publish_app_to_public_market(self, tenant, share_record, user_name, app, share_type="private"):
         try:
-            market_api = MarketOpenAPI()
             data = dict()
             data["tenant_id"] = tenant.tenant_id
             data["group_key"] = app.app_id
@@ -956,7 +954,9 @@ class ShareService(object):
             data["update_note"] = app.app_version_info
             data["group_template"] = app.app_template
             data["share_type"] = share_type
-            result = market_api.publish_v2_template_group_data(tenant.tenant_id, data)
+            data["group_version_alias"] = app.version_alias
+            result = market_sycn_service.create_cloud_market_app_version(
+                tenant.enpterise_id, share_record.share_app_market_id, share_record.app_id, data)
             # 云市url
             app_url = result["app_url"]
             return app_url
@@ -1071,35 +1071,39 @@ class ShareService(object):
         dt["scope"] = scope
         if scope == "goodrain":
             apps_versions = share_service.get_cloud_apps_versions(tenant.tenant_id)
+            apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
+            print apps_versions
             if apps_versions:
                 for app in apps_versions:
                     versions = []
-                    app_versions = app.get("app_versions")
+                    app_versions = app.app_versions
                     if app_versions:
                         for version in app_versions:
                             versions.append({
-                                "app_version": version.get("app_version"),
-                                "describe": version.get("describe"),
-                                "version_alias": version.get("version_alias"),
+                                "app_version": version.app_version,
+                                "describe": version.desc,
+                                "version_alias": version.app_version_alias,
                             })
                     dt["app_model_list"].append({
-                        "app_name": app.get("name"),
-                        "app_id": app.get("app_key_id"),
+                        "app_name": app.name,
+                        "app_id": app.app_key_id,
                         "versions": versions,
-                        "pic": app.get("pic"),
-                        "app_describe": app.get("desc"),
-                        "dev_status": app.get("dev_status"),
-                        "scope": ("goodrain:" + app.get("publish_type")).strip(":")
+                        "pic": app.pic,
+                        "app_describe": app.desc,
+                        # "dev_status": app.dev_status,
+                        "dev_status": "",
+                        "scope": ("goodrain:" + app.publish_type).strip(":")
                     })
-                    if last_shared and app.get("app_key_id") == last_shared.app_id:
+                    if last_shared and app.app_key_id == last_shared.app_id:
                         dt["last_shared_app"] = {
-                            "app_name": app.get("name"),
-                            "app_id": app.get("app_key_id"),
+                            "app_name": app.name,
+                            "app_id": app.app_key_id,
                             "version": last_shared.share_version,
-                            "pic": app.get("pic"),
-                            "describe": app.get("desc"),
-                            "dev_status": app.get("dev_status"),
-                            "scope": ("goodrain:" + app.get("publish_type")).strip(":")
+                            "pic": app.pic,
+                            "describe": app.desc,
+                            # "dev_status": app.dev_status,
+                            "dev_status": "",
+                            "scope": ("goodrain:" + app.publish_type).strip(":")
                         }
         else:
             if last_shared:
