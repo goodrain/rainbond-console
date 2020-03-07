@@ -507,7 +507,7 @@ class AppExportRecord(BaseModel):
     version = models.CharField(max_length=20, help_text=u"导出应用的版本")
     format = models.CharField(max_length=15, help_text=u"导出应用的格式")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
-    status = models.CharField(max_length=10, null=True, blank=True, help_text=u"时间请求状态")
+    status = models.CharField(max_length=10, null=True, blank=True, help_text=u"事件请求状态")
     file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")

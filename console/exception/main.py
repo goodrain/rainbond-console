@@ -130,3 +130,8 @@ class ErrDoNotSupportMultiDomain(Exception):
 class MarketAppLost(ServiceHandleException):
     def __init__(self, msg):
         super(MarketAppLost, self).__init__(msg)
+
+
+class ExportAppError(ServiceHandleException):
+    def __init__(self, msg="export error", msg_show="导出失败", status_code=500):
+        super(ExportAppError, self).__init__(msg, msg_show, status_code)
