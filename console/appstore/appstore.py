@@ -4,6 +4,7 @@ import logging
 from console.exception.main import ServiceHandleException
 from console.models.main import ConsoleSysConfig
 from console.repositories.team_repo import team_repo
+from goodrain_web import settings
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.json_tool import json_load
@@ -35,7 +36,7 @@ class AppStore(object):
                 image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
                 namespace = eid if scope == "enterprise" else team_name
                 if not image_config or not image_config[0].enable:
-                    return {"hub_url": 'goodrain.me', "namespace": namespace}
+                    return {"hub_url": settings.IMAGE_REPO, "namespace": namespace}
                 image_config_dict = eval(image_config[0].value)
                 hub_url = image_config_dict.get("hub_url", None)
                 hub_user = image_config_dict.get("hub_user", None)
@@ -53,9 +54,11 @@ class AppStore(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
         except Exception as e:
             logger.exception(e)
             return {}
@@ -96,9 +99,11 @@ class AppStore(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
         except Exception as e:
             logger.exception(e)
             return {}

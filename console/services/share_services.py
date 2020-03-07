@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-import time
 import datetime
 import json
 import logging
+import time
 
 from django.db import transaction
 
 from console.appstore.appstore import app_store
+from console.enum.component_enum import is_singleton
 from console.exception.main import AbortRequest
-from console.exception.main import ServiceHandleException
 from console.exception.main import RbdAppNotFound
+from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
@@ -23,10 +24,10 @@ from console.repositories.plugin import plugin_repo
 from console.repositories.plugin import service_plugin_config_repo
 from console.repositories.share_repo import share_repo
 from console.services.group_service import group_service
+from console.services.market_app_service import market_sycn_service
 from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.service_services import base_service
-from console.services.market_app_service import market_sycn_service
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.marketclient import MarketOpenAPIV2
@@ -34,7 +35,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
-from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger("default")
 
@@ -814,7 +814,6 @@ class ShareService(object):
 
                     for service in services:
                         # slug组件
-                        # if image.startswith("goodrain.me/runner") and service["language"] != "dockerfile":
                         if delivered_type_map[service['service_id']] == "slug":
                             service['service_slug'] = app_store.get_slug_connection_info(scope, share_team.tenant_name)
                             service["share_type"] = "slug"

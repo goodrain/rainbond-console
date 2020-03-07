@@ -11,9 +11,9 @@ import string
 from django.db.models import Q
 
 from console.constants import AppConstants
+from console.constants import PluginImage
 from console.constants import SourceCodeType
-from console.utils.oauth.oauth_types import support_oauth_type
-
+from console.enum.component_enum import ComponentType
 from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -27,9 +27,11 @@ from console.repositories.base import BaseConnection
 from console.repositories.perm_repo import perms_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
-from console.services.app_config import label_service
+from console.utils.oauth.oauth_types import support_oauth_type
+from console.utils.validation import validate_endpoint_address
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume
@@ -40,8 +42,6 @@ from www.tenantservice.baseservice import ServicePluginResource
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
-from console.utils.validation import validate_endpoint_address
-from console.enum.component_enum import ComponentType
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -71,7 +71,7 @@ class AppService(object):
         tenant_service.service_key = "application"
         tenant_service.desc = "application info"
         tenant_service.category = "application"
-        tenant_service.image = "goodrain.me/runner"
+        tenant_service.image = PluginImage.RUNNER
         tenant_service.cmd = ""
         tenant_service.setting = ""
         tenant_service.extend_method = ComponentType.stateless_multiple.value
@@ -183,8 +183,6 @@ class AppService(object):
         tenant_service.service_key = "0000"
         tenant_service.desc = "docker run application"
         tenant_service.category = "app_publish"
-        # tenant_service.image = "goodrain.me/runner"
-        # tenant_service.cmd = "start web"
         tenant_service.setting = ""
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","

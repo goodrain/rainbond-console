@@ -4,17 +4,18 @@
 """
 import logging
 
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
+from console.services.team_services import team_services
 from console.services.topological_services import topological_service
 from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import general_message, error_message
-from console.services.team_services import team_services
-from rest_framework.exceptions import NotFound
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 event_service = AppEventService()
 
