@@ -40,7 +40,8 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
         if code:
             headers = {
                 "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded"
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Connection": "close"
             }
             params = {
                 "client_id": self.oauth_service.client_id,
