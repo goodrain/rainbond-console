@@ -116,7 +116,7 @@ class MarketAppService(object):
                     "group_key":
                         market_app.app_id,
                     "version":
-                        market_app.dev_status,
+                        market_app_version.version,
                     "service_share_uuid":
                         app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get(
                             "service_key"),
@@ -828,15 +828,17 @@ class MarketAppService(object):
             if not rainbond_app or not rainbond_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
                 raise app_not_found
-        try:
-            resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
-            if not resp.get("data"):
-                raise app_not_found
-        except region_api.CallApiError as e:
-            logger.exception("get market app failed: {0}".format(e))
-            if e.status == 404:
-                raise app_not_found
-            raise MarketAppLost("云市应用查询失败")
+        else:
+            # get from cloud
+            try:
+                resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
+                if not resp.get("data"):
+                    raise app_not_found
+            except region_api.CallApiError as e:
+                logger.exception("get market app failed: {0}".format(e))
+                if e.status == 404:
+                    raise app_not_found
+                raise MarketAppLost("云市应用查询失败")
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_id, app_version)
@@ -1063,8 +1065,12 @@ class MarketAppService(object):
             raise RbdAppNotFound("未找到该应用")
         group_key = service_source[0].group_key
         _, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
-        version = version_template.get(group_key)
-        plugin = plugin_template.get(group_key)
+        version = None
+        plugin = None
+        if version_template:
+            version = version_template.get(group_key)
+        if plugin_template:
+            plugin = plugin_template.get(group_key)
         result = self.list_upgradeable_versions(tenant, service, version, plugin)
         return result
 
@@ -1106,11 +1112,14 @@ class MarketAppService(object):
         result = []
         for item in rbd_center_apps:
             try:
+                version_template = None
+                plugin_template = None
+                if apps_versions_templates:
+                    version_template = apps_versions_templates.get(item.version)
+                if apps_plugins_templates:
+                    plugin_template = apps_plugins_templates.get(item.version)
                 changes = pc.get_property_changes(
-                    tenant.enterprise_id, item.version,
-                    version_template=apps_versions_templates.get(item.version),
-                    plugin_template=apps_plugins_templates.get(item.version)
-                )
+                    tenant.enterprise_id, item.version, version_template=version_template, plugin_template=plugin_template)
             except (RbdAppNotFound, ErrServiceSourceNotFound) as e:
                 logger.warning(e)
                 continue

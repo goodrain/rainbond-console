@@ -278,6 +278,9 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, ResourceNotEnoughException):
         data = {"code": 10406, "msg": "resource is not enough", "msg_show": exc.message}
         return Response(data, status=412)
+    elif isinstance(exc, RegionApiBaseHttpClient.CallApiFrequentError):
+        data = {"code": 409, "msg": "wait a moment please", "msg_show": "操作过于频繁，请稍后再试"}
+        return Response(data, status=409)
     elif isinstance(exc, ValidationError):
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
