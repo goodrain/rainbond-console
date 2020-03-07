@@ -7,6 +7,8 @@ import httplib2
 import httplib
 import json
 import datetime
+import base64
+
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -254,6 +256,7 @@ class CenterAppCLView(JWTAuthApiView):
         describe = request.data.get("describe", 'This is a default description.')
         pic = request.data.get("pic")
         scope = request.data.get("scope")
+        market_id = request.data.get("market_id")
         details = request.data.get("details")
         app_id = make_uuid()
         dev_status = request.data.get("dev_status")
@@ -268,6 +271,7 @@ class CenterAppCLView(JWTAuthApiView):
             "app_name": app_name,
             "describe": describe,
             "pic": pic,
+            "logo": pic,
             "app_id": app_id,
             "dev_status": dev_status,
             "create_team": team_name,
@@ -281,7 +285,15 @@ class CenterAppCLView(JWTAuthApiView):
             result = general_message(400, "error params", None)
             return Response(result, status=200)
         if scope == "goodrain":
-            market_app_service.create_cloud_app(enterprise_id, data)
+            try:
+                with open(pic, "rb") as f:
+                    data["logo"] = "data:image/{};base64,".format(pic.split(".")[-1]) + \
+                                  base64.b64encode(f.read())
+            except Exception as e:
+                logger.debug(e)
+                result = general_message(400, "can not found pic", None)
+                return Response(result, status=200)
+            market_sycn_service.create_cloud_market_app(enterprise_id, market_id, data)
         else:
             app = share_repo.create_app(data)
             if tag_ids:
