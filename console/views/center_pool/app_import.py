@@ -9,6 +9,7 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.services.region_services import region_services
 from console.services.file_upload_service import upload_service
 from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
@@ -106,7 +107,14 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
         else:
             r = import_service.create_app_import_record_2_enterprise(eid, self.user.nick_name)
         upload_url = import_service.get_upload_url(r.region, r.event_id)
-        data = {"status": r.status, "source_dir": r.source_dir, "event_id": r.event_id, "upload_url": upload_url}
+        region = region_services.get_region_by_region_name(r.region)
+        data = {
+            "status": r.status,
+            "source_dir": r.source_dir,
+            "event_id": r.event_id,
+            "upload_url": upload_url,
+            "region_name": region.region_alias,
+            }
 
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 

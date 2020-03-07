@@ -212,7 +212,6 @@ from console.views.service_share import ServiceShareRecordInfoView
 from console.views.service_share import ShareRecordView
 from console.views.service_share import ServiceGroupSharedApps
 from console.views.service_share import ShareRecordHistoryView
-from console.views.service_share import ServiceGroupAppCView
 from console.views.service_share import CloudAppModelMarkets
 from console.views.service_share import CloudAppModelMarketInfo
 from console.views.service_version import AppVersionManageView
@@ -422,7 +421,6 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/shared/apps$', ServiceGroupSharedApps.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/shared/history$', ShareRecordHistoryView.as_view()),
-    url(r'^teams/(?P<team_name>[\w\-]+)/market/apps$', ServiceGroupAppCView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events$', ServiceShareEventList.as_view()),
