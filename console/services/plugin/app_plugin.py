@@ -7,13 +7,14 @@ import json
 import logging
 import os
 
-from django.db import transaction
-
 from addict import Dict
+from django.db import transaction
+from django.db.models import Q
 
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
 from console.constants import PluginCategoryConstants
+from console.constants import PluginImage
 from console.constants import PluginInjection
 from console.constants import PluginMetaType
 from console.exception.main import ServiceHandleException
@@ -73,7 +74,8 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
+    def create_service_plugin_relation(
+            self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
@@ -211,7 +213,8 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 if not self.__check_ports_for_config_items(ports, items):
-                    raise ServiceHandleException(msg="do not support protocol", status_code=409, msg_show="插件支持的协议与组件端口协议不一致")
+                    raise ServiceHandleException(msg="do not support protocol",
+                                                 status_code=409, msg_show="插件支持的协议与组件端口协议不一致")
                 for port in ports:
                     attrs_map = dict()
                     for item in items:
@@ -233,7 +236,8 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
                 if not dep_services:
-                    raise ServiceHandleException(msg="can't use this plugin", status_code=409, msg_show="组件没有依赖其他组件，不能安装此插件")
+                    raise ServiceHandleException(msg="can't use this plugin",
+                                                 status_code=409, msg_show="组件没有依赖其他组件，不能安装此插件")
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     if not self.__check_ports_for_config_items(ports, items):
@@ -776,5 +780,6 @@ class PluginService(object):
         if plugins:
             return plugins
         else:
-            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
-                category="analyst-plugin:perf", image="goodrain.me/tcm")
+            q = Q(category="analyst-plugin:perf", image=PluginImage.RUNNER)
+            q |= Q(category="analyst-plugin:perf", image="goodrain.me")
+            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(q)

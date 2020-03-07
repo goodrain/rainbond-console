@@ -2,18 +2,20 @@
 """
   Created on 18/1/17.
 """
+import logging
 import re
 
 from console.constants import AppConstants
-from console.repositories.app_config import volume_repo, mnt_repo
-
-from www.apiclient.regionapi import RegionInvokeApi
-import logging
-from console.utils.urlutil import is_path_legal
-from www.utils.crypt import make_uuid
-from console.services.exception import ErrVolumeTypeNotFound
+from console.enum.component_enum import ComponentType
+from console.enum.component_enum import is_state
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import volume_repo
 from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
-from console.enum.component_enum import ComponentType, is_state
+from console.services.exception import ErrVolumeTypeNotFound
+from console.utils import runner_util
+from console.utils.urlutil import is_path_legal
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -53,12 +55,12 @@ class AppVolumeService(object):
     stateless_volume_types = [
         {"volume_type": "share-file", "name_show": "共享存储（文件）"},
         {"volume_type": "memoryfs", "name_show": "内存文件存储"}
-        ]
+    ]
     state_volume_types = [
         {"volume_type": "share-file", "name_show": "共享存储（文件）"},
         {"volume_type": "memoryfs", "name_show": "内存文件存储"},
         {"volume_type": "local", "name_show": "本地存储"}
-        ]
+    ]
 
     def is_simple_volume_type(self, volume_type):
         if volume_type in self.simple_volume_type:
@@ -194,7 +196,7 @@ class AppVolumeService(object):
         if service.service_source == AppConstants.SOURCE_CODE:
             if volume_path == "/app":
                 return 409, u"源码组件不能挂载/app目录"
-        if service.image != "goodrain.me/runner":
+        if not runner_util.is_runner(service.image):
             volume_path_win = False
             if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
                 volume_path_win = True
@@ -304,7 +306,8 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None):
+    def add_service_volume(
+            self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         code, msg, volume_name = self.check_volume_name(service, volume_name)
@@ -367,7 +370,8 @@ class AppVolumeService(object):
             data['backup_policy'] = settings['backup_policy']
             data['reclaim_policy'] = settings['reclaim_policy']
             data['allow_expansion'] = settings['allow_expansion']
-            res, body = region_api.add_service_volumes(service.service_region, tenant.tenant_name, service.service_alias, data)
+            res, body = region_api.add_service_volumes(
+                service.service_region, tenant.tenant_name, service.service_alias, data)
             logger.debug(body)
 
         volume = volume_repo.add_service_volume(**volume_data)

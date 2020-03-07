@@ -2,6 +2,9 @@
 """
   Created on 18/1/29.
 """
+from docker_image import reference
+
+from goodrain_web import settings
 from www.db.base import BaseConnection
 from www.models.plugin import PluginBuildVersion
 from www.models.plugin import PluginConfigGroup
@@ -19,9 +22,19 @@ class TenantPluginRepository(object):
         """
         tenant_plugins = TenantPlugin.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id)
         if tenant_plugins:
-            return tenant_plugins[0]
+            plugin = tenant_plugins[0]
+            ref = reference.Reference.parse(plugin.image)
+            _, name = ref.split_hostname()
+            plugin.image = settings.IMAGE_REPO + "/" + name
         else:
             return None
+
+    def get_by_plugin_id(self, plugin_id):
+        plugin = TenantPlugin.objects.get(plugin_id=plugin_id)
+        ref = reference.Reference.parse(plugin.image)
+        _, name = ref.split_hostname()
+        plugin.image = settings.IMAGE_REPO + "/" + name
+        return plugin
 
     def get_plugin_by_plugin_ids(self, plugin_ids):
         return TenantPlugin.objects.filter(plugin_id__in=plugin_ids)

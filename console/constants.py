@@ -2,6 +2,7 @@
 """
   Created on 18/1/24.
 """
+from goodrain_web import settings
 
 
 class AppConstants(object):
@@ -113,3 +114,7 @@ class StorageUnit(object):
 class DomainType(object):
     SLD_DOMAIN = "goodrain-sld"
     WWW = "www"
+
+
+class PluginImage(object):
+    RUNNER = settings.IMAGE_REPO + "/runner"
