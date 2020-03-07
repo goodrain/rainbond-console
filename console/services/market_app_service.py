@@ -1065,8 +1065,12 @@ class MarketAppService(object):
             raise RbdAppNotFound("未找到该应用")
         group_key = service_source[0].group_key
         _, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
-        version = version_template.get(group_key)
-        plugin = plugin_template.get(group_key)
+        version = None
+        plugin = None
+        if version_template:
+            version = version_template.get(group_key)
+        if plugin_template:
+            plugin = plugin_template.get(group_key)
         result = self.list_upgradeable_versions(tenant, service, version, plugin)
         return result
 
@@ -1108,11 +1112,14 @@ class MarketAppService(object):
         result = []
         for item in rbd_center_apps:
             try:
+                version_template = None
+                plugin_template = None
+                if apps_versions_templates:
+                    version_template = apps_versions_templates.get(item.version)
+                if apps_plugins_templates:
+                    plugin_template = apps_plugins_templates.get(item.version)
                 changes = pc.get_property_changes(
-                    tenant.enterprise_id, item.version,
-                    version_template=apps_versions_templates.get(item.version),
-                    plugin_template=apps_plugins_templates.get(item.version)
-                )
+                    tenant.enterprise_id, item.version, version_template=version_template, plugin_template=plugin_template)
             except (RbdAppNotFound, ErrServiceSourceNotFound) as e:
                 logger.warning(e)
                 continue
