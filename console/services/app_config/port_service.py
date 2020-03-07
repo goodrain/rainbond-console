@@ -758,9 +758,9 @@ class EndpointService(object):
             _, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
         except region_api.CallApiError as e:
             logger.exception(e)
-            raise CheckThirdpartEndpointFailed(msg="check endpoint failed", msg_show="检查实例地址失败")
+            raise CheckThirdpartEndpointFailed()
         if not body:
-            raise CheckThirdpartEndpointFailed(msg="check endpoint failed", msg_show="检查实例地址失败")
+            raise CheckThirdpartEndpointFailed()
 
         endpoint_list = body.get("list", [])
         endpoints = [endpoint.address for endpoint in endpoint_list]
