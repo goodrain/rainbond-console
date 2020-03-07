@@ -797,7 +797,7 @@ class EndpointService(object):
                 endpoint = endpoint.rpartition(":")[0]
             is_domain = self.check_endpoint(endpoint)
             if is_domain and len(endpoints) > 1:
-                raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint")
+                raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint", msg_show="不允许添加多个域名实例地址")
         return is_domain
 
     # check endpoint do not start with protocol and do not end with port, just hostname or ip
