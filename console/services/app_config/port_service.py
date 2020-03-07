@@ -11,6 +11,7 @@ from django.db import transaction
 
 from console.exception.main import AbortRequest
 from console.exception.main import CheckThirdpartEndpointFailed
+from console.exception.main import ServiceHandleException
 
 from console.constants import ServicePortConstants
 from console.repositories.app import service_repo
@@ -412,7 +413,11 @@ class AppPortService(object):
         return 200, "success"
 
     def close_thirdpart_outer(self, tenant, service, deal_port):
-        self.__close_outer(tenant, service, deal_port)
+        try:
+            self.__close_outer(tenant, service, deal_port)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
 
     def __close_outer(self, tenant, service, deal_port):
         deal_port.is_outer_service = False

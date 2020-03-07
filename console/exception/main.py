@@ -133,5 +133,5 @@ class MarketAppLost(ServiceHandleException):
 
 
 class CheckThirdpartEndpointFailed(ServiceHandleException):
-    def __init__(self, msg, msg_show=""):
+    def __init__(self, msg="check endpoint failed", msg_show="校验实例地址失败"):
         super(CheckThirdpartEndpointFailed, self).__init__(msg=msg, msg_show=msg_show, status_code=500)
