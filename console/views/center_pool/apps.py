@@ -271,7 +271,6 @@ class CenterAppCLView(JWTAuthApiView):
             "app_name": app_name,
             "describe": describe,
             "pic": pic,
-            "logo": pic,
             "app_id": app_id,
             "dev_status": dev_status,
             "create_team": team_name,
