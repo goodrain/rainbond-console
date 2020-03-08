@@ -9,10 +9,11 @@ import logging
 from django.conf import settings
 
 from console.constants import AppConstants
-from console.utils.oauth.oauth_types import get_oauth_instance
-
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
+from console.enum.component_enum import ComponentType
+from console.enum.component_enum import is_singleton
+from console.enum.component_enum import is_state
+from console.exception.main import ServiceHandleException
+from console.models.main import ServiceShareRecordEvent
 from console.repositories.app import delete_service_repo
 from console.repositories.app import recycle_bin_repo
 from console.repositories.app import relation_recycle_bin_repo
@@ -36,10 +37,14 @@ from console.repositories.group import group_service_relation_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.migration_repo import migrate_repo
+from console.repositories.oauth_repo import oauth_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
+from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
@@ -48,17 +53,14 @@ from console.services.app_config import AppMntService
 from console.services.app_config import AppPortService
 from console.services.app_config import AppServiceRelationService
 from console.services.app_config import AppVolumeService
-from www.models.main import ServiceGroupRelation
+from console.services.exception import ErrChangeServiceType
+from console.utils import slug_util
+from console.utils.oauth.oauth_types import get_oauth_instance
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
-from console.models.main import ServiceShareRecordEvent
-from console.repositories.service_group_relation_repo import service_group_relation_repo
-from console.repositories.migration_repo import migrate_repo
-from console.services.exception import ErrChangeServiceType
-from console.exception.main import ServiceHandleException
-from console.enum.component_enum import ComponentType, is_singleton, is_state
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -142,7 +144,7 @@ class AppManageBase(object):
         if self.MODULES["Memory_Limit"]:
             if is_check_status:
                 new_add_memory = new_add_memory + \
-                                 self.cur_service_memory(tenant, service)
+                    self.cur_service_memory(tenant, service)
             if tenant.pay_type == "free":
                 tm = tenantUsedResource.calculate_real_used_resource(tenant) + new_add_memory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
@@ -467,9 +469,7 @@ class AppManageService(AppManageBase):
                 # return "image"
                 return "build_from_image"
             elif service.service_source == AppConstants.MARKET:
-                if service.image.startswith('goodrain.me/runner') \
-                        and service.language \
-                        not in ("dockerfile", "docker"):
+                if slug_util.is_slug(service.image, service.language):
                     return "build_from_market_slug"
                 else:
                     return "build_from_market_image"
@@ -479,9 +479,7 @@ class AppManageService(AppManageBase):
                 kind = "build_from_source_code"
             if service.category == "app_publish":
                 kind = "build_from_market_image"
-                if service.image.startswith('goodrain.me/runner') \
-                        and service.language \
-                        not in ("dockerfile", "docker"):
+                if slug_util.is_slug(service.image, service.language):
                     kind = "build_from_market_slug"
                 if service.service_key == "0000":
                     kind = "build_from_image"
@@ -658,7 +656,7 @@ class AppManageService(AppManageBase):
                         # install from local cloud
                         else:
                             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
-                                service_source.group_key, service_source.version)
+                                tenant.enterprise_id, service_source.group_key, service_source.version)
                         if app_version:
                             # 解析app_template的json数据
                             apps_template = json.loads(app_version.app_template)
@@ -762,12 +760,14 @@ class AppManageService(AppManageBase):
         """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
-            raise ServiceHandleException(status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
+            raise ServiceHandleException(
+                status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
         if new_node == service.min_node:
             raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
 
         if new_node > 1 and is_singleton(service.extend_method):
-            raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
+            raise ServiceHandleException(
+                status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
 
         if service.create_status == "complete":
             body = dict()
@@ -1191,10 +1191,12 @@ class AppManageService(AppManageBase):
                     continue
                 if tenant_service_volume["volume_type"] == "local":
                     if old_extend_method == ComponentType.state_singleton.value:
-                        raise ServiceHandleException(msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
+                        raise ServiceHandleException(
+                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
                 if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):
-                        raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
+                        raise ServiceHandleException(msg="storage access mode do not support",
+                                                     msg_show="存储读写属性限制,不可修改为无状态组件")
         # 实例个数限制
         if is_singleton(extend_method) and service.min_node > 1:
             raise ServiceHandleException(

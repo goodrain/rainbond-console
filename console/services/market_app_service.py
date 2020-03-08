@@ -6,21 +6,26 @@ import datetime
 import json
 import logging
 import socket
+
 import httplib2
 from addict import Dict
-from django.db.models import Q
 from django.db import transaction
-from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
+from django.db.models import Q
+from market_client.rest import ApiException
+from urllib3.exceptions import ConnectTimeoutError
+from urllib3.exceptions import MaxRetryError
+
 from console.constants import AppConstants
-from console.exception.main import RbdAppNotFound
+from console.enum.component_enum import ComponentType
 from console.exception.main import MarketAppLost
+from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
-from console.repositories.base import BaseConnection
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.app_config import volume_repo
+from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.plugin import plugin_repo
@@ -43,9 +48,12 @@ from console.services.plugin import app_plugin_service
 from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
+from console.services.upgrade_services import upgrade_service
+from console.utils import slug_util
 from console.utils.restful_client import get_default_market_client
 from console.utils.restful_client import get_market_client
 from console.utils.timeutil import current_time_str
+from goodrain_web import settings
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.marketclient import MarketOpenAPIV2
@@ -56,9 +64,6 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from market_client.rest import ApiException
-from console.enum.component_enum import ComponentType
-from console.services.upgrade_services import upgrade_service
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -81,7 +86,8 @@ class MarketAppService(object):
         }
         return market_api_v2.create_market_app_by_enterprise_id(enterprise_id, body)
 
-    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy, install_from_cloud):
+    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy,
+                        install_from_cloud):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -110,7 +116,7 @@ class MarketAppService(object):
                     "group_key":
                         market_app.app_id,
                     "version":
-                        market_app.dev_status,
+                        market_app_version.version,
                     "service_share_uuid":
                         app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get(
                             "service_key"),
@@ -587,15 +593,18 @@ class MarketAppService(object):
                                                                             volume.get("backup_policy"),
                                                                             None, volume.get("volume_provider_name"))
                 if settings["changed"]:
-                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
+                    logger.debug('volume type changed from {0} to {1}'.format(
+                        volume["volume_type"], settings["volume_type"]))
                     volume["volume_type"] = settings["volume_type"]
                     if volume["volume_type"] == "share-file":
                         volume["volume_capacity"] = 0
                 else:
                     settings["volume_capacity"] = volume.get("volume_capacity", 0)
-                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                           volume["volume_type"], volume["volume_name"], None,
-                                                                           settings)
+                code, msg, volume_data = volume_service.add_service_volume(
+                    tenant, service, volume["volume_path"],
+                    volume["volume_type"],
+                    volume["volume_name"],
+                    None, settings)
             if code != 200:
                 logger.error("save market app volume error".format(msg))
                 return code, msg
@@ -626,8 +635,7 @@ class MarketAppService(object):
         if share_type:
             is_slug = bool(share_type == "slug")
         else:
-            is_slug = bool(
-                app["image"].startswith('goodrain.me/runner') and app["language"] not in ("dockerfile", "docker"))
+            is_slug = bool(slug_util.is_slug(app["image"], app["language"]))
 
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
@@ -820,15 +828,17 @@ class MarketAppService(object):
             if not rainbond_app or not rainbond_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
                 raise app_not_found
-        try:
-            resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
-            if not resp.get("data"):
-                raise app_not_found
-        except region_api.CallApiError as e:
-            logger.exception("get market app failed: {0}".format(e))
-            if e.status == 404:
-                raise app_not_found
-            raise MarketAppLost("云市应用查询失败")
+        else:
+            # get from cloud
+            try:
+                resp = market_api.get_app_template(tenant.tenant_id, service_source.group_key, service_source.version)
+                if not resp.get("data"):
+                    raise app_not_found
+            except region_api.CallApiError as e:
+                logger.exception("get market app failed: {0}".format(e))
+                if e.status == 404:
+                    raise app_not_found
+                raise MarketAppLost("云市应用查询失败")
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_id, app_version)
@@ -860,7 +870,8 @@ class MarketAppService(object):
     # can not save in local db
     def get_app_from_cloud(self, tenant, group_key, group_version, install=False):
         try:
-            app_template = market_api.get_remote_app_templates(tenant.enterprise_id, group_key, group_version, install=install)
+            app_template = market_api.get_remote_app_templates(
+                tenant.enterprise_id, group_key, group_version, install=install)
             if app_template:
                 rainbond_app = RainbondCenterApp(
                     app_id=app_template["group_key"],
@@ -882,7 +893,8 @@ class MarketAppService(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def conversion_cloud_version_to_app(self, cloud_version):
@@ -1053,8 +1065,12 @@ class MarketAppService(object):
             raise RbdAppNotFound("未找到该应用")
         group_key = service_source[0].group_key
         _, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
-        version = version_template.get(group_key)
-        plugin = plugin_template.get(group_key)
+        version = None
+        plugin = None
+        if version_template:
+            version = version_template.get(group_key)
+        if plugin_template:
+            plugin = plugin_template.get(group_key)
         result = self.list_upgradeable_versions(tenant, service, version, plugin)
         return result
 
@@ -1096,11 +1112,14 @@ class MarketAppService(object):
         result = []
         for item in rbd_center_apps:
             try:
+                version_template = None
+                plugin_template = None
+                if apps_versions_templates:
+                    version_template = apps_versions_templates.get(item.version)
+                if apps_plugins_templates:
+                    plugin_template = apps_plugins_templates.get(item.version)
                 changes = pc.get_property_changes(
-                    tenant.enterprise_id, item.version,
-                    version_template=apps_versions_templates.get(item.version),
-                    plugin_template=apps_plugins_templates.get(item.version)
-                )
+                    tenant.enterprise_id, item.version, version_template=version_template, plugin_template=plugin_template)
             except (RbdAppNotFound, ErrServiceSourceNotFound) as e:
                 logger.warning(e)
                 continue
@@ -1129,7 +1148,8 @@ class MarketAppService(object):
                         apps_plugins_templates[group_key][app_version] = None
                         app_template = MarketOpenAPI().get_app_template(tenant.tenant_id, group_key, app_version)
                         if app_template:
-                            apps_versions_templates[group_key][app_version] = app_template["data"]["bean"]["template_content"]
+                            apps_versions_templates[group_key][app_version] = app_template["data"]["bean"][
+                                "template_content"]
                         plugins = MarketOpenAPI().get_plugin_templates(tenant.tenant_id, group_key, app_version)
                         if plugins:
                             apps_plugins_templates[group_key][app_version] = plugins["data"]["bean"]["template_content"]
@@ -1280,7 +1300,13 @@ class MarketTemplateTranslateService(object):
             service_image["hub_url"] = "hub.goodrain.com"
             service_image["namespace"] = "goodrain"
             # 云市镜像存储
-            new_app["share_image"] = app["image"].replace("goodrain.me", "hub.goodrain.com/goodrain")
+            if "goodrain.me" in app["image"]:
+                # compatible with older versions before 5.2
+                new_app["share_image"] = app["image"].replace(
+                    "goodrain.me", "hub.goodrain.com/goodrain")
+            else:
+                new_app["share_image"] = app["image"].replace(
+                    settings.IMAGE_REPO, "hub.goodrain.com/goodrain")
         if share_slug_path:
             new_app["share_slug_path"] = share_slug_path
         new_app["service_image"] = service_image
@@ -1434,7 +1460,8 @@ class AppMarketSynchronizeService(object):
         if rainbond_app and rainbond_app_version and rainbond_app_version.is_complete:
             return rainbond_app, rainbond_app_version
         try:
-            rainbond_app, rainbond_app_version = self.down_market_group_app_detail(user, tenant, app_id, app_version, "v2")
+            rainbond_app, rainbond_app_version = self.down_market_group_app_detail(
+                user, tenant, app_id, app_version, "v2")
             return rainbond_app, rainbond_app_version
         except Exception as e:
             logger.exception(e)

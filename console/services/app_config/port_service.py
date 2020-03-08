@@ -5,11 +5,15 @@
 import datetime
 import logging
 import re
+import validators
 
 from django.db import transaction
 
-from console.constants import ServicePortConstants
 from console.exception.main import AbortRequest
+from console.exception.main import CheckThirdpartEndpointFailed
+from console.exception.main import ServiceHandleException
+
+from console.constants import ServicePortConstants
 from console.repositories.app import service_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
@@ -408,6 +412,13 @@ class AppPortService(object):
 
         return 200, "success"
 
+    def close_thirdpart_outer(self, tenant, service, deal_port):
+        try:
+            self.__close_outer(tenant, service, deal_port)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
+
     def __close_outer(self, tenant, service, deal_port):
         deal_port.is_outer_service = False
         if service.create_status == "complete":
@@ -739,3 +750,62 @@ class AppPortService(object):
             from www.utils.return_message import error_message
             result = error_message(e.message)
             return result, "检查第三方域名服务错误", 500
+
+
+class EndpointService(object):
+    def add_endpoint(self, tenant, service, address, is_online):
+        try:
+            _, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise CheckThirdpartEndpointFailed()
+        if not body:
+            raise CheckThirdpartEndpointFailed()
+
+        endpoint_list = body.get("list", [])
+        endpoints = [endpoint.address for endpoint in endpoint_list]
+        endpoints.append(address)
+        is_domain = self.check_endpoints(endpoints)
+
+        # close outer port
+        if is_domain:
+            from console.services.app_config import port_service
+            ports = port_service.get_service_ports(service)
+            if ports:
+                logger.debug("close third part port: {0}".format(ports[0].container_port))
+                port_service.close_thirdpart_outer(tenant, service, ports[0])
+
+        data = {"address": address, "is_online": is_online}
+
+        try:
+            res, _ = region_api.post_third_party_service_endpoints(
+                service.service_region, tenant.tenant_name, service.service_alias, data)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")
+        if res and res.status != 200:
+            raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")
+
+    def check_endpoints(self, endpoints):
+        is_domain = False
+        for endpoint in endpoints:
+            if "https://" in endpoint:
+                endpoint = endpoint.partition("https://")[2]
+            if "http://" in endpoint:
+                endpoint = endpoint.partition("http://")[2]
+            if ":" in endpoint:
+                endpoint = endpoint.rpartition(":")[0]
+            is_domain = self.check_endpoint(endpoint)
+            if is_domain and len(endpoints) > 1:
+                raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint", msg_show="不允许添加多个域名实例地址")
+        return is_domain
+
+    # check endpoint do not start with protocol and do not end with port, just hostname or ip
+    def check_endpoint(self, endpoint):
+        is_ipv4 = validators.ipv4(endpoint)
+        is_ipv6 = validators.ipv6(endpoint)
+        if is_ipv4 or is_ipv6:
+            return False
+        if validators.domain(endpoint):
+            return True
+        raise CheckThirdpartEndpointFailed(msg="invalid endpoint")

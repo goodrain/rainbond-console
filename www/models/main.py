@@ -5,11 +5,17 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import DateTimeField, CharField, AutoField, BooleanField, DecimalField, IntegerField
+from django.db.models.fields import AutoField
+from django.db.models.fields import BooleanField
+from django.db.models.fields import CharField
+from django.db.models.fields import DateTimeField
+from django.db.models.fields import DecimalField
+from django.db.models.fields import IntegerField
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from enum import Enum
 
+from console.utils import runner_util
 from www.utils.crypt import encrypt_passwd
 from www.utils.crypt import make_tenant_id
 from www.utils.crypt import make_uuid
@@ -439,8 +445,7 @@ class ServiceInfo(BaseModel):
     publish_type = models.CharField(max_length=10, default="single", help_text=u"判断组件是否属于组")
 
     def is_slug(self):
-        return bool(self.image.startswith('goodrain.me/runner'))
-        # return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+        return bool(runner_util.is_runner(self.image))
 
     def is_image(self):
         return not self.is_slug()
@@ -542,7 +547,6 @@ class TenantServiceInfo(BaseModel):
             return self.git_url
 
     def is_slug(self):
-        # return bool(self.image.startswith('goodrain.me/runner'))
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
 
 
@@ -968,12 +972,12 @@ class TenantServiceVolume(BaseModel):
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
     volume_name = models.CharField(max_length=100, blank=True)
     volume_capacity = models.IntegerField(default=0, help_text=u"存储大小，单位(Mi)")
-    volume_provider_name = models.CharField(max_length=100, blank=True, help_text=u"存储驱动名字")
-    access_mode = models.CharField(max_length=100, blank=True, help_text=u"读写模式：RWO、ROX、RWX")
-    share_policy = models.CharField(max_length=100, blank=True, help_text=u"共享模式")
-    backup_policy = models.CharField(max_length=100, blank=True, help_text=u"备份策略")
-    reclaim_policy = models.CharField(max_length=100, blank=True, help_text=u"回收策略")
-    allow_expansion = models.BooleanField(max_length=100, blank=True, help_text=u"只是支持控制扩展，0：不支持；1：支持")
+    volume_provider_name = models.CharField(max_length=100, null=True, blank=True, help_text=u"存储驱动名字")
+    access_mode = models.CharField(max_length=100, null=True, blank=True, help_text=u"读写模式：RWO、ROX、RWX")
+    share_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text=u"共享模式")
+    backup_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text=u"备份策略")
+    reclaim_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text=u"回收策略")
+    allow_expansion = models.BooleanField(max_length=100, null=True, default=0, blank=True, help_text=u"只是支持控制扩展，0：不支持；1：支持")
 
 
 class TenantServiceConfigurationFile(BaseModel):

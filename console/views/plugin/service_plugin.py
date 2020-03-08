@@ -226,7 +226,8 @@ class ServicePluginConfigView(AppBaseView):
             logger.error("plugin.relation", u'参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "请指定插件版本"), status=400)
         try:
-            result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
+            result_bean = app_plugin_service.get_service_plugin_config(
+                self.tenant, self.service, plugin_id, build_version)
             svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
             pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
             if pbv:
@@ -268,30 +269,22 @@ class ServicePluginConfigView(AppBaseView):
 
         """
         sid = None
-        try:
-            logger.debug("update service plugin config ")
-            config = json.loads(request.body)
-            logger.debug("====> {0}".format(config))
-            if not config:
-                return Response(general_message(400, "params error", "参数配置不可为空"), status=400)
-            pbv = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
-            if not pbv:
-                return Response(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status=400)
-            sid = transaction.savepoint()
-            # 删除原有配置
-            app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
-            # 全量插入新配置
-            app_plugin_service.update_service_plugin_config(self.service, plugin_id, pbv.build_version, config)
-            # 更新数据中心配置
-            region_config = app_plugin_service.get_region_config_from_db(self.service, plugin_id, pbv.build_version)
-            region_api.update_service_plugin_config(
-                self.response_region, self.tenant.tenant_name, self.service.service_alias, plugin_id, region_config)
-            # 提交操作
-            transaction.savepoint_commit(sid)
-            result = general_message(200, "success", "配置更新成功")
-        except Exception as e:
-            logger.exception(e)
-            if sid:
-                transaction.savepoint_rollback(sid)
-            result = error_message(e.message)
+        config = json.loads(request.body)
+        if not config:
+            return Response(general_message(400, "params error", "参数配置不可为空"), status=400)
+        pbv = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+        if not pbv:
+            return Response(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status=400)
+        sid = transaction.savepoint()
+        # 删除原有配置
+        app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
+        # 全量插入新配置
+        app_plugin_service.update_service_plugin_config(self.service, plugin_id, pbv.build_version, config)
+        # 更新数据中心配置
+        region_config = app_plugin_service.get_region_config_from_db(self.service, plugin_id, pbv.build_version)
+        region_api.update_service_plugin_config(
+            self.response_region, self.tenant.tenant_name, self.service.service_alias, plugin_id, region_config)
+        # 提交操作
+        transaction.savepoint_commit(sid)
+        result = general_message(200, "success", "配置更新成功")
         return Response(result, result["code"])
