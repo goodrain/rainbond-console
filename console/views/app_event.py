@@ -216,26 +216,17 @@ class AppHistoryLogView(AppBaseView):
               type: string
               paramType: path
         """
-        try:
 
-            code, msg, file_list = log_service.get_history_log(
-                self.tenant, self.service)
-            log_domain_url = ws_service.get_log_domain(
-                request, self.service.service_region)
-            if code != 200:
-                file_list = []
-            file_urls = []
-            if file_list:
-                for f in file_list:
-                    file_name = f[22:]
-                    file_url = log_domain_url + f
-                    file_urls.append(
-                        {"file_name": file_name, "file_url": file_url})
+        code, msg, file_list = log_service.get_history_log(
+            self.tenant, self.service)
+        log_domain_url = ws_service.get_log_domain(request, self.service.service_region)
+        if code != 200 or file_list is None:
+            file_list = []
 
-            result = general_message(200, "success", "查询成功", list=file_urls)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        file_urls = [{"file_name": f["filename"], "file_url": log_domain_url + "/" + f["relative_path"]}
+                     for f in file_list]
+
+        result = general_message(200, "success", "查询成功", list=file_urls)
         return Response(result, status=result["code"])
 
 

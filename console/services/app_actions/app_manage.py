@@ -656,7 +656,7 @@ class AppManageService(AppManageBase):
                         # install from local cloud
                         else:
                             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
-                                service_source.group_key, service_source.version)
+                                tenant.enterprise_id, service_source.group_key, service_source.version)
                         if app_version:
                             # 解析app_template的json数据
                             apps_template = json.loads(app_version.app_template)
