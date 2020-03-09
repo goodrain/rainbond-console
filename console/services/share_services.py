@@ -359,10 +359,6 @@ class ShareService(object):
                     if service_data:
                         data["extend_method_map"] = self.service_last_share_cache(
                             data["extend_method_map"], service_data["extend_method_map"])
-                        data["port_map_list"] = self.service_last_share_cache(
-                            data["port_map_list"], service_data["port_map_list"])
-                        data["service_volume_map_list"] = self.service_last_share_cache(
-                            data["service_volume_map_list"], service_data["service_volume_map_list"])
                         data["service_env_map_list"] = self.service_last_share_cache(
                             data["service_env_map_list"], service_data["service_env_map_list"])
                         data["service_connect_info_map_list"] = self.service_last_share_cache(
@@ -1071,7 +1067,6 @@ class ShareService(object):
         if scope == "goodrain":
             apps_versions = share_service.get_cloud_apps_versions(tenant.tenant_id)
             apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
-            print apps_versions
             if apps_versions:
                 for app in apps_versions:
                     versions = []
