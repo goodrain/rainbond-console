@@ -26,6 +26,7 @@ class TenantPluginRepository(object):
             ref = reference.Reference.parse(plugin.image)
             _, name = ref.split_hostname()
             plugin.image = settings.IMAGE_REPO + "/" + name
+            return plugin
         else:
             return None
 
