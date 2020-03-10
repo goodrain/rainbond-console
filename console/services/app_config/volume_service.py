@@ -17,6 +17,8 @@ from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
+from console.exception.main import AddVolumeError
+
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -171,55 +173,43 @@ class AppVolumeService(object):
         r = re.compile(u'^[a-zA-Z0-9_]+$')
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
-                return 400, u"持久化名称只支持数字字母下划线", volume_name
-            else:
-                volume_name = service.service_cname + make_uuid()[-3:]
-        volume = volume_repo.get_service_volume_by_name(
-            service.service_id, volume_name)
+                raise AddVolumeError("volume name illegal", "持久化名称只支持数字字母下划线")
+            volume_name = service.service_cname + make_uuid()[-3:]
+        volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
 
         if volume:
-            return 412, u"持久化名称{0}已存在".format(volume_name), volume_name
-        else:
-            return 200, u"success", volume_name
+            raise AddVolumeError("volume name already exists", "持久化名称[{0}]已存在".format(volume_name))
+        return volume_name
 
-    def check_volume_path(self, service, volume_path, local_path):
-        if local_path:
-            for path in local_path:
-                # if volume_path.startswith(path):
-                #     return 412, u"持久化路径不能和挂载共享路径相同"
-                if volume_path.startswith(path + "/"):
-                    return 412, u"持久化路径不能再挂载共享路径下"
-        volume = volume_repo.get_service_volume_by_path(
-            service.service_id, volume_path)
+    def check_volume_path(self, service, volume_path, local_path=[]):
+        for path in local_path:
+            if volume_path.startswith(path + "/"):
+                raise AddVolumeError("path error", "持久化路径不能再挂载共享路径下")
+        volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
         if volume:
-            return 412, u"持久化路径 {0} 已存在".format(volume_path)
+            raise AddVolumeError("path already exists", "持久化路径[{0}]已存在".format(volume_path), 412)
         if service.service_source == AppConstants.SOURCE_CODE:
             if volume_path == "/app":
-                return 409, u"源码组件不能挂载/app目录"
+                raise AddVolumeError("path error", "源码组件不能挂载/app目录", 409)
         if not runner_util.is_runner(service.image):
             volume_path_win = False
             if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
                 volume_path_win = True
             if not volume_path.startswith("/") and not volume_path_win:
-                return 400, u"路径仅支持linux和windows"
+                raise AddVolumeError("path error", "路径仅支持linux和windows")
             if volume_path in self.SYSDIRS:
-                return 412, u"路径{0}为系统路径".format(volume_path)
+                raise AddVolumeError("path error", "路径{0}为系统路径".format(volume_path), 412)
             if volume_path_win and len(volume_path) == 3:
-                return 412, u"路径不能为系统路径"
+                raise AddVolumeError("path error", "路径不能为系统路径", 412)
         else:
             if not is_path_legal(volume_path):
-                return 412, u"请输入符合规范的路径（如：/app/volumes ）"
+                raise AddVolumeError("path error", "请输入符合规范的路径（如：/tmp/volumes）", 412)
         all_volumes = volume_repo.get_service_volumes(
             service.service_id).values("volume_path")
         for path in list(all_volumes):
             # volume_path不能重复
-
-            if path["volume_path"].startswith(volume_path + "/"):
-                return 412, u"已存在以{0}开头的路径".format(path["volume_path"])
-            if volume_path.startswith(path["volume_path"] + "/"):
-                return 412, u"已存在以{0}开头的路径".format(volume_path)
-
-        return 200, u"success"
+            if path["volume_path"].startswith(volume_path + "/") or volume_path.startswith(path["volume_path"] + "/"):
+                raise AddVolumeError("path error", "已存在以{0}开头的路径".format(path["volume_path"]), 412)
 
     def __setting_volume_access_mode(self, service, volume_type, settings):
         access_mode = settings.get("access_mode", "")
@@ -306,25 +296,12 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def add_service_volume(
-            self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None):
+    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
-        code, msg, volume_name = self.check_volume_name(service, volume_name)
-        dep_mnt_names = mnt_repo.get_service_mnts(
-            tenant.tenant_id, service.service_id).values_list('mnt_dir',
-                                                              flat=True)
-        local_path = []
-        if dep_mnt_names:
-            local_path.append(
-                dep_mnt_names.values("mnt_dir")[0].get("mnt_dir"))
-        if code != 200:
-            return code, msg, None
-        code, msg = self.check_volume_path(service, volume_path, local_path)
-        if code != 200:
-            return code, msg, None
-        host_path = "/grdata/tenant/{0}/service/{1}{2}".format(
-            tenant.tenant_id, service.service_id, volume_path)
+        volume_name = self.check_volume_name(service, volume_name)
+        self.check_volume_path(service, volume_path)
+        host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
         volume_data = {
             "service_id": service.service_id,
             "category": service.category,
@@ -344,45 +321,33 @@ class AppVolumeService(object):
         volume_data['backup_policy'] = settings['backup_policy']
         volume_data['reclaim_policy'] = settings['reclaim_policy']
         volume_data['allow_expansion'] = settings['allow_expansion']
+        logger.debug("add console service volume is {0}".format(volume_data))
         # region端添加数据
         if service.create_status == "complete":
+            data = {
+                    "category": service.category,
+                    "volume_name": volume_name,
+                    "volume_path": volume_path,
+                    "volume_type": volume_type,
+                    "enterprise_id": tenant.enterprise_id,
+                    "volume_capacity": settings['volume_capacity'],
+                    "volume_provider_name": settings['volume_provider_name'],
+                    "access_mode": settings['access_mode'],
+                    "share_policy": settings['share_policy'],
+                    "backup_policy": settings['backup_policy'],
+                    "reclaim_policy": settings['reclaim_policy'],
+                    "allow_expansion": settings['allow_expansion'],
+                }
             if volume_type == "config-file":
-                data = {
-                    "category": service.category,
-                    "volume_name": volume_name,
-                    "volume_path": volume_path,
-                    "volume_type": volume_type,
-                    "file_content": file_content,
-                    "enterprise_id": tenant.enterprise_id
-                }
-            else:
-                data = {
-                    "category": service.category,
-                    "volume_name": volume_name,
-                    "volume_path": volume_path,
-                    "volume_type": volume_type,
-                    "enterprise_id": tenant.enterprise_id
-                }
-            data['volume_capacity'] = settings['volume_capacity']
-            data['volume_provider_name'] = settings['provider_name']
-            data['access_mode'] = settings['access_mode']
-            data['share_policy'] = settings['share_policy']
-            data['backup_policy'] = settings['backup_policy']
-            data['reclaim_policy'] = settings['reclaim_policy']
-            data['allow_expansion'] = settings['allow_expansion']
-            res, body = region_api.add_service_volumes(
-                service.service_region, tenant.tenant_name, service.service_alias, data)
+                data["file_content"] = file_content
+            res, body = region_api.add_service_volumes(service.service_region, tenant.tenant_name, service.service_alias, data)
             logger.debug(body)
 
         volume = volume_repo.add_service_volume(**volume_data)
         if volume_type == "config-file":
-            file_data = {
-                "service_id": service.service_id,
-                "volume_id": volume.ID,
-                "file_content": file_content
-            }
+            file_data = {"service_id": service.service_id, "volume_id": volume.ID, "file_content": file_content}
             volume_repo.add_service_config_file(**file_data)
-        return 200, "success", volume
+        return volume
 
     def delete_service_volume_by_id(self, tenant, service, volume_id):
         volume = volume_repo.get_service_volume_by_pk(volume_id)
