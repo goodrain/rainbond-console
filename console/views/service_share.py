@@ -150,17 +150,16 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             version_alias = None
             upgrade_time = None
             store_name = None
-            store_id = None
+            store_id = share_record.share_app_market_id
             scope = share_record.scope
+            if store_id:
+                market = market_sycn_service.get_cloud_market_by_id(self.tenant.enterprise_id, store_id)
+                if market:
+                    store_name = market.name
             app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
             if app:
                 app_model_id = share_record.app_id
                 app_model_name = app.app_name
-                store_id = share_record.share_app_market_id
-                if store_id:
-                    market = share_service.get_cloud_markets(self.tenant.tenant_id)
-                    if market:
-                        store_name = market["name"]
             app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
             if app_version:
                 version = app_version.version
@@ -271,7 +270,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
         if share_record.is_success or share_record.step >= 3:
             result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
             return Response(result, status=400)
-
+        if not scope:
+            scope = share_record.scope
         service_info_list = share_service.query_share_service_info(
             team=self.team, group_id=share_record.group_id, scope=scope)
         data["share_service_list"] = service_info_list
@@ -682,10 +682,11 @@ class CloudAppModelMarketInfo(JWTAuthApiView):
                 if app_versions:
                     for version in app_versions:
                         versions.append(version.app_version)
+                versions.sort()
                 data.append({
                     "app_name": app.name,
                     "app_id": app.app_key_id,
-                    "version": versions,
+                    "version": list(set(versions)),
                     "pic": (app.logo if app.logo else app.pic),
                     "app_describe": app.desc,
                     "dev_status": app.dev_status,

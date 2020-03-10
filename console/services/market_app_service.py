@@ -1688,6 +1688,30 @@ class AppMarketSynchronizeService(object):
             raise ServiceHandleException(
                 "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
+    def get_cloud_market_by_id(self, enterprise_id, market_id):
+        try:
+            token = self.get_enterprise_access_token(enterprise_id, "market")
+            if token:
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            else:
+                market_client = get_default_market_client()
+            market = market_client.get_market(market_id=market_id, _request_timeout=10)
+            return market
+        except ApiException as e:
+            logger.exception(e)
+            if e.status == 403:
+                raise ServiceHandleException(
+                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException(
+                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
+            raise e
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
+            raise ServiceHandleException(
+                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
+
 
 market_app_service = MarketAppService()
 template_transform_service = MarketTemplateTranslateService()
