@@ -449,7 +449,7 @@ class AppService(object):
         if envs_info:
             data["envs_info"] = list(envs_info)
         # 持久化目录
-        volume_info = volume_repo.get_service_volumes(service.service_id).values(
+        volume_info = volume_repo.get_service_volumes_with_config_file(service.service_id).values(
             'ID', 'service_id', 'category', 'volume_name', 'volume_path', 'volume_type')
         if volume_info:
             logger.debug('--------volume_info----->{0}'.format(volume_info))

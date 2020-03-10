@@ -329,10 +329,7 @@ class PropertiesChanges(object):
                     key(dep_service["service_id"], new_dep_volume["mnt_name"])))
                 continue
 
-            code, msg = volume_service.check_volume_path(self.service, new_dep_volume["mnt_dir"], local_path=local_path)
-            if code != 200:
-                logger.warning("service id: {}; path: {}; invalid volume: {1}".format(self.service.service_id,
-                                                                                      new_dep_volume["mnt_dir"], msg))
+            volume_service.check_volume_path(self.service, new_dep_volume["mnt_dir"], local_path=local_path)
 
             new_dep_volume["service_id"] = dep_service["service_id"]
             add.append(new_dep_volume)

@@ -6,7 +6,6 @@ import logging
 import copy
 
 from console.exception.main import ErrDepVolumeNotFound
-from console.exception.main import ErrInvalidVolume
 from console.repositories.app import service_repo
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import volume_repo
@@ -157,9 +156,7 @@ class AppMntService(object):
         tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
         local_path = [l_path.volume_path for l_path in tenant_service_volumes]
         for dep_vol in dep_vol_data:
-            code, msg = volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
-            if code != 200:
-                return code, msg
+            volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
         for dep_vol in dep_vol_data:
             dep_vol_id = dep_vol['id']
             source_path = dep_vol['path'].strip()
@@ -180,10 +177,7 @@ class AppMntService(object):
         """
         tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
         local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
-        code, msg = volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
-        if code != 200:
-            logger.debug("Service id: {0}; ingore mnt; msg: {1}".format(service.service_id, msg))
-            raise ErrInvalidVolume(msg)
+        volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
 
         dep_volume = volume_repo.get_service_volume_by_name(dep_vol["service_id"], dep_vol["volume_name"])
         if not dep_volume:
