@@ -17,7 +17,7 @@ from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
-from console.exception.main import AddVolumeError
+from console.exception.main import ServiceHandleException
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -173,43 +173,44 @@ class AppVolumeService(object):
         r = re.compile(u'^[a-zA-Z0-9_]+$')
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
-                raise AddVolumeError("volume name illegal", "持久化名称只支持数字字母下划线")
+                raise ServiceHandleException(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
             volume_name = service.service_cname + make_uuid()[-3:]
         volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
 
         if volume:
-            raise AddVolumeError("volume name already exists", "持久化名称[{0}]已存在".format(volume_name))
+            raise ServiceHandleException(msg="volume name already exists", msg_show="持久化名称[{0}]已存在".format(volume_name))
         return volume_name
 
     def check_volume_path(self, service, volume_path, local_path=[]):
         for path in local_path:
             if volume_path.startswith(path + "/"):
-                raise AddVolumeError("path error", "持久化路径不能再挂载共享路径下")
+                raise ServiceHandleException(msg="path error", msg_show="持久化路径不能再挂载共享路径下")
         volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
         if volume:
-            raise AddVolumeError("path already exists", "持久化路径[{0}]已存在".format(volume_path), 412)
+            raise ServiceHandleException(
+                msg="path already exists", msg_show="持久化路径[{0}]已存在".format(volume_path), status_code=412)
         if service.service_source == AppConstants.SOURCE_CODE:
             if volume_path == "/app":
-                raise AddVolumeError("path error", "源码组件不能挂载/app目录", 409)
+                raise ServiceHandleException(msg="path error", msg_show="源码组件不能挂载/app目录", status_code=409)
         if not runner_util.is_runner(service.image):
             volume_path_win = False
             if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
                 volume_path_win = True
             if not volume_path.startswith("/") and not volume_path_win:
-                raise AddVolumeError("path error", "路径仅支持linux和windows")
+                raise ServiceHandleException(msg="path error", msg_show="路径仅支持linux和windows")
             if volume_path in self.SYSDIRS:
-                raise AddVolumeError("path error", "路径{0}为系统路径".format(volume_path), 412)
+                raise ServiceHandleException(msg="path error", msg_show="路径{0}为系统路径".format(volume_path), status_code=412)
             if volume_path_win and len(volume_path) == 3:
-                raise AddVolumeError("path error", "路径不能为系统路径", 412)
+                raise ServiceHandleException(msg="path error", msg_show="路径不能为系统路径", status_code=412)
         else:
             if not is_path_legal(volume_path):
-                raise AddVolumeError("path error", "请输入符合规范的路径（如：/tmp/volumes）", 412)
-        all_volumes = volume_repo.get_service_volumes(
-            service.service_id).values("volume_path")
+                raise ServiceHandleException(msg="path error", msg_show="请输入符合规范的路径（如：/tmp/volumes）", status_code=412)
+        all_volumes = volume_repo.get_service_volumes(service.service_id).values("volume_path")
         for path in list(all_volumes):
             # volume_path不能重复
             if path["volume_path"].startswith(volume_path + "/") or volume_path.startswith(path["volume_path"] + "/"):
-                raise AddVolumeError("path error", "已存在以{0}开头的路径".format(path["volume_path"]), 412)
+                raise ServiceHandleException(
+                    msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]), status_code=412)
 
     def __setting_volume_access_mode(self, service, volume_type, settings):
         access_mode = settings.get("access_mode", "")
