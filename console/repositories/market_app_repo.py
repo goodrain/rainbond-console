@@ -394,6 +394,9 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_version_by_app_id_and_version(self, app_id, version):
         return RainbondCenterAppVersion.objects.filter(app_id=app_id, version=version).first()
 
+    def get_rainbond_app_versions(self, eid, app_id):
+        return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
+
     def get_rainbond_app_by_record_id(self, record_id):
         rcapps = RainbondCenterApp.objects.filter(record_id=record_id)
         if rcapps:

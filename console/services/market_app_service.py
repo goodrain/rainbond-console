@@ -831,6 +831,18 @@ class MarketAppService(object):
             raise RbdAppNotFound("未找到该应用")
         return app, app_version
 
+    def get_rainbond_app_versions(self, enterprise_id, app_id):
+        app_versions = rainbond_app_repo.get_rainbond_app_versions(enterprise_id, app_id)
+        if not app_versions:
+            return None
+        return app_versions
+
+    def get_rainbond_app_version(self, eid, app_id, app_version):
+        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(eid, app_id, app_version)
+        if not app_versions:
+            return None
+        return app_versions
+
     def update_rainbond_app_install_num(self, enterprise_id, app_id, app_version):
         rainbond_app_repo.add_rainbond_install_num(enterprise_id, app_id, app_version)
 
@@ -1043,21 +1055,143 @@ class MarketAppService(object):
                 result_list.append(rbapp)
         return total, result_list
 
-    def get_component_upgradeable_versions(self, tenant, service):
-        service_source = group_service.get_group_service_source(service.service_id)
-        service_group_keys = set(service_source.values_list('group_key', flat=True))
-        if not service_source:
-            raise RbdAppNotFound("未找到该应用")
-        group_key = service_source[0].group_key
-        _, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
-        version = None
-        plugin = None
-        if version_template:
-            version = version_template.get(group_key)
-        if plugin_template:
-            plugin = plugin_template.get(group_key)
-        result = self.list_upgradeable_versions(tenant, service, version, plugin)
-        return result
+    def list_upgradeable_versions_new(self, tenant, service):
+        """
+        service_source中记录了该应用的版本信息
+        根据该版本信息获取到该应用的所有版本列表
+
+        接口的目的是返回可升级的应用模板列表
+        1、获取应用的版本列表
+        1.1、本地根据app_id直接获取app_versions
+        1.2、云端根据app_id获取app_info，拿到market_id，循环获取app_versions列表
+        2、确定app_versions是否有多个，即确定该应用是否有多个版本
+        2.1、如果该应用有多个版本，则返回所有版本列表，即可升级的应用模板列表
+        2.2、如果该应用仅有一个版本，找到当前组件，对比当前组件
+        如果应用有多个版本，则将所有版本的模板返回
+        如果有一个版本，进行对照
+        """
+        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
+        if service_source is None:
+            logger.warn("service id: {}; service source not found".format(service.service_id))
+            return None
+
+        install_from_cloud = False
+        if service_source.extend_info:
+            extend_info = json.loads(service_source.extend_info)
+            if extend_info and extend_info.get("install_from_cloud", False):
+                install_from_cloud = True
+
+        app_versions = None
+        version_str = ""
+        if not install_from_cloud:
+            app_versions = self.get_rainbond_app_versions(tenant.enterprise_id, service_source.group_key)
+            if not app_versions:
+                logger.debug("no app versions")
+                return None
+
+            if len(app_versions) > 1:
+                logger.debug("many app_versions")
+                return [version.version for version in app_versions]
+
+            template = json.loads(app_versions[0].app_template)
+            version_str = app_versions[0].version
+            components = template.get("apps")
+            plugins = template.get("plugins")
+        else:
+            # TODO fanyangyang market_id
+            app_version_list = self.get_cloud_app_versions(tenant.enterprise_id, service_source.group_key)
+            if not app_version_list:
+                return None
+            if len(app_version_list) > 1:
+                return [version.app_version for version in app_version_list]
+            # len is 1, get the app version
+            version_str = app_version_list[0].app_version
+            app_version = self.get_cloud_app_version(tenant.enterprise_id, service_source.group_key, version_str)
+            app_versions = [app_version]
+            template = app_versions[0].templete.to_dict()
+            components = template.get("apps")
+            plugins = template.get("plugins")
+
+        def func(x):
+            result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
+                     or x.get("service_key", None) == service_source.service_share_uuid
+            return result
+
+        component = next(iter(filter(lambda x: func(x), components)), None)
+        if not components:
+            logger.debug("component is none")
+            return None
+
+        pc = PropertiesChanges(service, tenant)
+        changes = pc.get_diff(component, plugins)
+        if has_changes(changes):
+            return [version_str]
+        return []
+
+    def get_cloud_app_versions(self, enterprise_id, app_id, market_id="113139ca6c2b4377b9066574aac7dcd5"):
+        token = self.get_enterprise_access_token(enterprise_id, "market")
+        if token:
+            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+        else:
+            market_client = get_default_market_client()
+        apps = market_client.get_app_versions(market_id, app_id)
+        if not apps:
+            return None
+        return apps.app_versions
+
+    def get_cloud_app_version(self, enterprise_id, app_id, app_version, market_id="113139ca6c2b4377b9066574aac7dcd5"):
+        token = self.get_enterprise_access_token(enterprise_id, "market")
+        if token:
+            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+        else:
+            market_client = get_default_market_client()
+        version = market_client.get_app_version(market_id, app_id, app_version)
+        if not version:
+            return None
+        return version
+
+    def get_upgradeable_component_and_plugin(self, tenant, service, app_version):
+        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
+        if service_source is None:
+            logger.warn("service id: {}; service source not found".format(service.service_id))
+            return None
+
+        install_from_cloud = False
+        if service_source.extend_info:
+            extend_info = json.loads(service_source.extend_info)
+            if extend_info and extend_info.get("install_from_cloud", False):
+                install_from_cloud = True
+
+        if not install_from_cloud:
+            app_version = self.get_rainbond_app_version(tenant.enterprise_id, service_source.group_key, app_version)
+
+            template = json.loads(app_version.app_template)
+            components = template.get("apps")
+            plugins = template.get("plugins")
+        else:
+            # TODO fanyangyang market_id
+            app_version = self.get_cloud_app_version(tenant.enterprise_id, service_source.group_key, app_version)
+            template = app_version.templete.to_dict()
+            components = template.get("apps")
+            plugins = template.get("plugins")
+
+        def func(x):
+            result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
+                     or x.get("service_key", None) == service_source.service_share_uuid
+            return result
+
+        component = next(iter(filter(lambda x: func(x), components)), None)
+        if not components:
+            logger.debug("component is none")
+            return None, None
+        return component, plugins
+
+    def get_enterprise_access_token(self, enterprise_id, access_target):
+        enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        try:
+            return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
+        except TenantEnterpriseToken.DoesNotExist:
+            return None
 
     def list_upgradeable_versions(self, tenant, service, apps_versions_templates, apps_plugins_templates):
         """
@@ -1147,13 +1281,13 @@ class MarketAppService(object):
 
     def get_market_apps_in_app(self, region, tenant, group):
         service_group_keys = set(group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True))
-        apps, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
+        apps, _, _ = self.get_app_templates(tenant, service_group_keys)
 
-        iterator = self.yield_app_info(service_group_keys, tenant, group, apps, version_template, plugin_template)
+        iterator = self.yield_app_info(service_group_keys, tenant, group, apps)
         app_info_list = [app_info for app_info in iterator]
         return app_info_list
 
-    def yield_app_info(self, service_group_keys, tenant, group, apps, version_template, plugin_template):
+    def yield_app_info(self, service_group_keys, tenant, group, apps):
         for group_key in service_group_keys:
             app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, group_key)
             app = None
@@ -1200,9 +1334,7 @@ class MarketAppService(object):
                         cloud_version = app
                 if not dat:
                     continue
-            version = version_template.get(group_key)
-            plugin = plugin_template.get(group_key)
-            upgrade_versions = upgrade_service.get_app_upgrade_versions(tenant, group.ID, group_key, version, plugin)
+            upgrade_versions = upgrade_service.get_app_upgrade_versions(tenant, group.ID, group_key)
             not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, group.ID, group_key)
             services = group_service.get_rainbond_services(group.ID, group_key)
             dat.update({

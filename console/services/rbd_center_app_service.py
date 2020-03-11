@@ -7,6 +7,27 @@ from console.repositories.market_app_repo import rainbond_app_repo
 
 
 class RbdCenterAppService(object):
+    def get_component(self, eid, app_id, app_version, share_uuid):
+        version = rainbond_app_repo.get_enterpirse_app_by_key_and_version(eid, app_id, app_version)
+        if version is None:
+            msg = "eid: {0}; app_id: {1}; app_version: {2}; RainbondCenterAppVersion not found.".format(eid, app_id,
+                                                                                                        app_version)
+            raise RecordNotFound(msg)
+
+        apps_template = json.loads(version.app_template)
+        components = apps_template.get("apps")
+
+        def func(x):
+            result = x.get("service_share_uuid", None) == share_uuid or x.get("service_key", None) == share_uuid
+            return result
+
+        component = next(iter(filter(lambda x: func(x), components)), None)
+        if component is None:
+            fmt = "app_id: {0}; app_version: {1}; service_share_uuid: {2}; Rainbond app version not found."
+            raise RbdAppNotFound(fmt.format(app_id, app_version, share_uuid))
+
+        return component
+
     def get_version_apps(self, eid, version, service_source):
         """
         get rainbond center(market) application

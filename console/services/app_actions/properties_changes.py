@@ -29,6 +29,57 @@ class PropertiesChanges(object):
         self.install_from_cloud = install_from_cloud
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
 
+    def get_properties_change_new(self, eid, current_component, market_component, level="svc"):
+
+        pass
+
+    def get_diff(self, market_component, market_plugin=None, level="svc"):
+        if not market_component:
+            return None
+        self.plugins = market_plugin
+        result = {}
+        deploy_version = self.deploy_version_changes(market_component.get("deploy_version"))
+        if deploy_version:
+            result["deploy_version"] = deploy_version
+        # source code service does not have 'share_image'
+        image = self.image_changes(market_component.get("share_image", None))
+        if image:
+            result["image"] = image
+        slug_path = self.slug_path_changes(market_component.get("share_slug_path", None))
+        if slug_path:
+            result["slug_path"] = slug_path
+        envs = self.env_changes(market_component.get("service_env_map_list", []))
+        if envs:
+            result["envs"] = envs
+        ports = self.port_changes(market_component.get("port_map_list", []))
+        if ports:
+            result["ports"] = ports
+        connect_infos = self.env_changes(market_component.get("service_connect_info_map_list", []))
+        if connect_infos:
+            result["connect_infos"] = connect_infos
+        volumes = self.volume_changes(market_component.get("service_volume_map_list", []))
+        if volumes:
+            result["volumes"] = volumes
+        probe = self.probe_changes(market_component.get("probes"))
+        if probe:
+            result["probe"] = probe
+        dep_uuids = []
+        if market_component.get("dep_service_map_list", []):
+            dep_uuids = [item["dep_service_key"] for item in market_component.get("dep_service_map_list")]
+        dep_services = self.dep_services_changes(market_component, dep_uuids, level)
+        if dep_services:
+            result["dep_services"] = dep_services
+        dep_volumes = self.dep_volumes_changes(market_component.get("mnt_relation_list", []))
+        if dep_volumes:
+            result["dep_volumes"] = dep_volumes
+
+        plugins = self.plugin_changes(market_component.get("service_related_plugin_config", []))
+        if plugins:
+            logger.debug("plugin changes: {}".format(json.dumps(plugins)))
+            result["plugins"] = plugins
+
+        return result
+
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
     def get_property_changes(self, eid, version, version_template=None, plugin_template=None, level="svc"):
@@ -128,6 +179,8 @@ class PropertiesChanges(object):
         compare the old and new deploy versions to determine if there is any change
         """
         # deploy_version is Build the app version of the source
+        if not new:
+            return None
         is_change = self.service.deploy_version < new
         if not is_change:
             return None
@@ -261,9 +314,13 @@ class PropertiesChanges(object):
         }
 
     def plugin_changes(self, new_plugins):
+        if not new_plugins:
+            return None
         old_plugins, _ = app_plugin_service.get_plugins_by_service_id(self.service.service_region,
                                                                       self.service.tenant_id,
                                                                       self.service.service_id, "")
+        if not old_plugins:
+            return None
         old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
         new_plugin_keys = {item["plugin_key"]: item for item in new_plugins}
 
@@ -297,13 +354,14 @@ class PropertiesChanges(object):
         new_probe = new_probes[0]
         # remove redundant keys
         for key in ["ID", "probe_id", "service_id"]:
-            new_probe.pop(key)
+            if key in new_probe.keys():
+                new_probe.pop(key)
         old_probe = probe_repo.get_probe(self.service.service_id)
         if not old_probe:
             return {"add": new_probe, "upd": []}
         old_probe = old_probe.to_dict()
         for k, v in new_probe.items():
-            if old_probe[k] != v:
+            if key in new_probe.keys() and old_probe[k] != v:
                 logger.debug("found a change in the probe; key: {}; \
                     old value: {}; new value: {}".format(k, v, old_probe[k]))
                 return {"add": [], "upd": new_probe}
