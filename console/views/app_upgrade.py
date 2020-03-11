@@ -270,8 +270,9 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
 
         app_record.version = version
+        services = group_service.get_rainbond_services(group_id, group_key)
         app_record.old_version = upgrade_service.get_old_version(
-            group_key, upgrade_service_infos.keys(), cloud_version=cloud_version)
+            group_key, services.values_list('service_id', flat=True), cloud_version=cloud_version)
         app_record.save()
 
         services = service_repo.get_services_by_service_ids_and_group_key(

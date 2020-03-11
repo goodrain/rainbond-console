@@ -304,8 +304,8 @@ class RainbondCenterAppRepository(object):
         app.install_number += 1
         app.save()
 
-        app_version = RainbondCenterAppVersion.objects.get(
-            enterprise_id=enterprise_id, app_id=app_id, version=app_version)
+        app_version = RainbondCenterAppVersion.objects.filter(
+            enterprise_id=enterprise_id, app_id=app_id, version=app_version).order_by("-upgrade_time").first()
         app_version.install_number += 1
         app_version.save()
 

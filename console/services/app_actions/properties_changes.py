@@ -45,6 +45,8 @@ class PropertiesChanges(object):
             apps = rbd_center_app_service.get_version_apps(eid, version, self.service_source)
             app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
         except RecordNotFound:
+            if not version_template:
+                raise RecordNotFound("not found record")
             template = json.loads(version_template)
             apps = template.get("apps")
 

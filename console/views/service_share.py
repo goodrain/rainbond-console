@@ -51,11 +51,26 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                         market = share_service.get_cloud_markets(self.tenant.tenant_id)
                         if market:
                             store_name = market["name"]
-                app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
-                if app_version:
-                    version = app_version.version
-                    version_alias = app_version.version_alias
-                    upgrade_time = app_version.upgrade_time
+                    app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+                    if app_version:
+                        version = app_version.version
+                        version_alias = app_version.version_alias
+                        upgrade_time = app_version.upgrade_time
+                else:
+                    if share_record.share_app_market_id:
+                        store_id = share_record.share_app_market_id
+                        market = share_service.get_cloud_markets(self.tenant.tenant_id)
+                        if market:
+                            store_name = market["name"]
+                        try:
+                            cloud_app = market_sycn_service.get_cloud_app(
+                                self.tenant.enterprise_id,
+                                share_record.share_app_market_id,
+                                share_record.app_id)
+                            app_model_id = share_record.app_id
+                            app_model_name = cloud_app.name
+                        except ServiceHandleException:
+                            app_model_id = share_record.app_id
                 data.append({
                     "app_model_id": app_model_id,
                     "app_model_name": app_model_name,
