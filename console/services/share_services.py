@@ -359,10 +359,6 @@ class ShareService(object):
                     if service_data:
                         data["extend_method_map"] = self.service_last_share_cache(
                             data["extend_method_map"], service_data["extend_method_map"])
-                        data["port_map_list"] = self.service_last_share_cache(
-                            data["port_map_list"], service_data["port_map_list"])
-                        data["service_volume_map_list"] = self.service_last_share_cache(
-                            data["service_volume_map_list"], service_data["service_volume_map_list"])
                         data["service_env_map_list"] = self.service_last_share_cache(
                             data["service_env_map_list"], service_data["service_env_map_list"])
                         data["service_connect_info_map_list"] = self.service_last_share_cache(
@@ -731,18 +727,21 @@ class ShareService(object):
             share_version_info = share_info["app_version_info"]
             app_model_id = share_version_info.get("app_model_id")
             version = share_version_info.get("version")
-            target = share_version_info.get("target")
+            target = share_version_info.get("scope_target")
             version_alias = share_version_info.get("version_alias", share_version_info.get("version", "NA"))
             version_describe = share_version_info.get("describe", "this is a default describe.")
             market_id = None
             scope = None
             if target:
-                market_id = target.get("market_id")
+                market_id = target.get("store_id")
+            if not market_id:
+                market_id = share_record.share_app_market_id
             if market_id:
                 try:
-                    cloud_app_version, _ = self.get_cloud_app_version(share_team.tenant_id, app_model_id, version)
+                    cloud_app = market_sycn_service.get_cloud_app(
+                        share_team.enterprise_id, market_id, app_model_id)
                     scope = "goodrain"
-                    app_model_name = cloud_app_version.get("group_name")
+                    app_model_name = cloud_app.name
                 except Exception as e:
                     logger.debug(e)
                     return 400, "云端应用模型不存在", None
@@ -931,7 +930,7 @@ class ShareService(object):
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
-            RainbondCenterAppVersion.objects.filter(app_id=app, version=None).delete()
+            RainbondCenterAppVersion.objects.filter(app_id=app.app_id, version=None).delete()
             share_record.is_success = True
             share_record.step = 3
             share_record.status = 1
@@ -945,7 +944,7 @@ class ShareService(object):
         try:
             data = dict()
             data["tenant_id"] = tenant.tenant_id
-            data["group_key"] = app.app_id
+            data["app_id"] = app.app_id
             data["group_version"] = app.version
             data["template_version"] = app.template_version
             data["publish_user"] = user_name
@@ -955,9 +954,9 @@ class ShareService(object):
             data["share_type"] = share_type
             data["group_version_alias"] = app.version_alias
             result = market_sycn_service.create_cloud_market_app_version(
-                tenant.enpterise_id, share_record.share_app_market_id, share_record.app_id, data)
+                tenant.enterprise_id, share_record.share_app_market_id, share_record.app_id, data)
             # 云市url
-            app_url = result["app_url"]
+            app_url = result.data.bean.get("app_url")
             return app_url
         except HttpClient.CallApiError as e:
             logger.exception(e)
@@ -1069,17 +1068,16 @@ class ShareService(object):
         dt["last_shared_app"] = {}
         dt["scope"] = scope
         if scope == "goodrain":
-            apps_versions = share_service.get_cloud_apps_versions(tenant.tenant_id)
             apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
-            print apps_versions
             if apps_versions:
                 for app in apps_versions:
+                    print app
                     versions = []
                     app_versions = app.app_versions
                     if app_versions:
                         for version in app_versions:
                             versions.append({
-                                "app_version": version.app_version,
+                                "version": version.app_version,
                                 "describe": version.desc,
                                 "version_alias": version.app_version_alias,
                             })
@@ -1089,8 +1087,7 @@ class ShareService(object):
                         "versions": versions,
                         "pic": app.pic,
                         "app_describe": app.desc,
-                        # "dev_status": app.dev_status,
-                        "dev_status": "",
+                        "dev_status": app.dev_status,
                         "scope": ("goodrain:" + app.publish_type).strip(":")
                     })
                     if last_shared and app.app_key_id == last_shared.app_id:
@@ -1100,8 +1097,7 @@ class ShareService(object):
                             "version": last_shared.share_version,
                             "pic": app.pic,
                             "describe": app.desc,
-                            # "dev_status": app.dev_status,
-                            "dev_status": "",
+                            "dev_status": app.dev_status,
                             "scope": ("goodrain:" + app.publish_type).strip(":")
                         }
         else:
@@ -1130,6 +1126,8 @@ class ShareService(object):
                 tenant_id, last_shared.app_id, last_shared.share_version)
         else:
             app_version = share_repo.get_app_version(last_shared.app_id, last_shared.share_version)
+            if not app_version:
+                return None, None
             dt = (json.loads(app_version.app_template), app_version.app_version_info)
         return dt
 

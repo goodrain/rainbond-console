@@ -19,6 +19,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.market_app_service import market_sycn_service
 from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import parse_args
 from console.utils.reqparse import parse_argument
@@ -155,7 +156,13 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
 
         # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
-
+        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, [group_key])
+        version_template = version_template.get(group_key)
+        plugin_template = plugin_template.get(group_key)
+        if version_template:
+            version_template = version_template.get(version)
+        if plugin_template:
+            plugin_template = plugin_template.get(version)
         upgrade_info = [{
             'service': {
                 'service_id': service.service_id,
@@ -163,7 +170,8 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
                 'service_key': service.service_key,
                 'type': UpgradeType.UPGRADE.value
             },
-            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
+            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant,
+                                                                version, version_template, plugin_template),
         } for service in services]
 
         add_info = [{
@@ -207,6 +215,12 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         data = parse_date(request, rq_args)
         group_key = data['group_key']
         version = data['version']
+        cloud_version = None
+        markets = market_sycn_service.get_cloud_markets(self.tenant.enterprise_id)
+        for market in markets:
+            app = market_sycn_service.get_cloud_app(self.tenant.enterprise_id, market.market_id, group_key)
+            if app:
+                cloud_version = app.app_versions
 
         app_record = get_object_or_404(
             AppUpgradeRecord,
@@ -254,7 +268,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
 
         app_record.version = version
-        app_record.old_version = upgrade_service.get_old_version(group_key, upgrade_service_infos.keys())
+        app_record.old_version = upgrade_service.get_old_version(
+            group_key, upgrade_service_infos.keys(), cloud_version=cloud_version)
         app_record.save()
 
         services = service_repo.get_services_by_service_ids_and_group_key(

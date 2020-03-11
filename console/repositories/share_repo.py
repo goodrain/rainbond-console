@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Q, Max
+from django.db.models import Q
 from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondCenterPlugin, RainbondCenterAppVersion
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, ServiceInfo, \
@@ -124,9 +124,9 @@ class ShareRepo(object):
 
     def get_enterprise_team_apps(self, enterprise_id, team_name):
         return RainbondCenterApp.objects.filter(
-            Q(enterprise_id=enterprise_id, create_team=team_name) |
-            Q(enterprise_id=enterprise_id, scope="enterprise") |
-            Q(enterprise_id=enterprise_id, create_team=None, scope="team")
+            Q(enterprise_id=enterprise_id, create_team=team_name, source="local") |
+            Q(enterprise_id=enterprise_id, scope="enterprise", source="local") |
+            Q(enterprise_id=enterprise_id, create_team=None, scope="team", source="local")
         ).order_by("-create_time")
 
     def get_app_by_app_id(self, app_id):
@@ -136,13 +136,19 @@ class ShareRepo(object):
         return RainbondCenterAppVersion.objects.filter(app_id=app_id)
 
     def get_last_app_versions_by_app_id(self, app_id):
-        return RainbondCenterAppVersion.objects.filter(app_id=app_id).extra(
-            select={'describe': 'app_version_info'}
-        ).values(
-            "version", "version_alias", "describe"
-        ).order_by("upgrade_time").annotate(
-            Max("upgrade_time")
-        ).values("version", "version_alias", "describe")
+        conn = BaseConnection()
+        sql = """
+            SELECT B.version, B.version_alias, B.app_version_info as `describe`
+            FROM (SELECT app_id, version, max(upgrade_time) as upgrade_time
+                FROM rainbond_center_app_version
+                WHERE is_complete=1
+                GROUP BY app_id, version) A
+            LEFT JOIN rainbond_center_app_version B
+            ON A.app_id=B.app_id AND A.version=B.version AND A.upgrade_time=B.upgrade_time
+            WHERE A.app_id = "{app_id}"
+            """.format(app_id=app_id)
+        result = conn.query(sql)
+        return result
 
     def get_app_version(self, app_id, version):
         return RainbondCenterAppVersion.objects.filter(app_id=app_id, version=version).order_by("-create_time").first()

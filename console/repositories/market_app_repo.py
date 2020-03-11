@@ -339,17 +339,11 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_qs_by_key(self, eid, app_id):
         """使用group_key获取一个云市应用的所有版本查询集合"""
-        rbca = RainbondCenterAppVersion.objects.filter(
-            enterprise_id=eid, app_id=app_id, scope__in=["team", "enterprise", "goodrain"]
-        ).values().annotate("update_time")
-        if not rbca:
-            # 兼容旧数据
-            rbca = RainbondCenterAppVersion.objects.filter(enterprise_id="public", app_id=app_id)
-        return rbca
+        return RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id)
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
-        return get_object_or_404(RainbondCenterApp, msg='rainbond center app not found', group_key=group_key,
+        return get_object_or_404(RainbondCenterAppVersion, msg='rainbond center app not found', app_id=group_key,
                                  version=version, scope__in=["team", "enterprise", "goodrain"])
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
