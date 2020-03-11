@@ -492,7 +492,11 @@ class MarketService(object):
 
     def _restore_envs(self, backup, scope):
         backup_data = json.loads(backup.backup_data)
-        service_env_vars = backup_data.get("service_env_vars", [])
+        if isinstance(backup_data, list):
+            service_env_vars = backup_data[0].get("service_env_vars", [])
+        else:
+            service_env_vars = backup_data.get("service_env_vars", [])
+
         if not self.auto_restore:
             self.app_restore.envs(service_env_vars)
 
@@ -602,7 +606,10 @@ class MarketService(object):
 
     def _restore_ports(self, backup):
         backup_data = json.loads(backup.backup_data)
-        service_ports = backup_data.get("service_ports", [])
+        if isinstance(backup_data, list):
+            service_ports = backup_data[0].get("service_ports", [])
+        else:
+            service_ports = backup_data.get("service_ports", [])
 
         if not self.auto_restore:
             self.app_restore.ports(service_ports)
@@ -654,8 +661,12 @@ class MarketService(object):
 
     def _restore_volumes(self, backup):
         backup_data = json.loads(backup.backup_data)
-        service_config_file = backup_data.get("service_config_file", [])
-        service_volumes = backup_data.get("service_volumes", [])
+        if isinstance(backup_data, list):
+            service_config_file = backup_data[0].get("service_config_file", [])
+            service_volumes = backup_data[0].get("service_volumes", [])
+        else:
+            service_config_file = backup_data.get("service_config_file", [])
+            service_volumes = backup_data.get("service_volumes", [])
         cfgfs = {item["volume_id"]: item["file_content"] for item in service_config_file}
 
         if not self.auto_restore:
@@ -698,7 +709,10 @@ class MarketService(object):
 
     def _restore_probe(self, backup):
         backup_data = json.loads(backup.backup_data)
-        pd = backup_data.get("service_probes", [])
+        if isinstance(backup_data, list):
+            pd = backup_data[0].get("service_probes", [])
+        else:
+            pd = backup_data.get("service_probes", [])
         if pd:
             probe = pd[0]
             probe["is_used"] = 1 if probe["is_used"] else 0
@@ -745,7 +759,10 @@ class MarketService(object):
 
     def _restore_dep_services(self, backup):
         backup_data = json.loads(backup.backup_data)
-        service_relation = backup_data.get("service_relation", [])
+        if isinstance(backup_data, list):
+            service_relation = backup_data[0].get("service_relation", [])
+        else:
+            service_relation = backup_data.get("service_relation", [])
 
         if not self.auto_restore:
             self.app_restore.dep_services(service_relation)
@@ -807,7 +824,10 @@ class MarketService(object):
 
     def _restore_dep_volumes(self, backup):
         backup_data = json.loads(backup.backup_data)
-        dep_vols = backup_data.get("service_mnts", [])
+        if isinstance(backup_data, list):
+            dep_vols = backup_data[0].get("service_mnts", [])
+        else:
+            dep_vols = backup_data.get("service_mnts", [])
 
         if not self.auto_restore:
             self.app_restore.dep_volumes(dep_vols)
@@ -856,7 +876,10 @@ class MarketService(object):
 
     def _restore_plugins(self, backup):
         backup_data = json.loads(backup.backup_data)
-        relations = backup_data.get("service_plugin_relation", [])
+        if isinstance(backup_data, list):
+            relations = backup_data[0].get("service_plugin_relation", [])
+        else:
+            relations = backup_data.get("service_plugin_relation", [])
 
         if not self.auto_restore:
             self.app_restore.plugins(relations)
@@ -877,12 +900,18 @@ class MarketService(object):
 
     def _restore_service(self, backup):
         backup_data = json.loads(backup.backup_data)
-        service_base = backup_data.get("service_base", None)
+        if isinstance(backup_data, list):
+            service_base = backup_data[0].get("service_base", None)
+        else:
+            service_base = backup_data.get("service_base", None)
         if not self.app_restore:
             self.app_restore.svc(service_base)
 
     def _restore_service_source(self, backup):
         backup_data = json.loads(backup.backup_data)
-        service_source = backup_data.get("service_source", None)
+        if isinstance(backup_data, list):
+            service_source = backup_data[0].get("service_source", None)
+        else:
+            service_source = backup_data.get("service_source", None)
         if not self.auto_restore:
             self.app_restore.svc_source(service_source)
