@@ -343,8 +343,9 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
-        return get_object_or_404(RainbondCenterAppVersion, msg='rainbond center app not found', app_id=group_key,
-                                 version=version, scope__in=["team", "enterprise", "goodrain"])
+        return RainbondCenterAppVersion.objects.filter(
+            app_id=group_key, version=version, scope__in=["team", "enterprise", "goodrain"]
+        ).order_by("-upgrade_time").first()
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
