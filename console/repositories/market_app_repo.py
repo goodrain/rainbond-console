@@ -9,7 +9,6 @@ from console.models.main import AppImportRecord
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.models.main import RainbondCenterAppTagsRelation
-from console.utils.shortcuts import get_object_or_404
 from www.db.base import BaseConnection
 
 logger = logging.getLogger("default")
@@ -305,8 +304,8 @@ class RainbondCenterAppRepository(object):
         app.install_number += 1
         app.save()
 
-        app_version = RainbondCenterAppVersion.objects.get(
-            enterprise_id=enterprise_id, app_id=app_id, version=app_version)
+        app_version = RainbondCenterAppVersion.objects.filter(
+            enterprise_id=enterprise_id, app_id=app_id, version=app_version).order_by("-upgrade_time").first()
         app_version.install_number += 1
         app_version.save()
 
@@ -343,8 +342,13 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
-        return get_object_or_404(RainbondCenterAppVersion, msg='rainbond center app not found', app_id=group_key,
-                                 version=version, scope__in=["team", "enterprise", "goodrain"])
+        app = RainbondCenterApp.objects.filter(app_id=group_key).first()
+        app_version = RainbondCenterAppVersion.objects.filter(
+            app_id=group_key, version=version, scope__in=["team", "enterprise", "goodrain"]
+        ).order_by("-upgrade_time").first()
+        if app and app_version:
+            app_version.app_name = app.app_name
+        return app_version
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()

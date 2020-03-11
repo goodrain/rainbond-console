@@ -204,8 +204,8 @@ class MarketAppService(object):
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
             tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id,
-                                                                      market_app.group_key,
-                                                                      market_app.version, market_app.group_name)
+                                                                      market_app.app_id,
+                                                                      market_app.version, market_app.app_name)
 
             status, msg = self.__create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
             if status != 200:
@@ -215,7 +215,7 @@ class MarketAppService(object):
                 ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
                 service_source_data = {
                     "group_key":
-                        market_app.group_key,
+                        market_app.app_id,
                     "version":
                         market_app.version,
                     "service_share_uuid":

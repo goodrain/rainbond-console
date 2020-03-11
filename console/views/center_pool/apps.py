@@ -256,7 +256,7 @@ class CenterAppCLView(JWTAuthApiView):
         describe = request.data.get("describe", 'This is a default description.')
         pic = request.data.get("pic")
         scope = request.data.get("scope")
-        market_id = request.data.get("market_id")
+        scope_target = request.data.get("scope_target")
         details = request.data.get("details")
         app_id = make_uuid()
         dev_status = request.data.get("dev_status")
@@ -266,6 +266,11 @@ class CenterAppCLView(JWTAuthApiView):
         if tenant_id:
             team = team_repo.get_team_by_team_id(tenant_id)
             team_name = team.tenant_name
+        if scope == "goodrain":
+            if not scope_target:
+                result = general_message(400, "parameter market_id not found", None)
+                return Response(result, status=400)
+            market_id = scope_target.get("market_id")
 
         data = {
             "app_name": app_name,

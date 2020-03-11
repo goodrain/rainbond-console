@@ -1006,16 +1006,19 @@ class ShareService(object):
         return share_services
 
     def get_cloud_app_version(self, tenant_id, app_id, version):
-        rst = MarketOpenAPI().get_app_template(tenant_id, app_id, version)
-        data = rst.get("data")
-        if not data:
+        try:
+            rst = MarketOpenAPI().get_app_template(tenant_id, app_id, version)
+            data = rst.get("data")
+            if not data:
+                return None, None
+            bean = data.get("bean")
+            if not bean:
+                return None, None
+            app_template = bean.get("template_content")
+            app_version_info = bean.get("info")
+            return json.loads(app_template), app_version_info
+        except Exception:
             return None, None
-        bean = data.get("bean")
-        if not bean:
-            return None, None
-        app_template = bean.get("template_content")
-        app_version_info = bean.get("info")
-        return json.loads(app_template), app_version_info
 
     def get_cloud_markets(self, tenant_id):
         markets = MarketOpenAPIV2().get_markets(tenant_id)
