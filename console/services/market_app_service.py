@@ -1049,7 +1049,10 @@ class MarketAppService(object):
         if not service_source:
             raise RbdAppNotFound("未找到该应用")
         group_key = service_source[0].group_key
-        _, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
+        try:
+            _, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
+        except ServiceHandleException:
+            version_template, plugin_template = None, None
         version = None
         plugin = None
         if version_template:
