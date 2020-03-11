@@ -235,7 +235,7 @@ class ShareRepo(object):
             return share_record[0]
 
     def get_service_share_records_by_groupid(self, group_id):
-        return ServiceShareRecord.objects.filter(group_id=group_id, status__in=[0, 1, 2])
+        return ServiceShareRecord.objects.filter(group_id=group_id, status__in=[0, 1, 2]).order_by("-create_time")
 
     def get_service_share_record_by_id(self, group_id, record_id):
         return ServiceShareRecord.objects.filter(group_id=group_id, ID=record_id).first()
