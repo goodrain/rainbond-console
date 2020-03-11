@@ -1124,6 +1124,8 @@ class ShareService(object):
                 tenant_id, last_shared.app_id, last_shared.share_version)
         else:
             app_version = share_repo.get_app_version(last_shared.app_id, last_shared.share_version)
+            if not app_version:
+                return None, None
             dt = (json.loads(app_version.app_template), app_version.app_version_info)
         return dt
 
