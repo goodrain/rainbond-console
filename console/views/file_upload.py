@@ -7,7 +7,7 @@ import logging
 from rest_framework.response import Response
 
 from console.services.git_service import GitCodeService
-from console.views.base import RegionTenantHeaderView
+from console.views.base import JWTAuthApiView
 from www.utils.return_message import error_message, general_message
 from console.services.file_upload_service import upload_service
 
@@ -15,7 +15,7 @@ logger = logging.getLogger("default")
 git_service = GitCodeService()
 
 
-class ConsoleUploadFileView(RegionTenantHeaderView):
+class ConsoleUploadFileView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         """
         上传文件

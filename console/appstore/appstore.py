@@ -4,6 +4,7 @@ import logging
 from console.exception.main import ServiceHandleException
 from console.models.main import ConsoleSysConfig
 from console.repositories.team_repo import team_repo
+from goodrain_web import settings
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.marketclient import MarketOpenAPI
 from www.utils.json_tool import json_load
@@ -16,7 +17,7 @@ class AppStore(object):
     def __init__(self):
         pass
 
-    def get_image_connection_info(self, scope, team_name):
+    def get_image_connection_info(self, scope, eid, team_name):
         """
         :param scope: enterprise(企业) team(团队) goodrain(好雨云市)
         :param team_name: 租户名称
@@ -26,20 +27,21 @@ class AppStore(object):
         """
         try:
             team = team_repo.get_team_by_team_name(team_name)
-            if not team:
+            if not team and scope == "team":
                 return {}
             if scope.startswith("goodrain"):
-                info = market_api.get_share_hub_info(team.tenant_id, "image")
+                info = market_api.get_enterprise_share_hub_info(eid, "image")
                 return info["image_repo"]
             else:
                 image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
+                namespace = eid if scope == "enterprise" else team_name
                 if not image_config or not image_config[0].enable:
-                    return {"hub_url": 'goodrain.me', "namespace": team_name}
+                    return {"hub_url": settings.IMAGE_REPO, "namespace": namespace}
                 image_config_dict = eval(image_config[0].value)
                 hub_url = image_config_dict.get("hub_url", None)
                 hub_user = image_config_dict.get("hub_user", None)
                 hub_password = image_config_dict.get("hub_password", None)
-                namespace = image_config_dict.get("namespace", team_name)
+                namespace = image_config_dict.get("namespace", namespace)
                 is_trust = hub_url == 'hub.goodrain.com'
                 image_info = {
                     "hub_url": hub_url,
@@ -52,9 +54,11 @@ class AppStore(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
         except Exception as e:
             logger.exception(e)
             return {}
@@ -95,9 +99,11 @@ class AppStore(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
         except Exception as e:
             logger.exception(e)
             return {}

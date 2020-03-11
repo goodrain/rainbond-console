@@ -19,6 +19,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.market_app_service import market_sycn_service
 from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import parse_args
 from console.utils.reqparse import parse_argument
@@ -36,41 +37,8 @@ class GroupAppView(RegionTenantHeaderView):
         """查询当前组下的云市应用"""
         group_id = int(group_id)
         group = group_service.get_group_or_404(self.tenant, self.response_region, group_id)
-
-        service_group_keys = group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True)
-
-        def yield_app_info():
-            for group_key in set(service_group_keys):
-                app_qs = rainbond_app_repo.get_rainbond_app_qs_by_key(self.tenant.enterprise_id, group_key)
-                app = app_qs.first()
-                if not app:
-                    continue
-                upgrade_versions = upgrade_service.get_app_upgrade_versions(self.tenant, group_id, group_key)
-                not_upgrade_record = upgrade_service.get_app_not_upgrade_record(
-                    self.tenant.tenant_id, group_id, group_key)
-                services = group_service.get_rainbond_services(int(group_id), group_key)
-                yield {
-                    'current_version': upgrade_service.get_old_version(group_key, services.values_list('service_id',
-                                                                                                       flat=True)),
-                    'can_upgrade': bool(upgrade_versions),
-                    'upgrade_versions': list(upgrade_versions),
-                    'not_upgrade_record_id': not_upgrade_record.ID,
-                    'not_upgrade_record_status': not_upgrade_record.status,
-                    'group_key': app.group_key,
-                    'group_name': app.group_name,
-                    'share_user': app.share_user,
-                    'share_team': app.share_team,
-                    'tenant_service_group_id': app.tenant_service_group_id,
-                    'pic': app.pic,
-                    'source': app.source,
-                    'describe': app.describe,
-                    'enterprise_id': app.enterprise_id,
-                    'is_official': app.is_official,
-                    'details': app.details,
-                    'min_memory': group_service.get_service_group_memory(app.app_template),
-                }
-
-        return MessageResponse(msg="success", list=[app_info for app_info in yield_app_info()])
+        apps = market_app_service.get_market_apps_in_app(self.response_region, self.tenant, group)
+        return MessageResponse(msg="success", list=apps)
 
 
 class AppUpgradeVersion(RegionTenantHeaderView):
@@ -80,7 +48,12 @@ class AppUpgradeVersion(RegionTenantHeaderView):
             request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
 
         # 获取云市应用可升级版本列表
-        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key)
+        service_source = group_service.get_service_source_by_group_key(group_key)
+        service_group_keys = set(service_source.values_list('group_key', flat=True))
+        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, service_group_keys)
+        version = version_template.get(group_key)
+        plugin = plugin_template.get(group_key)
+        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key, version, plugin)
         return MessageResponse(msg="success", list=list(versions))
 
 
@@ -183,7 +156,13 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
 
         # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
-
+        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, [group_key])
+        version_template = version_template.get(group_key)
+        plugin_template = plugin_template.get(group_key)
+        if version_template:
+            version_template = version_template.get(version)
+        if plugin_template:
+            plugin_template = plugin_template.get(version)
         upgrade_info = [{
             'service': {
                 'service_id': service.service_id,
@@ -191,7 +170,8 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
                 'service_key': service.service_key,
                 'type': UpgradeType.UPGRADE.value
             },
-            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
+            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant,
+                                                                version, version_template, plugin_template),
         } for service in services]
 
         add_info = [{
@@ -235,6 +215,12 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         data = parse_date(request, rq_args)
         group_key = data['group_key']
         version = data['version']
+        cloud_version = None
+        markets = market_sycn_service.get_cloud_markets(self.tenant.enterprise_id)
+        for market in markets:
+            app = market_sycn_service.get_cloud_app(self.tenant.enterprise_id, market.market_id, group_key)
+            if app:
+                cloud_version = app.app_versions
 
         app_record = get_object_or_404(
             AppUpgradeRecord,
@@ -282,7 +268,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
 
         app_record.version = version
-        app_record.old_version = upgrade_service.get_old_version(group_key, upgrade_service_infos.keys())
+        app_record.old_version = upgrade_service.get_old_version(
+            group_key, upgrade_service_infos.keys(), cloud_version=cloud_version)
         app_record.save()
 
         services = service_repo.get_services_by_service_ids_and_group_key(

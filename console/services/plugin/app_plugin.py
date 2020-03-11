@@ -8,13 +8,17 @@ import logging
 import os
 
 from addict import Dict
+from django.db import transaction
+from django.db.models import Q
+from docker_image import reference
 
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
 from console.constants import PluginCategoryConstants
+from console.constants import PluginImage
 from console.constants import PluginInjection
 from console.constants import PluginMetaType
-from console.exception.main import ErrPluginAlreadyInstalled
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import port_repo
@@ -29,6 +33,7 @@ from console.repositories.plugin import service_plugin_config_repo
 from console.services.app import app_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.rbd_center_app_service import rbd_center_app_service
+from goodrain_web import settings
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import PluginConfigGroup
@@ -41,6 +46,8 @@ logger = logging.getLogger("default")
 plugin_config_service = PluginConfigService()
 plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
+
+has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
 
 
 class AppPluginService(object):
@@ -69,19 +76,24 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type, plugin_status):
+    def create_service_plugin_relation(
+            self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
-            return 409, "组件已安装该插件", None
+            raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
+        plugin_version_info = plugin_version_repo.get_by_id_and_version(plugin_id, build_version)
+        min_memory = plugin_version_info.min_memory
+        min_cpu = plugin_version_info.min_cpu
         params = {
             "service_id": service_id,
             "build_version": build_version,
             "service_meta_type": service_meta_type,
             "plugin_id": plugin_id,
-            "plugin_status": plugin_status
+            "plugin_status": plugin_status,
+            "min_memory": min_memory,
+            "min_cpu": min_cpu,
         }
-        spr = app_plugin_relation_repo.create_service_plugin_relation(**params)
-        return 200, "success", spr
+        return app_plugin_relation_repo.create_service_plugin_relation(**params)
 
     def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
         """获取组件已开通和未开通的插件"""
@@ -94,7 +106,7 @@ class AppPluginService(object):
             tp.category AS category,
             tp.origin_share_id AS origin_share_id,
             pbv.build_version AS build_version,
-            pbv.min_memory AS min_memory,
+            tsp.min_memory AS min_memory,
             tsp.plugin_status AS plugin_status
         FROM
             tenant_service_plugin_relation tsp
@@ -151,18 +163,40 @@ class AppPluginService(object):
             return relations[0]
         return None
 
-    def start_stop_service_plugin(self, service_id, plugin_id, is_active):
+    def start_stop_service_plugin(self, service_id, plugin_id, is_active, cpu, memory):
         """启用停用插件"""
-        app_plugin_relation_repo.update_service_plugin_status(service_id, plugin_id, is_active)
+        app_plugin_relation_repo.update_service_plugin_status(service_id, plugin_id, is_active, cpu, memory)
+
+    @transaction.atomic
+    def install_new_plugin(self, region, tenant, service, plugin_id, plugin_version=None):
+        if not plugin_version:
+            plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+            plugin_version = plugin_version.build_version
+        logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
+        # 1.生成console数据，存储
+        self.save_default_plugin_config(tenant, service, plugin_id, plugin_version)
+        # 2.从console数据库取数据生成region数据
+        region_config = self.get_region_config_from_db(service, plugin_id, plugin_version)
+
+        data = dict()
+        data["plugin_id"] = plugin_id
+        data["switch"] = True
+        data["version_id"] = plugin_version
+        data.update(region_config)
+        self.create_service_plugin_relation(service.service_id, plugin_id, plugin_version)
+        try:
+            region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
+        except region_api.CallApiError as e:
+            if "body" in e.message and "msg" in e.message["body"]:
+                if e.message["body"]["msg"] == "can not add this kind plugin, a same kind plugin has been linked":
+                    raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
         """console层保存默认的数据"""
         config_groups = plugin_config_service.get_config_group(plugin_id, build_version)
         service_plugin_var = []
         for config_group in config_groups:
-
             items = plugin_config_service.get_config_items(plugin_id, build_version, config_group.service_meta_type)
-
             if config_group.service_meta_type == PluginMetaType.UNDEFINE:
                 attrs_map = {item.attr_name: item.attr_default_value for item in items}
                 service_plugin_var.append(
@@ -177,10 +211,12 @@ class AppPluginService(object):
                         container_port=0,
                         attrs=json.dumps(attrs_map),
                         protocol=""))
+
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 if not self.__check_ports_for_config_items(ports, items):
-                    return 409, "插件支持的协议与组件端口协议不一致"
+                    raise ServiceHandleException(msg="do not support protocol",
+                                                 status_code=409, msg_show="插件支持的协议与组件端口协议不一致")
                 for port in ports:
                     attrs_map = dict()
                     for item in items:
@@ -202,11 +238,13 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
                 if not dep_services:
-                    return 409, "组件没有依赖其他组件，不能安装此插件"
+                    raise ServiceHandleException(msg="can't use this plugin",
+                                                 status_code=409, msg_show="组件没有依赖其他组件，不能安装此插件")
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     if not self.__check_ports_for_config_items(ports, items):
-                        return 409, "该组件依赖的组件的端口协议与插件支持的协议不一致"
+                        raise ServiceHandleException(msg="do not support protocol", status_code=409,
+                                                     msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
                     for port in ports:
                         attrs_map = dict()
                         for item in items:
@@ -226,7 +264,6 @@ class AppPluginService(object):
                                 protocol=port.protocol))
         # 保存数据
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
-        return 200, "success"
 
     def __check_ports_for_config_items(self, ports, items):
         for item in items:
@@ -469,7 +506,7 @@ class AppPluginService(object):
 
     def create_plugin_4marketsvc(self, region_name, tenant, service, version, plugins):
         """
-        raise ErrPluginAlreadyInstalled
+        raise ServiceHandleException
         """
         plugin_version_service.update_plugin_build_status(region_name, tenant)
         plugins = plugins if plugins is not None else []
@@ -480,10 +517,7 @@ class AppPluginService(object):
             self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"], data["version_id"],
                                               service_plugin_config_vars)
 
-            code, msg, _ = self.create_service_plugin_relation(
-                service.service_id, data["plugin_id"], data["version_id"], "", True)
-            if code == 409:
-                raise ErrPluginAlreadyInstalled(msg)
+            self.create_service_plugin_relation(service.service_id, data["plugin_id"], data["version_id"])
 
     def build_plugin_data_4marketsvc(self, tenant, service, plugin):
         plugin_key = plugin["plugin_key"]
@@ -529,26 +563,28 @@ class AppPluginService(object):
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
     def check_the_same_plugin(self, plugin_id, tenant_id, service_id):
-        print plugin_id, tenant_id, service_id
-        plugin_list = []
+        plugin_ids = []
         categories = []
-        flag = False
         service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service_id)
+        if not service_plugins:
+            """ component has not installed plugin"""
+            return
+        """ filter the same category plugin"""
+        for i in service_plugins:
+            plugin_ids.append(i.plugin_id)
+        plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_ids)
+        for i in plugins:
+            categories.append(i.category)
+
+        # the trend to install plugin
         plugin_info = plugin_repo.get_plugin_by_plugin_id(tenant_id, plugin_id)
-        print service_plugins
-        if len(service_plugins) != 0:
-            for i in service_plugins:
-                plugin_list.append(i.plugin_id)
-            plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_list)
-            for i in plugins:
-                categories.append(i.category)
-        print plugin_info.category
-        if plugin_info.category.split(":")[0] == "net-plugin" and plugin_info.category in categories:
-            flag = True
-        if plugin_info.category == "net-plugin:in-and-out" and (
-                "net-plugin:up" in categories or "net-plugin:down" in categories):
-            flag = True
-        return flag
+
+        category_info = plugin_info.category.split(":")
+        if category_info[0] == "net-plugin":
+            if plugin_info.category in categories:
+                raise has_the_same_category_plugin
+            if category_info[1] == "in-and-out" and ("net-plugin:up" in categories or "net-plugin:down" in categories):
+                raise has_the_same_category_plugin
 
 
 class PluginService(object):
@@ -653,9 +689,12 @@ class PluginService(object):
                 raise Exception("no config was found")
 
             needed_plugin_config = all_default_config[plugin_type]
+            ref = reference.Reference.parse(needed_plugin_config["image"])
+            _, name = ref.split_hostname()
+            image = settings.IMAGE_REPO + "/" + name
             code, msg, plugin_base_info = self.create_tenant_plugin(
                 tenant, user.user_id, region, needed_plugin_config["desc"], needed_plugin_config["plugin_alias"],
-                needed_plugin_config["category"], needed_plugin_config["build_source"], needed_plugin_config["image"],
+                needed_plugin_config["category"], needed_plugin_config["build_source"], image,
                 needed_plugin_config["code_repo"])
             plugin_base_info.origin = "local_market"
             plugin_base_info.origin_share_id = plugin_type
@@ -746,5 +785,6 @@ class PluginService(object):
         if plugins:
             return plugins
         else:
-            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(
-                category="analyst-plugin:perf", image="goodrain.me/tcm")
+            q = Q(category="analyst-plugin:perf", image=PluginImage.RUNNER)
+            q |= Q(category="analyst-plugin:perf", image="goodrain.me")
+            return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(q)

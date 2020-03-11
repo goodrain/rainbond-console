@@ -221,16 +221,23 @@ class UserService(object):
             rf=rf)
         return user
 
-    def create_user_set_password(self, user_name, phone, email, raw_password, rf, enterprise, client_ip):
+    def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip):
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
-            phone=phone,
             sso_user_id="",
             enterprise_id=enterprise.enterprise_id,
-            is_active=False,
+            is_active=True,
             rf=rf,
             client_ip=client_ip)
+        user.set_password(raw_password)
+        user.save()
+        return user
+
+    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password):
+        user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
+        user.nick_name = user_name
+        user.email = email
         user.set_password(raw_password)
         return user
 
@@ -246,8 +253,9 @@ class UserService(object):
     def make_user_as_admin_for_enterprise(self, user_id, enterprise_id):
         user_perm = enterprise_user_perm_repo.get_user_enterprise_perm(user_id, enterprise_id)
         if not user_perm:
-            return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin")
-        return user_perm
+            token = self.generate_key()
+            return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin", token)
+            return user_perm
 
     def is_user_admin_in_current_enterprise(self, current_user, enterprise_id):
         """判断用户在该企业下是否为管理员"""
@@ -260,7 +268,9 @@ class UserService(object):
                 admin_user = users[0]
                 # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
                 if admin_user.user_id == current_user.user_id:
-                    enterprise_user_perm_repo.create_enterprise_user_perm(current_user.user_id, enterprise_id, "admin")
+                    token = self.generate_key()
+                    enterprise_user_perm_repo.create_enterprise_user_perm(
+                        current_user.user_id, enterprise_id, "admin", token)
                     return True
                 else:
                     return False
@@ -303,6 +313,13 @@ class UserService(object):
 
     def get_user_by_user_id(self, user_id):
         return user_repo.get_user_by_user_id(user_id=user_id)
+
+    def get_user_by_eid(self, eid, name, page, page_size):
+        users = user_repo.get_enterprise_users(eid)
+        if name:
+            users = users.filter(nick_name__contains=name)
+        total = users.count()
+        return users[(page-1)*page_size: page*page_size], total
 
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新构建"""
@@ -404,6 +421,27 @@ class UserService(object):
                 logger.warning("user_id: {}; user not found".format(item.user_id))
 
         return users, total
+
+    def get_admin_users(self, eid):
+        perms = EnterpriseUserPerm.objects.filter(enterprise_id=eid)
+        users = []
+        for item in perms:
+            try:
+                user = user_services.get_user_by_user_id(item.user_id)
+                users.append({
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "nick_name": user.nick_name,
+                    "phone": user.phone,
+                    "is_active": user.is_active,
+                    "origion": user.origion,
+                    "create_time": user.create_time,
+                    "client_ip": user.client_ip,
+                    "enterprise_id": user.enterprise_id,
+                })
+            except UserNotExistError:
+                logger.warning("user_id: {}; user not found".format(item.user_id))
+        return users
 
     def create_admin_user(self, user, ent):
         # 判断用户是否为企业管理员

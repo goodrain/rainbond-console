@@ -7,7 +7,6 @@ import datetime
 import json
 import logging
 import os
-from re import split as re_split
 import pickle
 
 from django.conf import settings
@@ -21,9 +20,8 @@ from console.constants import AppConstants
 from console.constants import PluginCategoryConstants
 
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import support_oauth_type
 
-from console.exception.main import ServiceHandleException
+from console.exception.main import MarketAppLost
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.app import service_repo
@@ -101,53 +99,49 @@ class AppDetailView(AppBaseView):
                 if not service_source:
                     result = general_message(200, "success", "查询成功", bean=bean)
                     return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                 service_source.version)
-                if not rain_app:
+                rainbond_app, rainbond_app_version = rainbond_app_repo.get_rainbond_app_and_version(
+                    self.tenant.enterprise_id, service_source.group_key, service_source.version)
+                if not rainbond_app:
                     result = general_message(200, "success", "当前云市组件已删除", bean=bean)
                     return Response(result, status=result["code"])
-                else:
-                    bean.update({"rain_app_name": rain_app.group_name})
-                    apps_template = json.loads(rain_app.app_template)
-                    apps_list = apps_template.get("apps")
-                    for app in apps_list:
-                        if app["service_key"] == self.service.service_key:
-                            if self.service.deploy_version and int(
-                                    app["deploy_version"]) > int(
-                                    self.service.deploy_version):
-                                self.service.is_upgrate = True
-                                self.service.save()
-                                bean.update({"service": service_model})
-                    try:
-                        apps_template = json.loads(rain_app.app_template)
-                        apps_list = apps_template.get("apps")
-                        service_source = service_source_repo.get_service_source(
-                            self.service.tenant_id, self.service.service_id)
-                        if service_source and service_source.extend_info:
-                            extend_info = json.loads(service_source.extend_info)
-                            if extend_info:
-                                for app in apps_list:
-                                    if "service_share_uuid" in app:
-                                        if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                            new_version = int(app["deploy_version"])
-                                            old_version = int(extend_info["source_deploy_version"])
-                                            if new_version > old_version:
-                                                self.service.is_upgrate = True
-                                                self.service.save()
-                                                service_model["is_upgrade"] = True
-                                                bean.update({"service": service_model})
-                                    elif "service_share_uuid" not in app and "service_key" in app:
-                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
-                                            new_version = int(app["deploy_version"])
-                                            old_version = int(extend_info["source_deploy_version"])
-                                            if new_version > old_version:
-                                                self.service.is_upgrate = True
-                                                self.service.save()
-                                                service_model["is_upgrade"] = True
-                                                bean.update({"service": service_model})
 
-                    except Exception as e:
-                        logger.exception(e)
+                bean.update({"rain_app_name": rainbond_app.app_name})
+                apps_template = json.loads(rainbond_app_version.app_template)
+                apps_list = apps_template.get("apps")
+                for app in apps_list:
+                    if app["service_key"] == self.service.service_key:
+                        if self.service.deploy_version and int(app["deploy_version"]) > int(self.service.deploy_version):
+                            self.service.is_upgrate = True
+                            self.service.save()
+                            bean.update({"service": service_model})
+                try:
+                    apps_template = json.loads(rainbond_app_version.app_template)
+                    apps_list = apps_template.get("apps")
+                    service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
+                    if service_source and service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if extend_info:
+                            for app in apps_list:
+                                if "service_share_uuid" in app:
+                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
+                                elif "service_share_uuid" not in app and "service_key" in app:
+                                    if app["service_key"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
+                except Exception as e:
+                    logger.exception(e)
 
             if self.service.service_source == AppConstants.DOCKER_COMPOSE:
                 if self.service.create_status != "complete":
@@ -164,12 +158,10 @@ class AppDetailView(AppBaseView):
                     if service_endpoints.endpoints_type == "api":
                         # 从环境变量中获取域名，没有在从请求中获取
                         host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-                        bean["api_url"] = "http://" + host + "/console/" + \
-                            "third_party/{0}".format(self.service.service_id)
+                        bean["api_url"] = "http://" + host + "/console/" + "third_party/{0}".format(self.service.service_id)
                         key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
                         if key_repo:
-                            bean["api_service_key"] = pickle.loads(
-                                base64.b64decode(key_repo.secret_key)).get("secret_key")
+                            bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
                     if service_endpoints.endpoints_type == "discovery":
                         # 返回类型和key
                         endpoints_info_dict = json.loads(service_endpoints.endpoints_info)
@@ -204,17 +196,13 @@ class AppBriefView(AppBaseView):
               paramType: path
         """
         try:
+            msg = "查询成功"
             if self.service.service_source == "market":
-                service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
-                if not service_source:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
-                    return Response(result, status=result["code"])
-                rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                 service_source.version)
-                if not rain_app:
-                    result = general_message(200, "success", "当前云市应用已删除", bean=self.service.to_dict())
-                    return Response(result, status=result["code"])
-            result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
+                try:
+                    market_app_service.check_market_service_info(self.tenant, self.service)
+                except MarketAppLost as e:
+                    msg = e.msg
+            result = general_message(200, "success", msg, bean=self.service.to_dict())
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -579,23 +567,20 @@ class AppGroupView(AppBaseView):
               paramType: form
         """
 
-        try:
-            group_id = request.data.get("group_id", None)
-            if group_id is None:
-                return Response(general_message(400, "param error", "请指定修改的组"), status=400)
-            group_id = int(group_id)
-            if group_id == -1:
-                group_service.delete_service_group_relation_by_service_id(self.service.service_id)
-            else:
-                code, msg, group = group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
-                if code != 200:
-                    return Response(general_message(code, "group not found", "未找到需要修改的组信息"))
-                group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
+        # target app id
+        group_id = request.data.get("group_id", None)
+        if group_id is None:
+            return Response(general_message(400, "param error", "请指定修改的组"), status=400)
+        group_id = int(group_id)
+        if group_id == -1:
+            group_service.delete_service_group_relation_by_service_id(self.service.service_id)
+        else:
+            # check target app exists or not
+            group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
+            # update service relation
+            group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
 
-            result = general_message(200, "success", "修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
 
@@ -671,62 +656,9 @@ class BuildSourceinfo(AppBaseView):
         查询构建源信息
         ---
         """
-        try:
-            service_source = service_source_repo.get_service_source(
-                team_id=self.service.tenant_id, service_id=self.service.service_id)
-
-            code_from = self.service.code_from
-            oauth_type = support_oauth_type.keys()
-            if code_from in oauth_type:
-                result_url = re_split("[:,@]", self.service.git_url)
-                self.service.git_url = result_url[0] + '//' + result_url[-1]
-            bean = {
-                "user_name": "",
-                "password": "",
-                "service_source": self.service.service_source,
-                "image": self.service.image,
-                "cmd": self.service.cmd,
-                "code_from": self.service.code_from,
-                "version": self.service.version,
-                "docker_cmd": self.service.docker_cmd,
-                "create_time": self.service.create_time,
-                "git_url": self.service.git_url,
-                "code_version": self.service.code_version,
-                "server_type": self.service.server_type,
-                "language": self.service.language,
-                "oauth_service_id": self.service.oauth_service_id,
-                "full_name": self.service.git_full_name
-            }
-            if service_source:
-                bean["user"] = service_source.user_name
-                bean["password"] = service_source.password
-            if self.service.service_source == 'market':
-                if service_source:
-                    # get from cloud
-                    rain_app = None
-                    if service_source.extend_info:
-                        extend_info = json.loads(service_source.extend_info)
-                        if extend_info and extend_info.get("install_from_cloud", False):
-                            rain_app = market_app_service.get_app_from_cloud(self.tenant, service_source.group_key,
-                                                                             service_source.version)
-                            bean["install_from_cloud"] = True
-                            bean["app_detail_url"] = rain_app.describe
-                    if not rain_app:
-                        rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(service_source.group_key,
-                                                                                         service_source.version)
-                    if rain_app:
-                        bean["rain_app_name"] = rain_app.group_name
-                        bean["details"] = rain_app.details
-                        logger.debug("app_version: {}".format(rain_app.version))
-                        bean["app_version"] = rain_app.version
-                        bean["version"] = rain_app.version
-                        bean["group_key"] = rain_app.group_key
-            result = general_message(200, "success", "查询成功", bean=bean)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        from console.services.service_services import base_service
+        bean = base_service.get_build_info(self.tenant, self.service)
+        result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
     @never_cache

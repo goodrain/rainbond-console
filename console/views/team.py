@@ -157,6 +157,7 @@ class UserAllTeamView(JWTAuthApiView):
         code = 200
         try:
             tenants = team_services.get_current_user_tenants(user_id=user.user_id)
+            active_tenants = team_services.get_active_user_tenants(user_id=user.user_id)
             if tenants:
                 teams_list = list()
                 for tenant in tenants:
@@ -164,9 +165,17 @@ class UserAllTeamView(JWTAuthApiView):
                         "team_name": tenant.tenant_name,
                         "team_alias": tenant.tenant_alias,
                         "team_id": tenant.tenant_id,
-                        "create_time": tenant.create_time
+                        "create_time": tenant.create_time,
+                        "region": tenant.region,
+                        "enterprise_id": tenant.enterprise_id,
+                        "owner": tenant.creater,
                     })
-                result = general_message(200, "team query success", "成功获取该用户加入的团队", list=teams_list)
+                data = {
+                    "active_teams": active_tenants,
+                    "new_join_team": teams_list[0],
+                    "teams": teams_list
+                }
+                result = general_message(200, "team query success", "成功获取该用户加入的团队", bean=data, list=teams_list)
             else:
                 teams_list = []
                 result = general_message(200, "team query success", "该用户没有加入团队", bean=teams_list)
@@ -1005,6 +1014,13 @@ class JoinTeamView(JWTAuthApiView):
             result = error_message(e.message)
         return Response(result, status=result["code"])
 
+    def put(self, request, *args, **kwargs):
+        user_id = self.user.user_id
+        team_name = request.data.get("team_name")
+        apply_service.delete_applicants(user_id=user_id, team_name=team_name)
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
+
     # 用户加入团队，给管理员发送站内信
     def send_user_message_to_tenantadmin(self, admins, team_name, nick_name):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
@@ -1214,7 +1230,6 @@ class AdminAddUserView(JWTAuthApiView):
         try:
             tenant_name = request.data.get("tenant_name", None)
             user_name = request.data.get("user_name", None)
-            phone = request.data.get("phone", None)
             email = request.data.get("email", None)
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
@@ -1247,7 +1262,7 @@ class AdminAddUserView(JWTAuthApiView):
                 enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 # 创建用户
                 user = user_services.create_user_set_password(
-                    user_name, phone, email, password, "admin add", enterprise, client_ip)
+                    user_name, email, password, "admin add", enterprise, client_ip)
                 # 创建用户团队关系表
                 team_services.create_tenant_role(
                     user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)

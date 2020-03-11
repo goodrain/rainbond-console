@@ -207,3 +207,9 @@ if os.path.exists(conf_file):
     execfile(conf_file)
 else:
     raise Exception("config file not found: {}".format(conf_file))
+
+DEF_IMAGE_REPO = "goodrain.me"
+
+IMAGE_REPO = os.getenv("IMAGE_REPO", DEF_IMAGE_REPO)
+
+RUNNER_IMAGE_NAME = IMAGE_REPO + "/runner"

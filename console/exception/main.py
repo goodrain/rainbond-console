@@ -57,6 +57,14 @@ class ServiceHandleException(Exception):
                                error_code=self.error_code)
 
 
+class RegionNotFound(ServiceHandleException):
+    """
+    region not found exception
+    """
+    def __init__(self, msg):
+        super(RegionNotFound, self).__init__("region not found")
+
+
 class AbortRequest(ServiceHandleException):
     """终止请求"""
     pass
@@ -71,7 +79,7 @@ class RecordNotFound(Exception):
         super(RecordNotFound, self).__init__(msg)
 
 
-class RbdAppNotFound(Exception):
+class RbdAppNotFound(ServiceHandleException):
     def __init__(self, msg):
         super(RbdAppNotFound, self).__init__(msg)
 
@@ -117,3 +125,18 @@ class ErrPluginAlreadyInstalled(Exception):
 class ErrDoNotSupportMultiDomain(Exception):
     def __init__(self, msg):
         super(ErrDoNotSupportMultiDomain, self).__init__(msg)
+
+
+class MarketAppLost(ServiceHandleException):
+    def __init__(self, msg):
+        super(MarketAppLost, self).__init__(msg)
+
+
+class CheckThirdpartEndpointFailed(ServiceHandleException):
+    def __init__(self, msg="check endpoint failed", msg_show="校验实例地址失败"):
+        super(CheckThirdpartEndpointFailed, self).__init__(msg=msg, msg_show=msg_show, status_code=500)
+
+
+class ExportAppError(ServiceHandleException):
+    def __init__(self, msg="export error", msg_show="导出失败", status_code=500):
+        super(ExportAppError, self).__init__(msg, msg_show, status_code)

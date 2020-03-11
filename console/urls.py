@@ -19,6 +19,8 @@ from console.views.app_config.app_domain import SecondLevelDomainView
 from console.views.app_config.app_domain import ServiceDomainView
 from console.views.app_config.app_domain import ServiceTcpDomainQueryView
 from console.views.app_config.app_domain import ServiceTcpDomainView
+from console.views.app_config.app_domain import AppServiceDomainQueryView
+from console.views.app_config.app_domain import AppServiceTcpDomainQueryView
 from console.views.app_config.app_domain import TenantCertificateManageView
 from console.views.app_config.app_domain import TenantCertificateView
 from console.views.app_config.app_env import AppBuildEnvView
@@ -36,6 +38,7 @@ from console.views.app_config.app_port import TopologicalPortView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeManageView
 from console.views.app_config.app_volume import AppVolumeView
+from console.views.app_config.app_volume import AppVolumeOptionsView
 from console.views.app_create.app_build import AppBuild
 from console.views.app_create.app_build import ComposeBuildView
 from console.views.app_create.app_check import AppCheck
@@ -102,13 +105,17 @@ from console.views.center_pool.app_import import CenterAppImportView
 from console.views.center_pool.app_import import CenterAppTarballDirView
 from console.views.center_pool.app_import import CenterAppUploadView
 from console.views.center_pool.app_import import ImportingRecordView
+from console.views.center_pool.app_import import EnterpriseAppImportInitView
 from console.views.center_pool.apps import CenterAllMarketAppView
-from console.views.center_pool.apps import CenterAppListView
-from console.views.center_pool.apps import CenterAppManageView
+from console.views.center_pool.apps import CenterAppCLView
+from console.views.center_pool.apps import CenterAppUDView
 from console.views.center_pool.apps import CenterAppView
 from console.views.center_pool.apps import CenterVersionlMarversionketAppView
-from console.views.center_pool.apps import DownloadMarketAppGroupTemplageDetailView
+from console.views.center_pool.apps import DownloadMarketAppTemplateView
 from console.views.center_pool.apps import GetCloudRecommendedAppList
+from console.views.center_pool.apps import TagCLView
+from console.views.center_pool.apps import TagUDView
+from console.views.center_pool.apps import AppTagCDView
 from console.views.center_pool.groupapp_backup import AllTeamGroupAppsBackupView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupExportView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupImportView
@@ -201,7 +208,12 @@ from console.views.service_share import ServiceShareEventList
 from console.views.service_share import ServiceShareEventPost
 from console.views.service_share import ServiceShareInfoView
 from console.views.service_share import ServiceShareRecordView
+from console.views.service_share import ServiceShareRecordInfoView
 from console.views.service_share import ShareRecordView
+from console.views.service_share import ServiceGroupSharedApps
+from console.views.service_share import ShareRecordHistoryView
+from console.views.service_share import CloudAppModelMarkets
+from console.views.service_share import CloudAppModelMarketInfo
 from console.views.service_version import AppVersionManageView
 from console.views.service_version import AppVersionsView
 from console.views.services_toplogical import GroupServiceDetView
@@ -233,6 +245,10 @@ from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
 from console.views.team import UserFuzSerView
+from console.views.user import EnterPriseUsersCLView
+from console.views.user import EnterPriseUsersUDView
+from console.views.user import AdminUserLCView
+from console.views.user import AdminUserDView
 from console.views.user import CheckSourceView
 from console.views.user import UserAddPemView
 from console.views.user import UserLogoutView
@@ -243,6 +259,17 @@ from console.views.user_operation import PasswordResetBegin
 from console.views.user_operation import SendResetEmail
 from console.views.user_operation import TenantServiceView
 from console.views.user_operation import UserDetailsView
+from console.views.user_operation import UserFavoriteLCView
+from console.views.user_operation import UserFavoriteUDView
+from console.views.enterprise import Enterprises
+from console.views.enterprise import EnterpriseInfo
+from console.views.enterprise import EnterpriseAppOverView
+from console.views.enterprise import EnterpriseTeamOverView
+from console.views.enterprise import EnterpriseOverview
+from console.views.enterprise import EnterpriseAppsLView
+from console.views.enterprise import EnterpriseTeams
+from console.views.enterprise import EnterpriseMonitor
+from console.views.enterprise import EnterpriseUserTeams
 from console.views.webhook import CustomWebHooksDeploy
 from console.views.webhook import GetWebHooksUrl
 from console.views.webhook import ImageWebHooksDeploy
@@ -266,6 +293,8 @@ from console.views.oauth import OauthServiceInfo
 from console.views.oauth import OAuthServerUserAuthorize
 from console.views.oauth import OAuthGitCodeDetection
 from console.views.app.apps import AppLView
+from console.views.oauth import EnterpriseOauthService
+
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -361,7 +390,7 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view()),
 
     # 团队应用模块（5.1）
-    url(r'^teams/(?P<team_name>[\w\-]+)/overview/app/over$', TeamAppSortViewView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view()),
 
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view()),
@@ -387,8 +416,12 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<group_id>\d+)/outer-service$', TopologicalInternetView.as_view()),
 
     # 云市分享应用
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record/(?P<record_id>[\w\-]+)$',
+        ServiceShareRecordInfoView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/shared/apps$', ServiceGroupSharedApps.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/shared/history$', ShareRecordHistoryView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/events$', ServiceShareEventList.as_view()),
@@ -505,6 +538,8 @@ urlpatterns = [
     # 对外访问tcp端口修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tcp-ports/(?P<port>[\w\-]+)$',
         AppTcpOuterManageView.as_view()),
+    # 组件支持的存储列表
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volume-opts$', AppVolumeOptionsView.as_view()),
     # 持久化路径配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes$', AppVolumeView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/(?P<volume_id>[\w\-]+)$',
@@ -540,6 +575,11 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/get_port$', GetPortView.as_view()),
     # tcp/udp策略操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/tcpdomain$', ServiceTcpDomainView.as_view()),
+    # 查询应用层面tcp/udp策略（含模糊搜索）
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/tcpdomain$',
+        AppServiceTcpDomainQueryView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/domain$',
+        AppServiceDomainQueryView.as_view()),
 
     # 5.1网关自定义参数
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$',
@@ -588,7 +628,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparecords$', AppScalingRecords.as_view()),
 
     # 修改组件应用类型标签
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_type$',
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploytype$',
         ChangeServiceTypeView.as_view()),
 
     # 修改组件名称
@@ -683,22 +723,18 @@ urlpatterns = [
 
     # 内部云市应用相关
     # 获取可安装应用
-    url(r'^apps$', CenterAppListView.as_view()),
+    # url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
     # 好雨云市应用同步
     # 同步应用
     # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
-    # 同步某个应用回来
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/template_details$', DownloadMarketAppGroupTemplageDetailView.as_view()),
 
     # 查询查询云端app
-    url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
-    url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
-    # 查询云端指定版本app
-    url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
-    # 下架应用
-    url(r'^app_market/manage$', CenterAppManageView.as_view()),
+    # url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
+    # url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
+    # # 查询云端指定版本app
+    # url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
@@ -709,8 +745,6 @@ urlpatterns = [
         BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view()),
-    # 应用导出
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export$', CenterAppExportView.as_view()),
     # 应用导入
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view()),
     # 应用包目录查询
@@ -811,7 +845,56 @@ urlpatterns = [
     # # 企业中心模糊查询团队
     # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # get basic task guided information
+    url(r'^enterprises$', Enterprises.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$',
+        BindMarketEnterpriseOptimizAccessTokenView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$',  EnterPriseUsersCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)$',  EnterPriseUsersUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)/teams$', EnterpriseUserTeams.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/favorite$', UserFavoriteLCView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/favorite/(?P<favorite_id>[\w\-]+)$', UserFavoriteUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user$', AdminUserLCView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models$', CenterAllMarketAppView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/recommend', GetCloudRecommendedAppList.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/version$',
+        CenterVersionlMarversionketAppView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag$', TagCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/tag$', AppTagCDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', CloudAppModelMarkets.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/market/(?P<market_id>[\w\-]+)/app-models$',
+        CloudAppModelMarketInfo.as_view()),
+
+    # 应用导出
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
+    # 同步某个应用回来
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/download$',
+        DownloadMarketAppTemplateView.as_view()),
+    # WIP
+    # 创建应用导入记录
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import$', EnterpriseAppImportInitView.as_view()),
+    # 应用导入修改、查询、删除
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)$', CenterAppImportView.as_view()),
+    # 应用包目录查询
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)/dir$',
+        CenterAppTarballDirView.as_view()),
+    # 应用下载
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
+    # 下架应用
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
+
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

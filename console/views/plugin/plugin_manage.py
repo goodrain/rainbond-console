@@ -8,12 +8,15 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.services.plugin import plugin_service, plugin_version_service, plugin_config_service
+from console.services.plugin import plugin_config_service
+from console.services.plugin import plugin_service
+from console.services.plugin import plugin_version_service
 from console.views.plugin.base import PluginBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.crypt import make_uuid
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -48,31 +51,26 @@ class PluginBuildView(PluginBaseView):
               type: string
               paramType: form
         """
-        try:
-
-            update_info = request.data.get("update_info", None)
-            if self.plugin_version.build_status == "building":
-                return Response(general_message(409, "too offen", "构建中，请稍后再试"), status=409)
-            if update_info:
-                self.plugin_version.update_info = update_info
-                self.plugin_version.save()
-            event_id = make_uuid()
-            self.plugin_version.build_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        update_info = request.data.get("update_info", None)
+        if self.plugin_version.build_status == "building":
+            return Response(general_message(409, "too offen", "构建中，请稍后再试"), status=409)
+        if update_info:
+            self.plugin_version.update_info = update_info
             self.plugin_version.save()
-            try:
-                plugin_service.build_plugin(self.response_region, self.plugin, self.plugin_version, self.user, self.tenant,
-                                            event_id)
-                self.plugin_version.build_status = "building"
-                self.plugin_version.event_id = event_id
-                self.plugin_version.save()
-                bean = {"event_id": event_id}
-                result = general_message(200, "success", "操作成功", bean=bean)
-            except Exception as e:
-                logger.exception(e)
-                result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
+        event_id = make_uuid()
+        self.plugin_version.build_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.plugin_version.save()
+        try:
+            plugin_service.build_plugin(self.response_region, self.plugin,
+                                        self.plugin_version, self.user, self.tenant, event_id)
+            self.plugin_version.build_status = "building"
+            self.plugin_version.event_id = event_id
+            self.plugin_version.save()
+            bean = {"event_id": event_id}
+            result = general_message(200, "success", "操作成功", bean=bean)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
         return Response(result, status=result["code"])
 
 
@@ -101,7 +99,9 @@ class CreatePluginVersionView(PluginBaseView):
             if not plugin_versions:
                 return Response(general_message(412, "current version not exist", "插件不存在任何版本，无法创建"), status=412)
             if self.plugin.origin != "source_code":
-                return Response(general_message(412, "market plugin can not create new version", "云市插件不能创建版本"), status=412)
+                return Response(
+                    general_message(412, "market plugin can not create new version", "云市插件不能创建版本"),
+                    status=412)
             pbv = plugin_versions[0]
             if pbv.build_status != "build_success":
                 return Response(general_message(412, "no useable plugin version", "您的插件构建未成功，无法创建新版本"), status=412)

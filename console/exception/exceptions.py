@@ -227,3 +227,9 @@ class AuthenticationInfoHasExpiredError(BaseException):
     """
     认证信息已过期
     """
+
+
+class UserFavoriteNotExistError(BaseException):
+    """
+    用户收藏视图不存在
+    """

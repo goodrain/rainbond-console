@@ -9,10 +9,11 @@ import logging
 from django.conf import settings
 
 from console.constants import AppConstants
-from console.utils.oauth.oauth_types import get_oauth_instance
-
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
+from console.enum.component_enum import ComponentType
+from console.enum.component_enum import is_singleton
+from console.enum.component_enum import is_state
+from console.exception.main import ServiceHandleException
+from console.models.main import ServiceShareRecordEvent
 from console.repositories.app import delete_service_repo
 from console.repositories.app import recycle_bin_repo
 from console.repositories.app import relation_recycle_bin_repo
@@ -36,10 +37,14 @@ from console.repositories.group import group_service_relation_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.migration_repo import migrate_repo
+from console.repositories.oauth_repo import oauth_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import service_perm_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
+from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
@@ -48,7 +53,11 @@ from console.services.app_config import AppMntService
 from console.services.app_config import AppPortService
 from console.services.app_config import AppServiceRelationService
 from console.services.app_config import AppVolumeService
+from console.services.exception import ErrChangeServiceType
+from console.utils import slug_util
+from console.utils.oauth.oauth_types import get_oauth_instance
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService
 from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
@@ -135,7 +144,7 @@ class AppManageBase(object):
         if self.MODULES["Memory_Limit"]:
             if is_check_status:
                 new_add_memory = new_add_memory + \
-                                 self.cur_service_memory(tenant, service)
+                    self.cur_service_memory(tenant, service)
             if tenant.pay_type == "free":
                 tm = tenantUsedResource.calculate_real_used_resource(tenant) + new_add_memory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
@@ -342,13 +351,13 @@ class AppManageService(AppManageBase):
             if service_volume:
                 continue
             file_content = volume.get("file_content", None)
-            code, msg, volume_data = volume_service.add_service_volume(
-                tenant,
-                service,
-                volume["volume_path"],
-                volume_type=volume["volume_type"],
-                volume_name=volume["volume_name"],
-                file_content=file_content)
+            settings = {}
+            settings["volume_capacity"] = volume["volume_capacity"]
+            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
+                                                                       volume_type=volume["volume_type"],
+                                                                       volume_name=volume["volume_name"],
+                                                                       file_content=file_content,
+                                                                       settings=settings)
             if code != 200:
                 logger.error("save market app volume error: {}".format(msg))
                 return code, msg
@@ -460,9 +469,7 @@ class AppManageService(AppManageBase):
                 # return "image"
                 return "build_from_image"
             elif service.service_source == AppConstants.MARKET:
-                if service.image.startswith('goodrain.me/runner') \
-                        and service.language \
-                        not in ("dockerfile", "docker"):
+                if slug_util.is_slug(service.image, service.language):
                     return "build_from_market_slug"
                 else:
                     return "build_from_market_image"
@@ -472,9 +479,7 @@ class AppManageService(AppManageBase):
                 kind = "build_from_source_code"
             if service.category == "app_publish":
                 kind = "build_from_market_image"
-                if service.image.startswith('goodrain.me/runner') \
-                        and service.language \
-                        not in ("dockerfile", "docker"):
+                if slug_util.is_slug(service.image, service.language):
                     kind = "build_from_market_slug"
                 if service.service_key == "0000":
                     kind = "build_from_image"
@@ -639,22 +644,22 @@ class AppManageService(AppManageBase):
                 try:
                     if service_source:
                         old_extent_info = json.loads(service_source.extend_info)
-                        rain_app = None
+                        app_version = None
                         # install from cloud
                         install_from_cloud = False
                         if old_extent_info.get("install_from_cloud", False):
                             install_from_cloud = True
                             # TODO:Skip the subcontract structure to avoid loop introduction
                             from console.services.market_app_service import market_app_service
-                            rain_app = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
-                                                                             service_source.version)
+                            _, app_version = market_app_service.get_app_from_cloud(
+                                tenant, service_source.group_key, service_source.version)
                         # install from local cloud
                         else:
-                            rain_app = rainbond_app_repo.get_rainbond_app_by_key_and_version(
-                                service_source.group_key, service_source.version)
-                        if rain_app:
+                            _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
+                                tenant.enterprise_id, service_source.group_key, service_source.version)
+                        if app_version:
                             # 解析app_template的json数据
-                            apps_template = json.loads(rain_app.app_template)
+                            apps_template = json.loads(app_version.app_template)
                             apps_list = apps_template.get("apps")
                             if service_source.extend_info:
                                 extend_info = json.loads(service_source.extend_info)
@@ -755,9 +760,14 @@ class AppManageService(AppManageBase):
         """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
-            return 400, "节点数量需在1到100之间"
+            raise ServiceHandleException(
+                status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
         if new_node == service.min_node:
-            return 409, "节点没有变化，无需升级"
+            raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
+
+        if new_node > 1 and is_singleton(service.extend_method):
+            raise ServiceHandleException(
+                status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
 
         if service.create_status == "complete":
             body = dict()
@@ -770,14 +780,13 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                raise ServiceHandleException(status_code=507, msg="component error", msg_show="组件异常")
             except region_api.ResourceNotEnoughError as e:
                 logger.exception(e)
-                return 412, e.msg
+                raise ServiceHandleException(status_code=412, msg="resource not enough", msg_show=e.msg)
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                raise ServiceHandleException(status_code=409, msg="just wait a moment", msg_show="操作过于频繁，请稍后再试")
 
     def delete(self, user, tenant, service, is_force):
         # 判断组件是否是运行状态
@@ -817,12 +826,34 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 507, u"删除异常"
 
+    def get_etcd_keys(self, tenant, service):
+        logger.debug("ready delete etcd data while delete service")
+        keys = []
+        # 删除代码检测的etcd数据
+        keys.append(service.check_uuid)
+        # 删除分享应用的etcd数据
+        events = ServiceShareRecordEvent.objects.filter(service_id=service.service_id)
+        if events and events[0].region_share_id:
+            logger.debug("ready for delete etcd service share data")
+            for event in events:
+                keys.append(event.region_share_id)
+        # 删除恢复迁移的etcd数据
+        group_id = service_group_relation_repo.get_group_id_by_service(service)
+        if group_id:
+            migrate_record = migrate_repo.get_by_original_group_id(group_id)
+            if migrate_record:
+                for record in migrate_record:
+                    keys.append(record.restore_id)
+        return keys
+
     def truncate_service(self, tenant, service, user=None):
         """彻底删除组件"""
 
         try:
+            data = {}
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id)
+                                      service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -914,6 +945,10 @@ class AppManageService(AppManageBase):
                 r_data.pop("ID")
                 relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
+        # 如果组件被其他应用下的组件依赖，将组件对应的关系删除
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        if relations:
+            relations.delete()
         # 如果组件关系回收站有被此组件依赖的组件，将信息及其对应的数据中心的依赖关系删除
         recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
         if recycle_relations:
@@ -959,6 +994,23 @@ class AppManageService(AppManageBase):
             dep_service_names = ",".join(list(services))
             return True, dep_service_names
         return False, ""
+
+    def __is_service_related_by_other_app_service(self, tenant, service):
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        group_ids = []
+        if tsrs:
+            sids = list(set([tsr.service_id for tsr in tsrs]))
+            service_group = ServiceGroupRelation.objects.get(
+                service_id=service.service_id, tenant_id=tenant.tenant_id)
+            groups = ServiceGroupRelation.objects.filter(service_id__in=sids, tenant_id=tenant.tenant_id)
+            for group in groups:
+                group_ids.append(group.group_id)
+            if group_ids and service_group.group_id in group_ids:
+                group_ids.remove(service_group.group_id)
+            if not group_ids:
+                return False
+            return True
+        return False
 
     def __is_service_running(self, tenant, service):
         try:
@@ -1026,6 +1078,11 @@ class AppManageService(AppManageBase):
             code = 412
             msg = "当前组件安装了插件， 您确定要删除吗？"
             return code, msg
+        # 判断是否被其他应用下的组件依赖
+        if self.__is_service_related_by_other_app_service(tenant, service):
+            code = 412
+            msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
+            return code, msg
 
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
@@ -1071,8 +1128,10 @@ class AppManageService(AppManageBase):
         """二次删除组件"""
 
         try:
+            data = {}
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id)
+                                      service.service_alias, tenant.enterprise_id, data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -1095,6 +1154,9 @@ class AppManageService(AppManageBase):
         domain_repo.delete_service_domain(service.service_id)
         tcp_domain.delete_service_tcp_domain(service.service_id)
         dep_relation_repo.delete_service_relation(tenant.tenant_id, service.service_id)
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        if relations:
+            relations.delete()
         mnt_repo.delete_mnt(service.service_id)
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
@@ -1118,3 +1180,39 @@ class AppManageService(AppManageBase):
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
         return 200, "success"
+
+    def change_service_type(self, tenant, service, extend_method):
+        # 存储限制
+        tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
+        if tenant_service_volumes:
+            old_extend_method = service.extend_method
+            for tenant_service_volume in tenant_service_volumes:
+                if tenant_service_volume["volume_type"] == "share-file" or tenant_service_volume["volume_type"] == "memoryfs":
+                    continue
+                if tenant_service_volume["volume_type"] == "local":
+                    if old_extend_method == ComponentType.state_singleton.value:
+                        raise ServiceHandleException(
+                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
+                if tenant_service_volume.get("access_mode", "") == "RWO":
+                    if not is_state(extend_method):
+                        raise ServiceHandleException(msg="storage access mode do not support",
+                                                     msg_show="存储读写属性限制,不可修改为无状态组件")
+        # 实例个数限制
+        if is_singleton(extend_method) and service.min_node > 1:
+            raise ServiceHandleException(
+                msg="singleton service limit", msg_show="组件实例数为{0}，不可修改为单实例组件类型".format(service.min_node))
+
+        if service.create_status != "complete":
+            service.extend_method = extend_method
+            service.save()
+            return
+
+        data = dict()
+        data["extend_method"] = extend_method
+        try:
+            region_api.update_service(service.service_region, tenant.tenant_name, service.service_alias, data)
+            service.extend_method = extend_method
+            service.save()
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise ErrChangeServiceType

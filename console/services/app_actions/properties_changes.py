@@ -16,6 +16,7 @@ from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
+from console.exception.main import RecordNotFound
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -30,22 +31,38 @@ class PropertiesChanges(object):
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
-    def get_property_changes(self, eid, version, level="svc"):
+    def get_property_changes(self, eid, version, version_template=None, plugin_template=None, level="svc"):
         # TODO: use enum for 'level'
         """
         get property changes for market service
-
         raise: RecordNotFound
         raise: RbdAppNotFound
         raise: ErrServiceSourceNotFound
         """
         if self.service_source is None:
             raise ErrServiceSourceNotFound(self.service.service_id)
+        try:
+            apps = rbd_center_app_service.get_version_apps(eid, version, self.service_source)
+            app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
+        except RecordNotFound:
+            template = json.loads(version_template)
+            apps = template.get("apps")
 
-        apps = rbd_center_app_service.get_version_apps(eid, version, self.service_source)
-        app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
-
-        self.plugins = rbd_center_app_service.get_plugins(eid, version, self.service_source)
+            def func(x):
+                result = x.get("service_share_uuid", None) == self.service_source.service_share_uuid \
+                         or x.get("service_key", None) == self.service_source.service_share_uuid
+                return result
+            app = next(iter(filter(lambda x: func(x), apps)), None)
+        try:
+            self.plugins = rbd_center_app_service.get_plugins(eid, version, self.service_source)
+        except Exception:
+            if plugin_template:
+                # plugins = MarketOpenAPI().get_plugin_templates(
+                #     self.tenant.tenant_id, self.service_source.group_key, version)
+                # if plugins["data"]["bean"]["template_content"]:
+                self.plugins = json.loads(plugin_template).get("plugins")
+            else:
+                self.plugins = []
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
         result = {}
@@ -312,10 +329,7 @@ class PropertiesChanges(object):
                     key(dep_service["service_id"], new_dep_volume["mnt_name"])))
                 continue
 
-            code, msg = volume_service.check_volume_path(self.service, new_dep_volume["mnt_dir"], local_path=local_path)
-            if code != 200:
-                logger.warning("service id: {}; path: {}; invalid volume: {1}".format(self.service.service_id,
-                                                                                      new_dep_volume["mnt_dir"], msg))
+            volume_service.check_volume_path(self.service, new_dep_volume["mnt_dir"], local_path=local_path)
 
             new_dep_volume["service_id"] = dep_service["service_id"]
             add.append(new_dep_volume)

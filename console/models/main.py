@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from django.db import models
+from django.db.models.fields import DateTimeField, CharField, AutoField, BooleanField, DecimalField, IntegerField
 from django.db.models.fields.files import FileField
 from enum import Enum
 from enum import IntEnum
@@ -36,6 +37,39 @@ class BaseModel(models.Model):
             data[f.attname] = value
         return data
 
+    def to_json(self):
+        opts = self._meta
+        data = []
+        for f in opts.concrete_fields:
+            parameter = {}
+            parameter["table"] = opts.db_table
+            parameter["name"] = f.name
+            parameter["kind"] = self.parse_kind(f)
+            parameter["default"] = self.parse_default(f.default)
+            parameter["desc"] = f.help_text
+            data.append(parameter)
+        return data
+
+    def parse_default(self, a):
+        # if type(a) == NOT_PROVIDED:
+        return ""
+
+    def parse_kind(self, a):
+        # print(a.name, type(a))
+        if type(a) == CharField:
+            return "string"
+        if type(a) == AutoField:
+            return "int"
+        if type(a) == BooleanField:
+            return "boolean"
+        if type(a) == DecimalField:
+            return "decimal"
+        if type(a) == DateTimeField:
+            return "datetime"
+        if type(a) == IntegerField:
+            return "int"
+        return "string"
+
 
 class ConsoleSysConfig(BaseModel):
     class Meta:
@@ -54,30 +88,51 @@ class RainbondCenterApp(BaseModel):
 
     class Meta:
         db_table = "rainbond_center_app"
-        unique_together = ('group_key', 'version', 'enterprise_id')
+        unique_together = ('app_id', 'enterprise_id')
 
-    group_key = models.CharField(max_length=32, help_text=u"应用包")
-    group_name = models.CharField(max_length=64, help_text=u"应用包名")
-    share_user = models.IntegerField(help_text=u"分享人id")
-    record_id = models.IntegerField(help_text=u"分享流程id，控制一个分享流程产出一个实体")
-    share_team = models.CharField(max_length=64, help_text=u"来源应用所属团队")
-    tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    app_id = models.CharField(max_length=32, help_text=u"应用包")
+    app_name = models.CharField(max_length=64, help_text=u"应用包名")
+    create_user = models.IntegerField(null=True, blank=True, help_text=u"创建人id")
+    create_team = models.CharField(max_length=64, null=True, blank=True,  help_text=u"来源应用所属团队")
     pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
-    version = models.CharField(max_length=20, help_text=u"版本")
+    dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
     scope = models.CharField(max_length=50, choices=app_scope, help_text=u"可用范围")
     describe = models.CharField(max_length=400, null=True, blank=True, help_text=u"云市应用描述信息")
-    app_template = models.TextField(help_text=u"全量应用与插件配置信息")
-    is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
-    template_version = models.CharField(max_length=10, default="v2", help_text=u"模板版本")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
-    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
+    update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text=u"更新时间")
     enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     install_number = models.IntegerField(default=0, help_text=u'安装次数')
     is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
     details = models.TextField(null=True, blank=True, help_text=u"应用详情")
+
+
+class RainbondCenterAppVersion(BaseModel):
+    """云市应用版本"""
+    class Meta:
+        db_table = "rainbond_center_app_version"
+    enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
+    app_id = models.CharField(max_length=32, help_text=u"应用id")
+    version = models.CharField(max_length=32, help_text=u"版本")
+    version_alias = models.CharField(max_length=32, default="NA", help_text=u"别名")
+    app_version_info = models.CharField(max_length=255, help_text=u"版本信息")
+    record_id = models.IntegerField(help_text=u"分享流程id，控制一个分享流程产出一个实体")
+    share_user = models.IntegerField(help_text=u"分享人id")
+    share_team = models.CharField(max_length=64, help_text=u"来源应用所属团队")
+    group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
+    dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
+    source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
+    scope = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用分享范围")
+    app_template = models.TextField(help_text=u"全量应用与插件配置信息")
+    template_version = models.CharField(max_length=10, default="v2", help_text=u"模板版本")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"更新时间")
     upgrade_time = models.CharField(max_length=30, default="", help_text=u"升级时间")
+    install_number = models.IntegerField(default=0, help_text=u'安装次数')
+    is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
+    is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
+    is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
 
 
 class RainbondCenterAppInherit(BaseModel):
@@ -92,6 +147,28 @@ class RainbondCenterAppInherit(BaseModel):
 
     def __unicode__(self):
         return self.to_dict()
+
+
+class RainbondCenterAppTagsRelation(BaseModel):
+    """云市应用标签关系"""
+
+    class Meta:
+        db_table = "rainbond_center_app_tag_relation"
+
+    enterprise_id = models.CharField(max_length=36, default="public", help_text=u"企业id")
+    app_id = models.CharField(max_length=32, help_text=u"当前应用")
+    tag_id = models.IntegerField(help_text=u"标签id")
+
+
+class RainbondCenterAppTag(BaseModel):
+    """云市应用标签"""
+
+    class Meta:
+        db_table = "rainbond_center_app_tag"
+
+    name = models.CharField(max_length=32, unique=True, help_text=u"标签名称")
+    enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
+    is_deleted = models.BooleanField(default=False, help_text=u"是否删除")
 
 
 class RainbondCenterPlugin(BaseModel):
@@ -133,10 +210,15 @@ class ServiceShareRecord(BaseModel):
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"发布应用组或插件的唯一Key")
     group_id = models.CharField(max_length=32, help_text=u"分享应用组id或者单独插件ID")
     team_name = models.CharField(max_length=64, help_text=u"应用所在团队唯一名称")
-    event_id = models.CharField(max_length=32, help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
-    share_version = models.CharField(max_length=15, help_text=u"应用组发布版本")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
+    share_version = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用组发布版本")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")
+    # 0 发布中 1 发布完成 2 取消发布 3 删除发布
+    status = models.IntegerField(default=0, help_text=u"当前发布状态 0, 1, 2, 3")
+    app_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"应用id")
+    scope = models.CharField(max_length=64, null=True, blank=True, help_text=u"分享范围")
+    share_app_market_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"分享应用商店id")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")
 
@@ -302,7 +384,7 @@ class ServiceRecycleBin(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
-    volume_type = models.CharField(max_length=30, default='shared', help_text=u"共享类型shared、exclusive")
+    volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
     port_type = models.CharField(max_length=15, default='multi_outer',
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
@@ -425,7 +507,7 @@ class AppExportRecord(BaseModel):
     version = models.CharField(max_length=20, help_text=u"导出应用的版本")
     format = models.CharField(max_length=15, help_text=u"导出应用的格式")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"事件id")
-    status = models.CharField(max_length=10, null=True, blank=True, help_text=u"时间请求状态")
+    status = models.CharField(max_length=10, null=True, blank=True, help_text=u"事件请求状态")
     file_path = models.CharField(max_length=256, null=True, blank=True, help_text=u"文件地址")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"更新时间")
@@ -464,6 +546,7 @@ class AppImportRecord(BaseModel):
     team_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"正在导入的团队名称")
     region = models.CharField(max_length=64, null=True, blank=True, help_text=u"数据中心")
     user_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"操作人")
+    enterprise_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"企业id")
 
 
 class GroupAppBackupRecord(BaseModel):
@@ -749,3 +832,16 @@ class UserOAuthServices(BaseModel):
     refresh_token = models.CharField(max_length=64, null=True, help_text=u"refresh_token")
     user_id = models.IntegerField(null=True, default=None, help_text=u"user_id")
     code = models.CharField(max_length=256, null=True,  help_text=u"user_id")
+
+
+class UserFavorite(BaseModel):
+    class Meta:
+        db_table = "user_favorite"
+
+    name = models.CharField(max_length=64, help_text=u"收藏视图名称")
+    url = models.CharField(max_length=255, help_text=u"收藏视图链接")
+    user_id = models.IntegerField(help_text=u"用户id")
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
+    custom_sort = models.IntegerField(help_text=u"用户自定义排序")
+    is_default = models.BooleanField(default=False, help_text=u"用户自定义排序")

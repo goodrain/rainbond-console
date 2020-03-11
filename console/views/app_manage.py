@@ -4,6 +4,8 @@
 """
 import logging
 
+from console.exception.main import RbdAppNotFound
+from console.exception.main import AbortRequest
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -15,8 +17,6 @@ from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_config import deploy_type_service
-from console.services.app_config import volume_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
 from console.services.team_services import team_services
@@ -25,6 +25,10 @@ from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message
+from console.enum.component_enum import is_support, is_state
+from www.apiclient.marketclient import MarketOpenAPI
+
+market_openapi = MarketOpenAPI()
 
 logger = logging.getLogger("default")
 
@@ -152,7 +156,7 @@ class DeployAppView(AppBaseView):
             result = general_message(code, "success", "操作成功", bean=bean)
         except ErrServiceSourceNotFound as e:
             logger.exception(e)
-            return Response(general_message(412, e.message, "无法找到云市组件的构建源"), status=412)
+            return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -278,11 +282,10 @@ class HorizontalExtendAppView(AppBaseView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            code, msg = app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
-            bean = {}
-            if code != 200:
-                return Response(general_message(code, "horizontal upgrade error", msg, bean=bean), status=code)
-            result = general_message(code, "success", "操作成功", bean=bean)
+            app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
+            result = general_message(200, "success", "操作成功", bean={})
+        except ServiceHandleException as e:
+            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -480,22 +483,12 @@ class ChangeServiceTypeView(AppBaseView):
         try:
             extend_method = request.data.get("extend_method", None)
             if not extend_method:
-                return Response(general_message(400, "select the application type", "请选择组件类型"), status=400)
+                raise AbortRequest(msg="select the application type", msg_show="请选择组件类型")
 
-            old_extend_method = self.service.extend_method
-            # 状态从有到无，并且有本地存储的不可修改
-            is_mnt_dir = 0
-            tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service)
-            if tenant_service_volumes:
-                for tenant_service_volume in tenant_service_volumes:
-                    if tenant_service_volume.volume_type == "local":
-                        is_mnt_dir = 1
-            if old_extend_method != "stateless" and extend_method == "stateless" and is_mnt_dir:
-                return Response(
-                    general_message(
-                        400, "local storage cannot be modified to be stateless", "本地存储不可修改为无状态"),
-                    status=400)
-            deploy_type_service.put_service_deploy_type(self.tenant, self.service, extend_method)
+            if not is_support(extend_method):
+                raise AbortRequest(msg="do not support service type", msg_show="组件类型非法")
+            logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
+            app_manage_service.change_service_type(self.tenant, self.service, extend_method)
             result = general_message(200, "success", "操作成功")
         except CallRegionAPIException as e:
             result = general_message(e.code, "failure", e.message)
@@ -516,8 +509,6 @@ class UpgradeAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
-        except ServiceHandleException as e:
-            raise e
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -541,10 +532,9 @@ class ChangeServiceNameView(AppBaseView):
         if not service_name:
             return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
         extend_method = self.service.extend_method
-        if extend_method == "stateless":
+        if not is_state(extend_method):
             return Response(
-                general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"),
-                status=400)
+                general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"), status=400)
         self.service.service_name = service_name
         self.service.save()
         result = general_message(200, "success", "操作成功")
@@ -590,7 +580,9 @@ class MarketServiceUpgradeView(AppBaseView):
             return Response(result, status=result["code"])
 
         # List the versions that can be upgraded
-        versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
-        if versions is None:
-            versions = []
+        versions = []
+        try:
+            versions = market_app_service.get_component_upgradeable_versions(self.tenant, self.service)
+        except RbdAppNotFound:
+            return Response(status=404, data=general_message(404, "service lost", "未找到该组件"))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))

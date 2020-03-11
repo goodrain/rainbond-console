@@ -14,9 +14,9 @@ class GroupRepository(object):
     def list_tenant_group_on_region(self, tenant, region_name):
         return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
 
-    def add_group(self, tenant_id, region_name, group_name, is_default=False):
+    def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False):
         group = ServiceGroup.objects.create(
-            tenant_id=tenant_id, region_name=region_name, group_name=group_name, is_default=is_default)
+            tenant_id=tenant_id, region_name=region_name, group_name=group_name, note=group_note, is_default=is_default)
         return group
 
     def get_group_by_unique_key(self, tenant_id, region_name, group_name):
@@ -38,8 +38,8 @@ class GroupRepository(object):
         except ServiceGroup.DoesNotExist:
             return None
 
-    def update_group_name(self, group_id, new_group_name):
-        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name)
+    def update_group_name(self, group_id, new_group_name, group_note=""):
+        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note)
 
     def delete_group_by_pk(self, group_id):
         logger.debug("delete group id {0}".format(group_id))
@@ -49,8 +49,8 @@ class GroupRepository(object):
         group_count = ServiceGroup.objects.filter(tenant_id=team_id, ID=group_id).count()
         return group_count
 
-    def get_tenant_region_groups(self, team_id, region):
-        return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region)
+    def get_tenant_region_groups(self, team_id, region, query=""):
+        return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region, group_name__icontains=query)
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
@@ -66,8 +66,7 @@ class GroupRepository(object):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建
         group = ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, is_default=True).first()
         if not group:
-            group = ServiceGroup.objects.create(
-                tenant_id=tenant_id, region_name=region_name, group_name='默认应用', is_default=True)
+            return self.add_group(tenant_id=tenant_id, region_name=region_name, group_name="默认应用", is_default=True)
         return group
 
     def get_apps_list(self, team_id=None, region_name=None, query=None):
@@ -81,6 +80,12 @@ class GroupRepository(object):
         if q:
             return ServiceGroup.objects.filter(q)
         return ServiceGroup.objects.all()
+
+    def get_multi_app_info(self, app_ids):
+        return ServiceGroup.objects.filter(ID__in=app_ids)
+
+    def get_apps_in_multi_team(self, team_ids):
+        return ServiceGroup.objects.filter(tenant_id__in=team_ids)
 
 
 class GroupServiceRelationRepository(object):
@@ -100,6 +105,16 @@ class GroupServiceRelationRepository(object):
         if sgrs:
             return sgrs[0]
         return None
+
+    def get_group_info_by_service_id(self, service_id):
+        sgrs = ServiceGroupRelation.objects.filter(service_id=service_id)
+        if not sgrs:
+            return None
+        relation = sgrs[0]
+        groups = ServiceGroup.objects.filter(ID=relation.group_id)
+        if not groups:
+            return None
+        return groups[0]
 
     def get_group_by_service_ids(self, service_ids):
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)

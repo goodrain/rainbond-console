@@ -15,7 +15,7 @@ from console.services.team_services import team_services
 from console.services.app_actions import app_manage_service
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.app import service_repo
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ResourceNotEnoughException, ServiceHandleException
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -25,15 +25,14 @@ class TenantGroupView(RegionTenantHeaderView):
     @perm_required("view_service")
     def get(self, request, *args, **kwargs):
         """
-        查询租户在指定数据中心下的组
+        查询租户在指定数据中心下的应用
         ---
         """
         try:
             groups = group_service.get_tenant_groups_by_region(self.tenant, self.response_region)
             data = []
             for group in groups:
-                data.append({"group_name": group.group_name, "group_id": group.ID})
-            # data.append({"group_name": "未分组", "group_id": -1})
+                data.append({"group_name": group.group_name, "group_id": group.ID, "group_note": group.note})
             result = general_message(200, "success", "查询成功", list=data)
         except Exception as e:
             logger.exception(e)
@@ -43,7 +42,7 @@ class TenantGroupView(RegionTenantHeaderView):
     @perm_required("manage_group")
     def post(self, request, *args, **kwargs):
         """
-        添加组信息
+        添加应用信息
         ---
         parameters:
             - name: tenantName
@@ -52,19 +51,35 @@ class TenantGroupView(RegionTenantHeaderView):
               type: string
               paramType: path
             - name: group_name
-              description: 组名称
+              description: 应用名称
               required: true
+              type: string
+              paramType: form
+            - name: group_note
+              description: 应用备注
+              required: false
               type: string
               paramType: form
 
         """
         try:
             group_name = request.data.get("group_name", None)
-            code, msg, data = group_service.add_group(self.tenant, self.response_region, group_name)
-            if code != 200:
-                result = general_message(code, "group add error", msg)
-            else:
-                result = general_message(code, "success", msg, bean=data.to_dict())
+            group_note = request.data.get("group_note", "")
+            if group_note and len(group_note) > 2048:
+                return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
+            data = group_service.add_group(self.tenant, self.response_region, group_name, group_note)
+            bean = {
+                "group_note": data.note,
+                "region_name": data.region_name,
+                "tenant_id": data.tenant_id,
+                "group_name": data.group_name,
+                "is_default": data.is_default,
+                "group_id": data.ID,
+                }
+            result = general_message(200, "success", "创建成功", bean=bean)
+        except ServiceHandleException as e:
+            result = general_message(400, e.msg, e.msg_show)
+            return Response(result, status=400)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -98,11 +113,11 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         try:
             group_name = request.data.get("group_name", None)
             group_id = int(kwargs.get("group_id", None))
-            code, msg, data = group_service.update_group(self.tenant, self.response_region, group_id, group_name)
-            if code != 200:
-                result = general_message(code, "group add error", msg)
-            else:
-                result = general_message(code, "success", msg)
+            group_note = request.data.get("group_note", "")
+            if group_note and len(group_note) > 2048:
+                return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
+            group_service.update_group(self.tenant, self.response_region, group_id, group_name, group_note)
+            result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -168,7 +183,7 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         """
         try:
             group_id = int(kwargs.get("group_id", None))
-            code, msg, data = group_service.get_group_by_id(self.tenant, self.response_region, int(group_id))
+            data = group_service.get_group_by_id(self.tenant, self.response_region, int(group_id))
             data["create_status"] = "complete"
             data["compose_id"] = None
             if group_id != -1:
@@ -176,11 +191,9 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                 if compose_group:
                     data["create_status"] = compose_group.create_status
                     data["compose_id"] = compose_group.compose_id
-
-            if code != 200:
-                result = general_message(code, "group query error", msg)
-            else:
-                result = general_message(code, "success", msg, bean=data)
+            result = general_message(200, "success", "success", bean=data)
+        except ServiceHandleException as e:
+            result = general_message(e.status_code, e.msg, e.msg_show)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

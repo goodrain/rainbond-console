@@ -10,20 +10,18 @@ from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
-from console.views.base import RegionTenantHeaderView, AlowAnyApiView
-from www.decorator import perm_required
+from console.views.base import AlowAnyApiView, JWTAuthApiView
 from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger('default')
 
 
-class CenterAppExportView(RegionTenantHeaderView):
+class CenterAppExportView(JWTAuthApiView):
     @never_cache
-    @perm_required("tenant_access")
-    def get(self, request, *args, **kwargs):
+    # @perm_required("tenant_access")
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         获取应用导出状态
         ---
@@ -34,33 +32,26 @@ class CenterAppExportView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        try:
-            group_key = request.GET.get("group_key", None)
-            group_version = request.GET.get("group_version", None)
-            if not group_key or not group_version:
-                return Response(general_message(400, "app id is null", "请指明需要查询的应用"), status=400)
+        app_id = request.GET.get("app_id", None)
+        app_version = request.GET.get("app_version", None)
+        if not app_id or not app_version:
+            return Response(general_message(400, "app id is null", "请指明需要查询的应用"), status=400)
 
-            result_list = []
-            group_version_list = group_version.split("#")
-            for version in group_version_list:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, version)
-                if not app:
-                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-                code, msg, result = export_service.get_export_status(self.tenant, app)
-                if code != 200:
-                    return Response(general_message(code, "get export info error ", msg), status=code)
-                result_list.append(result)
+        result_list = []
+        app_version_list = app_version.split("#")
+        for version in app_version_list:
+            app, app_version = market_app_service.get_rainbond_app_and_version(self.user.enterprise_id, app_id, version)
+            if not app or not app_version:
+                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+            result = export_service.get_export_status(enterprise_id, app, app_version)
+            result_list.append(result)
 
-            result = general_message(200, "success", "查询成功", list=result_list)
-
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "查询成功", list=result_list)
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("import_and_export_service")
-    def post(self, request, *args, **kwargs):
+    # @perm_required("import_and_export_service")
+    def post(self, request, enterprise_id, *args, **kwargs):
         """
         导出应用市场应用
         ---
@@ -76,38 +67,19 @@ class CenterAppExportView(RegionTenantHeaderView):
               type: string
               paramType: form
         """
-        try:
-            group_key = request.data.get("group_key", None)
-            group_version = request.data.get("group_version", [])
-            export_format = request.data.get("format", None)
-            if not group_key or not group_version:
-                return Response(general_message(400, "app id is null", "请指明需要导出的应用"), status=400)
-            if not export_format or export_format not in (
-                    "rainbond-app",
-                    "docker-compose",
-            ):
-                return Response(general_message(400, "export format is illegal", "请指明导出格式"), status=400)
-            new_export_record_list = []
-            for version in group_version:
-                code, app = market_app_service.get_rain_bond_app_by_key_and_version(group_key, version)
-                if not app:
-                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+        app_id = request.data.get("app_id", None)
+        app_versions = request.data.get("app_versions", [])
+        export_format = request.data.get("format", None)
+        if not app_id or not app_versions:
+            return Response(general_message(400, "app id is null", "请指明需要导出的应用"), status=400)
+        if not export_format or export_format not in ("rainbond-app", "docker-compose"):
+            return Response(general_message(400, "export format is illegal", "请指明导出格式"), status=400)
 
-                code, msg, new_export_record = export_service.export_current_app(self.tenant, export_format, app)
-                if code != 200:
-                    return Response(general_message(code, "export error", msg), status=code)
+        new_export_record_list = []
+        record = export_service.export_app(enterprise_id, app_id, app_versions[0], export_format)
+        new_export_record_list.append(record.to_dict())
 
-                new_export_record_list.append(new_export_record.to_dict())
-
-            result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
-        except ResourceNotEnoughException as re:
-            raise re
-        except AccountOverdueException as re:
-            logger.exception(re)
-            return Response(general_message(10410, "resource is not enough", re.message), status=412)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
         return Response(result, status=result["code"])
 
 
@@ -140,10 +112,7 @@ class ExportFileDownLoadView(AlowAnyApiView):
             export_format = request.GET.get("format", None)
             if not app_id:
                 return Response(general_message(400, "app id is null", "请指明需要下载的应用"), status=400)
-            if not export_format or export_format not in (
-                    "rainbond-app",
-                    "docker-compose",
-            ):
+            if not export_format or export_format not in ("rainbond-app", "docker-compose"):
                 return Response(general_message(400, "export format is illegal", "请指明下载的格式"), status=400)
 
             code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
