@@ -734,6 +734,8 @@ class ShareService(object):
             scope = None
             if target:
                 market_id = target.get("store_id")
+            if not market_id:
+                market_id = share_record.share_app_market_id
             if market_id:
                 try:
                     cloud_app = market_sycn_service.get_cloud_app(
