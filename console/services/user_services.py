@@ -253,8 +253,9 @@ class UserService(object):
     def make_user_as_admin_for_enterprise(self, user_id, enterprise_id):
         user_perm = enterprise_user_perm_repo.get_user_enterprise_perm(user_id, enterprise_id)
         if not user_perm:
-            return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin")
-        return user_perm
+            token = self.generate_key()
+            return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin", token)
+            return user_perm
 
     def is_user_admin_in_current_enterprise(self, current_user, enterprise_id):
         """判断用户在该企业下是否为管理员"""
@@ -267,7 +268,9 @@ class UserService(object):
                 admin_user = users[0]
                 # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
                 if admin_user.user_id == current_user.user_id:
-                    enterprise_user_perm_repo.create_enterprise_user_perm(current_user.user_id, enterprise_id, "admin")
+                    token = self.generate_key()
+                    enterprise_user_perm_repo.create_enterprise_user_perm(
+                        current_user.user_id, enterprise_id, "admin", token)
                     return True
                 else:
                     return False
