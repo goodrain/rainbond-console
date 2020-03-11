@@ -134,9 +134,7 @@ class MarketAppService(object):
                 code, msg = self.__save_port(tenant, ts, app["port_map_list"])
                 if code != 200:
                     raise Exception(msg)
-                code, msg = self.__save_volume(tenant, ts, app["service_volume_map_list"])
-                if code != 200:
-                    raise Exception(msg)
+                self.__save_volume(tenant, ts, app["service_volume_map_list"])
 
                 # 保存组件探针信息
                 probe_infos = app.get("probes", None)
@@ -236,9 +234,7 @@ class MarketAppService(object):
                 code, msg = self.__save_port(tenant, ts, app["port_map_list"])
                 if code != 200:
                     raise Exception(msg)
-                code, msg = self.__save_volume(tenant, ts, app["service_volume_map_list"])
-                if code != 200:
-                    raise Exception(msg)
+                self.__save_volume(tenant, ts, app["service_volume_map_list"])
 
                 # 保存组件探针信息
                 probe_infos = app.get("probes", None)
@@ -583,32 +579,21 @@ class MarketAppService(object):
             return 200, "success"
         for volume in volumes:
             if "file_content" in volume.keys() and volume["file_content"] != "":
-                code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                           volume["volume_type"], volume["volume_name"],
-                                                                           volume["file_content"])
+                volume_service.add_service_volume(
+                    tenant, service, volume["volume_path"], volume["volume_type"], volume["volume_name"], volume["file_content"])
             else:
-                settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
-                                                                            volume.get("access_mode"),
-                                                                            volume.get("share_policy"),
-                                                                            volume.get("backup_policy"),
-                                                                            None, volume.get("volume_provider_name"))
+                settings = volume_service.get_best_suitable_volume_settings(
+                    tenant, service, volume["volume_type"], volume.get("access_mode"), volume.get("share_policy"),
+                    volume.get("backup_policy"), None, volume.get("volume_provider_name"))
                 if settings["changed"]:
-                    logger.debug('volume type changed from {0} to {1}'.format(
-                        volume["volume_type"], settings["volume_type"]))
+                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
                     volume["volume_type"] = settings["volume_type"]
                     if volume["volume_type"] == "share-file":
                         volume["volume_capacity"] = 0
                 else:
                     settings["volume_capacity"] = volume.get("volume_capacity", 0)
-                code, msg, volume_data = volume_service.add_service_volume(
-                    tenant, service, volume["volume_path"],
-                    volume["volume_type"],
-                    volume["volume_name"],
-                    None, settings)
-            if code != 200:
-                logger.error("save market app volume error".format(msg))
-                return code, msg
-        return 200, "success"
+                volume_service.add_service_volume(
+                    tenant, service, volume["volume_path"], volume["volume_type"], volume["volume_name"], None, settings)
 
     def __save_extend_info(self, service, extend_info):
         if not extend_info:
