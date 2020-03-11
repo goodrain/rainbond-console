@@ -269,6 +269,17 @@ class MarketService(object):
             logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
             self.changes = changes
         else:
+            pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
+            _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, [self.group_key])
+            version_template = version_template.get(self.group_key)
+            plugin_template = plugin_template.get(self.group_key)
+            if version_template:
+                version_template = version_template.get(self.version)
+            if plugin_template:
+                plugin_template = plugin_template.get(self.version)
+            changes = pc.get_property_changes(self.tenant.enterprise_id, self.version, version_template, plugin_template)
+            logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
+            self.changes = changes
             # TODO:impl upgrade from cloud
             logger.info("upgrade from cloud do not support.")
 

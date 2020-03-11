@@ -218,10 +218,12 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         cloud_version = None
         markets = market_sycn_service.get_cloud_markets(self.tenant.enterprise_id)
         for market in markets:
-            app = market_sycn_service.get_cloud_app(self.tenant.enterprise_id, market.market_id, group_key)
-            if app:
-                cloud_version = app.app_versions
-
+            try:
+                app = market_sycn_service.get_cloud_app(self.tenant.enterprise_id, market.market_id, group_key)
+                if app:
+                    cloud_version = app.app_versions
+            except Exception:
+                pass
         app_record = get_object_or_404(
             AppUpgradeRecord,
             msg="Upgrade record not found",
