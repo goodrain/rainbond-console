@@ -284,14 +284,17 @@ class CenterAppCLView(JWTAuthApiView):
             result = general_message(400, "error params", None)
             return Response(result, status=200)
         if scope == "goodrain":
-            try:
-                with open(pic, "rb") as f:
-                    data["logo"] = "data:image/{};base64,".format(pic.split(".")[-1]) + \
-                                  base64.b64encode(f.read())
-            except Exception as e:
-                logger.debug(e)
-                result = general_message(400, "can not found pic", None)
-                return Response(result, status=200)
+            if pic:
+                try:
+                    with open(pic, "rb") as f:
+                        data["logo"] = "data:image/{};base64,".format(pic.split(".")[-1]) + \
+                                      base64.b64encode(f.read())
+                except Exception as e:
+                    logger.debug(e)
+                    result = general_message(400, "can not found pic", None)
+                    return Response(result, status=200)
+            else:
+                data["logo"] = None
             market_sycn_service.create_cloud_market_app(enterprise_id, market_id, data)
         else:
             app = share_repo.create_app(data)

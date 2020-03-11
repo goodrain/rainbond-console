@@ -1115,15 +1115,20 @@ class MarketAppService(object):
         return result
 
     def get_app_templates(self, tenant, service_group_keys):
-        apps = MarketOpenAPIV2().get_apps_versions(tenant.tenant_id)
+        apps = []
+        markets = market_sycn_service.get_cloud_markets(tenant.enterprise_id)
+        if markets:
+            for market in markets:
+                cloud_apps = market_sycn_service.get_cloud_market_apps(tenant.enterprise_id, market.market_id)
+                apps.extend(cloud_apps)
         apps_list = {}
         apps_versions_templates = {}
         apps_plugins_templates = {}
         if apps:
             for app in apps:
-                if not app["app_versions"]:
+                if not app.app_versions:
                     continue
-                apps_list[app["app_key_id"]] = [app_version["app_version"] for app_version in app["app_versions"]]
+                apps_list[app.app_key_id] = [app_version.app_version for app_version in app.app_versions]
             for group_key in service_group_keys:
                 if group_key in apps_list:
                     apps_versions_templates[group_key] = {}
@@ -1143,8 +1148,6 @@ class MarketAppService(object):
     def get_market_apps_in_app(self, region, tenant, group):
         service_group_keys = set(group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True))
         apps, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
-        if not version_template or not plugin_template:
-            return []
 
         iterator = self.yield_app_info(service_group_keys, tenant, group, apps, version_template, plugin_template)
         app_info_list = [app_info for app_info in iterator]
@@ -1179,19 +1182,19 @@ class MarketAppService(object):
                 if not apps:
                     continue
                 for app in apps:
-                    if app["app_key_id"] == group_key:
+                    if app.app_key_id == group_key:
                         dat = {
-                            'group_key': app["app_key_id"],
-                            'group_name': app["name"],
-                            'share_user': app["enterprise"]["name"],
+                            'group_key': app.app_key_id,
+                            'group_name': app.name,
+                            'share_user': app.enterprise.name,
                             'share_team': None,
                             'tenant_service_group_id': None,
-                            'pic': app.get("logo"),
+                            'pic': app.logo,
                             'source': "cloud",
-                            'describe': app.get("desc"),
-                            'enterprise_id': app.get("enterprise_id"),
-                            'is_official': app.get("is_official"),
-                            'details': app.get("details"),
+                            'describe': app.desc,
+                            'enterprise_id': app.enterprise_id,
+                            'is_official': app.is_official,
+                            'details': app.introduction,
                             'min_memory': None,
                         }
                         cloud_version = app
@@ -1696,6 +1699,31 @@ class AppMarketSynchronizeService(object):
             else:
                 market_client = get_default_market_client()
             market = market_client.get_market(market_id=market_id, _request_timeout=10)
+            return market
+        except ApiException as e:
+            logger.exception(e)
+            if e.status == 403:
+                raise ServiceHandleException(
+                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException(
+                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+            logger.exception(e)
+            raise e
+        except socket.timeout as e:
+            logger.warning("request cloud app list timeout", e)
+            raise ServiceHandleException(
+                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
+
+    def get_cloud_app(self, enterprise_id, market_id, app_id):
+        try:
+            token = self.get_enterprise_access_token(enterprise_id, "market")
+            if token:
+                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            else:
+                market_client = get_default_market_client()
+            market = market_client.get_app_versions(
+                market_id=market_id, app_id=app_id, _request_timeout=10)
             return market
         except ApiException as e:
             logger.exception(e)
