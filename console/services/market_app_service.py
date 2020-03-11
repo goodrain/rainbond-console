@@ -1056,20 +1056,6 @@ class MarketAppService(object):
         return total, result_list
 
     def list_upgradeable_versions_new(self, tenant, service):
-        """
-        service_source中记录了该应用的版本信息
-        根据该版本信息获取到该应用的所有版本列表
-
-        接口的目的是返回可升级的应用模板列表
-        1、获取应用的版本列表
-        1.1、本地根据app_id直接获取app_versions
-        1.2、云端根据app_id获取app_info，拿到market_id，循环获取app_versions列表
-        2、确定app_versions是否有多个，即确定该应用是否有多个版本
-        2.1、如果该应用有多个版本，则返回所有版本列表，即可升级的应用模板列表
-        2.2、如果该应用仅有一个版本，找到当前组件，对比当前组件
-        如果应用有多个版本，则将所有版本的模板返回
-        如果有一个版本，进行对照
-        """
         service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if service_source is None:
             logger.warn("service id: {}; service source not found".format(service.service_id))

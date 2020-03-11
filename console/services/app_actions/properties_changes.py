@@ -29,10 +29,6 @@ class PropertiesChanges(object):
         self.install_from_cloud = install_from_cloud
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
 
-    def get_properties_change_new(self, eid, current_component, market_component, level="svc"):
-
-        pass
-
     def get_diff(self, market_component, market_plugin=None, level="svc"):
         if not market_component:
             return None
