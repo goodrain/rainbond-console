@@ -26,6 +26,8 @@ from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.exception import ErrServiceSourceNotFound
+from console.services.app_actions.properties_changes import PropertiesChanges
+from console.services.app_actions.properties_changes import get_upgrade_app_version_template_app
 from console.utils.restful_client import get_default_market_client
 from console.utils.restful_client import get_market_client
 from www.apiclient.marketclient import MarketOpenAPI
@@ -203,22 +205,17 @@ class UpgradeService(object):
         except AppUpgradeRecord.DoesNotExist:
             return AppUpgradeRecord()
 
-    def get_app_upgrade_versions(self, tenant, group_id, group_key, apps_versions_templates, apps_plugins_templates):
+    def get_app_upgrade_versions(self, tenant, group_id, group_key):
         """获取云市组件可升级版本列表"""
         from console.services.group_service import group_service
-        from console.services.market_app_service import market_app_service
-
         # 查询某一个云市组件下的所有组件
         services = group_service.get_rainbond_services(group_id, group_key)
         versions = set()
 
         # 查询可升级的组件
         for service in services:
-            # service_version = market_app_service.list_upgradeable_versions(tenant, service)
-            service_version = market_app_service.list_upgradeable_versions(
-                tenant, service, apps_versions_templates,
-                apps_plugins_templates
-            )
+            pc = PropertiesChanges(service, tenant)
+            service_version = pc.get_upgradeable_versions
             versions |= set(service_version or [])
 
         # 查询新增组件的版本
@@ -226,9 +223,7 @@ class UpgradeService(object):
         service_keys = set(service_keys) if service_keys else set()
         app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, app_id=group_key)
         add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
-
         versions |= add_versions
-
         return versions
 
     def get_old_version(self, group_key, service_ids, cloud_version):
@@ -277,13 +272,14 @@ class UpgradeService(object):
         return {app['service_key']: app for app in json.loads(app_template)['apps']}
 
     @staticmethod
-    def get_service_changes(service, tenant, version, version_template, plugin_template):
+    def get_service_changes(service, tenant, version):
         """获取组件更新信息"""
         from console.services.app_actions.properties_changes import PropertiesChanges
 
         try:
             pc = PropertiesChanges(service, tenant)
-            return pc.get_property_changes(tenant.enterprise_id, version, version_template, plugin_template, level="app")
+            app = get_upgrade_app_version_template_app(tenant, version, pc)
+            return pc.get_property_changes(app, level="app")
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:

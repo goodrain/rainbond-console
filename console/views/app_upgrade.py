@@ -48,12 +48,7 @@ class AppUpgradeVersion(RegionTenantHeaderView):
             request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
 
         # 获取云市应用可升级版本列表
-        service_source = group_service.get_service_source_by_group_key(group_key)
-        service_group_keys = set(service_source.values_list('group_key', flat=True))
-        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, service_group_keys)
-        version = version_template.get(group_key)
-        plugin = plugin_template.get(group_key)
-        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key, version, plugin)
+        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key)
         return MessageResponse(msg="success", list=list(versions))
 
 
@@ -156,13 +151,6 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
 
         # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
-        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, [group_key])
-        version_template = version_template.get(group_key)
-        plugin_template = plugin_template.get(group_key)
-        if version_template:
-            version_template = version_template.get(version)
-        if plugin_template:
-            plugin_template = plugin_template.get(version)
         upgrade_info = [{
             'service': {
                 'service_id': service.service_id,
@@ -170,8 +158,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
                 'service_key': service.service_key,
                 'type': UpgradeType.UPGRADE.value
             },
-            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant,
-                                                                version, version_template, plugin_template),
+            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
         } for service in services]
 
         add_info = [{

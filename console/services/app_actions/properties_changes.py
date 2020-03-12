@@ -17,9 +17,11 @@ from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.exception.main import RecordNotFound
+from www.apiclient.marketclient import MarketOpenAPI
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
+market_api = MarketOpenAPI()
 
 
 class PropertiesChanges(object):
@@ -358,3 +360,26 @@ def has_changes(changes):
             logger.debug("found a change; key: {}; value: {}".format(k, v))
             return True
     return False
+
+
+def get_upgrade_app_version_template_app(tenant, version, pc):
+    if pc.install_from_cloud:
+        rst = market_api.get_app_template(tenant.tenant_id, pc.current_app.app_id, version)
+        data = rst.get("data")
+        if not data:
+            return None, None
+        bean = data.get("bean")
+        if not bean:
+            return None, None
+        app_template = bean.get("template_content")
+        template = json.loads(app_template)
+        apps = template.get("apps")
+
+        def func(x):
+            result = x.get("service_share_uuid", None) == pc.service_source.service_share_uuid \
+                     or x.get("service_key", None) == pc.service_source.service_share_uuid
+            return result
+        app = next(iter(filter(lambda x: func(x), apps)), None)
+    else:
+        app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)
+    return app
