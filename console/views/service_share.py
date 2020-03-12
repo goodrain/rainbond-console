@@ -39,6 +39,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 version = None
                 version_alias = None
                 upgrade_time = None
+                # todo get store name
                 store_name = None
                 store_id = None
                 scope = share_record.scope
@@ -47,10 +48,6 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     app_model_id = share_record.app_id
                     app_model_name = app.app_name
                     store_id = share_record.share_app_market_id
-                    if store_id:
-                        market = share_service.get_cloud_markets(self.tenant.tenant_id)
-                        if market:
-                            store_name = market["name"]
                     app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
                     if app_version:
                         version = app_version.version
@@ -59,9 +56,6 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 else:
                     if share_record.share_app_market_id:
                         store_id = share_record.share_app_market_id
-                        market = share_service.get_cloud_markets(self.tenant.tenant_id)
-                        if market:
-                            store_name = market["name"]
                         try:
                             cloud_app = market_sycn_service.get_cloud_app(
                                 self.tenant.enterprise_id,
