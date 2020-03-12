@@ -166,7 +166,8 @@ class MarketService(object):
         all_sync_funcs = self._create_sync_funcs()
         m = {
             PropertyType.ORDINARY.value:
-                ["deploy_version", "app_version", "image", "slug_path", "envs", "connect_infos", "ports", "volumes", "probe"],
+                ["deploy_version", "app_version", "image", "slug_path",
+                 "envs", "connect_infos", "ports", "volumes", "probe"],
             PropertyType.DEPENDENT.value: ["dep_services", "dep_volumes", "plugins"]
         }
         keys = m.get(typ3, None)
