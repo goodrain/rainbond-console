@@ -831,12 +831,6 @@ class MarketAppService(object):
             raise RbdAppNotFound("未找到该应用")
         return app, app_version
 
-    def get_rainbond_app_versions(self, enterprise_id, app_id):
-        app_versions = rainbond_app_repo.get_rainbond_app_versions(enterprise_id, app_id)
-        if not app_versions:
-            return None
-        return app_versions
-
     def get_rainbond_app_version(self, eid, app_id, app_version):
         app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(eid, app_id, app_version)
         if not app_versions:
@@ -879,11 +873,14 @@ class MarketAppService(object):
                     describe=app_template.get("desc", ""),
                     create_time=app_template["create_time"],
                     update_time=app_template["update_time"])
+                rainbond_app.market_id = app_template.market_id
+                from datetime import datetime
                 rainbond_app_version = RainbondCenterAppVersion(
                     app_template=app_template["template_content"],
                     version=app_template["group_version"],
                     template_version=app_template["template_version"],
                     app_version_info=app_template["info"],
+                    update_time=datetime.strptime(app_template["update_time"], '%Y-%m-%dT%H:%M:%S.%fZ'),
                     is_official=app_template["is_official"])
                 return rainbond_app, rainbond_app_version
             return None
@@ -1056,63 +1053,9 @@ class MarketAppService(object):
         return total, result_list
 
     def list_upgradeable_versions_new(self, tenant, service):
-        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
-        if service_source is None:
-            logger.warn("service id: {}; service source not found".format(service.service_id))
-            return None
-
-        install_from_cloud = False
-        if service_source.extend_info:
-            extend_info = json.loads(service_source.extend_info)
-            if extend_info and extend_info.get("install_from_cloud", False):
-                install_from_cloud = True
-
-        app_versions = None
-        version_str = ""
-        if not install_from_cloud:
-            app_versions = self.get_rainbond_app_versions(tenant.enterprise_id, service_source.group_key)
-            if not app_versions:
-                logger.debug("no app versions")
-                return None
-
-            if len(app_versions) > 1:
-                logger.debug("many app_versions")
-                return [version.version for version in app_versions]
-
-            template = json.loads(app_versions[0].app_template)
-            version_str = app_versions[0].version
-            components = template.get("apps")
-            plugins = template.get("plugins")
-        else:
-            # TODO fanyangyang market_id
-            app_version_list = self.get_cloud_app_versions(tenant.enterprise_id, service_source.group_key)
-            if not app_version_list:
-                return None
-            if len(app_version_list) > 1:
-                return [version.app_version for version in app_version_list]
-            # len is 1, get the app version
-            version_str = app_version_list[0].app_version
-            app_version = self.get_cloud_app_version(tenant.enterprise_id, service_source.group_key, version_str)
-            app_versions = [app_version]
-            template = app_versions[0].templete.to_dict()
-            components = template.get("apps")
-            plugins = template.get("plugins")
-
-        def func(x):
-            result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
-                     or x.get("service_key", None) == service_source.service_share_uuid
-            return result
-
-        component = next(iter(filter(lambda x: func(x), components)), None)
-        if not components:
-            logger.debug("component is none")
-            return None
-
         pc = PropertiesChanges(service, tenant)
-        changes = pc.get_diff(component, plugins)
-        if has_changes(changes):
-            return [version_str]
-        return []
+        upgradeable_versions = pc.get_upgradeable_versions
+        return upgradeable_versions
 
     def get_cloud_app_versions(self, enterprise_id, app_id, market_id="113139ca6c2b4377b9066574aac7dcd5"):
         token = self.get_enterprise_access_token(enterprise_id, "market")
@@ -1135,42 +1078,6 @@ class MarketAppService(object):
         if not version:
             return None
         return version
-
-    def get_upgradeable_component_and_plugin(self, tenant, service, app_version):
-        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
-        if service_source is None:
-            logger.warn("service id: {}; service source not found".format(service.service_id))
-            return None
-
-        install_from_cloud = False
-        if service_source.extend_info:
-            extend_info = json.loads(service_source.extend_info)
-            if extend_info and extend_info.get("install_from_cloud", False):
-                install_from_cloud = True
-
-        if not install_from_cloud:
-            app_version = self.get_rainbond_app_version(tenant.enterprise_id, service_source.group_key, app_version)
-
-            template = json.loads(app_version.app_template)
-            components = template.get("apps")
-            plugins = template.get("plugins")
-        else:
-            # TODO fanyangyang market_id
-            app_version = self.get_cloud_app_version(tenant.enterprise_id, service_source.group_key, app_version)
-            template = app_version.templete.to_dict()
-            components = template.get("apps")
-            plugins = template.get("plugins")
-
-        def func(x):
-            result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
-                     or x.get("service_key", None) == service_source.service_share_uuid
-            return result
-
-        component = next(iter(filter(lambda x: func(x), components)), None)
-        if not components:
-            logger.debug("component is none")
-            return None, None
-        return component, plugins
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)

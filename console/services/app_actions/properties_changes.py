@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import time
 
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -10,147 +11,171 @@ from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app import app_service
-from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
-from console.services.rbd_center_app_service import rbd_center_app_service
-from console.exception.main import RecordNotFound
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
 
 
 class PropertiesChanges(object):
+    # install_from_cloud do not need any more
     def __init__(self, service, tenant, install_from_cloud=False):
         self.service = service
         self.tenant = tenant
-        self.install_from_cloud = install_from_cloud
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
+        self.install_from_cloud = False
+        if self.service_source and self.service_source.extend_info:
+            self.current_version_str = self.service_source.version
+            extend_info = json.loads(self.service_source.extend_info)
+            if extend_info and extend_info.get("install_from_cloud", False):
+                self.install_from_cloud = True
+            self.__get_current_app_and_version()
 
-    def get_diff(self, market_component, market_plugin=None, level="svc"):
-        if not market_component:
+    def __get_current_app_and_version(self):
+        """
+        :return:
+        app object
+        app_version object
+        """
+        from console.services.market_app_service import market_app_service
+        if not self.install_from_cloud:
+            app, app_version = rainbond_app_repo.get_rainbond_app_and_version(
+                self.tenant.enterprise_id, self.service_source.group_key, self.service_source.version)
+        else:
+            app, app_version = market_app_service.get_app_from_cloud(
+                self.tenant, self.service_source.group_key, self.service_source.version)
+            self.market_id = app.market_id
+        self.template = json.loads(app_version.app_template)
+        self.current_app = app
+        self.current_version = app_version
+
+    @property
+    def get_upgradeable_versions(self):
+        """
+        对比过的，可升级的版本列表，通过对比upgrade_time对比
+        :param current_version:
+        :return:
+        versions: [0.1, 0.2]
+
+        """
+        if not self.service_source:
             return None
-        self.plugins = market_plugin
-        result = {}
-        deploy_version = self.deploy_version_changes(market_component.get("deploy_version"))
-        if deploy_version:
-            result["deploy_version"] = deploy_version
-        # source code service does not have 'share_image'
-        image = self.image_changes(market_component.get("share_image", None))
-        if image:
-            result["image"] = image
-        slug_path = self.slug_path_changes(market_component.get("share_slug_path", None))
-        if slug_path:
-            result["slug_path"] = slug_path
-        envs = self.env_changes(market_component.get("service_env_map_list", []))
-        if envs:
-            result["envs"] = envs
-        ports = self.port_changes(market_component.get("port_map_list", []))
-        if ports:
-            result["ports"] = ports
-        connect_infos = self.env_changes(market_component.get("service_connect_info_map_list", []))
-        if connect_infos:
-            result["connect_infos"] = connect_infos
-        volumes = self.volume_changes(market_component.get("service_volume_map_list", []))
-        if volumes:
-            result["volumes"] = volumes
-        probe = self.probe_changes(market_component.get("probes"))
-        if probe:
-            result["probe"] = probe
-        dep_uuids = []
-        if market_component.get("dep_service_map_list", []):
-            dep_uuids = [item["dep_service_key"] for item in market_component.get("dep_service_map_list")]
-        dep_services = self.dep_services_changes(market_component, dep_uuids, level)
-        if dep_services:
-            result["dep_services"] = dep_services
-        dep_volumes = self.dep_volumes_changes(market_component.get("mnt_relation_list", []))
-        if dep_volumes:
-            result["dep_volumes"] = dep_volumes
+        from console.services.market_app_service import market_app_service
+        upgradeble_versions = []
+        if not self.install_from_cloud:
+            # 获取最新的时间列表, 判断版本号大小，TODO 确认版本号大小
+            # 直接查出当前版本，对比时间，对比版本号大小
+            app_versions = rainbond_app_repo.get_rainbond_app_versions(
+                self.tenant.enterprise_id, self.service_source.group_key)
+            if not app_versions:
+                logger.debug("no app versions")
+                return None
 
-        plugins = self.plugin_changes(market_component.get("service_related_plugin_config", []))
-        if plugins:
-            logger.debug("plugin changes: {}".format(json.dumps(plugins)))
-            result["plugins"] = plugins
+            for version in app_versions:
+                new_version_time = time.mktime(version.update_time.timetuple())
+                current_version_time = time.mktime(self.current_version.update_time.timetuple())
+                if new_version_time > current_version_time:
+                    same, max_version = self.checkVersionG2(self.current_version.version, version.version)
+                    if not same:
+                        upgradeble_versions.append(version.version)
 
-        return result
+        else:
+            app_version_list = market_app_service.get_cloud_app_versions(
+                self.tenant.enterprise_id, self.service_source.group_key, self.market_id)
+            if not app_version_list:
+                return None
+            for version in app_version_list:
+                new_version_time = time.mktime(version.update_time.timetuple())
+                current_version_time = time.mktime(self.current_version.update_time.timetuple())
+                if new_version_time > current_version_time:
+                    same, max_version = self.checkVersionG2(self.current_version.version, version.app_version)
+                    if not same:
+                        upgradeble_versions.append(version.app_version)
+
+        return upgradeble_versions
+
+    def checkVersionG2(self, currentversion, expectedversion):
+        max_version = "0.0.0"
+        same = False
+
+        currentversionBITS = currentversion.split(".")
+        expectedversionBITS = expectedversion.split(".")
+
+        if len(currentversionBITS) >= len(expectedversionBITS):
+            minbitversion = expectedversionBITS
+            maxbitversion = currentversionBITS
+        else:
+            minbitversion = currentversionBITS
+            maxbitversion = expectedversionBITS
+
+        for index, bit in enumerate(minbitversion):
+            try:
+                if int(bit) > int(maxbitversion[index]):
+                    max_version = ".".join(minbitversion)
+                    break
+                elif int(bit) < int(maxbitversion[index]):
+                    max_version = ".".join(maxbitversion)
+                    break
+                else:
+                    max_version = ".".join(maxbitversion)
+            except IndexError:
+                # ignore error
+                pass
+
+        if max_version == currentversion:
+            same = True
+
+        return same, max_version
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
-    def get_property_changes(self, eid, version, version_template=None, plugin_template=None, level="svc"):
-        # TODO: use enum for 'level'
-        """
-        get property changes for market service
-        raise: RecordNotFound
-        raise: RbdAppNotFound
-        raise: ErrServiceSourceNotFound
-        """
-        if self.service_source is None:
-            raise ErrServiceSourceNotFound(self.service.service_id)
-        try:
-            apps = rbd_center_app_service.get_version_apps(eid, version, self.service_source)
-            app = rbd_center_app_service.get_version_app(eid, version, self.service_source)
-        except RecordNotFound:
-            if not version_template:
-                raise RecordNotFound("not found record")
-            template = json.loads(version_template)
-            apps = template.get("apps")
-
-            def func(x):
-                result = x.get("service_share_uuid", None) == self.service_source.service_share_uuid \
-                         or x.get("service_key", None) == self.service_source.service_share_uuid
-                return result
-            app = next(iter(filter(lambda x: func(x), apps)), None)
-        try:
-            self.plugins = rbd_center_app_service.get_plugins(eid, version, self.service_source)
-        except Exception:
-            if plugin_template:
-                # plugins = MarketOpenAPI().get_plugin_templates(
-                #     self.tenant.tenant_id, self.service_source.group_key, version)
-                # if plugins["data"]["bean"]["template_content"]:
-                self.plugins = json.loads(plugin_template).get("plugins")
-            else:
-                self.plugins = []
+    def get_property_changes(self, component=None, plugins=None, level="svc"):
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
+        if not component:
+            return None
+        self.plugins = plugins
         result = {}
-        deploy_version = self.deploy_version_changes(app["deploy_version"])
+        deploy_version = self.deploy_version_changes(component.get("deploy_version"))
         if deploy_version:
             result["deploy_version"] = deploy_version
         # source code service does not have 'share_image'
-        image = self.image_changes(app.get("share_image", None))
+        image = self.image_changes(component.get("share_image", None))
         if image:
             result["image"] = image
-        slug_path = self.slug_path_changes(app.get("share_slug_path", None))
+        slug_path = self.slug_path_changes(component.get("share_slug_path", None))
         if slug_path:
             result["slug_path"] = slug_path
-        envs = self.env_changes(app.get("service_env_map_list", []))
+        envs = self.env_changes(component.get("service_env_map_list", []))
         if envs:
             result["envs"] = envs
-        ports = self.port_changes(app.get("port_map_list", []))
+        ports = self.port_changes(component.get("port_map_list", []))
         if ports:
             result["ports"] = ports
-        connect_infos = self.env_changes(app.get("service_connect_info_map_list", []))
+        connect_infos = self.env_changes(component.get("service_connect_info_map_list", []))
         if connect_infos:
             result["connect_infos"] = connect_infos
-        volumes = self.volume_changes(app.get("service_volume_map_list", []))
+        volumes = self.volume_changes(component.get("service_volume_map_list", []))
         if volumes:
             result["volumes"] = volumes
-        probe = self.probe_changes(app["probes"])
+        probe = self.probe_changes(component["probes"])
         if probe:
             result["probe"] = probe
         dep_uuids = []
-        if app.get("dep_service_map_list", []):
-            dep_uuids = [item["dep_service_key"] for item in app.get("dep_service_map_list")]
-        dep_services = self.dep_services_changes(apps, dep_uuids, level)
+        if component.get("dep_service_map_list", []):
+            dep_uuids = [item["dep_service_key"] for item in component.get("dep_service_map_list")]
+        dep_services = self.dep_services_changes(component, dep_uuids, level)
         if dep_services:
             result["dep_services"] = dep_services
-        dep_volumes = self.dep_volumes_changes(app.get("mnt_relation_list", []))
+        dep_volumes = self.dep_volumes_changes(component.get("mnt_relation_list", []))
         if dep_volumes:
             result["dep_volumes"] = dep_volumes
 
-        plugins = self.plugin_changes(app.get("service_related_plugin_config", []))
+        plugins = self.plugin_changes(component.get("service_related_plugin_config", []))
         if plugins:
             logger.debug("plugin changes: {}".format(json.dumps(plugins)))
             result["plugins"] = plugins

@@ -203,7 +203,7 @@ class UpgradeService(object):
         except AppUpgradeRecord.DoesNotExist:
             return AppUpgradeRecord()
 
-    def get_app_upgrade_versions(self, tenant, group_id, group_key):
+    def get_app_upgrade_versions(self, tenant, group_id, group_key, apps_versions_templates, apps_plugins_templates):
         """获取云市组件可升级版本列表"""
         from console.services.group_service import group_service
         from console.services.market_app_service import market_app_service
@@ -214,7 +214,11 @@ class UpgradeService(object):
 
         # 查询可升级的组件
         for service in services:
-            service_version = market_app_service.list_upgradeable_versions_new(tenant, service)
+            # service_version = market_app_service.list_upgradeable_versions(tenant, service)
+            service_version = market_app_service.list_upgradeable_versions(
+                tenant, service, apps_versions_templates,
+                apps_plugins_templates
+            )
             versions |= set(service_version or [])
 
         # 查询新增组件的版本
@@ -276,11 +280,9 @@ class UpgradeService(object):
     def get_service_changes(service, tenant, version, version_template, plugin_template):
         """获取组件更新信息"""
         from console.services.app_actions.properties_changes import PropertiesChanges
-        from console.services.market_app_service import market_app_service
-        component, plugins = market_app_service.get_upgradeable_component_and_plugin(tenant, service, version)
         try:
             pc = PropertiesChanges(service, tenant)
-            return pc.get_diff(component, plugins)
+            return pc.get_property_changes(tenant.enterprise_id, version, version_template, plugin_template, level="app")
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:
