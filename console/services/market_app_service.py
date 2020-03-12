@@ -828,6 +828,12 @@ class MarketAppService(object):
             raise RbdAppNotFound("未找到该应用")
         return app, app_version
 
+    def get_rainbond_app_version(self, eid, app_id, app_version):
+        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(eid, app_id, app_version)
+        if not app_versions:
+            return None
+        return app_versions
+
     def update_rainbond_app_install_num(self, enterprise_id, app_id, app_version):
         rainbond_app_repo.add_rainbond_install_num(enterprise_id, app_id, app_version)
 
@@ -864,11 +870,14 @@ class MarketAppService(object):
                     describe=app_template.get("desc", ""),
                     create_time=app_template["create_time"],
                     update_time=app_template["update_time"])
+                rainbond_app.market_id = app_template.market_id
+                from datetime import datetime
                 rainbond_app_version = RainbondCenterAppVersion(
                     app_template=app_template["template_content"],
                     version=app_template["group_version"],
                     template_version=app_template["template_version"],
                     app_version_info=app_template["info"],
+                    update_time=datetime.strptime(app_template["update_time"], '%Y-%m-%dT%H:%M:%S.%fZ'),
                     is_official=app_template["is_official"])
                 return rainbond_app, rainbond_app_version
             return None
@@ -1040,9 +1049,39 @@ class MarketAppService(object):
                 result_list.append(rbapp)
         return total, result_list
 
-    def get_component_upgradeable_versions(self, tenant, service):
+    def list_upgradeable_versions(self, tenant, service):
         pc = PropertiesChanges(service, tenant)
-        return pc.get_upgradeable_versions
+        upgradeable_versions = pc.get_upgradeable_versions
+        return upgradeable_versions
+
+    def get_cloud_app_versions(self, enterprise_id, app_id, market_id):
+        token = self.get_enterprise_access_token(enterprise_id, "market")
+        if token:
+            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+        else:
+            market_client = get_default_market_client()
+        apps = market_client.get_app_versions(market_id, app_id)
+        if not apps:
+            return None
+        return apps.app_versions
+
+    def get_cloud_app_version(self, enterprise_id, app_id, app_version, market_id):
+        token = self.get_enterprise_access_token(enterprise_id, "market")
+        if token:
+            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+        else:
+            market_client = get_default_market_client()
+        version = market_client.get_app_version(market_id, app_id, app_version)
+        if not version:
+            return None
+        return version
+
+    def get_enterprise_access_token(self, enterprise_id, access_target):
+        enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
+        try:
+            return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
+        except TenantEnterpriseToken.DoesNotExist:
+            return None
 
     def get_app_templates(self, tenant, service_group_keys):
         apps = []

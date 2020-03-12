@@ -572,17 +572,17 @@ class MarketServiceUpgradeView(AppBaseView):
                 status=400)
 
         # 判断组件状态，未部署的组件不提供升级数据
-        body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
-                                               self.service.service_alias, self.tenant.enterprise_id)
-        status = body["bean"]["cur_status"]
-        if status == "undeploy" or status == "unknown":
-            result = general_message(200, "success", "查询成功", list=[])
-            return Response(result, status=result["code"])
+        # body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
+        #                                        self.service.service_alias, self.tenant.enterprise_id)
+        # status = body["bean"]["cur_status"]
+        # if status == "undeploy" or status == "unknown":
+        #     result = general_message(200, "success", "查询成功", list=[])
+        #     return Response(result, status=result["code"])
 
         # List the versions that can be upgraded
         versions = []
         try:
-            versions = market_app_service.get_component_upgradeable_versions(self.tenant, self.service)
+            versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
         except RbdAppNotFound:
             return Response(status=404, data=general_message(404, "service lost", "未找到该组件"))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))

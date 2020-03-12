@@ -275,11 +275,10 @@ class UpgradeService(object):
     def get_service_changes(service, tenant, version):
         """获取组件更新信息"""
         from console.services.app_actions.properties_changes import PropertiesChanges
-
         try:
             pc = PropertiesChanges(service, tenant)
             app = get_upgrade_app_version_template_app(tenant, version, pc)
-            return pc.get_property_changes(app, level="app")
+            return pc.get_property_changes(app)
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:
