@@ -1049,7 +1049,12 @@ class MarketAppService(object):
                 result_list.append(rbapp)
         return total, result_list
 
-    def get_cloud_app_versions(self, enterprise_id, app_id, market_id="113139ca6c2b4377b9066574aac7dcd5"):
+    def list_upgradeable_versions(self, tenant, service):
+        pc = PropertiesChanges(service, tenant)
+        upgradeable_versions = pc.get_upgradeable_versions
+        return upgradeable_versions
+
+    def get_cloud_app_versions(self, enterprise_id, app_id, market_id):
         token = self.get_enterprise_access_token(enterprise_id, "market")
         if token:
             market_client = get_market_client(token.access_id, token.access_token, token.access_url)
@@ -1060,7 +1065,7 @@ class MarketAppService(object):
             return None
         return apps.app_versions
 
-    def get_cloud_app_version(self, enterprise_id, app_id, app_version, market_id="113139ca6c2b4377b9066574aac7dcd5"):
+    def get_cloud_app_version(self, enterprise_id, app_id, app_version, market_id):
         token = self.get_enterprise_access_token(enterprise_id, "market")
         if token:
             market_client = get_market_client(token.access_id, token.access_token, token.access_url)
@@ -1077,11 +1082,6 @@ class MarketAppService(object):
             return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
         except TenantEnterpriseToken.DoesNotExist:
             return None
-
-    def list_upgradeable_versions(self, tenant, service):
-        pc = PropertiesChanges(service, tenant)
-        upgradeable_versions = pc.get_upgradeable_versions
-        return upgradeable_versions
 
     def get_app_templates(self, tenant, service_group_keys):
         apps = []

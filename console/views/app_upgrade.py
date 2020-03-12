@@ -48,7 +48,12 @@ class AppUpgradeVersion(RegionTenantHeaderView):
             request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
 
         # 获取云市应用可升级版本列表
-        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key)
+        service_source = group_service.get_service_source_by_group_key(group_key)
+        service_group_keys = set(service_source.values_list('group_key', flat=True))
+        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, service_group_keys)
+        version = version_template.get(group_key)
+        plugin = plugin_template.get(group_key)
+        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key, version, plugin)
         return MessageResponse(msg="success", list=list(versions))
 
 
