@@ -2,7 +2,6 @@
 """
   Created by leon on 18/1/5.
 """
-import json
 import logging
 import re
 
@@ -268,10 +267,9 @@ class GroupService(object):
 
         return 200, u"删除成功", group_id
 
-    def get_service_group_memory(self, app_template_raw):
+    def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""
         try:
-            app_template = json.loads(app_template_raw)
             apps = app_template["apps"]
             total_memory = 0
             for app in apps:

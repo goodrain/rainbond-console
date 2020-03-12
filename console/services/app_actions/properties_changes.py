@@ -16,9 +16,12 @@ from console.repositories.service_group_relation_repo import service_group_relat
 from console.services.app import app_service
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
+from console.services.rbd_center_app_service import rbd_center_app_service
+from www.apiclient.marketclient import MarketOpenAPI
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
+market_api = MarketOpenAPI()
 
 
 class PropertiesChanges(object):
@@ -279,6 +282,8 @@ class PropertiesChanges(object):
 
     def new_dep_services_from_apps(self, apps, dep_uuids):
         result = []
+        if not apps:
+            return None
         for app in apps:
             service_share_uuid = app.get("service_share_uuid", app["service_key"])
             if service_share_uuid not in dep_uuids:
@@ -345,7 +350,9 @@ class PropertiesChanges(object):
         old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
         new_plugin_keys = {item["plugin_key"]: item for item in new_plugins}
 
-        plugin_names = {plugin["plugin_key"]: plugin["plugin_alias"] for plugin in self.plugins}
+        plugin_names = {}
+        if self.plugins:
+            plugin_names = {plugin["plugin_key"]: plugin["plugin_alias"] for plugin in self.plugins}
 
         add = []
         delete = []
@@ -437,3 +444,26 @@ def has_changes(changes):
             logger.debug("found a change; key: {}; value: {}".format(k, v))
             return True
     return False
+
+
+def get_upgrade_app_version_template_app(tenant, version, pc):
+    if pc.install_from_cloud:
+        rst = market_api.get_app_template(tenant.tenant_id, pc.current_app.app_id, version)
+        data = rst.get("data")
+        if not data:
+            return None, None
+        bean = data.get("bean")
+        if not bean:
+            return None, None
+        app_template = bean.get("template_content")
+        template = json.loads(app_template)
+        apps = template.get("apps")
+
+        def func(x):
+            result = x.get("service_share_uuid", None) == pc.service_source.service_share_uuid \
+                     or x.get("service_key", None) == pc.service_source.service_share_uuid
+            return result
+        app = next(iter(filter(lambda x: func(x), apps)), None)
+    else:
+        app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)
+    return app

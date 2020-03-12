@@ -1116,69 +1116,59 @@ class MarketAppService(object):
 
     def get_market_apps_in_app(self, region, tenant, group):
         service_group_keys = set(group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True))
-        apps, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
-
-        iterator = self.yield_app_info(service_group_keys, tenant, group, apps, version_template, plugin_template)
+        iterator = self.yield_app_info(service_group_keys, tenant, group)
         app_info_list = [app_info for app_info in iterator]
         return app_info_list
 
-    def yield_app_info(self, service_group_keys, tenant, group, apps, version_template, plugin_template):
-        for group_key in service_group_keys:
-            app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, group_key)
-            app = None
-            if app_qs and len(app_qs) > 0:
-                app = app_qs[0]
-            cloud_version = None
-            if app:
-                dat = {
-                    'group_key': app.app_id,
-                    'group_name': app.app_name,
-                    'share_user': app.create_user,
-                    'share_team': app.create_team,
-                    'tenant_service_group_id': app.group_id,
-                    'pic': app.pic,
-                    'source': app.source,
-                    'describe': app.describe,
-                    'enterprise_id': app.enterprise_id,
-                    'is_official': app.is_official,
-                    'details': app.details,
-                    'min_memory': group_service.get_service_group_memory(app.app_template),
-
-                }
-            else:
-                dat = None
-                cloud_version = None
-                if not apps:
-                    continue
-                for app in apps:
-                    if app.app_key_id == group_key:
-                        dat = {
-                            'group_key': app.app_key_id,
-                            'group_name': app.name,
-                            'share_user': app.enterprise.name,
-                            'share_team': None,
-                            'tenant_service_group_id': None,
-                            'pic': app.logo,
-                            'source': "cloud",
-                            'describe': app.desc,
-                            'enterprise_id': app.enterprise_id,
-                            'is_official': app.is_official,
-                            'details': app.introduction,
-                            'min_memory': None,
-                        }
-                        cloud_version = app
-                if not dat:
-                    continue
-            version = version_template.get(group_key)
-            plugin = plugin_template.get(group_key)
-            upgrade_versions = upgrade_service.get_app_upgrade_versions(tenant, group.ID, group_key, version, plugin)
-            not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, group.ID, group_key)
+    def yield_app_info(self, services_app_model_ids, tenant, group):
+        for services_app_model_id in services_app_model_ids:
+            group_key = services_app_model_id
+            group_name = None
+            share_user = None
+            share_team = None
+            tenant_service_group_id = None
+            pic = None
+            source = None
+            describe = None
+            enterprise_id = None
+            is_official = None
+            details = None
+            min_memory = None
             services = group_service.get_rainbond_services(group.ID, group_key)
+            for service in services:
+                pc = PropertiesChanges(service, tenant)
+                if pc.current_app.app_id == services_app_model_id:
+                    group_name = pc.current_app.app_name
+                    share_user = pc.current_app.create_user
+                    share_team = pc.current_app.create_team
+                    tenant_service_group_id = group.ID
+                    pic = pc.current_app.pic
+                    source = pc.current_app.source
+                    describe = pc.current_app.describe
+                    enterprise_id = pc.current_app.enterprise_id
+                    is_official = pc.current_app.is_official
+                    details = pc.current_app.details
+                    min_memory = group_service.get_service_group_memory(pc.template)
+                    break
+            dat = {
+                'group_key': group_key,
+                'group_name': group_name,
+                'share_user': share_user,
+                'share_team': share_team,
+                'tenant_service_group_id': tenant_service_group_id,
+                'pic': pic,
+                'source': source,
+                'describe': describe,
+                'enterprise_id': enterprise_id,
+                'is_official': is_official,
+                'details': details,
+                'min_memory': min_memory,
+            }
+            not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, group.ID, group_key)
             dat.update({
-                'current_version': upgrade_service.get_old_version(
-                    group_key, services.values_list('service_id', flat=True), cloud_version),
-                'can_upgrade': bool(upgrade_versions),
-                'upgrade_versions': list(upgrade_versions),
+                'current_version': pc.current_version.version,
+                'can_upgrade': bool(pc.get_upgradeable_versions),
+                'upgrade_versions': pc.get_upgradeable_versions,
                 'not_upgrade_record_id': not_upgrade_record.ID,
                 'not_upgrade_record_status': not_upgrade_record.status,
             })
