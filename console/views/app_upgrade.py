@@ -7,6 +7,7 @@ from copy import deepcopy
 from django.core.paginator import Paginator
 from django.db.models import Q
 from enum import Enum
+from addict import Dict
 
 from console.exception.main import AbortRequest
 from console.exception.main import AccountOverdueException
@@ -28,8 +29,10 @@ from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
 from console.views.base import RegionTenantHeaderView
+from www.apiclient.marketclient import MarketOpenAPI
 
 logger = logging.getLogger('default')
+market_api = MarketOpenAPI()
 
 
 class GroupAppView(RegionTenantHeaderView):
@@ -228,7 +231,19 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
         install_info = {}
         if add_service_infos:
+            install_from_cloud = False
             old_app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=group_key, version=version)
+            if not old_app:
+                install_from_cloud = True
+                cloud_app = market_api.get_app_template(
+                    self.tenant.tenant_id, group_key, version)
+                cloud_app = cloud_app.data.bean
+                old_app = Dict({
+                    "app_id": cloud_app.group_key,
+                    "app_name": cloud_app.group_name,
+                    "app_template": cloud_app.template_content,
+                    "version": cloud_app.group_version,
+                })
             new_app = deepcopy(old_app)
             # mock app信息
             template = json.loads(new_app.app_template)
@@ -239,7 +254,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
                 install_info = market_app_service.install_service_when_upgrade_app(
-                    self.tenant, self.response_region, self.user, group_id, new_app, old_app, services, True)
+                    self.tenant, self.response_region, self.user,
+                    group_id, new_app, old_app, services, True, install_from_cloud)
 
             except ResourceNotEnoughException as re:
                 raise re

@@ -179,7 +179,7 @@ class MarketAppService(object):
             raise e
 
     def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, old_app, services,
-                                         is_deploy):
+                                         is_deploy, install_from_cloud=False):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -209,7 +209,8 @@ class MarketAppService(object):
                 raise Exception(msg)
 
             for app in apps:
-                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
+                ts = self.__init_market_app(
+                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud)
                 service_source_data = {
                     "group_key":
                         market_app.app_id,
