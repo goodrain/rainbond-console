@@ -19,7 +19,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
-from console.services.market_app_service import market_sycn_service
+from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import parse_args
 from console.utils.reqparse import parse_argument
@@ -202,15 +202,15 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         data = parse_date(request, rq_args)
         group_key = data['group_key']
         version = data['version']
-        cloud_version = None
-        markets = market_sycn_service.get_cloud_markets(self.tenant.enterprise_id)
-        for market in markets:
-            try:
-                app = market_sycn_service.get_cloud_app(self.tenant.enterprise_id, market.market_id, group_key)
-                if app:
-                    cloud_version = app.app_versions
-            except Exception:
-                pass
+        # cloud_version = None
+        # markets = market_sycn_service.get_cloud_markets(self.tenant.enterprise_id)
+        # for market in markets:
+        #     try:
+        #         app = market_sycn_service.get_cloud_app(self.tenant.enterprise_id, market.market_id, group_key)
+        #         if app:
+        #             cloud_version = app.app_versions
+        #     except Exception:
+        #         pass
         app_record = get_object_or_404(
             AppUpgradeRecord,
             msg="Upgrade record not found",
@@ -257,9 +257,9 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
 
         app_record.version = version
-        services = group_service.get_rainbond_services(group_id, group_key)
-        app_record.old_version = upgrade_service.get_old_version(
-            group_key, services.values_list('service_id', flat=True), cloud_version=cloud_version)
+        old_service = group_service.get_rainbond_services(group_id, group_key).first()
+        pc = PropertiesChanges(old_service, self.tenant)
+        app_record.old_version = pc.current_version.version
         app_record.save()
 
         services = service_repo.get_services_by_service_ids_and_group_key(
