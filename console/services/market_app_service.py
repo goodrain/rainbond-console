@@ -8,7 +8,6 @@ import logging
 import socket
 
 import httplib2
-from addict import Dict
 from django.db import transaction
 from django.db.models import Q
 from market_client.rest import ApiException
@@ -34,8 +33,6 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import has_changes
 from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import AppMntService
 from console.services.app_config import env_var_service
@@ -1052,11 +1049,6 @@ class MarketAppService(object):
                 result_list.append(rbapp)
         return total, result_list
 
-    def list_upgradeable_versions_new(self, tenant, service):
-        pc = PropertiesChanges(service, tenant)
-        upgradeable_versions = pc.get_upgradeable_versions
-        return upgradeable_versions
-
     def get_cloud_app_versions(self, enterprise_id, app_id, market_id="113139ca6c2b4377b9066574aac7dcd5"):
         token = self.get_enterprise_access_token(enterprise_id, "market")
         if token:
@@ -1086,60 +1078,10 @@ class MarketAppService(object):
         except TenantEnterpriseToken.DoesNotExist:
             return None
 
-    def list_upgradeable_versions(self, tenant, service, apps_versions_templates, apps_plugins_templates):
-        """
-        list the upgradeable versions of the rainbond center app
-        corresponding to the tenant and service
-        """
-        service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
-        if service_source is None:
-            logger.warn("service id: {}; service source not found".format(service.service_id))
-            return None
-        install_from_cloud = False
-        cur_rbd_app = None
-        if service_source.extend_info:
-            # 5.1.5 Direct upgrades from the cloud city are not supported, so the cloud city API is not requested
-            extend_info = json.loads(service_source.extend_info)
-            if extend_info and extend_info.get("install_from_cloud", False):
-                install_from_cloud = True
-                cur_rbd_app, _ = self.get_app_from_cloud(tenant, service_source.group_key, service_source.version)
-        if not cur_rbd_app:
-            rainbond_apps = rainbond_app_repo.get_rainbond_app_version_by_app_id(
-                tenant.enterprise_id, service_source.group_key, service_source.version)
-            if rainbond_apps:
-                cur_rbd_app = rainbond_apps[0]
-        if cur_rbd_app is None:
-            logger.warn("group key: {0}; version: {1}; service source not found".format(service_source.group_key,
-                                                                                        service_source.version))
-            return None
-        rbd_center_apps = []
-        if not install_from_cloud:
-            rbd_center_apps = rainbond_app_repo.list_by_key_time(service_source.group_key, cur_rbd_app.update_time)
-            if not rbd_center_apps:
-                return None
-        else:
-            for version in apps_versions_templates:
-                rbd_center_apps.append(Dict({"version": version}))
+    def list_upgradeable_versions(self, tenant, service):
         pc = PropertiesChanges(service, tenant)
-        result = []
-        for item in rbd_center_apps:
-            try:
-                version_template = None
-                plugin_template = None
-                if apps_versions_templates:
-                    version_template = apps_versions_templates.get(item.version)
-                if apps_plugins_templates:
-                    plugin_template = apps_plugins_templates.get(item.version)
-                changes = pc.get_property_changes(
-                    tenant.enterprise_id, item.version, version_template=version_template, plugin_template=plugin_template)
-            except (RbdAppNotFound, ErrServiceSourceNotFound) as e:
-                logger.warning(e)
-                continue
-            if not has_changes(changes):
-                continue
-            result.append(item.version)
-
-        return result
+        upgradeable_versions = pc.get_upgradeable_versions
+        return upgradeable_versions
 
     def get_app_templates(self, tenant, service_group_keys):
         apps = []
@@ -1174,13 +1116,13 @@ class MarketAppService(object):
 
     def get_market_apps_in_app(self, region, tenant, group):
         service_group_keys = set(group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True))
-        apps, _, _ = self.get_app_templates(tenant, service_group_keys)
+        apps, version_template, plugin_template = self.get_app_templates(tenant, service_group_keys)
 
-        iterator = self.yield_app_info(service_group_keys, tenant, group, apps)
+        iterator = self.yield_app_info(service_group_keys, tenant, group, apps, version_template, plugin_template)
         app_info_list = [app_info for app_info in iterator]
         return app_info_list
 
-    def yield_app_info(self, service_group_keys, tenant, group, apps):
+    def yield_app_info(self, service_group_keys, tenant, group, apps, version_template, plugin_template):
         for group_key in service_group_keys:
             app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, group_key)
             app = None
@@ -1227,7 +1169,9 @@ class MarketAppService(object):
                         cloud_version = app
                 if not dat:
                     continue
-            upgrade_versions = upgrade_service.get_app_upgrade_versions(tenant, group.ID, group_key)
+            version = version_template.get(group_key)
+            plugin = plugin_template.get(group_key)
+            upgrade_versions = upgrade_service.get_app_upgrade_versions(tenant, group.ID, group_key, version, plugin)
             not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, group.ID, group_key)
             services = group_service.get_rainbond_services(group.ID, group_key)
             dat.update({
