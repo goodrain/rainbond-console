@@ -11,12 +11,14 @@ elif [ "$1" = "init" ];then
 else
     # check database
     if mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASS} -e "use console;" > /dev/null; then
-        if mkdir /app/lock/entrypoint.lock 2> /dev/null; then
+        lockfile=/app/lock/entrypoint.lock
+        if [ ! -f "$lockfile" ]; then
+            touch "$lockfile"
             mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASS} -e "select * from console.region_info" || ./entrypoint.sh init && echo -e "\033[32;1mDatabase initialization completed\033[0m"
             python default_region.py
             #TODO: support  upgrade
             #python upgrade.py
-            rm -rf /app/lock/entrypoint.lock
+            rm -rf "$lockfile"
         else
             echo "Database is already initializing."
         fi
