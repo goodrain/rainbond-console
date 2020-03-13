@@ -1,6 +1,6 @@
-FROM rainbond/rainbond-ui:VERSION
+FROM IMAGE_DOMAIN/rainbond-ui:VERSION
 
-LABEL author="zhengys@goodrain.com" 
+LABEL author="zengqg@goodrain.com" 
 
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/
 

@@ -23,6 +23,7 @@ buildTime=$(date +%F-%H)
 
 function release(){
   sed -i "s/VERSION/${VERSION}/g" Dockerfile.release
+  sed -i "s/IMAGE_DOMAIN/${IMAGE_DOMAIN}/g" Dockerfile.release
   git_commit=$(git log -n 1 --pretty --format=%h)
   release_desc=${VERSION}-${git_commit}-${buildTime}
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile.release > Dockerfile.build
