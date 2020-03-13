@@ -27,11 +27,10 @@ function release(){
   git_commit=$(git log -n 1 --pretty --format=%h)
   release_desc=${VERSION}-${git_commit}-${buildTime}
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile.release > Dockerfile.build
-
-  docker build --network=host -t "${IMAGE_DOMAIN}/${image_name}:${VERSION}" -f Dockerfile.build .
+  docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" "$IMAGE_DOMAIN"
+  docker build -t "${IMAGE_DOMAIN}/${image_name}:${VERSION}" -f Dockerfile.build .
   rm -r ./Dockerfile.build
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-     docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" "$IMAGE_DOMAIN"
      docker push  "${IMAGE_DOMAIN}/rbd-app-ui:${VERSION}"
   fi
 }
