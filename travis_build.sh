@@ -31,7 +31,7 @@ function release(){
   docker build --network=host -t "${IMAGE_DOMAIN}/${image_name}:${VERSION}" -f Dockerfile.build .
   rm -r ./Dockerfile.build
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-     docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+     docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" "$IMAGE_DOMAIN"
      docker push  "${IMAGE_DOMAIN}/rbd-app-ui:${VERSION}"
   fi
 }
