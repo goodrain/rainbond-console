@@ -867,7 +867,9 @@ class MarketAppService(object):
                     dev_status=app_template['group_version'],
                     source="import",
                     scope="goodrain",
-                    describe=app_template.get("desc", ""),
+                    describe=app_template.get("info", ""),
+                    details=app_template.get("desc", ""),
+                    pic=app_template.get("pic", ""),
                     create_time=app_template["create_time"],
                     update_time=app_template["update_time"])
                 rainbond_app.market_id = app_template.market_id
