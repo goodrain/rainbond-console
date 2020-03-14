@@ -353,14 +353,9 @@ class AppManageService(AppManageBase):
             file_content = volume.get("file_content", None)
             settings = {}
             settings["volume_capacity"] = volume["volume_capacity"]
-            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                       volume_type=volume["volume_type"],
-                                                                       volume_name=volume["volume_name"],
-                                                                       file_content=file_content,
-                                                                       settings=settings)
-            if code != 200:
-                logger.error("save market app volume error: {}".format(msg))
-                return code, msg
+            volume_service.add_service_volume(
+                tenant, service, volume["volume_path"], volume_type=volume["volume_type"], volume_name=volume["volume_name"],
+                file_content=file_content, settings=settings)
         return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
