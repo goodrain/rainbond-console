@@ -392,22 +392,13 @@ class AppCheckService(object):
                 index += 1
                 volume_name = service.service_alias.upper() + "_" + str(index)
                 if "file_content" in volume.keys():
-                    code, msg, volume_data = volume_service.add_service_volume(
-                        tenant, service, volume["volume_path"],
-                        volume["volume_type"],
-                        volume_name, volume["file_content"])
-                    if code != 200:
-                        logger.error("service.check", "save service check info port error {0}".format(msg))
-                        # return code, msg
+                    volume_service.add_service_volume(
+                        tenant, service, volume["volume_path"], volume["volume_type"], volume_name, volume["file_content"])
                 else:
                     settings = {}
                     settings["volume_capacity"] = volume["volume_capacity"]
-                    code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                               volume["volume_type"],
-                                                                               volume_name, None, settings)
-                    if code != 200:
-                        logger.error("service.check", "save service check info port error {0}".format(msg))
-                        # return code, msg
+                    volume_service.add_service_volume(
+                        tenant, service, volume["volume_path"], volume["volume_type"], volume_name, None, settings)
         return 200, "success"
 
     def wrap_service_check_info(self, service, data):

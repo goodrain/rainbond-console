@@ -122,12 +122,9 @@ class AppVolumeView(AppBaseView):
         settings['reclaim_policy'] = reclaim_policy
         settings['allow_expansion'] = allow_expansion
 
-        code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                            volume_name, file_content, settings)
-        if code != 200:
-            result = general_message(code, "add volume error", msg)
-            return Response(result, status=code)
-        result = general_message(code, msg, u"持久化路径添加成功", bean=data.to_dict())
+        data = volume_service.add_service_volume(
+            self.tenant, self.service, volume_path, volume_type, volume_name, file_content, settings)
+        result = general_message(200, "success", u"持久化路径添加成功", bean=data.to_dict())
 
         return Response(result, status=result["code"])
 
