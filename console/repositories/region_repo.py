@@ -180,7 +180,7 @@ class RegionRepo(object):
         try:
             region.save()
         except Exception:
-            raise ServiceHandleException(msg="parameter error", msg_show="参数错误")
+            raise ServiceHandleException(msg="update failed", msg_show="更新失败")
 
 
 region_repo = RegionRepo()
