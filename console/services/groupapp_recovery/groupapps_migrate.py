@@ -288,6 +288,11 @@ class GroupappsMigrateService(object):
         ts.creater = user.user_id
         ts.tenant_id = tenant.tenant_id
         ts.create_status = "creating"
+        # compatible component type
+        if ts.extend_method == "state":
+            ts.extend_method = "state_multiple"
+        if ts.extend_method == "stateless":
+            ts.extend_method = "stateless_multiple"
         ts.save()
         return ts
 
