@@ -4,6 +4,7 @@ import os
 import random
 import re
 import string
+import yaml
 
 from django.core.paginator import Paginator
 
@@ -12,6 +13,7 @@ from console.exception.main import ServiceHandleException
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.region_repo import region_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
@@ -253,6 +255,93 @@ class EnterpriseServices(object):
             }
         }
         return data
+
+    def parse_token(token, region_name, region_alias):
+        info = yaml.load(token, Loader=yaml.BaseLoader)
+        info["region_alias"] = region_alias
+        info["region_name"] = region_name
+        info["ssl_ca_cert"] = info["ssl_ca_cert"]
+        info["key_file"] = info["key_file"]
+        info["cert_file"] = info["cert_file"]
+        info["region_id"] = make_uuid()
+        return info
+
+    def __init_region_resource_data(self, region):
+        region_resource = {}
+        region_resource["region_id"] = region.region_id
+        region_resource["region_alias"] = region.region_alias
+        region_resource["region_name"] = region.region_name
+        region_resource["status"] = region.status
+        region_resource["region_alias"] = region.region_alias
+        region_resource["url"] = region.url
+        region_resource["wsurl"] = region.wsurl
+        region_resource["httpdomain"] = region.httpdomain
+        region_resource["tcpdomain"] = region.tcpdomain
+        region_resource["scope"] = region.scope
+        region_resource["ssl_ca_cert"] = region.ssl_ca_cert
+        region_resource["cert_file"] = region.cert_file
+        region_resource["desc"] = region.desc
+        region_resource["key_file"] = region.key_file
+        region_resource["total_memory"] = 0
+        region_resource["used_memory"] = 0
+        region_resource["total_cpu"] = 0
+        region_resource["used_cpu"] = 0
+        region_resource["total_disk"] = 0
+        region_resource["used_disk"] = 0
+        region_resource["rbd_version"] = "unknown"
+        region_resource["health_status"] = "ok"
+
+    def get_enterprise_regions(self, enterprise_id):
+        regions = region_repo.get_regions_by_enterprise_id(enterprise_id)
+        region_info_list = []
+        if not regions:
+            return []
+        for region in regions:
+            region_resource = self.__init_region_resource_data(region)
+            try:
+                res, body = region_api.get_region_resources(enterprise_id, region.region_name)
+                res, rbd_version = region_api.get_api_version_v2(enterprise_id, region.region_name)
+                rbd_version = rbd_version["raw"].decode("utf-8")
+                if res.get("status") == 200:
+                    region_resource["total_memory"] = body["bean"]["cap_mem"],
+                    region_resource["used_memory"] = body["bean"]["req_mem"],
+                    region_resource["total_cpu"] = body["bean"]["cap_cpu"],
+                    region_resource["used_cpu"] = body["bean"]["req_cpu"],
+                    region_resource["total_disk"] = body["bean"]["cap_disk"],
+                    region_resource["used_disk"] = body["bean"]["req_disk"],
+                    region_resource["rbd_version"] = rbd_version,
+            except region_api.CallApiError as e:
+                logger.exception(e)
+                region_resource["rbd_version"] = ""
+                region_resource["health_status"] = "failure"
+        return region_info_list
+
+    def get_enterprise_region(self, enterprise_id, region_id):
+        region = region_repo.get_region_by_id(enterprise_id, region_id)
+        if not region:
+            return None
+        region_resource = self.__init_region_resource_data(region)
+        try:
+            res, body = region_api.get_region_resources(enterprise_id, region.region_name)
+            res, rbd_version = region_api.get_api_version_v2(enterprise_id, region.region_name)
+            rbd_version = rbd_version["raw"].decode("utf-8")
+            if res.get("status") == 200:
+                region_resource["total_memory"] = body["bean"]["cap_mem"],
+                region_resource["used_memory"] = body["bean"]["req_mem"],
+                region_resource["total_cpu"] = body["bean"]["cap_cpu"],
+                region_resource["used_cpu"] = body["bean"]["req_cpu"],
+                region_resource["total_disk"] = body["bean"]["cap_disk"],
+                region_resource["used_disk"] = body["bean"]["req_disk"],
+                region_resource["rbd_version"] = rbd_version,
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            region_resource["rbd_version"] = ""
+            region_resource["health_status"] = "failure"
+        return region_resource
+
+    def update_enterprise_region(self, enterprise_id, region_id, data):
+        region_repo.update_enterprise_region(enterprise_id, region_id, data)
+        return self.get_enterprise_region(enterprise_id, region_id)
 
 
 enterprise_services = EnterpriseServices()

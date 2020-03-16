@@ -125,15 +125,15 @@ class RegionService(object):
     def list_services_by_tenant_name(self, region_name, team_id):
         return base_service.get_services_list(team_id, region_name)
 
-    def get_team_unopen_region(self, team_name):
-        usable_regions = region_repo.get_usable_regions()
+    def get_team_unopen_region(self, team_name, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
         opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
 
-    def get_open_regions(self):
-        usable_regions = region_repo.get_usable_regions()
+    def get_open_regions(self, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         return usable_regions
 
     def get_public_key(self, tenant, region):
@@ -268,8 +268,8 @@ class RegionService(object):
             token = "Token {}".format(token)
         return url, token
 
-    def get_team_usable_regions(self, team_name):
-        usable_regions = region_repo.get_usable_regions()
+    def get_team_usable_regions(self, team_name, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region(
             team_name).filter(is_init=True, region_name__in=region_names)
@@ -337,6 +337,14 @@ class RegionService(object):
         self.update_region_config()
         return region
 
+    def update_enterprise_region_config(self, enterprise_id):
+        region_data = self.generate_enterprise_region_config(enterprise_id)
+        try:
+            config_service.get_by_key("REGION_SERVICE_API")
+            config_service.update_config("REGION_SERVICE_API", region_data)
+        except ConsoleSysConfig.DoesNotExist:
+            config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")
+
     def update_region_config(self):
         region_data = self.generate_region_config()
         try:
@@ -361,6 +369,22 @@ class RegionService(object):
         data = json.dumps(region_config_list)
         return data
 
+    def generate_enterprise_region_config(self, enterprise_id):
+        # 查询已上线的数据中心配置
+        region_config_list = []
+        regions = RegionConfig.objects.filter(status='1', enterprise_id=enterprise_id)
+        for region in regions:
+            config_map = dict()
+            config_map["region_name"] = region.region_name
+            config_map["region_alias"] = region.region_alias
+            config_map["url"] = region.url
+            config_map["token"] = region.token
+            config_map["region_name"] = region.region_name
+            config_map["enable"] = True
+            region_config_list.append(config_map)
+        data = json.dumps(region_config_list)
+        return data
+
     @transaction.atomic
     def del_by_region_id(self, region_id):
         """
@@ -370,6 +394,16 @@ class RegionService(object):
         """
         region = region_repo.del_by_region_id(region_id)
         self.update_region_config()
+        return region.to_dict()
+
+    @transaction.atomic
+    def del_by_enterprise_region_id(self, enterprise_id, region_id):
+        """
+        Without deleting tenant_region, the relationship between region and tenant can be restored.
+        raise RegionConfig.DoesNotExist
+        """
+        region = region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
+        self.update_enterprise_region_config(enterprise_id)
         return region.to_dict()
 
     def check_region_in_config(self, region_name):

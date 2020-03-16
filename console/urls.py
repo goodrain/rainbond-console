@@ -270,6 +270,8 @@ from console.views.enterprise import EnterpriseAppsLView
 from console.views.enterprise import EnterpriseTeams
 from console.views.enterprise import EnterpriseMonitor
 from console.views.enterprise import EnterpriseUserTeams
+from console.views.enterprise import EnterpriseRegionsLCView
+from console.views.enterprise import EnterpriseRegionsRUDView
 from console.views.webhook import CustomWebHooksDeploy
 from console.views.webhook import GetWebHooksUrl
 from console.views.webhook import ImageWebHooksDeploy
@@ -859,6 +861,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
