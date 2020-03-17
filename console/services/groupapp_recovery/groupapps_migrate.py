@@ -14,7 +14,6 @@ from console.models.main import ServiceRelPerms
 from console.models.main import ServiceSourceInfo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import tcp_domain
-from console.repositories.app_config import volume_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
 from console.repositories.migration_repo import migrate_repo
