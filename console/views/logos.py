@@ -98,6 +98,7 @@ class ConfigInfoView(AlowAnyApiView):
                             "eid": service.eid,
                             "is_auto_login": service.is_auto_login,
                             "is_git": service.is_git,
+                            "is_communication": api.is_communication_oauth(),
                             "authorize_url": authorize_url,
                         }
                     )

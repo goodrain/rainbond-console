@@ -13,6 +13,7 @@ from console.services.config_service import config_service
 from console.views.base import JWTAuthApiView, AlowAnyApiView
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
+from console.services.oauth_service import oauth_sev_user_service
 from console.repositories.user_repo import user_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.oauth.oauth_types import NoSupportOAuthType
@@ -221,14 +222,21 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            user, access_token, refresh_token = api.get_user_info(code=code)
+            oauth_user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.debug(e.message)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
-        user_name = user.name
-        user_id = str(user.id)
-        user_email = user.email
+        user_name = oauth_user.name
+        user_id = str(oauth_user.id)
+        user_email = oauth_user.email
+        if api.is_communication_oauth():
+            client_ip = request.META.get("REMOTE_ADDR", None)
+            oauth_user.client_ip = client_ip
+            user = oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
+            oauth_sev_user_service.get_or_add_oauth_user(
+                user, service_id, user_id, access_token, refresh_token, code)
+
         authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id,
                                                                oauth_user_id=user_id)
 

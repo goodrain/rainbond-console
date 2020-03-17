@@ -39,6 +39,12 @@ class OAuth2Interface(object):
         '''
         return False
 
+    def is_communication_oauth(self):
+        '''
+        :return:
+        '''
+        return False
+
     def set_oauth_service(self, oauth_service):
         '''
         set oauth server config model

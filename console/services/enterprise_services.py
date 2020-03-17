@@ -119,6 +119,22 @@ class EnterpriseServices(object):
         enterprise.save()
         return enterprise
 
+    def create_oauth_enterprise(self, enterprise_name, enterprise_alias, enterprise_id):
+        """
+        创建一个本地的企业信息, 并生成本地的企业ID
+
+        :param enterprise_name: 企业的domain, 如果没有则自动生成一个, 如果存在则需要保证传递的名字在数据库中唯一
+        :param enterprise_alias: 企业的名称, 可以中文, 用于展示用, 如果为空则自动生成一个
+        :param enterprise_id: 企业的id
+        :return:
+        """
+        enterprise = TenantEnterprise()
+        enterprise.enterprise_name = enterprise_name
+        enterprise.enterprise_id = enterprise_id
+        enterprise.enterprise_alias = enterprise_alias
+        enterprise.save()
+        return enterprise
+
     def get_enterprise_by_id(self, enterprise_id):
         try:
             return TenantEnterprise.objects.get(enterprise_id=enterprise_id)
