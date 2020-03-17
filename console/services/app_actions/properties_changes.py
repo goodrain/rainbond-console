@@ -29,6 +29,9 @@ class PropertiesChanges(object):
     def __init__(self, service, tenant, install_from_cloud=False):
         self.service = service
         self.tenant = tenant
+        self.current_version = None
+        self.current_app = None
+        self.template = None
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         self.install_from_cloud = False
         if self.service_source and self.service_source.extend_info:
@@ -56,10 +59,6 @@ class PropertiesChanges(object):
             self.template = json.loads(app_version.app_template)
             self.current_app = app
             self.current_version = app_version
-        else:
-            self.current_version = None
-            self.current_app = None
-            self.template = None
 
     @property
     def get_upgradeable_versions(self):
