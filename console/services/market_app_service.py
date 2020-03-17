@@ -1139,6 +1139,8 @@ class MarketAppService(object):
             services = group_service.get_rainbond_services(group.ID, group_key)
             for service in services:
                 pc = PropertiesChanges(service, tenant)
+                if not pc.current_app:
+                    continue
                 if pc.current_app.app_id == services_app_model_id:
                     group_name = pc.current_app.app_name
                     share_user = pc.current_app.create_user
