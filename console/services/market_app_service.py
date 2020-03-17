@@ -934,7 +934,7 @@ class MarketAppService(object):
             return 0, []
         remote_apps = data.get("list", None)
         total = data.get('total', 0)
-        # 创造数据格式app_list = [{group_key:xxx, "group_version_list":[]}, {}]
+        # app_list = [{group_key:xxx, "group_version_list":[]}, {}]
         app_list = []
         result_list = []
         group_key_list = []
@@ -978,7 +978,7 @@ class MarketAppService(object):
                 if rbc.is_complete:
                     is_complete = True
             if rbc and rbc.source != "local" and rbc.upgrade_time:
-                # 判断云市应用是否有小版本更新
+                # Determine whether there is a small version of the app in cloud store update
                 try:
                     old_version = int(rbc.upgrade_time)
                     new_version = int(app["update_version"])
@@ -1025,7 +1025,7 @@ class MarketAppService(object):
                     if rbc.is_complete:
                         is_complete = True
                 if rbc and rbc.source != "local" and rbc.upgrade_time:
-                    # 判断云市应用是否有小版本更新
+                    # Determine whether there is a small version of the app in cloud store update
                     try:
                         old_version = int(rbc.upgrade_time)
                         new_version = int(app["update_version"])
@@ -1154,6 +1154,8 @@ class MarketAppService(object):
                     details = pc.current_app.details
                     min_memory = group_service.get_service_group_memory(pc.template)
                     break
+            if not pc.current_app or not pc.current_version:
+                continue
             dat = {
                 'group_key': group_key,
                 'group_name': group_name,
