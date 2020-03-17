@@ -198,35 +198,35 @@ class GroupappsMigrateService(object):
     def get_and_save_migrate_status(self, user, restore_id):
         migrate_record = migrate_repo.get_by_restore_id(restore_id)
         if not migrate_record:
-            return 404, "无此记录", None
+            return None
         if migrate_record.status == "starting":
             data = region_api.get_apps_migrate_status(
                 migrate_record.migrate_region, migrate_record.migrate_team, migrate_record.backup_id, restore_id)
             bean = data["bean"]
             status = bean["status"]
-
             if status == "success":
                 service_change = bean["service_change"]
                 logger.debug("service change : {0}".format(service_change))
                 metadata = bean["metadata"]
                 migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)
                 with transaction.atomic():
+                    sid = transaction.savepoint()
                     try:
                         self.save_data(migrate_team, migrate_record.migrate_region, user,
                                        service_change, json.loads(metadata), migrate_record.group_id)
+                        if migrate_record.migrate_type == "recover":
+                            # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
+                            backup_record_repo.get_record_by_group_id(
+                                migrate_record.original_group_id).update(group_id=migrate_record.group_id)
+                            self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
                     except Exception as e:
-                        migrate_record.status = "failed"
-                        migrate_record.save()
-                        raise e
-                    if migrate_record.migrate_type == "recover":
-                        # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
-                        backup_record_repo.get_record_by_group_id(
-                            migrate_record.original_group_id).update(group_id=migrate_record.group_id)
-                        self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
-            migrate_record.status = status
-            migrate_record.save()
-
-        return 200, "success", migrate_record
+                        transaction.savepoint_rollback(sid)
+                        logger.exception(e)
+                        status = "failed"
+                    migrate_record.status = status
+                    migrate_record.save()
+                    transaction.savepoint_commit(sid)
+        return migrate_record
 
     def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id):
         group = group_repo.get_group_by_id(group_id)

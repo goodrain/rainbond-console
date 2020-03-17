@@ -1154,6 +1154,8 @@ class MarketAppService(object):
                     details = pc.current_app.details
                     min_memory = group_service.get_service_group_memory(pc.template)
                     break
+            if not pc.current_app or not pc.current_version:
+                continue
             dat = {
                 'group_key': group_key,
                 'group_name': group_name,
