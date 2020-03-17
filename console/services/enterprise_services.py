@@ -256,10 +256,11 @@ class EnterpriseServices(object):
         }
         return data
 
-    def parse_token(token, region_name, region_alias):
+    def parse_token(token, region_name, region_alias, region_type):
         info = yaml.load(token, Loader=yaml.BaseLoader)
         info["region_alias"] = region_alias
         info["region_name"] = region_name
+        info["region_type"] = region_type
         info["ssl_ca_cert"] = info["ssl_ca_cert"]
         info["key_file"] = info["key_file"]
         info["cert_file"] = info["cert_file"]
@@ -273,6 +274,8 @@ class EnterpriseServices(object):
         region_resource["region_name"] = region.region_name
         region_resource["status"] = region.status
         region_resource["region_alias"] = region.region_alias
+        region_resource["region_type"] = region.region_type
+        region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
         region_resource["wsurl"] = region.wsurl
         region_resource["httpdomain"] = region.httpdomain
@@ -290,6 +293,7 @@ class EnterpriseServices(object):
         region_resource["used_disk"] = 0
         region_resource["rbd_version"] = "unknown"
         region_resource["health_status"] = "ok"
+        return region_resource
 
     def get_enterprise_regions(self, enterprise_id):
         regions = region_repo.get_regions_by_enterprise_id(enterprise_id)
@@ -314,6 +318,7 @@ class EnterpriseServices(object):
                 logger.exception(e)
                 region_resource["rbd_version"] = ""
                 region_resource["health_status"] = "failure"
+            region_info_list.append(region_resource)
         return region_info_list
 
     def get_enterprise_region(self, enterprise_id, region_id):

@@ -177,6 +177,7 @@ class RegionRepo(object):
         region.cert_file = data.get("cert_file")
         region.desc = data.get("desc")
         region.key_file = data.get("key_file")
+        region.region_type = data.get("region_type")
         try:
             region.save()
         except Exception:
