@@ -15,12 +15,10 @@ from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
-
 from console.constants import AppConstants
 from console.constants import PluginCategoryConstants
-
 from console.utils.oauth.oauth_types import get_oauth_instance
-
+from console.exception.main import RbdAppNotFound
 from console.exception.main import MarketAppLost
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -201,6 +199,8 @@ class AppBriefView(AppBaseView):
                 try:
                     market_app_service.check_market_service_info(self.tenant, self.service)
                 except MarketAppLost as e:
+                    msg = e.msg
+                except RbdAppNotFound as e:
                     msg = e.msg
             result = general_message(200, "success", msg, bean=self.service.to_dict())
         except Exception as e:
