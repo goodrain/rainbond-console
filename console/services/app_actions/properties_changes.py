@@ -56,6 +56,10 @@ class PropertiesChanges(object):
             self.template = json.loads(app_version.app_template)
             self.current_app = app
             self.current_version = app_version
+        else:
+            self.current_version = None
+            self.current_app = None
+            self.template = None
 
     @property
     def get_upgradeable_versions(self):
