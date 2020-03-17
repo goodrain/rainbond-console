@@ -209,9 +209,8 @@ class GroupappsMigrateService(object):
                 logger.debug("service change : {0}".format(service_change))
                 metadata = bean["metadata"]
                 migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)
-                with transaction.atomic():
-                    sid = transaction.savepoint()
-                    try:
+                try:
+                    with transaction.atomic():
                         self.save_data(migrate_team, migrate_record.migrate_region, user,
                                        service_change, json.loads(metadata), migrate_record.group_id)
                         if migrate_record.migrate_type == "recover":
@@ -219,13 +218,11 @@ class GroupappsMigrateService(object):
                             backup_record_repo.get_record_by_group_id(
                                 migrate_record.original_group_id).update(group_id=migrate_record.group_id)
                             self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
-                    except Exception as e:
-                        transaction.savepoint_rollback(sid)
-                        logger.exception(e)
-                        status = "failed"
-                    migrate_record.status = status
-                    migrate_record.save()
-                    transaction.savepoint_commit(sid)
+                except Exception as e:
+                    logger.exception(e)
+                    status = "failed"
+                migrate_record.status = status
+                migrate_record.save()
         return migrate_record
 
     def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id):
