@@ -264,12 +264,12 @@ class GroupappsMigrateService(object):
         # restore plugin info
         self.__save_plugin_config_items(metadata["plugin_info"]["plugin_config_items"])
         self.__save_plugin_config_groups(metadata["plugin_info"]["plugin_config_groups"])
-        self.__save_plugin_build_versions(migrate_tenant, metadata["plugin_info"]["plugin_build_versions"])
-        plugins = self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
+        versions = self.__save_plugin_build_versions(migrate_tenant, metadata["plugin_info"]["plugin_build_versions"])
+        self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
         for app in apps:
             # plugin
             if app.get("service_plugin_relation", None):
-                self.__save_plugin_relations(ts, app["service_plugin_relation"], plugins)
+                self.__save_plugin_relations(ts, app["service_plugin_relation"], versions)
             if app.get("service_plugin_config", None):
                 self.__save_service_plugin_config(ts.service_id, app["service_plugin_config"])
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
@@ -312,7 +312,7 @@ class GroupappsMigrateService(object):
         volume_name_id = {}
         for volume in tenant_service_volumes:
             index = volume.pop("ID")
-            volume_name_id[volume.volume_name] = index
+            volume_name_id[volume["volume_name"]] = index
             if volume["volume_type"] == "config_file" and contain_config_file is True:
                 for config_file in service_config_file:
                     if config_file["volume_id"] == volume["ID"]:
@@ -565,7 +565,7 @@ class GroupappsMigrateService(object):
         if endpoints_list:
             ThirdPartyServiceEndpoints.objects.bulk_create(endpoints_list)
 
-    def __save_plugin_relations(self, service, plugin_relations, plugins):
+    def __save_plugin_relations(self, service, plugin_relations, plugin_versions):
         if not plugin_relations:
             return
         new_plugin_relations = []
@@ -574,10 +574,10 @@ class GroupappsMigrateService(object):
             new_pr = TenantServicePluginRelation(**pr)
             new_pr.service_id = service.service_id
             if not new_pr.min_memory:
-                for plugin in plugins:
-                    if new_pr.plugin_id == plugin.plugin_id:
-                        new_pr.min_memory = plugin.min_memory
-                        new_pr.min_cpu = plugin.min_cpu
+                for plugin_version in plugin_versions:
+                    if new_pr.plugin_id == plugin_version.plugin_id:
+                        new_pr.min_memory = plugin_version.min_memory
+                        new_pr.min_cpu = plugin_version.min_cpu
                         break
             if not new_pr.min_memory:
                 new_pr.min_memory = 64
@@ -615,10 +615,13 @@ class GroupappsMigrateService(object):
     def __save_plugin_build_versions(self, tenant, plugin_build_versions):
         if not plugin_build_versions:
             return
+        create_version_list = []
         for version in plugin_build_versions:
             version.pop("ID")
             version["tenant_id"] = tenant.tenant_id
-            build_version_repo.create_if_not_exist(**version)
+            create_version = build_version_repo.create_if_not_exist(**version)
+            create_version_list.append(create_version)
+        return create_version_list
 
     def __save_plugins(self, region_name, tenant, plugins):
         if not plugins:
