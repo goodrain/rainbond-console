@@ -232,11 +232,11 @@ class GroupappsMigrateService(object):
         old_new_service_id_map = dict()
         service_relations_list = []
         service_mnt_list = []
+        # restore component
         for app in apps:
             service_base_info = app["service_base"]
             new_service_id = changed_service_map[service_base_info["service_id"]]["ServiceID"]
             new_service_alias = changed_service_map[service_base_info["service_id"]]["ServiceAlias"]
-
             ts = self.__init_app(app["service_base"], new_service_id, new_service_alias,
                                  user, migrate_region, migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
@@ -251,11 +251,6 @@ class GroupappsMigrateService(object):
             self.__save_service_probes(ts, app["service_probes"])
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
-
-            # plugin
-            self.__save_plugin_relations(ts, app["service_plugin_relation"])
-            self.__save_service_plugin_config(ts.service_id, app["service_plugin_config"])
-
             service_relations = app["service_relation"]
             service_mnts = app["service_mnts"]
 
@@ -267,12 +262,17 @@ class GroupappsMigrateService(object):
             ts.create_status = "complete"
             ts.save()
 
-        # plugin info
+        # restore plugin info
         self.__save_plugin_config_items(metadata["plugin_info"]["plugin_config_items"])
         self.__save_plugin_config_groups(metadata["plugin_info"]["plugin_config_groups"])
         self.__save_plugin_build_versions(migrate_tenant, metadata["plugin_info"]["plugin_build_versions"])
-        self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
-
+        plugins = self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
+        for app in apps:
+            # plugin
+            if app.get("service_plugin_relation", None):
+                self.__save_plugin_relations(ts, app["service_plugin_relation"], plugins)
+            if app.get("service_plugin_config", None):
+                self.__save_service_plugin_config(ts.service_id, app["service_plugin_config"])
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map)
 
@@ -566,7 +566,7 @@ class GroupappsMigrateService(object):
         if endpoints_list:
             ThirdPartyServiceEndpoints.objects.bulk_create(endpoints_list)
 
-    def __save_plugin_relations(self, service, plugin_relations):
+    def __save_plugin_relations(self, service, plugin_relations, plugins):
         if not plugin_relations:
             return
         new_plugin_relations = []
@@ -574,6 +574,17 @@ class GroupappsMigrateService(object):
             pr.pop("ID")
             new_pr = TenantServicePluginRelation(**pr)
             new_pr.service_id = service.service_id
+            if not new_pr.min_memory:
+                for plugin in plugins:
+                    if new_pr.plugin_id == plugin.plugin_id:
+                        new_pr.min_memory = plugin.min_memory
+                        new_pr.min_cpu = plugin.min_cpu
+                        break
+            if not new_pr.min_memory:
+                new_pr.min_memory = 64
+            # The CPU is not used as a setting parameter
+            if not new_pr.min_cpu:
+                new_pr.min_cpu = 1
             new_plugin_relations.append(new_pr)
         TenantServicePluginRelation.objects.bulk_create(new_plugin_relations)
 
@@ -613,11 +624,15 @@ class GroupappsMigrateService(object):
     def __save_plugins(self, region_name, tenant, plugins):
         if not plugins:
             return
+        create_plugins = []
         for plugin in plugins:
             plugin.pop("ID")
             plugin["tenant_id"] = tenant.tenant_id
             plugin["region"] = region_name
-            plugin_repo.create_if_not_exist(**plugin)
+            plugin = plugin_repo.create_if_not_exist(**plugin)
+            if plugin:
+                create_plugins.append(plugin)
+        return create_plugins
 
 
 migrate_service = GroupappsMigrateService()
