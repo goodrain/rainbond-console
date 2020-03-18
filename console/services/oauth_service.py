@@ -92,6 +92,7 @@ class OAuthUserService(object):
                 oauth_user_id=oauth_user.id,
                 oauth_user_name=oauth_user.name,
                 oauth_user_email=oauth_user.email,
+                user_id=(user.user_id if user else None),
                 code=code,
                 service_id=oauth_service.ID,
                 access_token=access_token,
@@ -108,6 +109,16 @@ class OAuthUserService(object):
                 "is_authenticated": usr.is_authenticated,
                 "code": code,
             }
+            if user:
+                payload = jwt_payload_handler(user)
+                token = jwt_encode_handler(payload)
+                response = Response({"data": {"bean": {"token": token}}},
+                                    status=200)
+                if api_settings.JWT_AUTH_COOKIE:
+                    expiration = (datetime.datetime.now() + api_settings.JWT_EXPIRATION_DELTA)
+                    response.set_cookie(
+                        api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                return response
             msg = "user is not authenticated"
             return Response({"data": {"bean": {"result": rst, "msg": msg}}}, status=200)
 
