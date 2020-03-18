@@ -267,7 +267,7 @@ class EnterpriseServices(object):
         info["region_id"] = make_uuid()
         return info
 
-    def __init_region_resource_data(self, region):
+    def __init_region_resource_data(self, region, level="open"):
         region_resource = {}
         region_resource["region_id"] = region.region_id
         region_resource["region_alias"] = region.region_alias
@@ -277,14 +277,16 @@ class EnterpriseServices(object):
         region_resource["region_type"] = region.region_type
         region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
-        region_resource["wsurl"] = region.wsurl
-        region_resource["httpdomain"] = region.httpdomain
-        region_resource["tcpdomain"] = region.tcpdomain
         region_resource["scope"] = region.scope
-        region_resource["ssl_ca_cert"] = region.ssl_ca_cert
-        region_resource["cert_file"] = region.cert_file
+        if level == "open":
+            region_resource["wsurl"] = region.wsurl
+            region_resource["httpdomain"] = region.httpdomain
+            region_resource["tcpdomain"] = region.tcpdomain
+            region_resource["ssl_ca_cert"] = region.ssl_ca_cert
+            region_resource["cert_file"] = region.cert_file
+            region_resource["key_file"] = region.key_file
+
         region_resource["desc"] = region.desc
-        region_resource["key_file"] = region.key_file
         region_resource["total_memory"] = 0
         region_resource["used_memory"] = 0
         region_resource["total_cpu"] = 0
@@ -295,13 +297,13 @@ class EnterpriseServices(object):
         region_resource["health_status"] = "ok"
         return region_resource
 
-    def get_enterprise_regions(self, enterprise_id):
+    def get_enterprise_regions(self, enterprise_id, level="open"):
         regions = region_repo.get_regions_by_enterprise_id(enterprise_id)
         region_info_list = []
         if not regions:
             return []
         for region in regions:
-            region_resource = self.__init_region_resource_data(region)
+            region_resource = self.__init_region_resource_data(region, level)
             try:
                 res, body = region_api.get_region_resources(enterprise_id, region.region_name)
                 res, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id, region.region_name)
