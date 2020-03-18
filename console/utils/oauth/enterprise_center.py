@@ -1,66 +1,17 @@
 # -*- coding: utf8 -*-
-import requests
 
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
-# from console.utils.restful_client import get_enterprise_server_client
+from console.utils.restful_client import get_enterprise_server_client
 from console.utils.restful_client import ENTERPRISE_SERVER_API
 
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
 
 
-class EnterpriseCenter(object):
-    def __init__(self, url, oauth_token, api_version="1"):
-        self._api_version = str(api_version)
-        self._base_url = url
-        self._url = "{}/enterprise-server/api/v{}".format(url, api_version)
-
-        self.oauth_token = oauth_token
-        self.session = requests.Session()
-        self.headers = {
-            "Accept": "application/json",
-            "Authorization": self.oauth_token,
-            "Connection": "close"
-        }
-
-    def _api_get(self, url_suffix, params=None):
-        url = '/'.join([self._url, url_suffix])
-        try:
-            rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
-            if rst.status_code == 200:
-                data = rst.json()
-                if not isinstance(data, (list, dict)):
-                    data = None
-            else:
-                data = None
-        except Exception:
-            data = None
-        return data
-
-    def _api_post(self, url_suffix, params=None, data=None):
-        url = '/'.join([self._url, url_suffix])
-        try:
-            rst = self.session.request(method='POST', url=url, headers=self.headers, data=data, params=params)
-            if rst.status_code == 200:
-                dat = rst.json()
-                if data.get("error_description"):
-                    dat = None
-            else:
-                dat = None
-        except Exception:
-            dat = None
-        return dat
-
-    def oauth_user(self):
-        url_suffix = 'oauth/user'
-        return self._api_get(url_suffix)
-
-
 class EnterpriseCenterV1MiXin(object):
     def set_api(self, oauth_token):
-        # self.api = get_enterprise_server_client(token=oauth_token)
-        self.api = EnterpriseCenter(ENTERPRISE_SERVER_API, oauth_token)
+        self.api = get_enterprise_server_client(token=oauth_token)
 
 
 class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
@@ -161,11 +112,11 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
         user = self.api.oauth_user()
-        communication_user = OAuth2User(user["real_name"], user["username"], user["email"])
-        communication_user.phone = user["phone"]
-        communication_user.enterprise_id = user["enterprise"]["id"]
-        communication_user.enterprise_name = user["enterprise"]["name"]
-        communication_user.enterprise_domain = user["enterprise"]["domain"]
+        communication_user = OAuth2User(user.real_name, user.username, user.email)
+        communication_user.phone = user.phone
+        communication_user.enterprise_id = user.enterprise.id
+        communication_user.enterprise_name = user.enterprise.name
+        communication_user.enterprise_domain = user.enterprise.domain
         return communication_user, access_token, refresh_token
 
     def get_authorize_url(self):

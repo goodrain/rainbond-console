@@ -1,7 +1,6 @@
 # -*- coding: utf8 -*-
 import json
 import logging
-import datetime
 
 from django.shortcuts import redirect
 
@@ -14,7 +13,6 @@ from console.views.base import JWTAuthApiView, AlowAnyApiView
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.services.oauth_service import oauth_sev_user_service
-from console.repositories.user_repo import user_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.oauth.oauth_types import NoSupportOAuthType
 from console.utils.oauth.oauth_types import support_oauth_type
@@ -227,78 +225,12 @@ class OAuthServerAuthorize(AlowAnyApiView):
             logger.debug(e.message)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
-        user_name = oauth_user.name
-        user_id = str(oauth_user.id)
-        user_email = oauth_user.email
         if api.is_communication_oauth():
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
-            user = oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
-            oauth_sev_user_service.get_or_add_oauth_user(
-                user, service_id, user_id, access_token, refresh_token, code)
-
-        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id,
-                                                               oauth_user_id=user_id)
-
-        if authenticated_user is not None:
-            authenticated_user.oauth_user_id = user_id
-            authenticated_user.oauth_user_name = user_name
-            authenticated_user.oauth_user_email = user_email
-            authenticated_user.access_token = access_token
-            authenticated_user.refresh_token = refresh_token
-            authenticated_user.code = code
-            authenticated_user.save()
-            if authenticated_user.user_id is not None:
-                login_user = user_repo.get_by_user_id(authenticated_user.user_id)
-                payload = jwt_payload_handler(login_user)
-                token = jwt_encode_handler(payload)
-                response = Response({"data": {"bean": {"token": token}}},
-                                    status=status.HTTP_200_OK)
-                if api_settings.JWT_AUTH_COOKIE:
-                    expiration = (datetime.datetime.now() +
-                                  api_settings.JWT_EXPIRATION_DELTA)
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE,
-                                        token,
-                                        expires=expiration,
-                                        httponly=True)
-                return response
-
-            else:
-                rst = {
-                    "oauth_user_name": user_name,
-                    "oauth_user_id": user_id,
-                    "oauth_user_email": user_email,
-                    "service_id": authenticated_user.service_id,
-                    "oauth_type": oauth_service.oauth_type,
-                    "is_authenticated": authenticated_user.is_authenticated,
-                    "code": code,
-                }
-                msg = "user is not authenticated"
-                return Response({"data": {"bean": {"result": rst, "msg": msg}}},
-                                status=status.HTTP_200_OK)
-        else:
-            usr = oauth_user_repo.save_oauth(
-                oauth_user_id=user_id,
-                oauth_user_name=user_name,
-                oauth_user_email=user_email,
-                code=code,
-                service_id=service_id,
-                access_token=access_token,
-                refresh_token=refresh_token,
-                is_authenticated=True,
-                is_expired=False,
-            )
-            rst = {
-                "oauth_user_name": usr.oauth_user_name,
-                "oauth_user_id": usr.oauth_user_id,
-                "oauth_user_email": usr.oauth_user_email,
-                "service_id": usr.service_id,
-                "oauth_type": oauth_service.oauth_type,
-                "is_authenticated": usr.is_authenticated,
-                "code": code,
-            }
-            msg = "user is not authenticated"
-            return Response({"data": {"bean": {"result": rst, "msg": msg}}}, status=status.HTTP_200_OK)
+            oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
+        return oauth_sev_user_service.set_oauth_user_relation(
+            api, oauth_service, oauth_user, access_token, refresh_token, code)
 
 
 class OAuthUserInfo(AlowAnyApiView):
