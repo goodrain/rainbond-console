@@ -8,6 +8,8 @@ import logging
 import socket
 
 import httplib2
+from django.core.paginator import Paginator
+
 from django.db import transaction
 from django.db.models import Q
 from market_client.rest import ApiException
@@ -24,7 +26,6 @@ from console.models.main import RainbondCenterAppVersion
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.app_config import volume_repo
-from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.plugin import plugin_repo
@@ -707,88 +708,86 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self, tenant, scope, app_name):
+    def get_visiable_apps(self, enterprise_id, team_names, scope, app_name, tags=[], page=1, page_size=10):
+        app_ids = []
+        tag_infos = []
+        if tags:
+            app_tags = rainbond_app_repo.get_rainbond_app_tags_by_tag_names(enterprise_id, tags)
+            if app_tags:
+                tag_infos = [{"name": tag.name, "tag_id": tag.ID}for tag in app_tags]
+            tag_relations = rainbond_app_repo.get_rainbond_app_tag_relations_by_tag_ids(enterprise_id, tags)
+            app_ids = [relation.app_id for relation in tag_relations]
 
         if scope == "team":
-            rt_apps = self.get_current_team_shared_apps(tenant.enterprise_id, tenant.tenant_name)
-        elif scope == "goodrain":
-            rt_apps = self.get_public_market_shared_apps(tenant.enterprise_id)
-        elif scope == "enterprise":
-            rt_apps = self.get_current_enterprise_shared_apps(tenant.enterprise_id)
+            rt_apps = self.get_team_visiable_apps(enterprise_id, team_names, app_ids)
         else:
-            rt_apps = self.get_team_visiable_apps(tenant)
+            rt_apps = self.get_current_enterprise_shared_apps(enterprise_id, app_ids)
+
         if app_name:
-            rt_apps = rt_apps.filter(Q(group_name__icontains=app_name))
-        return rt_apps
+            rt_apps = rt_apps.filter(Q(app_name__icontains=app_name))
 
-    def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):
-        limit = ""
-        where = 'WHERE A.is_complete=1 AND A.enterprise_id in ("public", "{}")'.format(tenant.enterprise_id)
-        if scope:
-            if scope == "team":
-                where += ' AND A.share_team="{}"'.format(tenant.tenant_name)
-            else:
-                where += ' AND A.scope="{}"'.format(scope)
-        else:
-            where += ' AND ((A.share_team="{}") OR (A.scope in ("goodrain", "enterprise")))'.format(tenant.tenant_name)
-        if app_name:
-            where += ' AND A.group_name like "{}%"'.format(app_name)
-        if dev_status:
-            where += ' AND A.dev_status="{}"'.format(dev_status)
-        if page is not None and page_size is not None:
-            page = (page - 1) * page_size
-            limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
-        sql = """
-                SELECT
-                    A.*,
-                    CONCAT('[',
-                        GROUP_CONCAT(
-                        CONCAT('{"tag_id":"',C.ID,'"'),',',
-                        CONCAT('"name":"',C.name),'"}')
-                    ,']') as tags
-                FROM rainbond_center_app A
-                LEFT JOIN rainbond_center_app_tag_relation B
-                ON A.group_key = B.group_key and A.enterprise_id = B.enterprise_id
-                LEFT JOIN rainbond_center_app_tag C
-                ON B.tag_id = C.ID
-                """
-        sql1 = """
-                GROUP BY
-                    A.group_key, A.version
-                ORDER BY
-                    A.create_time DESC
-                """
-        sql += where
-        sql += sql1
-        sql += limit
-        conn = BaseConnection()
-        result = conn.query(sql)
-        return result
+        if not rt_apps:
+            return []
 
-    def get_current_team_shared_apps(self, enterprise_id, current_team_name):
-        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team=current_team_name)
+        rt_apps = Paginator(rt_apps, page_size).page(page)
 
-    def get_current_enterprise_shared_apps(self, enterprise_id):
-        tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
-        tenant_names = [t.tenant_name for t in tenants]
-        # 获取企业分享的应用，并且排除返回在团队内的
-        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(
-            share_team__in=tenant_names).exclude(
-            scope="team")
+        # prepare versions
+        app_versions = rainbond_app_repo.get_rainbond_app_versions_by_app_ids(enterprise_id, [app.app_id for app in rt_apps])
+        app_with_version = dict()
+        for version in app_versions:
+            if not app_with_version.get(version.app_id):
+                app_with_version[version.app_id] = []
+            app_with_version[version.app_id].append({
+                "version_alas": version.version_alias,
+                "version": version.version,
+                "is_complete": version.is_complete,
+            })
 
-    def get_public_market_shared_apps(self, enterprise_id):
-        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(scope="goodrain")
+        app_list = []
+        for app in rt_apps:
+            app_list.append({
+                "update_time": app.update_time,
+                "is_ingerit": app.is_ingerit,
+                "app_id": app.app_id,
+                "app_name": app.app_name,
+                "pic": app.pic,
+                "describe": app.describe,
+                "create_time": app.create_time,
+                "scope": app.scope,
+                "versions_info": app_with_version.get(app.app_id),
+                "dev_status": app.dev_status,
+                "tags": tag_infos,
+                "enterprise_id": app.enterprise_id,
+                "is_official": app.is_official,
+                "ID": app.ID,
+                "source": app.source,
+                "details": app.details,
+                "install_number": app.install_number,
+                "create_user": app.create_user,
+                "create_team": app.create_team,
+            })
 
-    def get_team_visiable_apps(self, tenant):
-        tenants = team_repo.get_teams_by_enterprise_id(tenant.enterprise_id)
-        tenant_names = [t.tenant_name for t in tenants]
-        public_apps = Q(scope="goodrain")
-        enterprise_apps = Q(share_team__in=tenant_names, scope="enterprise")
-        team_apps = Q(share_team=tenant.tenant_name, scope="team")
+        return app_list
 
-        return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(
-            public_apps | enterprise_apps
-            | team_apps)
+    def get_current_enterprise_shared_apps(self, enterprise_id, app_ids=[]):
+        apps = rainbond_app_repo.get_all_rainbond_apps().filter(enterprise_id=enterprise_id, scope="enterprise")
+        if not apps:
+            return None
+        if app_ids:
+            apps = apps.filter(app_id__in=app_ids)
+        return apps
+
+    def get_team_visiable_apps(self, enterprise_id, team_names, app_ids=[]):
+        if not team_names:
+            return None
+        apps = rainbond_app_repo.get_all_rainbond_apps().filter(enterprise_id=enterprise_id, scope="team")
+        if not apps:
+            return None
+        if team_names:
+            apps = apps.filter(create_team__in=team_names)
+        if app_ids:
+            apps = apps.filter(app_id__in=app_ids)
+        return apps
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)

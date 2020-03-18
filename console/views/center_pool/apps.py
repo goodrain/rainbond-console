@@ -207,7 +207,6 @@ class CenterAppCLView(JWTAuthApiView):
         """
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
-        is_complete = request.GET.get("is_complete", None)
         tags = request.GET.get("tags", [])
         team_names = []
         if scope == "team":
@@ -219,36 +218,8 @@ class CenterAppCLView(JWTAuthApiView):
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        app_list = []
-        apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
-            enterprise_id, app_name, tags, scope, team_names, is_complete, page, page_size)
-        if apps and apps[0].app_name:
-            for app in apps:
-                versions_info = (json.loads(app.versions_info) if app.versions_info else [])
-                app_list.append({
-                    "update_time": app.update_time,
-                    "is_ingerit": app.is_ingerit,
-                    "app_id": app.app_id,
-                    "app_name": app.app_name,
-                    "pic": app.pic,
-                    "describe": app.describe,
-                    "create_time": app.create_time,
-                    "scope": app.scope,
-                    "versions_info": versions_info,
-                    "dev_status": app.dev_status,
-                    "tags": (json.loads(app.tags) if app.tags else []),
-                    "enterprise_id": app.enterprise_id,
-                    "is_official": app.is_official,
-                    "ID": app.ID,
-                    "source": app.source,
-                    "details": app.details,
-                    "install_number": app.install_number,
-                    "create_user": app.create_user,
-                    "create_team": app.create_team,
-                })
-
-        return MessageResponse(
-            "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
+        app_list = market_app_service.get_visiable_apps(enterprise_id, team_names, scope, app_name, tags, page, page_size)
+        return MessageResponse("success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
 
     @never_cache
     def post(self, request, enterprise_id, *args, **kwargs):

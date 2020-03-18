@@ -9,6 +9,7 @@ from console.models.main import AppImportRecord
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.models.main import RainbondCenterAppTagsRelation
+from console.models.main import RainbondCenterAppTag
 from www.db.base import BaseConnection
 
 logger = logging.getLogger("default")
@@ -411,6 +412,25 @@ class RainbondCenterAppRepository(object):
 
     def delete_app_by_id(self, enterprise_id, app_id):
         RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
+
+    def get_rainbond_app_tags_by_tag_names(self, enterprise_id, tags=[]):
+        if not tags:
+            return None
+        return RainbondCenterAppTag.objects.filter(name__in=tags, enterprise_id=enterprise_id)
+
+    def get_rainbond_app_tag_relations_by_tag_ids(self, enterprise_id, tags=[]):
+        if not tags:
+            return None
+        relations = RainbondCenterAppTag.objects.filter(name__in=tags, enterprise_id=enterprise_id)
+        if not relations:
+            return None
+        tag_ids = [relation.ID for relation in relations]
+        return RainbondCenterAppTagsRelation.objects.filter(tag_id__in=tag_ids, enterprise_id=enterprise_id)
+
+    def get_rainbond_app_versions_by_app_ids(self, enterprise_id, app_ids):
+        if not app_ids:
+            return None
+        return RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id__in=app_ids)
 
 
 class AppExportRepository(object):
