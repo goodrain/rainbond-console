@@ -309,13 +309,14 @@ class EnterpriseServices(object):
                 res, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id, region.region_name)
                 rbd_version = rbd_version["raw"].decode("utf-8")
                 if res.get("status") == 200:
-                    region_resource["total_memory"] = body["bean"]["cap_mem"],
-                    region_resource["used_memory"] = body["bean"]["req_mem"],
-                    region_resource["total_cpu"] = body["bean"]["cap_cpu"],
-                    region_resource["used_cpu"] = body["bean"]["req_cpu"],
-                    region_resource["total_disk"] = body["bean"]["cap_disk"],
-                    region_resource["used_disk"] = body["bean"]["req_disk"],
-                    region_resource["rbd_version"] = rbd_version,
+                    logger.debug(body["bean"]["cap_mem"])
+                    region_resource["total_memory"] = body["bean"]["cap_mem"]
+                    region_resource["used_memory"] = body["bean"]["req_mem"]
+                    region_resource["total_cpu"] = body["bean"]["cap_cpu"]
+                    region_resource["used_cpu"] = body["bean"]["req_cpu"]
+                    region_resource["total_disk"] = body["bean"]["cap_disk"]
+                    region_resource["used_disk"] = body["bean"]["req_disk"]
+                    region_resource["rbd_version"] = rbd_version
             except region_api.CallApiError as e:
                 logger.exception(e)
                 region_resource["rbd_version"] = ""
