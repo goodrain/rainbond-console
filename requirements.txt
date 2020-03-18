@@ -37,4 +37,4 @@ PyGithub==1.44.1
 enum34==1.1.6
 validators==0.14.2
 -e git+https://github.com/goodrain/market-api-python.git#egg=rainbond_market_client
--e git+http://git.goodrain.com/goodrain/enterprise-server-python.git#egg=enterprise-server
+-e git+http://zhaoxs@goodrain.com:45396622zxs@git.goodrain.com/goodrain/enterprise-server-python.git#egg=enterprise-server
