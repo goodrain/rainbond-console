@@ -6,7 +6,7 @@ import re
 
 
 def is_path_legal(path):
-    r = re.compile(r'^\/([\w-]+\/?)+$')
+    r = re.compile(r'^\/([\w-]+\/?)+([\w-]?.+\/?)?([\w-]?.[\w-]+\/?)$')
     if not r.match(path):
         return False
     return True
