@@ -238,9 +238,10 @@ class EnterpriseServices(object):
         for running_component in running_component_ids:
             # if this running component belong to this enterprise
             app = component_and_app.get(running_component)
-            if app and app not in running_apps:
+            if app:
                 component_running_num += 1
-                running_apps.append(app)
+                if app not in running_apps:
+                    running_apps.append(app)
         app_running_num = len(running_apps)
         data = {
             "service_groups": {
