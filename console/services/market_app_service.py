@@ -1073,10 +1073,20 @@ class MarketAppService(object):
             market_client = get_market_client(token.access_id, token.access_token, token.access_url)
         else:
             market_client = get_default_market_client()
-        apps = market_client.get_app_versions(market_id, app_id)
-        if not apps:
-            return None
-        return apps.app_versions
+        try:
+            apps = market_client.get_app_versions(market_id, app_id)
+            if not apps:
+                return None
+            return apps.app_versions
+        except ApiException as e:
+            if e.status == 403:
+                raise ServiceHandleException(
+                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            if e.status == 404:
+                return None
+            logger.exception(e)
+            raise ServiceHandleException(
+                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def get_cloud_app_version(self, enterprise_id, app_id, app_version, market_id):
         token = self.get_enterprise_access_token(enterprise_id, "market")
@@ -1084,10 +1094,20 @@ class MarketAppService(object):
             market_client = get_market_client(token.access_id, token.access_token, token.access_url)
         else:
             market_client = get_default_market_client()
-        version = market_client.get_app_version(market_id, app_id, app_version)
-        if not version:
-            return None
-        return version
+        try:
+            version = market_client.get_app_version(market_id, app_id, app_version)
+            if not version:
+                return None
+            return version
+        except ApiException as e:
+            if e.status == 403:
+                raise ServiceHandleException(
+                        "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                if e.status == 404:
+                    return None
+                logger.exception(e)
+                raise ServiceHandleException(
+                    "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
