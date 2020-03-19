@@ -57,12 +57,14 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     if share_record.share_app_market_id:
                         store_id = share_record.share_app_market_id
                         try:
-                            cloud_app = market_sycn_service.get_cloud_app(
-                                self.tenant.enterprise_id,
-                                share_record.share_app_market_id,
-                                share_record.app_id)
-                            app_model_id = share_record.app_id
-                            app_model_name = cloud_app.name
+                            if store_id and share_record.app_id:
+                                cloud_app = market_sycn_service.get_cloud_app(
+                                    self.tenant.enterprise_id,
+                                    share_record.share_app_market_id,
+                                    share_record.app_id)
+                                if cloud_app:
+                                    app_model_id = share_record.app_id
+                                    app_model_name = cloud_app.name
                         except ServiceHandleException:
                             app_model_id = share_record.app_id
                 data.append({
