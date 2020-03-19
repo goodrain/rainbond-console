@@ -143,11 +143,16 @@ class ServiceGroupView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: path
+            - name: query
+              description: 应用搜索名称
+              required: false
+              type: string
+              paramType: query
         """
         try:
             code = 200
-
-            groups_services = group_service.get_groups_and_services(self.tenant, self.response_region)
+            query = request.GET.get("query", "")
+            groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
             return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
         except Exception as e:
             logger.exception(e)
