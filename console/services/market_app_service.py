@@ -1700,6 +1700,7 @@ class AppMarketSynchronizeService(object):
             raise ServiceHandleException(
                 "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
+    # if can not get cloud app will return None
     def get_cloud_app(self, enterprise_id, market_id, app_id):
         try:
             token = self.get_enterprise_access_token(enterprise_id, "market")
@@ -1715,6 +1716,8 @@ class AppMarketSynchronizeService(object):
             if e.status == 403:
                 raise ServiceHandleException(
                     "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            if e.status == 404:
+                return None
             raise ServiceHandleException(
                 "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
