@@ -868,7 +868,9 @@ class MarketAppService(object):
                     dev_status=app_template['group_version'],
                     source="import",
                     scope="goodrain",
-                    describe=app_template.get("desc", ""),
+                    describe=app_template.get("info", ""),
+                    details=app_template.get("desc", ""),
+                    pic=app_template.get("pic", ""),
                     create_time=app_template["create_time"],
                     update_time=app_template["update_time"])
                 rainbond_app.market_id = app_template.market_id
@@ -1138,6 +1140,8 @@ class MarketAppService(object):
             services = group_service.get_rainbond_services(group.ID, group_key)
             for service in services:
                 pc = PropertiesChanges(service, tenant)
+                if not pc.current_app:
+                    continue
                 if pc.current_app.app_id == services_app_model_id:
                     group_name = pc.current_app.app_name
                     share_user = pc.current_app.create_user
@@ -1151,6 +1155,8 @@ class MarketAppService(object):
                     details = pc.current_app.details
                     min_memory = group_service.get_service_group_memory(pc.template)
                     break
+            if not pc.current_app or not pc.current_version:
+                continue
             dat = {
                 'group_key': group_key,
                 'group_name': group_name,

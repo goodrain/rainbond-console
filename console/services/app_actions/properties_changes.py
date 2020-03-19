@@ -29,6 +29,9 @@ class PropertiesChanges(object):
     def __init__(self, service, tenant, install_from_cloud=False):
         self.service = service
         self.tenant = tenant
+        self.current_version = None
+        self.current_app = None
+        self.template = None
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         self.install_from_cloud = False
         if self.service_source and self.service_source.extend_info:
@@ -52,9 +55,10 @@ class PropertiesChanges(object):
             app, app_version = market_app_service.get_app_from_cloud(
                 self.tenant, self.service_source.group_key, self.service_source.version)
             self.market_id = app.market_id
-        self.template = json.loads(app_version.app_template)
-        self.current_app = app
-        self.current_version = app_version
+        if app_version:
+            self.template = json.loads(app_version.app_template)
+            self.current_app = app
+            self.current_version = app_version
 
     @property
     def get_upgradeable_versions(self):
@@ -66,6 +70,9 @@ class PropertiesChanges(object):
 
         """
         if not self.service_source:
+            return None
+        # not found current version
+        if not self.current_version:
             return None
         from console.services.market_app_service import market_app_service
         upgradeble_versions = []
@@ -140,6 +147,9 @@ class PropertiesChanges(object):
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
         if not component:
+            return None
+        # not found current version
+        if not self.current_version:
             return None
         self.plugins = plugins
         result = {}

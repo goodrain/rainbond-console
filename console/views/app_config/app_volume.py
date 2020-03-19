@@ -122,12 +122,9 @@ class AppVolumeView(AppBaseView):
         settings['reclaim_policy'] = reclaim_policy
         settings['allow_expansion'] = allow_expansion
 
-        code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                            volume_name, file_content, settings)
-        if code != 200:
-            result = general_message(code, "add volume error", msg)
-            return Response(result, status=code)
-        result = general_message(code, msg, u"持久化路径添加成功", bean=data.to_dict())
+        data = volume_service.add_service_volume(
+            self.tenant, self.service, volume_path, volume_type, volume_name, file_content, settings)
+        result = general_message(200, "success", u"持久化路径添加成功", bean=data.to_dict())
 
         return Response(result, status=result["code"])
 
@@ -160,17 +157,10 @@ class AppVolumeManageView(AppBaseView):
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", u"未指定需要删除的持久化路径"), status=400)
-        try:
-            code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id))
-            logger.debug(code)
-            if code != 200:
-                result = general_message(code=code, msg="delete volume error", msg_show=msg)
-                return Response(result, status=result["code"])
-
-            result = general_message(200, "success", u"删除成功", bean=volume.to_dict())
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id))
+        if code != 200:
+            result = general_message(code=code, msg="delete volume error", msg_show=msg)
+        result = general_message(200, "success", u"删除成功", bean=volume.to_dict())
         return Response(result, status=result["code"])
 
     @never_cache

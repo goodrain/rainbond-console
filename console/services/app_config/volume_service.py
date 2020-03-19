@@ -361,13 +361,17 @@ class AppVolumeService(object):
         if mnt:
             return 403, u"当前路径被共享,无法删除", None
         if service.create_status == "complete":
-            res, body = region_api.delete_service_volumes(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, volume.volume_name,
-                tenant.enterprise_id)
-            logger.debug("service {0} delete volume {1}, result {2}".format(
-                service.service_cname, volume.volume_name, body))
-
+            try:
+                res, body = region_api.delete_service_volumes(
+                    service.service_region, tenant.tenant_name,
+                    service.service_alias, volume.volume_name,
+                    tenant.enterprise_id)
+                logger.debug("service {0} delete volume {1}, result {2}".format(
+                    service.service_cname, volume.volume_name, body))
+            except region_api.CallApiError as e:
+                if e.status != 404:
+                    raise ServiceHandleException(msg="delete volume from region failure",
+                                                 msg_show="从集群删除存储发生错误", status_code=500)
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume_id(volume_id)
 
