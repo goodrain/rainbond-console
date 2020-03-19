@@ -7,6 +7,7 @@ import httplib2
 from django import http
 from django.conf import settings
 
+from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
@@ -1623,8 +1624,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
     def get_region_resources(self, enterprise_id, region_name):
-        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
-        url = url + "/v2/cluster"
-        self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region_name)
-        return res, body
+        try:
+            url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+            url = url + "/v2/cluster"
+            self._set_headers(token)
+            res, body = self._get(url, self.default_headers, region=region_name)
+            return res, body
+        except Exception as e:
+            logger.debug(e)
+            raise ServiceHandleException(
+                msg="link error", msg_show="无法连接到数据中心: {}， 请检查配置".format(region_name))

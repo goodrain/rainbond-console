@@ -318,7 +318,7 @@ class EnterpriseServices(object):
                     region_resource["total_disk"] = body["bean"]["cap_disk"]
                     region_resource["used_disk"] = body["bean"]["req_disk"]
                     region_resource["rbd_version"] = rbd_version
-            except region_api.CallApiError as e:
+            except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)
                 region_resource["rbd_version"] = ""
                 region_resource["health_status"] = "failure"
@@ -342,13 +342,10 @@ class EnterpriseServices(object):
                 region_resource["total_disk"] = body["bean"]["cap_disk"],
                 region_resource["used_disk"] = body["bean"]["req_disk"],
                 region_resource["rbd_version"] = rbd_version,
-        except region_api.CallApiError as e:
+        except (region_api.CallApiError, ServiceHandleException) as e:
             logger.exception(e)
             region_resource["rbd_version"] = ""
             region_resource["health_status"] = "failure"
-        except Exception as e:
-            logger.exception(e)
-            raise ServiceHandleException(msg="link failed", msg_show="数据中心参数错误，无法连接")
         return region_resource
 
     def update_enterprise_region(self, enterprise_id, region_id, data):
