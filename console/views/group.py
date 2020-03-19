@@ -5,7 +5,7 @@
 import logging
 from rest_framework.response import Response
 
-from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.group import group_service_relation_repo
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
@@ -140,7 +140,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         try:
             group_id = int(kwargs.get("group_id", None))
             service = group_service_relation_repo.get_service_by_group(group_id)
-            group_object = group_repo.get_group_by_id(group_id)
             if not service:
                 code, msg, data = group_service.delete_group_no_service(group_id)
             else:
