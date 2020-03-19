@@ -62,6 +62,7 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -708,17 +709,25 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self, enterprise_id, team_names, scope, app_name, tags=[], page=1, page_size=10):
+    def get_visiable_apps(self, enterprise_id, user, scope, app_name, tags=[], page=1, page_size=10):
+        # prepare app_ids and tag info
         app_ids = []
-        tag_infos = []
         if tags:
-            app_tags = rainbond_app_repo.get_rainbond_app_tags_by_tag_names(enterprise_id, tags)
-            if app_tags:
-                tag_infos = [{"name": tag.name, "tag_id": tag.ID}for tag in app_tags]
             tag_relations = rainbond_app_repo.get_rainbond_app_tag_relations_by_tag_ids(enterprise_id, tags)
             app_ids = [relation.app_id for relation in tag_relations]
 
+        # select by scope and app_ids
         if scope == "team":
+            # prepare teams
+            is_admin = user_services.is_user_admin_in_current_enterprise(user, enterprise_id)
+            if is_admin:
+                teams = team_repo.get_team_by_enterprise_id(enterprise_id)
+            else:
+                teams = team_repo.get_tenants_by_user_id(user.user_id)
+
+            team_names = []
+            if teams:
+                team_names = [team.tenant_name for team in teams]
             rt_apps = self.get_team_visiable_apps(enterprise_id, team_names, app_ids)
         else:
             rt_apps = self.get_current_enterprise_shared_apps(enterprise_id, app_ids)
@@ -730,9 +739,10 @@ class MarketAppService(object):
             return []
 
         rt_apps = Paginator(rt_apps, page_size).page(page)
+        ret_app_ids = [app.app_id for app in rt_apps]
 
         # prepare versions
-        app_versions = rainbond_app_repo.get_rainbond_app_versions_by_app_ids(enterprise_id, [app.app_id for app in rt_apps])
+        app_versions = rainbond_app_repo.get_rainbond_app_versions_by_app_ids(enterprise_id, ret_app_ids)
         app_with_version = dict()
         for version in app_versions:
             if not app_with_version.get(version.app_id):
@@ -743,8 +753,24 @@ class MarketAppService(object):
                 "is_complete": version.is_complete,
             })
 
+        # prepare tags
+        app_tag_relations, app_tags = rainbond_app_repo.get_rainbond_app_tags_by_app_ids(enterprise_id, ret_app_ids)
+        app_with_tags = dict()
+        tag_infos = dict()
+        if app_tags:
+            for tag in app_tags:
+                if not tag_infos.get(tag.ID):
+                    tag_infos[tag.ID] = []
+                tag_infos[tag.ID].append({"name": tag.name, "tag_id": tag.ID})
+        if app_tag_relations:
+            for relation in app_tag_relations:
+                if not app_with_tags.get(relation.app_id):
+                    app_with_tags[relation.app_id] = []
+                app_with_tags[relation.app_id].extend(tag_infos.get(relation.tag_id, []))
+
         app_list = []
         for app in rt_apps:
+            tag_infos = app_with_tags.get(app.app_id, [])
             app_list.append({
                 "update_time": app.update_time,
                 "is_ingerit": app.is_ingerit,
@@ -770,24 +796,10 @@ class MarketAppService(object):
         return app_list
 
     def get_current_enterprise_shared_apps(self, enterprise_id, app_ids=[]):
-        apps = rainbond_app_repo.get_all_rainbond_apps().filter(enterprise_id=enterprise_id, scope="enterprise")
-        if not apps:
-            return None
-        if app_ids:
-            apps = apps.filter(app_id__in=app_ids)
-        return apps
+        return rainbond_app_repo.get_rainbond_apps_in_enterprise(enterprise_id, app_ids)
 
     def get_team_visiable_apps(self, enterprise_id, team_names, app_ids=[]):
-        if not team_names:
-            return None
-        apps = rainbond_app_repo.get_all_rainbond_apps().filter(enterprise_id=enterprise_id, scope="team")
-        if not apps:
-            return None
-        if team_names:
-            apps = apps.filter(create_team__in=team_names)
-        if app_ids:
-            apps = apps.filter(app_id__in=app_ids)
-        return apps
+        return rainbond_app_repo.get_rainbond_apps_in_teams(enterprise_id, team_names, app_ids)
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)

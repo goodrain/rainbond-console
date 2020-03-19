@@ -4,6 +4,8 @@
 """
 import logging
 
+from django.db.models import Q
+
 from console.models.main import AppExportRecord
 from console.models.main import AppImportRecord
 from console.models.main import RainbondCenterApp
@@ -414,23 +416,43 @@ class RainbondCenterAppRepository(object):
         RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
 
     def get_rainbond_app_tags_by_tag_names(self, enterprise_id, tags=[]):
-        if not tags:
-            return None
         return RainbondCenterAppTag.objects.filter(name__in=tags, enterprise_id=enterprise_id)
+
+    def get_rainbond_app_tags_by_app_ids(self, enterprise_id, app_ids):
+        if not app_ids:
+            return None
+        relations = RainbondCenterAppTagsRelation.objects.filter(app_id__in=app_ids, enterprise_id=enterprise_id)
+        tag_ids = [relation.tag_id for relation in relations]
+        tags = RainbondCenterAppTag.objects.filter(ID__in=tag_ids, enterprise_id=enterprise_id)
+        return relations, tags
 
     def get_rainbond_app_tag_relations_by_tag_ids(self, enterprise_id, tags=[]):
         if not tags:
             return None
-        relations = RainbondCenterAppTag.objects.filter(name__in=tags, enterprise_id=enterprise_id)
-        if not relations:
+        tag_infos = RainbondCenterAppTag.objects.filter(name__in=tags, enterprise_id=enterprise_id)
+        if not tag_infos:
             return None
-        tag_ids = [relation.ID for relation in relations]
+        tag_ids = [tag.ID for tag in tag_infos]
         return RainbondCenterAppTagsRelation.objects.filter(tag_id__in=tag_ids, enterprise_id=enterprise_id)
 
     def get_rainbond_app_versions_by_app_ids(self, enterprise_id, app_ids):
         if not app_ids:
             return None
         return RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id__in=app_ids)
+
+    def get_rainbond_apps_in_enterprise(self, enterprise_id, app_ids):
+        q = Q(scope="enterprise", enterprise_id=enterprise_id)
+        if app_ids:
+            q = q & Q(app_id__in=app_ids)
+        return RainbondCenterApp.objects.filter(q)
+
+    def get_rainbond_apps_in_teams(self, enterprise_id, team_names, app_ids):
+        if not team_names:
+            return None
+        q = Q(scope="team", enterprise_id=enterprise_id, create_team__in=team_names)
+        if app_ids:
+            q = q & Q(app_id__in=app_ids)
+        return RainbondCenterApp.objects.filter(q)
 
 
 class AppExportRepository(object):
