@@ -343,7 +343,7 @@ class RegionService(object):
             config_service.get_by_key("REGION_SERVICE_API")
             config_service.update_config("REGION_SERVICE_API", region_data)
         except ConsoleSysConfig.DoesNotExist:
-            config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")
+            config_service.add_config("REGION_SERVICE_API", region_data, 'json', True, "数据中心配置")
 
     def update_region_config(self):
         region_data = self.generate_region_config()
@@ -351,7 +351,7 @@ class RegionService(object):
             config_service.get_by_key("REGION_SERVICE_API")
             config_service.update_config("REGION_SERVICE_API", region_data)
         except ConsoleSysConfig.DoesNotExist:
-            config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")
+            config_service.add_config("REGION_SERVICE_API", region_data, 'json', True, "数据中心配置")
 
     def generate_region_config(self):
         # 查询已上线的数据中心配置

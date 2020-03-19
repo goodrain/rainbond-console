@@ -346,7 +346,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         token = request.data.get("token")
         region_name = request.data.get("region_name")
         region_alias = request.data.get("region_alias")
-        region_type = request.data.get("region_type")
+        region_type = json.dumps(request.data.get("region_type", []))
         try:
             region_data = enterprise_services.parse_token(token, region_name, region_alias, region_type)
         except Exception as e:
