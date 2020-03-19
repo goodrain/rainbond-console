@@ -346,6 +346,9 @@ class EnterpriseServices(object):
             logger.exception(e)
             region_resource["rbd_version"] = ""
             region_resource["health_status"] = "failure"
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceHandleException(msg="link failed", msg_show="数据中心参数错误，无法连接")
         return region_resource
 
     def update_enterprise_region(self, enterprise_id, region_id, data):
