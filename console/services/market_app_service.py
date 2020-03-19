@@ -1096,7 +1096,7 @@ class MarketAppService(object):
                     return None
                 logger.exception(e)
                 raise ServiceHandleException(
-                    "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)    
+                    "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
