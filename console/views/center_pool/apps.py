@@ -325,7 +325,7 @@ class CenterAppUDView(JWTAuthApiView):
         details = request.data.get("details")
         dev_status = request.data.get("dev_status")
         tag_ids = request.data.get("tag_ids")
-        scope = request.data.get("scope")
+        scope = request.data.get("scope", "enterprise")
         app_info = {
             "name": name,
             "describe": describe,
