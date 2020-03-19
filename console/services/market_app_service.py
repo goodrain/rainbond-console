@@ -62,6 +62,8 @@ from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
+from console.repositories.app import app_tag_repo
+
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
@@ -1187,6 +1189,40 @@ class MarketAppService(object):
             rainbond_app_repo.delete_app_version_by_id(enterprise_id, app_id)
             rainbond_app_repo.delete_app_by_id(enterprise_id, app_id)
             transaction.savepoint_commit(sid)
+        except Exception as e:
+            logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
+
+    def update_rainbond_app(self, enterprise_id, app_id, app_info):
+        sid = transaction.savepoint()
+        try:
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+            if not app:
+                raise RbdAppNotFound(msg="app not found")
+            if app_info.get("name"):
+                app.name = app_info.get("name")
+
+            if app_info.get("describe"):
+                app.describe = app_info.get("describe")
+            if app_info.get("pic"):
+                app.pic = app_info.get("pic")
+            if app_info.get("details"):
+                app.details = app_info.get("details")
+            if app_info.get("dev_status"):
+                app.dev_status = app_info.get("dev_status")
+            if app_info.get("tag_ids"):
+                app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
+            if app_info.get("scope"):
+                app.scope = app_info.get("scope")
+                if app_info.get("scope") == "team":
+                    # user = user_repo.get_usert
+                    create_team = team_repo.get_tenants_by_user_id(app.create_user)
+                    if not create_team:
+                        raise ServiceHandleException(msg="can't get create team", msg_show="找不到应用所属团队")
+                    app.create_team = create_team[0].tenant_name
+
+            app.save()
         except Exception as e:
             logger.exception(e)
             if sid:

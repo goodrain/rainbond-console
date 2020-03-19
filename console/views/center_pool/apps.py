@@ -325,20 +325,17 @@ class CenterAppUDView(JWTAuthApiView):
         details = request.data.get("details")
         dev_status = request.data.get("dev_status")
         tag_ids = request.data.get("tag_ids")
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
-        if not app:
-            result = general_message(404, "no found app-model", None)
-            return Response(result, status=404)
-        app.app_name = name
-        app.describe = describe
-        app.pic = pic
-        app.dev_status = dev_status
-        app.details = details
-        app.save()
-        if tag_ids:
-            app_tag_repo.create_app_tags_relation(app, tag_ids)
-        else:
-            app_tag_repo.get_app_tags(enterprise_id, app_id).delete()
+        scope = request.data.get("scope")
+        app_info = {
+            "name": name,
+            "describe": describe,
+            "pic": pic,
+            "details": details,
+            "dev_status": dev_status,
+            "tag_ids": tag_ids,
+            "scope": scope,
+        }
+        market_app_service.update_rainbond_app(enterprise_id, app_id, app_info)
         result = general_message(200, "success", None)
         return Response(result, status=200)
 
