@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
@@ -22,10 +23,12 @@ from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.services.app_actions import app_manage_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services
+from console.utils.oauth.oauth_types import get_oauth_instance
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -221,7 +224,8 @@ class UserService(object):
             rf=rf)
         return user
 
-    def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip):
+    def create_user_set_password(
+            self, user_name, email, raw_password, rf, enterprise, client_ip, phone=None):
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
@@ -231,6 +235,30 @@ class UserService(object):
             rf=rf,
             client_ip=client_ip)
         user.set_password(raw_password)
+        user.save()
+        return user
+
+    def check_user_is_enterprise_center_user(self, user_id):
+        oauth_user, oauth_service = oauth_user_repo.get_enterprise_center_user_by_user_id(user_id)
+        if oauth_user and oauth_service:
+            return get_oauth_instance(
+                oauth_service.oauth_type, oauth_service, oauth_user), oauth_user
+        return None, None
+
+    @transaction.atomic()
+    def create_enterprise_center_user_set_password(
+            self, user_name, email, raw_password, rf, enterprise, client_ip, phone, instance):
+        user = self.create_user_set_password(
+            user_name, email, "goodrain", rf, enterprise, client_ip, phone)
+        data = {
+            "username": user_name,
+            "real_name": user_name,
+            "password": raw_password,
+            "email": email,
+            "phone": phone
+        }
+        enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
+        user.enterprise_center_user_id = enterprise_center_user.user_id
         user.save()
         return user
 

@@ -221,6 +221,8 @@ class Users(models.Model):
     sso_user_token = models.CharField(max_length=256, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True,
                                      default='', help_text=u"统一认证中心的enterprise_id")
+    enterprise_center_user_id = models.CharField(max_length=32, null=True, blank=True,
+                                                 default='', help_text=u"统一认证中心的user id")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)

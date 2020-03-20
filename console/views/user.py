@@ -4,6 +4,7 @@ import logging
 
 from django.conf import settings
 from django.views.decorators.cache import never_cache
+from django.db import transaction
 from rest_framework.response import Response
 
 from console.exception.exceptions import SameIdentityError
@@ -16,6 +17,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.views.base import BaseApiView, JWTAuthApiView, AlowAnyApiView
+from console.repositories.oauth_repo import oauth_user_repo
 from www.apiclient.baseclient import HttpClient
 from console.services.auth import login, logout
 from django.contrib.auth import authenticate
@@ -359,6 +361,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             password = request.data.get("password", None)
             re_password = request.data.get("re_password", None)
             role_ids = request.data.get("role_ids", None)
+            phone = request.data.get("phone", None)
             if len(password) < 8:
                 result = general_message(400, "len error", "密码长度最少为8位")
                 return Response(result)
@@ -370,8 +373,16 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             client_ip = user_services.get_client_ip(request)
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
             # 创建用户
-            user = user_services.create_user_set_password(
-                user_name, email, password, "admin add", enterprise, client_ip)
+            oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+
+            if oauth_instance:
+                user = user_services.create_enterprise_center_user_set_password(
+                    user_name, email, password, "admin add",
+                    enterprise, client_ip, phone, oauth_instance
+                )
+            else:
+                user = user_services.create_user_set_password(
+                    user_name, email, password, "admin add", enterprise, client_ip, phone)
             result = general_message(200, "success", "添加用户成功")
             if role_ids:
                 try:
@@ -400,12 +411,20 @@ class EnterPriseUsersCLView(JWTAuthApiView):
 
 
 class EnterPriseUsersUDView(JWTAuthApiView):
+    @transaction.atomic()
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
         user_name = request.data.get("user_name", None)
         email = request.data.get("email", None)
         password = request.data.get("password", None)
         user = user_services.update_user_set_password(enterprise_id, user_id, user_name, email, password)
         user.save()
+        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+        if oauth_instance:
+            data = {
+                "password": password,
+                "user_name": user_name,
+            }
+            oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
         result = general_message(200, "success", "更新用户成功")
         return Response(result, status=200)
 
@@ -419,5 +438,10 @@ class EnterPriseUsersUDView(JWTAuthApiView):
             result = general_message(400, "fail", "该用户拥有团队，或加入其他团队，不能删除")
             return Response(result, 403)
         user.delete()
+        oauth_instance, oauth_user = user_services.check_user_is_enterprise_center_user(user_id)
+        if oauth_instance:
+            oauth_instance.delete_user(enterprise_id, user.enterprise_center_user_id)
+        all_oauth_user = oauth_user_repo.get_all_user_oauth(user_id)
+        all_oauth_user.delete()
         result = general_message(200, "success", "删除用户成功")
         return Response(result, status=200)

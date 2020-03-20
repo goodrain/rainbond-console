@@ -2,8 +2,10 @@
 
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
-from console.utils.restful_client import get_enterprise_server_client
+from console.utils.restful_client import get_enterprise_server_auth_client
+from console.utils.restful_client import get_enterprise_server_ent_client
 from console.utils.restful_client import ENTERPRISE_SERVER_API
+from console.exception.main import ServiceHandleException
 
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
@@ -11,7 +13,8 @@ from console.utils.urlutil import set_get_url
 
 class EnterpriseCenterV1MiXin(object):
     def set_api(self, oauth_token):
-        self.api = get_enterprise_server_client(token=oauth_token)
+        self.auth_api = get_enterprise_server_auth_client(token=oauth_token)
+        self.ent_api = get_enterprise_server_ent_client(token=oauth_token)
 
 
 class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
@@ -57,7 +60,10 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
-                data = rst.json()
+                try:
+                    data = rst.json()
+                except ValueError:
+                    raise ServiceHandleException(msg="return value error", msg_show="enterprise center 服务不正常")
                 self.access_token = data.get("access_token")
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:
@@ -71,8 +77,8 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             if self.oauth_user:
                 self.set_api(self.oauth_user.access_token)
                 try:
-                    user = self.api.oauth_user()
-                    if user["login"]:
+                    user = self.auth_api.oauth_user()
+                    if user.real_name:
                         return self.oauth_user.access_token, self.oauth_user.refresh_token
                 except Exception:
                     if self.oauth_user.refresh_token:
@@ -111,8 +117,8 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
 
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
-        user = self.api.oauth_user()
-        communication_user = OAuth2User(user.real_name, user.username, user.email)
+        user = self.auth_api.oauth_user()
+        communication_user = OAuth2User(user.real_name, user.user_id, user.email)
         communication_user.phone = user.phone
         communication_user.enterprise_id = user.enterprise.id
         communication_user.enterprise_name = user.enterprise.name
@@ -130,8 +136,18 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         else:
             raise NoOAuthServiceErr("no found oauth service")
 
-    def get_user_list(self, *args, **kwargs):
-        pass
+    def create_user(self, eid, body):
+        self._get_access_token()
+        return self.ent_api.create_user(eid, body=body)
 
-    def create_user(self, *args, **kwargs):
-        pass
+    def list_user(self, eid):
+        self._get_access_token()
+        self.ent_api.list_user(eid)
+
+    def delete_user(self, eid, uid):
+        self._get_access_token()
+        self.ent_api.delete_user(eid, uid)
+
+    def update_user(self, eid, uid, body):
+        self._get_access_token()
+        self.ent_api.update_user(eid, uid, body=body)

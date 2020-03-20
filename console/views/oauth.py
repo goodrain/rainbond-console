@@ -219,12 +219,12 @@ class OAuthServerAuthorize(AlowAnyApiView):
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
-        try:
-            oauth_user, access_token, refresh_token = api.get_user_info(code=code)
-        except Exception as e:
-            logger.debug(e.message)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
-            return Response(rst, status=status.HTTP_200_OK)
+        # try:
+        oauth_user, access_token, refresh_token = api.get_user_info(code=code)
+        # except Exception as e:
+        #     logger.debug(e.message)
+        #     rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
+        #     return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
