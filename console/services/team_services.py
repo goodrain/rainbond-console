@@ -445,7 +445,7 @@ class TeamService(object):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
         if not region_list:
-            region_list = [r.region_name for r in region_repo.get_usable_regions()]
+            region_list = [r.region_name for r in region_repo.get_usable_regions(enterprise.enterprise_id)]
             if not region_list:
                 return 404, "无可用数据中心", None
         default_region = region_list[0]

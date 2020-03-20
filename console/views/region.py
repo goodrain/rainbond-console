@@ -77,7 +77,11 @@ class RegUnopenView(JWTAuthApiView):
         """
         try:
             code = 200
-            unopen_regions = region_services.get_team_unopen_region(team_name=team_name)
+            team = team_services.get_tenant_by_tenant_name(team_name)
+            if not team:
+                result = general_message(404, "team no found", "团队不存在")
+                return Response(result, status=code)
+            unopen_regions = region_services.get_team_unopen_region(team_name, team.enterprise_id)
             result = general_message(code, "query the data center is successful.", "数据中心获取成功", list=unopen_regions)
         except Exception as e:
             code = 500
@@ -211,7 +215,7 @@ class QyeryRegionView(JWTAuthApiView):
 
         """
         try:
-            regions = region_services.get_open_regions()
+            regions = region_services.get_open_regions(request.user.enterprise_id)
             result = general_message(200, 'query success', '数据中心获取成功', list=[r.to_dict() for r in regions])
             return Response(result, status=200)
         except Exception as e:

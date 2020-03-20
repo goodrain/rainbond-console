@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+import json
 from django.db.models import Q
 
 from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
+from console.exception.main import ServiceHandleException
+from console.exception.main import RegionNotFound
 from www.models.main import TenantRegionInfo
 
 
@@ -39,9 +42,9 @@ class RegionRepo(object):
         else:
             return None
 
-    def get_usable_regions(self):
+    def get_usable_regions(self, enterprise_id):
         """获取可使用的数据中心"""
-        usable_regions = RegionConfig.objects.filter(status="1")
+        usable_regions = RegionConfig.objects.filter(status="1", enterprise_id=enterprise_id)
         return usable_regions
 
     def get_team_opened_region(self, team_name):
@@ -142,6 +145,11 @@ class RegionRepo(object):
         result = conn.query(sql)
         return result[0]["total"]
 
+    def del_by_enterprise_region_id(self, enterprise_id, region_id):
+        region = RegionConfig.objects.get(region_id=region_id, enterprise_id=enterprise_id)
+        region.delete()
+        return region
+
     def del_by_region_id(self, region_id):
         region = RegionConfig.objects.get(region_id=region_id)
         region.delete()
@@ -149,6 +157,32 @@ class RegionRepo(object):
 
     def get_region_by_enterprise_id(self, eid):
         return TenantRegionInfo.objects.filter(enterprise_id=eid).first()
+
+    def get_regions_by_enterprise_id(self, eid):
+        return RegionConfig.objects.filter(enterprise_id=eid)
+
+    def get_region_by_id(self, eid, region_id):
+        return RegionConfig.objects.filter(enterprise_id=eid, region_id=region_id).first()
+
+    def update_enterprise_region(self, eid, region_id, data):
+        region = self.get_region_by_id(eid, region_id)
+        if not region:
+            raise RegionNotFound("region no found")
+        region.region_alias = data.get("region_alias")
+        region.url = data.get("url")
+        region.wsurl = data.get("wsurl")
+        region.httpdomain = data.get("httpdomain")
+        region.tcpdomain = data.get("tcpdomain")
+        region.scope = data.get("scope")
+        region.ssl_ca_cert = data.get("ssl_ca_cert")
+        region.cert_file = data.get("cert_file")
+        region.desc = data.get("desc")
+        region.key_file = data.get("key_file")
+        region.region_type = json.dumps(data.get("region_type", []))
+        try:
+            region.save()
+        except Exception:
+            raise ServiceHandleException(msg="update failed", msg_show="更新失败")
 
 
 region_repo = RegionRepo()
