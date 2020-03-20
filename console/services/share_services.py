@@ -738,10 +738,11 @@ class ShareService(object):
                 market_id = share_record.share_app_market_id
             if market_id:
                 try:
+                    scope = "goodrain"
                     cloud_app = market_sycn_service.get_cloud_app(
                         share_team.enterprise_id, market_id, app_model_id)
-                    scope = "goodrain"
-                    app_model_name = cloud_app.name
+                    if cloud_app:
+                        app_model_name = cloud_app.name
                 except Exception as e:
                     logger.debug(e)
                     return 400, "云端应用模型不存在", None
