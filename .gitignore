@@ -141,3 +141,5 @@ venv.bak/
 
 www/static/dists
 static/
+
+.scannerwork
