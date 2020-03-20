@@ -46,7 +46,7 @@ class ServiceEventDynamic(object):
         try:
             self.__sync_region_service_event_status(region, team.tenant_name, events, False)
         except Exception as e:
-            logger.exception("synchorized services events error !")
+            logger.exception("synchorized services events error !", e)
         for event in events:
             bean = event_id_service_info_map.get(event.event_id, None)
             if bean:
@@ -65,7 +65,7 @@ class ServiceEventDynamic(object):
         try:
             self.__sync_region_service_event_status(region, team.tenant_name, events, False)
         except Exception as e:
-            logger.exception("synchorized services events error !")
+            logger.exception("synchorized services events error !", e)
 
         for event in events:
             result = event.to_dict()
