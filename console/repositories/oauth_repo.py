@@ -23,6 +23,8 @@ class OAuthRepo(object):
         return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False)
 
     def get_oauth_services_by_service_id(self, service_id):
+        if not service_id:
+            return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
     def open_get_oauth_services_by_service_id(self, service_id):

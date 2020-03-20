@@ -118,8 +118,9 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
         user = self.auth_api.oauth_user()
-        communication_user = OAuth2User(user.real_name, user.user_id, user.email)
+        communication_user = OAuth2User(user.username, user.user_id, user.email)
         communication_user.phone = user.phone
+        communication_user.phone = user.real_name
         communication_user.enterprise_id = user.enterprise.id
         communication_user.enterprise_name = user.enterprise.name
         communication_user.enterprise_domain = user.enterprise.domain

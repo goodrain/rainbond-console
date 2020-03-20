@@ -345,6 +345,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 data.append({
                     "email": user.email,
                     "nick_name": user.nick_name,
+                    "real_name": user.real_name,
                     "user_id": user.user_id,
                     "create_time": user.create_time,
                     "default_favorite_name": default_favorite_name,
@@ -362,6 +363,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             re_password = request.data.get("re_password", None)
             role_ids = request.data.get("role_ids", None)
             phone = request.data.get("phone", None)
+            real_name = request.data.get("real_name", None)
             if len(password) < 8:
                 result = general_message(400, "len error", "密码长度最少为8位")
                 return Response(result)
@@ -378,7 +380,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             if oauth_instance:
                 user = user_services.create_enterprise_center_user_set_password(
                     user_name, email, password, "admin add",
-                    enterprise, client_ip, phone, oauth_instance
+                    enterprise, client_ip, phone, real_name, oauth_instance
                 )
             else:
                 user = user_services.create_user_set_password(
