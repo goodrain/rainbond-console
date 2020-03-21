@@ -292,12 +292,15 @@ class EnterpriseMonitor(JWTAuthApiView):
             return Response(result, status=status.HTTP_200_OK)
         region_num = len(regions)
         for region in regions:
-            res, body = region_api.get_region_resources(enterprise_id, region.region_name)
-            if res.get("status") == 200:
-                region_memory_total += body["bean"]["cap_mem"]
-                region_memory_used += body["bean"]["req_mem"]
-                region_cpu_total += body["bean"]["cap_cpu"]
-                region_cpu_used += body["bean"]["req_cpu"]
+            try:
+                res, body = region_api.get_region_resources(enterprise_id, region.region_name)
+                if res.get("status") == 200:
+                    region_memory_total += body["bean"]["cap_mem"]
+                    region_memory_used += body["bean"]["req_mem"]
+                    region_cpu_total += body["bean"]["cap_cpu"]
+                    region_cpu_used += body["bean"]["req_cpu"]
+            except ServiceHandleException:
+                continue
         data = {
             "total_regions": region_num,
             "memory": {

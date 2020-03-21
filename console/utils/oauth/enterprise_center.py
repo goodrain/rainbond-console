@@ -55,12 +55,16 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                 "grant_type": "authorization_code"
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
+            logger.debug(url)
             try:
                 rst = self._session.request(method='POST', url=url,
                                             headers=headers, params=params)
-            except Exception:
+                logger.debug(rst.content)
+            except Exception as e:
+                logger.debug(e)
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
+                logger.debug(rst.content)
                 try:
                     data = rst.json()
                 except ValueError:

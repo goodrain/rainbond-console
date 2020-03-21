@@ -208,13 +208,15 @@ class OAuthServerAuthorize(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
-        domain = request.GET.get("service_id")
-        split_url = None
+        domain = request.GET.get("domain")
+        home_split_url = None
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             if oauth_service.oauth_type == "enterprisecenter" and domain:
-                split_url = urlsplit(oauth_service.home_url)
-                oauth_service.home_url = split_url.scheme + "://"+ domain + split_url.path
+                home_split_url = urlsplit(oauth_service.home_url)
+                redirect_split_url = urlsplit(oauth_service.redirect_uri)
+                oauth_service.home_url = home_split_url.scheme + "://"+ domain + home_split_url.path
+                oauth_service.redirect_uri = redirect_split_url.scheme + "://"+ domain + redirect_split_url.path
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404,
@@ -234,7 +236,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
             if oauth_user.enterprise_domain != domain.aplit(".")[0] and \
-                    oauth_user.enterprise_domain != split_url.netloc.aplit("."):
+                    oauth_user.enterprise_domain != home_split_url.netloc.aplit("."):
                 raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败")
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
