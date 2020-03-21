@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+from urlparse import urlsplit
 
 from django.shortcuts import redirect
 
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 
+from console.exception.main import ServiceHandleException
 from console.services.config_service import config_service
 from console.views.base import JWTAuthApiView, AlowAnyApiView
 from console.repositories.oauth_repo import oauth_repo
@@ -198,16 +200,24 @@ class OAuthServiceRedirect(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
+        service = oauth_repo.get_oauth_services_by_service_id(service_id)
         path = "/#/oauth/callback?service_id={}&code={}"
-        return redirect(to=path.format(service_id, code))
+        return redirect(to=path.format(service.ID, code))
 
 
 class OAuthServerAuthorize(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
+        domain = request.GET.get("domain")
+        home_split_url = None
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            if oauth_service.oauth_type == "enterprisecenter" and domain:
+                home_split_url = urlsplit(oauth_service.home_url)
+                redirect_split_url = urlsplit(oauth_service.redirect_uri)
+                oauth_service.home_url = home_split_url.scheme + "://"+ domain + home_split_url.path
+                oauth_service.redirect_uri = redirect_split_url.scheme + "://"+ domain + redirect_split_url.path
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404,
@@ -226,6 +236,9 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
+            if oauth_user.enterprise_domain != domain.split(".")[0] and \
+                    oauth_user.enterprise_domain != home_split_url.netloc.split("."):
+                raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败")
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)

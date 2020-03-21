@@ -1,20 +1,21 @@
 # -*- coding: utf8 -*-
-
+import logging
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
 from console.utils.restful_client import get_enterprise_server_auth_client
 from console.utils.restful_client import get_enterprise_server_ent_client
-from console.utils.restful_client import ENTERPRISE_SERVER_API
 from console.exception.main import ServiceHandleException
 
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
 
+logger = logging.getLogger("default")
+
 
 class EnterpriseCenterV1MiXin(object):
-    def set_api(self, oauth_token):
-        self.auth_api = get_enterprise_server_auth_client(token=oauth_token)
-        self.ent_api = get_enterprise_server_ent_client(token=oauth_token)
+    def set_api(self, home_url, oauth_token):
+        self.auth_api = get_enterprise_server_auth_client(home_url, oauth_token)
+        self.ent_api = get_enterprise_server_ent_client(home_url, oauth_token)
 
 
 class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
@@ -24,14 +25,14 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             "response_type": "code",
         }
 
-    def get_auth_url(self, home_url=""):
-        return ENTERPRISE_SERVER_API + "/enterprise-server/oauth/authorize"
+    def get_auth_url(self, home_url=None):
+        return  home_url + "/enterprise-server/oauth/authorize"
 
     def get_access_token_url(self, home_url=None):
-        return ENTERPRISE_SERVER_API + "/enterprise-server/oauth/token"
+        return home_url + "/enterprise-server/oauth/token"
 
     def get_user_url(self, home_url=""):
-        return ENTERPRISE_SERVER_API + "/enterprise-server/api/v1/oauth/user"
+        return home_url + "/enterprise-server/api/v1/oauth/user"
 
     def _get_access_token(self, code=None):
         '''
@@ -54,12 +55,16 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                 "grant_type": "authorization_code"
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
+            logger.debug(url)
             try:
                 rst = self._session.request(method='POST', url=url,
                                             headers=headers, params=params)
-            except Exception:
+                logger.debug(rst.content)
+            except Exception as e:
+                logger.debug(e)
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
+                logger.debug(rst.content)
                 try:
                     data = rst.json()
                 except ValueError:
@@ -68,14 +73,14 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:
                     return None, None
-                self.set_api(self.access_token)
+                self.set_api(self.oauth_service.home_url, self.access_token)
                 self.update_access_token(self.access_token, self.refresh_token)
                 return self.access_token, self.refresh_token
             else:
                 raise NoAccessKeyErr("can not get access key")
         else:
             if self.oauth_user:
-                self.set_api(self.oauth_user.access_token)
+                self.set_api(self.oauth_service.home_url, self.oauth_user.access_token)
                 try:
                     user = self.auth_api.oauth_user()
                     if user.real_name:
@@ -112,7 +117,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             self.oauth_user.access_token = data.get("access_token")
             self.access_token = data.get("access_token")
             self.refresh_token = data.get("refresh_token")
-            self.set_api(self.oauth_user.access_token)
+            self.set_api(self.oauth_service.home_url, self.oauth_user.access_token)
             self.oauth_user = self.oauth_user.save()
 
     def get_user_info(self, code=None):

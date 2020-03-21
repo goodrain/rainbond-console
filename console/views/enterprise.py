@@ -292,12 +292,15 @@ class EnterpriseMonitor(JWTAuthApiView):
             return Response(result, status=status.HTTP_200_OK)
         region_num = len(regions)
         for region in regions:
-            res, body = region_api.get_region_resources(enterprise_id, region.region_name)
-            if res.get("status") == 200:
-                region_memory_total += body["bean"]["cap_mem"]
-                region_memory_used += body["bean"]["req_mem"]
-                region_cpu_total += body["bean"]["cap_cpu"]
-                region_cpu_used += body["bean"]["req_cpu"]
+            try:
+                res, body = region_api.get_region_resources(enterprise_id, region.region_name)
+                if res.get("status") == 200:
+                    region_memory_total += body["bean"]["cap_mem"]
+                    region_memory_used += body["bean"]["req_mem"]
+                    region_cpu_total += body["bean"]["cap_cpu"]
+                    region_cpu_used += body["bean"]["req_cpu"]
+            except ServiceHandleException:
+                continue
         data = {
             "total_regions": region_num,
             "memory": {
@@ -366,12 +369,12 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
 class EnterpriseRegionsRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
         data = enterprise_services.get_enterprise_region(enterprise_id, region_id)
-        result = general_message(200, "success", "获取成功", list=data)
+        result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
     def put(self, request, enterprise_id, region_id, *args, **kwargs):
         region = enterprise_services.update_enterprise_region(enterprise_id, region_id, request.data)
-        result = general_message(200, "success", "更新成功", list=region)
+        result = general_message(200, "success", "更新成功", bean=region)
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
