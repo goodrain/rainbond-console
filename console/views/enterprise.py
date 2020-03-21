@@ -366,12 +366,12 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
 class EnterpriseRegionsRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
         data = enterprise_services.get_enterprise_region(enterprise_id, region_id)
-        result = general_message(200, "success", "获取成功", list=data)
+        result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
     def put(self, request, enterprise_id, region_id, *args, **kwargs):
         region = enterprise_services.update_enterprise_region(enterprise_id, region_id, request.data)
-        result = general_message(200, "success", "更新成功", list=region)
+        result = general_message(200, "success", "更新成功", bean=region)
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):

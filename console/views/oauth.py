@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 
+from console.exception.main import ServiceHandleException
 from console.services.config_service import config_service
 from console.views.base import JWTAuthApiView, AlowAnyApiView
 from console.repositories.oauth_repo import oauth_repo
@@ -231,6 +232,9 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
+            if oauth_user.enterprise_domain != domain.aplit(".")[0] and \
+                    oauth_user.enterprise_domain != split_url.netloc.aplit("."):
+                raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败")
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)

@@ -351,7 +351,7 @@ class EnterpriseServices(object):
         region_resource = self.__init_region_resource_data(region)
         try:
             res, body = region_api.get_region_resources(enterprise_id, region.region_name)
-            res, rbd_version = region_api.get_api_version_v2(enterprise_id, region.region_name)
+            res, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id, region.region_name)
             rbd_version = rbd_version["raw"].decode("utf-8")
             if res.get("status") == 200:
                 region_resource["total_memory"] = body["bean"]["cap_mem"],

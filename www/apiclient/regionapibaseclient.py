@@ -207,6 +207,7 @@ class RegionApiBaseHttpClient(object):
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
                 proxy_url=configuration.proxy,
+                timeout = 3,
                 **addition_pool_args)
         else:
             self.pool_manager = urllib3.PoolManager(
@@ -216,6 +217,7 @@ class RegionApiBaseHttpClient(object):
                 ca_certs=ca_certs,
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
+                timeout = 3
                 **addition_pool_args)
         return self.pool_manager
 
