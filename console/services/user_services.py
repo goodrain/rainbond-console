@@ -265,9 +265,10 @@ class UserService(object):
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password):
+    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password, real_name):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
         user.nick_name = user_name
+        user.real_name = real_name
         user.email = email
         user.set_password(raw_password)
         return user

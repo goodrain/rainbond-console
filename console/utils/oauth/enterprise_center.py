@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-
+import logging
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
 from console.utils.restful_client import get_enterprise_server_auth_client
@@ -9,6 +9,8 @@ from console.exception.main import ServiceHandleException
 
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
+
+logger = logging.getLogger("default")
 
 
 class EnterpriseCenterV1MiXin(object):
