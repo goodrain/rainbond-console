@@ -1116,7 +1116,7 @@ class AllUserView(JWTAuthApiView):
                 enterprise_id = enter.enterprise_id
             enter = enterprise_services.get_enterprise_by_id(enterprise_id=enterprise_id)
             if user_name:
-                euser = user_services.get_user_by_user_name(user_name)
+                euser = user_services.get_user_by_user_name(enterprise_id, user_name)
                 list = []
                 if not euser:
                     result = general_message("0000", "success", "查询成功", list=list, total=0)

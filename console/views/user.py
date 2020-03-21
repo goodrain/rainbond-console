@@ -178,7 +178,8 @@ class UserPemTraView(JWTAuthApiView):
                 result = general_message(code, "no identity", "你不是最高管理员")
             else:
                 user_name = request.data.get("user_name", None)
-                other_user = user_services.get_user_by_username(user_name=user_name)
+                other_user = user_services.get_enterprise_user_by_username(
+                    request.user.enterprise_id, user_name=user_name)
                 if other_user.nick_name != user_name:
                     code = 400
                     result = general_message(code, "identity modify failed", "{}不能修改自己的权限".format(user_name))
@@ -258,7 +259,8 @@ class UserAddPemView(JWTAuthApiView):
                 new_identitys = request.data.get("identitys", None)
                 if new_identitys:
                     new_identitys = new_identitys.split(',') if new_identitys else []
-                    other_user = user_services.get_user_by_username(user_name=user_name)
+                    other_user = user_services.get_enterprise_user_by_username(
+                        request.user.enterprise_id, user_name=user_name)
                     if other_user.user_id == request.user.user_id:
                         result = general_message(400, "failed", "您不能修改自己的权限！")
                         return Response(result, status=400)

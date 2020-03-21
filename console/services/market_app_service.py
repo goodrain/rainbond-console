@@ -1516,7 +1516,7 @@ class AppMarketSynchronizeService(object):
             user_id = 0
             if user_name:
                 try:
-                    user = user_repo.get_user_by_username(user_name)
+                    user = user_repo.get_enterprise_user_by_username(enterprise_id, user_name)
                     user_id = user.user_id
                 except Exception as e:
                     logger.exception(e)
