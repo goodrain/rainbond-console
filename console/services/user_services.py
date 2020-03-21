@@ -270,11 +270,9 @@ class UserService(object):
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password, real_name):
+    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
-        user.nick_name = user_name
         user.real_name = real_name
-        user.email = email
         user.set_password(raw_password)
         return user
 
@@ -502,12 +500,12 @@ class UserService(object):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
     def check_params(self, user_name, email, password, re_password, eid=None):
-        is_pass, msg = self.__check_user_name(user_name, eid)
-        if not is_pass:
-            return is_pass, msg
-        is_pass, msg = self.__check_email(email, eid)
-        if not is_pass:
-            return is_pass, msg
+        # is_pass, msg = self.__check_user_name(user_name, eid)
+        # if not is_pass:
+        #     return is_pass, msg
+        # is_pass, msg = self.__check_email(email, eid)
+        # if not is_pass:
+        #     return is_pass, msg
 
         if password != re_password:
             return False, "两次输入的密码不一致"

@@ -418,14 +418,13 @@ class EnterPriseUsersCLView(JWTAuthApiView):
 class EnterPriseUsersUDView(JWTAuthApiView):
     @transaction.atomic()
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
-        user_name = request.data.get("user_name", None)
-        email = request.data.get("email", None)
         password = request.data.get("password", None)
-        real_name = request.get("real_name", None)
+        real_name = request.data.get("real_name", None)
         user = user_services.update_user_set_password(
-            enterprise_id, user_id, user_name, email, password, real_name)
+            enterprise_id, user_id, password, real_name)
         user.save()
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+        logger.debug(oauth_instance.oauth_user)
         if oauth_instance:
             data = {
                 "password": password,
