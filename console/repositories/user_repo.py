@@ -18,8 +18,8 @@ class UserRepo(object):
     def get_enterprise_user_by_id(self, enterprise_id, user_id):
         return Users.objects.filter(user_id=user_id, enterprise_id=enterprise_id).first()
 
-    def get_by_username(self, username):
-        return Users.objects.get(nick_name=username)
+    def get_enterprise_user_by_username(self, eid, username):
+        return Users.objects.get(nick_name=username, enterprise_id=eid)
 
     def get_user_by_username(self, user_name):
         users = Users.objects.filter(nick_name=user_name)
@@ -60,6 +60,12 @@ class UserRepo(object):
 
     def get_user_by_phone(self, phone):
         u = Users.objects.filter(phone=phone)
+        if u:
+            return u[0]
+        return None
+
+    def get_enterprise_user_by_phone(self, phone, eid):
+        u = Users.objects.filter(phone=phone, enterprise_id=eid)
         if u:
             return u[0]
         return None

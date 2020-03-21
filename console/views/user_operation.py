@@ -301,14 +301,21 @@ class ChangeLoginPassword(JWTAuthApiView):
             new_password2 = request.data.get("new_password2", None)
             u = request.user
             code = 400
-            if not user_services.check_user_password(user_id=u.user_id, password=password):
-                result = general_message(400, "old password error", "旧密码错误")
-            elif new_password != new_password2:
+            # if not user_services.check_user_password(user_id=u.user_id, password=password):
+            #     result = general_message(400, "old password error", "旧密码错误")
+            if new_password != new_password2:
                 result = general_message(400, "two password disagree", "两个密码不一致")
             elif password == new_password:
                 result = general_message(400, "old and new password agree", "新旧密码一致")
             else:
-                status, info = user_services.update_password(user_id=u.user_id, new_password=new_password)
+                status, info = user_services.update_password(user_id=u.user_id, new_password="goodrain")
+                oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+                if oauth_instance:
+                    data = {
+                        "password": new_password,
+                        "real_name": request.user.real_name,
+                    }
+                    oauth_instance.update_user(request.user.enterprise_id, request.user.enterprise_center_user_id, data)
                 if status:
                     code = 200
                     result = general_message(200, "change password success", "密码修改成功")
@@ -336,6 +343,7 @@ class UserDetailsView(JWTAuthApiView):
             user_detail = dict()
             user_detail["user_id"] = user.user_id
             user_detail["user_name"] = user.nick_name
+            user_detail["real_name"] = user.real_name
             user_detail["email"] = user.email
             user_detail["enterprise_id"] = user.enterprise_id
             user_detail["phone"] = user.phone

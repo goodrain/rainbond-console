@@ -43,8 +43,8 @@ gitClient = GitlabApi()
 
 
 class UserService(object):
-    def get_user_by_user_name(self, user_name):
-        user = user_repo.get_user_by_username(user_name=user_name)
+    def get_user_by_user_name(self,eid, user_name):
+        user = user_repo.get_enterprise_user_by_username(eid, user_name=user_name)
         if not user:
             return None
         else:
@@ -161,9 +161,12 @@ class UserService(object):
 
         return users[0]
 
-    def is_user_exist(self, user_name):
+    def get_enterprise_user_by_username(self, user_name, eid):
+        return user_repo.get_enterprise_user_by_username(eid, user_name)
+
+    def is_user_exist(self, user_name, eid=None):
         try:
-            self.get_user_by_username(user_name)
+            self.get_enterprise_user_by_username(user_name, eid)
             return True
         except UserNotExistError:
             return False
@@ -171,7 +174,7 @@ class UserService(object):
     def create(self, data):
         # check nick name
         try:
-            user_repo.get_by_username(data["nick_name"])
+            user_repo.get_enterprise_user_by_username(data["eid"], data["nick_name"])
             raise UserExistError("{} already exists.".format(data["nick_name"]))
         except Users.DoesNotExist:
             pass
@@ -252,8 +255,6 @@ class UserService(object):
     @transaction.atomic()
     def create_enterprise_center_user_set_password(
             self, user_name, email, raw_password, rf, enterprise, client_ip, phone, real_name, instance):
-        user = self.create_user_set_password(
-            user_name, email, "goodrain", rf, enterprise, client_ip, phone=real_name, real_name=real_name)
         data = {
             "username": user_name,
             "real_name": real_name,
@@ -262,15 +263,17 @@ class UserService(object):
             "phone": phone,
         }
         enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
+        user = self.create_user_set_password(
+            enterprise_center_user.username, email, "goodrain",
+            rf, enterprise, client_ip,
+            phone=real_name, real_name=real_name)
         user.enterprise_center_user_id = enterprise_center_user.user_id
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password, real_name):
+    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
-        user.nick_name = user_name
         user.real_name = real_name
-        user.email = email
         user.set_password(raw_password)
         return user
 
@@ -341,8 +344,8 @@ class UserService(object):
             return users[0]
         return None
 
-    def get_user_by_phone(self, phone):
-        return user_repo.get_user_by_phone(phone)
+    def get_user_by_phone(self, phone, eid):
+        return user_repo.get_enterprise_user_by_phone(phone, eid)
 
     def get_user_by_user_id(self, user_id):
         return user_repo.get_user_by_user_id(user_id=user_id)
@@ -465,6 +468,7 @@ class UserService(object):
                     "user_id": user.user_id,
                     "email": user.email,
                     "nick_name": user.nick_name,
+                    "real_name": user.real_name,
                     "phone": user.phone,
                     "is_active": user.is_active,
                     "origion": user.origion,
@@ -496,32 +500,32 @@ class UserService(object):
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
-    def check_params(self, user_name, email, password, re_password):
-        is_pass, msg = self.__check_user_name(user_name)
-        if not is_pass:
-            return is_pass, msg
-        is_pass, msg = self.__check_email(email)
-        if not is_pass:
-            return is_pass, msg
+    def check_params(self, user_name, email, password, re_password, eid=None):
+        # is_pass, msg = self.__check_user_name(user_name, eid)
+        # if not is_pass:
+        #     return is_pass, msg
+        # is_pass, msg = self.__check_email(email, eid)
+        # if not is_pass:
+        #     return is_pass, msg
 
         if password != re_password:
             return False, "两次输入的密码不一致"
         return True, "success"
 
-    def __check_user_name(self, user_name):
+    def __check_user_name(self, user_name, eid):
         if not user_name:
             return False, "用户名不能为空"
-        if self.is_user_exist(user_name):
+        if self.is_user_exist(user_name, eid):
             return False, "用户{0}已存在".format(user_name)
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(user_name.decode("utf-8")):
             return False, "用户名称只支持中英文下划线和中划线"
         return True, "success"
 
-    def __check_email(self, email):
+    def __check_email(self, email, eid):
         if not email:
             return False, "邮箱不能为空"
-        if self.get_user_by_phone(email):
+        if self.get_user_by_phone(email, eid):
             return False, "邮箱{0}已存在".format(email)
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):

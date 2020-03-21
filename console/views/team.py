@@ -1116,7 +1116,7 @@ class AllUserView(JWTAuthApiView):
                 enterprise_id = enter.enterprise_id
             enter = enterprise_services.get_enterprise_by_id(enterprise_id=enterprise_id)
             if user_name:
-                euser = user_services.get_user_by_user_name(user_name)
+                euser = user_services.get_user_by_user_name(enterprise_id, user_name)
                 list = []
                 if not euser:
                     result = general_message("0000", "success", "查询成功", list=list, total=0)
@@ -1254,7 +1254,8 @@ class AdminAddUserView(JWTAuthApiView):
                         result = general_message(code, "The role does not exist", "该角色在团队中不存在")
                         return Response(result, status=code)
                 # 校验用户信息
-                is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+                is_pass, msg = user_services.check_params(
+                    user_name, email, password, re_password, self.user.enterprise_id)
                 if not is_pass:
                     result = general_message(403, "user information is not passed", msg)
                     return Response(result)

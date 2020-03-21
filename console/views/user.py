@@ -177,7 +177,8 @@ class UserPemTraView(JWTAuthApiView):
                 result = general_message(code, "no identity", "你不是最高管理员")
             else:
                 user_name = request.data.get("user_name", None)
-                other_user = user_services.get_user_by_username(user_name=user_name)
+                other_user = user_services.get_enterprise_user_by_username(
+                    request.user.enterprise_id, user_name=user_name)
                 if other_user.nick_name != user_name:
                     code = 400
                     result = general_message(code, "identity modify failed", "{}不能修改自己的权限".format(user_name))
@@ -257,7 +258,8 @@ class UserAddPemView(JWTAuthApiView):
                 new_identitys = request.data.get("identitys", None)
                 if new_identitys:
                     new_identitys = new_identitys.split(',') if new_identitys else []
-                    other_user = user_services.get_user_by_username(user_name=user_name)
+                    other_user = user_services.get_enterprise_user_by_username(
+                        request.user.enterprise_id, user_name=user_name)
                     if other_user.user_id == request.user.user_id:
                         result = general_message(400, "failed", "您不能修改自己的权限！")
                         return Response(result, status=400)
@@ -367,7 +369,8 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 result = general_message(400, "len error", "密码长度最少为8位")
                 return Response(result)
                 # 校验用户信息
-            is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+            is_pass, msg = user_services.check_params(
+                user_name, email, password, re_password, request.user.enterprise_id)
             if not is_pass:
                 result = general_message(403, "user information is not passed", msg)
                 return Response(result)
@@ -414,14 +417,13 @@ class EnterPriseUsersCLView(JWTAuthApiView):
 class EnterPriseUsersUDView(JWTAuthApiView):
     @transaction.atomic()
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
-        user_name = request.data.get("user_name", None)
-        email = request.data.get("email", None)
         password = request.data.get("password", None)
-        real_name = request.get("real_name", None)
+        real_name = request.data.get("real_name", None)
         user = user_services.update_user_set_password(
-            enterprise_id, user_id, user_name, email, password, real_name)
+            enterprise_id, user_id, password, real_name)
         user.save()
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+        logger.debug(oauth_instance.oauth_user)
         if oauth_instance:
             data = {
                 "password": password,

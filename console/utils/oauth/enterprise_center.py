@@ -1,5 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
+from urlparse import urlsplit
+
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
 from console.utils.restful_client import get_enterprise_server_auth_client
@@ -41,6 +43,9 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         '''
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
+        home_split_url = urlsplit(self.oauth_service.home_url)
+        redirect_split_url = urlsplit(self.oauth_service.redirect_uri)
+        self.oauth_service.redirect_uri = home_split_url.scheme + "://"+ home_split_url.netloc + redirect_split_url.path
         if code:
             headers = {
                 "Accept": "application/json",
