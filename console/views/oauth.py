@@ -209,6 +209,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
         domain = request.GET.get("service_id")
+        split_url = None
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             if oauth_service.oauth_type == "enterprisecenter" and domain:
