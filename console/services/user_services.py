@@ -254,8 +254,6 @@ class UserService(object):
     @transaction.atomic()
     def create_enterprise_center_user_set_password(
             self, user_name, email, raw_password, rf, enterprise, client_ip, phone, real_name, instance):
-        user = self.create_user_set_password(
-            user_name, email, "goodrain", rf, enterprise, client_ip, phone=real_name, real_name=real_name)
         data = {
             "username": user_name,
             "real_name": real_name,
@@ -264,6 +262,10 @@ class UserService(object):
             "phone": phone,
         }
         enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
+        user = self.create_user_set_password(
+            enterprise_center_user.username, email, "goodrain",
+            rf, enterprise, client_ip,
+            phone=real_name, real_name=real_name)
         user.enterprise_center_user_id = enterprise_center_user.user_id
         user.save()
         return user
