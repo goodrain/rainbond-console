@@ -25,7 +25,7 @@ class OAuthUserService(object):
     @atomic
     def get_or_create_user_and_enterprise(self, oauth_user):
         try:
-            user = user_repo.get_by_username(oauth_user.name)
+            user = user_repo.get_enterprise_user_by_username(oauth_user.enterprise_id, oauth_user.name)
         except Users.DoesNotExist:
             user_info = dict()
             user_info["email"] = oauth_user.email

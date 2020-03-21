@@ -368,7 +368,8 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 result = general_message(400, "len error", "密码长度最少为8位")
                 return Response(result)
                 # 校验用户信息
-            is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+            is_pass, msg = user_services.check_params(
+                user_name, email, password, re_password, request.user.enterprise_id)
             if not is_pass:
                 result = general_message(403, "user information is not passed", msg)
                 return Response(result)

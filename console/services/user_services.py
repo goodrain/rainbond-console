@@ -160,9 +160,12 @@ class UserService(object):
 
         return users[0]
 
-    def is_user_exist(self, user_name):
+    def get_enterprise_user_by_username(self, user_name, eid):
+        return user_repo.get_enterprise_user_by_username(eid, user_name)
+
+    def is_user_exist(self, user_name, eid=None):
         try:
-            self.get_user_by_username(user_name)
+            self.get_enterprise_user_by_username(user_name, eid)
             return True
         except UserNotExistError:
             return False
@@ -340,8 +343,8 @@ class UserService(object):
             return users[0]
         return None
 
-    def get_user_by_phone(self, phone):
-        return user_repo.get_user_by_phone(phone)
+    def get_user_by_phone(self, phone, eid):
+        return user_repo.get_enterprise_user_by_phone(phone, eid)
 
     def get_user_by_user_id(self, user_id):
         return user_repo.get_user_by_user_id(user_id=user_id)
@@ -464,6 +467,7 @@ class UserService(object):
                     "user_id": user.user_id,
                     "email": user.email,
                     "nick_name": user.nick_name,
+                    "real_name": user.real_name,
                     "phone": user.phone,
                     "is_active": user.is_active,
                     "origion": user.origion,
@@ -495,11 +499,11 @@ class UserService(object):
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
-    def check_params(self, user_name, email, password, re_password):
-        is_pass, msg = self.__check_user_name(user_name)
+    def check_params(self, user_name, email, password, re_password, eid=None):
+        is_pass, msg = self.__check_user_name(user_name, eid)
         if not is_pass:
             return is_pass, msg
-        is_pass, msg = self.__check_email(email)
+        is_pass, msg = self.__check_email(email, eid)
         if not is_pass:
             return is_pass, msg
 
@@ -507,20 +511,20 @@ class UserService(object):
             return False, "两次输入的密码不一致"
         return True, "success"
 
-    def __check_user_name(self, user_name):
+    def __check_user_name(self, user_name, eid):
         if not user_name:
             return False, "用户名不能为空"
-        if self.is_user_exist(user_name):
+        if self.is_user_exist(user_name, eid):
             return False, "用户{0}已存在".format(user_name)
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(user_name.decode("utf-8")):
             return False, "用户名称只支持中英文下划线和中划线"
         return True, "success"
 
-    def __check_email(self, email):
+    def __check_email(self, email, eid):
         if not email:
             return False, "邮箱不能为空"
-        if self.get_user_by_phone(email):
+        if self.get_user_by_phone(email, eid):
             return False, "邮箱{0}已存在".format(email)
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
