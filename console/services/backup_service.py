@@ -274,7 +274,7 @@ class GroupAppBackupService(object):
         service_compile_env = compile_env_repo.get_service_compile_env(service.service_id)
         service_extend_method = extend_repo.get_extend_method_by_service(service)
         service_mnts = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
-        service_volumes = volume_repo.get_service_volumes(service.service_id)
+        service_volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
         service_config_file = volume_repo.get_service_config_files(service.service_id)
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
