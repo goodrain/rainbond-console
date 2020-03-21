@@ -200,8 +200,9 @@ class OAuthServiceRedirect(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
+        service = oauth_repo.get_oauth_services_by_service_id(service_id)
         path = "/#/oauth/callback?service_id={}&code={}"
-        return redirect(to=path.format(service_id, code))
+        return redirect(to=path.format(service.ID, code))
 
 
 class OAuthServerAuthorize(AlowAnyApiView):
