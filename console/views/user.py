@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from console.exception.exceptions import SameIdentityError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.user_repo import user_repo
-from console.repositories.team_repo import team_repo
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.enterprise_services import enterprise_services
