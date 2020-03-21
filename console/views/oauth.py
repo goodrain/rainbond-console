@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+from urlparse import urlsplit
 
 from django.shortcuts import redirect
 
@@ -206,8 +207,12 @@ class OAuthServerAuthorize(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
+        domain = request.GET.get("service_id")
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            if oauth_service.oauth_type == "enterprisecenter" and domain:
+                split_url = urlsplit(oauth_service.home_url)
+                oauth_service.home_url = split_url.scheme + "://"+ domain + split_url.path
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404,
