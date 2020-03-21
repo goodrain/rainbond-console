@@ -173,7 +173,7 @@ class UserService(object):
     def create(self, data):
         # check nick name
         try:
-            user_repo.get_by_username(data["nick_name"])
+            user_repo.get_enterprise_user_by_username(data["eid"], data["nick_name"])
             raise UserExistError("{} already exists.".format(data["nick_name"]))
         except Users.DoesNotExist:
             pass

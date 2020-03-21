@@ -51,7 +51,7 @@ class OAuthUserService(object):
     def set_oauth_user_relation(self, api, oauth_service, oauth_user, access_token, refresh_token, code, user=None):
         oauth_user.id = str(oauth_user.id)
         if api.is_communication_oauth():
-            user = user_repo.get_by_username(oauth_user.name)
+            user = user_repo.get_enterprise_user_by_username(oauth_service.eid, oauth_user.name)
         authenticated_user = oauth_user_repo.user_oauth_exists(
             service_id=oauth_service.ID, oauth_user_id=oauth_user.id)
         if authenticated_user is not None:

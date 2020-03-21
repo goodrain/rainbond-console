@@ -18,9 +18,6 @@ class UserRepo(object):
     def get_enterprise_user_by_id(self, enterprise_id, user_id):
         return Users.objects.filter(user_id=user_id, enterprise_id=enterprise_id).first()
 
-    def get_by_username(self, username):
-        return Users.objects.get(nick_name=username)
-
     def get_enterprise_user_by_username(self, eid, username):
         return Users.objects.get(nick_name=username, enterprise_id=eid)
 
