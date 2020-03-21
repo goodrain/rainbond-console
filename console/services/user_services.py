@@ -89,6 +89,7 @@ class UserService(object):
 
         codeRepositoriesService.createUser(user, email, password, user_name, user_name)
 
+    # delete user and delete user of tenant perm
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
         try:
