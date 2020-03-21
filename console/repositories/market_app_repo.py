@@ -48,8 +48,11 @@ class RainbondCenterAppRepository(object):
             extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
         if app_name:
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        # if teams is None, create_team scope is ('')
+        team_sql = " and app.create_team in ('')"
         if scope == "team" and teams:
-            extend_where += " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+        extend_where += team_sql
         sql = """
             select
                 distinct app.*
@@ -67,6 +70,7 @@ class RainbondCenterAppRepository(object):
                 {extend_where}
             limit {offset}, {rows}
             """.format(eid=eid, scope=scope, extend_where=extend_where, offset=(page-1) * page_size, rows=page_size)
+        print sql
         return sql
 
     def get_rainbond_app_in_teams_by_querey(self, eid, teams, app_name, tag_names=None, page=1, page_size=10):

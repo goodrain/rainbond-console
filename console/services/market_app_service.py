@@ -717,7 +717,6 @@ class MarketAppService(object):
                 teams = team_repo.get_team_by_enterprise_id(eid)
             else:
                 teams = team_repo.get_tenants_by_user_id(user.user_id)
-
             if teams:
                 teams = [team.tenant_name for team in teams]
             apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, teams, app_name, tag_names, page, page_size)
@@ -726,10 +725,12 @@ class MarketAppService(object):
             apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, app_name, tag_names, page, page_size)
         if not apps:
             return []
+
         self._patch_rainbond_app_tag(eid, apps)
         self._patch_rainbond_app_versions(eid, apps, is_complete)
         return apps
 
+    # patch rainbond app tag
     def _patch_rainbond_app_tag(self, eid, apps):
         app_ids = [app.app_id for app in apps]
         tags = app_tag_repo.get_multi_apps_tags(eid, app_ids)
@@ -740,14 +741,17 @@ class MarketAppService(object):
             if not app_with_tags.get(tag.app_id):
                 app_with_tags[tag.app_id] = []
             app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
+
         for app in apps:
             app.tags = app_with_tags.get(app.app_id)
 
+    # patch rainbond app versions
     def _patch_rainbond_app_versions(self, eid, apps, is_complete=None):
         app_ids = [app.app_id for app in apps]
         versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete)
         if not versions:
             return
+
         app_with_versions = dict()
         for version in versions:
             if not app_with_versions.get(version.app_id):
@@ -757,8 +761,13 @@ class MarketAppService(object):
                     "version": version.version,
                     "version_alias": version.version_alias,
                 })
+
         for app in apps:
-            app.versions_info = app_with_versions.get(app.app_id)
+            versions_info = app_with_versions.get(app.app_id)
+            if versions_info:
+                # sort rainbond app versions by version
+                versions_info.sort(lambda x, y: cmp(x["version"], y["version"]))
+            app.versions_info = versions_info
 
     def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):
         limit = ""
