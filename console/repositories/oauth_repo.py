@@ -23,6 +23,8 @@ class OAuthRepo(object):
         return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False)
 
     def get_oauth_services_by_service_id(self, service_id):
+        if not service_id:
+            return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
     def open_get_oauth_services_by_service_id(self, service_id):
@@ -145,7 +147,7 @@ class UserOAuthRepo(object):
             oauth_user = UserOAuthServices.objects.get(service_id=service_id,
                                                        oauth_user_id=oauth_user_id)
             return oauth_user
-        except Exception:
+        except UserOAuthServices.DoesNotExist:
             return None
 
     def user_oauth_exists(self, service_id, oauth_user_id):
@@ -153,23 +155,35 @@ class UserOAuthRepo(object):
             oauth_user = UserOAuthServices.objects.get(service_id=service_id,
                                                        oauth_user_id=oauth_user_id)
             return oauth_user
-        except Exception:
+        except UserOAuthServices.DoesNotExist:
             return None
+
+    def get_all_user_oauth(self, user_id):
+        return UserOAuthServices.objects.filter(user_id=user_id)
 
     def get_user_oauth_by_user_id(self, service_id, user_id):
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id,
                                                        user_id=user_id)
             return oauth_user
-        except Exception:
+        except UserOAuthServices.DoesNotExist:
             return None
+
+    def get_enterprise_center_user_by_user_id(self, user_id):
+        try:
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter")
+            oauth_user = UserOAuthServices.objects.filter(
+                service_id=oauth_service.ID, user_id=user_id).first()
+            return oauth_user, oauth_service
+        except (OAuthServices.DoesNotExist, UserOAuthServices.DoesNotExist):
+            return None, None
 
     def get_user_oauth_by_id(self, service_id, id):
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id,
                                                        ID=id)
             return oauth_user
-        except Exception:
+        except UserOAuthServices.DoesNotExist:
             return None
 
     def get_user_oauth_by_code(self, service_id, code):
@@ -177,7 +191,7 @@ class UserOAuthRepo(object):
             oauth_user = UserOAuthServices.objects.get(service_id=service_id,
                                                        code=code)
             return oauth_user
-        except Exception:
+        except UserOAuthServices.DoesNotExist:
             return None
 
     def user_oauth_is_link(self, service_id, oauth_user_id):

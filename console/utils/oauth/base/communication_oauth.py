@@ -28,7 +28,7 @@ class CommunicationOAuth2Interface(OAuth2Interface):
         return True
 
     @abstractmethod
-    def get_user_list(self, *args, **kwargs):
+    def list_user(self, *args, **kwargs):
         '''
         get user list by login user
         :return:
@@ -36,6 +36,20 @@ class CommunicationOAuth2Interface(OAuth2Interface):
 
     @abstractmethod
     def create_user(self, *args, **kwargs):
+        '''
+        create user by login user
+        :return:
+        '''
+
+    @abstractmethod
+    def update_user(self, *args, **kwargs):
+        '''
+        create user by login user
+        :return:
+        '''
+
+    @abstractmethod
+    def delete_user(self, *args, **kwargs):
         '''
         create user by login user
         :return:

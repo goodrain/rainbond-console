@@ -201,6 +201,7 @@ class Users(models.Model):
     user_id = models.AutoField(primary_key=True, max_length=10)
     email = models.EmailField(max_length=35, help_text=u"邮件地址")
     nick_name = models.CharField(max_length=64, unique=True, null=True, blank=True, help_text=u"用户昵称")
+    real_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"用户名称")
     password = models.CharField(max_length=64, help_text=u"密码")
     phone = models.CharField(max_length=15, null=True, blank=True, help_text=u"手机号码")
     is_active = models.BooleanField(default=False, help_text=u"激活状态")
@@ -221,6 +222,8 @@ class Users(models.Model):
     sso_user_token = models.CharField(max_length=256, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True,
                                      default='', help_text=u"统一认证中心的enterprise_id")
+    enterprise_center_user_id = models.CharField(max_length=32, null=True, blank=True,
+                                                 default='', help_text=u"统一认证中心的user id")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
