@@ -414,10 +414,6 @@ class EnterPriseUsersUDView(JWTAuthApiView):
         if not user:
             result = general_message(400, "fail", "未找到该用户")
             return Response(result, 403)
-        teams = team_repo.get_tenants_by_user_id(user_id)
-        if teams:
-            result = general_message(400, "fail", "该用户拥有团队，或加入其他团队，不能删除")
-            return Response(result, 403)
-        user.delete()
+        user_services.delete_user(user_id)
         result = general_message(200, "success", "删除用户成功")
         return Response(result, status=200)
