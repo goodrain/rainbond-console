@@ -64,8 +64,8 @@ class EnterpriseAppOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         regions = region_repo.get_usable_regions(enterprise_id)
         if not regions:
-            result = general_message(404, "no found regions", None)
-            return Response(result, status=result.get("code"))
+            result = general_message(404, "no found regions", "查询成功")
+            return Response(result, status=200)
         data = enterprise_services.get_enterprise_runing_service(enterprise_id, regions)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
