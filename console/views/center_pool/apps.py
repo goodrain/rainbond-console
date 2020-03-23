@@ -7,7 +7,6 @@ import httplib2
 import httplib
 import json
 import datetime
-import base64
 
 from django.db import transaction
 from django.views.decorators.cache import never_cache
@@ -20,7 +19,6 @@ from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
@@ -30,7 +28,6 @@ from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
-from www.utils.crypt import make_uuid
 from www.apiclient.baseclient import HttpClient
 from www.decorator import perm_required
 from www.utils.return_message import error_message
@@ -252,63 +249,38 @@ class CenterAppCLView(JWTAuthApiView):
 
     @never_cache
     def post(self, request, enterprise_id, *args, **kwargs):
-        app_name = request.data.get("name")
+        name = request.data.get("name")
         describe = request.data.get("describe", 'This is a default description.')
         pic = request.data.get("pic")
-        scope = request.data.get("scope")
-        scope_target = request.data.get("scope_target")
         details = request.data.get("details")
-        app_id = make_uuid()
         dev_status = request.data.get("dev_status")
-        tenant_id = request.data.get("tenant_id")
-        team_name = request.data.get("team_name")
         tag_ids = request.data.get("tag_ids")
-        if tenant_id:
-            team = team_repo.get_team_by_team_id(tenant_id)
-            team_name = team.tenant_name
-        if scope == "goodrain":
-            if not scope_target:
-                result = general_message(400, "parameter market_id not found", None)
-                return Response(result, status=400)
-            market_id = scope_target.get("market_id")
+        scope = request.data.get("scope", "enterprise")
+        scope_target = request.data.get("scope_target")
+        create_team = request.data.get("create_team", None)
+        if scope == "team" and not create_team:
+            result = general_message(400, "please select team", "请选择团队")
+            return Response(result, status=400)
+        if scope == "goodrain" and not scope_target:
+            result = general_message(400, "parameter market_id not found", None)
+            return Response(result, status=400)
+        if not name:
+            result = general_message(400, "error params", "请填写应用名称")
+            return Response(result, status=400)
 
-        data = {
-            "app_name": app_name,
+        app_info = {
+            "app_name": name,
             "describe": describe,
             "pic": pic,
-            "app_id": app_id,
-            "dev_status": dev_status,
-            "create_team": team_name,
-            "create_user": self.user.user_id,
-            "source": "local",
-            "scope": scope,
             "details": details,
-            "enterprise_id": enterprise_id
+            "dev_status": dev_status,
+            "tag_ids": tag_ids,
+            "scope": scope,
+            "scope_target": scope_target,
+            "create_team": create_team,
         }
-        if not (app_name and scope):
-            result = general_message(400, "error params", None)
-            return Response(result, status=200)
-        if scope == "goodrain":
-            if pic:
-                try:
-                    with open(pic, "rb") as f:
-                        data["logo"] = "data:image/{};base64,".format(pic.split(".")[-1]) + \
-                                      base64.b64encode(f.read())
-                except Exception as e:
-                    logger.debug(e)
-                    result = general_message(400, "can not found pic", None)
-                    return Response(result, status=200)
-            else:
-                data["logo"] = None
-            market_sycn_service.create_cloud_market_app(enterprise_id, market_id, data)
-        else:
-            app = share_repo.create_app(data)
-            if tag_ids:
-                try:
-                    app_tag_repo.create_app_tags_relation(app, tag_ids)
-                except Exception as e:
-                    logger.debug(e)
-                    app.delete()
+        market_app_service.create_rainbond_app(enterprise_id, app_info)
+
         result = general_message(200, "success", None)
         return Response(result, status=200)
 
