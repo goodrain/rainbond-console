@@ -64,7 +64,6 @@ from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from console.services.user_services import user_services
-from console.repositories.app import app_tag_repo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
