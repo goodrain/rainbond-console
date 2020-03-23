@@ -1220,7 +1220,7 @@ class MarketAppService(object):
         if not app:
             raise RbdAppNotFound(msg="app not found")
         if app_info.get("name"):
-            app.name = app_info.get("name")
+            app.app_name = app_info.get("name")
         if app_info.get("describe"):
             app.describe = app_info.get("describe")
         if app_info.get("pic"):
