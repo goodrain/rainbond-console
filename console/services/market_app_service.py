@@ -28,6 +28,7 @@ from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.app import app_tag_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -62,7 +63,7 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.repositories.app import app_tag_repo
+from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -709,19 +710,65 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self, tenant, scope, app_name):
-
+    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, is_complete=None, page=1, page_size=10):
         if scope == "team":
-            rt_apps = self.get_current_team_shared_apps(tenant.enterprise_id, tenant.tenant_name)
-        elif scope == "goodrain":
-            rt_apps = self.get_public_market_shared_apps(tenant.enterprise_id)
-        elif scope == "enterprise":
-            rt_apps = self.get_current_enterprise_shared_apps(tenant.enterprise_id)
+            # prepare teams
+            is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
+            if is_admin:
+                teams = team_repo.get_team_by_enterprise_id(eid)
+            else:
+                teams = team_repo.get_tenants_by_user_id(user.user_id)
+            if teams:
+                teams = [team.tenant_name for team in teams]
+            apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, teams, app_name, tag_names, page, page_size)
         else:
-            rt_apps = self.get_team_visiable_apps(tenant)
-        if app_name:
-            rt_apps = rt_apps.filter(Q(group_name__icontains=app_name))
-        return rt_apps
+            # default scope is enterprise
+            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, app_name, tag_names, page, page_size)
+        if not apps:
+            return []
+
+        self._patch_rainbond_app_tag(eid, apps)
+        self._patch_rainbond_app_versions(eid, apps, is_complete)
+        return apps
+
+    # patch rainbond app tag
+    def _patch_rainbond_app_tag(self, eid, apps):
+        app_ids = [app.app_id for app in apps]
+        tags = app_tag_repo.get_multi_apps_tags(eid, app_ids)
+        if not tags:
+            return
+        app_with_tags = dict()
+        for tag in tags:
+            if not app_with_tags.get(tag.app_id):
+                app_with_tags[tag.app_id] = []
+            app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
+
+        for app in apps:
+            app.tags = app_with_tags.get(app.app_id)
+
+    # patch rainbond app versions
+    def _patch_rainbond_app_versions(self, eid, apps, is_complete=None):
+        app_ids = [app.app_id for app in apps]
+        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete)
+        if not versions:
+            return
+
+        app_with_versions = dict()
+        for version in versions:
+            if not app_with_versions.get(version.app_id):
+                app_with_versions[version.app_id] = []
+            app_with_versions[version.app_id].append({
+                    "is_complete": version.is_complete,
+                    "version": version.version,
+                    "version_alias": version.version_alias,
+                })
+
+        for app in apps:
+            versions_info = app_with_versions.get(app.app_id)
+            if versions_info:
+                # sort rainbond app versions by version
+                versions_info.sort(lambda x, y: cmp(x["version"], y["version"]))
+            app.versions_info = versions_info
 
     def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):
         limit = ""
