@@ -234,9 +234,13 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
+            logger.debug(oauth_user.enterprise_domain)
+            logger.debug(domain.split(".")[0])
+            logger.debug(home_split_url.netloc.split("."))
             if oauth_user.enterprise_domain != domain.split(".")[0] and \
-                    oauth_user.enterprise_domain != home_split_url.netloc.split("."):
-                raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败")
+                    domain.split(".")[0] != home_split_url.netloc.split(".")[0]:
+                raise ServiceHandleException(
+                    msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
