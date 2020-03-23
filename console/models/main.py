@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import json
 from datetime import datetime
 
 from django.db import models
@@ -730,7 +731,7 @@ class RegionConfig(BaseModel):
     region_id = models.CharField(max_length=36, unique=True, help_text=u"region id")
     region_name = models.CharField(max_length=64, unique=True, help_text=u"数据中心名称,不可修改")
     region_alias = models.CharField(max_length=64, help_text=u"数据中心别名")
-    region_type = models.CharField(max_length=64, null=True, blank=True, help_text=u"数据中心类型")
+    region_type = models.CharField(max_length=64, default=json.dumps([]), help_text=u"数据中心类型")
     url = models.CharField(max_length=256, help_text=u"数据中心API url")
     wsurl = models.CharField(max_length=256, help_text=u"数据中心Websocket url")
     httpdomain = models.CharField(max_length=256, help_text=u"数据中心http应用访问根域名")
