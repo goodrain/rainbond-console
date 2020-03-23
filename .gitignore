@@ -143,3 +143,5 @@ www/static/dists
 static/
 
 .scannerwork
+
+Dockerfile.test

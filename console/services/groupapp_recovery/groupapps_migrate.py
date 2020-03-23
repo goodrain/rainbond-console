@@ -315,7 +315,7 @@ class GroupappsMigrateService(object):
             volume_name_id[volume["volume_name"]] = index
             if volume["volume_type"] == "config_file" and contain_config_file is True:
                 for config_file in service_config_file:
-                    if config_file["volume_id"] == volume["ID"]:
+                    if config_file["volume_id"] == index:
                         config_file.pop("ID")
                         new_config_file = TenantServiceConfigurationFile(**config_file)
                         new_config_file.service_id = service.service_id
