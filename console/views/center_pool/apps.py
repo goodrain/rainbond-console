@@ -18,6 +18,7 @@ from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
