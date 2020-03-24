@@ -10,6 +10,7 @@ import re
 from django.db import transaction
 from django.db import connection
 
+from console.exception.main import ServiceHandleException
 from console.constants import DomainType
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
@@ -121,7 +122,11 @@ class DomainService(object):
             "certificate": base64.b64decode(cert.certificate),
             "private_key": cert.private_key,
         }
-        region_api.update_ingresses_by_certificate(region_name, tenant.tenant_name, body)
+        try:
+            region_api.update_ingresses_by_certificate(region_name, tenant.tenant_name, body)
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            logger.debug(e)
+            raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
 
     def __check_domain_name(self, team_name, domain_name, domain_type, certificate_id):
         if not domain_name:

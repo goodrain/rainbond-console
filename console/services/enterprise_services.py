@@ -242,9 +242,9 @@ class EnterpriseServices(object):
             data = None
             try:
                 data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
-            except region_api.CallApiError as e:
+            except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)
-                raise ServiceHandleException("get running app failed", "获取运行中组件失败", status_code=500)
+                continue
             if data and data.get("service_ids"):
                 running_component_ids.extend(data.get("service_ids"))
 

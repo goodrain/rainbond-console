@@ -580,12 +580,20 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         body["username"] = None
         body["password"] = None
         body["source_body"] = source_body
-        res, body = region_api.service_source_check(region, tenant, body)
-        return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
+        try:
+            res, body = region_api.service_source_check(region, tenant, body)
+            return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            logger.debug(e)
+            raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
 
     def get(self, request, service_id):
         region = request.GET.get("region")
         tenant_name = request.GET.get("tenant_name")
         check_uuid = request.GET.get("check_uuid")
-        res, body = region_api.get_service_check_info(region, tenant_name, check_uuid)
-        return Response({"data": body}, status=status.HTTP_200_OK)
+        try:
+            res, body = region_api.get_service_check_info(region, tenant_name, check_uuid)
+            return Response({"data": body}, status=status.HTTP_200_OK)
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            logger.debug(e)
+            raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
