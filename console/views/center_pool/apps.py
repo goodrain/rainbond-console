@@ -223,11 +223,12 @@ class CenterAppCLView(JWTAuthApiView):
         tag_ids = request.data.get("tag_ids")
         scope = request.data.get("scope", "enterprise")
         scope_target = request.data.get("scope_target")
-        create_team = request.data.get("create_team", None)
+        source = request.data.get("source", "local")
+        create_team = request.data.get("create_team", request.data.get("team_name", None))
         if scope == "team" and not create_team:
             result = general_message(400, "please select team", "请选择团队")
             return Response(result, status=400)
-        if scope == "goodrain" and not scope_target:
+        if scope == "goodrain" and (not scope_target or not scope_target.get("market_id")):
             result = general_message(400, "parameter market_id not found", None)
             return Response(result, status=400)
         if not name:
@@ -243,6 +244,7 @@ class CenterAppCLView(JWTAuthApiView):
             "tag_ids": tag_ids,
             "scope": scope,
             "scope_target": scope_target,
+            "source": source,
             "create_team": create_team,
         }
         market_app_service.create_rainbond_app(enterprise_id, app_info)
