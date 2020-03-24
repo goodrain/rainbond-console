@@ -1266,26 +1266,19 @@ class MarketAppService(object):
         app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         if not app:
             raise RbdAppNotFound(msg="app not found")
-        if app_info.get("name"):
-            app.app_name = app_info.get("name")
-        if app_info.get("describe"):
-            app.describe = app_info.get("describe")
-        if app_info.get("pic"):
-            app.pic = app_info.get("pic")
-        if app_info.get("details"):
-            app.details = app_info.get("details")
-        if app_info.get("dev_status"):
-            app.dev_status = app_info.get("dev_status")
-        if app_info.get("tag_ids"):
-            app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
-        if app_info.get("scope"):
-            app.scope = app_info.get("scope")
-            if app.scope == "team":
-                create_team = app_info.get("create_team")
-                team = team_repo.get_team_by_team_name(create_team)
-                if not team:
-                    raise ServiceHandleException(msg="can't get create team", msg_show="找不到团队")
-                app.create_team = create_team
+        app.app_name = app_info.get("name")
+        app.describe = app_info.get("describe")
+        app.pic = app_info.get("pic")
+        app.details = app_info.get("details")
+        app.dev_status = app_info.get("dev_status")
+        app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
+        app.scope = app_info.get("scope")
+        if app.scope == "team":
+            create_team = app_info.get("create_team")
+            team = team_repo.get_team_by_team_name(create_team)
+            if not team:
+                raise ServiceHandleException(msg="can't get create team", msg_show="找不到团队")
+            app.create_team = create_team
         app.save()
 
     @transaction.atomic
