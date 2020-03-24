@@ -44,33 +44,33 @@ class ConfigRUDView(AlowAnyApiView):
         if key in platform_config_service.base_cfg_keys + platform_config_service.cfg_keys:
             data = platform_config_service.update_config(key, value)
             try:
-                result = general_message(200, "success", "更新成功", bean=data)
+                result = general_message(200, u"success", u"更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
+                raise ServiceHandleException(msg=u"update enterprise config failed", msg_show=u"更新失败")
         else:
-            result = general_message(404, "no found config key", "更新失败")
+            result = general_message(404, u"no found config key", u"更新失败")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, "no found config key", "删除失败")
+            result = general_message(404, u"no found config key", u"重置失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key)
         if not value:
-            result = general_message(404, "no found config value", "删除失败")
+            result = general_message(404, u"no found config value", u"重置失败")
             return Response(result, status=result.get("code", 200))
         key = key.upper()
         if key in platform_config_service.cfg_keys:
-            platform_config_service.delete_config(key)
+            data = platform_config_service.delete_config(key)
             try:
-                result = general_message(200, "success", "删除成功")
+                result = general_message(200, u"success", u"重置成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg="update enterprise config failed", msg_show="删除失败")
+                raise ServiceHandleException(msg=u"update enterprise config failed", msg_show=u"重置失败")
         else:
-            result = general_message(404, "no found config key", "删除失败")
+            result = general_message(404, u"can not delete key value", u"该配置不可重置")
         return Response(result, status=result.get("code", 200))
 
 

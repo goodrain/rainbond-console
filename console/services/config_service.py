@@ -133,11 +133,19 @@ class ConfigService(object):
         config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
         config.value=value
         config.save()
-        return {key.lower(): {"enable": True, "value": (eval(config.value) if config.type == "json" else config.value)}}
+        return {key.lower(): {"enable": True, "value": config.value}}
 
     def delete_config_by_key(self, key):
-        return ConsoleSysConfig.objects.filter(key=key, enterprise_id=self.enterprise_id).delete()
-
+        rst = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
+        rst.enable = self.cfg_keys_value[key]["enable"]
+        rst.value = self.cfg_keys_value[key]["value"]
+        rst.desc = self.cfg_keys_value[key]["desc"]
+        if isinstance(rst.value, (dict, list)):
+            rst.type = "json"
+        else:
+            rst.type = "string"
+        rst.save()
+        return {key.lower():{"enable": rst.enable, "value": rst.value}}
 
 class EnterpriseConfigService(ConfigService):
 

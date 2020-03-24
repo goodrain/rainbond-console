@@ -61,51 +61,51 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent = enter.to_dict()
         if ent:
             ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
-        result = general_message(200, "success", "查询成功", bean=ent)
+        result = general_message(200, "success", u"查询成功", bean=ent)
         return Response(result, status=result["code"])
 
     def put(self, request, enterprise_id, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, "no found config key", "更新失败")
+            result = general_message(404, "no found config key", u"更新失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key)
         if not value:
-            result = general_message(404, "no found config value", "更新失败")
+            result = general_message(404, "no found config value", u"更新失败")
             return Response(result, status=result.get("code", 200))
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
             data = ent_config_servier.update_config(key, value)
             try:
-                result = general_message(200, "success", "更新成功", bean=data)
+                result = general_message(200, "success", u"更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show=u"更新失败")
         else:
-            result = general_message(404, "no found config key", "更新失败")
+            result = general_message(404, "no found config key", u"更新失败")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, "no found config key", "删除失败")
+            result = general_message(404, "no found config key", u"重置失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key)
         if not value:
-            result = general_message(404, "no found config value", "删除失败")
+            result = general_message(404, "no found config value", u"重置失败")
             return Response(result, status=result.get("code", 200))
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.cfg_keys:
-            ent_config_servier.delete_config(key)
+            data = ent_config_servier.delete_config(key)
             try:
-                result = general_message(200, "success", "删除成功")
+                result = general_message(200, "success", u"重置成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg="update enterprise config failed", msg_show="删除失败")
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show=u"重置失败")
         else:
-            result = general_message(404, "no found config key", "删除失败")
+            result = general_message(404, "can not delete key value", u"该配置不可重置")
         return Response(result, status=result.get("code", 200))
 
 
