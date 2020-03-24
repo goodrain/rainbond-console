@@ -262,7 +262,7 @@ from console.views.user_operation import UserDetailsView
 from console.views.user_operation import UserFavoriteLCView
 from console.views.user_operation import UserFavoriteUDView
 from console.views.enterprise import Enterprises
-from console.views.enterprise import EnterpriseInfo
+from console.views.enterprise import EnterpriseRUDView
 from console.views.enterprise import EnterpriseAppOverView
 from console.views.enterprise import EnterpriseTeamOverView
 from console.views.enterprise import EnterpriseOverview
@@ -843,7 +843,7 @@ urlpatterns = [
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$',
         BindMarketEnterpriseOptimizAccessTokenView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),

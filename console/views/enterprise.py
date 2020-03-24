@@ -8,7 +8,10 @@ from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
+from console.exception.main import ServiceHandleException
 from console.services.user_services import user_services
+from console.services.config_service import EnterpriseConfigService
+from console.services.config_service import enterprise_services
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.exception.exceptions import ExterpriseNotExistError
@@ -53,12 +56,39 @@ class Enterprises(JWTAuthApiView):
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
-class EnterpriseInfo(JWTAuthApiView):
+class EnterpriseRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
         ent = enter.to_dict()
+        if ent:
+            ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
+
+    def put(self, request, enterprise_id, *args, **kwargs):
+        key = request.GET.get("key")
+        if not key:
+            result = general_message(404, "no found config key", "更新失败")
+            return Response(result, status=result.get("code", 200))
+        value = request.data.get(key)
+        if not value:
+            result = general_message(404, "no found config value", "更新失败")
+            return Response(result, status=result.get("code", 200))
+        ent_config_servier = EnterpriseConfigService(enterprise_id)
+        key = key.upper()
+        print key, ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys
+        if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
+            data = ent_config_servier.update_config(key, value)
+            try:
+                result = general_message(200, "success", "更新成功", bean=data)
+            except Exception as e:
+                logger.debug(e)
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
+        else:
+            result = general_message(404, "no found config key", "更新失败")
+        return Response(result, status=result.get("code", 200))
+
+
 
 
 class EnterpriseAppOverView(JWTAuthApiView):

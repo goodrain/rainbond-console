@@ -36,7 +36,7 @@ from console.repositories.plugin.plugin_config import plugin_config_group_repo
 from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
-from console.services.config_service import config_service
+from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupInProgress
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrObjectStorageInfoNotFound
@@ -103,7 +103,7 @@ class GroupAppBackupService(object):
         return image_config is None
 
     def backup_group_apps(self, tenant, user, region, group_id, mode, note, force=False):
-        s3_config = config_service.get_cloud_obj_storage_info()
+        s3_config = EnterpriseConfigService(tenant.enterprise_id).get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
         services = group_service.get_group_services(group_id)

@@ -26,7 +26,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
-from console.services.config_service import config_service
+from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
@@ -897,8 +897,8 @@ class AllTeamsView(JWTAuthApiView):
 class RegisterStatusView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         try:
-            register_config = config_service.get_regist_status()
-            if register_config is False:
+            register_config = platform_config_service.get_config_by_key("IS_REGIST")
+            if register_config.enable is False:
                 return Response(
                     general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}),
                     status=200)
@@ -922,11 +922,11 @@ class RegisterStatusView(JWTAuthApiView):
 
                 if is_regist is False:
                     # 修改全局配置
-                    config_service.update_config("IS_REGIST", False)
+                    platform_config_service.update_config("IS_REGIST", {"enable": False, "value": None})
 
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
                 else:
-                    config_service.update_config("IS_REGIST", True)
+                    platform_config_service.update_config("IS_REGIST", {"enable": True, "value": None})
                     return Response(general_message(200, "open register", "开启注册"), status=200)
             else:
                 return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
