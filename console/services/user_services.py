@@ -478,6 +478,7 @@ class UserService(object):
                 })
             except UserNotExistError:
                 logger.warning("user_id: {}; user not found".format(item.user_id))
+                continue
         return users
 
     def create_admin_user(self, user, ent):

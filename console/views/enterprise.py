@@ -19,6 +19,7 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
+from console.exception.exceptions import UserNotExistError
 from console.views.base import JWTAuthApiView
 
 region_api = RegionInvokeApi()
@@ -104,7 +105,10 @@ class EnterpriseTeams(JWTAuthApiView):
                 rst_teams = []
             if rst_teams:
                 for team in rst_teams:
-                    user = user_repo.get_user_by_user_id(team.creater)
+                    try:
+                        user = user_repo.get_user_by_user_id(team.creater)
+                    except UserNotExistError:
+                        continue
                     try:
                         role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
                     except UserRoleNotFoundException:

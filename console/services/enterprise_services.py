@@ -294,7 +294,7 @@ class EnterpriseServices(object):
         region_resource["region_name"] = region.region_name
         region_resource["status"] = region.status
         region_resource["region_alias"] = region.region_alias
-        region_resource["region_type"] = json.loads(region.region_type)
+        region_resource["region_type"] = (json.loads(region.region_type) if region.region_type else [])
         region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
         region_resource["scope"] = region.scope

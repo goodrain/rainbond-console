@@ -346,7 +346,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 data.append({
                     "email": user.email,
                     "nick_name": user.nick_name,
-                    "real_name": user.real_name,
+                    "real_name": (user.nick_name if user.real_name is None else user.real_name),
                     "user_id": user.user_id,
                     "create_time": user.create_time,
                     "default_favorite_name": default_favorite_name,
@@ -423,7 +423,6 @@ class EnterPriseUsersUDView(JWTAuthApiView):
             enterprise_id, user_id, password, real_name)
         user.save()
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
-        logger.debug(oauth_instance.oauth_user)
         if oauth_instance:
             data = {
                 "password": password,
