@@ -1299,7 +1299,7 @@ class MarketAppService(object):
             create_user=app_info.get("create_user"),
             create_team=app_info.get("create_team"),
             pic=app_info.get("pic"),
-            source=app_info.get("source"),
+            source=app_info.get("source", "local"),
             dev_status=app_info.get("dev_status"),
             scope=app_info.get("scope"),
             describe=app_info.get("describe"),

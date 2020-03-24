@@ -223,7 +223,7 @@ class CenterAppCLView(JWTAuthApiView):
         tag_ids = request.data.get("tag_ids")
         scope = request.data.get("scope", "enterprise")
         scope_target = request.data.get("scope_target")
-        create_team = request.data.get("create_team", None)
+        create_team = request.data.get("create_team", request.data.get("team_name", None))
         if scope == "team" and not create_team:
             result = general_message(400, "please select team", "请选择团队")
             return Response(result, status=400)
