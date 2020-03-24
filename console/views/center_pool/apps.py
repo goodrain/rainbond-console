@@ -209,9 +209,9 @@ class CenterAppCLView(JWTAuthApiView):
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        apps = market_app_service.get_visiable_apps(
+        apps, count = market_app_service.get_visiable_apps(
             self.user, enterprise_id, scope, app_name, tags, is_complete, page, page_size)
-        return MessageResponse("success", msg_show="查询成功", list=apps, total=len(apps), next_page=int(page) + 1)
+        return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
 
     @never_cache
     def post(self, request, enterprise_id, *args, **kwargs):
