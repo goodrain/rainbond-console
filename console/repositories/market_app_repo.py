@@ -80,6 +80,41 @@ class RainbondCenterAppRepository(object):
         apps = conn.query(sql)
         return apps
 
+    def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names):
+        extend_where = ""
+        if tag_names:
+            extend_where += " and tag.name in ({0})".format(
+                ",".join("'{0}'".format(tag_name) for tag_name in tag_names))
+        if app_name:
+            extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        # if teams is None, create_team scope is ('')
+        if scope == "team":
+            team_sql = " and app.create_team in ('')"
+            if teams:
+                team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            extend_where += team_sql
+        sql = """
+            select
+                count(distinct app.app_id) as total
+            from
+                console.rainbond_center_app app
+            left join (
+                select
+                    app_id,
+                    tag.name
+                from
+                    console.rainbond_center_app_tag_relation rcatr
+                join console.rainbond_center_app_tag tag on
+                    rcatr.tag_id = tag.iD) tag on app.app_id = tag.app_id
+            where
+                `scope` = '{scope}'
+                and app.enterprise_id = '{eid}'
+                {extend_where}
+            """.format(eid=eid, scope=scope, extend_where=extend_where)
+        conn = BaseConnection()
+        count = conn.query(sql)
+        return count
+
     def get_rainbond_app_version_by_app_ids(self, eid, app_ids, is_complete=None):
         q = Q(enterprise_id=eid, app_id__in=app_ids)
         if is_complete:
