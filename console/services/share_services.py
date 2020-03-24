@@ -223,7 +223,7 @@ class ShareService(object):
         return None
 
     def query_share_service_info(self, team, group_id, scope=None):
-        service_last_share_info, _ = self.get_last_shared_app_version(team.tenant_id, group_id, scope)
+        service_last_share_info, _ = self.get_last_shared_app_version(team, group_id, scope)
         if service_last_share_info:
             service_last_share_info = service_last_share_info.get("apps")
             if service_last_share_info:
@@ -1066,7 +1066,7 @@ class ShareService(object):
         return app_list
 
     def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_id):
-        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, scope)
+        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         dt = {}
         dt["app_model_list"] = []
         dt["last_shared_app"] = {}
@@ -1075,7 +1075,6 @@ class ShareService(object):
             apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
             if apps_versions:
                 for app in apps_versions:
-                    print app
                     versions = []
                     app_versions = app.app_versions
                     if app_versions:
@@ -1121,13 +1120,13 @@ class ShareService(object):
             dt["app_model_list"] = app_list
         return dt
 
-    def get_last_shared_app_version(self, tenant_id, group_id, scope=None):
-        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, scope)
+    def get_last_shared_app_version(self, tenant, group_id, scope=None):
+        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         if not last_shared:
             return None, None
         if last_shared.scope == "goodrain":
             dt = self.get_cloud_app_version(
-                tenant_id, last_shared.app_id, last_shared.share_version)
+                tenant.tenant_id, last_shared.app_id, last_shared.share_version)
         else:
             app_version = share_repo.get_app_version(last_shared.app_id, last_shared.share_version)
             if not app_version:

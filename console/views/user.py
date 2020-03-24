@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from console.exception.exceptions import SameIdentityError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.user_repo import user_repo
-from console.repositories.team_repo import team_repo
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.enterprise_services import enterprise_services
@@ -438,11 +437,7 @@ class EnterPriseUsersUDView(JWTAuthApiView):
         if not user:
             result = general_message(400, "fail", "未找到该用户")
             return Response(result, 403)
-        teams = team_repo.get_tenants_by_user_id(user_id)
-        if teams:
-            result = general_message(400, "fail", "该用户拥有团队，或加入其他团队，不能删除")
-            return Response(result, 403)
-        user.delete()
+        user_services.delete_user(user_id)
         oauth_instance, oauth_user = user_services.check_user_is_enterprise_center_user(user_id)
         if oauth_instance:
             oauth_instance.delete_user(enterprise_id, user.enterprise_center_user_id)
