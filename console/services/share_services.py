@@ -729,7 +729,7 @@ class ShareService(object):
             app_model_id = share_version_info.get("app_model_id")
             version = share_version_info.get("version")
             target = share_version_info.get("scope_target")
-            version_alias = share_version_info.get("version_alias", share_version_info.get("version", "NA"))
+            version_alias = share_version_info.get("version_alias", "")
             version_describe = share_version_info.get("describe", "this is a default describe.")
             market_id = None
             scope = None
