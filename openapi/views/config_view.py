@@ -2,20 +2,20 @@
 # creater by: barnett
 import logging
 
-from django.db import transaction
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
-from rest_framework.response import Response
-
-from console.models.main import ConsoleSysConfig
-from console.repositories.oauth_repo import oauth_repo
+# from django.db import transaction
+# from drf_yasg.utils import swagger_auto_schema
+# from rest_framework import status
+# from rest_framework.response import Response
+#
+# from console.models.main import ConsoleSysConfig
+# from console.repositories.oauth_repo import oauth_repo
 # from console.services.config_service import
-from console.services.enterprise_services import enterprise_services
-from openapi.serializer.config_serializers import BaseConfigRespSerializer
-from openapi.serializer.config_serializers import FeatureConfigRespSerializer
-from openapi.serializer.config_serializers import UpdateBaseConfigReqSerializer
-from openapi.serializer.config_serializers import UpdateFeatureCfgReqSerializer
-from openapi.views.base import BaseOpenAPIView
+# from console.services.enterprise_services import enterprise_services
+# from openapi.serializer.config_serializers import BaseConfigRespSerializer
+# from openapi.serializer.config_serializers import FeatureConfigRespSerializer
+# from openapi.serializer.config_serializers import UpdateBaseConfigReqSerializer
+# from openapi.serializer.config_serializers import UpdateFeatureCfgReqSerializer
+# from openapi.views.base import BaseOpenAPIView
 
 logger = logging.getLogger("default")
 

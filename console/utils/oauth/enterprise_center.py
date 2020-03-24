@@ -28,7 +28,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         }
 
     def get_auth_url(self, home_url=None):
-        return  home_url + "/enterprise-server/oauth/authorize"
+        return home_url + "/enterprise-server/oauth/authorize"
 
     def get_access_token_url(self, home_url=None):
         return home_url + "/enterprise-server/oauth/token"
@@ -45,7 +45,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             raise NoOAuthServiceErr("no found oauth service")
         home_split_url = urlsplit(self.oauth_service.home_url)
         redirect_split_url = urlsplit(self.oauth_service.redirect_uri)
-        self.oauth_service.redirect_uri = home_split_url.scheme + "://"+ home_split_url.netloc + redirect_split_url.path
+        self.oauth_service.redirect_uri = home_split_url.scheme + "://" + home_split_url.netloc + redirect_split_url.path
         if code:
             headers = {
                 "Accept": "application/json",

@@ -374,7 +374,8 @@ class RegionService(object):
         return region.to_dict()
 
     def check_region_in_config(self, region_name):
-        datastr = config_service.get_by_key("REGION_SERVICE_API")
+        datastr = None
+        # datastr = config_service.get_by_key("REGION_SERVICE_API")
         # for d in data:
         #     if d["region_name"] == region_name:
         #         return True

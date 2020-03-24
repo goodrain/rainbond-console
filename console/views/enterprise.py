@@ -11,7 +11,6 @@ from www.utils.return_message import general_message
 from console.exception.main import ServiceHandleException
 from console.services.user_services import user_services
 from console.services.config_service import EnterpriseConfigService
-from console.services.config_service import enterprise_services
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.exception.exceptions import ExterpriseNotExistError
@@ -107,8 +106,6 @@ class EnterpriseRUDView(JWTAuthApiView):
         else:
             result = general_message(404, "can not delete key value", u"该配置不可重置")
         return Response(result, status=result.get("code", 200))
-
-
 
 
 class EnterpriseAppOverView(JWTAuthApiView):

@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
-import base64
-import json
 import logging
 from datetime import datetime
 
 from django.conf import settings
 from django.db.models import Q
 from console.exception.exceptions import ConfigExistError
-from console.models.main import CloundBangImages
 from console.models.main import ConsoleSysConfig
 from console.models.main import OAuthServices
 from console.services.enterprise_services import enterprise_services
@@ -26,6 +23,7 @@ class ConfigService(object):
         self.cfg_keys_value = None
         self.base_cfg_keys_value = None
         self.enterprise_id = None
+
     @property
     def initialization_or_get_config(self):
         rst_datas = {}
@@ -131,7 +129,7 @@ class ConfigService(object):
 
     def update_config_value(self, key, value):
         config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
-        config.value=value
+        config.value = value
         config.save()
         return {key.lower(): {"enable": True, "value": config.value}}
 
@@ -145,7 +143,8 @@ class ConfigService(object):
         else:
             rst.type = "string"
         rst.save()
-        return {key.lower():{"enable": rst.enable, "value": rst.value}}
+        return {key.lower(): {"enable": rst.enable, "value": rst.value}}
+
 
 class EnterpriseConfigService(ConfigService):
 
@@ -208,6 +207,7 @@ class EnterpriseConfigService(ConfigService):
         if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
             return None
         return eval(cloud_obj_storage_info.value)
+
 
 class PlatformConfigService(ConfigService):
     def __init__(self):

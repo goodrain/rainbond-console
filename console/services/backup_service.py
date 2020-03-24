@@ -9,7 +9,6 @@ from console.enum.component_enum import is_state
 
 from console.exception.main import ServiceHandleException
 
-from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import auth_repo
@@ -97,10 +96,6 @@ class GroupAppBackupService(object):
                 use_custom_svc.append(service_list[volume.service_id])
 
         return use_custom_svc
-
-    def is_hub_info_configed(self):
-        image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
-        return image_config is None
 
     def backup_group_apps(self, tenant, user, region, group_id, mode, note, force=False):
         s3_config = EnterpriseConfigService(tenant.enterprise_id).get_cloud_obj_storage_info()
