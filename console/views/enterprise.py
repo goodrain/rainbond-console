@@ -15,7 +15,6 @@ from console.services.config_service import enterprise_services
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.exception.exceptions import ExterpriseNotExistError
-from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.exceptions import UserRoleNotFoundException
 from console.repositories.team_repo import team_repo
@@ -76,7 +75,6 @@ class EnterpriseRUDView(JWTAuthApiView):
             return Response(result, status=result.get("code", 200))
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
-        print key, ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
             data = ent_config_servier.update_config(key, value)
             try:
@@ -86,6 +84,28 @@ class EnterpriseRUDView(JWTAuthApiView):
                 raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
         else:
             result = general_message(404, "no found config key", "更新失败")
+        return Response(result, status=result.get("code", 200))
+
+    def delete(self, request, enterprise_id, *args, **kwargs):
+        key = request.GET.get("key")
+        if not key:
+            result = general_message(404, "no found config key", "删除失败")
+            return Response(result, status=result.get("code", 200))
+        value = request.data.get(key)
+        if not value:
+            result = general_message(404, "no found config value", "删除失败")
+            return Response(result, status=result.get("code", 200))
+        ent_config_servier = EnterpriseConfigService(enterprise_id)
+        key = key.upper()
+        if key in ent_config_servier.cfg_keys:
+            ent_config_servier.delete_config(key)
+            try:
+                result = general_message(200, "success", "删除成功")
+            except Exception as e:
+                logger.debug(e)
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show="删除失败")
+        else:
+            result = general_message(404, "no found config key", "删除失败")
         return Response(result, status=result.get("code", 200))
 
 

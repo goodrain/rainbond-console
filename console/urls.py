@@ -139,7 +139,7 @@ from console.views.group import TenantGroupCommonOperationView
 from console.views.group import TenantGroupOperationView
 from console.views.group import TenantGroupView
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView
+from console.views.logos import ConfigRUDView
 from console.views.logos import PhpConfigView
 from console.views.message import UserMessageView
 from console.views.plugin.plugin_config import ConfigPluginManageView
@@ -299,7 +299,7 @@ from console.views.oauth import EnterpriseOauthService
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
-    url(r'^config/info$', ConfigInfoView.as_view()),
+    url(r'^config/info$', ConfigRUDView.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view()),
     url(r"^oauth/oauth-services$", OauthService.as_view()),
