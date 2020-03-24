@@ -1288,7 +1288,7 @@ class MarketAppService(object):
         app_id = make_uuid()
         # create rainbond market app
         if app_info.get("scope") == "goodrain":
-            market_id = app_info.get("scope_target")
+            market_id = app_info.get("scope_target").get("market_id")
             self._create_rainbond_app_for_cloud(enterprise_id, app_id, market_id, app_info)
             return
 
@@ -1299,7 +1299,7 @@ class MarketAppService(object):
             create_user=app_info.get("create_user"),
             create_team=app_info.get("create_team"),
             pic=app_info.get("pic"),
-            source=app_info.get("source", "local"),
+            source=app_info.get("source"),
             dev_status=app_info.get("dev_status"),
             scope=app_info.get("scope"),
             describe=app_info.get("describe"),
