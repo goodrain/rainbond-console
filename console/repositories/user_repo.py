@@ -32,9 +32,10 @@ class UserRepo(object):
         return user
 
     def get_user_by_filter(self, args=None, kwargs=None):
+        eid = kwargs.get("enterprise_id")
         args = tuple(args) if isinstance(args, (tuple, list, set)) else tuple()
-        kwargs = kwargs if isinstance(kwargs, dict) else dict()
-        users = Users.objects.filter(*args, **kwargs)
+        users = Users.objects.filter(enterprise_id=eid)
+        users = users.filter(*args)
         return users
 
     def get_by_user_id(self, user_id):

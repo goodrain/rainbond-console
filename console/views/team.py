@@ -74,7 +74,9 @@ class UserFuzSerView(JWTAuthApiView):
             query_key = request.GET.get("query_key", None)
             if query_key:
                 q_obj = Q(nick_name__icontains=query_key) | Q(email__icontains=query_key)
-                users = user_services.get_user_by_filter(args=(q_obj, ))
+                users = user_services.get_user_by_filter(
+                    args=(q_obj, ),
+                    kwargs={"enterprise_id": request.user.enterprise_id})
                 user_list = [{
                     "nick_name": user_info.nick_name,
                     "email": user_info.email,
