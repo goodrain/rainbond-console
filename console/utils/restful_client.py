@@ -19,7 +19,7 @@ def get_default_market_client():
     configuration = Configuration()
     configuration.host = os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80')
     # create an instance of the API class
-    return market_client.AppsApi(market_client.ApiClient(configuration)).get_app_version()
+    return market_client.AppsApi(market_client.ApiClient(configuration))
 
 
 def get_enterprise_server_auth_client(home_url, token):
