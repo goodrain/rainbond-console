@@ -35,6 +35,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
+from console.repositories.app import app_tag_repo
 
 logger = logging.getLogger("default")
 
@@ -1106,6 +1107,7 @@ class ShareService(object):
         else:
             if last_shared:
                 last_shared_app_info = share_repo.get_app_by_app_id(last_shared.app_id)
+                self._patch_rainbond_app_tag(last_shared_app_info)
                 if last_shared_app_info:
                     dt["last_shared_app"] = {
                         "app_name": last_shared_app_info.app_name,
@@ -1114,11 +1116,37 @@ class ShareService(object):
                         "pic": last_shared_app_info.pic,
                         "app_describe": last_shared_app_info.describe,
                         "dev_status": last_shared_app_info.dev_status,
-                        "scope": last_shared_app_info.scope
+                        "scope": last_shared_app_info.scope,
+                        "tags": last_shared_app_info.tags
                     }
             app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name)
+            self._patch_rainbond_apps_tag(enterprise_id, app_list)
             dt["app_model_list"] = app_list
         return dt
+
+    # patch rainbond app tag
+    def _patch_rainbond_app_tag(self, app):
+        tags = app_tag_repo.get_app_with_tags(app.enterprise_id, app.app_id)
+        app.tags = []
+        if not tags:
+            return
+        for tag in tags:
+            app.tags.append({"tag_id": tag.ID, "name": tag.name})
+
+    # patch rainbond app tag
+    def _patch_rainbond_apps_tag(self, eid, apps):
+        app_ids = [app["app_id"] for app in apps]
+        tags = app_tag_repo.get_multi_apps_tags(eid, app_ids)
+        if not tags:
+            return
+        app_with_tags = dict()
+        for tag in tags:
+            if not app_with_tags.get(tag.app_id):
+                app_with_tags[tag.app_id] = []
+            app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
+
+        for app in apps:
+            app["tags"] = app_with_tags.get(app["app_id"])
 
     def get_last_shared_app_version(self, tenant, group_id, scope=None):
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)

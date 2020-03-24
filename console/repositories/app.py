@@ -331,6 +331,23 @@ class AppTagRepository(object):
         apps = conn.query(sql)
         return apps
 
+    def get_app_with_tags(self, eid, app_id):
+        sql = """
+                select
+                     tag.*
+                from
+                    console.rainbond_center_app_tag_relation atr
+                left join console.rainbond_center_app_tag tag on
+                    atr.enterprise_id = tag.enterprise_id
+                    and atr.tag_id = tag.ID
+                where
+                    atr.enterprise_id = '{eid}'
+                    and atr.app_id = '{app_id}';
+                """.format(eid=eid, app_id=app_id)
+        conn = BaseConnection()
+        apps = conn.query(sql)
+        return apps
+
 
 service_repo = TenantServiceInfoRepository()
 service_source_repo = ServiceSourceRepository()
