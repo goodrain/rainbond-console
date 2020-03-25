@@ -103,7 +103,6 @@ class TeamRepo(object):
             AND nick_name like "%{query}%"
             """.format(query=query)
         conn = BaseConnection()
-        print sql
         result = conn.query(sql)
 
         return result
