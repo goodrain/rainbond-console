@@ -187,7 +187,8 @@ class AppPluginService(object):
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
-            if "body" in e.message and "msg" in e.message["body"] and "a same kind plugin has been linked" in e.message["body"]["msg"]:
+            if "body" in e.message and "msg" in e.message["body"] \
+               and "a same kind plugin has been linked" in e.message["body"]["msg"]:
                 raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
@@ -628,9 +629,9 @@ class PluginService(object):
             self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo):
         plugin_id = make_uuid()
         if build_source == "dockerfile" and not code_repo:
-                return 400, "代码仓库不能为空", None
+            return 400, "代码仓库不能为空", None
         if build_source == "image" and not image:
-                return 400, "镜像地址不能为空", None
+            return 400, "镜像地址不能为空", None
         if category not in (PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET,
                             PluginCategoryConstants.INPUT_NET, PluginCategoryConstants.PERFORMANCE_ANALYSIS,
                             PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE):
