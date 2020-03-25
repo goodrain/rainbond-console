@@ -100,7 +100,7 @@ class TeamRepo(object):
         """.format(where=where, enterprise_id=enterprise.enterprise_id)
         if query:
             sql += """
-            AND nick_name like "{query}%"
+            AND nick_name like "%{query}%"
             """.format(query=query)
         conn = BaseConnection()
         print sql
