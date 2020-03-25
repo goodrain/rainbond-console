@@ -22,7 +22,7 @@ class ConfigService(object):
         self.cfg_keys = None
         self.cfg_keys_value = None
         self.base_cfg_keys_value = None
-        self.enterprise_id = None
+        self.enterprise_id = ""
 
     @property
     def initialization_or_get_config(self):
@@ -267,7 +267,8 @@ class PlatformConfigService(ConfigService):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
-                key=key, type=type, value=default_value, desc=desc, create_time=create_time)
+                key=key, type=type, value=default_value,
+                desc=desc, create_time=create_time, enterprise_id="")
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))
