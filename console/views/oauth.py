@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 
 from console.exception.main import ServiceHandleException
-from console.services.config_service import config_service
+from console.services.config_service import EnterpriseConfigService
 from console.views.base import JWTAuthApiView, AlowAnyApiView
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -46,7 +46,8 @@ class OauthConfig(JWTAuthApiView):
     def put(self, request, *args, **kwargs):
         data = request.data.get("oauth_services")
         enable = data.get("enable")
-        config_service.update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
+        EnterpriseConfigService(request.user.enterprise_id).update_config_enable_status(
+            key="OAUTH_SERVICES", enable=enable)
         rst = {"data": {"bean": {"oauth_services": data}}}
         return Response(rst, status=status.HTTP_200_OK)
 
@@ -215,7 +216,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             if oauth_service.oauth_type == "enterprisecenter" and domain:
                 home_split_url = urlsplit(oauth_service.home_url)
-                oauth_service.home_url = home_split_url.scheme + "://"+ domain + home_split_url.path
+                oauth_service.home_url = home_split_url.scheme + "://" + domain + home_split_url.path
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404,
@@ -234,9 +235,13 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
+            logger.debug(oauth_user.enterprise_domain)
+            logger.debug(domain.split(".")[0])
+            logger.debug(home_split_url.netloc.split("."))
             if oauth_user.enterprise_domain != domain.split(".")[0] and \
-                    oauth_user.enterprise_domain != home_split_url.netloc.split("."):
-                raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败")
+                    domain.split(".")[0] != home_split_url.netloc.split(".")[0]:
+                raise ServiceHandleException(
+                    msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)

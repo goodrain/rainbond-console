@@ -18,6 +18,7 @@ jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 logger = logging.getLogger("default")
 
+
 class OAuthService(object):
     pass
 

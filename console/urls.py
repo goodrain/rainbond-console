@@ -139,7 +139,7 @@ from console.views.group import TenantGroupCommonOperationView
 from console.views.group import TenantGroupOperationView
 from console.views.group import TenantGroupView
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView
+from console.views.logos import ConfigRUDView
 from console.views.logos import PhpConfigView
 from console.views.message import UserMessageView
 from console.views.plugin.plugin_config import ConfigPluginManageView
@@ -241,6 +241,7 @@ from console.views.team import TeamUserAdminView
 from console.views.team import TeamUserCanJoin
 from console.views.team import TeamUserDetaislView
 from console.views.team import TeamUserView
+from console.views.team import NotJoinTeamUserView
 from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
@@ -262,7 +263,7 @@ from console.views.user_operation import UserDetailsView
 from console.views.user_operation import UserFavoriteLCView
 from console.views.user_operation import UserFavoriteUDView
 from console.views.enterprise import Enterprises
-from console.views.enterprise import EnterpriseInfo
+from console.views.enterprise import EnterpriseRUDView
 from console.views.enterprise import EnterpriseAppOverView
 from console.views.enterprise import EnterpriseTeamOverView
 from console.views.enterprise import EnterpriseOverview
@@ -299,7 +300,7 @@ from console.views.oauth import EnterpriseOauthService
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
-    url(r'^config/info$', ConfigInfoView.as_view()),
+    url(r'^config/info$', ConfigRUDView.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view()),
     url(r"^oauth/oauth-services$", OauthService.as_view()),
@@ -352,6 +353,8 @@ urlpatterns = [
     url(r'^teams/add-teams$', AddTeamView.as_view()),
     # 获取团队下所有用户
     url(r'^teams/(?P<team_name>[\w\-]+)/users$', TeamUserView.as_view()),
+    # 获取企业下未加入当前团队的用户列表
+    url(r'^teams/(?P<team_name>[\w\-]+)/notjoinusers$', NotJoinTeamUserView.as_view()),
     # 获取当前用户在团队下是否为管理员或拥有者
     url(r'^teams/(?P<team_name>[\w\-]+)/users/is_admin$', TeamUserAdminView.as_view()),
     # 添加新用户
@@ -843,7 +846,7 @@ urlpatterns = [
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$',
         BindMarketEnterpriseOptimizAccessTokenView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),

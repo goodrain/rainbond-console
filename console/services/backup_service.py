@@ -9,7 +9,6 @@ from console.enum.component_enum import is_state
 
 from console.exception.main import ServiceHandleException
 
-from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import auth_repo
@@ -36,7 +35,7 @@ from console.repositories.plugin.plugin_config import plugin_config_group_repo
 from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
-from console.services.config_service import config_service
+from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupInProgress
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrObjectStorageInfoNotFound
@@ -98,12 +97,8 @@ class GroupAppBackupService(object):
 
         return use_custom_svc
 
-    def is_hub_info_configed(self):
-        image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
-        return image_config is None
-
     def backup_group_apps(self, tenant, user, region, group_id, mode, note, force=False):
-        s3_config = config_service.get_cloud_obj_storage_info()
+        s3_config = EnterpriseConfigService(tenant.enterprise_id).get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
         services = group_service.get_group_services(group_id)

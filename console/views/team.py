@@ -26,7 +26,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
-from console.services.config_service import config_service
+from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
@@ -325,6 +325,23 @@ class TeamUserView(JWTAuthApiView):
             logger.exception(e)
             result = general_message(code, "system error", "系统异常")
         return Response(data=result, status=code)
+
+
+class NotJoinTeamUserView(JWTAuthApiView):
+    def get(self, request, team_name, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        query = request.GET.get("query")
+        tenant = team_repo.get_tenant_by_tenant_name(team_name)
+        if not tenant:
+            result = general_message(404, "not found", "团队不存在")
+            return Response(data=result, status=404)
+        enterprise = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
+        user_list = team_services.get_not_join_users(enterprise, tenant, query)
+        total = len(user_list)
+        data = user_list[(page-1)*page_size:page*page_size]
+        result = general_message(200, None, None, list=data, page=page, page_size=page_size, total=total)
+        return Response(data=result, status=200)
 
 
 class TeamUserAddView(JWTAuthApiView):
@@ -897,8 +914,8 @@ class AllTeamsView(JWTAuthApiView):
 class RegisterStatusView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         try:
-            register_config = config_service.get_regist_status()
-            if register_config is False:
+            register_config = platform_config_service.get_config_by_key("IS_REGIST")
+            if register_config.enable is False:
                 return Response(
                     general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}),
                     status=200)
@@ -922,11 +939,11 @@ class RegisterStatusView(JWTAuthApiView):
 
                 if is_regist is False:
                     # 修改全局配置
-                    config_service.update_config("IS_REGIST", False)
+                    platform_config_service.update_config("IS_REGIST", {"enable": False, "value": None})
 
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
                 else:
-                    config_service.update_config("IS_REGIST", True)
+                    platform_config_service.update_config("IS_REGIST", {"enable": True, "value": None})
                     return Response(general_message(200, "open register", "开启注册"), status=200)
             else:
                 return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
