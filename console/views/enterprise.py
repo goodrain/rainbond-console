@@ -8,6 +8,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
 from console.services.user_services import user_services
+from console.exception.exceptions import UserNotExistError
 from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
@@ -271,7 +272,11 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
-                    user = user_repo.get_user_by_user_id(tenant_info.creater)
+                    try:
+                        user = user_repo.get_user_by_user_id(tenant_info.creater)
+                        nick_name = user.nick_name
+                    except UserNotExistError:
+                        nick_name = None
                     new_join_team.append({
                         "team_name": tenant.team_name,
                         "team_alias": tenant.team_alias,
@@ -281,7 +286,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "region_list": region_name_list,
                         "enterprise_id": tenant_info.enterprise_id,
                         "owner": tenant_info.creater,
-                        "owner_name": user.nick_name,
+                        "owner_name": nick_name,
                         "role": None,
                         "is_pass": tenant.is_pass,
                     })
@@ -292,7 +297,11 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
                     tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
-                    user = user_repo.get_user_by_user_id(tenant_info.creater)
+                    try:
+                        user = user_repo.get_user_by_user_id(tenant_info.creater)
+                        nick_name = user.nick_name
+                    except UserNotExistError:
+                        nick_name = None
                     request_join_team.append({
                         "team_name": request_tenant.team_name,
                         "team_alias": request_tenant.team_alias,
@@ -304,7 +313,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "region_list": region_name_list,
                         "enterprise_id": enterprise_id,
                         "owner": tenant_info.creater,
-                        "owner_name": user.nick_name,
+                        "owner_name": nick_name,
                         "role": "viewer",
                         "is_pass": request_tenant.is_pass,
                     })
