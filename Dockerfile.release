@@ -1,4 +1,4 @@
-FROM registry.cn-hangzhou.aliyuncs.com/pandazxs/rbd-app-ui:V5.2-dev
+FROM IMAGE_DOMAIN/rainbond-ui:VERSION
 
 LABEL author="zengqg@goodrain.com" 
 
