@@ -90,7 +90,7 @@ class TeamRepo(object):
 
     def get_not_join_users(self, enterprise, tenant, query):
         where = """(SELECT DISTINCT user_id FROM tenant_perms WHERE tenant_id="{}" AND enterprise_id={})""".format(
-            tenant.tenant_id, enterprise.ID)
+            tenant.ID, enterprise.ID)
 
         sql = """
             SELECT user_id, nick_name, enterprise_id, email
