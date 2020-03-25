@@ -327,6 +327,23 @@ class TeamUserView(JWTAuthApiView):
         return Response(data=result, status=code)
 
 
+class NotJoinTeamUserView(JWTAuthApiView):
+    def get(self, request, team_name, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        query = request.GET.get("query")
+        tenant = team_repo.get_tenant_by_tenant_name(team_name)
+        if not tenant:
+            result = general_message(404, "not found", "团队不存在")
+            return Response(data=result, status=404)
+        enterprise = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
+        user_list = team_services.get_not_join_users(enterprise, tenant, query)
+        total = len(user_list)
+        data = user_list[(page-1)*page_size:page*page_size]
+        result = general_message(200, None, None, list=data, page=page, page_size=page_size, total=total)
+        return Response(data=result, status=200)
+
+
 class TeamUserAddView(JWTAuthApiView):
     def post(self, request, team_name, *args, **kwargs):
         """

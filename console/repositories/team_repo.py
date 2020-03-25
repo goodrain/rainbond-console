@@ -88,6 +88,26 @@ class TeamRepo(object):
             return None
         return tenant_perms
 
+    def get_not_join_users(self, enterprise, tenant, query):
+        where = """(SELECT DISTINCT user_id FROM tenant_perms WHERE tenant_id="{}" AND enterprise_id={})""".format(
+            tenant.tenant_id, enterprise.ID)
+
+        sql = """
+            SELECT user_id, nick_name, enterprise_id, email
+            FROM user_info
+            WHERE user_id NOT IN {where}
+            AND enterprise_id="{enterprise_id}"
+        """.format(where=where, enterprise_id=enterprise.enterprise_id)
+        if query:
+            sql += """
+            AND nick_name like "{query}%"
+            """.format(query=query)
+        conn = BaseConnection()
+        print sql
+        result = conn.query(sql)
+
+        return result
+
     # 返回该团队下的所有管理员
     def get_tenant_admin_by_tenant_id(self, tenant_id):
         admins = PermRelTenant.objects.filter(

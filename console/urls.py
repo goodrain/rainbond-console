@@ -241,6 +241,7 @@ from console.views.team import TeamUserAdminView
 from console.views.team import TeamUserCanJoin
 from console.views.team import TeamUserDetaislView
 from console.views.team import TeamUserView
+from console.views.team import NotJoinTeamUserView
 from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
@@ -352,6 +353,8 @@ urlpatterns = [
     url(r'^teams/add-teams$', AddTeamView.as_view()),
     # 获取团队下所有用户
     url(r'^teams/(?P<team_name>[\w\-]+)/users$', TeamUserView.as_view()),
+    # 获取企业下未加入当前团队的用户列表
+    url(r'^teams/(?P<team_name>[\w\-]+)/notjoinusers$', NotJoinTeamUserView.as_view()),
     # 获取当前用户在团队下是否为管理员或拥有者
     url(r'^teams/(?P<team_name>[\w\-]+)/users/is_admin$', TeamUserAdminView.as_view()),
     # 添加新用户
