@@ -280,9 +280,13 @@ class GroupStatusView(RegionTenantHeaderView):
             result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
         service_id_list = [x.service_id for x in services]
-        service_status_list = region_api.service_status(self.response_region, self.tenant_name, {
-            "service_ids": service_id_list,
-            "enterprise_id": self.user.enterprise_id
-        })
-        result = general_message(200, "success", "查询成功", list=service_status_list)
-        return Response(result)
+        try:
+            service_status_list = region_api.service_status(self.response_region, self.tenant_name, {
+                "service_ids": service_id_list,
+                "enterprise_id": self.user.enterprise_id
+            })
+            result = general_message(200, "success", "查询成功", list=service_status_list)
+            return Response(result)
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            logger.debug(e)
+            raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")

@@ -14,6 +14,7 @@ import urllib3
 from addict import Dict
 from django.conf import settings
 
+from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo
 from goodrain_web.decorator import method_perf_time
 
@@ -172,6 +173,14 @@ class RegionApiBaseHttpClient(object):
                         "type": "connect error",
                         "error": str(e)
                     })
+            except Exception as e:
+                retry_count -= 1
+                if retry_count:
+                    logger.error("client_error", "retry request: %s" % url)
+                else:
+                    logger.exception('client_error', e)
+                    raise ServiceHandleException(
+                        msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络和配置")
 
     def get_client(self, configuration, pools_size=4, maxsize=None, *args, **kwargs):
 
@@ -207,6 +216,7 @@ class RegionApiBaseHttpClient(object):
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
                 proxy_url=configuration.proxy,
+                timeout=3,
                 **addition_pool_args)
         else:
             self.pool_manager = urllib3.PoolManager(
@@ -216,6 +226,7 @@ class RegionApiBaseHttpClient(object):
                 ca_certs=ca_certs,
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
+                timeout=3,
                 **addition_pool_args)
         return self.pool_manager
 
