@@ -276,16 +276,40 @@ class EnterpriseServices(object):
         }
         return data
 
-    def parse_token(token, region_name, region_alias, region_type):
-        info = yaml.load(token, Loader=yaml.BaseLoader)
-        info["region_alias"] = region_alias
-        info["region_name"] = region_name
-        info["region_type"] = region_type
-        info["ssl_ca_cert"] = info["ssl_ca_cert"]
-        info["key_file"] = info["key_file"]
-        info["cert_file"] = info["cert_file"]
-        info["region_id"] = make_uuid()
-        return info
+    def parse_token(self, token, region_name, region_alias, region_type):
+        try:
+            info = yaml.load(token, Loader=yaml.BaseLoader)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceHandleException("parse yaml error", "Region Config 文件内容非法", 400, 400)
+        if not info.get("ca.pem"):
+            raise ServiceHandleException("ca.pem not found", "CA证书不存在", 400, 400)
+        if not info.get("client.key.pem"):
+            raise ServiceHandleException("client.key.pem not found", "客户端密钥不存在", 400, 400)
+        if not info.get("client.pem"):
+            raise ServiceHandleException("client.pem not found", "客户端证书不存在", 400, 400)
+        if not info.get("apiAddress"):
+            raise ServiceHandleException("apiAddress not found", "API地址不存在", 400, 400)
+        if not info.get("websocketAddress"):
+            raise ServiceHandleException("websocketAddress not found", "Websocket地址不存在", 400, 400)
+        if not info.get("defaultDomainSuffix"):
+            raise ServiceHandleException("defaultDomainSuffix not found", "HTTP默认域名后缀不存在", 400, 400)
+        if not info.get("defaultTCPHost"):
+            raise ServiceHandleException("defaultTCPHost not found", "TCP默认IP地址不存在", 400, 400)
+        region_info = {
+            "region_alias": region_alias,
+            "region_name": region_name,
+            "region_type": region_type,
+            "ssl_ca_cert": info.get("ca.pem"),
+            "key_file": info.get("client.key.pem"),
+            "cert_file": info.get("client.pem"),
+            "url": info.get("apiAddress"),
+            "wsurl": info.get("websocketAddress"),
+            "httpdomain": info.get("defaultDomainSuffix"),
+            "tcpdomain": info.get("defaultTCPHost"),
+            "region_id": make_uuid()
+        }
+        return region_info
 
     def __init_region_resource_data(self, region, level="open"):
         region_resource = {}
