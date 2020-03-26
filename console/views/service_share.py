@@ -308,7 +308,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        use_force = parse_argument(request, 'use_force', default=False, value_type=bool)
+        use_force = parse_argument(request, 'use_force', default=True, value_type=bool)
 
         try:
             share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
