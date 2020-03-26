@@ -103,14 +103,15 @@ class EnterpriseTeams(JWTAuthApiView):
                 rst_teams = []
             if rst_teams:
                 for team in rst_teams:
-                    user = user_repo.get_user_by_user_id(team.creater)
                     try:
-                        role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
+                        user = user_repo.get_user_by_user_id(team.creater)
+                        nick_name = user.nick_name
+                    except UserNotExistError:
+                        nick_name = None
+                    try:
+                        role = user_role_repo.get_role_names(team.creater, team.tenant_id)
                     except UserRoleNotFoundException:
-                        if team.creater == user.user_id:
-                            role = "owner"
-                        else:
-                            role = None
+                        role = "owner"
                     region_name_list = []
                     region_list = team_repo.get_team_regions(team.tenant_id)
                     if region_list:
@@ -119,7 +120,7 @@ class EnterpriseTeams(JWTAuthApiView):
                         "tenant_id": team.tenant_id,
                         "team_alias": team.tenant_alias,
                         "owner": team.creater,
-                        "owner_name": user.nick_name,
+                        "owner_name": nick_name,
                         "enterprise_id": enterprise_id,
                         "create_time": team.create_time,
                         "team_name": team.tenant_name,
