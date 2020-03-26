@@ -179,10 +179,8 @@ class RegionRepo(object):
         region.desc = data.get("desc")
         region.key_file = data.get("key_file")
         region.region_type = json.dumps(data.get("region_type", []))
-        try:
-            region.save()
-        except Exception:
-            raise ServiceHandleException(msg="update failed", msg_show="更新失败")
+        region.save()
+        return region
 
 
 region_repo = RegionRepo()

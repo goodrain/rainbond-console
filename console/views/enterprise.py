@@ -405,7 +405,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         region_data = enterprise_services.parse_token(token, region_name, region_alias, region_type)
         region_data["enterprise_id"] = enterprise_id
         region_data["desc"] = desc
-        region = region_services.add_region(**(region_data))
+        region = region_services.add_region(region_data)
         if region:
             data = enterprise_services.get_enterprise_region(enterprise_id, region.region_id)
             result = general_message(200, "success", "创建成功", bean=data)

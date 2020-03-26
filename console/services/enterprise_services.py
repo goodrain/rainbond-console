@@ -317,7 +317,6 @@ class EnterpriseServices(object):
         region_resource["region_alias"] = region.region_alias
         region_resource["region_name"] = region.region_name
         region_resource["status"] = region.status
-        region_resource["region_alias"] = region.region_alias
         region_resource["region_type"] = (json.loads(region.region_type) if region.region_type else [])
         region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
@@ -392,8 +391,7 @@ class EnterpriseServices(object):
         return region_resource
 
     def update_enterprise_region(self, enterprise_id, region_id, data):
-        region_repo.update_enterprise_region(enterprise_id, region_id, data)
-        return self.get_enterprise_region(enterprise_id, region_id)
+        return region_repo.update_enterprise_region(enterprise_id, region_id, data)
 
 
 enterprise_services = EnterpriseServices()
