@@ -396,10 +396,7 @@ class APPPluginConfigView(AppBaseView):
 
         """
         try:
-            logger.debug("update service plugin config ")
             config = json.loads(request.body)
-            logger.debug("====> {0}".format(config))
-            # config_group = config.get("config_group", [])
             config_group = config
             if not config_group:
                 return Response(general_message(400, "params error", "参数配置不可为空"), status=400)
@@ -411,14 +408,13 @@ class APPPluginConfigView(AppBaseView):
             config_envs = {}
             config_envs["normal_envs"] = normal
             config_envs["complex_envs"] = complex
-            logger.debug("plugin.relation", "--< config_envs is {}".format(config_envs))
             body = {}
             body["tenant_id"] = self.tenant.tenant_id
             body["service_id"] = self.service.service_id
             body["config_envs"] = config_envs
-            res, resultBody = region_api.putPluginAttr(self.service.service_region, self.tenant.tenant_name,
-                                                       self.service.service_alias, plugin_id, body)
-            result = general_message(200, "config error", "配置成功")
+            region_api.putPluginAttr(self.service.service_region, self.tenant.tenant_name,
+                                     self.service.service_alias, plugin_id, body)
+            result = general_message(200, "config success", "配置成功")
             return Response(result, result["code"])
         except Exception as e:
             logger.exception(e)

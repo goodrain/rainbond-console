@@ -51,10 +51,10 @@
           {
             "attr_name": "MaxConnections",
             "attr_type": "string",
-            "attr_default_value": "1024",
+            "attr_default_value": "10240",
             "is_change": true,
             "attr_alt_value": "",
-            "attr_info": "http1.1",
+            "attr_info": "",
             "protocol": ""
           },
           {
@@ -69,7 +69,7 @@
           {
             "attr_name": "MaxRequests",
             "attr_type": "string",
-            "attr_default_value": "1024",
+            "attr_default_value": "10240",
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大请求数",
