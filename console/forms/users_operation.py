@@ -2,9 +2,9 @@
 import re
 from django import forms
 from django.forms.forms import Form
-
+import logging
 from www.models.main import Users
-
+logger = logging.getLogger("default")
 SENSITIVE_WORDS = ('root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services')
 
 standard_regex_string = "^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"
@@ -67,15 +67,12 @@ class RegisterForm(Form):
     }
 
     def clean(self):
-        # tenant_name = self.cleaned_data.get('tenant_name')
         nick_name = self.cleaned_data.get('user_name')
         email = self.cleaned_data.get('email')
         password = self.cleaned_data.get('password')
         password_repeat = self.cleaned_data.get('password_repeat')
         captcha_code = self.cleaned_data.get('captcha_code')
         real_captcha_code = self.cleaned_data.get('real_captcha_code')
-        # invite_tag = self.cleaned_data.get('invite_tag')
-        # machine_region = self.cleaned_data.get('machine_region')
 
         try:
             Users.objects.get(nick_name=nick_name)
@@ -98,27 +95,5 @@ class RegisterForm(Form):
 
         if real_captcha_code is None or captcha_code is None or real_captcha_code.lower() != captcha_code.lower():
             raise forms.ValidationError(self.error_messages['captcha_code_error'], code='captcha_code_error')
-
-        # 判断是否邀请注册,邀请注册不校验租户
-        # if invite_tag is None or invite_tag == "":
-        #     try:
-        #         Tenants.objects.get(tenant_name=tenant)
-        #         if not sn.instance.is_private():
-        #             raise forms.ValidationError(
-        #                 self.error_messages['tenant_used'],
-        #                 code='tenant_used',
-        #                 params={'tenant': tenant}
-        #             )
-        #     except Tenants.DoesNotExist:
-        #         pass
-
-        # 数据中心不做校验,默认为ali-sh
-        # if machine_region is None or machine_region == "" or machine_region == "1":
-        #     pass
-        # machine_region = "ali-sh"
-        # raise forms.ValidationError(
-        #     self.error_messages['machine_region_error'],
-        #     code='machine_region_error',
-        # )
 
         return self.cleaned_data

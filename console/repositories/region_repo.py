@@ -5,7 +5,6 @@ from django.db.models import Q
 from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
-from console.exception.main import ServiceHandleException
 from console.exception.main import RegionNotFound
 from www.models.main import TenantRegionInfo
 
@@ -158,7 +157,9 @@ class RegionRepo(object):
     def get_region_by_enterprise_id(self, eid):
         return TenantRegionInfo.objects.filter(enterprise_id=eid).first()
 
-    def get_regions_by_enterprise_id(self, eid):
+    def get_regions_by_enterprise_id(self, eid, status):
+        if status:
+            return RegionConfig.objects.filter(enterprise_id=eid, status=status)
         return RegionConfig.objects.filter(enterprise_id=eid)
 
     def get_region_by_id(self, eid, region_id):
@@ -173,16 +174,15 @@ class RegionRepo(object):
         region.wsurl = data.get("wsurl")
         region.httpdomain = data.get("httpdomain")
         region.tcpdomain = data.get("tcpdomain")
-        region.scope = data.get("scope")
+        if data.get("scope"):
+            region.scope = data.get("scope")
         region.ssl_ca_cert = data.get("ssl_ca_cert")
         region.cert_file = data.get("cert_file")
         region.desc = data.get("desc")
         region.key_file = data.get("key_file")
         region.region_type = json.dumps(data.get("region_type", []))
-        try:
-            region.save()
-        except Exception:
-            raise ServiceHandleException(msg="update failed", msg_show="更新失败")
+        region.save()
+        return region
 
 
 region_repo = RegionRepo()

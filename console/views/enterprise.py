@@ -50,7 +50,7 @@ class Enterprises(JWTAuthApiView):
             data = general_message(200, "success", "查询成功", list=enterprises_list)
             return Response(data, status=status.HTTP_200_OK)
         else:
-            data = general_message(404, "no found", "未找到企业")
+            data = general_message(404, "enterprise no found", "未找到企业")
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -82,7 +82,7 @@ class EnterpriseRUDView(JWTAuthApiView):
                 logger.debug(e)
                 raise ServiceHandleException(msg="update enterprise config failed", msg_show=u"更新失败")
         else:
-            result = general_message(404, "no found config key", u"更新失败")
+            result = general_message(404, "update failure", u"更新失败")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, *args, **kwargs):
@@ -392,7 +392,8 @@ class EnterpriseAppsLView(JWTAuthApiView):
 
 class EnterpriseRegionsLCView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        data = enterprise_services.get_enterprise_regions(enterprise_id, level="safe")
+        region_status = request.GET.get("status", "")
+        data = enterprise_services.get_enterprise_regions(enterprise_id, level="safe", status=region_status)
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -400,21 +401,20 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         token = request.data.get("token")
         region_name = request.data.get("region_name")
         region_alias = request.data.get("region_alias")
+        desc = request.data.get("desc")
         region_type = json.dumps(request.data.get("region_type", []))
-        try:
-            region_data = enterprise_services.parse_token(token, region_name, region_alias, region_type)
-        except Exception as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="parameter error", msg_show="参数错误")
+        region_data = enterprise_services.parse_token(token, region_name, region_alias, region_type)
         region_data["enterprise_id"] = enterprise_id
-        region = region_services.add_region(**(region_data))
+        region_data["desc"] = desc
+        region_data["status"] = "1"
+        region = region_services.add_region(region_data)
         if region:
             data = enterprise_services.get_enterprise_region(enterprise_id, region.region_id)
             result = general_message(200, "success", "创建成功", bean=data)
             return Response(result, status=status.HTTP_200_OK)
         else:
-            result = general_message(400, "failed", "创建失败")
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            result = general_message(500, "failed", "创建失败")
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class EnterpriseRegionsRUDView(JWTAuthApiView):
@@ -429,6 +429,6 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
-        region_services.del_by_enterprise_region_id(enterprise_id, region_id)
+        region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code",  200))
