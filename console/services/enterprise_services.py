@@ -340,8 +340,8 @@ class EnterpriseServices(object):
         region_resource["health_status"] = "ok"
         return region_resource
 
-    def get_enterprise_regions(self, enterprise_id, level="open"):
-        regions = region_repo.get_regions_by_enterprise_id(enterprise_id)
+    def get_enterprise_regions(self, enterprise_id, level="open", status=""):
+        regions = region_repo.get_regions_by_enterprise_id(enterprise_id, status)
         region_info_list = []
         if not regions:
             return []

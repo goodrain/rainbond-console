@@ -125,8 +125,8 @@ class RegionService(object):
     def list_services_by_tenant_name(self, region_name, team_id):
         return base_service.get_services_list(team_id, region_name)
 
-    def get_team_unopen_region(self, team_name):
-        usable_regions = region_repo.get_usable_regions()
+    def get_team_unopen_region(self, team_name, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
         opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)

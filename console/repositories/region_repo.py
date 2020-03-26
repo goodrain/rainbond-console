@@ -157,7 +157,9 @@ class RegionRepo(object):
     def get_region_by_enterprise_id(self, eid):
         return TenantRegionInfo.objects.filter(enterprise_id=eid).first()
 
-    def get_regions_by_enterprise_id(self, eid):
+    def get_regions_by_enterprise_id(self, eid, status):
+        if status:
+            return RegionConfig.objects.filter(enterprise_id=eid, status=status)
         return RegionConfig.objects.filter(enterprise_id=eid)
 
     def get_region_by_id(self, eid, region_id):

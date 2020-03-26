@@ -392,7 +392,8 @@ class EnterpriseAppsLView(JWTAuthApiView):
 
 class EnterpriseRegionsLCView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        data = enterprise_services.get_enterprise_regions(enterprise_id, level="safe")
+        status = request.GET.get("status", "")
+        data = enterprise_services.get_enterprise_regions(enterprise_id, level="safe", status=status)
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=status.HTTP_200_OK)
 
