@@ -405,6 +405,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         region_data = enterprise_services.parse_token(token, region_name, region_alias, region_type)
         region_data["enterprise_id"] = enterprise_id
         region_data["desc"] = desc
+        region_data["status"] = "1"
         region = region_services.add_region(region_data)
         if region:
             data = enterprise_services.get_enterprise_region(enterprise_id, region.region_id)
@@ -427,6 +428,6 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
-        region_services.del_by_enterprise_region_id(enterprise_id, region_id)
+        region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code",  200))

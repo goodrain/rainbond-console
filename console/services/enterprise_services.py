@@ -391,7 +391,7 @@ class EnterpriseServices(object):
         return region_resource
 
     def update_enterprise_region(self, enterprise_id, region_id, data):
-        return region_repo.update_enterprise_region(enterprise_id, region_id, data)
+        return self.__init_region_resource_data(region_repo.update_enterprise_region(enterprise_id, region_id, data))
 
 
 enterprise_services = EnterpriseServices()

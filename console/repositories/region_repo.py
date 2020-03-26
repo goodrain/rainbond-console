@@ -5,7 +5,6 @@ from django.db.models import Q
 from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
-from console.exception.main import ServiceHandleException
 from console.exception.main import RegionNotFound
 from www.models.main import TenantRegionInfo
 
@@ -173,7 +172,8 @@ class RegionRepo(object):
         region.wsurl = data.get("wsurl")
         region.httpdomain = data.get("httpdomain")
         region.tcpdomain = data.get("tcpdomain")
-        region.scope = data.get("scope")
+        if data.get("scope"):
+            region.scope = data.get("scope")
         region.ssl_ca_cert = data.get("ssl_ca_cert")
         region.cert_file = data.get("cert_file")
         region.desc = data.get("desc")
