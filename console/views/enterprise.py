@@ -19,7 +19,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.views.base import JWTAuthApiView
-
+from console.services.team_services import team_services
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -47,7 +47,7 @@ class Enterprises(JWTAuthApiView):
             data = general_message(200, "success", "查询成功", list=enterprises_list)
             return Response(data, status=status.HTTP_200_OK)
         else:
-            data = general_message(404, "no found", "未找到企业")
+            data = general_message(404, "no found enterprise", "未找到企业")
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -148,38 +148,8 @@ class EnterpriseUserTeams(JWTAuthApiView):
             result = general_message(400, "failed", "请求失败")
             return Response(result, status=code)
         try:
-            tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user_id, name)
-            if tenants:
-                teams_list = list()
-                for tenant in tenants:
-                    user = user_repo.get_user_by_user_id(tenant.creater)
-                    try:
-                        role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
-                    except UserRoleNotFoundException:
-                        if tenant.creater == user.user_id:
-                            role = "owner"
-                        else:
-                            role = None
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
-                    teams_list.append({
-                        "team_name": tenant.tenant_name,
-                        "team_alias": tenant.tenant_alias,
-                        "team_id": tenant.tenant_id,
-                        "create_time": tenant.create_time,
-                        "region": tenant.region,
-                        "region_list": region_name_list,
-                        "enterprise_id": tenant.enterprise_id,
-                        "owner": tenant.creater,
-                        "owner_name": user.nick_name,
-                        "role": role
-                    })
-                result = general_message(200, "team query success", "成功获取该用户加入的团队", list=teams_list)
-            else:
-                teams_list = []
-                result = general_message(200, "team query success", "该用户没有加入团队", bean=teams_list)
+            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user_id, name)
+            result = general_message(200, "team query success", "查询成功", bean=tenants)
         except Exception as e:
             logger.exception(e)
             code = 400

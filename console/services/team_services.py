@@ -10,7 +10,7 @@ from django.core.paginator import PageNotAnInteger
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
-
+from console.repositories.enterprise_repo import enterprise_repo
 from console.models.main import TenantUserRole
 from console.repositories.perm_repo import role_perm_repo
 from console.repositories.perm_repo import role_repo
@@ -28,6 +28,9 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
 from www.models.main import TenantServiceInfo
+from console.repositories.user_role_repo import user_role_repo
+from console.repositories.exceptions import UserRoleNotFoundException
+from console.exception.exceptions import UserNotExistError
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -530,6 +533,7 @@ class TeamService(object):
         query_set = Tenants.objects.filter(tenant_name__in=tenant_names)
         return [qs.to_dict() for qs in query_set]
 
+    # used by open api before version 5.2
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)
         total = team_repo.count_by_user_id(eid, user_id, query)
@@ -554,6 +558,40 @@ class TeamService(object):
                 role_infos.append({"role_name": role_name, "role_id": role})
             tenant["role_infos"] = role_infos
         return tenants, total
+
+    def get_teams_region_by_user_id(self, enterprise_id, user_id, name=None):
+        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user_id, name)
+        if tenants:
+            teams_list = list()
+            for tenant in tenants:
+                role = ""
+                owner_name = ""
+                try:
+                    user = user_repo.get_user_by_user_id(tenant.creater)
+                    role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
+                    owner_name = user.get_name()
+                except UserNotExistError:
+                    pass
+                except UserRoleNotFoundException:
+                    if tenant.creater == user.user_id:
+                        role = "owner"
+                region_name_list = []
+                region_list = team_repo.get_team_regions(tenant.tenant_id)
+                if region_list:
+                    region_name_list = region_list.values_list("region_name", flat=True)
+                    region_infos = region_repo.get_region_by_region_names(region_name_list)
+                teams_list.append({
+                    "team_name": tenant.tenant_name,
+                    "team_alias": tenant.tenant_alias,
+                    "team_id": tenant.tenant_id,
+                    "create_time": tenant.create_time,
+                    "region": tenant.region,
+                    "region_list": region_infos,
+                    "enterprise_id": tenant.enterprise_id,
+                    "owner": tenant.creater,
+                    "owner_name": owner_name,
+                    "role": role
+                })
 
     def get_team_by_team_alias(self, team_alias):
         return team_repo.get_team_by_team_alias(team_alias)
