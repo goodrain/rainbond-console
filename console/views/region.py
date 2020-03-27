@@ -208,20 +208,15 @@ class OpenRegionView(JWTAuthApiView):
 
 
 class QyeryRegionView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, enterprise_id, *args, **kwargs):
         """
         获取当前可用全部数据中心
         ---
 
         """
-        try:
-            regions = region_services.get_open_regions(request.user.enterprise_id)
-            result = general_message(200, 'query success', '数据中心获取成功', list=[r.to_dict() for r in regions])
-            return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        regions = region_services.get_open_regions(enterprise_id)
+        result = general_message(200, 'query success', '数据中心获取成功', list=[r.to_dict() for r in regions])
+        return Response(result, status=200)
 
 
 class GetRegionPublicKeyView(RegionTenantHeaderView):
@@ -231,14 +226,9 @@ class GetRegionPublicKeyView(RegionTenantHeaderView):
         ---
 
         """
-        try:
-            key = region_services.get_public_key(self.team, region_name)
-            result = general_message(200, 'query success', '数据中心key获取成功', bean=key)
-            return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        key = region_services.get_public_key(self.team, region_name)
+        result = general_message(200, 'query success', '数据中心key获取成功', bean=key)
+        return Response(result, status=200)
 
 
 class PublicRegionListView(JWTAuthApiView):

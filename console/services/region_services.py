@@ -23,6 +23,20 @@ region_api = RegionInvokeApi()
 market_api = MarketOpenAPI()
 
 
+class RegionExistException(Exception):
+    def __init__(self, message, *args, **kwargs):
+        self.message = message
+        self.http_code = 400
+        self.service_code = 10400
+
+
+class RegionNotExistException(Exception):
+    def __init__(self, message, *args, **kwargs):
+        self.message = message
+        self.http_code = 404
+        self.service_code = 10404
+
+
 class RegionService(object):
     def get_region_by_tenant_name(self, tenant_name):
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
@@ -374,20 +388,6 @@ class RegionService(object):
 
     def check_region_in_config(self, region_name):
         return None
-
-
-class RegionExistException(Exception):
-    def __init__(self, message, *args, **kwargs):
-        self.message = message
-        self.http_code = 400
-        self.service_code = 10400
-
-
-class RegionNotExistException(Exception):
-    def __init__(self, message, *args, **kwargs):
-        self.message = message
-        self.http_code = 404
-        self.service_code = 10404
 
 
 region_services = RegionService()
