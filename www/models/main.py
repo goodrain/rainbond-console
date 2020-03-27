@@ -235,8 +235,6 @@ class Users(models.Model):
         return True
 
     def get_name(self):
-        if "real_name" in self:
-            return self.real_name
         return self.nick_name
 
     @property

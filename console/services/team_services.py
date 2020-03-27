@@ -563,38 +563,42 @@ class TeamService(object):
         return tenants, total
 
     def get_teams_region_by_user_id(self, enterprise_id, user_id, name=None):
+        teams_list = list()
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user_id, name)
         if tenants:
-            teams_list = list()
             for tenant in tenants:
                 role = ""
                 owner_name = ""
                 try:
                     user = user_repo.get_user_by_user_id(tenant.creater)
-                    role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
                     owner_name = user.get_name()
+                    role = user_role_repo.get_role_names(user_id, tenant.tenant_id)
                 except UserNotExistError:
                     pass
                 except UserRoleNotFoundException:
-                    if tenant.creater == user.user_id:
+                    if tenant.creater == user_id:
                         role = "owner"
-                region_name_list = []
+                region_info_map = []
                 region_list = team_repo.get_team_regions(tenant.tenant_id)
                 if region_list:
                     region_name_list = region_list.values_list("region_name", flat=True)
                     region_infos = region_repo.get_region_by_region_names(region_name_list)
+                    if region_infos:
+                        for region in region_infos:
+                            region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
                 teams_list.append({
                     "team_name": tenant.tenant_name,
                     "team_alias": tenant.tenant_alias,
                     "team_id": tenant.tenant_id,
                     "create_time": tenant.create_time,
                     "region": tenant.region,
-                    "region_list": region_infos,
+                    "region_list": region_info_map,
                     "enterprise_id": tenant.enterprise_id,
                     "owner": tenant.creater,
                     "owner_name": owner_name,
                     "role": role
                 })
+        return teams_list
 
     def get_team_by_team_alias(self, team_alias):
         return team_repo.get_team_by_team_alias(team_alias)

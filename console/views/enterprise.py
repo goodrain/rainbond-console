@@ -201,7 +201,7 @@ class EnterpriseUserTeams(JWTAuthApiView):
             return Response(result, status=code)
         try:
             tenants = team_services.get_teams_region_by_user_id(enterprise_id, user_id, name)
-            result = general_message(200, "team query success", "查询成功", bean=tenants)
+            result = general_message(200, "team query success", "查询成功", list=tenants)
         except Exception as e:
             logger.exception(e)
             code = 400
