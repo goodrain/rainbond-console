@@ -294,11 +294,11 @@ class PropertiesChanges(object):
         result = []
         if not apps:
             return None
-        for app in apps:
-            service_share_uuid = app.get("service_share_uuid", app["service_key"])
+        for dep_service in apps["dep_service_map_list"]:
+            service_share_uuid = dep_service.get("dep_service_key")
             if service_share_uuid not in dep_uuids:
                 continue
-            result.append({"service_share_uuid": service_share_uuid, "service_cname": app["service_cname"]})
+            result.append({"service_share_uuid": service_share_uuid, "service_cname": apps["service_cname"]})
         return result
 
     def port_changes(self, new_ports):
