@@ -13,7 +13,6 @@ from console.exception.exceptions import NoEnableRegionError
 from console.exception.exceptions import ParamsError
 from console.exception.exceptions import PermTenantsExistError
 from console.exception.exceptions import TenantExistError
-from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
 from console.models.main import UserMessage

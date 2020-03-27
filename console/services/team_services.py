@@ -294,7 +294,7 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
             viewer = user_role_repo.get_viewer_role()
-            PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk, 
+            PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk,
                                                    identity="viewer", enterprise_id=enterprise.pk,
                                                    role_id=viewer.pk)
 

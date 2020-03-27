@@ -3,6 +3,7 @@ from console.repositories.base import BaseConnection
 from console.repositories.exceptions import UserRoleNotFoundException
 from console.models.main import TenantUserRole
 
+
 class UserRoleRepo(object):
     def get_role_names(self, user_id, tenant_id):
         sql = """
