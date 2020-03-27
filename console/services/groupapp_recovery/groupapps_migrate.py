@@ -23,7 +23,7 @@ from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.config_service import config_service
+from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
 from console.services.exception import ErrObjectStorageInfoNotFound
@@ -124,7 +124,7 @@ class GroupappsMigrateService(object):
         if not backup_record:
             raise ErrBackupRecordNotFound
 
-        s3_info = config_service.get_cloud_obj_storage_info()
+        s3_info = EnterpriseConfigService(user.enterprise_id).get_cloud_obj_storage_info()
         if backup_record.mode == "full-online" and not s3_info:
             raise ErrObjectStorageInfoNotFound
 
