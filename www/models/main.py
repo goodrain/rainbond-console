@@ -238,7 +238,7 @@ class Users(models.Model):
         return True
 
     def get_name(self):
-        return self.nick_name
+        return self.real_name
 
     @property
     def is_sys_admin(self):
