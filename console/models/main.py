@@ -81,6 +81,7 @@ class ConsoleSysConfig(BaseModel):
     desc = models.CharField(max_length=100, null=True, blank=True, default="", help_text=u"描述")
     enable = models.BooleanField(default=True, help_text=u"是否生效")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    enterprise_id = models.CharField(max_length=32, help_text=u"eid", default="")
 
 
 class RainbondCenterApp(BaseModel):
