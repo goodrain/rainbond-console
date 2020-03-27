@@ -1045,41 +1045,26 @@ class JoinTeamView(JWTAuthApiView):
 
 
 class TeamUserCanJoin(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, enterprise_id, request, *args, **kwargs):
         """指定用户可以加入哪些团队"""
-        try:
-            tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)
-            team_names = tenants.values("tenant_name")
-            # 已加入的团队
-            team_name_list = [t_name.get("tenant_name") for t_name in team_names]
-
-            user_id = request.GET.get("user_id", None)
-            if user_id:
-                enterprise_id = user_repo.get_by_user_id(user_id=user_id).enterprise_id
-                team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
-                apply_team = apply_repo.get_applicants_team(user_id=user_id)
-            else:
-                enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
-                team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
-                apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
-            # 已申请过的团队
-            applied_team = [
-                team_repo.get_team_by_team_name(team_name=team_name)
-                for team_name in [team_name.team_name for team_name in apply_team]
-            ]
-            join_list = []
-            for join_team in team_list:
-                if join_team not in applied_team and join_team.tenant_name not in team_name_list:
-                    join_list.append(join_team)
-            join_list = [{
-                "team_name": j_team.tenant_name,
-                "team_alias": j_team.tenant_alias,
-                "team_id": j_team.tenant_id
-            } for j_team in join_list]
-            result = general_message(200, "success", "查询成功", list=join_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)
+        team_names = tenants.values("tenant_name")
+        # 已加入的团队
+        team_name_list = [t_name.get("tenant_name") for t_name in team_names]
+        team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
+        apply_team = apply_repo.get_append_applicants_team(user_id=self.user.user_id)
+        # 已申请过的团队
+        applied_team = [team_name.team_name for team_name in apply_team]
+        can_join_team_list = []
+        for join_team in team_list:
+            if join_team.tenant_name not in applied_team and join_team.tenant_name not in team_name_list:
+                can_join_team_list.append(join_team)
+        join_list = [{
+            "team_name": j_team.tenant_name,
+            "team_alias": j_team.tenant_alias,
+            "team_id": j_team.tenant_id
+        } for j_team in team_repo.get_team_by_team_names(can_join_team_list)]
+        result = general_message(200, "success", "查询成功", list=join_list)
         return Response(result, status=result["code"])
 
 

@@ -876,12 +876,12 @@ urlpatterns = [
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
+    # 查询登录用户可以加入哪些团队
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
     url(r"^user/applicants/join$", JoinTeamView.as_view()),
-    # 查询指定用户可以加入哪些团队
-    url(r"^user/jointeams$", TeamUserCanJoin.as_view()),
     # 修改部署密钥
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/updatekey$",
         UpdateSecretKey.as_view()),

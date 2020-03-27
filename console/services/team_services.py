@@ -293,8 +293,10 @@ class TeamService(object):
         """在团队中添加一个用户并给用户分配一个默认viewer权限"""
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
-            PermRelTenant.objects.update_or_create(
-                    user_id=user_id, tenant_id=tenant.pk, identity="viewer", enterprise_id=enterprise.pk)
+            viewer = user_role_repo.get_viewer_role()
+            PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk, 
+                                                   identity="viewer", enterprise_id=enterprise.pk,
+                                                   role_id=viewer.pk)
 
     def user_is_exist_in_team(self, user_list, tenant_name):
         """判断一个用户是否存在于一个团队中"""
