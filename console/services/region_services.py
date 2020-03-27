@@ -132,8 +132,8 @@ class RegionService(object):
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
 
-    def get_open_regions(self):
-        usable_regions = region_repo.get_usable_regions()
+    def get_open_regions(self, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         return usable_regions
 
     def get_public_key(self, tenant, region):
@@ -268,8 +268,8 @@ class RegionService(object):
             token = "Token {}".format(token)
         return url, token
 
-    def get_team_usable_regions(self, team_name):
-        usable_regions = region_repo.get_usable_regions()
+    def get_team_usable_regions(self, team_name, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region(
             team_name).filter(is_init=True, region_name__in=region_names)
