@@ -296,6 +296,10 @@ from console.views.oauth import OauthServiceInfo
 from console.views.oauth import OAuthServerUserAuthorize
 from console.views.oauth import OAuthGitCodeDetection
 from console.views.oauth import EnterpriseOauthService
+from console.views.order import EnterpriseSubscribe
+from console.views.order import EnterpriseOrdersCLView
+from console.views.order import EnterpriseOrdersRView
+from console.views.order import BankInfoView
 
 
 urlpatterns = [
@@ -894,7 +898,14 @@ urlpatterns = [
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
     # 下架应用
     # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
-
+    # 获取企业订购状态
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/subscribe$", EnterpriseSubscribe.as_view()),
+    # 获取企业订单列表，创建订单
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/orders$", EnterpriseOrdersCLView.as_view()),
+    # 获取企业订单详情
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/orders/(?P<order_id>[\w\-]+)$", EnterpriseOrdersRView.as_view()),
+    # 获取对公账单
+    url(r"^bank/info$", BankInfoView.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
