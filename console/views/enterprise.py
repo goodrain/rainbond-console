@@ -66,7 +66,7 @@ class EnterpriseRUDView(JWTAuthApiView):
     def put(self, request, enterprise_id, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, "no found config key", u"更新失败")
+            result = general_message(404, "no found config key {0}".format(key), u"更新失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key)
         if not value:
@@ -143,51 +143,14 @@ class EnterpriseTeams(JWTAuthApiView):
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
-        teams_list = []
-        teams = enterprise_repo.get_enterprise_teams(enterprise_id, name)
-        if teams:
-            try:
-                rst_teams = teams[(page-1)*page_size:page*page_size]
-            except Exception:
-                rst_teams = []
-            if rst_teams:
-                for team in rst_teams:
-                    try:
-                        user = user_repo.get_user_by_user_id(team.creater)
-                    except UserNotExistError:
-                        continue
-                    try:
-                        role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
-                    except UserRoleNotFoundException:
-                        if team.creater == user.user_id:
-                            role = "owner"
-                        else:
-                            role = None
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(team.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
-                    teams_list.append({
-                        "tenant_id": team.tenant_id,
-                        "team_alias": team.tenant_alias,
-                        "owner": team.creater,
-                        "owner_name": user.nick_name,
-                        "enterprise_id": enterprise_id,
-                        "create_time": team.create_time,
-                        "team_name": team.tenant_name,
-                        "region": team.region,
-                        "region_list": region_name_list,
-                        "role": role,
-                    })
-            data = {
-                "total_count": len(teams),
-                "page": page,
-                "page_size": page_size,
-                "list": teams_list
-            }
-            result = general_message(200, "success", None, bean=data)
-        else:
-            result = general_message(404, "no found", None)
+        teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, page=page, page_size=page_size)
+        data = {
+            "total_count": total,
+            "page": page,
+            "page_size": page_size,
+            "list": teams
+        }
+        result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
 

@@ -222,7 +222,6 @@ from console.views.services_toplogical import TopologicalInternetView
 from console.views.task_guidance import BaseGuidance
 from console.views.team import AddTeamView
 from console.views.team import AdminAddUserView
-from console.views.team import AllTeamsView
 from console.views.team import ApplicantsView
 from console.views.team import CertificateView
 from console.views.team import EnterpriseInfoView
@@ -831,8 +830,6 @@ urlpatterns = [
         AppVersionManageView.as_view()),
     # 获取当前团队所有的申请者
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
-    # 获取企业下所有团队的列表
-    url(r'^enterprise/teams$', AllTeamsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
