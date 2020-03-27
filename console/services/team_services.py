@@ -114,6 +114,9 @@ class TeamService(object):
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         return user_perms
 
+    def get_not_join_users(self, enterprise, tenant, query,):
+        return team_repo.get_not_join_users(enterprise, tenant, query)
+
     def get_user_perms_in_permtenant_list(self, user_id, tenant_name):
         """
         一个用户在一个团队中的身份列表

@@ -1,8 +1,7 @@
 # -*- coding: utf8 -*-
-import json
 import logging
 
-from console.services.config_service import config_service
+from console.services.config_service import platform_config_service
 from console.services.task_guidance.base_task_status_service import BaseTaskStatusContext
 
 logger = logging.getLogger("default")
@@ -13,20 +12,21 @@ class BaseTaskGuidance:
         pass
 
     def list_base_tasks(self, eid):
-        cfg = config_service.get_config_by_key(eid)
+        cfg = platform_config_service.get_config_by_key(eid)
         if not cfg:
             # init base tasks
             logger.info("Enterprise id: {}; initialize basic tasks information".format(eid))
             data = self.init_base_task()
             # TODO: handle error
-            config_service.add_config_without_reload(key=eid, default_value=json.dumps(data), type="json")
+            platform_config_service.add_config_without_reload(
+                key=eid, default_value=data, type="json")
         else:
-            data = json.loads(cfg.value)
+            data = eval(cfg.value)
         need_update = False
         for index in range(len(data)):
             if data[index] is not None and data[index]["key"] == "install_mysql_from_market":
                 del data[index]
-                config_service.update_config(eid, json.dumps(data))
+                platform_config_service.update_config(eid, {"enable": True, "value": data})
                 break
 
         for item in data:
@@ -41,7 +41,7 @@ class BaseTaskGuidance:
 
         if need_update:
             # TODO: handle error
-            config_service.update_config(eid, json.dumps(data))
+            platform_config_service.update_config(eid, {"enable": True, "value": data})
 
         return data
 

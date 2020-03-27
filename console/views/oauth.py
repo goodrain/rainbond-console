@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 
-from console.services.config_service import config_service
+from console.services.config_service import EnterpriseConfigService
 from console.views.base import JWTAuthApiView, AlowAnyApiView
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -45,7 +45,9 @@ class OauthConfig(JWTAuthApiView):
     def put(self, request, *args, **kwargs):
         data = request.data.get("oauth_services")
         enable = data.get("enable")
-        config_service.update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
+        EnterpriseConfigService(request.user.enterprise_id).update_config_enable_status(
+            key="OAUTH_SERVICES", enable=enable)
+
         rst = {"data": {"bean": {"oauth_services": data}}}
         return Response(rst, status=status.HTTP_200_OK)
 

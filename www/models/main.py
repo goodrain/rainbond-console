@@ -1318,6 +1318,7 @@ class TenantEnterprise(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"创建时间")
     enterprise_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text=u"企业身份token")
     is_active = models.IntegerField(default=0, help_text=u"是否在云市上激活, 0:未激活, 1:已激活")
+    logo = models.CharField(max_length=128, blank=True, null=True, default='', help_text=u"企业logo")
 
     def __unicode__(self):
         return self.to_dict()

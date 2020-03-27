@@ -18,9 +18,9 @@ from openapi.views.apps.apps import APPHttpDomainView
 from openapi.views.apps.market import MarketAppInstallView
 from openapi.views.appstore_view import AppStoreInfoView
 from openapi.views.appstore_view import ListAppStoresView
-from openapi.views.config_view import BaseConfigView
-from openapi.views.config_view import FeatureConfigView
-from openapi.views.config_view import ListFeatureConfigView
+# from openapi.views.config_view import BaseConfigView
+# from openapi.views.config_view import FeatureConfigView
+# from openapi.views.config_view import ListFeatureConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
@@ -85,9 +85,9 @@ urlpatterns = [
     url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
     url(r'^v1/announcements$', ListAnnouncementView.as_view()),
     url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
-    url(r'^v1/configs/base$', BaseConfigView.as_view()),
-    url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
-    url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
+    # url(r'^v1/configs/base$', BaseConfigView.as_view()),
+    # url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
+    # url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
     url(r'^v1/upload-file$', UploadView.as_view()),
     url(r'^v1/apps/httpdomain$', APPHttpDomainView.as_view()),
     url(r'^v1/apps$', ListAppsView.as_view()),

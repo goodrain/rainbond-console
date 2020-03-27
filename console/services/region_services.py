@@ -12,7 +12,7 @@ from console.models.main import RegionConfig
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.config_service import config_service
+from console.services.config_service import platform_config_service
 from console.services.service_services import base_service
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
@@ -340,10 +340,10 @@ class RegionService(object):
     def update_region_config(self):
         region_data = self.generate_region_config()
         try:
-            config_service.get_by_key("REGION_SERVICE_API")
-            config_service.update_config("REGION_SERVICE_API", region_data)
+            platform_config_service.get_config_by_key("REGION_SERVICE_API")
+            platform_config_service.update_config("REGION_SERVICE_API", region_data)
         except ConsoleSysConfig.DoesNotExist:
-            config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")
+            platform_config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")
 
     def generate_region_config(self):
         # 查询已上线的数据中心配置
@@ -372,7 +372,7 @@ class RegionService(object):
         return region.to_dict()
 
     def check_region_in_config(self, region_name):
-        return config_service.get_by_key("REGION_SERVICE_API")
+        return None
 
 
 class RegionExistException(Exception):
