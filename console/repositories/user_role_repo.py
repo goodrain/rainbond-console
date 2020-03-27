@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from console.repositories.base import BaseConnection
 from console.repositories.exceptions import UserRoleNotFoundException
+from console.models.main import TenantUserRole
 
 
 class UserRoleRepo(object):
@@ -24,6 +25,12 @@ class UserRoleRepo(object):
                 "tenant_id: {tenant_id}; user_id: {user_id}; user role not found".format(
                     tenant_id=tenant_id, user_id=user_id))
         return result[0].get("role_names")
+
+    def get_viewer_role(self):
+        re = TenantUserRole.objects.filter(role_name="viewer")
+        if re:
+            return re[0]
+        return None
 
 
 user_role_repo = UserRoleRepo()

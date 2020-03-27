@@ -356,7 +356,6 @@ class RegionService(object):
             config_map["region_alias"] = region.region_alias
             config_map["url"] = region.url
             config_map["token"] = region.token
-            config_map["region_name"] = region.region_name
             config_map["enable"] = True
             region_config_list.append(config_map)
         data = json.dumps(region_config_list)
@@ -374,13 +373,7 @@ class RegionService(object):
         return region.to_dict()
 
     def check_region_in_config(self, region_name):
-        datastr = None
-        # datastr = config_service.get_by_key("REGION_SERVICE_API")
-        # for d in data:
-        #     if d["region_name"] == region_name:
-        #         return True
-        # return False
-        return datastr
+        return None
 
 
 class RegionExistException(Exception):

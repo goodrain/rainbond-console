@@ -71,7 +71,6 @@ class RainbondCenterAppRepository(object):
                 {extend_where}
             limit {offset}, {rows}
             """.format(eid=eid, scope=scope, extend_where=extend_where, offset=(page-1) * page_size, rows=page_size)
-        logger.debug("query rainbond app sql is :{0}".format(sql))
         return sql
 
     def get_rainbond_app_in_teams_by_querey(self, eid, teams, app_name, tag_names=None, page=1, page_size=10):

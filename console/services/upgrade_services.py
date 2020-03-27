@@ -278,7 +278,7 @@ class UpgradeService(object):
         try:
             pc = PropertiesChanges(service, tenant)
             app = get_upgrade_app_version_template_app(tenant, version, pc)
-            return pc.get_property_changes(app)
+            return pc.get_property_changes(app, level="app")
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:
