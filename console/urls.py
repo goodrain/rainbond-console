@@ -727,16 +727,6 @@ urlpatterns = [
     # url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
-    # 好雨云市应用同步
-    # 同步应用
-    # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
-
-    # 查询查询云端app
-    # url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
-    # url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
-    # # 查询云端指定版本app
-    # url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
-
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
     # 云市认证
@@ -843,6 +833,7 @@ urlpatterns = [
         BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$',  QyeryRegionView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
@@ -885,9 +876,6 @@ urlpatterns = [
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
-    # 下架应用
-    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
-
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

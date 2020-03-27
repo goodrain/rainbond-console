@@ -563,6 +563,7 @@ class TeamService(object):
         }
         if user_id:
             info["role"] = role
+        return info
 
     def get_teams_region_by_user_id(self, enterprise_id, user_id, name=None):
         teams_list = list()
