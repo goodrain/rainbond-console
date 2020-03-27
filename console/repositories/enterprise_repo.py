@@ -123,7 +123,7 @@ class TenantEnterpriseRepo(object):
                 "tenant_id": tenant.tenant_id,
                 "team_alias": tenant.tenant_alias,
                 "owner": tenant.creater,
-                "owner_name": user.nick_name,
+                "owner_name": user.get_name(),
                 "enterprise_id": tenant.enterprise_id,
                 "create_time": tenant.create_time,
                 "team_name": tenant.tenant_name,
