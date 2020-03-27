@@ -130,6 +130,11 @@ class ConfigService(object):
     def update_config_value(self, key, value):
         config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
         config.value = value
+        if isinstance(value, (dict, list)):
+            type = "json"
+        else:
+            type = "string"
+        config.type = type
         config.save()
         return {key.lower(): {"enable": True, "value": config.value}}
 
