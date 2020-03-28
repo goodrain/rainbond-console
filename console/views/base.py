@@ -23,7 +23,10 @@ from rest_framework.views import set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
+from entsrv_client.rest import ApiException as EnterPriseCenterApiException
+
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.utils.oauth.oauth_types import get_oauth_instance
 from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
@@ -32,6 +35,8 @@ from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import Tenants
 from www.models.main import Users
+from console.models.main import OAuthServices
+from console.models.main import UserOAuthServices
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -188,6 +193,34 @@ class JWTAuthApiView(APIView):
         self.user = request.user
 
 
+class CloudEnterpriseCenterView(JWTAuthApiView):
+    def __init__(self, *args, **kwargs):
+        super(CloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+        self.oauth_instance = None
+        self.oauth = None
+        self.oauth_user = None
+
+    def initial(self, request, *args, **kwargs):
+        super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
+        try:
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
+            oauth_user = UserOAuthServices.objects.filter(
+                service_id=oauth_service.ID, user_id=self.user.user_id).first()
+        except OAuthServices.DoesNotExist:
+            raise NotFound("enterprise center oauth server not found")
+        except UserOAuthServices.DoesNotExist:
+            msg = _('用户身份未在企业中心认证')
+            raise AuthenticationInfoHasExpiredError(msg)
+        self.oauth_instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+        if not self.oauth_instance:
+            msg = _('未找到企业中心OAuth服务类型')
+            raise AuthenticationInfoHasExpiredError(msg)
+        self.initial_header_info(request)
+
+    def initial_header_info(self, request):
+        pass
+
+
 class RegionTenantHeaderView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
         super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
@@ -339,6 +372,10 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, ImportError):
         # 处理数据为标准返回格式
         data = {"code": status.HTTP_400_BAD_REQUEST, "msg": exc.message, "msg_show": "{0}".format("请求参数不全")}
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
+    elif isinstance(exc, EnterPriseCenterApiException):
+        # 处理数据为标准返回格式
+        data = {"code": status.HTTP_400_BAD_REQUEST, "msg": exc.message, "msg_show": "{0}".format("无法访问企业中心服务")}
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)

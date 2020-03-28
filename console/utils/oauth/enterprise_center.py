@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 from urlparse import urlsplit
+import functools
 
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
@@ -8,13 +9,28 @@ from console.utils.restful_client import get_enterprise_server_auth_client
 from console.utils.restful_client import get_enterprise_server_ent_client
 from console.utils.restful_client import get_order_server_ent_client
 from console.utils.restful_client import get_pay_server_ent_client
-from entsrv_client.rest import ApiException
 from console.exception.main import ServiceHandleException
 
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
 
 logger = logging.getLogger("default")
+
+
+def check_enterprise_center_code():
+    """
+    检测权限装饰器
+    """
+    def wrapper(func):
+        @functools.wraps(func)
+        def __wrapper(self, *args, **kwargs):
+            rst = func(self, *args, **kwargs)
+            if rst.code:
+                raise ServiceHandleException(
+                    status_code=rst.code, msg="enterprise center operate error", msg_show="操作失败")
+            return rst
+        return __wrapper
+    return wrapper
 
 
 class EnterpriseCenterV1MiXin(object):
@@ -152,82 +168,52 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         else:
             raise NoOAuthServiceErr("no found oauth service")
 
+    @check_enterprise_center_code()
     def create_user(self, eid, body):
-        try:
-            self._get_access_token()
-            return self.ent_api.create_user(eid, body=body)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.ent_api.create_user(eid, body=body)
 
+    @check_enterprise_center_code()
     def list_user(self, eid):
-        try:
-            self._get_access_token()
-            return self.ent_api.list_user(eid)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.ent_api.list_user(eid)
 
+    @check_enterprise_center_code()
     def delete_user(self, eid, uid):
-        try:
-            self._get_access_token()
-            return self.ent_api.delete_user(eid, uid)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.ent_api.delete_user(eid, uid)
 
+    @check_enterprise_center_code()
     def update_user(self, eid, uid, body):
-        try:
-            self._get_access_token()
-            return self.ent_api.update_user(eid, uid, body=body)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.ent_api.update_user(eid, uid, body=body)
 
+    @check_enterprise_center_code()
     def get_ent_subscribe(self, eid):
-        try:
-            self._get_access_token()
-            return self.ent_api.get_enterprise(eid)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.ent_api.get_enterprise(eid)
 
+    @check_enterprise_center_code()
     def check_ent_memory(self, eid):
-        try:
-            self._get_access_token()
-            return self.ent_api.check_memory(eid)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.ent_api.check_memory(eid)
 
+    @check_enterprise_center_code()
     def list_ent_order(self, eid):
-        try:
-            self._get_access_token()
-            return self.order_api.list_orders(eid)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.order_api.list_orders(eid)
 
+    @check_enterprise_center_code()
     def get_ent_order(self, eid, order_id):
-        try:
-            self._get_access_token()
-            return self.order_api.get_order(eid, order_id)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.order_api.get_order(eid, order_id)
 
+    @check_enterprise_center_code()
     def create_ent_order(self, eid, body):
-        try:
-            self._get_access_token()
-            return self.order_api.create_order(eid, body=body)
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.order_api.create_order(eid, body=body)
 
+    @check_enterprise_center_code()
     def get_bank_info(self):
-        try:
-            self._get_access_token()
-            return self.pay_api.bankinfo()
-        except ApiException as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="enterprise center server error", msg_show="企业中心服务无法连接")
+        self._get_access_token()
+        return self.pay_api.bankinfo()
