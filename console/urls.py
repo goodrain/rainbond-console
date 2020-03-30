@@ -939,5 +939,5 @@ urlpatterns += [
 
 # ONLINE 业务相关接口
 urlpatterns += [
-    url(r'^cloud/', include('console.cloud.urls')),
+    url(r'', include('console.cloud.urls')),
 ]
