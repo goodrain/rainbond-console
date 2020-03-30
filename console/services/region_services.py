@@ -23,6 +23,20 @@ region_api = RegionInvokeApi()
 market_api = MarketOpenAPI()
 
 
+class RegionExistException(Exception):
+    def __init__(self, message, *args, **kwargs):
+        self.message = message
+        self.http_code = 400
+        self.service_code = 10400
+
+
+class RegionNotExistException(Exception):
+    def __init__(self, message, *args, **kwargs):
+        self.message = message
+        self.http_code = 404
+        self.service_code = 10404
+
+
 class RegionService(object):
     def get_region_by_tenant_name(self, tenant_name):
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
@@ -132,8 +146,8 @@ class RegionService(object):
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
 
-    def get_open_regions(self):
-        usable_regions = region_repo.get_usable_regions()
+    def get_open_regions(self, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         return usable_regions
 
     def get_public_key(self, tenant, region):
@@ -268,8 +282,8 @@ class RegionService(object):
             token = "Token {}".format(token)
         return url, token
 
-    def get_team_usable_regions(self, team_name):
-        usable_regions = region_repo.get_usable_regions()
+    def get_team_usable_regions(self, team_name, enterprise_id):
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region(
             team_name).filter(is_init=True, region_name__in=region_names)
@@ -356,7 +370,6 @@ class RegionService(object):
             config_map["region_alias"] = region.region_alias
             config_map["url"] = region.url
             config_map["token"] = region.token
-            config_map["region_name"] = region.region_name
             config_map["enable"] = True
             region_config_list.append(config_map)
         data = json.dumps(region_config_list)
@@ -374,27 +387,7 @@ class RegionService(object):
         return region.to_dict()
 
     def check_region_in_config(self, region_name):
-        datastr = None
-        # datastr = config_service.get_by_key("REGION_SERVICE_API")
-        # for d in data:
-        #     if d["region_name"] == region_name:
-        #         return True
-        # return False
-        return datastr
-
-
-class RegionExistException(Exception):
-    def __init__(self, message, *args, **kwargs):
-        self.message = message
-        self.http_code = 400
-        self.service_code = 10400
-
-
-class RegionNotExistException(Exception):
-    def __init__(self, message, *args, **kwargs):
-        self.message = message
-        self.http_code = 404
-        self.service_code = 10404
+        return None
 
 
 region_services = RegionService()

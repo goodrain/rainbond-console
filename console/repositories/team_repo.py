@@ -191,6 +191,9 @@ class TeamRepo(object):
     def get_team_by_team_ids(self, team_ids):
         return Tenants.objects.filter(tenant_id__in=team_ids)
 
+    def get_team_by_team_names(self, team_names):
+        return Tenants.objects.filter(tenant_name__in=team_names)
+
     def create_team_perms(self, **params):
         return PermRelTenant.objects.create(**params)
 

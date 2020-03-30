@@ -390,7 +390,7 @@ class AppImportService(object):
             "source_dir": path,
             "team_name": tenant.tenant_name,
             "region": region,
-            "user_name": user.nick_name
+            "user_name": user.get_name()
         }
         import_record = app_import_record_repo.create_app_import_record(**import_record_params)
         return import_record

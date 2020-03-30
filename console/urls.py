@@ -222,7 +222,6 @@ from console.views.services_toplogical import TopologicalInternetView
 from console.views.task_guidance import BaseGuidance
 from console.views.team import AddTeamView
 from console.views.team import AdminAddUserView
-from console.views.team import AllTeamsView
 from console.views.team import ApplicantsView
 from console.views.team import CertificateView
 from console.views.team import EnterpriseInfoView
@@ -730,16 +729,6 @@ urlpatterns = [
     # url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
-    # 好雨云市应用同步
-    # 同步应用
-    # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
-
-    # 查询查询云端app
-    # url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
-    # url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
-    # # 查询云端指定版本app
-    # url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
-
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
     # 云市认证
@@ -833,8 +822,6 @@ urlpatterns = [
         AppVersionManageView.as_view()),
     # 获取当前团队所有的申请者
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
-    # 获取企业下所有团队的列表
-    url(r'^enterprise/teams$', AllTeamsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
@@ -892,14 +879,14 @@ urlpatterns = [
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
+    # 查询登录用户可以加入哪些团队
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     # 下架应用
     # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
     url(r"^user/applicants/join$", JoinTeamView.as_view()),
-    # 查询指定用户可以加入哪些团队
-    url(r"^user/jointeams$", TeamUserCanJoin.as_view()),
     # 修改部署密钥
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/updatekey$",
         UpdateSecretKey.as_view()),

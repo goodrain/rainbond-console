@@ -281,7 +281,9 @@ class EnterpriseServices(object):
             info = yaml.load(token, Loader=yaml.BaseLoader)
         except Exception as e:
             logger.exception(e)
-            raise ServiceHandleException("parse yaml error", "Region Config 文件内容非法", 400, 400)
+            raise ServiceHandleException("parse yaml error", "Region Config 内容不是有效YAML格式", 400, 400)
+        if not isinstance(info, dict):
+            raise ServiceHandleException("parse yaml error", "Region Config 内容不是有效YAML格式", 400, 400)
         if not info.get("ca.pem"):
             raise ServiceHandleException("ca.pem not found", "CA证书不存在", 400, 400)
         if not info.get("client.key.pem"):
