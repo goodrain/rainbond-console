@@ -163,7 +163,6 @@ class GroupService(object):
         # memory info
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
-        logger.debug("status_list is : {0}".format(status_list))
         service_status = dict()
         for status in status_list:
             service_status[status["service_id"]] = status
