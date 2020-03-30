@@ -1,8 +1,8 @@
 from django.conf.urls import url
-from console.cloud.order.views import EnterpriseSubscribe
-from console.cloud.order.views import EnterpriseOrdersRView
-from console.cloud.order.views import EnterpriseOrdersCLView
-from console.cloud.order.views import BankInfoView
+from console.cloud.views import EnterpriseSubscribe
+from console.cloud.views import EnterpriseOrdersRView
+from console.cloud.views import EnterpriseOrdersCLView
+from console.cloud.views import BankInfoView
 
 
 urlpatterns = [

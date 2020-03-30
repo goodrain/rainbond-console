@@ -4,7 +4,7 @@ import logging
 from rest_framework.response import Response
 
 from console.views.base import CloudEnterpriseCenterView
-from console.cloud.order.services import order_payload
+from console.cloud.services import order_payload
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
