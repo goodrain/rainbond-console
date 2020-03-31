@@ -8,7 +8,6 @@ from django.db import transaction
 
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
-from console.exception.main import AbortRequest
 from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
