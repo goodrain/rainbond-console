@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import json
 
 import jwt
 from addict import Dict
@@ -375,7 +376,14 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     elif isinstance(exc, EnterPriseCenterApiException):
         # 处理数据为标准返回格式
-        data = {"code": status.HTTP_400_BAD_REQUEST, "msg": exc.message, "msg_show": "{0}".format("无法访问企业中心服务")}
+        try:
+            body = json.loads(exc.body)
+            code = body.get("code")
+            msg = body.get("msg")
+        except Exception:
+            code = 400
+            msg = exc.body
+        data = {"code": code, "msg": msg, "msg_show": "{0}".format("企业中心接口错误")}
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
