@@ -244,7 +244,7 @@ class PlatformConfigService(ConfigService):
 
     def init_base_config_value(self):
         self.base_cfg_keys_value = {
-            "IS_PUBLIC": {"value": None, "desc": u"是否是公有", "enable": True},
+            "IS_PUBLIC": {"value": os.getenv('IS_PUBLIC', False), "desc": u"是否是公有", "enable": True},
             "MARKET_URL": {"value": os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"]),
                            "desc": u"商店路由", "enable": True},
             "ENTERPRISE_CENTER_OAUTH": {"value": self.get_enterprise_center_oauth(),
