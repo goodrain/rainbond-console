@@ -54,8 +54,14 @@ class AppPortView(AppBaseView):
                 if port_info["environment"]:
                     if port.is_inner_service:
                         try:
-                            inner_url = "{0}:{1}".format(port_info["environment"][0].get("value"),
-                                                         port_info["environment"][1].get("value"))
+                            inner_host, inner_port = None, None
+                            for pf in port_info["environment"]:
+                                if pf.get("name"):
+                                    if pf.get("name").endswith("HOST"):
+                                        inner_host = pf.get("value")
+                                    elif pf.get("name").endswith("PORT"):
+                                        inner_port = pf.get("value")
+                            inner_url = "{0}:{1}".format(inner_host, inner_port)
                         except Exception as se:
                             logger.exception(se)
                 port_info["inner_url"] = inner_url
