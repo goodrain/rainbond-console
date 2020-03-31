@@ -42,7 +42,7 @@ class AppStore(object):
                 hub_url = image_config_dict.get("hub_url", None)
                 hub_user = image_config_dict.get("hub_user", None)
                 hub_password = image_config_dict.get("hub_password", None)
-                namespace = image_config_dict.get("namespace", namespace)
+                namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else namespace)
                 is_trust = hub_url == 'hub.goodrain.com'
                 image_info = {
                     "hub_url": hub_url,
