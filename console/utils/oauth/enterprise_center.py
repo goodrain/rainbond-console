@@ -25,7 +25,7 @@ def check_enterprise_center_code():
         @functools.wraps(func)
         def __wrapper(self, *args, **kwargs):
             rst = func(self, *args, **kwargs)
-            if rst.code:
+            if hasattr(rst, "code"):
                 raise ServiceHandleException(
                     status_code=rst.code, msg="enterprise center operate error", msg_show="操作失败")
             return rst
