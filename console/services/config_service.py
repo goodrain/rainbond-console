@@ -24,8 +24,12 @@ class ConfigService(object):
         self.base_cfg_keys_value = None
         self.enterprise_id = ""
 
+    def init_base_config_value(self):
+        pass
+
     @property
     def initialization_or_get_config(self):
+        self.init_base_config_value()
         rst_datas = {}
         for key in self.base_cfg_keys:
             tar_key = self.get_config_by_key(key)
@@ -119,6 +123,7 @@ class ConfigService(object):
         return config
 
     def update_config_enable_status(self, key, enable):
+        self.init_base_config_value()
         config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
         if config.enable != enable:
             config.enable = enable
@@ -160,9 +165,6 @@ class EnterpriseConfigService(ConfigService):
         self.base_cfg_keys = [
             "OAUTH_SERVICES"
         ]
-        self.base_cfg_keys_value = {
-            "OAUTH_SERVICES": {"value": self.get_oauth_services(), "desc": u"开启/关闭OAuthServices功能", "enable": True},
-        }
         self.cfg_keys = [
             "APPSTORE_IMAGE_HUB", "NEWBIE_GUIDE", "EXPORT_APP",
             "CLOUD_MARKET", "OBJECT_STORAGE",
@@ -176,6 +178,11 @@ class EnterpriseConfigService(ConfigService):
             "OBJECT_STORAGE":  {"value": {"provider": "", "endpoint": "", "access_key": "",
                                           "secret_key": "", "bucket_name": "", },
                                 "desc": u"云端备份使用的对象存储信息", "enable": False},
+        }
+
+    def init_base_config_value(self):
+        self.base_cfg_keys_value = {
+            "OAUTH_SERVICES": {"value": self.get_oauth_services(), "desc": u"开启/关闭OAuthServices功能", "enable": True},
         }
 
     def get_oauth_services(self):
@@ -220,15 +227,6 @@ class PlatformConfigService(ConfigService):
         self.base_cfg_keys = [
             "IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION"
         ]
-        self.base_cfg_keys_value = {
-            "IS_PUBLIC": {"value": None, "desc": u"是否是公有", "enable": True},
-            "MARKET_URL": {"value": os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"]),
-                           "desc": u"商店路由", "enable": True},
-            "ENTERPRISE_CENTER_OAUTH": {"value": self.get_enterprise_center_oauth(),
-                                        "desc": u"enterprise center oauth 配置", "enable": True},
-            "VERSION": {"value": os.getenv("RELEASE_DESC", "public-cloud"),
-                        "desc": u"平台版本", "enable": True},
-        }
 
         self.cfg_keys = [
             "TITLE", "LOGO", "IS_REGIST",
@@ -242,6 +240,17 @@ class PlatformConfigService(ConfigService):
                          "desc": u"开启/关闭文档", "enable": True},
             "OFFICIAL_DEMO": {"value": None, "desc": u"开启/关闭官方Demo", "enable": True},
             "IS_REGIST": {"value": None, "desc": u"是否允许注册", "enable": True},
+        }
+
+    def init_base_config_value(self):
+        self.base_cfg_keys_value = {
+            "IS_PUBLIC": {"value": None, "desc": u"是否是公有", "enable": True},
+            "MARKET_URL": {"value": os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"]),
+                           "desc": u"商店路由", "enable": True},
+            "ENTERPRISE_CENTER_OAUTH": {"value": self.get_enterprise_center_oauth(),
+                                        "desc": u"enterprise center oauth 配置", "enable": True},
+            "VERSION": {"value": os.getenv("RELEASE_DESC", "public-cloud"),
+                        "desc": u"平台版本", "enable": True},
         }
 
     def get_enterprise_center_oauth(self):
