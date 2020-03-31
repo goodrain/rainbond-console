@@ -160,7 +160,6 @@ class EnterpriseConfigService(ConfigService):
 
     def __init__(self, eid):
         super(EnterpriseConfigService, self).__init__()
-        self.enterprise = enterprise_services.get_enterprise_by_enterprise_id(eid)
         self.enterprise_id = eid
         self.base_cfg_keys = [
             "OAUTH_SERVICES"
@@ -187,12 +186,13 @@ class EnterpriseConfigService(ConfigService):
 
     def get_oauth_services(self):
         rst = []
-        if self.enterprise.ID != 1:
+        enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.enterprise_id)
+        if enterprise.ID != 1:
             oauth_services = OAuthServices.objects.filter(
-                ~Q(oauth_type="enterprisecenter"), eid=self.enterprise.enterprise_id, is_deleted=False, enable=True)
+                ~Q(oauth_type="enterprisecenter"), eid=enterprise.enterprise_id, is_deleted=False, enable=True)
         else:
             oauth_services = OAuthServices.objects.filter(
-                eid=self.enterprise.enterprise_id, is_deleted=False, enable=True)
+                eid=enterprise.enterprise_id, is_deleted=False, enable=True)
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
