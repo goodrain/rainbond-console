@@ -308,8 +308,6 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        use_force = parse_argument(request, 'use_force', default=True, value_type=bool)
-
         try:
             share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
             if not share_record:
@@ -345,8 +343,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                 share_record=share_record,
                 share_team=self.team,
                 share_user=request.user,
-                share_info=request.data,
-                use_force=use_force)
+                share_info=request.data)
             result = general_message(code, "create share info", msg, bean=bean)
             return Response(result, status=code)
         except ServiceHandleException as e:

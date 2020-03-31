@@ -721,7 +721,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, share_record, share_team, share_user, share_info, use_force):
+    def create_share_info(self, share_record, share_team, share_user, share_info):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -832,7 +832,7 @@ class ShareService(object):
                                 return 400, "获取镜像上传地址错误", None
 
                         # 处理依赖关系
-                        self._handle_dependencies(service, dep_service_keys, use_force)
+                        self._handle_dependencies(service, dep_service_keys)
 
                         service["service_related_plugin_config"] = self.wrapper_service_plugin_config(
                             service["service_related_plugin_config"], shared_plugin_info)
@@ -899,18 +899,14 @@ class ShareService(object):
             return 500, "应用分享处理发生错误", None
 
     @staticmethod
-    def _handle_dependencies(service, dev_service_set, use_force):
+    def _handle_dependencies(service, dev_service_set):
         """检查组件依赖信息，如果依赖不完整则中断请求， 如果强制执行则删除依赖"""
 
         def filter_dep(dev_service):
             """过滤依赖关系"""
             dep_service_key = dev_service['dep_service_key']
-            if dep_service_key not in dev_service_set and use_force:
+            if dep_service_key not in dev_service_set:
                 return False
-            elif dep_service_key not in dev_service_set and not use_force:
-                raise AbortRequest(
-                    msg="{} service is missing dependencies".format(service['service_cname']),
-                    msg_show=u"{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
                 return True
 
