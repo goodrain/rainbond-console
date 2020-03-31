@@ -23,6 +23,7 @@ from openapi.views.appstore_view import ListAppStoresView
 # from openapi.views.config_view import ListFeatureConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
+from openapi.views.enterprise_view import EnterpriseSourceView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.region_view import RegionInfo
@@ -81,6 +82,7 @@ urlpatterns = [
     url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
     url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
+    url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
     url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
     url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
     url(r'^v1/announcements$', ListAnnouncementView.as_view()),
