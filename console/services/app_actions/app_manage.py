@@ -54,6 +54,7 @@ from console.services.app_config import AppPortService
 from console.services.app_config import AppServiceRelationService
 from console.services.app_config import AppVolumeService
 from console.services.exception import ErrChangeServiceType
+from console.cloud.services import check_memory_quota
 from console.utils import slug_util
 from console.utils.oauth.oauth_types import get_oauth_instance
 from www.apiclient.regionapi import RegionInvokeApi
@@ -165,7 +166,10 @@ class AppManageBase(object):
 
 
 class AppManageService(AppManageBase):
-    def start(self, tenant, service, user):
+    def start(self, tenant, service, user, oauth_instance):
+        check_memory = int(service.min_memory)*int(service.min_node)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+            raise ServiceHandleException(status_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -201,7 +205,10 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def restart(self, tenant, service, user):
+    def restart(self, tenant, service, user, oauth_instance):
+        check_memory = int(service.min_memory)*int(service.min_node)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+            raise ServiceHandleException(status_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -220,7 +227,11 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def deploy(self, tenant, service, user, group_version, committer_name=None):
+    def deploy(self, tenant, service, user, group_version, committer_name=None, oauth_instance=None):
+        check_memory = int(service.min_memory)*int(service.min_node)
+        if not check_memory_quota(
+                oauth_instance, tenant.enterprise_id, check_memory):
+            raise ServiceHandleException(status_code=20002, msg="not enough quota")
         body = dict()
         # 默认更新升级
         body["action"] = "deploy"
@@ -435,7 +446,10 @@ class AppManageService(AppManageBase):
                 return code, msg
         return 200, "success"
 
-    def upgrade(self, tenant, service, user, committer_name=None):
+    def upgrade(self, tenant, service, user, committer_name=None, oauth_instance=None):
+        check_memory = int(service.min_memory)*int(service.min_node)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+            raise ServiceHandleException(status_code=20002, msg="not enough quota")
         body = dict()
         body["service_id"] = service.service_id
         try:
@@ -505,7 +519,7 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def batch_action(self, tenant, user, action, service_ids, move_group_id):
+    def batch_action(self, tenant, user, action, service_ids, move_group_id, oauth_instance):
         services = service_repo.get_services_by_service_ids(service_ids)
         code = 500
         msg = "系统异常"
@@ -514,15 +528,15 @@ class AppManageService(AppManageBase):
             try:
                 # 第三方组件不具备启动，停止，重启操作
                 if action == "start" and service.service_source != "third_party":
-                    self.start(tenant, service, user)
+                    self.start(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "stop" and service.service_source != "third_party":
                     self.stop(tenant, service, user)
                 elif action == "restart" and service.service_source != "third_party":
-                    self.restart(tenant, service, user)
+                    self.restart(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "move":
                     self.move(service, move_group_id)
                 elif action == "deploy" and service.service_source != "third_party":
-                    self.deploy(tenant, service, user, group_version=None)
+                    self.deploy(tenant, service, user, group_version=None, oauth_instance=oauth_instance)
                 code = 200
                 msg = "success"
             except Exception as e:
@@ -532,20 +546,20 @@ class AppManageService(AppManageBase):
         return code, msg
 
     # 5.1新版批量操作（启动，关闭，构建）
-    def batch_operations(self, tenant, user, action, service_ids):
+    def batch_operations(self, tenant, user, action, service_ids, oauth_instance):
         services = service_repo.get_services_by_service_ids(service_ids)
         # 获取所有组件信息
         body = dict()
         code = 200
         data = ''
         if action == "start":
-            code, data = self.start_services_info(body, services, tenant, user)
+            code, data = self.start_services_info(body, services, tenant, user, oauth_instance)
         elif action == "stop":
             code, data = self.stop_services_info(body, services, tenant, user)
         elif action == "upgrade":
-            code, data = self.upgrade_services_info(body, services, tenant, user)
+            code, data = self.upgrade_services_info(body, services, tenant, user, oauth_instance)
         elif action == "deploy":
-            code, data = self.deploy_services_info(body, services, tenant, user)
+            code, data = self.deploy_services_info(body, services, tenant, user, oauth_instance)
         if code != 200:
             return 415, "组件信息获取失败"
         # 获取数据中心信息
@@ -558,13 +572,16 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             return 500, "数据中心操作失败"
 
-    def start_services_info(self, body, services, tenant, user):
+    def start_services_info(self, body, services, tenant, user, oauth_instance):
         body["operation"] = "start"
         start_infos_list = []
         body["start_infos"] = start_infos_list
         for service in services:
             if service.service_source == "":
                 continue
+            check_memory = int(service.min_memory)*int(service.min_node)
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+                raise ServiceHandleException(status_code=20002, msg="not enough quota")
             service_dict = dict()
             if service.create_status == "complete":
                 service_dict["service_id"] = service.service_id
@@ -582,22 +599,28 @@ class AppManageService(AppManageBase):
                 stop_infos_list.append(service_dict)
         return 200, body
 
-    def upgrade_services_info(self, body, services, tenant, user):
+    def upgrade_services_info(self, body, services, tenant, user, oauth_instance):
         body["operation"] = "upgrade"
         upgrade_infos_list = []
         body["upgrade_infos"] = upgrade_infos_list
         for service in services:
+            check_memory = int(service.min_memory)*int(service.min_node)
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+                raise ServiceHandleException(status_code=20002, msg="not enough quota")
             service_dict = dict()
             if service.create_status == "complete":
                 service_dict["service_id"] = service.service_id
                 upgrade_infos_list.append(service_dict)
         return 200, body
 
-    def deploy_services_info(self, body, services, tenant, user):
+    def deploy_services_info(self, body, services, tenant, user, oauth_instance):
         body["operation"] = "build"
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
         for service in services:
+            check_memory = int(service.min_memory)*int(service.min_node)
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+                raise ServiceHandleException(status_code=20002, msg="not enough quota")
             service_dict = dict()
             service_dict["service_id"] = service.service_id
             service_dict["action"] = 'deploy'
@@ -718,7 +741,7 @@ class AppManageService(AppManageBase):
             deploy_infos_list.append(service_dict)
         return 200, body
 
-    def vertical_upgrade(self, tenant, service, user, new_memory):
+    def vertical_upgrade(self, tenant, service, user, new_memory, oauth_instance):
         """组件水平升级"""
         new_memory = int(new_memory)
         if new_memory == service.min_memory:
@@ -727,6 +750,10 @@ class AppManageService(AppManageBase):
             return 400, "内存范围在64M到64G之间"
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
+        if new_memory > service.min_memory:
+            check_memory = (new_memory - int(service.min_memory))*int(service.min_node)
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+                raise ServiceHandleException(status_code=20002, msg="not enough quota")
 
         new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
         if service.create_status == "complete":
@@ -751,7 +778,7 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def horizontal_upgrade(self, tenant, service, user, new_node):
+    def horizontal_upgrade(self, tenant, service, user, new_node, oauth_instance):
         """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
@@ -763,6 +790,11 @@ class AppManageService(AppManageBase):
         if new_node > 1 and is_singleton(service.extend_method):
             raise ServiceHandleException(
                 status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
+
+        if new_node > service.min_node:
+            check_memory = (new_node - int(service.min_node))*int(service.min_memory)
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, check_memory):
+                raise ServiceHandleException(status_code=20002, msg="not enough quota")
 
         if service.create_status == "complete":
             body = dict()

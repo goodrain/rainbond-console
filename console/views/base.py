@@ -205,8 +205,8 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
         super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
         try:
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
-            oauth_user = UserOAuthServices.objects.filter(
-                service_id=oauth_service.ID, user_id=self.user.user_id).first()
+            oauth_user = UserOAuthServices.objects.get(
+                service_id=oauth_service.ID, user_id=self.user.user_id)
         except OAuthServices.DoesNotExist:
             raise NotFound("enterprise center oauth server not found")
         except UserOAuthServices.DoesNotExist:

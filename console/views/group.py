@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from console.repositories.group import group_service_relation_repo
 from console.views.base import RegionTenantHeaderView
+from console.views.base import CloudEnterpriseCenterView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
@@ -193,7 +194,7 @@ class TenantGroupOperationView(RegionTenantHeaderView):
 
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
-class TenantGroupCommonOperationView(RegionTenantHeaderView):
+class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     @perm_required('stop_service')
     @perm_required('start_service')
     @perm_required('restart_service')
@@ -254,7 +255,8 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
                 if "deploy_service" not in perm_tuple and common_perm:
                     return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
                 # 批量操作
-            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids)
+            code, msg = app_manage_service.batch_operations(
+                self.tenant, self.user, action, service_ids, self.oauth_instance)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)
             else:

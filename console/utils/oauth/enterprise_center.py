@@ -217,3 +217,8 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
     def get_bank_info(self):
         self._get_access_token()
         return self.pay_api.bankinfo()
+
+    @check_enterprise_center_code()
+    def check_ent_memory(self, eid, body):
+        self._get_access_token()
+        return self.ent_api.check_memory(eid, body=body)
