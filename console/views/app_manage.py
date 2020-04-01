@@ -240,7 +240,8 @@ class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            code, msg = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+            code, msg = app_manage_service.vertical_upgrade(
+                self.tenant, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)

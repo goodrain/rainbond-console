@@ -194,11 +194,6 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         return self.ent_api.get_enterprise(eid)
 
     @check_enterprise_center_code()
-    def check_ent_memory(self, eid):
-        self._get_access_token()
-        return self.ent_api.check_memory(eid)
-
-    @check_enterprise_center_code()
     def list_ent_order(self, eid):
         self._get_access_token()
         return self.order_api.list_orders(eid)

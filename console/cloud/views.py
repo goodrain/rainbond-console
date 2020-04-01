@@ -4,7 +4,6 @@ import logging
 from rest_framework.response import Response
 
 from console.views.base import CloudEnterpriseCenterView
-from console.cloud.services import order_payload
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -13,17 +12,8 @@ logger = logging.getLogger("default")
 class EnterpriseSubscribe(CloudEnterpriseCenterView):
     def get(self, request, enterprise_id, *args, **kwargs):
         rst = self.oauth_instance.get_ent_subscribe(eid=enterprise_id)
-        data = {
-            "eid": rst.eid,
-            "expired_time": rst.expired_time,
-            "memory_limit": rst.memory_limit,
-            "name": rst.name,
-            "start_time": rst.start_time,
-            "type": rst.type,
-            "used_memory": rst.used_memory,
-        }
         result = general_message(
-            200, "success", None, bean=data)
+            200, "success", None, bean=rst.to_dict())
         return Response(result, status=200)
 
 
@@ -32,7 +22,7 @@ class EnterpriseOrdersCLView(CloudEnterpriseCenterView):
         data = []
         order_list = self.oauth_instance.list_ent_order(eid=enterprise_id)
         for order in order_list:
-            data.append(order_payload(order))
+            data.append(order.to_dict())
         result = general_message(
             200, "success", None, list=data)
         return Response(result, status=200)
@@ -40,7 +30,7 @@ class EnterpriseOrdersCLView(CloudEnterpriseCenterView):
     def post(self, request, enterprise_id, *args, **kwargs):
         data = request.data
         order = self.oauth_instance.create_ent_order(eid=enterprise_id, body=data)
-        result = general_message(200, "success", None, bean=order_payload(order))
+        result = general_message(200, "success", None, bean=order.to_dict())
         return Response(result, status=200)
 
 
@@ -48,18 +38,12 @@ class EnterpriseOrdersRView(CloudEnterpriseCenterView):
     def get(self, request, enterprise_id, order_id, *args, **kwargs):
         order = self.oauth_instance.get_ent_order(eid=enterprise_id, order_id=order_id)
         result = general_message(
-            200, "success", None, bean=order_payload(order))
+            200, "success", None, bean=order.to_dict())
         return Response(result, status=200)
 
 
 class BankInfoView(CloudEnterpriseCenterView):
     def get(self, request, *args, **kwargs):
         bank = self.oauth_instance.get_bank_info()
-        rst = {
-            "account": bank.account,
-            "account_name": bank.account_name,
-            "bank": bank.bank,
-        }
-        result = general_message(
-            200, "success", None, bean=rst)
+        result = general_message(200, "success", None, bean=bank.to_dict())
         return Response(result, status=200)
