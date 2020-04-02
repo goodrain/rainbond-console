@@ -2,6 +2,8 @@
 import logging
 import json
 
+from django.db import IntegrityError
+
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -22,6 +24,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.views.base import JWTAuthApiView
 from console.services.team_services import team_services
+
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -328,3 +331,50 @@ class EnterpriseAppsLView(JWTAuthApiView):
         result = general_message(200, "success", "获取成功", list=data,
                                  total_count=apps_count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseAccessTokenCLView(JWTAuthApiView):
+    def post(self, request, enterprise_id, *args, **kwargs):
+        note = request.data.get("note")
+        age = request.data.get("age")
+        if not note:
+            raise ServiceHandleException(msg="note can't be null", msg_show="注释不能为空")
+        try:
+            access_key = enterprise_services.create_enterprise_access_key(note, enterprise_id, request.user.user_id, age)
+            result = general_message(200, None, None, bean=access_key.to_dict())
+            return Response(result, status=200)
+        except ValueError as e:
+            logger.debug(e.message)
+            raise ServiceHandleException(msg="params error", msg_show="创建失败，请检查参数是否合法")
+        except IntegrityError as e:
+            logger.debug(e.message)
+            raise ServiceHandleException(msg="note duplicate", msg_show="创建失败，注释不能重复")
+
+    def get(self, request, enterprise_id, *args, **kwargs):
+        access_key_list = enterprise_services.get_enterprise_access_key(enterprise_id, request.user.user_id)
+        result = general_message(
+            200, "success", None,
+            list=access_key_list.values("note", "enterprise_id", "expire_time", "user_id", "ID"))
+        return Response(result, status=200)
+
+
+class EnterpriseAccessTokenRUDView(JWTAuthApiView):
+    def get(self, request, enterprise_id, id, **kwargs):
+        access_key = enterprise_services.get_enterprise_access_key_by_id(enterprise_id, request.user.user_id, id).values(
+            "note", "enterprise_id", "expire_time", "user_id", "ID").first()
+        result = general_message(200, "success", None, bean=access_key)
+        return Response(result, status=200)
+
+    def put(self, request, enterprise_id, id, **kwargs):
+        try:
+            access_key = enterprise_services.update_enterprise_access_key_by_id(enterprise_id, request.user.user_id, id)
+        except IntegrityError as e:
+            logger.debug(e.message)
+            raise ServiceHandleException(msg="access key duplicate", msg_show="刷新失败，请重试")
+        result = general_message(200, "success", None, bean=access_key.to_dict())
+        return Response(result, status=200)
+
+    def delete(self, request, enterprise_id, id, **kwargs):
+        enterprise_services.delete_enterprise_access_key_by_id(enterprise_id, request.user.user_id, id)
+        result = general_message(200, "success", None)
+        return Response(result, status=200)

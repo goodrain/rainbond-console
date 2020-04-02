@@ -4,6 +4,8 @@ import os
 import random
 import re
 import string
+import hashlib
+import time
 
 from django.core.paginator import Paginator
 
@@ -253,6 +255,38 @@ class EnterpriseServices(object):
             }
         }
         return data
+
+    def generate_key(self):
+        return hashlib.sha1(os.urandom(24)).hexdigest()
+
+    def create_enterprise_access_key(self, note, enterprise_id, user_id, age):
+        access_key = self.generate_key()
+        expire_time = time.time()+age
+        return enterprise_repo.create_enterprise_access_key(
+            note=note, enterprise_id=enterprise_id, user_id=user_id, expire_time=expire_time, access_key=access_key)
+
+    def check_enterprise_access_key(self, access_key):
+        return enterprise_repo.get_enterprise_perm_by_access_key(access_key)
+
+    def get_enterprise_access_key(self, enterprise_id, user_id):
+        return enterprise_repo.get_enterprise_access_key(enterprise_id, user_id)
+
+    def get_enterprise_access_key_by_id(self, enterprise_id, user_id, id):
+        return enterprise_repo.get_enterprise_access_key_by_id(enterprise_id, user_id, id)
+
+    def get_enterprise_access_key_by_note(self, enterprise_id, user_id, note):
+        return enterprise_repo.get_enterprise_access_key_by_note(enterprise_id, user_id, note)
+
+    def delete_enterprise_access_key_by_id(self, enterprise_id, user_id, note):
+        return enterprise_repo.delete_enterprise_access_key_by_id(enterprise_id, user_id, note)
+
+    def update_enterprise_access_key_by_id(self, enterprise_id, user_id, id):
+        new_access_key = self.generate_key()
+        enterprise_access_key = self.get_enterprise_access_key_by_id(enterprise_id, user_id, id).first()
+        if enterprise_access_key:
+            enterprise_access_key.access_key = new_access_key
+            enterprise_access_key.save()
+        return enterprise_access_key
 
 
 enterprise_services = EnterpriseServices()

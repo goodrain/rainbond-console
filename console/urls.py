@@ -270,6 +270,8 @@ from console.views.enterprise import EnterpriseAppsLView
 from console.views.enterprise import EnterpriseTeams
 from console.views.enterprise import EnterpriseMonitor
 from console.views.enterprise import EnterpriseUserTeams
+from console.views.enterprise import EnterpriseAccessTokenCLView
+from console.views.enterprise import EnterpriseAccessTokenRUDView
 from console.views.webhook import CustomWebHooksDeploy
 from console.views.webhook import GetWebHooksUrl
 from console.views.webhook import ImageWebHooksDeploy
@@ -876,6 +878,8 @@ urlpatterns = [
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/openapi/token$", EnterpriseAccessTokenCLView.as_view()),
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/openapi/token/(?P<id>[\w\-]+)$", EnterpriseAccessTokenRUDView.as_view()),
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     # 查看用户审核状态
