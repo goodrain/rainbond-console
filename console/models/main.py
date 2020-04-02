@@ -758,7 +758,6 @@ class RegionConfig(BaseModel):
     ssl_ca_cert = models.TextField(blank=True, null=True, help_text=u"数据中心访问ca证书地址")
     cert_file = models.TextField(blank=True, null=True, help_text=u"验证文件")
     key_file = models.TextField(blank=True, null=True, help_text=u"验证的key")
-    enterprise_id = models.CharField(max_length=36, help_text=u"企业id")
 
 
 def logo_path(instance, filename):
