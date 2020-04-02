@@ -34,6 +34,7 @@ from console.services.app import app_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.rbd_center_app_service import rbd_center_app_service
 from goodrain_web import settings
+from goodrain_web.settings import IMAGE_REPO
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import PluginConfigGroup
@@ -815,5 +816,5 @@ class PluginService(object):
             return plugins
         else:
             q = Q(category="analyst-plugin:perf", image=PluginImage.RUNNER)
-            q |= Q(category="analyst-plugin:perf", image="goodrain.me")
+            q |= Q(category="analyst-plugin:perf", image=IMAGE_REPO)
             return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(q)
