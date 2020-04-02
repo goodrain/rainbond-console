@@ -334,6 +334,9 @@ class TenantServiceMntRelationRepository(object):
         dep_mnts = TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
         return dep_mnts
 
+    def get_by_dep_service_id(self, tenant_id, dep_service_id):
+        return TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, dep_service_id=dep_service_id)
+
     def get_service_mnts_filter_volume_type(self, tenant_id, service_id, volume_types=None):
         query = "mnt.tenant_id = %s and mnt.service_id = %s"
         if volume_types:

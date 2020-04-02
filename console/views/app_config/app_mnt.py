@@ -13,7 +13,6 @@ from console.services.app_config import mnt_service
 from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -143,16 +142,20 @@ class AppMntManageView(AppBaseView):
               paramType: path
 
         """
-        result = {}
-        try:
-            dep_vol_id = kwargs.get("dep_vol_id", None)
-            code, msg = mnt_service.delete_service_mnt_relation(self.tenant, self.service, dep_vol_id)
+        dep_vol_id = kwargs.get("dep_vol_id", None)
+        code, msg = mnt_service.delete_service_mnt_relation(self.tenant, self.service, dep_vol_id)
 
-            if code != 200:
-                return Response(general_message(code, "add error", msg), status=code)
+        if code != 200:
+            return Response(general_message(code, "add error", msg), status=code)
 
-            result = general_message(200, "success", "操作成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "操作成功")
+        return Response(result, status=result["code"])
+
+
+class AppVolumeDependent(AppBaseView):
+    @never_cache
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        mnt_list = mnt_service.get_volume_dependent(self.tenant, self.service)
+        result = general_message(200, "success", "查询成功", list=mnt_list)
         return Response(result, status=result["code"])
