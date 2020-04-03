@@ -13,8 +13,6 @@ class OpenAPIAuthentication(authentication.TokenAuthentication):
     def authenticate(self, request):
         token = request.META.get('HTTP_AUTHORIZATION')
         if not token:
-            token = os.getenv("CONSOLE_API_TOKEN")
-        if not token:
             raise exceptions.AuthenticationFailed('No token')
         try:
             user = apiUserService.get_user_by_token(token)
