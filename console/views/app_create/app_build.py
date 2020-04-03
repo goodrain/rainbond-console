@@ -84,12 +84,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 result = general_message(10407, "no cloud permission", e.message)
                 status = e.status
             else:
-                result = general_message(500, "call cloud api failure", e.message)
-                status = 500
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            status = 500
+                result = general_message(400, "call cloud api failure", e.message)
+                status = 400
         # 删除probe
         # 删除region端数据
         if probe:

@@ -9,6 +9,6 @@ def check_memory_quota(oauth_instance, eid, memory, node):
         "memory_required": int(memory)*int(node)
     }
     if not oauth_instance:
-        return True
+        return False
     rst = oauth_instance.check_ent_memory(eid, body)
-    return rst.insufficient
+    return not rst.insufficient

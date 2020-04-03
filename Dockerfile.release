@@ -1,4 +1,4 @@
-FROM IMAGE_DOMAIN/rainbond-ui:VERSION
+FROM rainbond/rainbond-ui:V5.2
 
 LABEL author="zengqg@goodrain.com" 
 
