@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
+from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
@@ -499,8 +500,10 @@ class TeamCertificatesRUDView(TeamAPIView):
         tags=['openapi-team'],
     )
     def get(self, request, team_id, certificate_id, *args, **kwargs):
-        _, _, certificate = domain_service.get_certificate_by_pk(
+        code, msg, certificate = domain_service.get_certificate_by_pk(
             certificate_id)
+        if code != 200:
+            raise ServiceHandleException(msg=None, status_code=code, msg_show=msg)
         serializer = TeamCertificatesRSerializer(data=certificate)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status.HTTP_200_OK)
@@ -521,7 +524,7 @@ class TeamCertificatesRUDView(TeamAPIView):
         serializer.is_valid()
         data = serializer.data
         data.update({"tenant": self.team, "certificate_id": certificate_id})
-        new_c = domain_service.update_certificate_new(**data)
+        new_c = domain_service.update_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
         rst_serializer = TeamCertificatesRSerializer(data=rst)

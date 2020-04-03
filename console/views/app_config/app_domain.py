@@ -200,7 +200,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         domain_service.update_certificate(
-                self.region_name, self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
+            self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
         result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 

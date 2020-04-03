@@ -261,6 +261,8 @@ from console.views.user_operation import TenantServiceView
 from console.views.user_operation import UserDetailsView
 from console.views.user_operation import UserFavoriteLCView
 from console.views.user_operation import UserFavoriteUDView
+from console.views.user_accesstoken import UserAccessTokenCLView
+from console.views.user_accesstoken import UserAccessTokenRUDView
 from console.views.enterprise import Enterprises
 from console.views.enterprise import EnterpriseRUDView
 from console.views.enterprise import EnterpriseAppOverView
@@ -270,8 +272,6 @@ from console.views.enterprise import EnterpriseAppsLView
 from console.views.enterprise import EnterpriseTeams
 from console.views.enterprise import EnterpriseMonitor
 from console.views.enterprise import EnterpriseUserTeams
-from console.views.enterprise import EnterpriseAccessTokenCLView
-from console.views.enterprise import EnterpriseAccessTokenRUDView
 from console.views.webhook import CustomWebHooksDeploy
 from console.views.webhook import GetWebHooksUrl
 from console.views.webhook import ImageWebHooksDeploy
@@ -337,6 +337,8 @@ urlpatterns = [
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
     url(r'^users/query$', UserFuzSerView.as_view()),
+    url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
+    url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
     # 移交团队管理权
@@ -878,8 +880,6 @@ urlpatterns = [
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
-    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/openapi/token$", EnterpriseAccessTokenCLView.as_view()),
-    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/openapi/token/(?P<id>[\w\-]+)$", EnterpriseAccessTokenRUDView.as_view()),
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     # 查看用户审核状态

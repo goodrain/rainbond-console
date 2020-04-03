@@ -98,35 +98,6 @@ class DomainService(object):
 
     @transaction.atomic
     def update_certificate(
-            self, region_name, tenant, certificate_id, new_alias, certificate, private_key, certificate_type):
-        cert_is_effective(certificate)
-
-        cert = domain_repo.get_certificate_by_pk(certificate_id)
-        if cert is None:
-            raise err_cert_not_found
-        if cert.alias != new_alias:
-            self.__check_certificate_alias(tenant, new_alias)
-            cert.alias = new_alias
-        if certificate:
-            cert.certificate = base64.b64encode(certificate)
-        if certificate_type:
-            cert.certificate_type = certificate_type
-        if private_key:
-            cert.private_key = private_key
-        cert.save()
-
-        # update all ingress related to the certificate
-        body = {
-            "certificate_id": cert.certificate_id,
-            "certificate_name": "foobar",
-            "certificate": base64.b64decode(cert.certificate),
-            "private_key": cert.private_key,
-        }
-        region_api.update_ingresses_by_certificate(region_name, tenant.tenant_name, body)
-        return cert
-
-    @transaction.atomic
-    def update_certificate_new(
             self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
         cert_is_effective(certificate)
 

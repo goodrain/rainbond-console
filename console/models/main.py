@@ -428,16 +428,15 @@ class EnterpriseUserPerm(BaseModel):
     token = models.CharField(max_length=64, help_text=u"API通信密钥", unique=True)
 
 
-class EnterpriseAccessKey(BaseModel):
+class UserAccessKey(BaseModel):
     """企业通信凭证"""
 
     class Meta:
-        db_table = 'enterprise_access_key'
-        unique_together = (('note', 'enterprise_id'), )
+        db_table = 'user_access_key'
+        unique_together = (('note', 'user_id'), )
 
     note = models.CharField(max_length=32, help_text=u"凭证标识")
-    enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
-    user_id = models.IntegerField(max_length=16, null=True, help_text=u"用户id")
+    user_id = models.IntegerField(max_length=16, help_text=u"用户id")
     access_key = models.CharField(max_length=64, unique=True, help_text=u"凭证")
     expire_time = models.IntegerField(max_length=16, null=True, help_text=u"过期时间")
 

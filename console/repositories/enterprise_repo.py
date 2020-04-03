@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-from time import time
 
 from django.db.models import Q
 
@@ -13,7 +12,6 @@ from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
 from console.models.main import Applicants
 from console.models.main import RainbondCenterApp
-from console.models.main import EnterpriseAccessKey
 
 from www.models.main import TenantEnterprise
 from www.models.main import TenantRegionInfo
@@ -311,28 +309,6 @@ class TenantEnterpriseRepo(object):
         count = len(conn.query(sql1))
         result = conn.query(sql)
         return result, count
-
-    def create_enterprise_access_key(self, **kwargs):
-        return EnterpriseAccessKey.objects.create(**kwargs)
-
-    def get_enterprise_perm_by_access_key(self, access_key):
-        _now = int(time())
-        return EnterpriseAccessKey.objects.filter(
-            Q(access_key=access_key, expire_time__gt=_now) |
-            Q(access_key=access_key, expire_time=None)
-        ).first()
-
-    def get_enterprise_access_key(self, enterprise_id, user_id):
-        return EnterpriseAccessKey.objects.filter(enterprise_id=enterprise_id, user_id=user_id)
-
-    def get_enterprise_access_key_by_id(self, enterprise_id, user_id, id):
-        return EnterpriseAccessKey.objects.filter(enterprise_id=enterprise_id, ID=id, user_id=user_id)
-
-    def get_enterprise_access_key_by_note(self, enterprise_id, user_id, note):
-        return EnterpriseAccessKey.objects.filter(enterprise_id=enterprise_id, note=note, user_id=user_id)
-
-    def delete_enterprise_access_key_by_id(self, enterprise_id, user_id, id):
-        return self.get_enterprise_access_key_by_id(enterprise_id, user_id, id).delete()
 
 
 class TenantEnterpriseUserPermRepo(object):
