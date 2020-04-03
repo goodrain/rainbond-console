@@ -285,6 +285,8 @@ class UserService(object):
     def get_administrator_user_by_token(self, token):
         perm = user_access_services.check_user_access_key(token)
         if not perm:
+            perm = enterprise_user_perm_repo.get_by_token(token)
+        if not perm:
             return None
         user = self.get_user_by_user_id(perm.user_id)
         permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
