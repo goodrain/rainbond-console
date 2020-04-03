@@ -2,7 +2,6 @@
 # creater by: barnett
 
 import logging
-import os
 from openapi.services.api_user_service import apiUserService
 from rest_framework import authentication
 from rest_framework import exceptions
