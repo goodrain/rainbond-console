@@ -42,4 +42,5 @@ class TeamAPIView(BaseOpenAPIView):
         team_id = kwargs.get("team_id")
         if team_id:
             self.team = team_services.get_team_by_team_id(team_id)
-            self.team_regions = region_services.get_team_usable_regions(self.team.tenant_name)
+            self.team_regions = region_services.get_team_usable_regions(
+                self.team.tenant_name, self.team.enterprise_id)
