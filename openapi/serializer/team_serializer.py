@@ -112,3 +112,35 @@ class TeamServicesRespSerializer(serializers.Serializer):
 class ListRegionTeamServicesSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     services = TeamServicesRespSerializer(many=True)
+
+
+class CertificatesRSerializer(serializers.Serializer):
+    has_expired = serializers.BooleanField(help_text=u"是否过期")
+    issued_to = serializers.ListField(help_text=u"域名列表")
+    alias = serializers.CharField(max_length=64, help_text=u"证书名称")
+    certificate_type = serializers.CharField(max_length=32, help_text=u"证书类型")
+    end_data = serializers.DateTimeField(help_text=u"过期时间")
+    id = serializers.IntegerField(help_text=u"id")
+    issued_by = serializers.CharField(max_length=32, help_text=u"证书来源")
+
+
+class TeamCertificatesLSerializer(serializers.Serializer):
+    list = CertificatesRSerializer(many=True)
+    page = serializers.IntegerField()
+    page_size = serializers.IntegerField()
+    total = serializers.IntegerField()
+
+
+class TeamCertificatesCSerializer(serializers.Serializer):
+    alias = serializers.CharField(max_length=64, help_text=u"证书名称")
+    private_key = serializers.CharField(max_length=8192, help_text=u"证书")
+    certificate = serializers.CharField(max_length=8192, help_text=u"证书key")
+    certificate_type = serializers.CharField(max_length=32, help_text=u"证书类型")
+
+
+class TeamCertificatesRSerializer(serializers.Serializer):
+    alias = serializers.CharField(max_length=64, help_text=u"证书名称")
+    private_key = serializers.CharField(max_length=8192, help_text=u"证书")
+    certificate = serializers.CharField(max_length=8192, help_text=u"证书key")
+    certificate_type = serializers.CharField(max_length=32, help_text=u"证书类型")
+    id = serializers.IntegerField(help_text=u"id")
