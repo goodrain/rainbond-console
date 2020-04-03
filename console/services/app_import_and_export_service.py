@@ -51,15 +51,19 @@ class AppExportService(object):
         new_export_record = app_export_record_repo.create_app_export_record(**params)
         return 200, "success", new_export_record
 
+    def _export_app_region(self, eid):
+        tenant_info = region_repo.get_region_by_enterprise_id(eid)
+        if tenant_info:
+            return tenant_info.region_name
+        raise RecordNotFound("数据中心未找到")
+
     def export_app(self, eid, app_id, version, export_format):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(eid, app_id, version)
         if not app or not app_version:
             raise RbdAppNotFound("未找到该应用")
 
         # get region
-        region = self.get_app_share_region(app, app_version)
-        if region is None:
-            raise RegionNotFound("数据中心未找到")
+        region = self._export_app_region(eid)
 
         export_record = app_export_record_repo.get_export_record(eid, app_id, version, export_format)
         if export_record:
@@ -140,9 +144,9 @@ class AppExportService(object):
             "is_export_before": False,
         }
 
-        region = self.get_app_share_region(app, app_version)
-        if region is None:
-            raise RegionNotFound("数据中心未找到")
+        # get region
+        region = self._export_app_region(enterprise_id)
+
         if app_export_records:
             for export_record in app_export_records:
                 if export_record.event_id and export_record.status == "exporting":
