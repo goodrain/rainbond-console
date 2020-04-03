@@ -19,12 +19,9 @@ class EnterpriseSubscribe(CloudEnterpriseCenterView):
 
 class EnterpriseOrdersCLView(CloudEnterpriseCenterView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        data = []
-        order_list = self.oauth_instance.list_ent_order(eid=enterprise_id)
-        for order in order_list:
-            data.append(order.to_dict())
+        order_list = self.oauth_instance.list_ent_order(eid=enterprise_id, **request.GET)
         result = general_message(
-            200, "success", None, list=data)
+            200, "success", None, **order_list.to_dict())
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, *args, **kwargs):

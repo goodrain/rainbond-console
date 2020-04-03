@@ -195,9 +195,9 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         return self.ent_api.get_enterprise(eid)
 
     @check_enterprise_center_code()
-    def list_ent_order(self, eid):
+    def list_ent_order(self, eid, **kwargs):
         self._get_access_token()
-        return self.order_api.list_orders(eid)
+        return self.order_api.list_orders(eid, **kwargs)
 
     @check_enterprise_center_code()
     def get_ent_order(self, eid, order_id):
