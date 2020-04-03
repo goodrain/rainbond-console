@@ -17,7 +17,7 @@ class OpenAPIAuthentication(authentication.TokenAuthentication):
         try:
             user = apiUserService.get_user_by_token(token)
             if not user:
-                raise exceptions.AuthenticationFailed('No such user')
+                raise exceptions.AuthenticationFailed('No such user or user is not admin')
         except Exception as e:
             logger.exception(e)
             raise exceptions.AuthenticationFailed('No such user')
