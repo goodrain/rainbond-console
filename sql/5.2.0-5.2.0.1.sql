@@ -12,4 +12,4 @@ CREATE TABLE `user_access_key` (
   `user_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `note` (`note`,`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
