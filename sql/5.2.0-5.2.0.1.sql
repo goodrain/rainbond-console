@@ -11,5 +11,5 @@ CREATE TABLE `user_access_key` (
   `expire_time` int(16) DEFAULT NULL,
   `user_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`ID`),
-  UNIQUE KEY `note_ent_uq` (`note`)
+  UNIQUE KEY `note` (`note`,`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8;
