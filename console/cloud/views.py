@@ -19,7 +19,12 @@ class EnterpriseSubscribe(CloudEnterpriseCenterView):
 
 class EnterpriseOrdersCLView(CloudEnterpriseCenterView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        order_list = self.oauth_instance.list_ent_order(eid=enterprise_id, **request.GET)
+        path_params = {
+            "query": request.GET.get("query", None),
+            "page": request.GET.get("page", None),
+            "page_size": request.GET.get("page_size", None)
+        }
+        order_list = self.oauth_instance.list_ent_order(enterprise_id, **path_params)
         result = general_message(
             200, "success", None, **order_list.to_dict())
         return Response(result, status=200)

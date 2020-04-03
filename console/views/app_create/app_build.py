@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.main import ServiceHandleException
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
@@ -21,6 +22,7 @@ from console.services.compose_service import compose_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import CloudEnterpriseCenterView
 from console.views.base import RegionTenantHeaderView
+from console.cloud.services import check_memory_quota
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -55,6 +57,9 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         try:
             if self.service.service_source == "third_party":
                 is_deploy = False
+                if not check_memory_quota(
+                        self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory, self.service.min_node):
+                    raise ServiceHandleException(msg="not enough quota", error_code=20002)
                 # 数据中心连接创建第三方组件
                 new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
             else:
