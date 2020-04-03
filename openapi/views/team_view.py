@@ -75,7 +75,7 @@ class ListTeamInfo(ListAPIView):
         else:
             data, total = team_services.list_teams_v2(
                 req.user.enterprise_id, query=query, page=page, page_size=page_size)
-            result = {"tenants": data, "total": total}
+            result = {"tenants": data, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
         return Response(result, status.HTTP_200_OK)
