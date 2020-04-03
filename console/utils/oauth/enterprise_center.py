@@ -127,13 +127,14 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
     def refresh_access_token(self):
         headers = {
             "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded"
+            "Content-Type": "application/json"
         }
 
         params = {
-            "refresh_token": self.refresh_token,
+            "refresh_token": self.oauth_user.refresh_token,
             "grant_type": "refresh_token",
-            "scope": "api"
+            "client_id": self.oauth_service.client_id,
+            "client_secret": self.oauth_service.client_secret,
         }
         rst = self._session.request(method='POST', url=self.oauth_service.access_token_url,
                                     headers=headers, params=params)
