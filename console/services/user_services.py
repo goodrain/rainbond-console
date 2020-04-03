@@ -24,6 +24,7 @@ from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.oauth_repo import oauth_user_repo
+from console.services.user_accesstoken_services import user_access_services
 from console.services.app_actions import app_manage_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
@@ -291,7 +292,7 @@ class UserService(object):
         if not user_perm:
             token = self.generate_key()
             return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin", token)
-            return user_perm
+        return user_perm
 
     def is_user_admin_in_current_enterprise(self, current_user, enterprise_id):
         """判断用户在该企业下是否为管理员"""
@@ -317,10 +318,16 @@ class UserService(object):
         return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
 
     def get_administrator_user_by_token(self, token):
-        perm = enterprise_user_perm_repo.get_by_token(token)
+        perm = user_access_services.check_user_access_key(token)
+        if not perm:
+            perm = enterprise_user_perm_repo.get_by_token(token)
         if not perm:
             return None
-        return self.get_user_by_user_id(perm.user_id)
+        user = self.get_user_by_user_id(perm.user_id)
+        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not permList:
+            return None
+        return user
 
     def get_administrator_user_token(self, user):
         permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)

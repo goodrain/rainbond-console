@@ -11,3 +11,12 @@ urlregex = re.compile(
     r'(?:/?|[/?]\S+)$',
     re.IGNORECASE)
 ipregex = re.compile(r'((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})(\.((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})){3}', re.IGNORECASE)
+
+
+def pagination(data, total, page=1, page_size=10):
+    return {
+        "list": data,
+        "total": total,
+        "page": page,
+        "page_size": page_size
+    }
