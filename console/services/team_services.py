@@ -508,7 +508,6 @@ class TeamService(object):
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)
         total = team_repo.count_by_user_id(eid, user_id, query)
-
         for tenant in tenants:
             # 获取一个用户在一个团队中的身份列表
             perms_identitys = self.get_user_perm_identitys_in_permtenant(
