@@ -37,7 +37,7 @@ from openapi.serializer.utils import pagination
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import TeamAPIView
 from openapi.views.base import ListAPIView
-from openapi.views.exceptions import ErrTeamNotFound
+from openapi.views.exceptions import ErrTeamNotFound, ErrRegionNotFound
 from www.utils.crypt import make_uuid
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -47,10 +47,9 @@ logger = logging.getLogger("default")
 
 class ListTeamInfo(ListAPIView):
     @swagger_auto_schema(
-        operation_description="获取团队列表",
+        operation_description="获取用户所在团队列表",
         manual_parameters=[
             openapi.Parameter("query", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("tenant_names", openapi.IN_QUERY, description="根据租户名称获取列表", type=openapi.TYPE_STRING),
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
@@ -67,15 +66,9 @@ class ListTeamInfo(ListAPIView):
             page_size = int(req.GET.get("page_size", 10))
         except ValueError:
             page_size = 10
-        tenant_names = req.GET.get("tenant_names", "")
-
-        if tenant_names:
-            data = team_services.list_by_tenant_names(tenant_names.split(","))
-            result = {"tenants": data, "total": len(data)}
-        else:
-            data, total = team_services.list_teams_v2(
-                req.user.enterprise_id, query=query, page=page, page_size=page_size)
-            result = {"tenants": data, "total": total, "page": page, "page_size": page_size}
+        tenants, total = team_services.list_teams_by_user_id(
+            eid=req.user.enterprise_id, user_id=req.user.user_id, query=query, page=page, page_size=page_size)
+        result = {"tenants": tenants, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
         return Response(result, status.HTTP_200_OK)
@@ -102,7 +95,7 @@ class ListTeamInfo(ListAPIView):
         if team_data.get("region", None):
             region = region_services.get_region_by_region_name(team_data.get("region"))
             if not region:
-                raise serializers.ValidationError("指定数据中心不存在")
+                raise ErrRegionNotFound
         try:
             user = user_services.get_user_by_user_id(team_data.get("creater", 0))
         except UserNotExistError:
@@ -385,7 +378,7 @@ class ListRegionsView(ListAPIView):
         if team_data.get("region", None):
             region = region_services.get_region_by_region_name(team_data.get("region"))
             if not region:
-                raise serializers.ValidationError("指定数据中心不存在")
+                raise ErrRegionNotFound
         team = team_services.get_team_by_team_id(team_id)
         code, message, bean = region_services.create_tenant_on_region(team.tenant_name, region.region_name)
         if code != 200:

@@ -133,7 +133,7 @@ class UserService(object):
         if tenant_name:
             tenants = Tenants.objects.filter(tenant_name=tenant_name)
             if not tenants:
-                raise TenantNotExistError("租户{}不存在".format(tenant_name))
+                raise TenantNotExistError
             tenant = tenants[0]
             user_id_list = PermRelTenant.objects.filter(tenant_id=tenant.ID).values_list("user_id", flat=True)
             user_list = Users.objects.filter(user_id__in=user_id_list)
@@ -509,13 +509,6 @@ class UserService(object):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
     def check_params(self, user_name, email, password, re_password, eid=None):
-        # is_pass, msg = self.__check_user_name(user_name, eid)
-        # if not is_pass:
-        #     return is_pass, msg
-        # is_pass, msg = self.__check_email(email, eid)
-        # if not is_pass:
-        #     return is_pass, msg
-
         if password != re_password:
             return False, "两次输入的密码不一致"
         return True, "success"

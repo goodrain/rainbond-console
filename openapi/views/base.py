@@ -6,6 +6,7 @@ from openapi.auth.permissions import OpenAPIPermissions
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from openapi.views.exceptions import ErrTeamNotFound
 from rest_framework import generics
 
 
