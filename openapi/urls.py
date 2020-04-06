@@ -25,10 +25,14 @@ from openapi.views.enterprise_view import EnterpriseInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo
+from openapi.views.enterprise_view import EnterpriseSourceView
+
 from openapi.views.region_view import RegionInfo
 from openapi.views.region_view import RegionStatusView
 from openapi.views.team_view import ListRegionsView
 from openapi.views.team_view import ListRegionTeamServicesView
+from openapi.views.team_view import TeamCertificatesLCView
+from openapi.views.team_view import TeamCertificatesRUDView
 from openapi.views.team_view import ListTeamInfo
 from openapi.views.team_view import ListTeamUsersInfo
 from openapi.views.team_view import ListUserRolesView
@@ -80,6 +84,7 @@ urlpatterns = [
     url(r'^v1/administrators$', ListAdminsView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
+    url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
     url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
     url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
     url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
@@ -96,5 +101,7 @@ urlpatterns = [
     url(r'^v1/market-install', MarketAppInstallView.as_view()),
     url(r'^v1/oauth/type$', OauthTypeView.as_view()),
     url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
 
 ]
