@@ -138,7 +138,7 @@ from console.views.group import GroupStatusView
 from console.views.group import TenantGroupCommonOperationView
 from console.views.group import TenantGroupOperationView
 from console.views.group import TenantGroupView
-from console.views.jwt_token_view import JWTTokenView
+# from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView
 from console.views.logos import PhpConfigView
 from console.views.message import UserMessageView
@@ -257,7 +257,7 @@ from console.views.user import UserPemView
 from console.views.user_operation import ChangeLoginPassword
 from console.views.user_operation import PasswordResetBegin
 from console.views.user_operation import SendResetEmail
-from console.views.user_operation import TenantServiceView
+# from console.views.user_operation import TenantServiceView
 from console.views.user_operation import UserDetailsView
 from console.views.user_operation import UserFavoriteLCView
 from console.views.user_operation import UserFavoriteUDView
@@ -323,11 +323,11 @@ urlpatterns = [
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
     # 用户登录
-    url(r'^users/login$', JWTTokenView.as_view()),
+    # url(r'^users/login$', JWTTokenView.as_view()),
     # 用户登出
     url(r'^users/logout$', UserLogoutView.as_view()),
     # 用户注册
-    url(r'^users/register$', TenantServiceView.as_view()),
+    # url(r'^users/register$', TenantServiceView.as_view()),
     url(r'^captcha', CaptchaView.as_view()),
     # 忘记密码
     url(r'^users/send_reset_email$', SendResetEmail.as_view()),
