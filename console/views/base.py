@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import json
+import os
 
 import jwt
 from addict import Dict
@@ -205,6 +206,9 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
         super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
         try:
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
             oauth_user = UserOAuthServices.objects.get(
                 service_id=oauth_service.ID, user_id=self.user.user_id)
         except OAuthServices.DoesNotExist:

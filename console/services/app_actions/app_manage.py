@@ -535,6 +535,8 @@ class AppManageService(AppManageBase):
                     self.deploy(tenant, service, user, group_version=None, oauth_instance=oauth_instance)
                 code = 200
                 msg = "success"
+            except ServiceHandleException as e:
+                raise e
             except Exception as e:
                 fail_service_name.append(service.service_cname)
                 logger.exception(e)

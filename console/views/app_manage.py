@@ -59,7 +59,8 @@ class StartAppView(AppBaseView, CloudEnterpriseCenterView):
 
         """
         try:
-            code, msg = app_manage_service.start(self.tenant, self.service, self.user, oauth_service=self.oauth_instance)
+            code, msg = app_manage_service.start(
+                self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
