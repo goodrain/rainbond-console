@@ -98,13 +98,13 @@ class AppDeployService(object):
             return 200, "", ""
         return code, msg, event_id
 
-    def deploy(self, tenant, service, user, version, committer_name=None):
+    def deploy(self, tenant, service, user, version, committer_name=None, oauth_instance=None):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
         self.pre_deploy_action(tenant, service, version)
 
-        return self.execute(tenant, service, user, version, committer_name)
+        return self.execute(tenant, service, user, version, committer_name, oauth_instance=oauth_instance)
 
 
 class OtherService(object):

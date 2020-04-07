@@ -129,7 +129,7 @@ class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
         return Response(result, status=result["code"])
 
 
-class DeployAppView(AppBaseView):
+class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
@@ -151,7 +151,7 @@ class DeployAppView(AppBaseView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            code, msg, _ = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
+            code, msg, _ = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
