@@ -45,7 +45,7 @@ gitClient = GitlabApi()
 
 class UserService(object):
     def get_user_by_user_name(self, eid, user_name):
-        user = user_repo.get_enterprise_user_by_username(eid, user_name=user_name)
+        user = user_repo.get_enterprise_user_by_username(eid, username=user_name)
         if not user:
             return None
         else:
