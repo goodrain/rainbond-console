@@ -175,7 +175,7 @@ class UserOAuthRepo(object):
 
     def get_enterprise_center_user_by_user_id(self, user_id):
         try:
-            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter")
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
                 oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
