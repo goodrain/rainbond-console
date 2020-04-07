@@ -24,6 +24,7 @@ from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.oauth_repo import oauth_user_repo
+from console.services.user_accesstoken_services import user_access_services
 from console.services.app_actions import app_manage_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
@@ -44,7 +45,7 @@ gitClient = GitlabApi()
 
 class UserService(object):
     def get_user_by_user_name(self, eid, user_name):
-        user = user_repo.get_enterprise_user_by_username(eid, user_name=user_name)
+        user = user_repo.get_enterprise_user_by_username(eid, username=user_name)
         if not user:
             return None
         else:
@@ -132,7 +133,7 @@ class UserService(object):
         if tenant_name:
             tenants = Tenants.objects.filter(tenant_name=tenant_name)
             if not tenants:
-                raise TenantNotExistError("租户{}不存在".format(tenant_name))
+                raise TenantNotExistError
             tenant = tenants[0]
             user_id_list = PermRelTenant.objects.filter(tenant_id=tenant.ID).values_list("user_id", flat=True)
             user_list = Users.objects.filter(user_id__in=user_id_list)
@@ -291,7 +292,7 @@ class UserService(object):
         if not user_perm:
             token = self.generate_key()
             return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin", token)
-            return user_perm
+        return user_perm
 
     def is_user_admin_in_current_enterprise(self, current_user, enterprise_id):
         """判断用户在该企业下是否为管理员"""
@@ -317,10 +318,16 @@ class UserService(object):
         return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
 
     def get_administrator_user_by_token(self, token):
-        perm = enterprise_user_perm_repo.get_by_token(token)
+        perm = user_access_services.check_user_access_key(token)
+        if not perm:
+            perm = enterprise_user_perm_repo.get_by_token(token)
         if not perm:
             return None
-        return self.get_user_by_user_id(perm.user_id)
+        user = self.get_user_by_user_id(perm.user_id)
+        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not permList:
+            return None
+        return user
 
     def get_administrator_user_token(self, user):
         permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
@@ -503,13 +510,6 @@ class UserService(object):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
     def check_params(self, user_name, email, password, re_password, eid=None):
-        # is_pass, msg = self.__check_user_name(user_name, eid)
-        # if not is_pass:
-        #     return is_pass, msg
-        # is_pass, msg = self.__check_email(email, eid)
-        # if not is_pass:
-        #     return is_pass, msg
-
         if password != re_password:
             return False, "两次输入的密码不一致"
         return True, "success"

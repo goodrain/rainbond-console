@@ -419,7 +419,7 @@ class TeamService(object):
         team = team_repo.get_team_by_team_id(team_id=team_id)
         if team:
             user = user_repo.get_by_user_id(team.creater)
-            team.creater = user.user_id
+            team.creater_name = user.get_name()
         return team
 
     def create_team(self, user, enterprise, region_list=None, team_alias=None):
@@ -505,11 +505,9 @@ class TeamService(object):
         query_set = Tenants.objects.filter(tenant_name__in=tenant_names)
         return [qs.to_dict() for qs in query_set]
 
-    # used by open api before version 5.2
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)
         total = team_repo.count_by_user_id(eid, user_id, query)
-
         for tenant in tenants:
             # 获取一个用户在一个团队中的身份列表
             perms_identitys = self.get_user_perm_identitys_in_permtenant(

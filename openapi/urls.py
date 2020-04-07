@@ -26,10 +26,14 @@ from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.enterprise_view import EnterpriseSourceView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo
+from openapi.views.enterprise_view import EnterpriseSourceView
+
 from openapi.views.region_view import RegionInfo
 from openapi.views.region_view import RegionStatusView
 from openapi.views.team_view import ListRegionsView
 from openapi.views.team_view import ListRegionTeamServicesView
+from openapi.views.team_view import TeamCertificatesLCView
+from openapi.views.team_view import TeamCertificatesRUDView
 from openapi.views.team_view import ListTeamInfo
 from openapi.views.team_view import ListTeamUsersInfo
 from openapi.views.team_view import ListUserRolesView
@@ -48,7 +52,7 @@ schema_view = get_schema_view(
         title="Rainbond Open API",
         default_version='v1',
         description="Rainbond open api",
-        terms_of_service="https://www.rainbond.com",
+        terms_of_service="https://cloud.goodrain.com",
         contact=openapi.Contact(email="barnett@goodrain.com"),
         license=openapi.License(name="LGPL License"),
     ),
@@ -61,11 +65,17 @@ urlpatterns = [
     url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    # get user teams
+    url(r'^v1/teams$', ListTeamInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
+
+
+    # Below is the OPEN API that needs to be tweaked, not sure about availability
     url(r'^v1/auth-token$', TokenInfoView.as_view()),
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
-    url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
@@ -81,15 +91,13 @@ urlpatterns = [
     url(r'^v1/administrators$', ListAdminsView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
     url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
+    url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
     url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
     url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
     url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
     url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
     url(r'^v1/announcements$', ListAnnouncementView.as_view()),
     url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
-    # url(r'^v1/configs/base$', BaseConfigView.as_view()),
-    # url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
-    # url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
     url(r'^v1/upload-file$', UploadView.as_view()),
     url(r'^v1/apps/httpdomain$', APPHttpDomainView.as_view()),
     url(r'^v1/apps$', ListAppsView.as_view()),

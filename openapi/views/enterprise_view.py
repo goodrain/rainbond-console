@@ -20,7 +20,6 @@ from openapi.serializer.ent_serializers import ListEntsRespSerializer
 from openapi.serializer.ent_serializers import UpdEntReqSerializer
 from openapi.serializer.ent_serializers import EnterpriseSourceSerializer
 from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import EnterpriseCenterAPIView
 from openapi.views.base import ListAPIView
 
 logger = logging.getLogger("default")
@@ -79,7 +78,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class EnterpriseSourceView(EnterpriseCenterAPIView):
+class EnterpriseSourceView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取企业使用资源信息",
         responses={200: EnterpriseSourceSerializer},
@@ -92,6 +91,8 @@ class EnterpriseSourceView(EnterpriseCenterAPIView):
             "used_memory": 0,
             "used_disk": 0
         }
+        if not req.user.is_administrator:
+            raise ServiceHandleException(status_code=401, error_code=401, msg="Permission denied")
         ent = enterprise_services.get_enterprise_by_id(eid)
         if ent is None:
             return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
