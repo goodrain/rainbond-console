@@ -23,7 +23,6 @@ from openapi.views.appstore_view import ListAppStoresView
 # from openapi.views.config_view import ListFeatureConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
-from openapi.views.enterprise_view import EnterpriseSourceView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.enterprise_view import EnterpriseSourceView

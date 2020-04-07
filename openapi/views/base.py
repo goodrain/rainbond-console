@@ -2,7 +2,6 @@
 # creater by: barnett
 from rest_framework.views import APIView
 from openapi.auth.authentication import OpenAPIAuthentication
-from openapi.auth.authentication import EnterOpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
