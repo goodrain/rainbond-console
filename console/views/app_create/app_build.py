@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.main import ServiceHandleException
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
@@ -19,7 +20,9 @@ from console.services.app_config import probe_service
 from console.services.app_config import volume_service
 from console.services.compose_service import compose_service
 from console.views.app_config.base import AppBaseView
+from console.views.base import CloudEnterpriseCenterView
 from console.views.base import RegionTenantHeaderView
+from console.cloud.services import check_memory_quota
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -28,7 +31,7 @@ from www.apiclient.baseclient import HttpClient
 logger = logging.getLogger("default")
 
 
-class AppBuild(AppBaseView):
+class AppBuild(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
@@ -52,6 +55,9 @@ class AppBuild(AppBaseView):
         is_deploy = request.data.get("is_deploy", True)
         status = 200
         try:
+            if not check_memory_quota(
+                    self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory, self.service.min_node):
+                raise ServiceHandleException(msg="not enough quota", error_code=20002)
             if self.service.service_source == "third_party":
                 is_deploy = False
                 # 数据中心连接创建第三方组件
@@ -69,7 +75,8 @@ class AppBuild(AppBaseView):
                 # 添加组件有无状态标签
                 label_service.update_service_state_label(self.tenant, self.service)
                 # 部署组件
-                app_manage_service.deploy(self.tenant, self.service, self.user, group_version=None)
+                app_manage_service.deploy(
+                    self.tenant, self.service, self.user, group_version=None, oauth_instance=self.oauth_instance)
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
@@ -82,12 +89,8 @@ class AppBuild(AppBaseView):
                 result = general_message(10407, "no cloud permission", e.message)
                 status = e.status
             else:
-                result = general_message(500, "call cloud api failure", e.message)
-                status = 500
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            status = 500
+                result = general_message(400, "call cloud api failure", e.message)
+                status = 400
         # 删除probe
         # 删除region端数据
         if probe:
@@ -114,7 +117,7 @@ class AppBuild(AppBaseView):
             return True
 
 
-class ComposeBuildView(RegionTenantHeaderView):
+class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
@@ -163,7 +166,8 @@ class ComposeBuildView(RegionTenantHeaderView):
             group_compose.save()
             for s in new_app_list:
                 try:
-                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None)
+                    app_manage_service.deploy(
+                        self.tenant, s, self.user, group_version=None, oauth_instance=self.oauth_instance)
                 except Exception as e:
                     logger.exception(e)
                     continue

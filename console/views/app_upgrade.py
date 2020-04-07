@@ -28,6 +28,7 @@ from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
 from console.views.base import RegionTenantHeaderView
+from console.views.base import CloudEnterpriseCenterView
 
 logger = logging.getLogger('default')
 
@@ -174,7 +175,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
         return MessageResponse(msg="success", list=upgrade_info + add_info)
 
 
-class AppUpgradeTaskView(RegionTenantHeaderView):
+class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     def post(self, request, group_id, *args, **kwargs):
         """提交升级任务"""
         rq_args = (
@@ -271,7 +272,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             )
 
         upgrade_service.upgrade_database(market_services)
-        upgrade_service.send_upgrade_request(market_services, self.tenant, self.user, app_record, upgrade_service_infos)
+        upgrade_service.send_upgrade_request(
+            market_services, self.tenant, self.user, app_record, upgrade_service_infos, self.oauth_instance)
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
 
         return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(app_record))

@@ -507,7 +507,7 @@ class MarketAppService(object):
     def __deploy_services(self, tenant, user, service_list):
         try:
             body = dict()
-            code, data = app_manage_service.deploy_services_info(body, service_list, tenant, user)
+            code, data = app_manage_service.deploy_services_info(body, service_list, tenant, user, oauth_instance=None)
             if code == 200:
                 # 获取数据中心信息
                 one_service = service_list[0]

@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from django.conf.urls import url
+from django.conf.urls import url, include
 
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
@@ -885,6 +885,8 @@ urlpatterns = [
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
+    # 下架应用
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
@@ -924,4 +926,9 @@ urlpatterns += [
     # 回滚某一条升级
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/rollback$',
         app_upgrade.AppUpgradeRollbackView.as_view())
+]
+
+# ONLINE 业务相关接口
+urlpatterns += [
+    url(r'', include('console.cloud.urls')),
 ]

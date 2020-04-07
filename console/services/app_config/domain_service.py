@@ -10,7 +10,6 @@ import re
 from django.db import transaction
 from django.db import connection
 
-from console.exception.main import ServiceHandleException
 from console.constants import DomainType
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo

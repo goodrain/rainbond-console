@@ -22,6 +22,7 @@ from console.services.market_app_service import market_app_service
 from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from console.views.base import CloudEnterpriseCenterView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import general_message
@@ -37,7 +38,7 @@ app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
 
 
-class StartAppView(AppBaseView):
+class StartAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('start_service')
     def post(self, request, *args, **kwargs):
@@ -58,7 +59,8 @@ class StartAppView(AppBaseView):
 
         """
         try:
-            code, msg = app_manage_service.start(self.tenant, self.service, self.user)
+            code, msg = app_manage_service.start(
+                self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
@@ -99,7 +101,7 @@ class StopAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class ReStartAppView(AppBaseView):
+class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('restart_service')
     def post(self, request, *args, **kwargs):
@@ -119,7 +121,7 @@ class ReStartAppView(AppBaseView):
               paramType: path
 
         """
-        code, msg = app_manage_service.restart(self.tenant, self.service, self.user)
+        code, msg = app_manage_service.restart(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
         bean = {}
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
@@ -210,7 +212,7 @@ class RollBackAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class VerticalExtendAppView(AppBaseView):
+class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
@@ -239,7 +241,8 @@ class VerticalExtendAppView(AppBaseView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            code, msg = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
+            code, msg = app_manage_service.vertical_upgrade(
+                self.tenant, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
@@ -252,7 +255,7 @@ class VerticalExtendAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class HorizontalExtendAppView(AppBaseView):
+class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
@@ -282,7 +285,8 @@ class HorizontalExtendAppView(AppBaseView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
+            app_manage_service.horizontal_upgrade(
+                self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
         except ServiceHandleException as e:
             return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
@@ -294,7 +298,7 @@ class HorizontalExtendAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class BatchActionView(RegionTenantHeaderView):
+class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('stop_service')
     @perm_required('start_service')
@@ -348,7 +352,8 @@ class BatchActionView(RegionTenantHeaderView):
                     not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有变更组件分组权限"), status=400)
         service_id_list = service_ids.split(",")
-        code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id)
+        code, msg = app_manage_service.batch_action(
+            self.tenant, self.user, action, service_id_list, move_group_id, self.oauth_instance)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
@@ -496,7 +501,7 @@ class ChangeServiceTypeView(AppBaseView):
 
 
 # 更新组件组件
-class UpgradeAppView(AppBaseView):
+class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
@@ -504,7 +509,8 @@ class UpgradeAppView(AppBaseView):
         更新
         """
         try:
-            code, msg, _ = app_manage_service.upgrade(self.tenant, self.service, self.user)
+            code, msg, _ = app_manage_service.upgrade(
+                self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)

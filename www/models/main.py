@@ -240,7 +240,7 @@ class Users(models.Model):
     def get_name(self):
         if self.real_name:
             return self.real_name
-        return self.nick_name    
+        return self.nick_name
 
     @property
     def is_sys_admin(self):

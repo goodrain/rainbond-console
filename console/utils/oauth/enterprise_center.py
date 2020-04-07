@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
 import logging
 from urlparse import urlsplit
+import functools
 
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
 from console.utils.restful_client import get_enterprise_server_auth_client
 from console.utils.restful_client import get_enterprise_server_ent_client
+from console.utils.restful_client import get_order_server_ent_client
+from console.utils.restful_client import get_pay_server_ent_client
 from console.exception.main import ServiceHandleException
 
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
@@ -14,10 +17,28 @@ from console.utils.urlutil import set_get_url
 logger = logging.getLogger("default")
 
 
+def check_enterprise_center_code():
+    """
+    检测权限装饰器
+    """
+    def wrapper(func):
+        @functools.wraps(func)
+        def __wrapper(self, *args, **kwargs):
+            rst = func(self, *args, **kwargs)
+            if hasattr(rst, "code"):
+                raise ServiceHandleException(
+                    status_code=rst.code, msg="enterprise center operate error", msg_show="操作失败")
+            return rst
+        return __wrapper
+    return wrapper
+
+
 class EnterpriseCenterV1MiXin(object):
     def set_api(self, home_url, oauth_token):
         self.auth_api = get_enterprise_server_auth_client(home_url, oauth_token)
         self.ent_api = get_enterprise_server_ent_client(home_url, oauth_token)
+        self.order_api = get_order_server_ent_client(home_url, oauth_token)
+        self.pay_api = get_pay_server_ent_client(home_url, oauth_token)
 
 
 class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
@@ -106,13 +127,14 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
     def refresh_access_token(self):
         headers = {
             "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded"
+            "Content-Type": "application/json"
         }
 
         params = {
-            "refresh_token": self.refresh_token,
+            "refresh_token": self.oauth_user.refresh_token,
             "grant_type": "refresh_token",
-            "scope": "api"
+            "client_id": self.oauth_service.client_id,
+            "client_secret": self.oauth_service.client_secret,
         }
         rst = self._session.request(method='POST', url=self.oauth_service.access_token_url,
                                     headers=headers, params=params)
@@ -147,18 +169,52 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         else:
             raise NoOAuthServiceErr("no found oauth service")
 
+    @check_enterprise_center_code()
     def create_user(self, eid, body):
         self._get_access_token()
         return self.ent_api.create_user(eid, body=body)
 
+    @check_enterprise_center_code()
     def list_user(self, eid):
         self._get_access_token()
-        self.ent_api.list_user(eid)
+        return self.ent_api.list_user(eid)
 
+    @check_enterprise_center_code()
     def delete_user(self, eid, uid):
         self._get_access_token()
-        self.ent_api.delete_user(eid, uid)
+        return self.ent_api.delete_user(eid, uid)
 
+    @check_enterprise_center_code()
     def update_user(self, eid, uid, body):
         self._get_access_token()
-        self.ent_api.update_user(eid, uid, body=body)
+        return self.ent_api.update_user(eid, uid, body=body)
+
+    @check_enterprise_center_code()
+    def get_ent_subscribe(self, eid):
+        self._get_access_token()
+        return self.ent_api.get_enterprise(eid)
+
+    @check_enterprise_center_code()
+    def list_ent_order(self, eid, **kwargs):
+        self._get_access_token()
+        return self.order_api.list_orders(eid, **kwargs)
+
+    @check_enterprise_center_code()
+    def get_ent_order(self, eid, order_id):
+        self._get_access_token()
+        return self.order_api.get_order(eid, order_id)
+
+    @check_enterprise_center_code()
+    def create_ent_order(self, eid, body):
+        self._get_access_token()
+        return self.order_api.create_order(eid, body=body)
+
+    @check_enterprise_center_code()
+    def get_bank_info(self):
+        self._get_access_token()
+        return self.pay_api.bankinfo()
+
+    @check_enterprise_center_code()
+    def check_ent_memory(self, eid, body):
+        self._get_access_token()
+        return self.ent_api.check_memory(eid, body=body)

@@ -394,7 +394,7 @@ class UpgradeService(object):
                 market_service.restore_backup()
             raise AbortRequest(msg=str(e))
 
-    def send_upgrade_request(self, market_services, tenant, user, app_record, service_infos):
+    def send_upgrade_request(self, market_services, tenant, user, app_record, service_infos, oauth_instance):
         """向数据中心发送更新请求"""
         from console.services.app_actions.app_deploy import AppDeployService
 
@@ -402,7 +402,7 @@ class UpgradeService(object):
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
             code, msg, event_id = app_deploy_service.execute(
-                tenant, market_service.service, user, True, app_record.version)
+                tenant, market_service.service, user, True, app_record.version, oauth_instance=oauth_instance)
 
             upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event_id,
                                                        service_infos[market_service.service.service_id],
