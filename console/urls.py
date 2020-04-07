@@ -261,6 +261,8 @@ from console.views.user_operation import TenantServiceView
 from console.views.user_operation import UserDetailsView
 from console.views.user_operation import UserFavoriteLCView
 from console.views.user_operation import UserFavoriteUDView
+from console.views.user_accesstoken import UserAccessTokenCLView
+from console.views.user_accesstoken import UserAccessTokenRUDView
 from console.views.enterprise import Enterprises
 from console.views.enterprise import EnterpriseRUDView
 from console.views.enterprise import EnterpriseAppOverView
@@ -335,6 +337,8 @@ urlpatterns = [
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
     url(r'^users/query$', UserFuzSerView.as_view()),
+    url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
+    url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
     # 移交团队管理权
