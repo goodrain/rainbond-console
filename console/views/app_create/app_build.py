@@ -55,11 +55,11 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         is_deploy = request.data.get("is_deploy", True)
         status = 200
         try:
+            if not check_memory_quota(
+                    self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory, self.service.min_node):
+                raise ServiceHandleException(msg="not enough quota", error_code=20002)
             if self.service.service_source == "third_party":
                 is_deploy = False
-                if not check_memory_quota(
-                        self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory, self.service.min_node):
-                    raise ServiceHandleException(msg="not enough quota", error_code=20002)
                 # 数据中心连接创建第三方组件
                 new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
             else:
