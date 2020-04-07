@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 
 from console.models.main import OAuthServices
 from console.models.main import UserOAuthServices
@@ -24,6 +25,9 @@ class OAuthRepo(object):
 
     def get_oauth_services_by_service_id(self, service_id=None):
         if not service_id:
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                return OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
             return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
@@ -172,6 +176,9 @@ class UserOAuthRepo(object):
     def get_enterprise_center_user_by_user_id(self, user_id):
         try:
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter")
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
             logger.debug(oauth_service.ID, user_id)
             oauth_user = UserOAuthServices.objects.filter(
                 service_id=oauth_service.ID, user_id=user_id).first()

@@ -248,6 +248,9 @@ class PlatformConfigService(ConfigService):
         try:
             oauth_service = OAuthServices.objects.get(
                 is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
         except OAuthServices.DoesNotExist:
             return None
         try:
