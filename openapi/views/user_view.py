@@ -91,7 +91,7 @@ class UserInfoView(BaseOpenAPIView):
             user = user_services.get_user_by_user_id(uid)
         except (ValueError, UserNotExistError):
             try:
-                user = user_services.get_user_by_user_name(user_id)
+                user = user_services.get_user_by_user_name(req.user.enterprise_id, user_id)
             except UserNotExistError:
                 return Response(None, status.HTTP_404_NOT_FOUND)
         serializer = UserInfoSerializer(user)
