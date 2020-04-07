@@ -930,7 +930,7 @@ class MarketAppService(object):
                     version=app_template["group_version"],
                     template_version=app_template["template_version"],
                     app_version_info=app_template["info"],
-                    update_time=datetime.strptime(app_template["update_time"], '%Y-%m-%dT%H:%M:%S.%fZ'),
+                    update_time=datetime.strptime(app_template["update_time"][:19], '%Y-%m-%dT%H:%M:%S'),
                     is_official=app_template["is_official"])
                 return rainbond_app, rainbond_app_version
             return None
