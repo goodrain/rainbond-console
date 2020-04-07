@@ -9,6 +9,7 @@ from console.exception.exceptions import ConfigExistError
 from console.models.main import ConsoleSysConfig
 from console.models.main import OAuthServices
 from console.services.enterprise_services import enterprise_services
+from console.repositories.user_repo import user_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.oauth.oauth_types import NoSupportOAuthType
 from goodrain_web.custom_config import custom_config as custom_settings
@@ -225,7 +226,7 @@ class PlatformConfigService(ConfigService):
     def __init__(self):
         super(PlatformConfigService, self).__init__()
         self.base_cfg_keys = [
-            "IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION"
+            "IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"
         ]
 
         self.cfg_keys = [
@@ -251,6 +252,8 @@ class PlatformConfigService(ConfigService):
                                         "desc": u"enterprise center oauth 配置", "enable": True},
             "VERSION": {"value": os.getenv("RELEASE_DESC", "public-cloud"),
                         "desc": u"平台版本", "enable": True},
+            "IS_USER_REGISTER": {"value": None, "desc": u"开启/关闭OAuthServices功能", "enable": self.is_user_register()},
+
         }
 
     def get_enterprise_center_oauth(self):
@@ -276,6 +279,11 @@ class PlatformConfigService(ConfigService):
             }
         except NoSupportOAuthType:
             return None
+
+    def is_user_register(self):
+        if user_repo.get_all_users():
+            return True
+        return False
 
     def add_config_without_reload(self, key, default_value, type, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
