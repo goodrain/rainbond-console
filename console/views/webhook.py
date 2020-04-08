@@ -101,8 +101,10 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-
-                user_obj = Users.objects.get(user_id=service_obj.creater)
+                try:
+                    user_obj = Users.objects.get(user_id=service_obj.creater)
+                except Users.DoesNotExist:
+                    user_obj = Users.objects.filter(enterprise_id=tenant_obj.enterprise_id).order_by("create_time").first()
                 committer_name = commits_info.get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
@@ -168,7 +170,11 @@ class WebHooksDeploy(AlowAnyApiView):
                 # 获取组件状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
-                user = Users.objects.get(user_id=service_obj.creater)
+                try:
+                    user = Users.objects.get(user_id=service_obj.creater)
+                except Users.DoesNotExist:
+                    user = Users.objects.filter(
+                        enterprise_id=tenant_obj.enterprise_id).order_by("create_time").first()
                 committer_name = commits_info[-1].get("author").get("name")
                 logger.debug("status", status_map)
                 if status == "running" or status == "abnormal":
@@ -221,8 +227,11 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-
-                user_obj = Users.objects.get(user_id=service_obj.creater)
+                try:
+                    user_obj = Users.objects.get(user_id=service_obj.creater)
+                except Users.DoesNotExist:
+                    user_obj = Users.objects.filter(
+                        enterprise_id=tenant_obj.enterprise_id).order_by("create_time").first()
                 committer_name = commits_info.get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
@@ -273,8 +282,11 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-
-                user_obj = Users.objects.get(user_id=service_obj.creater)
+                try:
+                    user_obj = Users.objects.get(user_id=service_obj.creater)
+                except Users.DoesNotExist:
+                    user_obj = Users.objects.filter(
+                        enterprise_id=tenant_obj.enterprise_id).order_by("create_time").first()
                 committer_name = commits_info[0].get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
@@ -334,8 +346,11 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-
-                user_obj = Users.objects.get(user_id=service_obj.creater)
+                try:
+                    user_obj = Users.objects.get(user_id=service_obj.creater)
+                except Users.DoesNotExist:
+                    user_obj = Users.objects.filter(
+                        enterprise_id=tenant_obj.enterprise_id).order_by("create_time").first()
                 committer_name = commits_info.get("author").get("username")
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
@@ -560,7 +575,10 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         service_obj = TenantServiceInfo.objects.get(service_id=service_id)
         tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
         status_map = app_service.get_service_status(tenant_obj, service_obj)
-        user_obj = Users.objects.get(user_id=service_obj.creater)
+        try:
+            user_obj = Users.objects.get(user_id=service_obj.creater)
+        except Users.DoesNotExist:
+            user_obj = Users.objects.filter(enterprise_id=tenant_obj.enterprise_id).order_by("create_time").first()
         user_name = user_obj.nick_name
         status = status_map.get("status", None)
         logger.debug(status)
@@ -667,7 +685,10 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             # 获取组件状态
             status_map = app_service.get_service_status(tenant_obj, service_obj)
             status = status_map.get("status", None)
-            user_obj = Users.objects.get(user_id=service_obj.creater)
+            try:
+                user_obj = Users.objects.get(user_id=service_obj.creater)
+            except Users.DoesNotExist:
+                user_obj = Users.objects.filter(enterprise_id=tenant_obj.enterprise_id).order_by("create_time").first()
             committer_name = pusher
             if status != "undeploy" and status != "closed" \
                     and status != "closed":
