@@ -267,12 +267,6 @@ class TenantEnterpriseRepo(object):
             where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
         limit = "LIMIT {page}, {page_size}".format(page=page-1, page_size=page_size)
         conn = BaseConnection()
-        before_sql1 = """SET GLOBAL group_concat_max_len = 1024000;"""
-        before_sql2 = """SET SESSION group_concat_max_len = 1024000;"""
-        before_sql3 = "set global sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE," \
-                      "ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';"
-        before_sql4 = "set session sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE," \
-                      "ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';"
         sql = """
             SELECT
                 A.ID,
@@ -301,11 +295,6 @@ class TenantEnterpriseRepo(object):
         sql += where + "GROUP BY A.ID "
         sql1 = sql
         sql += limit
-        conn.query(before_sql1)
-        conn.query(before_sql2)
-        conn.query(before_sql3)
-        conn.query(before_sql4)
-        logger.debug(sql)
         count = len(conn.query(sql1))
         result = conn.query(sql)
         return result, count
