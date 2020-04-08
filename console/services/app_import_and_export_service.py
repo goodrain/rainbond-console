@@ -52,9 +52,9 @@ class AppExportService(object):
         return 200, "success", new_export_record
 
     def _export_app_region(self, eid):
-        tenant_info = region_repo.get_region_by_enterprise_id(eid)
-        if tenant_info:
-            return tenant_info.region_name
+        tenant_region_info = region_repo.get_region_by_enterprise_id(eid)
+        if tenant_region_info:
+            return tenant_region_info.region_name
         raise RecordNotFound("数据中心未找到")
 
     def export_app(self, eid, app_id, version, export_format):
