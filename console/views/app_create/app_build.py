@@ -81,6 +81,12 @@ class AppBuild(AppBaseView):
             if e.status == 403:
                 result = general_message(10407, "no cloud permission", e.message)
                 status = e.status
+            elif e.status == 400:
+                if "is exist" in e.message.get("body", ""):
+                    result = general_message(400, "the service is exist in region", "该组件名称在数据中心已存在")
+                else:
+                    result = general_message(400, "call cloud api failure", e.message)
+                status = e.status
             else:
                 result = general_message(500, "call cloud api failure", e.message)
                 status = 500
