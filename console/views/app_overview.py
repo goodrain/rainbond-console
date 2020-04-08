@@ -155,8 +155,8 @@ class AppDetailView(AppBaseView):
                     bean["register_way"] = service_endpoints.endpoints_type
                     if service_endpoints.endpoints_type == "api":
                         # 从环境变量中获取域名，没有在从请求中获取
-                        host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-                        bean["api_url"] = "http://" + host + "/console/" + "third_party/{0}".format(self.service.service_id)
+                        host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
+                        bean["api_url"] = host + "/console/" + "third_party/{0}".format(self.service.service_id)
                         key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
                         if key_repo:
                             bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
