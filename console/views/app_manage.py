@@ -151,7 +151,8 @@ class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            code, msg, _ = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
+            code, msg, _ = app_deploy_service.deploy(
+                self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)

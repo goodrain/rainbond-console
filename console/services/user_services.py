@@ -267,7 +267,7 @@ class UserService(object):
         user = self.create_user_set_password(
             enterprise_center_user.username, email, "goodrain",
             rf, enterprise, client_ip,
-            phone=real_name, real_name=real_name)
+            phone=phone, real_name=real_name)
         user.enterprise_center_user_id = enterprise_center_user.user_id
         user.save()
         return user
