@@ -789,7 +789,7 @@ class AppManageService(AppManageBase):
         if new_node > service.min_node:
             if not check_memory_quota(
                     oauth_instance, tenant.enterprise_id, service.min_memory, new_node - int(service.min_node)):
-                raise ServiceHandleException(error_code=20002, msg="not enough quota")
+                raise ServiceHandleException(status_code=20002, msg="not enough quota")
 
         if service.create_status == "complete":
             body = dict()
