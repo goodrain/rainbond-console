@@ -84,7 +84,7 @@ class Gitee(object):
     def create_hook(self, host, endpoint, full_name):
         url_suffix = 'repos/{full_name}/hooks'.format(full_name=full_name)
         data = {
-            "url": 'http://{host}/{endpoint}'.format(host=host, endpoint=endpoint),
+            "url": '{host}/{endpoint}'.format(host=host, endpoint=endpoint),
             "push_events": True
         }
         return self._api_post(url_suffix, data=data)
