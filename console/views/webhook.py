@@ -406,7 +406,7 @@ class GetWebHooksUrl(AppBaseView):
 
             service_id = service_obj.service_id
             # 从环境变量中获取域名，没有在从请求中获取
-            host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
+            host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
 
             service_webhook = service_webhooks_repo.get_or_create_service_webhook(self.service.service_id, deployment_way)
 
@@ -415,7 +415,7 @@ class GetWebHooksUrl(AppBaseView):
                 # 生成秘钥
                 deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
                 secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
-                url = "http://" + host + "/console/" + "custom/deploy/" + service_obj.service_id
+                url = host + "/console/" + "custom/deploy/" + service_obj.service_id
                 result = general_message(
                     200,
                     "success",
@@ -429,7 +429,7 @@ class GetWebHooksUrl(AppBaseView):
                     })
             # 镜像处发自动部署
             elif deployment_way == "image_webhooks":
-                url = "http://" + host + "/console/" + "image/webhooks/" + service_obj.service_id
+                url = host + "/console/" + "image/webhooks/" + service_obj.service_id
 
                 result = general_message(
                     200,
@@ -444,7 +444,7 @@ class GetWebHooksUrl(AppBaseView):
                     })
             # 源码处发自动部署
             else:
-                url = "http://" + host + "/console/" + "webhooks/" + service_obj.service_id
+                url = host + "/console/" + "webhooks/" + service_obj.service_id
                 deploy_keyword = service_webhook.deploy_keyword
                 result = general_message(
                     200,
@@ -483,8 +483,9 @@ class ImageWebHooksTrigger(AppBaseView):
                 "自动部署触发条件更新成功",
                 bean={
                     "url":
-                    "http://{host}/console/image/webhooks/{service_id}".format(
-                        host=os.environ.get('DEFAULT_DOMAIN', request.get_host()), service_id=self.service.service_id),
+                    "{host}/console/image/webhooks/{service_id}".format(
+                        host=os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host()),
+                        service_id=self.service.service_id),
                     "trigger":
                     service_webhook.trigger
                 }),

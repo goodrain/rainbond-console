@@ -74,8 +74,8 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=new_service.service_id)
             api_secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             # 从环境变量中获取域名，没有在从请求中获取
-            host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-            api_url = "http://" + host + "/console/" + "third_party/{0}".format(new_service.service_id)
+            host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
+            api_url = host + "/console/" + "third_party/{0}".format(new_service.service_id)
             bean["api_service_key"] = api_secret_key
             bean["url"] = api_url
 

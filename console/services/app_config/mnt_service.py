@@ -154,7 +154,7 @@ class AppMntService(object):
     def batch_mnt_serivce_volume(self, tenant, service, dep_vol_data):
         local_path = []
         tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
-        local_path = [l_path.volume_path for l_path in tenant_service_volumes]
+        local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
         for dep_vol in dep_vol_data:
             volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
         for dep_vol in dep_vol_data:
