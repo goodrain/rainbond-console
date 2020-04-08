@@ -17,6 +17,7 @@ logger = logging.getLogger("default")
 app_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 plugin_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 user_identity = ((u"管理员", "admin"), )
+enterprise_identity = (("admin", u"管理员"), ("viewer", u"观察者"))
 
 
 class BaseModel(models.Model):
@@ -425,6 +426,19 @@ class EnterpriseUserPerm(BaseModel):
     enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     identity = models.CharField(max_length=15, choices=user_identity, help_text=u"用户在企业的身份")
     token = models.CharField(max_length=64, help_text=u"API通信密钥", unique=True)
+
+
+class UserAccessKey(BaseModel):
+    """企业通信凭证"""
+
+    class Meta:
+        db_table = 'user_access_key'
+        unique_together = (('note', 'user_id'), )
+
+    note = models.CharField(max_length=32, help_text=u"凭证标识")
+    user_id = models.IntegerField(max_length=16, help_text=u"用户id")
+    access_key = models.CharField(max_length=64, unique=True, help_text=u"凭证")
+    expire_time = models.IntegerField(max_length=16, null=True, help_text=u"过期时间")
 
 
 class TenantUserRole(BaseModel):
