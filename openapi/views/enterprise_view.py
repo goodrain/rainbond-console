@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
-
 from django.db import connection
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -99,6 +98,10 @@ class EnterpriseSourceView(BaseOpenAPIView):
         regions = region_services.get_regions_by_enterprise_id(eid)
         for region in regions:
             try:
+                # Exclude development clusters
+                if "development" in region.region_type:
+                    logger.debug("{0} region type is development in enterprise {1}".format(region.region_name, eid))
+                    continue
                 res, body = region_api.get_region_resources(eid, region.region_name)
                 rst = body.get("bean")
                 if res.get("status") == 200 and rst:
