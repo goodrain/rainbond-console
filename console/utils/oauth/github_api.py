@@ -203,7 +203,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
         access_token, _ = self._get_access_token()
         repo = self.api.get_repo(full_name)
         config = {
-            "url": "http://{host}/{endpoint}".format(host=host, endpoint=endpoint),
+            "url": "{host}/{endpoint}".format(host=host, endpoint=endpoint),
             "content_type": "json"
         }
         return repo.create_hook("web", config, self.events, active=True)
