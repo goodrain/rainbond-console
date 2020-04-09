@@ -100,8 +100,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-                user_obj = user_services.init_webhook_user(service_obj, "Webhook")
                 committer_name = commits_info.get("author").get("username")
+                user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
@@ -166,8 +166,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 # 获取组件状态
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
-                user = user_services.init_webhook_user(service_obj, "Webhook")
                 committer_name = commits_info[-1].get("author").get("name")
+                user = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 logger.debug("status", status_map)
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
@@ -219,9 +219,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-
-                user_obj = user_services.init_webhook_user(service_obj, "Webhook")
                 committer_name = commits_info.get("author").get("username")
+                user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
@@ -272,8 +271,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 status = status_map.get("status", None)
                 logger.debug(status)
 
-                user_obj = user_services.init_webhook_user(service_obj, "Webhook")
                 committer_name = commits_info[0].get("author").get("username")
+                user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
@@ -333,8 +332,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 status = status_map.get("status", None)
                 logger.debug(status)
 
-                user_obj = user_services.init_webhook_user(service_obj, "Webhook")
                 committer_name = commits_info.get("author").get("username")
+                user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status == "running" or status == "abnormal":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
@@ -665,7 +664,7 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             # 获取组件状态
             status_map = app_service.get_service_status(tenant_obj, service_obj)
             status = status_map.get("status", None)
-            user_obj = user_services.init_webhook_user(service_obj, "ImageWebhook")
+            user_obj = user_services.init_webhook_user(service_obj, "ImageWebhook", pusher)
             committer_name = pusher
             if status != "undeploy" and status != "closed" \
                     and status != "closed":
