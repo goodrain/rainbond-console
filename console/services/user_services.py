@@ -504,5 +504,15 @@ class UserService(object):
             return False, "邮箱地址不合法"
         return True, "success"
 
+    def init_webhook_user(self, service, hook_type):
+        try:
+            user_obj = Users.objects.get(user_id=service.creater)
+        except Users.DoesNotExist:
+            user_obj = Users(
+                user_id=0,
+                nick_name=hook_type
+            )
+        return user_obj
+
 
 user_services = UserService()
