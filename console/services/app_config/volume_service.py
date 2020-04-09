@@ -217,7 +217,7 @@ class AppVolumeService(object):
         if access_mode != "":
             return access_mode.upper()
         if volume_type == self.default_volume_type:
-            if service.extend_method == ComponentType.stateless_singleton.value:
+            if service.extend_method not in [ComponentType.stateless_singleton.value, ComponentType.state_singleton.value]:
                 access_mode = "RWX"
             else:
                 access_mode = "RWO"
