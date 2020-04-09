@@ -514,7 +514,7 @@ class UserService(object):
             else:
                 try:
                     user = Users.objects.get(user_id=oauth_user.user_id)
-                    nick_name = user.nick_name
+                    nick_name = user.get_name()
                 except Users.DoesNotExist:
                     nick_name = None
             if not nick_name:
