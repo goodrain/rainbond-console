@@ -202,6 +202,14 @@ class UserOAuthRepo(object):
         except UserOAuthServices.DoesNotExist:
             return None
 
+    def get_user_oauth_by_oauth_user_name(self, service_id, oauth_user_name):
+        try:
+            oauth_user = UserOAuthServices.objects.get(service_id=service_id,
+                                                       oauth_user_name=oauth_user_name)
+            return oauth_user
+        except UserOAuthServices.DoesNotExist:
+            return None
+
     def user_oauth_is_link(self, service_id, oauth_user_id):
         data = UserOAuthServices.objects.get(service_id=service_id,
                                              oauth_user_id=oauth_user_id)
