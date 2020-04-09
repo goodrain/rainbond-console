@@ -509,7 +509,7 @@ class UserService(object):
             user_obj = Users.objects.get(user_id=service.creater)
         except Users.DoesNotExist:
             user_obj = Users(
-                user_id=0,
+                user_id=service.creater,
                 nick_name=hook_type
             )
         return user_obj
