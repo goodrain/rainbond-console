@@ -10,6 +10,9 @@ from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.repositories.user_role_repo import UserRoleNotFoundException
+from console.repositories.group import group_service_relation_repo
+from console.repositories.group import group_repo
+from console.repositories.service_repo import service_repo
 from console.models.main import Applicants
 from console.models.main import RainbondCenterApp
 
@@ -258,46 +261,22 @@ class TenantEnterpriseRepo(object):
         else:
             return tenants.values_list("region_tenant_id", flat=True)
 
-    def get_enterprise_app_list(self, enterprise_id, user, name, page, page_size):
+    def get_enterprise_app_list(self, enterprise_id, user, page=1, page_size=10):
         tenant_ids = self.get_enterprise_tenant_ids(enterprise_id, user)
         if not tenant_ids:
-            return None, 0
-        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
-        if name:
-            where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
-        limit = "LIMIT {page}, {page_size}".format(page=page-1, page_size=page_size)
-        conn = BaseConnection()
-        sql = """
-            SELECT
-                A.ID,
-                A.group_name,
-                A.tenant_id,
-                A.region_name,
-                D.tenant_name,
-                CONCAT('[',
-                    GROUP_CONCAT(
-                    CONCAT('{"service_cname":"',C.service_cname,'"'),',',
-                    CONCAT('"service_id":"',C.service_id,'"'),',',
-                    CONCAT('"service_key":"',C.service_key,'"'),',',
-                    CONCAT('"region_name":"',C.service_region,'"'),',',
-                    CONCAT('"tenant_id":"',D.tenant_id,'"'),',',
-                    CONCAT('"tenant_name":"',D.tenant_name,'"'),',',
-                    CONCAT('"service_alias":"',C.service_alias),'"}')
-                ,']') AS service_list
-            FROM service_group A
-            LEFT JOIN service_group_relation B
-            ON A.ID = B.group_id AND A.tenant_id = B.tenant_id
-            LEFT JOIN tenant_service C
-            ON B.service_id = C.service_id AND B.tenant_id = C.tenant_id
-            LEFT JOIN tenant_info D
-            ON C.tenant_id=D.tenant_id
-            """
-        sql += where + "GROUP BY A.ID "
-        sql1 = sql
-        sql += limit
-        count = len(conn.query(sql1))
-        result = conn.query(sql)
-        return result, count
+            return [], 0
+        enterprise_apps = group_repo.get_groups_by_tenant_ids(tenant_ids)
+        if not enterprise_apps:
+            return [], 0
+        return enterprise_apps[(page-1)*page_size: page*page_size], enterprise_apps.count()
+
+    def get_enterprise_app_component_list(self, app_id, page=1, page_size=10):
+        group_relation_services = group_service_relation_repo.get_services_by_group(app_id)
+        if not group_relation_services:
+            return [], 0
+        service_ids = group_relation_services.values_list("service_id", flat=True)
+        services = service_repo.get_service_by_service_ids(service_ids)
+        return services[(page-1)*page_size: page*page_size], services.count()
 
 
 class TenantEnterpriseUserPermRepo(object):
