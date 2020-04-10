@@ -398,10 +398,14 @@ class UserDetailsView(JWTAuthApiView):
 class UserFavoriteLCView(JWTAuthApiView):
     def get(self, request, enterprise_id):
         data = []
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        total = 0
         try:
             user_favorites = user_repo.get_user_favorite(request.user.user_id)
             if user_favorites:
-                for user_favorite in user_favorites:
+                total = user_favorites.count()
+                for user_favorite in user_favorites[(page-1)*page_size: page*page_size]:
                     data.append({
                         "name": user_favorite.name,
                         "url": user_favorite.url,
@@ -413,7 +417,7 @@ class UserFavoriteLCView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(400, "fail", "获取失败")
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
-        result = general_message(200, "success", None, list=data)
+        result = general_message(200, "success", None, list=data, page=page, page_size=page_size, total=total)
         return Response(result, status=status.HTTP_200_OK)
 
     def post(self, request, enterprise_id):
