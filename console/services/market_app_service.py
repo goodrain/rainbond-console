@@ -710,7 +710,7 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, is_complete=None, page=1, page_size=10):
+    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, is_complete=True, page=1, page_size=10):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -759,11 +759,13 @@ class MarketAppService(object):
         for version in versions:
             if not app_with_versions.get(version.app_id):
                 app_with_versions[version.app_id] = []
-            app_with_versions[version.app_id].append({
-                    "is_complete": version.is_complete,
-                    "version": version.version,
-                    "version_alias": version.version_alias,
-                })
+            version_info = {
+                "is_complete": version.is_complete,
+                "version": version.version,
+                "version_alias": version.version_alias,
+            }
+            if version_info not in app_with_versions[version.app_id]:
+                app_with_versions[version.app_id].append(version_info)
 
         for app in apps:
             versions_info = app_with_versions.get(app.app_id)
@@ -1245,7 +1247,7 @@ class MarketAppService(object):
             dat.update({
                 'current_version': pc.current_version.version,
                 'can_upgrade': bool(pc.get_upgradeable_versions),
-                'upgrade_versions': pc.get_upgradeable_versions,
+                'upgrade_versions': set(pc.get_upgradeable_versions),
                 'not_upgrade_record_id': not_upgrade_record.ID,
                 'not_upgrade_record_status': not_upgrade_record.status,
             })
