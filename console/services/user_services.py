@@ -22,6 +22,7 @@ from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.services.user_accesstoken_services import user_access_services
 from console.services.app_actions import app_manage_service
 from console.services.exception import ErrAdminUserDoesNotExist
@@ -503,6 +504,26 @@ class UserService(object):
         if not r.match(email):
             return False, "邮箱地址不合法"
         return True, "success"
+
+    def init_webhook_user(self, service, hook_type, committer_name=None):
+        nick_name = hook_type
+        if service.oauth_service_id:
+            oauth_user = oauth_user_repo.get_user_oauth_by_oauth_user_name(service.oauth_service_id, committer_name)
+            if not oauth_user:
+                nick_name = committer_name
+            else:
+                try:
+                    user = Users.objects.get(user_id=oauth_user.user_id)
+                    nick_name = user.get_name()
+                except Users.DoesNotExist:
+                    nick_name = None
+            if not nick_name:
+                nick_name = hook_type
+        user_obj = Users(
+            user_id=service.creater,
+            nick_name=nick_name
+        )
+        return user_obj
 
 
 user_services = UserService()
