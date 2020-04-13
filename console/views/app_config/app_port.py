@@ -12,10 +12,10 @@ from console.repositories.app_config import port_repo
 from console.services.app_config import domain_service
 from console.services.app_config import port_service
 from console.views.app_config.base import AppBaseView
+from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -192,18 +192,15 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
-        try:
-            port_info = port_service.get_service_port_by_port(
-                self.service, int(container_port))
 
-            variables = port_service.get_port_variables(
-                self.tenant, self.service, port_info)
-            bean = {"port": model_to_dict(port_info)}
-            bean.update(variables)
-            result = general_message(200, "success", "查询成功", bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        port_info = port_service.get_service_port_by_port(
+            self.service, int(container_port))
+
+        variables = port_service.get_port_variables(
+            self.tenant, self.service, port_info)
+        bean = {"port": model_to_dict(port_info)}
+        bean.update(variables)
+        result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -291,16 +288,13 @@ class AppPortManageView(AppBaseView):
             if code != 200:
                 logger.exception(msg, msg_show)
                 return Response(general_message(code, msg, msg_show), status=code)
-        try:
-            code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
-                                                       action, protocol, port_alias)
-            if code != 200:
-                return Response(general_message(code, "change port fail", msg), status=code)
-            result = general_message(
-                200, "success", "操作成功", bean=model_to_dict(data))
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+
+        code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
+                                                   action, protocol, port_alias)
+        if code != 200:
+            return Response(general_message(code, "change port fail", msg), status=code)
+        result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
+
         return Response(result, status=result["code"])
 
 
@@ -367,7 +361,8 @@ class TopologicalPortView(AppBaseView):
                     if code != 200:
                         logger.exception(msg, msg_show)
                         return Response(general_message(code, msg, msg_show), status=code)
-                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
+                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region,
+                                                           int(container_port),
                                                            "open_outer", tenant_service_port.protocol,
                                                            tenant_service_port.port_alias)
                 if code != 200:
@@ -380,7 +375,8 @@ class TopologicalPortView(AppBaseView):
                 for tenant_service_port in tenant_service_ports:
                     code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region,
                                                                tenant_service_port.container_port, "close_outer",
-                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
+                                                               tenant_service_port.protocol,
+                                                               tenant_service_port.port_alias)
                     if code != 200:
                         return Response(general_message(412, "open outer fail", u"关闭对外端口失败"), status=412)
                 return Response(general_message(200, "close outer success", u"关闭对外端口成功"), status=200)
@@ -414,7 +410,8 @@ class TopologicalPortView(AppBaseView):
                             201, "the service does not open an external port", u"该组件未开启对外端口", list=port_list),
                         status=201)
             else:
-                return Response(general_message(202, "the service has an external port open", u"该组件已开启对外端口"), status=200)
+                return Response(general_message(202, "the service has an external port open", u"该组件已开启对外端口"),
+                                status=200)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
