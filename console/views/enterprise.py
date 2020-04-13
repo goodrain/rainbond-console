@@ -361,7 +361,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
 
 class EnterpriseRegionsRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
-        data = enterprise_services.get_enterprise_region(enterprise_id, region_id)
+        data = enterprise_services.get_enterprise_region(enterprise_id, region_id, link_api=False)
         result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 

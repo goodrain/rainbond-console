@@ -759,12 +759,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_enterprise_api_version_v2(self, enterprise_id, region_name):
+    def get_enterprise_api_version_v2(self, enterprise_id, **kwargs):
         """获取api版本-v2"""
+        region_name = kwargs.get("region")
+        kwargs["retries"]=1
+        kwargs["timeout"]=1
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
         url += "/v2/show"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region_name)
+        res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
     def get_opentsdb_data(self, region, tenant_name, body):
@@ -1628,7 +1631,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_region_resources(self, enterprise_id, **kwargs):
         region_name = kwargs.get("region")
         kwargs["retries"]=1
-        kwargs["timeout"]=3
+        kwargs["timeout"]=1
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
         url = url + "/v2/cluster"
         self._set_headers(token)
@@ -1637,5 +1640,5 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def test_region_api(self, region_data):
         region = RegionConfig(**region_data)
-        url = region.url + "/v2/cluster"
-        return self._get(url, self.default_headers, region=region, test=True, retries=1, timeout=3)
+        url = region.url + "/v2/show"
+        return self._get(url, self.default_headers, region=region, test=True, retries=1, timeout=1)
