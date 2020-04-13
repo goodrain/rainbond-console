@@ -252,7 +252,7 @@ class PlatformConfigService(ConfigService):
                                         "desc": u"enterprise center oauth 配置", "enable": True},
             "VERSION": {"value": os.getenv("RELEASE_DESC", "public-cloud"),
                         "desc": u"平台版本", "enable": True},
-            "IS_USER_REGISTER": {"value": None, "desc": u"开启/关闭OAuthServices功能", "enable": self.is_user_register()},
+            "IS_USER_REGISTER": {"value": self.is_user_register(), "desc": u"开启/关闭OAuthServices功能", "enable": True},
 
         }
 
