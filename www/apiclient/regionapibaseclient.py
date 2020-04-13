@@ -123,8 +123,13 @@ class RegionApiBaseHttpClient(object):
 
     @method_perf_time
     def _request(self, url, method, headers=None, body=None, client=None, *args, **kwargs):
-        region_name = kwargs["region"]
-        region = region_repo.get_region_by_region_name(region_name)
+        region_name = kwargs.get("region")
+        retry_count = kwargs.get("retry_count", 2)
+        timeout = kwargs.get("timeout", 3)
+        if kwargs.get("test"):
+            region = region_name
+        else:
+            region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise Exception("region {0} not found".format(region_name))
         verify_ssl = False
@@ -137,15 +142,14 @@ class RegionApiBaseHttpClient(object):
                                region.cert_file, region.key_file, region_name=region_name)
 
         client = self.get_client(config)
-        retry_count = 2
         while retry_count:
             try:
                 if body is None:
                     response = client.request(
-                        url=url, method=method, headers=headers)
+                        url=url, method=method, headers=headers, timeout=timeout)
                 else:
                     response = client.request(
-                        url=url, method=method, headers=headers, body=body)
+                        url=url, method=method, headers=headers, body=body, timeout=timeout)
 
                 # if len(content) > 10000:
                 #     record_content = '%s  .....ignore.....' % content[:1000]
