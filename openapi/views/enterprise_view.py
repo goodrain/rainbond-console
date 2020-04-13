@@ -102,7 +102,7 @@ class EnterpriseSourceView(BaseOpenAPIView):
                 if "development" in region.region_type:
                     logger.debug("{0} region type is development in enterprise {1}".format(region.region_name, eid))
                     continue
-                res, body = region_api.get_region_resources(eid, region.region_name)
+                res, body = region_api.get_region_resources(eid, region=region.region_name)
                 rst = body.get("bean")
                 if res.get("status") == 200 and rst:
                     data["used_cpu"] += rst.get("req_cpu", 0)

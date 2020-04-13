@@ -1625,19 +1625,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
-    def get_region_resources(self, enterprise_id, region_name):
-        try:
-            url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
-            url = url + "/v2/cluster"
-            self._set_headers(token)
-            res, body = self._get(url, self.default_headers, region=region_name)
-            return res, body
-        except Exception as e:
-            logger.debug(e)
-            raise ServiceHandleException(
-                msg="link error", msg_show="无法连接到数据中心: {}， 请检查配置".format(region_name))
+    def get_region_resources(self, enterprise_id, **kwargs):
+        region_name = kwargs.get("region")
+        kwargs["retries"]=1
+        kwargs["timeout"]=3
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/cluster"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, **kwargs)
+        return res, body
 
     def test_region_api(self, region_data):
         region = RegionConfig(**region_data)
         url = region.url + "/v2/cluster"
-        return self._get(url, self.default_headers, region=region, test=True, retry_count=1, timeout=1)
+        return self._get(url, self.default_headers, region=region, test=True, retries=1, timeout=3)
