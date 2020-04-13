@@ -49,7 +49,7 @@ export function getUrlState(state) {
 
   const urlState = {
     controlPipe: cp ? cp.toJS() : null,
-    nodeDetails: nodeDetails.toJS(),
+    nodeDetails: nodeDetails ? nodeDetails.toJS():null,
     topologyViewMode: state.get('topologyViewMode'),
     pinnedMetricType: state.get('pinnedMetricType'),
     pinnedSearches: state.get('pinnedSearches').toJS(),
