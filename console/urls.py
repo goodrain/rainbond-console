@@ -280,6 +280,8 @@ from console.views.user import UserAddPemView
 from console.views.user import UserLogoutView
 from console.views.user import UserPemTraView
 from console.views.user import UserPemView
+from console.views.user_accesstoken import UserAccessTokenCLView
+from console.views.user_accesstoken import UserAccessTokenRUDView
 from console.views.user_operation import ChangeLoginPassword
 from console.views.user_operation import PasswordResetBegin
 from console.views.user_operation import SendResetEmail
@@ -336,6 +338,8 @@ urlpatterns = [
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
     url(r'^users/query$', UserFuzSerView.as_view()),
+    url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
+    url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
     # 移交团队管理权

@@ -4,6 +4,7 @@
 """
 import logging
 
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -20,10 +21,10 @@ from console.services.app_config import volume_service
 from console.services.compose_service import compose_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from www.apiclient.baseclient import HttpClient
 from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from www.apiclient.baseclient import HttpClient
 
 logger = logging.getLogger("default")
 
@@ -31,6 +32,7 @@ logger = logging.getLogger("default")
 class AppBuild(AppBaseView):
     @never_cache
     @perm_required('deploy_service')
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
         组件构建
@@ -81,13 +83,16 @@ class AppBuild(AppBaseView):
             if e.status == 403:
                 result = general_message(10407, "no cloud permission", e.message)
                 status = e.status
+            elif e.status == 400:
+                if "is exist" in e.message.get("body", ""):
+                    result = general_message(400, "the service is exist in region", "该组件名称在数据中心已存在")
+                else:
+                    result = general_message(400, "call cloud api failure", e.message)
+                status = e.status
             else:
                 result = general_message(500, "call cloud api failure", e.message)
                 status = 500
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            status = 500
+
         # 删除probe
         # 删除region端数据
         if probe:

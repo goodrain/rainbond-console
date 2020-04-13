@@ -616,7 +616,13 @@ class AppPortService(object):
             port_info_list = []
             for p in http_outer_port:
                 port_dict = p.to_dict()
-                port_dict["access_urls"] = self.__get_port_access_url(tenant, service, p.container_port)
+                access_urls = self.__get_port_access_url(tenant, service, p.container_port)
+                if not access_urls:
+                    port_and_url = self.__get_stream_outer_url(tenant, service, p)
+                    if port_and_url:
+                        access_type = ServicePortConstants.NOT_HTTP_OUTER
+                        access_urls = [port_and_url]
+                port_dict["access_urls"] = access_urls
                 port_dict["service_cname"] = service.service_cname
                 port_info_list.append(port_dict)
             return access_type, port_info_list

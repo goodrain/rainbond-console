@@ -23,6 +23,7 @@ from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.app_config import volume_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
@@ -304,7 +305,7 @@ class GroupappsMigrateService(object):
             TenantServiceEnvVar.objects.bulk_create(env_list)
 
     def __save_volume(self, tenant, service, tenant_service_volumes, service_config_file):
-        contain_config_file = False
+        contain_config_file = False if not service_config_file else True
         if not service_config_file:
             contain_config_file = True
         volume_list = []
@@ -313,7 +314,7 @@ class GroupappsMigrateService(object):
         for volume in tenant_service_volumes:
             index = volume.pop("ID")
             volume_name_id[volume["volume_name"]] = index
-            if volume["volume_type"] == "config_file" and contain_config_file is True:
+            if volume["volume_type"] == "config-file" and contain_config_file:
                 for config_file in service_config_file:
                     if config_file["volume_id"] == index:
                         config_file.pop("ID")
@@ -332,11 +333,21 @@ class GroupappsMigrateService(object):
             new_volume.service_id = service.service_id
             volume_list.append(new_volume)
         if volume_list:
-            volume_js = TenantServiceVolume.objects.bulk_create(volume_list)
+            # bulk_create do not return volume's id(django database connection feature can_return_ids_from_bulk_insert)
+            TenantServiceVolume.objects.bulk_create(volume_list)
+            # query again volume for volume_id
+            volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
+            # prepare old volume_id and new volume_id relations
+            volume_name_ids = [{"volume_name": volume.volume_name, "volume_id": volume.ID} for volume in volumes]
+            volume_id_relations = {}
+            for vni in volume_name_ids:
+                if volume_name_id.get(vni["volume_name"]):
+                    old_volume_id = volume_name_id.get(vni["volume_name"])
+                    new_volume_id = vni["volume_id"]
+                    volume_id_relations[old_volume_id] = new_volume_id
             for config in config_list:
-                for volume_j in volume_js:
-                    if volume_name_id[volume_j.volume_name] == config.volume_id:
-                        config.volume_id = volume_j.ID
+                if volume_id_relations.get(config.volume_id):
+                    config.volume_id = volume_id_relations.get(config.volume_id)
             TenantServiceConfigurationFile.objects.bulk_create(config_list)
 
     def __save_port(self, tenant, service, tenant_service_ports):

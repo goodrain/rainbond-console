@@ -22,6 +22,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.views.base import JWTAuthApiView
 from console.services.team_services import team_services
+
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
