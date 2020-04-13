@@ -300,7 +300,8 @@ class RegionService(object):
         try:
             region_api.test_region_api(region_data)
         except ServiceHandleException:
-            raise ServiceHandleException(400, "field", "连接集群测试失败，请确认网络和集群状态")
+            raise ServiceHandleException(
+                status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
         region = region_repo.create_region(region_data)
         return region
 
