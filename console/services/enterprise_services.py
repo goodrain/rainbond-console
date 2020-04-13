@@ -239,7 +239,7 @@ class EnterpriseServices(object):
         for region in regions:
             data = None
             try:
-                data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
+                data = region_api.get_enterprise_running_services(enterprise_id, region.region_name, test=True)
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception("get region:'{0}' running failed: {1}".format(region.region_name, e))
             if data and data.get("service_ids"):
@@ -373,8 +373,8 @@ class EnterpriseServices(object):
         region_resource = self.__init_region_resource_data(region)
         if link_api:
             try:
-                res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
                 res, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id, region=region.region_name)
+                res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
                 rbd_version = rbd_version["raw"].decode("utf-8")
                 if res.get("status") == 200:
                     region_resource["total_memory"] = body["bean"]["cap_mem"],

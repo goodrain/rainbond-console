@@ -675,7 +675,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def get_enterprise_running_services(self, enterprise_id, region):
+    def get_enterprise_running_services(self, enterprise_id, region, test=False):
+        if test:
+            self.get_enterprise_api_version_v2(enterprise_id, region=region)
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
         url = url + "/v2/enterprise/" + enterprise_id + "/running-services"
         self._set_headers(token)
@@ -1630,8 +1632,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def get_region_resources(self, enterprise_id, **kwargs):
         region_name = kwargs.get("region")
-        kwargs["retries"]=1
-        kwargs["timeout"]=1
+        if kwargs.get("test"):
+            self.get_enterprise_api_version_v2(enterprise_id, region=region_name)
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
         url = url + "/v2/cluster"
         self._set_headers(token)
@@ -1641,4 +1643,4 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def test_region_api(self, region_data):
         region = RegionConfig(**region_data)
         url = region.url + "/v2/show"
-        return self._get(url, self.default_headers, region=region, test=True, retries=1, timeout=1)
+        return self._get(url, self.default_headers, region=region, for_test=True, retries=1, timeout=1)

@@ -127,7 +127,7 @@ class RegionApiBaseHttpClient(object):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 3)
         timeout = kwargs.get("timeout", 3)
-        if kwargs.get("test"):
+        if kwargs.get("for_test"):
             region = region_name
         else:
             region = region_repo.get_region_by_region_name(region_name)
