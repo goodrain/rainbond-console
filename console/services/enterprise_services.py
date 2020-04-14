@@ -339,30 +339,31 @@ class EnterpriseServices(object):
         region_resource["health_status"] = "ok"
         return region_resource
 
-    def get_enterprise_regions(self, enterprise_id, level="open", status=""):
+    def get_enterprise_regions(self, enterprise_id, level="open", status="", check_status="yes"):
         regions = region_repo.get_regions_by_enterprise_id(enterprise_id, status)
         region_info_list = []
         if not regions:
             return []
         for region in regions:
             region_resource = self.__init_region_resource_data(region, level)
-            try:
-                res, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id, region=region.region_name)
-                res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
-                rbd_version = rbd_version["raw"].decode("utf-8")
-                if res.get("status") == 200:
-                    logger.debug(body["bean"]["cap_mem"])
-                    region_resource["total_memory"] = body["bean"]["cap_mem"]
-                    region_resource["used_memory"] = body["bean"]["req_mem"]
-                    region_resource["total_cpu"] = body["bean"]["cap_cpu"]
-                    region_resource["used_cpu"] = body["bean"]["req_cpu"]
-                    region_resource["total_disk"] = body["bean"]["cap_disk"]
-                    region_resource["used_disk"] = body["bean"]["req_disk"]
-                    region_resource["rbd_version"] = rbd_version
-            except (region_api.CallApiError, ServiceHandleException) as e:
-                logger.exception(e)
-                region_resource["rbd_version"] = ""
-                region_resource["health_status"] = "failure"
+            if check_status == "yes":
+                try:
+                    res, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id, region=region.region_name)
+                    res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
+                    rbd_version = rbd_version["raw"].decode("utf-8")
+                    if res.get("status") == 200:
+                        logger.debug(body["bean"]["cap_mem"])
+                        region_resource["total_memory"] = body["bean"]["cap_mem"]
+                        region_resource["used_memory"] = body["bean"]["req_mem"]
+                        region_resource["total_cpu"] = body["bean"]["cap_cpu"]
+                        region_resource["used_cpu"] = body["bean"]["req_cpu"]
+                        region_resource["total_disk"] = body["bean"]["cap_disk"]
+                        region_resource["used_disk"] = body["bean"]["req_disk"]
+                        region_resource["rbd_version"] = rbd_version
+                except (region_api.CallApiError, ServiceHandleException) as e:
+                    logger.exception(e)
+                    region_resource["rbd_version"] = ""
+                    region_resource["health_status"] = "failure"
             region_info_list.append(region_resource)
         return region_info_list
 
