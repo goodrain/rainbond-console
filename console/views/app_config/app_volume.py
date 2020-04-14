@@ -8,6 +8,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.repositories.app_config import volume_repo
+from console.services.app_config import mnt_service
 from console.services.app_config import volume_service
 from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
@@ -54,18 +55,28 @@ class AppVolumeView(AppBaseView):
               paramType: path
         """
         is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
-        tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
+
+        volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
         volumes_list = []
         if is_config:
-            for tenant_service_volume in tenant_service_volumes:
+            for tenant_service_volume in volumes:
                 cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
                 if cf_file:
                     tenant_service_volume["file_content"] = cf_file.file_content
                 volumes_list.append(tenant_service_volume)
         else:
-            for vo in tenant_service_volumes:
+            dependents = mnt_service.get_volume_dependent()
+            name2deps = {}
+            for dep in dependents:
+                if name2deps.get(dep.volume_name, None):
+                    name2deps = []
+                name2deps.append(dep)
+            for vo in volumes:
+                vo["dep_services"] = name2deps[vo["volume_name"]]
                 volumes_list.append(vo)
-        result = general_message(200, "success", "查询成功", list=volumes_list)
+
+        result = general_message(200, "success", "查询成功",
+                                 list=volume_service.list_volumes(self.tenant, self.service, is_config))
         return Response(result, status=result["code"])
 
     @never_cache
