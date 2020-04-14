@@ -61,6 +61,11 @@ class BankInfoView(CloudEnterpriseCenterView):
 # proxy api to enterprise api
 class ProxyView(CloudEnterpriseCenterView):
     def dispatch(self, request, path, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers
         try:
             self.initial(request, *args, **kwargs)
             token, _ = self.oauth_instance._get_access_token()
