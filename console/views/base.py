@@ -70,11 +70,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
         if len(auth) == 1:
             msg = _('请求头不合法，未提供认证信息')
-            # msg = _('Invalid Authorization header. No credentials provided.')
             raise exceptions.AuthenticationFailed(msg)
         elif len(auth) > 2:
-            # msg = _('Invalid Authorization header. Credentials string '
-            #         'should not contain spaces.')
             msg = _("请求头不合法")
             raise exceptions.AuthenticationFailed(msg)
         return auth[1]
@@ -112,17 +109,13 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             try:
                 payload = jwt_decode_handler(jwt_value)
             except jwt.ExpiredSignature:
-                # msg = _('Signature has expired.')
                 msg = _('认证信息已过期')
                 raise AuthenticationInfoHasExpiredError(msg)
             except jwt.DecodeError:
-                # msg = _('Error decoding signature.')
                 msg = _('认证信息错误')
-                # raise exceptions.AuthenticationFailed(msg)
                 raise AuthenticationInfoHasExpiredError(msg)
             except jwt.InvalidTokenError:
                 msg = _('认证信息错误,请求Token不合法')
-                # raise exceptions.AuthenticationFailed(msg)
                 raise AuthenticationInfoHasExpiredError(msg)
 
             user = self.authenticate_credentials(payload)
@@ -132,27 +125,20 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         """
         Returns an active user that matches the payload's user id and email.
         """
-        # User = get_user_model()
         username = jwt_get_username_from_payload(payload)
         if not username:
-            # msg = _('Invalid payload.')
             msg = _('认证信息不合法.')
-            # raise exceptions.AuthenticationFailed(msg)
             logger.debug('==========================>'.format(msg))
             raise AuthenticationInfoHasExpiredError(msg)
 
         try:
             user = Users.objects.get(nick_name=username)
         except Users.DoesNotExist:
-            # msg = _('Invalid signature.')
             msg = _('签名不合法.')
-            # raise exceptions.AuthenticationFailed(msg)
             raise AuthenticationInfoHasExpiredError(msg)
 
         if not user.is_active:
-            # msg = _('User account is disabled.')
             msg = _('用户身份未激活.')
-            # raise exceptions.AuthenticationFailed(msg)
             raise AuthenticationInfoHasExpiredError(msg)
 
         return user
@@ -220,10 +206,6 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
         if not self.oauth_instance:
             msg = _('未找到企业中心OAuth服务类型')
             raise AuthenticationInfoHasExpiredError(msg)
-        self.initial_header_info(request)
-
-    def initial_header_info(self, request):
-        pass
 
 
 class RegionTenantHeaderView(JWTAuthApiView):
@@ -251,10 +233,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.user = request.user
         if not self.response_region:
             self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
-            # self.response_region = self.request.COOKIES.get('region_name', None)
         if not self.tenant_name:
             self.tenant_name = request.META.get('HTTP_X_TEAM_NAME', None)
-            # self.tenant_name = self.request.COOKIES.get('team', None)
 
         if not self.response_region:
             self.response_region = self.request.COOKIES.get('region_name', None)
@@ -272,10 +252,6 @@ class RegionTenantHeaderView(JWTAuthApiView):
                 self.team = self.tenant
             except Tenants.DoesNotExist:
                 raise NotFound("tenant {0} not found".format(self.tenant_name))
-        self.initial_header_info(request)
-
-    def initial_header_info(self, request):
-        pass
 
 
 class EnterpriseHeaderView(JWTAuthApiView):
@@ -291,10 +267,6 @@ class EnterpriseHeaderView(JWTAuthApiView):
         self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
         if not self.enterprise:
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
-        self.initial_header_info(request)
-
-    def initial_header_info(self, request):
-        pass
 
 
 def custom_exception_handler(exc, context):
