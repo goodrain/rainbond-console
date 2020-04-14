@@ -115,7 +115,8 @@ class ProxyView(CloudEnterpriseCenterView):
 
         requests_args['headers'] = headers
         requests_args['params'] = params
-
+        if requests_args['headers'].get("AUTHORIZATION"):
+            requests_args['headers'].pop("AUTHORIZATION")
         response = requests.request(request.method, url, **requests_args)
 
         proxy_response = HttpResponse(
