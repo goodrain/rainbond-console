@@ -10,6 +10,6 @@ urlpatterns = [
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/subscribe$", EnterpriseSubscribe.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/orders$", EnterpriseOrdersCLView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/orders/(?P<order_id>[\w\-]+)$", EnterpriseOrdersRView.as_view()),
-    url(r"^proxy/(?P<path>.*)", ProxyView),
+    url(r"^proxy/(?P<path>.*)", ProxyView.as_view()),
     url(r"^bank/info$", BankInfoView.as_view()),
 ]
