@@ -65,18 +65,17 @@ class AppVolumeView(AppBaseView):
                     tenant_service_volume["file_content"] = cf_file.file_content
                 volumes_list.append(tenant_service_volume)
         else:
-            dependents = mnt_service.get_volume_dependent()
+            dependents = mnt_service.get_volume_dependent(self.tenant, self.service)
             name2deps = {}
-            for dep in dependents:
-                if name2deps.get(dep.volume_name, None):
-                    name2deps = []
-                name2deps.append(dep)
+            if dependents:
+                for dep in dependents:
+                    if name2deps.get(dep["volume_name"], None) is None:
+                        name2deps[dep["volume_name"]] = []
+                    name2deps[dep["volume_name"]].append(dep)
             for vo in volumes:
-                vo["dep_services"] = name2deps[vo["volume_name"]]
+                vo["dep_services"] = name2deps.get(vo["volume_name"], None)
                 volumes_list.append(vo)
-
-        result = general_message(200, "success", "查询成功",
-                                 list=volume_service.list_volumes(self.tenant, self.service, is_config))
+        result = general_message(200, "success", "查询成功", list=volumes_list)
         return Response(result, status=result["code"])
 
     @never_cache

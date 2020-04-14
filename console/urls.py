@@ -31,7 +31,6 @@ from console.views.app_config.app_label import AppLabelAvailableView
 from console.views.app_config.app_label import AppLabelView
 from console.views.app_config.app_mnt import AppMntManageView
 from console.views.app_config.app_mnt import AppMntView
-from console.views.app_config.app_mnt import AppVolumeDependent
 from console.views.app_config.app_port import AppPortManageView
 from console.views.app_config.app_port import AppPortView
 from console.views.app_config.app_port import AppTcpOuterManageView
@@ -560,8 +559,6 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt$', AppMntView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt/(?P<dep_vol_id>[\w\-]+)$',
         AppMntManageView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumedependent$',
-        AppVolumeDependent.as_view()),
     # 域名证书
     url(r'^teams/(?P<tenantName>[\w\-]+)/certificates$', TenantCertificateView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/certificates/(?P<certificate_id>[\w\-]+)$',

@@ -150,12 +150,3 @@ class AppMntManageView(AppBaseView):
 
         result = general_message(200, "success", "操作成功")
         return Response(result, status=result["code"])
-
-
-class AppVolumeDependent(AppBaseView):
-    @never_cache
-    @perm_required('view_service')
-    def get(self, request, *args, **kwargs):
-        mnt_list = mnt_service.get_volume_dependent(self.tenant, self.service)
-        result = general_message(200, "success", "查询成功", list=mnt_list)
-        return Response(result, status=result["code"])

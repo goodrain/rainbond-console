@@ -263,7 +263,7 @@ class AppMntService(object):
             services_dep_vol = id_to_services[mnt.service_id]
             for svc in services_dep_vol:
                 result.append({
-                    "vol_name": vol.volume_name,
+                    "volume_name": vol.volume_name,
                     "service_name": svc.service_cname,
                     "service_alias": svc.service_alias,
                 })
