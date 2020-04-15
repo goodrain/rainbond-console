@@ -905,7 +905,7 @@ class ShareService(object):
         def filter_dep(dev_service):
             """过滤依赖关系"""
             dep_service_key = dev_service['dep_service_key']
-            if dep_service_key not in dev_service_set and use_force:
+            if dep_service_key not in dev_service_set:
                 return False
             elif dep_service_key not in dev_service_set and not use_force:
                 raise AbortRequest(
