@@ -740,6 +740,7 @@ class BuildSourceinfo(AppBaseView):
                         self.service.git_url = git_url
                         self.service.git_full_name = git_full_name
                         self.service.oauth_service_id = oauth_service_id
+                        self.service.creater = user_id
                     else:
                         self.service.git_url = git_url
                 self.service.save()
