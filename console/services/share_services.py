@@ -909,6 +909,7 @@ class ShareService(object):
                 return False
             elif dep_service_key not in dev_service_set and not use_force:
                 raise AbortRequest(
+                    error_code=10501,
                     msg="{} service is missing dependencies".format(service['service_cname']),
                     msg_show=u"{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
