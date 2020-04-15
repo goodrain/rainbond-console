@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import logging
-import json
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -16,6 +15,8 @@ from console.services.enterprise_services import enterprise_services
 from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.exceptions import UserRoleNotFoundException
+from console.exception.exceptions import TenantNotExistError
+from console.repositories.group import group_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
@@ -311,21 +312,54 @@ class EnterpriseMonitor(JWTAuthApiView):
 class EnterpriseAppsLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         data = []
-        name = request.GET.get("name", None)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(
-            enterprise_id, self.user, name, page, page_size)
+            enterprise_id, self.user, page, page_size)
         if enterprise_apps:
             for app in enterprise_apps:
+                try:
+                    tenant = team_services.get_team_by_team_id(app.tenant_id)
+                    tenant_name = tenant.tenant_name
+                except TenantNotExistError:
+                    tenant_name = None
                 data.append({
                     "ID": app.ID,
                     "group_name": app.group_name,
                     "tenant_id": app.tenant_id,
-                    "tenant_name": app.tenant_name,
-                    "region_name": app.region_name,
-                    "service_list": json.loads(app.service_list) if app.service_list else []
+                    "tenant_name": tenant_name,
+                    "region_name": app.region_name
                 })
         result = general_message(200, "success", "获取成功", list=data,
                                  total_count=apps_count, page=page, page_size=page_size)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseAppComponentsLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, app_id, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        data = []
+        count = 0
+        app = group_repo.get_group_by_id(app_id)
+        if app:
+            try:
+                tenant = team_services.get_team_by_team_id(app.tenant_id)
+                tenant_name = tenant.tenant_name
+            except Exception:
+                tenant_name = None
+            services, count = enterprise_repo.get_enterprise_app_component_list(app_id, page, page_size)
+            if services:
+                for service in services:
+                    data.append({
+                        "service_alias": service.service_alias,
+                        "service_id": service.service_id,
+                        "tenant_id": app.tenant_id,
+                        "tenant_name": tenant_name,
+                        "region_name": service.service_region,
+                        "service_cname": service.service_cname,
+                        "service_key": service.service_key,
+                    })
+        result = general_message(200, "success", "获取成功", list=data,
+                                 total_count=count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)

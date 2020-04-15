@@ -109,7 +109,7 @@ class ShareService(object):
                     tmp_list = dep_service_map.get(service_id)
                 dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id).first()
                 if dep_service_info is None:
-                    return {}
+                    continue
                 tmp_list.append(dep_service_info)
                 dep_service_map[service_id] = tmp_list
             return dep_service_map
@@ -905,10 +905,11 @@ class ShareService(object):
         def filter_dep(dev_service):
             """过滤依赖关系"""
             dep_service_key = dev_service['dep_service_key']
-            if dep_service_key not in dev_service_set and use_force:
+            if dep_service_key not in dev_service_set:
                 return False
             elif dep_service_key not in dev_service_set and not use_force:
                 raise AbortRequest(
+                    error_code=10501,
                     msg="{} service is missing dependencies".format(service['service_cname']),
                     msg_show=u"{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
@@ -1107,8 +1108,8 @@ class ShareService(object):
         else:
             if last_shared:
                 last_shared_app_info = share_repo.get_app_by_app_id(last_shared.app_id)
-                self._patch_rainbond_app_tag(last_shared_app_info)
                 if last_shared_app_info:
+                    self._patch_rainbond_app_tag(last_shared_app_info)
                     dt["last_shared_app"] = {
                         "app_name": last_shared_app_info.app_name,
                         "app_id": last_shared.app_id,

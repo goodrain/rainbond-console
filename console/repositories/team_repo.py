@@ -54,12 +54,11 @@ class TeamRepo(object):
         if not enterprise:
             return enterprise
         tenant_ids = PermRelTenant.objects.filter(
-            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True)
+            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True).order_by("-ID")
         if name:
-            tenants = Tenants.objects.filter(
-                ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
+            tenants = [Tenants.objects.filter(ID=tenant_id, tenant_alias__contains=name).first() for tenant_id in tenant_ids]
         else:
-            tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
+            tenants = [Tenants.objects.filter(ID=tenant_id).first() for tenant_id in tenant_ids]
         return tenants
 
     def get_active_tenants_by_user_id(self, user_id):
