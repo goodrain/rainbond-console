@@ -430,7 +430,7 @@ class AppImportService(object):
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
                 if app_version:
-                    app_version.scope = import_record.scope,
+                    app_version.scope = import_record.scope
                     app_version.app_template = json.dumps(app_template)
                     app_version.template_version = app_template["template_version"]
                     app_version.save()
