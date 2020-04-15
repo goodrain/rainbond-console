@@ -83,7 +83,7 @@ class TenantEnterpriseRepo(object):
         teams = self.get_enterprise_user_teams(enterprise_id, user_id)
         if not teams:
             return teams
-        team_ids = teams.values_list("tenant_id", flat=True)
+        team_ids = [team.tenant_id for team in teams]
         return Applicants.objects.filter(
             user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
 
