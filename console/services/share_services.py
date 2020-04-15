@@ -933,7 +933,8 @@ class ShareService(object):
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
-            RainbondCenterAppVersion.objects.filter(app_id=app.app_id, version=None).delete()
+            RainbondCenterAppVersion.objects.filter(
+                app_id=app.app_id, source="local", scope="goodrain", is_complete=True).delete()
             share_record.is_success = True
             share_record.step = 3
             share_record.status = 1
