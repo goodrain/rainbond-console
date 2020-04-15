@@ -7,6 +7,7 @@ import json
 import logging
 import socket
 import base64
+from addict import Dict
 
 import httplib2
 from django.db import transaction
@@ -181,8 +182,28 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
+    def get_app_version_by_app_model_id(self, tenant, app_id, version):
+        install_from_cloud = False
+        app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=app_id, version=version)
+        if not app:
+            try:
+                install_from_cloud = True
+                cloud_app = market_api.get_app_template(
+                    tenant.tenant_id, app_id, version)
+                cloud_app = cloud_app.data.bean
+                app = Dict({
+                    "app_id": cloud_app.group_key,
+                    "app_name": cloud_app.group_name,
+                    "app_template": cloud_app.template_content,
+                    "version": cloud_app.group_version,
+                })
+            except Exception as e:
+                logger.debug(e)
+                return None, None
+        return app, install_from_cloud
+
     def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, old_app, services,
-                                         is_deploy):
+                                         is_deploy, install_from_cloud=False):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -212,7 +233,8 @@ class MarketAppService(object):
                 raise Exception(msg)
 
             for app in apps:
-                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
+                ts = self.__init_market_app(
+                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud)
                 service_source_data = {
                     "group_key":
                         market_app.app_id,
