@@ -197,9 +197,9 @@ class MarketAppService(object):
                     "app_template": cloud_app.template_content,
                     "version": cloud_app.group_version,
                 })
-            except Exception as e:
+            except (market_api.ApiSocketError, market_api.CallApiError) as e:
                 logger.debug(e)
-                return None, None
+                raise ServiceHandleException(status_code=404, msg="no found app model", msg_show="未找到应用升级模板")
         return app, install_from_cloud
 
     def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, old_app, services,
