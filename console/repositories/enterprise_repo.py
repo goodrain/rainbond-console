@@ -135,7 +135,7 @@ class TenantEnterpriseRepo(object):
                 "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
                 "role": role
             })
-        active_tenants_list.sort(key=lambda x: x["num"])
+        active_tenants_list.sort(key=lambda x: x["num"], reverse=True)
         active_tenants_list = active_tenants_list[:3]
         return active_tenants_list
 
