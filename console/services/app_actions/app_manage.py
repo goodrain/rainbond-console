@@ -1214,7 +1214,7 @@ class AppManageService(AppManageBase):
                 if tenant_service_volume["volume_type"] == "local":
                     if old_extend_method == ComponentType.state_singleton.value:
                         raise ServiceHandleException(
-                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
+                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态单实例组件")
                 if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):
                         raise ServiceHandleException(msg="storage access mode do not support",

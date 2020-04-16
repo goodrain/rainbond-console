@@ -276,8 +276,7 @@ class AppImportService(object):
         if import_record.status != "success":
             if status == "success":
                 logger.debug("app import success !")
-                self.__save_enterprise_import_info(
-                    import_record.ID, import_record.enterprise_id, import_record.scope, body["bean"]["metadata"])
+                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"])
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
@@ -416,22 +415,22 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
-    def __save_enterprise_import_info(self, import_record_id, eid, scope, metadata):
+    def __save_enterprise_import_info(self, import_record, metadata):
         rainbond_apps = []
         rainbond_app_versions = []
         metadata = json.loads(metadata)
         key_and_version_list = []
         for app_template in metadata:
-            app = rainbond_app_repo.get_rainbond_app_by_app_id(eid, app_template["group_key"])
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
             # if app exists, update it
             if app:
-                app.scope = scope
+                app.scope = import_record.scope
                 app.describe = app_template.pop("describe", "")
                 app.save()
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
                 if app_version:
-                    app_version.scope = scope,
+                    app_version.scope = import_record.scope
                     app_version.app_template = json.dumps(app_template)
                     app_version.template_version = app_template["template_version"]
                     app_version.save()
@@ -446,11 +445,12 @@ class AppImportService(object):
                 continue
             key_and_version_list.append(key_and_version)
             rainbond_app = RainbondCenterApp(
-                enterprise_id=eid,
+                enterprise_id=import_record.enterprise_id,
                 app_id=app_template["group_key"],
                 app_name=app_template["group_name"],
                 source="import",
-                scope=scope,
+                create_team=import_record.team_name,
+                scope=import_record.scope,
                 describe=app_template.pop("describe", ""),
                 pic=pic_url,
             )
@@ -462,7 +462,7 @@ class AppImportService(object):
                 app_template=json.dumps(app_template),
                 version=app_template["group_version"],
                 template_version=app_template["template_version"],
-                record_id=import_record_id,
+                record_id=import_record.ID,
                 share_user=0,
                 is_complete=1,
             )

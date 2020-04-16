@@ -33,8 +33,7 @@ class AppStore(object):
                 info = market_api.get_enterprise_share_hub_info(eid, "image")
                 return info["image_repo"]
             else:
-                image_config = ConsoleSysConfig.objects.filter(
-                    key='APPSTORE_IMAGE_HUB', enterprise_id=team.enterprise_id)
+                image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB', enterprise_id=eid)
                 namespace = eid if scope == "enterprise" else team_name
                 if not image_config or not image_config[0].enable:
                     return {"hub_url": settings.IMAGE_REPO, "namespace": namespace}
