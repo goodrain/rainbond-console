@@ -286,7 +286,7 @@ class EnterpriseMonitor(JWTAuthApiView):
         region_num = len(regions)
         for region in regions:
             try:
-                res, body = region_api.get_region_resources(enterprise_id, region.region_name)
+                res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
                 if res.get("status") == 200:
                     region_memory_total += body["bean"]["cap_mem"]
                     region_memory_used += body["bean"]["req_mem"]
@@ -362,7 +362,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
 
 class EnterpriseRegionsRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
-        data = enterprise_services.get_enterprise_region(enterprise_id, region_id)
+        data = enterprise_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
         result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 

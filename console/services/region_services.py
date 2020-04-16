@@ -5,6 +5,7 @@ import logging
 from django.core.paginator import Paginator
 from django.db import transaction
 
+from console.exception.main import ServiceHandleException
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.models.main import ConsoleSysConfig
@@ -296,6 +297,11 @@ class RegionService(object):
         region = region_repo.get_region_by_region_name(region_data["region_name"])
         if region:
             raise RegionExistException("数据中心{0}已存在".format(region_data["region_name"]))
+        try:
+            region_api.test_region_api(region_data)
+        except ServiceHandleException:
+            raise ServiceHandleException(
+                status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
         region = region_repo.create_region(region_data)
         return region
 
