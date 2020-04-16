@@ -53,9 +53,9 @@ class TeamRepo(object):
         enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
         if not enterprise:
             return enterprise
-        tenant_ids = PermRelTenant.objects.filter(
-            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True).order_by("-ID")
-        tenant_ids = list(set(tenant_ids))
+        tenant_ids = list(PermRelTenant.objects.filter(
+            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True).order_by("-ID"))
+        tenant_ids = sorted(set(tenant_ids), key=tenant_ids.index)
         if name:
             tenants = [Tenants.objects.filter(ID=tenant_id, tenant_alias__contains=name).first() for tenant_id in tenant_ids]
         else:
