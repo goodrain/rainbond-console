@@ -240,18 +240,22 @@ class BaseService(object):
                     bean["group_key"] = app.app_id
         return bean
 
-    def get_services_status(self, tenant, services):
-        try:
-            service_status_list = region_api.service_status(tenant.region, tenant.tenant_name, {
-                "service_ids": services.values_list("service_id", flat=True),
-                "enterprise_id": tenant.enterprise_id
-            })
-            service_status_list = service_status_list["list"]
-            service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
-        except (region_api.CallApiError, region_api.ApiSocketError) as e:
-            logger.debug(e)
-            return None
-        return service_status_map
+    def get_not_run_services_request_memory_and_node(self, tenant, services):
+        not_run_service_ids = []
+        memory = 0
+        node = 0
+        service_status_list = self.status_multi_service(
+            tenant.region, tenant.tenant_name, services.values_list("service_id", flat=True), services.enterprise_id)
+        if service_status_list:
+            for status_map in service_status_list:
+                if status_map.get("status") != "running":
+                    not_run_service_ids.append(status_map.get("service_id"))
+            if not_run_service_ids:
+                not_run_services = services.filter(service_id__in=not_run_service_ids)
+                for not_run_service in not_run_services:
+                    memory += not_run_service.min_memory
+                    node += not_run_service.min_node
+        return memory, node
 
 
 base_service = BaseService()
