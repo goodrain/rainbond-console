@@ -248,7 +248,7 @@ class BaseService(object):
             tenant.region, tenant.tenant_name, services.values_list("service_id", flat=True), services.enterprise_id)
         if service_status_list:
             for status_map in service_status_list:
-                if status_map.get("status") != "running":
+                if status_map.get("status") in ["undeploy", "closed "]:
                     not_run_service_ids.append(status_map.get("service_id"))
             if not_run_service_ids:
                 not_run_services = services.filter(service_id__in=not_run_service_ids)
