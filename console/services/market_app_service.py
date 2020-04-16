@@ -7,6 +7,7 @@ import json
 import logging
 import socket
 import base64
+from addict import Dict
 
 import httplib2
 from django.db import transaction
@@ -181,8 +182,28 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
+    def get_app_version_by_app_model_id(self, tenant, app_id, version):
+        install_from_cloud = False
+        app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=app_id, version=version)
+        if not app:
+            try:
+                install_from_cloud = True
+                cloud_app = market_api.get_app_template(
+                    tenant.tenant_id, app_id, version)
+                cloud_app = cloud_app.data.bean
+                app = Dict({
+                    "app_id": cloud_app.group_key,
+                    "app_name": cloud_app.group_name,
+                    "app_template": cloud_app.template_content,
+                    "version": cloud_app.group_version,
+                })
+            except (market_api.ApiSocketError, market_api.CallApiError) as e:
+                logger.debug(e)
+                raise ServiceHandleException(status_code=404, msg="no found app model", msg_show="未找到应用升级模板")
+        return app, install_from_cloud
+
     def install_service_when_upgrade_app(self, tenant, region, user, group_id, market_app, old_app, services,
-                                         is_deploy):
+                                         is_deploy, install_from_cloud=False):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -212,7 +233,8 @@ class MarketAppService(object):
                 raise Exception(msg)
 
             for app in apps:
-                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID)
+                ts = self.__init_market_app(
+                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud)
                 service_source_data = {
                     "group_key":
                         market_app.app_id,
@@ -710,7 +732,7 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, is_complete=None, page=1, page_size=10):
+    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, is_complete=True, page=1, page_size=10):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -759,11 +781,13 @@ class MarketAppService(object):
         for version in versions:
             if not app_with_versions.get(version.app_id):
                 app_with_versions[version.app_id] = []
-            app_with_versions[version.app_id].append({
-                    "is_complete": version.is_complete,
-                    "version": version.version,
-                    "version_alias": version.version_alias,
-                })
+            version_info = {
+                "is_complete": version.is_complete,
+                "version": version.version,
+                "version_alias": version.version_alias,
+            }
+            if version_info not in app_with_versions[version.app_id]:
+                app_with_versions[version.app_id].append(version_info)
 
         for app in apps:
             versions_info = app_with_versions.get(app.app_id)
@@ -1245,7 +1269,7 @@ class MarketAppService(object):
             dat.update({
                 'current_version': pc.current_version.version,
                 'can_upgrade': bool(pc.get_upgradeable_versions),
-                'upgrade_versions': pc.get_upgradeable_versions,
+                'upgrade_versions': (set(pc.get_upgradeable_versions) if pc.get_upgradeable_versions else []),
                 'not_upgrade_record_id': not_upgrade_record.ID,
                 'not_upgrade_record_status': not_upgrade_record.status,
             })

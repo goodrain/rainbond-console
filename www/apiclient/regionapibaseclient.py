@@ -140,7 +140,8 @@ class RegionApiBaseHttpClient(object):
             verify_ssl = True
 
         config = Configuration(verify_ssl, region.ssl_ca_cert,
-                               region.cert_file, region.key_file, region_name=region_name)
+                               region.cert_file, region.key_file, 
+                               region_name=region_name, enterprise_id=region.enterprise_id)
 
         client = self.get_client(config)
         try:
@@ -282,7 +283,7 @@ def check_file_path(path, name, body):
 
 class Configuration():
     def __init__(self, verify_ssl=True, ssl_ca_cert=None, cert_file=None, key_file=None, assert_hostname=None,
-                 region_name=None):
+                 region_name=None, enterprise_id=""):
         """
         Constructor
         """
@@ -297,7 +298,7 @@ class Configuration():
         if not ssl_ca_cert or ssl_ca_cert.startswith('/'):
             self.ssl_ca_cert = ssl_ca_cert
         else:
-            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
+            file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
             path = file_path + "/" + "ca.pem"
             # 判断证书路径是否存在
             if os.path.isfile(path):
@@ -311,7 +312,7 @@ class Configuration():
         if not cert_file or cert_file.startswith('/'):
             self.cert_file = cert_file
         else:
-            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
+            file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
             path = file_path + "/" + "client.pem"
             if os.path.isfile(path):
                 self.cert_file = path
@@ -323,7 +324,7 @@ class Configuration():
         if not key_file or key_file.startswith('/'):
             self.key_file = key_file
         else:
-            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
+            file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
             path = file_path + "/" + "client.key.pem"
             if os.path.isfile(path):
                 self.key_file = path
