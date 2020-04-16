@@ -132,7 +132,7 @@ class PropertiesChanges(object):
                     break
                 else:
                     max_version = ".".join(maxbitversion)
-            except IndexError:
+            except (IndexError, ValueError):
                 # ignore error
                 pass
 

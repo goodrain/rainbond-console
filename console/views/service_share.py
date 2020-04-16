@@ -36,7 +36,6 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             for share_record in share_records:
                 app_model_name = None
                 app_model_id = None
-                version = None
                 version_alias = None
                 upgrade_time = None
                 # todo get store name
@@ -50,7 +49,6 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     store_id = share_record.share_app_market_id
                     app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
                     if app_version:
-                        version = app_version.version
                         version_alias = app_version.version_alias
                         upgrade_time = app_version.upgrade_time
                 else:
@@ -70,7 +68,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 data.append({
                     "app_model_id": app_model_id,
                     "app_model_name": app_model_name,
-                    "version": version,
+                    "version": share_record.share_version,
                     "version_alias": version_alias,
                     "scope": scope,
                     "create_time": share_record.create_time,
