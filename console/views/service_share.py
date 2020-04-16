@@ -69,7 +69,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     "app_model_id": app_model_id,
                     "app_model_name": app_model_name,
                     "version": share_record.share_version,
-                    "version_alias": version_alias,
+                    "version_alias": (share_record.share_version_alias if share_record.share_version_alias else version_alias),
                     "scope": scope,
                     "create_time": share_record.create_time,
                     "upgrade_time": upgrade_time,
