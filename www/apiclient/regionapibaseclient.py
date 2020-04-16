@@ -11,6 +11,7 @@ import ssl
 
 import certifi
 import urllib3
+from urllib3.exceptions import MaxRetryError
 from addict import Dict
 from django.conf import settings
 
@@ -123,8 +124,13 @@ class RegionApiBaseHttpClient(object):
 
     @method_perf_time
     def _request(self, url, method, headers=None, body=None, client=None, *args, **kwargs):
-        region_name = kwargs["region"]
-        region = region_repo.get_region_by_region_name(region_name)
+        region_name = kwargs.get("region")
+        retries = kwargs.get("retries", 3)
+        timeout = kwargs.get("timeout", 3)
+        if kwargs.get("for_test"):
+            region = region_name
+        else:
+            region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise Exception("region {0} not found".format(region_name))
         verify_ssl = False
@@ -137,50 +143,29 @@ class RegionApiBaseHttpClient(object):
                                region.cert_file, region.key_file, region_name=region_name)
 
         client = self.get_client(config)
-        retry_count = 2
-        while retry_count:
-            try:
-                if body is None:
-                    response = client.request(
-                        url=url, method=method, headers=headers)
-                else:
-                    response = client.request(
-                        url=url, method=method, headers=headers, body=body)
-
-                # if len(content) > 10000:
-                #     record_content = '%s  .....ignore.....' % content[:1000]
-                # else:
-                #     record_content = content
-                # if body is not None and len(body) > 1000:
-                #     record_body = '%s .....ignore.....' % body[:1000]
-                # else:
-                #     record_body = body
-                return response.status, response.data
-            except socket.timeout as e:
-                logger.error('client_error', "timeout: %s" % url)
-                logger.exception('client_error', e)
-                raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
-                    "type": "request time out",
-                    "error": str(e)
-                })
-            except socket.error as e:
-                retry_count -= 1
-                if retry_count:
-                    logger.error("client_error", "retry request: %s" % url)
-                else:
-                    logger.exception('client_error', e)
-                    raise self.ApiSocketError(self.apitype, url, method, Dict({"status": 101}), {
-                        "type": "connect error",
-                        "error": str(e)
-                    })
-            except Exception as e:
-                retry_count -= 1
-                if retry_count:
-                    logger.error("client_error", "retry request: %s" % url)
-                else:
-                    logger.exception('client_error', e)
-                    raise ServiceHandleException(
-                        msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络和配置")
+        try:
+            if body is None:
+                response = client.request(
+                    url=url, method=method, headers=headers, timeout=timeout, retries=retries)
+            else:
+                response = client.request(
+                    url=url, method=method, headers=headers, body=body, timeout=timeout, retries=retries)
+            return response.status, response.data
+        except socket.timeout as e:
+            logger.error('client_error', "timeout: %s" % url)
+            logger.exception('client_error', e)
+            raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
+                "type": "request time out",
+                "error": str(e)
+            })
+        except MaxRetryError as e:
+            logger.exception('client_error', e)
+            raise ServiceHandleException(
+                msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
+        except Exception as e:
+            logger.debug(e)
+            raise ServiceHandleException(
+                msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络和配置")
 
     def get_client(self, configuration, pools_size=4, maxsize=None, *args, **kwargs):
 
