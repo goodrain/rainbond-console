@@ -367,12 +367,12 @@ class EnterpriseServices(object):
             region_info_list.append(region_resource)
         return region_info_list
 
-    def get_enterprise_region(self, enterprise_id, region_id, link_api=True):
+    def get_enterprise_region(self, enterprise_id, region_id, check_status=True):
         region = region_repo.get_region_by_id(enterprise_id, region_id)
         if not region:
             return None
         region_resource = self.__init_region_resource_data(region)
-        if link_api:
+        if check_status:
             try:
                 res, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id, region=region.region_name)
                 res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
