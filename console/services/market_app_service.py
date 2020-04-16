@@ -1269,7 +1269,7 @@ class MarketAppService(object):
             dat.update({
                 'current_version': pc.current_version.version,
                 'can_upgrade': bool(pc.get_upgradeable_versions),
-                'upgrade_versions': set(pc.get_upgradeable_versions),
+                'upgrade_versions': (set(pc.get_upgradeable_versions) if pc.get_upgradeable_versions else []),
                 'not_upgrade_record_id': not_upgrade_record.ID,
                 'not_upgrade_record_status': not_upgrade_record.status,
             })
