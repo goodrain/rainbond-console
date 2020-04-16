@@ -13,3 +13,5 @@ CREATE TABLE `user_access_key` (
   PRIMARY KEY (`ID`),
   UNIQUE KEY `note` (`note`,`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+alter table service_share_record add share_version_alias varchar(32) DEFAULT NULL;

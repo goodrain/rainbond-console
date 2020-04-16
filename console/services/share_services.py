@@ -883,6 +883,7 @@ class ShareService(object):
             share_record.scope = scope
             share_record.app_id = app_model_id
             share_record.share_version = version
+            share_record.share_version_alias = version_alias
             share_record.share_app_market_id = market_id
             share_record.update_time = datetime.datetime.now()
             share_record.save()
