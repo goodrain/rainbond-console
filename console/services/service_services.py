@@ -240,5 +240,18 @@ class BaseService(object):
                     bean["group_key"] = app.app_id
         return bean
 
+    def get_services_status(self, tenant, services):
+        try:
+            service_status_list = region_api.service_status(tenant.region, tenant.tenant_name, {
+                "service_ids": services.values_list("service_id", flat=True),
+                "enterprise_id": tenant.enterprise_id
+            })
+            service_status_list = service_status_list["list"]
+            service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
+        except (region_api.CallApiError, region_api.ApiSocketError) as e:
+            logger.debug(e)
+            return None
+        return service_status_map
+
 
 base_service = BaseService()
