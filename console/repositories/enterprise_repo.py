@@ -83,10 +83,13 @@ class TenantEnterpriseRepo(object):
         return team_repo.get_tenants_by_user_id_and_eid(enterprise_id, user_id, name)
 
     def get_enterprise_user_join_teams(self, enterprise_id, user_id):
+        team_ids = []
         teams = self.get_enterprise_user_teams(enterprise_id, user_id)
         if not teams:
             return teams
-        team_ids = [team.tenant_id for team in teams]
+        for team in teams:
+            if team:
+                team_ids.append(team.tenant_id)
         return Applicants.objects.filter(
             user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
 
