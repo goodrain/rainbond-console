@@ -3,13 +3,12 @@
   Created on 18/3/5.
 """
 import logging
-
+from django.db.models import Q
 from console.models.main import AppExportRecord
 from console.models.main import AppImportRecord
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.models.main import RainbondCenterAppTagsRelation
-from console.utils.shortcuts import get_object_or_404
 from www.db.base import BaseConnection
 
 logger = logging.getLogger("default")
@@ -36,6 +35,90 @@ class RainbondCenterAppRepository(object):
         if rcapps:
             return rcapps[0]
         return None
+
+    def get_rainbond_app_in_enterprise_by_query(self, eid, app_name, tag_names=None, page=1, page_size=10):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, "enterprise", app_name, None, tag_names, page, page_size)
+        conn = BaseConnection()
+        apps = conn.query(sql)
+        return apps
+
+    def _prepare_get_rainbond_app_by_query_sql(self, eid, scope, app_name, teams=None, tag_names=None, page=1, page_size=10):
+        extend_where = ""
+        if tag_names:
+            extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
+        if app_name:
+            extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        # if teams is None, create_team scope is ('')
+        if scope == "team":
+            team_sql = " and app.create_team in ('')"
+            if teams:
+                team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            extend_where += team_sql
+        sql = """
+            select
+                distinct app.*
+            from
+                console.rainbond_center_app app
+            left join console.rainbond_center_app_tag_relation apr on
+                app.app_id = apr.app_id
+                and app.enterprise_id = apr.enterprise_id
+            left join console.rainbond_center_app_tag tag on
+                apr.tag_id = tag.ID
+                and tag.enterprise_id = app.enterprise_id
+            where
+                `scope` = '{scope}'
+                and app.enterprise_id = '{eid}'
+                {extend_where}
+            limit {offset}, {rows}
+            """.format(eid=eid, scope=scope, extend_where=extend_where, offset=(page-1) * page_size, rows=page_size)
+        return sql
+
+    def get_rainbond_app_in_teams_by_querey(self, eid, teams, app_name, tag_names=None, page=1, page_size=10):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, "team", app_name, teams, tag_names, page, page_size)
+        conn = BaseConnection()
+        apps = conn.query(sql)
+        return apps
+
+    def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names):
+        extend_where = ""
+        if tag_names:
+            extend_where += " and tag.name in ({0})".format(
+                ",".join("'{0}'".format(tag_name) for tag_name in tag_names))
+        if app_name:
+            extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        # if teams is None, create_team scope is ('')
+        if scope == "team":
+            team_sql = " and app.create_team in ('')"
+            if teams:
+                team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            extend_where += team_sql
+        sql = """
+            select
+                count(distinct app.app_id) as total
+            from
+                console.rainbond_center_app app
+            left join (
+                select
+                    app_id,
+                    tag.name
+                from
+                    console.rainbond_center_app_tag_relation rcatr
+                join console.rainbond_center_app_tag tag on
+                    rcatr.tag_id = tag.iD) tag on app.app_id = tag.app_id
+            where
+                `scope` = '{scope}'
+                and app.enterprise_id = '{eid}'
+                {extend_where}
+            """.format(eid=eid, scope=scope, extend_where=extend_where)
+        conn = BaseConnection()
+        count = conn.query(sql)
+        return count
+
+    def get_rainbond_app_version_by_app_ids(self, eid, app_ids, is_complete=None):
+        q = Q(enterprise_id=eid, app_id__in=app_ids)
+        if is_complete:
+            q = q & Q(is_complete=is_complete)
+        return RainbondCenterAppVersion.objects.filter(q)
 
     def get_rainbond_app_by_app_id(self, eid, app_id):
         return RainbondCenterApp.objects.filter(app_id=app_id, enterprise_id=eid).first()
@@ -305,8 +388,8 @@ class RainbondCenterAppRepository(object):
         app.install_number += 1
         app.save()
 
-        app_version = RainbondCenterAppVersion.objects.get(
-            enterprise_id=enterprise_id, app_id=app_id, version=app_version)
+        app_version = RainbondCenterAppVersion.objects.filter(
+            enterprise_id=enterprise_id, app_id=app_id, version=app_version).order_by("-upgrade_time").first()
         app_version.install_number += 1
         app_version.save()
 
@@ -343,8 +426,13 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
-        return get_object_or_404(RainbondCenterAppVersion, msg='rainbond center app not found', app_id=group_key,
-                                 version=version, scope__in=["team", "enterprise", "goodrain"])
+        app = RainbondCenterApp.objects.filter(app_id=group_key).first()
+        app_version = RainbondCenterAppVersion.objects.filter(
+            app_id=group_key, version=version, scope__in=["team", "enterprise", "goodrain"]
+        ).order_by("-upgrade_time").first()
+        if app and app_version:
+            app_version.app_name = app.app_name
+        return app_version
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
@@ -389,6 +477,9 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_version_by_app_id_and_version(self, app_id, version):
         return RainbondCenterAppVersion.objects.filter(app_id=app_id, version=version).first()
+
+    def get_rainbond_app_versions(self, eid, app_id):
+        return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
 
     def get_rainbond_app_by_record_id(self, record_id):
         rcapps = RainbondCenterApp.objects.filter(record_id=record_id)

@@ -353,14 +353,9 @@ class AppManageService(AppManageBase):
             file_content = volume.get("file_content", None)
             settings = {}
             settings["volume_capacity"] = volume["volume_capacity"]
-            code, msg, volume_data = volume_service.add_service_volume(tenant, service, volume["volume_path"],
-                                                                       volume_type=volume["volume_type"],
-                                                                       volume_name=volume["volume_name"],
-                                                                       file_content=file_content,
-                                                                       settings=settings)
-            if code != 200:
-                logger.error("save market app volume error: {}".format(msg))
-                return code, msg
+            volume_service.add_service_volume(
+                tenant, service, volume["volume_path"], volume_type=volume["volume_type"], volume_name=volume["volume_name"],
+                file_content=file_content, settings=settings)
         return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
@@ -1192,7 +1187,7 @@ class AppManageService(AppManageBase):
                 if tenant_service_volume["volume_type"] == "local":
                     if old_extend_method == ComponentType.state_singleton.value:
                         raise ServiceHandleException(
-                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态组件")
+                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态单实例组件")
                 if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):
                         raise ServiceHandleException(msg="storage access mode do not support",

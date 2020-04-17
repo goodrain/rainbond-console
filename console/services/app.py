@@ -361,7 +361,11 @@ class AppService(object):
                 if tenant_pk == 5073:
                     services = list_services().order_by('service_alias')
             else:
-                role_name = role_repo.get_role_name_by_role_id(perm.role_id)
+                # if user is owner, perm.role_id is null when identity is owner, so use perm.identity(owner) first
+                role_name = perm.identity
+                if perm.role_id:
+                    # if perm.role_id is is not None, use role_id find user's role instead of perm.identity
+                    role_name = role_repo.get_role_name_by_role_id(perm.role_id)
                 if role_name in ('admin', 'developer', 'viewer', 'gray', 'owner'):
                     services = list_services().order_by('service_alias')
                 else:

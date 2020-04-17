@@ -7,7 +7,6 @@ import httplib2
 import httplib
 import json
 import datetime
-import base64
 
 from django.db import transaction
 from django.views.decorators.cache import never_cache
@@ -19,8 +18,6 @@ from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
-from console.repositories.team_repo import team_repo
-from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
@@ -30,7 +27,6 @@ from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
-from www.utils.crypt import make_uuid
 from www.apiclient.baseclient import HttpClient
 from www.decorator import perm_required
 from www.utils.return_message import error_message
@@ -209,101 +205,50 @@ class CenterAppCLView(JWTAuthApiView):
         app_name = request.GET.get("app_name", None)
         is_complete = request.GET.get("is_complete", None)
         tags = request.GET.get("tags", [])
-        team_names = []
-        if scope == "team":
-            if not user_services.is_user_admin_in_current_enterprise(self.user, enterprise_id):
-                teams = team_repo.get_tenants_by_user_id(self.user.user_id)
-                if teams:
-                    team_names = teams.values_list("tenant_name", flat=True)
         if tags:
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        app_list = []
-        apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
-            enterprise_id, app_name, tags, scope, team_names, is_complete, page, page_size)
-        if apps and apps[0].app_name:
-            for app in apps:
-                versions_info = (json.loads(app.versions_info) if app.versions_info else [])
-                app_list.append({
-                    "update_time": app.update_time,
-                    "is_ingerit": app.is_ingerit,
-                    "app_id": app.app_id,
-                    "app_name": app.app_name,
-                    "pic": app.pic,
-                    "describe": app.describe,
-                    "create_time": app.create_time,
-                    "scope": app.scope,
-                    "versions_info": versions_info,
-                    "dev_status": app.dev_status,
-                    "tags": (json.loads(app.tags) if app.tags else []),
-                    "enterprise_id": app.enterprise_id,
-                    "is_official": app.is_official,
-                    "ID": app.ID,
-                    "source": app.source,
-                    "details": app.details,
-                    "install_number": app.install_number,
-                    "create_user": app.create_user,
-                    "create_team": app.create_team,
-                })
-
-        return MessageResponse(
-            "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
+        apps, count = market_app_service.get_visiable_apps(
+            self.user, enterprise_id, scope, app_name, tags, is_complete, page, page_size)
+        return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
 
     @never_cache
     def post(self, request, enterprise_id, *args, **kwargs):
-        app_name = request.data.get("name")
+        name = request.data.get("name")
         describe = request.data.get("describe", 'This is a default description.')
         pic = request.data.get("pic")
-        scope = request.data.get("scope")
-        market_id = request.data.get("market_id")
         details = request.data.get("details")
-        app_id = make_uuid()
         dev_status = request.data.get("dev_status")
-        tenant_id = request.data.get("tenant_id")
-        team_name = request.data.get("team_name")
         tag_ids = request.data.get("tag_ids")
-        if tenant_id:
-            team = team_repo.get_team_by_team_id(tenant_id)
-            team_name = team.tenant_name
+        scope = request.data.get("scope", "enterprise")
+        scope_target = request.data.get("scope_target")
+        source = request.data.get("source", "local")
+        create_team = request.data.get("create_team", request.data.get("team_name", None))
+        if scope == "team" and not create_team:
+            result = general_message(400, "please select team", "请选择团队")
+            return Response(result, status=400)
+        if scope == "goodrain" and (not scope_target or not scope_target.get("market_id")):
+            result = general_message(400, "parameter market_id not found", None)
+            return Response(result, status=400)
+        if not name:
+            result = general_message(400, "error params", "请填写应用名称")
+            return Response(result, status=400)
 
-        data = {
-            "app_name": app_name,
+        app_info = {
+            "app_name": name,
             "describe": describe,
             "pic": pic,
-            "app_id": app_id,
-            "dev_status": dev_status,
-            "create_team": team_name,
-            "create_user": self.user.user_id,
-            "source": "local",
-            "scope": scope,
             "details": details,
-            "enterprise_id": enterprise_id
+            "dev_status": dev_status,
+            "tag_ids": tag_ids,
+            "scope": scope,
+            "scope_target": scope_target,
+            "source": source,
+            "create_team": create_team,
         }
-        if not (app_name and scope):
-            result = general_message(400, "error params", None)
-            return Response(result, status=200)
-        if scope == "goodrain":
-            if pic:
-                try:
-                    with open(pic, "rb") as f:
-                        data["logo"] = "data:image/{};base64,".format(pic.split(".")[-1]) + \
-                                      base64.b64encode(f.read())
-                except Exception as e:
-                    logger.debug(e)
-                    result = general_message(400, "can not found pic", None)
-                    return Response(result, status=200)
-            else:
-                data["logo"] = None
-            market_sycn_service.create_cloud_market_app(enterprise_id, market_id, data)
-        else:
-            app = share_repo.create_app(data)
-            if tag_ids:
-                try:
-                    app_tag_repo.create_app_tags_relation(app, tag_ids)
-                except Exception as e:
-                    logger.debug(e)
-                    app.delete()
+        market_app_service.create_rainbond_app(enterprise_id, app_info)
+
         result = general_message(200, "success", None)
         return Response(result, status=200)
 
@@ -320,20 +265,23 @@ class CenterAppUDView(JWTAuthApiView):
         details = request.data.get("details")
         dev_status = request.data.get("dev_status")
         tag_ids = request.data.get("tag_ids")
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
-        if not app:
-            result = general_message(404, "no found app-model", None)
-            return Response(result, status=404)
-        app.app_name = name
-        app.describe = describe
-        app.pic = pic
-        app.dev_status = dev_status
-        app.details = details
-        app.save()
-        if tag_ids:
-            app_tag_repo.create_app_tags_relation(app, tag_ids)
-        else:
-            app_tag_repo.get_app_tags(enterprise_id, app_id).delete()
+        scope = request.data.get("scope", "enterprise")
+        create_team = request.data.get("create_team", None)
+        if scope == "team" and not create_team:
+            result = general_message(400, "please select team", "请选择团队")
+            return Response(result, status=400)
+
+        app_info = {
+            "name": name,
+            "describe": describe,
+            "pic": pic,
+            "details": details,
+            "dev_status": dev_status,
+            "tag_ids": tag_ids,
+            "scope": scope,
+            "create_team": create_team,
+        }
+        market_app_service.update_rainbond_app(enterprise_id, app_id, app_info)
         result = general_message(200, "success", None)
         return Response(result, status=200)
 

@@ -33,7 +33,7 @@ class AppStore(object):
                 info = market_api.get_enterprise_share_hub_info(eid, "image")
                 return info["image_repo"]
             else:
-                image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
+                image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB', enterprise_id=eid)
                 namespace = eid if scope == "enterprise" else team_name
                 if not image_config or not image_config[0].enable:
                     return {"hub_url": settings.IMAGE_REPO, "namespace": namespace}
@@ -41,7 +41,7 @@ class AppStore(object):
                 hub_url = image_config_dict.get("hub_url", None)
                 hub_user = image_config_dict.get("hub_user", None)
                 hub_password = image_config_dict.get("hub_password", None)
-                namespace = image_config_dict.get("namespace", namespace)
+                namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else namespace)
                 is_trust = hub_url == 'hub.goodrain.com'
                 image_info = {
                     "hub_url": hub_url,

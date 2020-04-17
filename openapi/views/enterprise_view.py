@@ -8,17 +8,22 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.exception.main import ServiceHandleException
 from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
+from console.services.region_services import region_services
+from www.apiclient.regionapi import RegionInvokeApi
 from console.utils.timeutil import time_to_str
 from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
 from openapi.serializer.ent_serializers import ListEntsRespSerializer
 from openapi.serializer.ent_serializers import UpdEntReqSerializer
+from openapi.serializer.ent_serializers import EnterpriseSourceSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class ListEnterpriseInfoView(ListAPIView):
@@ -69,6 +74,41 @@ class EnterpriseInfoView(BaseOpenAPIView):
         if ent is None:
             return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
         serializer = EnterpriseInfoSerializer(data=ent.to_dict())
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class EnterpriseSourceView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取企业使用资源信息",
+        responses={200: EnterpriseSourceSerializer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, eid):
+        data = {
+            "enterprise_id": eid,
+            "used_cpu": 0,
+            "used_memory": 0,
+            "used_disk": 0
+        }
+        if not req.user.is_administrator:
+            raise ServiceHandleException(status_code=401, error_code=401, msg="Permission denied")
+        ent = enterprise_services.get_enterprise_by_id(eid)
+        if ent is None:
+            return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
+        regions = region_services.get_regions_by_enterprise_id(eid)
+        for region in regions:
+            try:
+                res, body = region_api.get_region_resources(eid, region.region_name)
+                rst = body.get("bean")
+                if res.get("status") == 200 and rst:
+                    data["used_cpu"] += rst.get("req_cpu", 0)
+                    data["used_memory"] += rst.get("req_mem", 0)
+                    data["used_disk"] += rst.get("req_disk", 0)
+            except ServiceHandleException:
+                continue
+
+        serializer = EnterpriseSourceSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

@@ -106,7 +106,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         git_full_name = request.data.get("full_name")
         git_service = None
         open_webhook = False
-        host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
+        host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
 
         result = {}
         if is_oauth:

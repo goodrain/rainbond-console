@@ -25,6 +25,7 @@ from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
 from console.services.app_actions.properties_changes import PropertiesChanges
+from console.services.app_actions.properties_changes import get_upgrade_app_version_template_app
 from console.services.app_config import AppPortService
 from console.services.app_config import env_var_service
 from console.services.app_config import mnt_service
@@ -262,15 +263,12 @@ class MarketService(object):
             self.async_action = AsyncAction.NOTHING.value
 
     def set_changes(self):
-        # list properties changes
-        if not self.install_from_cloud:
-            pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
-            changes = pc.get_property_changes(self.tenant.enterprise_id, self.version)
-            logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
-            self.changes = changes
-        else:
-            # TODO:impl upgrade from cloud
-            logger.info("upgrade from cloud do not support.")
+        pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
+        app = get_upgrade_app_version_template_app(self.tenant, self.version, pc)
+        changes = pc.get_property_changes(app)
+        logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
+        self.changes = changes
+        logger.info("upgrade from cloud do not support.")
 
     def create_backup(self):
         """create_backup

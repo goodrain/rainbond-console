@@ -88,9 +88,9 @@ class TenantPluginRepository(object):
 
     def create_if_not_exist(self, **plugin):
         try:
-            TenantPlugin.objects.get(tenant_id=plugin["tenant_id"], plugin_id=plugin["plugin_id"])
+            return TenantPlugin.objects.get(tenant_id=plugin["tenant_id"], plugin_id=plugin["plugin_id"])
         except TenantPlugin.DoesNotExist:
-            TenantPlugin.objects.create(**plugin)
+            return TenantPlugin.objects.create(**plugin)
 
 
 plugin_repo = TenantPluginRepository()

@@ -53,13 +53,13 @@ class TeamRepo(object):
         enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
         if not enterprise:
             return enterprise
-        tenant_ids = PermRelTenant.objects.filter(
-            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True)
+        tenant_ids = list(PermRelTenant.objects.filter(
+            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True).order_by("-ID"))
+        tenant_ids = sorted(set(tenant_ids), key=tenant_ids.index)
         if name:
-            tenants = Tenants.objects.filter(
-                ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
+            tenants = [Tenants.objects.filter(ID=tenant_id, tenant_alias__contains=name).first() for tenant_id in tenant_ids]
         else:
-            tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
+            tenants = [Tenants.objects.filter(ID=tenant_id).first() for tenant_id in tenant_ids]
         return tenants
 
     def get_active_tenants_by_user_id(self, user_id):
@@ -87,6 +87,25 @@ class TeamRepo(object):
         if not tenant_perms:
             return None
         return tenant_perms
+
+    def get_not_join_users(self, enterprise, tenant, query):
+        where = """(SELECT DISTINCT user_id FROM tenant_perms WHERE tenant_id="{}" AND enterprise_id={})""".format(
+            tenant.ID, enterprise.ID)
+
+        sql = """
+            SELECT user_id, nick_name, enterprise_id, email
+            FROM user_info
+            WHERE user_id NOT IN {where}
+            AND enterprise_id="{enterprise_id}"
+        """.format(where=where, enterprise_id=enterprise.enterprise_id)
+        if query:
+            sql += """
+            AND nick_name like "%{query}%"
+            """.format(query=query)
+        conn = BaseConnection()
+        result = conn.query(sql)
+
+        return result
 
     # 返回该团队下的所有管理员
     def get_tenant_admin_by_tenant_id(self, tenant_id):
@@ -171,6 +190,9 @@ class TeamRepo(object):
 
     def get_team_by_team_ids(self, team_ids):
         return Tenants.objects.filter(tenant_id__in=team_ids)
+
+    def get_team_by_team_names(self, team_names):
+        return Tenants.objects.filter(tenant_name__in=team_names)
 
     def create_team_perms(self, **params):
         return PermRelTenant.objects.create(**params)

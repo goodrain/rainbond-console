@@ -35,6 +35,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
+from console.repositories.app import app_tag_repo
 
 logger = logging.getLogger("default")
 
@@ -108,7 +109,7 @@ class ShareService(object):
                     tmp_list = dep_service_map.get(service_id)
                 dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id).first()
                 if dep_service_info is None:
-                    return {}
+                    continue
                 tmp_list.append(dep_service_info)
                 dep_service_map[service_id] = tmp_list
             return dep_service_map
@@ -223,7 +224,7 @@ class ShareService(object):
         return None
 
     def query_share_service_info(self, team, group_id, scope=None):
-        service_last_share_info, _ = self.get_last_shared_app_version(team.tenant_id, group_id, scope)
+        service_last_share_info, _ = self.get_last_shared_app_version(team, group_id, scope)
         if service_last_share_info:
             service_last_share_info = service_last_share_info.get("apps")
             if service_last_share_info:
@@ -728,7 +729,7 @@ class ShareService(object):
             app_model_id = share_version_info.get("app_model_id")
             version = share_version_info.get("version")
             target = share_version_info.get("scope_target")
-            version_alias = share_version_info.get("version_alias", share_version_info.get("version", "NA"))
+            version_alias = share_version_info.get("version_alias", "")
             version_describe = share_version_info.get("describe", "this is a default describe.")
             market_id = None
             scope = None
@@ -738,10 +739,11 @@ class ShareService(object):
                 market_id = share_record.share_app_market_id
             if market_id:
                 try:
+                    scope = "goodrain"
                     cloud_app = market_sycn_service.get_cloud_app(
                         share_team.enterprise_id, market_id, app_model_id)
-                    scope = "goodrain"
-                    app_model_name = cloud_app.name
+                    if cloud_app:
+                        app_model_name = cloud_app.name
                 except Exception as e:
                     logger.debug(e)
                     return 400, "云端应用模型不存在", None
@@ -881,6 +883,7 @@ class ShareService(object):
             share_record.scope = scope
             share_record.app_id = app_model_id
             share_record.share_version = version
+            share_record.share_version_alias = version_alias
             share_record.share_app_market_id = market_id
             share_record.update_time = datetime.datetime.now()
             share_record.save()
@@ -903,10 +906,11 @@ class ShareService(object):
         def filter_dep(dev_service):
             """过滤依赖关系"""
             dep_service_key = dev_service['dep_service_key']
-            if dep_service_key not in dev_service_set and use_force:
+            if dep_service_key not in dev_service_set:
                 return False
             elif dep_service_key not in dev_service_set and not use_force:
                 raise AbortRequest(
+                    error_code=10501,
                     msg="{} service is missing dependencies".format(service['service_cname']),
                     msg_show=u"{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
@@ -930,7 +934,8 @@ class ShareService(object):
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
-            RainbondCenterAppVersion.objects.filter(app_id=app.app_id, version=None).delete()
+            RainbondCenterAppVersion.objects.filter(
+                app_id=app.app_id, source="local", scope="goodrain", is_complete=True).delete()
             share_record.is_success = True
             share_record.step = 3
             share_record.status = 1
@@ -1006,16 +1011,19 @@ class ShareService(object):
         return share_services
 
     def get_cloud_app_version(self, tenant_id, app_id, version):
-        rst = MarketOpenAPI().get_app_template(tenant_id, app_id, version)
-        data = rst.get("data")
-        if not data:
+        try:
+            rst = MarketOpenAPI().get_app_template(tenant_id, app_id, version)
+            data = rst.get("data")
+            if not data:
+                return None, None
+            bean = data.get("bean")
+            if not bean:
+                return None, None
+            app_template = bean.get("template_content")
+            app_version_info = bean.get("info")
+            return json.loads(app_template), app_version_info
+        except Exception:
             return None, None
-        bean = data.get("bean")
-        if not bean:
-            return None, None
-        app_template = bean.get("template_content")
-        app_version_info = bean.get("info")
-        return json.loads(app_template), app_version_info
 
     def get_cloud_markets(self, tenant_id):
         markets = MarketOpenAPIV2().get_markets(tenant_id)
@@ -1062,7 +1070,7 @@ class ShareService(object):
         return app_list
 
     def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_id):
-        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, scope)
+        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         dt = {}
         dt["app_model_list"] = []
         dt["last_shared_app"] = {}
@@ -1071,7 +1079,6 @@ class ShareService(object):
             apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
             if apps_versions:
                 for app in apps_versions:
-                    print app
                     versions = []
                     app_versions = app.app_versions
                     if app_versions:
@@ -1104,6 +1111,7 @@ class ShareService(object):
             if last_shared:
                 last_shared_app_info = share_repo.get_app_by_app_id(last_shared.app_id)
                 if last_shared_app_info:
+                    self._patch_rainbond_app_tag(last_shared_app_info)
                     dt["last_shared_app"] = {
                         "app_name": last_shared_app_info.app_name,
                         "app_id": last_shared.app_id,
@@ -1111,19 +1119,45 @@ class ShareService(object):
                         "pic": last_shared_app_info.pic,
                         "app_describe": last_shared_app_info.describe,
                         "dev_status": last_shared_app_info.dev_status,
-                        "scope": last_shared_app_info.scope
+                        "scope": last_shared_app_info.scope,
+                        "tags": last_shared_app_info.tags
                     }
             app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name)
+            self._patch_rainbond_apps_tag(enterprise_id, app_list)
             dt["app_model_list"] = app_list
         return dt
 
-    def get_last_shared_app_version(self, tenant_id, group_id, scope=None):
-        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, scope)
+    # patch rainbond app tag
+    def _patch_rainbond_app_tag(self, app):
+        tags = app_tag_repo.get_app_with_tags(app.enterprise_id, app.app_id)
+        app.tags = []
+        if not tags:
+            return
+        for tag in tags:
+            app.tags.append({"tag_id": tag.ID, "name": tag.name})
+
+    # patch rainbond app tag
+    def _patch_rainbond_apps_tag(self, eid, apps):
+        app_ids = [app["app_id"] for app in apps]
+        tags = app_tag_repo.get_multi_apps_tags(eid, app_ids)
+        if not tags:
+            return
+        app_with_tags = dict()
+        for tag in tags:
+            if not app_with_tags.get(tag.app_id):
+                app_with_tags[tag.app_id] = []
+            app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
+
+        for app in apps:
+            app["tags"] = app_with_tags.get(app["app_id"])
+
+    def get_last_shared_app_version(self, tenant, group_id, scope=None):
+        last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         if not last_shared:
             return None, None
         if last_shared.scope == "goodrain":
             dt = self.get_cloud_app_version(
-                tenant_id, last_shared.app_id, last_shared.share_version)
+                tenant.tenant_id, last_shared.app_id, last_shared.share_version)
         else:
             app_version = share_repo.get_app_version(last_shared.app_id, last_shared.share_version)
             if not app_version:

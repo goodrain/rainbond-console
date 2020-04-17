@@ -9,6 +9,9 @@ class ApplyRepo(object):
     def get_applicants_team(self, user_id):
         return Applicants.objects.filter(user_id=user_id)
 
+    def get_append_applicants_team(self, user_id):
+        return Applicants.objects.filter(user_id=user_id, is_pass=0)
+
     def get_applicants_by_id_team_name(self, user_id, team_name):
         return Applicants.objects.filter(user_id=user_id, team_name=team_name)
 

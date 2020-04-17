@@ -20,6 +20,7 @@ from console.services.app_config.exceptoin import err_cert_not_found
 from console.services.app_config.exceptoin import err_still_has_http_rules
 from console.services.group_service import group_service
 from console.services.team_services import team_services
+from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert
 from console.utils.certutil import cert_is_effective
 from www.apiclient.regionapi import RegionInvokeApi
@@ -97,15 +98,15 @@ class DomainService(object):
 
     @transaction.atomic
     def update_certificate(
-            self, region_name, tenant, certificate_id, new_alias, certificate, private_key, certificate_type):
+            self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
         cert_is_effective(certificate)
 
         cert = domain_repo.get_certificate_by_pk(certificate_id)
         if cert is None:
             raise err_cert_not_found
-        if cert.alias != new_alias:
-            self.__check_certificate_alias(tenant, new_alias)
-            cert.alias = new_alias
+        if cert.alias != alias:
+            self.__check_certificate_alias(tenant, alias)
+            cert.alias = alias
         if certificate:
             cert.certificate = base64.b64encode(certificate)
         if certificate_type:
@@ -121,7 +122,14 @@ class DomainService(object):
             "certificate": base64.b64decode(cert.certificate),
             "private_key": cert.private_key,
         }
-        region_api.update_ingresses_by_certificate(region_name, tenant.tenant_name, body)
+        team_regions = region_services.get_team_usable_regions(tenant.tenant_name)
+        for team_region in team_regions:
+            try:
+                region_api.update_ingresses_by_certificate(team_region.region_name, tenant.tenant_name, body)
+            except Exception as e:
+                logger.debug(e)
+                continue
+        return cert
 
     def __check_domain_name(self, team_name, domain_name, domain_type, certificate_id):
         if not domain_name:

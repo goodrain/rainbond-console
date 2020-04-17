@@ -15,12 +15,10 @@ from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
-
 from console.constants import AppConstants
 from console.constants import PluginCategoryConstants
-
 from console.utils.oauth.oauth_types import get_oauth_instance
-
+from console.exception.main import RbdAppNotFound
 from console.exception.main import MarketAppLost
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -157,8 +155,8 @@ class AppDetailView(AppBaseView):
                     bean["register_way"] = service_endpoints.endpoints_type
                     if service_endpoints.endpoints_type == "api":
                         # 从环境变量中获取域名，没有在从请求中获取
-                        host = os.environ.get('DEFAULT_DOMAIN', request.get_host())
-                        bean["api_url"] = "http://" + host + "/console/" + "third_party/{0}".format(self.service.service_id)
+                        host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
+                        bean["api_url"] = host + "/console/" + "third_party/{0}".format(self.service.service_id)
                         key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
                         if key_repo:
                             bean["api_service_key"] = pickle.loads(base64.b64decode(key_repo.secret_key)).get("secret_key")
@@ -201,6 +199,8 @@ class AppBriefView(AppBaseView):
                 try:
                     market_app_service.check_market_service_info(self.tenant, self.service)
                 except MarketAppLost as e:
+                    msg = e.msg
+                except RbdAppNotFound as e:
                     msg = e.msg
             result = general_message(200, "success", msg, bean=self.service.to_dict())
         except Exception as e:
@@ -740,6 +740,7 @@ class BuildSourceinfo(AppBaseView):
                         self.service.git_url = git_url
                         self.service.git_full_name = git_full_name
                         self.service.oauth_service_id = oauth_service_id
+                        self.service.creater = user_id
                     else:
                         self.service.git_url = git_url
                 self.service.save()

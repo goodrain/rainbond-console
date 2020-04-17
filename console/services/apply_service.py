@@ -20,10 +20,11 @@ class ApplyService(object):
                 "team_alias": team.tenant_alias,
                 "apply_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
-            apply_repo.create_apply_info(**info)
-            return info
+            return apply_repo.create_apply_info(**info)
         else:
-            return None
+            applicant[0].is_pass = 0
+            applicant[0].save()
+            return applicant[0]
 
     def delete_applicants(self, user_id, team_name):
         applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)

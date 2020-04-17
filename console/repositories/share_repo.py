@@ -110,14 +110,13 @@ class ShareRepo(object):
         return RainbondCenterApp.objects.filter(
             tenant_service_group_id=group_id, is_complete=True).order_by("-create_time")
 
-    def get_last_shared_app_version_by_group_id(self, group_id, scope=None):
-        if scope == "goodrain":
+    def get_last_shared_app_version_by_group_id(self, group_id, team_name=None, scope=None):
+        if scope == "goodrain" or scope == "enterprise":
             return ServiceShareRecord.objects.filter(
                 group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
         else:
             return ServiceShareRecord.objects.filter(
-                group_id=group_id, scope__in=["team", "enterprise", None], is_success=True
-            ).order_by("-create_time").first()
+                group_id=group_id, scope="team", team_name=team_name, is_success=True).order_by("-create_time").first()
 
     def get_local_apps(self):
         return RainbondCenterApp.objects.all().order_by("-create_time")
@@ -126,7 +125,7 @@ class ShareRepo(object):
         return RainbondCenterApp.objects.filter(
             Q(enterprise_id=enterprise_id, create_team=team_name, source="local") |
             Q(enterprise_id=enterprise_id, scope="enterprise", source="local") |
-            Q(enterprise_id=enterprise_id, create_team=None, scope="team", source="local")
+            Q(enterprise_id=enterprise_id, scope="team", source="local")
         ).order_by("-create_time")
 
     def get_app_by_app_id(self, app_id):
@@ -235,7 +234,7 @@ class ShareRepo(object):
             return share_record[0]
 
     def get_service_share_records_by_groupid(self, group_id):
-        return ServiceShareRecord.objects.filter(group_id=group_id, status__in=[0, 1, 2])
+        return ServiceShareRecord.objects.filter(group_id=group_id, status__in=[0, 1, 2]).order_by("-create_time")
 
     def get_service_share_record_by_id(self, group_id, record_id):
         return ServiceShareRecord.objects.filter(group_id=group_id, ID=record_id).first()

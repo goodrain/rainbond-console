@@ -366,6 +366,44 @@ class AppTagRepository(object):
     def get_app_tags(self, enterprise_id, app_id):
         return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, app_id=app_id)
 
+    def get_multi_apps_tags(self, eid, app_ids):
+        if not app_ids:
+            return None
+        app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
+
+        sql = """
+        select
+            atr.app_id, tag.*
+        from
+            console.rainbond_center_app_tag_relation atr
+        left join console.rainbond_center_app_tag tag on
+            atr.enterprise_id = tag.enterprise_id
+            and atr.tag_id = tag.ID
+        where
+            atr.enterprise_id = '{eid}'
+            and atr.app_id in ({app_ids});
+        """.format(eid=eid, app_ids=app_ids)
+        conn = BaseConnection()
+        apps = conn.query(sql)
+        return apps
+
+    def get_app_with_tags(self, eid, app_id):
+        sql = """
+                select
+                     tag.*
+                from
+                    console.rainbond_center_app_tag_relation atr
+                left join console.rainbond_center_app_tag tag on
+                    atr.enterprise_id = tag.enterprise_id
+                    and atr.tag_id = tag.ID
+                where
+                    atr.enterprise_id = '{eid}'
+                    and atr.app_id = '{app_id}';
+                """.format(eid=eid, app_id=app_id)
+        conn = BaseConnection()
+        apps = conn.query(sql)
+        return apps
+
 
 service_repo = TenantServiceInfoRepository()
 service_source_repo = ServiceSourceRepository()

@@ -15,11 +15,10 @@ from console.models.main import AppUpgradeRecord
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.repositories.app import service_repo
-from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
-from console.services.market_app_service import market_sycn_service
+from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import parse_args
 from console.utils.reqparse import parse_argument
@@ -48,12 +47,7 @@ class AppUpgradeVersion(RegionTenantHeaderView):
             request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
 
         # 获取云市应用可升级版本列表
-        service_source = group_service.get_service_source_by_group_key(group_key)
-        service_group_keys = set(service_source.values_list('group_key', flat=True))
-        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, service_group_keys)
-        version = version_template.get(group_key)
-        plugin = plugin_template.get(group_key)
-        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key, version, plugin)
+        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key)
         return MessageResponse(msg="success", list=list(versions))
 
 
@@ -156,13 +150,6 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
 
         # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
-        _, version_template, plugin_template = market_app_service.get_app_templates(self.tenant, [group_key])
-        version_template = version_template.get(group_key)
-        plugin_template = plugin_template.get(group_key)
-        if version_template:
-            version_template = version_template.get(version)
-        if plugin_template:
-            plugin_template = plugin_template.get(version)
         upgrade_info = [{
             'service': {
                 'service_id': service.service_id,
@@ -170,8 +157,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
                 'service_key': service.service_key,
                 'type': UpgradeType.UPGRADE.value
             },
-            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant,
-                                                                version, version_template, plugin_template),
+            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
         } for service in services]
 
         add_info = [{
@@ -215,13 +201,6 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         data = parse_date(request, rq_args)
         group_key = data['group_key']
         version = data['version']
-        cloud_version = None
-        markets = market_sycn_service.get_cloud_markets(self.tenant.enterprise_id)
-        for market in markets:
-            app = market_sycn_service.get_cloud_app(self.tenant.enterprise_id, market.market_id, group_key)
-            if app:
-                cloud_version = app.app_versions
-
         app_record = get_object_or_404(
             AppUpgradeRecord,
             msg="Upgrade record not found",
@@ -239,7 +218,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
         install_info = {}
         if add_service_infos:
-            old_app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=group_key, version=version)
+            old_app, install_from_cloud = market_app_service.get_app_version_by_app_model_id(self.tenant, group_key, version)
             new_app = deepcopy(old_app)
             # mock app信息
             template = json.loads(new_app.app_template)
@@ -250,7 +229,9 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
                 install_info = market_app_service.install_service_when_upgrade_app(
-                    self.tenant, self.response_region, self.user, group_id, new_app, old_app, services, True)
+                    self.tenant, self.response_region, self.user,
+                    group_id, new_app, old_app, services, True, install_from_cloud
+                )
 
             except ResourceNotEnoughException as re:
                 raise re
@@ -268,8 +249,9 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
 
         app_record.version = version
-        app_record.old_version = upgrade_service.get_old_version(
-            group_key, upgrade_service_infos.keys(), cloud_version=cloud_version)
+        old_service = group_service.get_rainbond_services(group_id, group_key).first()
+        pc = PropertiesChanges(old_service, self.tenant)
+        app_record.old_version = pc.current_version.version
         app_record.save()
 
         services = service_repo.get_services_by_service_ids_and_group_key(

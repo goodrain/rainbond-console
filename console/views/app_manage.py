@@ -582,7 +582,7 @@ class MarketServiceUpgradeView(AppBaseView):
         # List the versions that can be upgraded
         versions = []
         try:
-            versions = market_app_service.get_component_upgradeable_versions(self.tenant, self.service)
+            versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
         except RbdAppNotFound:
             return Response(status=404, data=general_message(404, "service lost", "未找到该组件"))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))

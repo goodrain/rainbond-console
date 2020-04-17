@@ -34,6 +34,7 @@ from console.services.app import app_service
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from console.services.rbd_center_app_service import rbd_center_app_service
 from goodrain_web import settings
+from goodrain_web.settings import IMAGE_REPO
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import PluginConfigGroup
@@ -187,9 +188,9 @@ class AppPluginService(object):
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
-            if "body" in e.message and "msg" in e.message["body"]:
-                if e.message["body"]["msg"] == "can not add this kind plugin, a same kind plugin has been linked":
-                    raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
+            if "body" in e.message and "msg" in e.message["body"] \
+               and "a same kind plugin has been linked" in e.message["body"]["msg"]:
+                raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
         """console层保存默认的数据"""
@@ -453,7 +454,18 @@ class AppPluginService(object):
         result_bean["downstream_env"] = downstream_env_list
         return result_bean
 
-    def update_service_plugin_config(self, service, plugin_id, build_version, config_bean):
+    @transaction.atomic
+    def update_service_plugin_config(self, tenant, service, plugin_id, build_version, config, response_region):
+        # delete old config
+        self.delete_service_plugin_config(service, plugin_id)
+        # 全量插入新配置
+        self.__update_service_plugin_config(service, plugin_id, build_version, config)
+        # 更新数据中心配置
+        region_config = self.get_region_config_from_db(service, plugin_id, build_version)
+        region_api.update_service_plugin_config(response_region, tenant.tenant_name,
+                                                service.service_alias, plugin_id, region_config)
+
+    def __update_service_plugin_config(self, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
         service_plugin_var = []
         undefine_env = config_bean.undefine_env
@@ -505,9 +517,6 @@ class AppPluginService(object):
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
     def create_plugin_4marketsvc(self, region_name, tenant, service, version, plugins):
-        """
-        raise ServiceHandleException
-        """
         plugin_version_service.update_plugin_build_status(region_name, tenant)
         plugins = plugins if plugins is not None else []
         for plugin in plugins:
@@ -586,6 +595,29 @@ class AppPluginService(object):
             if category_info[1] == "in-and-out" and ("net-plugin:up" in categories or "net-plugin:down" in categories):
                 raise has_the_same_category_plugin
 
+    # if have export network plugin, will change config
+    def update_config_if_have_export_plugin(self, tenant, service):
+        plugins = self.get_service_abled_plugin(service)
+        for plugin in plugins:
+            if PluginCategoryConstants.OUTPUT_NET == plugin.category or \
+               PluginCategoryConstants.OUTPUT_INPUT_NET == plugin.category:
+                pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
+                if pbv:
+                    configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
+                    self.update_service_plugin_config(tenant, service, plugin.plugin_id,
+                                                      pbv.build_version, configs, service.service_region)
+
+    # if have entrance network plugin, will change config
+    def update_config_if_have_entrance_plugin(self, tenant, service):
+        plugins = self.get_service_abled_plugin(service)
+        for plugin in plugins:
+            if PluginCategoryConstants.INPUT_NET == plugin.category:
+                pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
+                if pbv:
+                    configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
+                    self.update_service_plugin_config(tenant, service, plugin.plugin_id,
+                                                      pbv.build_version, configs, service.service_region)
+
 
 class PluginService(object):
     def get_plugins_by_service_ids(self, service_ids):
@@ -597,12 +629,10 @@ class PluginService(object):
     def create_tenant_plugin(
             self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo):
         plugin_id = make_uuid()
-        if build_source == "dockerfile":
-            if not code_repo:
-                return 400, "代码仓库不能为空", None
-        if build_source == "image":
-            if not image:
-                return 400, "镜像地址不能为空", None
+        if build_source == "dockerfile" and not code_repo:
+            return 400, "代码仓库不能为空", None
+        if build_source == "image" and not image:
+            return 400, "镜像地址不能为空", None
         if category not in (PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET,
                             PluginCategoryConstants.INPUT_NET, PluginCategoryConstants.PERFORMANCE_ANALYSIS,
                             PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE):
@@ -786,5 +816,5 @@ class PluginService(object):
             return plugins
         else:
             q = Q(category="analyst-plugin:perf", image=PluginImage.RUNNER)
-            q |= Q(category="analyst-plugin:perf", image="goodrain.me")
+            q |= Q(category="analyst-plugin:perf", image=IMAGE_REPO)
             return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(q)

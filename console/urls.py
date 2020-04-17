@@ -9,6 +9,8 @@ from console.views.app_autoscaler import ListAppAutoscalerView
 from console.views.app_config.app_dependency import AppDependencyManageView
 from console.views.app_config.app_dependency import AppDependencyView
 from console.views.app_config.app_dependency import AppNotDependencyView
+from console.views.app_config.app_domain import AppServiceDomainQueryView
+from console.views.app_config.app_domain import AppServiceTcpDomainQueryView
 from console.views.app_config.app_domain import DomainQueryView
 from console.views.app_config.app_domain import DomainView
 from console.views.app_config.app_domain import GatewayCustomConfigurationView
@@ -19,8 +21,6 @@ from console.views.app_config.app_domain import SecondLevelDomainView
 from console.views.app_config.app_domain import ServiceDomainView
 from console.views.app_config.app_domain import ServiceTcpDomainQueryView
 from console.views.app_config.app_domain import ServiceTcpDomainView
-from console.views.app_config.app_domain import AppServiceDomainQueryView
-from console.views.app_config.app_domain import AppServiceTcpDomainQueryView
 from console.views.app_config.app_domain import TenantCertificateManageView
 from console.views.app_config.app_domain import TenantCertificateView
 from console.views.app_config.app_env import AppBuildEnvView
@@ -37,8 +37,8 @@ from console.views.app_config.app_port import AppTcpOuterManageView
 from console.views.app_config.app_port import TopologicalPortView
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import AppVolumeManageView
-from console.views.app_config.app_volume import AppVolumeView
 from console.views.app_config.app_volume import AppVolumeOptionsView
+from console.views.app_config.app_volume import AppVolumeView
 from console.views.app_create.app_build import AppBuild
 from console.views.app_create.app_build import ComposeBuildView
 from console.views.app_create.app_check import AppCheck
@@ -62,6 +62,8 @@ from console.views.app_create.source_outer import ThirdPartyServiceApiView
 from console.views.app_create.source_outer import ThirdPartyServiceCreateView
 from console.views.app_create.source_outer import ThirdPartyUpdateSecretKeyView
 from console.views.app_event import AppEventLogView
+from console.views.app_event import AppEventsLogView
+from console.views.app_event import AppEventsView
 from console.views.app_event import AppEventView
 from console.views.app_event import AppHistoryLogView
 from console.views.app_event import AppLogInstanceView
@@ -104,8 +106,9 @@ from console.views.center_pool.app_import import CenterAppImportingAppsView
 from console.views.center_pool.app_import import CenterAppImportView
 from console.views.center_pool.app_import import CenterAppTarballDirView
 from console.views.center_pool.app_import import CenterAppUploadView
-from console.views.center_pool.app_import import ImportingRecordView
 from console.views.center_pool.app_import import EnterpriseAppImportInitView
+from console.views.center_pool.app_import import ImportingRecordView
+from console.views.center_pool.apps import AppTagCDView
 from console.views.center_pool.apps import CenterAllMarketAppView
 from console.views.center_pool.apps import CenterAppCLView
 from console.views.center_pool.apps import CenterAppUDView
@@ -115,7 +118,6 @@ from console.views.center_pool.apps import DownloadMarketAppTemplateView
 from console.views.center_pool.apps import GetCloudRecommendedAppList
 from console.views.center_pool.apps import TagCLView
 from console.views.center_pool.apps import TagUDView
-from console.views.center_pool.apps import AppTagCDView
 from console.views.center_pool.groupapp_backup import AllTeamGroupAppsBackupView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupExportView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupImportView
@@ -131,6 +133,16 @@ from console.views.code_repo import GithubCodeRepoView
 from console.views.code_repo import GitlabCodeRepoView
 from console.views.code_repo import GitLabUserRegisterView
 from console.views.code_repo import ServiceCodeBranch
+from console.views.enterprise import EnterpriseAppOverView
+from console.views.enterprise import EnterpriseAppsLView
+from console.views.enterprise import EnterpriseAppComponentsLView
+from console.views.enterprise import EnterpriseMonitor
+from console.views.enterprise import EnterpriseOverview
+from console.views.enterprise import EnterpriseRUDView
+from console.views.enterprise import Enterprises
+from console.views.enterprise import EnterpriseTeamOverView
+from console.views.enterprise import EnterpriseTeams
+from console.views.enterprise import EnterpriseUserTeams
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_active import BindMarketEnterpriseOptimizAccessTokenView
 from console.views.file_upload import ConsoleUploadFileView
@@ -139,9 +151,23 @@ from console.views.group import TenantGroupCommonOperationView
 from console.views.group import TenantGroupOperationView
 from console.views.group import TenantGroupView
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigInfoView
+from console.views.logos import ConfigRUDView
 from console.views.logos import PhpConfigView
 from console.views.message import UserMessageView
+from console.views.oauth import EnterpriseOauthService
+from console.views.oauth import OauthConfig
+from console.views.oauth import OAuthGitCodeDetection
+from console.views.oauth import OAuthGitUserRepositories
+from console.views.oauth import OAuthGitUserRepository
+from console.views.oauth import OAuthGitUserRepositoryBranches
+from console.views.oauth import OAuthServerAuthorize
+from console.views.oauth import OAuthServerUserAuthorize
+from console.views.oauth import OauthService
+from console.views.oauth import OauthServiceInfo
+from console.views.oauth import OAuthServiceRedirect
+from console.views.oauth import OauthType
+from console.views.oauth import OAuthUserInfo
+from console.views.oauth import UserOAuthLink
 from console.views.plugin.plugin_config import ConfigPluginManageView
 from console.views.plugin.plugin_config import ConfigPreviewView
 from console.views.plugin.plugin_create import DefaultPluginCreateView
@@ -201,19 +227,19 @@ from console.views.role_prems import UserModifyPemView
 from console.views.role_prems import UserRoleView
 from console.views.role_prems import UserUpdatePemView
 from console.views.service_docker import DockerContainerView
+from console.views.service_share import CloudAppModelMarketInfo
+from console.views.service_share import CloudAppModelMarkets
+from console.views.service_share import ServiceGroupSharedApps
 from console.views.service_share import ServicePluginShareEventPost
 from console.views.service_share import ServiceShareCompleteView
 from console.views.service_share import ServiceShareDeleteView
 from console.views.service_share import ServiceShareEventList
 from console.views.service_share import ServiceShareEventPost
 from console.views.service_share import ServiceShareInfoView
-from console.views.service_share import ServiceShareRecordView
 from console.views.service_share import ServiceShareRecordInfoView
-from console.views.service_share import ShareRecordView
-from console.views.service_share import ServiceGroupSharedApps
+from console.views.service_share import ServiceShareRecordView
 from console.views.service_share import ShareRecordHistoryView
-from console.views.service_share import CloudAppModelMarkets
-from console.views.service_share import CloudAppModelMarketInfo
+from console.views.service_share import ShareRecordView
 from console.views.service_version import AppVersionManageView
 from console.views.service_version import AppVersionsView
 from console.views.services_toplogical import GroupServiceDetView
@@ -222,11 +248,11 @@ from console.views.services_toplogical import TopologicalInternetView
 from console.views.task_guidance import BaseGuidance
 from console.views.team import AddTeamView
 from console.views.team import AdminAddUserView
-from console.views.team import AllTeamsView
 from console.views.team import ApplicantsView
 from console.views.team import CertificateView
 from console.views.team import EnterpriseInfoView
 from console.views.team import JoinTeamView
+from console.views.team import NotJoinTeamUserView
 from console.views.team import RegisterStatusView
 from console.views.team import TeamDelView
 from console.views.team import TeamDetailView
@@ -245,15 +271,17 @@ from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
 from console.views.team import UserFuzSerView
+from console.views.user import AdminUserDView
+from console.views.user import AdminUserLCView
+from console.views.user import CheckSourceView
 from console.views.user import EnterPriseUsersCLView
 from console.views.user import EnterPriseUsersUDView
-from console.views.user import AdminUserLCView
-from console.views.user import AdminUserDView
-from console.views.user import CheckSourceView
 from console.views.user import UserAddPemView
 from console.views.user import UserLogoutView
 from console.views.user import UserPemTraView
 from console.views.user import UserPemView
+from console.views.user_accesstoken import UserAccessTokenCLView
+from console.views.user_accesstoken import UserAccessTokenRUDView
 from console.views.user_operation import ChangeLoginPassword
 from console.views.user_operation import PasswordResetBegin
 from console.views.user_operation import SendResetEmail
@@ -261,15 +289,6 @@ from console.views.user_operation import TenantServiceView
 from console.views.user_operation import UserDetailsView
 from console.views.user_operation import UserFavoriteLCView
 from console.views.user_operation import UserFavoriteUDView
-from console.views.enterprise import Enterprises
-from console.views.enterprise import EnterpriseInfo
-from console.views.enterprise import EnterpriseAppOverView
-from console.views.enterprise import EnterpriseTeamOverView
-from console.views.enterprise import EnterpriseOverview
-from console.views.enterprise import EnterpriseAppsLView
-from console.views.enterprise import EnterpriseTeams
-from console.views.enterprise import EnterpriseMonitor
-from console.views.enterprise import EnterpriseUserTeams
 from console.views.webhook import CustomWebHooksDeploy
 from console.views.webhook import GetWebHooksUrl
 from console.views.webhook import ImageWebHooksDeploy
@@ -277,28 +296,11 @@ from console.views.webhook import ImageWebHooksTrigger
 from console.views.webhook import UpdateSecretKey
 from console.views.webhook import WebHooksDeploy
 from console.views.webhook import WebHooksStatus
-from console.views.app_event import AppEventsView
-from console.views.app_event import AppEventsLogView
-from console.views.oauth import OAuthServiceRedirect
-from console.views.oauth import OAuthServerAuthorize
-from console.views.oauth import OAuthUserInfo
-from console.views.oauth import UserOAuthLink
-from console.views.oauth import OAuthGitUserRepository
-from console.views.oauth import OAuthGitUserRepositories
-from console.views.oauth import OAuthGitUserRepositoryBranches
-from console.views.oauth import OauthService
-from console.views.oauth import OauthConfig
-from console.views.oauth import OauthType
-from console.views.oauth import OauthServiceInfo
-from console.views.oauth import OAuthServerUserAuthorize
-from console.views.oauth import OAuthGitCodeDetection
-from console.views.app.apps import AppLView
-from console.views.oauth import EnterpriseOauthService
 
 
 urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
-    url(r'^config/info$', ConfigInfoView.as_view()),
+    url(r'^config/info$', ConfigRUDView.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view()),
     url(r"^oauth/oauth-services$", OauthService.as_view()),
@@ -336,6 +338,8 @@ urlpatterns = [
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
     url(r'^users/query$', UserFuzSerView.as_view()),
+    url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
+    url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
     # 移交团队管理权
@@ -351,6 +355,8 @@ urlpatterns = [
     url(r'^teams/add-teams$', AddTeamView.as_view()),
     # 获取团队下所有用户
     url(r'^teams/(?P<team_name>[\w\-]+)/users$', TeamUserView.as_view()),
+    # 获取企业下未加入当前团队的用户列表
+    url(r'^teams/(?P<team_name>[\w\-]+)/notjoinusers$', NotJoinTeamUserView.as_view()),
     # 获取当前用户在团队下是否为管理员或拥有者
     url(r'^teams/(?P<team_name>[\w\-]+)/users/is_admin$', TeamUserAdminView.as_view()),
     # 添加新用户
@@ -726,16 +732,6 @@ urlpatterns = [
     # url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
 
-    # 好雨云市应用同步
-    # 同步应用
-    # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/all_apps$', DownloadMarketAppGroupView.as_view()),
-
-    # 查询查询云端app
-    # url(r'^app_market/all$', CenterAllMarketAppView.as_view()),
-    # url(r'^app_market/recommend/apps', GetCloudRecommendedAppList.as_view()),
-    # # 查询云端指定版本app
-    # url(r'^app_market/version$', CenterVersionlMarversionketAppView.as_view()),
-
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
     # 云市认证
@@ -829,8 +825,6 @@ urlpatterns = [
         AppVersionManageView.as_view()),
     # 获取当前团队所有的申请者
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
-    # 获取企业下所有团队的列表
-    url(r'^enterprise/teams$', AllTeamsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
@@ -838,18 +832,13 @@ urlpatterns = [
     url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team/(?P<team_name>[\w\-]+)/apps$', AppLView.as_view()),
-
-    # # 获取企业下所有用户信息(企业中心中：删除用户)
-    # url(r'^enterprise/users$', AllUserView.as_view()),
-    # # 企业中心模糊查询团队
-    # url(r'^enterprise/tenants/query', TenantsView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$',
         BindMarketEnterpriseOptimizAccessTokenView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$',  QyeryRegionView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
@@ -862,6 +851,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$',
+        EnterpriseAppComponentsLView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
@@ -892,15 +883,12 @@ urlpatterns = [
     # 应用下载
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
-    # 下架应用
-    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/manage$', CenterAppManageView.as_view()),
-
+    # 查询登录用户可以加入哪些团队
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
     url(r"^user/applicants/join$", JoinTeamView.as_view()),
-    # 查询指定用户可以加入哪些团队
-    url(r"^user/jointeams$", TeamUserCanJoin.as_view()),
     # 修改部署密钥
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/updatekey$",
         UpdateSecretKey.as_view()),

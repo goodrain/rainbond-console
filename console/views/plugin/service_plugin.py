@@ -87,7 +87,7 @@ class ServicePluginInstallView(AppBaseView):
         result = {}
         build_version = request.data.get("build_version", None)
         if not plugin_id:
-            return Response(general_message(400, "params error", "参数错误"), status=400)
+            return Response(general_message(400, "not found plugin_id", "参数错误"), status=400)
         app_plugin_service.check_the_same_plugin(plugin_id, self.tenant.tenant_id, self.service.service_id)
         app_plugin_service.install_new_plugin(self.response_region, self.tenant, self.service, plugin_id, build_version)
 
@@ -163,11 +163,11 @@ class ServicePluginOperationView(AppBaseView):
         """
         try:
             if not plugin_id:
-                return Response(general_message(400, "params error", "参数异常"), status=400)
+                return Response(general_message(400, "not found plugin_id", "参数异常"), status=400)
             is_active = request.data.get("is_switch", True)
             service_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
             if not service_plugin_relation:
-                return Response(general_message(404, "params error", "未找到组件使用的插件"), status=404)
+                return Response(general_message(404, "not found plugin relation", "未找到组件使用的插件"), status=404)
             else:
                 build_version = service_plugin_relation.build_version
             pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
@@ -268,23 +268,14 @@ class ServicePluginConfigView(AppBaseView):
               paramType: body
 
         """
-        sid = None
         config = json.loads(request.body)
         if not config:
             return Response(general_message(400, "params error", "参数配置不可为空"), status=400)
         pbv = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
         if not pbv:
             return Response(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status=400)
-        sid = transaction.savepoint()
-        # 删除原有配置
-        app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
-        # 全量插入新配置
-        app_plugin_service.update_service_plugin_config(self.service, plugin_id, pbv.build_version, config)
-        # 更新数据中心配置
-        region_config = app_plugin_service.get_region_config_from_db(self.service, plugin_id, pbv.build_version)
-        region_api.update_service_plugin_config(
-            self.response_region, self.tenant.tenant_name, self.service.service_alias, plugin_id, region_config)
-        # 提交操作
-        transaction.savepoint_commit(sid)
+        # update service plugin config
+        app_plugin_service.update_service_plugin_config(self.tenant, self.service, plugin_id,
+                                                        pbv.build_version, config, self.response_region)
         result = general_message(200, "success", "配置更新成功")
         return Response(result, result["code"])

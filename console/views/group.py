@@ -5,7 +5,7 @@
 import logging
 from rest_framework.response import Response
 
-from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.group import group_service_relation_repo
 from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
@@ -110,23 +110,19 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                   paramType: form
 
         """
-        try:
-            group_name = request.data.get("group_name", None)
-            group_id = int(kwargs.get("group_id", None))
-            group_note = request.data.get("group_note", "")
-            if group_note and len(group_note) > 2048:
-                return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-            group_service.update_group(self.tenant, self.response_region, group_id, group_name, group_note)
-            result = general_message(200, "success", "修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        group_name = request.data.get("group_name", None)
+        group_id = int(kwargs.get("group_id", None))
+        group_note = request.data.get("group_note", "")
+        if group_note and len(group_note) > 2048:
+            return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
+        group_service.update_group(self.tenant, self.response_region, group_id, group_name, group_note)
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
     @perm_required("manage_group")
     def delete(self, request, *args, **kwargs):
         """
-            删除组信息
+            删除应用
             ---
             parameters:
                 - name: tenantName
@@ -144,10 +140,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         try:
             group_id = int(kwargs.get("group_id", None))
             service = group_service_relation_repo.get_service_by_group(group_id)
-            group_object = group_repo.get_group_by_id(group_id)
-            if group_object.is_default:
-                result = general_message(400, "默认应用不允许删除", None)
-                return Response(result, status=result["code"])
             if not service:
                 code, msg, data = group_service.delete_group_no_service(group_id)
             else:

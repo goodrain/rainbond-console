@@ -107,7 +107,7 @@ class TenantServicePluginRelation(BaseModel):
     plugin_status = models.BooleanField(default=True, blank=True, help_text=u"插件状态")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     min_memory = models.IntegerField(help_text=u"构建内存大小")
-    min_cpu = models.IntegerField(help_text=u"构建cpu大小")
+    min_cpu = models.IntegerField(null=True, blank=True, help_text=u"构建cpu大小")
 
 
 class TenantServicePluginAttr(BaseModel):

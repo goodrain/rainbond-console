@@ -36,10 +36,10 @@ class PluginVersionRepository(object):
 
     def create_if_not_exist(self, **plugin_build_version):
         try:
-            PluginBuildVersion.objects.get(
+            return PluginBuildVersion.objects.get(
                 plugin_id=plugin_build_version["plugin_id"], tenant_id=plugin_build_version["tenant_id"])
         except PluginBuildVersion.DoesNotExist:
-            PluginBuildVersion.objects.create(**plugin_build_version)
+            return PluginBuildVersion.objects.create(**plugin_build_version)
 
 
 build_version_repo = PluginVersionRepository()

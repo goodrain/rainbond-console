@@ -143,11 +143,16 @@ class ServiceGroupView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: path
+            - name: query
+              description: 应用搜索名称
+              required: false
+              type: string
+              paramType: query
         """
         try:
             code = 200
-
-            groups_services = group_service.get_groups_and_services(self.tenant, self.response_region)
+            query = request.GET.get("query", "")
+            groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
             return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
         except Exception as e:
             logger.exception(e)
@@ -457,11 +462,12 @@ class TeamAppSortViewView(RegionTenantHeaderView):
             app_num_dict = {"total": total}
             start = (page - 1) * page_size
             end = page * page_size
+            apps = []
             if groups:
                 group_ids = [group.ID for group in groups]
-            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region,
-                                                         self.team_name, self.team.enterprise_id)
-            apps = apps[start:end]
+                apps = group_service.get_multi_apps_all_info(group_ids, self.response_region,
+                                                             self.team_name, self.team.enterprise_id)
+                apps = apps[start:end]
             return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
         except Exception as e:
             logger.exception(e)
@@ -471,6 +477,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
 
 # 团队下应用环境变量模糊查询
 class TenantServiceEnvsView(RegionTenantHeaderView):
+
     def get(self, request, *args, **kwargs):
         attr_name = request.GET.get("attr_name", None)
         attr_value = request.GET.get("attr_value", None)

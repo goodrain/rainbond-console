@@ -2,9 +2,10 @@
 """
   Created on 18/1/19.
 """
-import logging
 import copy
+import logging
 
+from console.enum.component_enum import is_state
 from console.exception.main import ErrDepVolumeNotFound
 from console.repositories.app import service_repo
 from console.repositories.app_config import mnt_repo
@@ -14,7 +15,6 @@ from console.repositories.group import group_service_relation_repo
 from console.services.app_config.volume_service import AppVolumeService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from console.enum.component_enum import is_state
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -154,7 +154,7 @@ class AppMntService(object):
     def batch_mnt_serivce_volume(self, tenant, service, dep_vol_data):
         local_path = []
         tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
-        local_path = [l_path.volume_path for l_path in tenant_service_volumes]
+        local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
         for dep_vol in dep_vol_data:
             volume_service.check_volume_path(service, dep_vol["path"], local_path=local_path)
         for dep_vol in dep_vol_data:
@@ -238,3 +238,34 @@ class AppMntService(object):
                 logger.debug('service mnt relation not in region then delete rel directly in console')
                 mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id, dep_volume.volume_name)
         return 200, "success"
+
+    def get_volume_dependent(self, tenant, service):
+        mnts = mnt_repo.get_by_dep_service_id(tenant.tenant_id, service.service_id)
+        if not mnts:
+            return None
+
+        service_ids = [mnt.service_id for mnt in mnts]
+        services = service_repo.get_services_by_service_ids(service_ids)
+        # to dict
+        id_to_services = {}
+        for svc in services:
+            if not id_to_services.get(svc.service_id, None):
+                id_to_services[svc.service_id] = [svc]
+                continue
+            id_to_services[svc.service_id].append(svc)
+
+        result = []
+        for mnt in mnts:
+            # get volume
+            vol = volume_repo.get_service_volume_by_name(service.service_id, mnt.mnt_name)
+
+            # services that depend on this volume
+            services_dep_vol = id_to_services[mnt.service_id]
+            for svc in services_dep_vol:
+                result.append({
+                    "volume_name": vol.volume_name,
+                    "service_name": svc.service_cname,
+                    "service_alias": svc.service_alias,
+                })
+
+        return result

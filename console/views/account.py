@@ -189,7 +189,7 @@ class GoodrainSSONotify(AlowAnyApiView):
                 user.save()
 
             logger.debug('account.login', "enterprise id {0}".format(enterprise.enterprise_id))
-            teams = team_services.get_enterprise_teams(enterprise.enterprise_id)
+            teams, _ = team_services.get_enterprise_teams(enterprise.enterprise_id)
             data_list = [{
                 'uid': user.sso_user_id,
                 'tenant_id': t.tenant_id,

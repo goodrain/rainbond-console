@@ -225,7 +225,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         access_token, _ = self._get_access_token()
         name = full_name.split("/")[-1]
         repo = self.api.projects.list(search=name)[0]
-        url = "http://{host}/{endpoint}".format(host=host, endpoint=endpoint)
+        url = "{host}/{endpoint}".format(host=host, endpoint=endpoint)
         return repo.hooks.create({'url': url, 'push_events': 1})
 
     def get_clone_user_password(self):

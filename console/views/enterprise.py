@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import logging
-import json
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,16 +7,22 @@ from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
+from console.exception.main import ServiceHandleException
+from console.exception.exceptions import UserNotExistError
+from console.services.config_service import EnterpriseConfigService
 from console.services.user_services import user_services
 from console.services.enterprise_services import enterprise_services
 from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.exceptions import UserRoleNotFoundException
+from console.exception.exceptions import TenantNotExistError
+from console.repositories.group import group_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
 from console.views.base import JWTAuthApiView
+from console.services.team_services import team_services
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -46,16 +51,63 @@ class Enterprises(JWTAuthApiView):
             data = general_message(200, "success", "查询成功", list=enterprises_list)
             return Response(data, status=status.HTTP_200_OK)
         else:
-            data = general_message(404, "no found", "未找到企业")
+            data = general_message(404, "no found enterprise", "未找到企业")
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
-class EnterpriseInfo(JWTAuthApiView):
+class EnterpriseRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
         ent = enter.to_dict()
-        result = general_message(200, "success", "查询成功", bean=ent)
+        if ent:
+            ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
+        result = general_message(200, "success", u"查询成功", bean=ent)
+
         return Response(result, status=result["code"])
+
+    def put(self, request, enterprise_id, *args, **kwargs):
+        key = request.GET.get("key")
+        if not key:
+            result = general_message(404, "no found config key {0}".format(key), u"更新失败")
+            return Response(result, status=result.get("code", 200))
+        value = request.data.get(key)
+        if not value:
+            result = general_message(404, "no found config value", u"更新失败")
+            return Response(result, status=result.get("code", 200))
+        ent_config_servier = EnterpriseConfigService(enterprise_id)
+        key = key.upper()
+        if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
+            data = ent_config_servier.update_config(key, value)
+            try:
+                result = general_message(200, "success", u"更新成功", bean=data)
+            except Exception as e:
+                logger.debug(e)
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show=u"更新失败")
+        else:
+            result = general_message(404, "no found config key", u"更新失败")
+        return Response(result, status=result.get("code", 200))
+
+    def delete(self, request, enterprise_id, *args, **kwargs):
+        key = request.GET.get("key")
+        if not key:
+            result = general_message(404, "no found config key", u"重置失败")
+            return Response(result, status=result.get("code", 200))
+        value = request.data.get(key)
+        if not value:
+            result = general_message(404, "no found config value", u"重置失败")
+            return Response(result, status=result.get("code", 200))
+        ent_config_servier = EnterpriseConfigService(enterprise_id)
+        key = key.upper()
+        if key in ent_config_servier.cfg_keys:
+            data = ent_config_servier.delete_config(key)
+            try:
+                result = general_message(200, "success", u"重置成功", bean=data)
+            except Exception as e:
+                logger.debug(e)
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show=u"重置失败")
+        else:
+            result = general_message(404, "can not delete key value", u"该配置不可重置")
+        return Response(result, status=result.get("code", 200))
 
 
 class EnterpriseAppOverView(JWTAuthApiView):
@@ -93,48 +145,14 @@ class EnterpriseTeams(JWTAuthApiView):
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
-        teams_list = []
-        teams = enterprise_repo.get_enterprise_teams(enterprise_id, name)
-        if teams:
-            try:
-                rst_teams = teams[(page-1)*page_size:page*page_size]
-            except Exception:
-                rst_teams = []
-            if rst_teams:
-                for team in rst_teams:
-                    user = user_repo.get_user_by_user_id(team.creater)
-                    try:
-                        role = user_role_repo.get_role_names(user.user_id, team.tenant_id)
-                    except UserRoleNotFoundException:
-                        if team.creater == user.user_id:
-                            role = "owner"
-                        else:
-                            role = None
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(team.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
-                    teams_list.append({
-                        "tenant_id": team.tenant_id,
-                        "team_alias": team.tenant_alias,
-                        "owner": team.creater,
-                        "owner_name": user.nick_name,
-                        "enterprise_id": enterprise_id,
-                        "create_time": team.create_time,
-                        "team_name": team.tenant_name,
-                        "region": team.region,
-                        "region_list": region_name_list,
-                        "role": role,
-                    })
-            data = {
-                "total_count": len(teams),
-                "page": page,
-                "page_size": page_size,
-                "list": teams_list
-            }
-            result = general_message(200, "success", None, bean=data)
-        else:
-            result = general_message(404, "no found", None)
+        teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, page=page, page_size=page_size)
+        data = {
+            "total_count": total,
+            "page": page,
+            "page_size": page_size,
+            "list": teams
+        }
+        result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
 
@@ -147,38 +165,8 @@ class EnterpriseUserTeams(JWTAuthApiView):
             result = general_message(400, "failed", "请求失败")
             return Response(result, status=code)
         try:
-            tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user_id, name)
-            if tenants:
-                teams_list = list()
-                for tenant in tenants:
-                    user = user_repo.get_user_by_user_id(tenant.creater)
-                    try:
-                        role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
-                    except UserRoleNotFoundException:
-                        if tenant.creater == user.user_id:
-                            role = "owner"
-                        else:
-                            role = None
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
-                    teams_list.append({
-                        "team_name": tenant.tenant_name,
-                        "team_alias": tenant.tenant_alias,
-                        "team_id": tenant.tenant_id,
-                        "create_time": tenant.create_time,
-                        "region": tenant.region,
-                        "region_list": region_name_list,
-                        "enterprise_id": tenant.enterprise_id,
-                        "owner": tenant.creater,
-                        "owner_name": user.nick_name,
-                        "role": role
-                    })
-                result = general_message(200, "team query success", "成功获取该用户加入的团队", list=teams_list)
-            else:
-                teams_list = []
-                result = general_message(200, "team query success", "该用户没有加入团队", bean=teams_list)
+            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user_id, name)
+            result = general_message(200, "team query success", "查询成功", list=tenants)
         except Exception as e:
             logger.exception(e)
             code = 400
@@ -230,7 +218,11 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
-                    user = user_repo.get_user_by_user_id(tenant_info.creater)
+                    try:
+                        user = user_repo.get_user_by_user_id(tenant_info.creater)
+                        nick_name = user.nick_name
+                    except UserNotExistError:
+                        nick_name = None
                     new_join_team.append({
                         "team_name": tenant.team_name,
                         "team_alias": tenant.team_alias,
@@ -240,7 +232,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "region_list": region_name_list,
                         "enterprise_id": tenant_info.enterprise_id,
                         "owner": tenant_info.creater,
-                        "owner_name": user.nick_name,
+                        "owner_name": nick_name,
                         "role": None,
                         "is_pass": tenant.is_pass,
                     })
@@ -250,6 +242,12 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     region_list = team_repo.get_team_regions(request_tenant.team_id)
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
+                    tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
+                    try:
+                        user = user_repo.get_user_by_user_id(tenant_info.creater)
+                        nick_name = user.nick_name
+                    except UserNotExistError:
+                        nick_name = None
                     request_join_team.append({
                         "team_name": request_tenant.team_name,
                         "team_alias": request_tenant.team_alias,
@@ -260,8 +258,8 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "region": team_repo.get_team_by_team_id(request_tenant.team_id).region,
                         "region_list": region_name_list,
                         "enterprise_id": enterprise_id,
-                        "owner": self.user.user_id,
-                        "owner_name": self.user.nick_name,
+                        "owner": tenant_info.creater,
+                        "owner_name": nick_name,
                         "role": "viewer",
                         "is_pass": request_tenant.is_pass,
                     })
@@ -314,21 +312,54 @@ class EnterpriseMonitor(JWTAuthApiView):
 class EnterpriseAppsLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         data = []
-        name = request.GET.get("name", None)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(
-            enterprise_id, self.user, name, page, page_size)
+            enterprise_id, self.user, page, page_size)
         if enterprise_apps:
             for app in enterprise_apps:
+                try:
+                    tenant = team_services.get_team_by_team_id(app.tenant_id)
+                    tenant_name = tenant.tenant_name
+                except TenantNotExistError:
+                    tenant_name = None
                 data.append({
                     "ID": app.ID,
                     "group_name": app.group_name,
                     "tenant_id": app.tenant_id,
-                    "tenant_name": app.tenant_name,
-                    "region_name": app.region_name,
-                    "service_list": json.loads(app.service_list) if app.service_list else []
+                    "tenant_name": tenant_name,
+                    "region_name": app.region_name
                 })
         result = general_message(200, "success", "获取成功", list=data,
                                  total_count=apps_count, page=page, page_size=page_size)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseAppComponentsLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, app_id, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        data = []
+        count = 0
+        app = group_repo.get_group_by_id(app_id)
+        if app:
+            try:
+                tenant = team_services.get_team_by_team_id(app.tenant_id)
+                tenant_name = tenant.tenant_name
+            except Exception:
+                tenant_name = None
+            services, count = enterprise_repo.get_enterprise_app_component_list(app_id, page, page_size)
+            if services:
+                for service in services:
+                    data.append({
+                        "service_alias": service.service_alias,
+                        "service_id": service.service_id,
+                        "tenant_id": app.tenant_id,
+                        "tenant_name": tenant_name,
+                        "region_name": service.service_region,
+                        "service_cname": service.service_cname,
+                        "service_key": service.service_key,
+                    })
+        result = general_message(200, "success", "获取成功", list=data,
+                                 total_count=count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)

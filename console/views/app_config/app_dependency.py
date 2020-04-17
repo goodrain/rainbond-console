@@ -117,7 +117,7 @@ class AppDependencyView(AppBaseView):
             code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
                                                                         container_port)
             if code == 201:
-                result = general_message(code, "add dependency error", msg, list=data, bean={"is_inner": False})
+                result = general_message(code, "add dependency success", msg, list=data, bean={"is_inner": False})
                 return Response(result, status=code)
             if code != 200:
                 result = general_message(code, "add dependency error", msg, list=data)

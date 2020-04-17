@@ -378,7 +378,10 @@ class AppPortService(object):
 
             deal_port.lb_mapping_port = lb_mapping_port
         deal_port.save()
-
+        # component port change, will change entrance network governance plugin configuration
+        if service.create_status == "complete":
+            from console.services.plugin import app_plugin_service
+            app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
     def __only_open_outer(self, tenant, service, region, deal_port):
@@ -444,6 +447,10 @@ class AppPortService(object):
                 for service_tcp_domain in service_tcp_domains:
                     service_tcp_domain.is_outer_service = False
                     service_tcp_domain.save()
+        # component port change, will change entrance network governance plugin configuration
+        if service.create_status == "complete":
+            from console.services.plugin import app_plugin_service
+            app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
     def __open_inner(self, tenant, service, deal_port):
@@ -475,6 +482,10 @@ class AppPortService(object):
             logger.debug("open inner port {0}".format(body))
 
         deal_port.save()
+        # component port change, will change entrance network governance plugin configuration
+        if service.create_status == "complete":
+            from console.services.plugin import app_plugin_service
+            app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
     def __close_inner(self, tenant, service, deal_port):
@@ -486,6 +497,10 @@ class AppPortService(object):
                                              "enterprise_id": tenant.enterprise_id
                                          })
         deal_port.save()
+        # component port change, will change entrance network governance plugin configuration
+        if service.create_status == "complete":
+            from console.services.plugin import app_plugin_service
+            app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
     def __change_protocol(self, tenant, service, deal_port, protocol):
@@ -601,7 +616,13 @@ class AppPortService(object):
             port_info_list = []
             for p in http_outer_port:
                 port_dict = p.to_dict()
-                port_dict["access_urls"] = self.__get_port_access_url(tenant, service, p.container_port)
+                access_urls = self.__get_port_access_url(tenant, service, p.container_port)
+                if not access_urls:
+                    port_and_url = self.__get_stream_outer_url(tenant, service, p)
+                    if port_and_url:
+                        access_type = ServicePortConstants.NOT_HTTP_OUTER
+                        access_urls = [port_and_url]
+                port_dict["access_urls"] = access_urls
                 port_dict["service_cname"] = service.service_cname
                 port_info_list.append(port_dict)
             return access_type, port_info_list
@@ -657,26 +678,6 @@ class AppPortService(object):
                 return service_tcp_domain.end_point
             else:
                 return None
-        # cur_region = service.service_region.replace("-1", "")
-        # connect_url = "{0}.{1}.{2}-s1.goodrain.net".format(service.service_alias, tenant.tenant_name,
-        #                                                    cur_region)
-        #
-        # tcp_domain_url = region_services.get_region_tcpdomain(service.service_region)
-        # connect_url = "{0}.{1}.{2}.{3}".format(port.container_port, service.service_alias, tenant.tenant_name, tcp_domain_url)
-        # if port.protocol != 'http' and port.protocol != "https":
-        #     connect_url = tcp_domain_url
-
-        # if port.lb_mapping_port != 0:
-        #     port_value = port.lb_mapping_port
-        # else:
-        #     port_value = port.mapping_port
-        #
-        # url_map = {"name": "对外访问连接地址", "attr_name": "outer_url", "attr_value": connect_url}
-        # port_map = {"name": "对外访问连接端口", "attr_name": "outer_port", "attr_value": port_value}
-
-        #
-        # # return [url_map, port_map]
-        # return "{0}:{1}".format(url_map["attr_value"], port_map["attr_value"])
 
     def get_port_associated_env(self, tenant, service, port):
 
@@ -692,18 +693,6 @@ class AppPortService(object):
         return env_list
 
     def __get_port_access_url(self, tenant, service, port):
-        # domain = region_services.get_region_httpdomain(service.service_region)
-        # suf_port = 80
-        # if domain:
-        #     if ":" in domain:
-        #         domain_split = domain.split(":")
-        #         if len(domain_split) == 2:
-        #             suf_port = int(domain_split[1])
-        #             domain = str(domain_split[0])
-        #
-        #     url = "http://{0}.{1}.{2}.{3}:{4}".format(port, service.service_alias, tenant.tenant_name,
-        #                                              domain,
-        #                                               suf_port)
         urls = []
         domains = domain_repo.get_service_domain_by_container_port(service.service_id, port)
         if domains:

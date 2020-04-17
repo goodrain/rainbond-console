@@ -13,7 +13,6 @@ from console.exception.exceptions import NoEnableRegionError
 from console.exception.exceptions import ParamsError
 from console.exception.exceptions import PermTenantsExistError
 from console.exception.exceptions import TenantExistError
-from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
 from console.models.main import UserMessage
@@ -26,7 +25,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
-from console.services.config_service import config_service
+from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.enterprise_services import enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
@@ -272,59 +271,56 @@ class TeamUserView(JWTAuthApiView):
               type: string
               paramType: query
         """
-        try:
-            code = 200
-            page = request.GET.get("page", 1)
-            # 获得租户/团队 对象
-            user_list = team_services.get_tenant_users_by_tenant_name(tenant_name=team_name)
+        code = 200
+        page = request.GET.get("page", 1)
+        user_list = team_services.get_tenant_users_by_tenant_name(tenant_name=team_name)
+        if not user_list:
+            users = []
+            total = 0
+        else:
             users_list = list()
             for user in user_list:
-                # 获取一个用户在一个团队中的身份列表
-                perms_identitys_list = team_services.get_user_perm_identitys_in_permtenant(
-                    user_id=user.user_id, tenant_name=team_name)
-                # 获取一个用户在一个团队中的角色ID列表
+                # get role list
                 perms_role_list = team_services.get_user_perm_role_id_in_permtenant(
                     user_id=user.user_id, tenant_name=team_name)
-
                 role_info_list = []
-
-                for identity in perms_identitys_list:
-                    if identity == "access":
-                        role_info_list.append({"role_name": identity, "role_id": None})
-                    else:
-                        role_id = role_repo.get_role_id_by_role_name(identity)
-                        role_info_list.append({"role_name": identity, "role_id": role_id})
                 for role in perms_role_list:
                     role_name = role_repo.get_role_name_by_role_id(role)
                     role_info_list.append({"role_name": role_name, "role_id": role})
 
                 users_list.append({
                     "user_id": user.user_id,
-                    "user_name": user.nick_name,
+                    "user_name": user.get_name(),
                     "email": user.email,
                     "role_info": role_info_list
                 })
             paginator = Paginator(users_list, 8)
+            total = paginator.count
             try:
                 users = paginator.page(page).object_list
             except PageNotAnInteger:
                 users = paginator.page(1).object_list
             except EmptyPage:
                 users = paginator.page(paginator.num_pages).object_list
-            result = general_message(code, "team members query success", "查询成功", list=users, total=paginator.count)
-        except UserNotExistError as e:
-            code = 400
-            logger.exception(e)
-            result = general_message(code, "user not exist", e.message)
-        except TenantNotExistError as e:
-            code = 400
-            logger.exception(e)
-            result = general_message(code, "tenant not exist", "{}团队不存在".format(team_name))
-        except Exception as e:
-            code = 500
-            logger.exception(e)
-            result = general_message(code, "system error", "系统异常")
+        result = general_message(code, "team members query success", "查询成功", list=users, total=total)
         return Response(data=result, status=code)
+
+
+class NotJoinTeamUserView(JWTAuthApiView):
+    def get(self, request, team_name, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        query = request.GET.get("query")
+        tenant = team_repo.get_tenant_by_tenant_name(team_name)
+        if not tenant:
+            result = general_message(404, "not found", "团队不存在")
+            return Response(data=result, status=404)
+        enterprise = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
+        user_list = team_services.get_not_join_users(enterprise, tenant, query)
+        total = len(user_list)
+        data = user_list[(page-1)*page_size:page*page_size]
+        result = general_message(200, None, None, list=data, page=page, page_size=page_size, total=total)
+        return Response(data=result, status=200)
 
 
 class TeamUserAddView(JWTAuthApiView):
@@ -859,46 +855,11 @@ class ApplicantsView(JWTAuthApiView):
             message_id=message_id, receiver_id=user_id, content=content, msg_type="warn", title="用户加入团队信息")
 
 
-class AllTeamsView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
-        """
-        获取企业可加入的团队列表
-        """
-        try:
-            enterprise_id = request.GET.get("enterprise_id", None)
-            tenant_alias = request.GET.get("tenant_alias", None)
-            page_num = int(request.GET.get("page_num", 1))
-            page_size = int(request.GET.get("page_size", 5))
-            if not enterprise_id:
-                enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
-                enterprise_id = enter.enterprise_id
-            if tenant_alias:
-                team_list = team_services.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(
-                    enterprise_id=enterprise_id, tenant_alias=tenant_alias)
-            else:
-                team_list = team_services.get_enterprise_teams(enterprise_id)
-            team_paginator = JuncheePaginator(team_list, int(page_size))
-            total = team_paginator.count
-            page_team = team_paginator.page(page_num)
-            t_list = [{
-                "enterprise_id": team_info.enterprise_id,
-                "create_time": team_info.create_time,
-                "team_name": team_info.tenant_name,
-                "team_alias": team_info.tenant_alias,
-                "owner": user_repo.get_user_nickname_by_id(user_id=team_info.creater)
-            } for team_info in page_team]
-            result = general_message(200, "success", "查询成功", list=t_list, total=total)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
-
 class RegisterStatusView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         try:
-            register_config = config_service.get_regist_status()
-            if register_config is False:
+            register_config = platform_config_service.get_config_by_key("IS_REGIST")
+            if register_config.enable is False:
                 return Response(
                     general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}),
                     status=200)
@@ -922,11 +883,11 @@ class RegisterStatusView(JWTAuthApiView):
 
                 if is_regist is False:
                     # 修改全局配置
-                    config_service.update_config("IS_REGIST", False)
+                    platform_config_service.update_config("IS_REGIST", {"enable": False, "value": None})
 
                     return Response(general_message(200, "close register", "关闭注册"), status=200)
                 else:
-                    config_service.update_config("IS_REGIST", True)
+                    platform_config_service.update_config("IS_REGIST", {"enable": True, "value": None})
                     return Response(general_message(200, "open register", "开启注册"), status=200)
             else:
                 return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
@@ -996,22 +957,14 @@ class JoinTeamView(JWTAuthApiView):
 
     def post(self, request, *args, **kwargs):
         """指定用户加入指定团队"""
-        try:
-            user_id = self.user.user_id
-            team_name = request.data.get("team_name")
-            tenant = Tenants.objects.filter(tenant_name=team_name).first()
-            info = apply_service.create_applicants(user_id=user_id, team_name=team_name)
-            if not info:
-                result = general_message(200, "already apply", "已申请")
-                return Response(result, status=result["code"])
-            else:
-                result = general_message(200, "apply success", "申请加入")
-                logger.debug('--------tenant.ID-------->{0}'.format(tenant.ID))
-                admins = team_repo.get_tenant_admin_by_tenant_id(tenant_id=tenant.ID)
-                self.send_user_message_to_tenantadmin(admins=admins, team_name=team_name, nick_name=self.user.nick_name)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        user_id = self.user.user_id
+        team_name = request.data.get("team_name")
+        tenant = Tenants.objects.filter(tenant_name=team_name).first()
+        info = apply_service.create_applicants(user_id=user_id, team_name=team_name)
+        if info:
+            result = general_message(200, "apply success", "申请加入")
+            admins = team_repo.get_tenant_admin_by_tenant_id(tenant_id=tenant.ID)
+            self.send_user_message_to_tenantadmin(admins=admins, team_name=team_name, nick_name=self.user.get_name())
         return Response(result, status=result["code"])
 
     def put(self, request, *args, **kwargs):
@@ -1063,41 +1016,26 @@ class JoinTeamView(JWTAuthApiView):
 
 
 class TeamUserCanJoin(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request, enterprise_id, *args, **kwargs):
         """指定用户可以加入哪些团队"""
-        try:
-            tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)
-            team_names = tenants.values("tenant_name")
-            # 已加入的团队
-            team_name_list = [t_name.get("tenant_name") for t_name in team_names]
-
-            user_id = request.GET.get("user_id", None)
-            if user_id:
-                enterprise_id = user_repo.get_by_user_id(user_id=user_id).enterprise_id
-                team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
-                apply_team = apply_repo.get_applicants_team(user_id=user_id)
-            else:
-                enterprise_id = user_repo.get_by_user_id(user_id=self.user.user_id).enterprise_id
-                team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
-                apply_team = apply_repo.get_applicants_team(user_id=self.user.user_id)
-            # 已申请过的团队
-            applied_team = [
-                team_repo.get_team_by_team_name(team_name=team_name)
-                for team_name in [team_name.team_name for team_name in apply_team]
-            ]
-            join_list = []
-            for join_team in team_list:
-                if join_team not in applied_team and join_team.tenant_name not in team_name_list:
-                    join_list.append(join_team)
-            join_list = [{
-                "team_name": j_team.tenant_name,
-                "team_alias": j_team.tenant_alias,
-                "team_id": j_team.tenant_id
-            } for j_team in join_list]
-            result = general_message(200, "success", "查询成功", list=join_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        tenants = team_repo.get_tenants_by_user_id(user_id=self.user.user_id)
+        team_names = tenants.values("tenant_name")
+        # 已加入的团队
+        team_name_list = [t_name.get("tenant_name") for t_name in team_names]
+        team_list = team_repo.get_teams_by_enterprise_id(enterprise_id)
+        apply_team = apply_repo.get_append_applicants_team(user_id=self.user.user_id)
+        # 已申请过的团队
+        applied_team = [team_name.team_name for team_name in apply_team]
+        can_join_team_list = []
+        for join_team in team_list:
+            if join_team.tenant_name not in applied_team and join_team.tenant_name not in team_name_list:
+                can_join_team_list.append(join_team)
+        join_list = [{
+            "team_name": j_team.tenant_name,
+            "team_alias": j_team.tenant_alias,
+            "team_id": j_team.tenant_id
+        } for j_team in team_repo.get_team_by_team_names(can_join_team_list)]
+        result = general_message(200, "success", "查询成功", list=join_list)
         return Response(result, status=result["code"])
 
 

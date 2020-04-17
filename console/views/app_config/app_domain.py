@@ -200,7 +200,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         domain_service.update_certificate(
-                self.region_name, self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
+            self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
         result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 
@@ -331,8 +331,8 @@ class ServiceDomainView(AppBaseView):
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
 
-            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol,
-                                                   certificate_id, DomainType.WWW, rule_extensions)
+            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
+                                                   protocol, certificate_id, DomainType.WWW, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
             # htt与https共存的协议需存储两条数据(创建完https数据再创建一条http数据)
@@ -746,7 +746,8 @@ class SecondLevelDomainView(AppBaseView):
                 self.service, container_port)
             if not sld_domains:
 
-                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
+                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
+                                                       container_port,
                                                        "http", None, DomainType.SLD_DOMAIN)
                 if code != 200:
                     return Response(general_message(code, "bind domain error", msg), status=code)
@@ -789,7 +790,8 @@ class DomainQueryView(RegionTenantHeaderView):
                         where sd.tenant_id='{0}' and sd.region_id='{1}' \
                             and (sd.domain_name like '%{2}%' \
                                 or sd.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions))
+                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id,
+                                                                        search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -837,7 +839,8 @@ class DomainQueryView(RegionTenantHeaderView):
                     cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                         service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
                         domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}'
-                        and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id,
+                        and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id,
+                                                                                        region.region_id,
                                                                                         start, end))
                     tenant_tuples = cursor.fetchall()
 
@@ -1147,148 +1150,141 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
     @perm_required('access_control')
     def get(self, request, *args, **kwargs):
         # 获取单个tcp/udp策略信息
-        try:
-            tcp_rule_id = request.GET.get("tcp_rule_id", None)
-            # 判断参数
-            if not tcp_rule_id:
-                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        tcp_rule_id = request.GET.get("tcp_rule_id", None)
+        # 判断参数
+        if not tcp_rule_id:
+            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(
-                tcp_rule_id)
-            if tcpdomain:
-                bean = tcpdomain.to_dict()
-                service = service_repo.get_service_by_service_id(
-                    tcpdomain.service_id)
-                service_alias = service.service_cname if service else ''
-                group_name = ''
-                g_id = 0
-                if service:
-                    gsr = group_service_relation_repo.get_group_by_service_id(
-                        service.service_id)
-                    if gsr:
-                        group = group_repo.get_group_by_id(int(gsr.group_id))
-                        group_name = group.group_name if group else ''
-                        g_id = int(gsr.group_id)
-                bean.update({"service_alias": service_alias})
-                bean.update({"group_name": group_name})
-                bean.update({"g_id": g_id})
-                result = general_message(200, "success", "查询成功", bean=bean)
-            else:
-                bean = dict()
-                result = general_message(200, "success", "查询成功", bean=bean)
-
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
+        if tcpdomain:
+            bean = tcpdomain.to_dict()
+            service = service_repo.get_service_by_service_id(
+                tcpdomain.service_id)
+            service_alias = service.service_cname if service else ''
+            group_name = ''
+            g_id = 0
+            if service:
+                gsr = group_service_relation_repo.get_group_by_service_id(
+                    service.service_id)
+                if gsr:
+                    group = group_repo.get_group_by_id(int(gsr.group_id))
+                    group_name = group.group_name if group else ''
+                    g_id = int(gsr.group_id)
+            bean.update({"service_alias": service_alias})
+            bean.update({"group_name": group_name})
+            bean.update({"g_id": g_id})
+            result = general_message(200, "success", "查询成功", bean=bean)
+        else:
+            bean = dict()
+            result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
     @never_cache
     @perm_required('control_operation')
     # 添加
     def post(self, request, *args, **kwargs):
-        try:
-            container_port = request.data.get("container_port", None)
-            service_id = request.data.get("service_id", None)
-            end_point = request.data.get("end_point", None)
-            whether_open = request.data.get("whether_open", False)
-            rule_extensions = request.data.get("rule_extensions", None)
-            default_port = request.data.get("default_port", None)
-            default_ip = request.data.get("default_ip", None)
+        container_port = request.data.get("container_port", None)
+        service_id = request.data.get("service_id", None)
+        end_point = request.data.get("end_point", None)
+        whether_open = request.data.get("whether_open", False)
+        rule_extensions = request.data.get("rule_extensions", None)
+        default_port = request.data.get("default_port", None)
+        default_ip = request.data.get("default_ip", None)
 
-            if not container_port or not service_id or not end_point:
-                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        if not container_port or not service_id or not end_point:
+            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            service = service_repo.get_service_by_service_id(service_id)
-            if not service:
-                return Response(general_message(400, "not service", "组件不存在"), status=400)
+        service = service_repo.get_service_by_service_id(service_id)
+        if not service:
+            return Response(general_message(400, "not service", "组件不存在"), status=400)
 
-            # 判断策略是否存在
-            region = region_repo.get_region_by_region_name(service.service_region)
-            service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
-            if service_tcpdomain:
-                result = general_message(400, "faild", "策略已存在")
-                return Response(result)
+        # Check if the given endpoint exists.
+        region = region_repo.get_region_by_region_name(service.service_region)
+        service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
+        if service_tcpdomain:
+            result = general_message(400, "faild", "策略已存在")
+            return Response(result)
 
-            if service.service_source == "third_party":
-                msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, service)
-                if code != 200:
-                    logger.exception(msg, msg_show)
-                    return Response(general_message(code, msg, msg_show), status=code)
-
-            if whether_open:
-                try:
-                    tenant_service_port = port_service.get_service_port_by_port(
-                        service, container_port)
-                    # 仅打开对外端口
-                    code, msg, data = port_service.manage_port(
-                        self.tenant, service, service.service_region, int(tenant_service_port.container_port),
-                        "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
-                    if code != 200:
-                        return Response(general_message(code, "change port fail", msg), status=code)
-                except Exception:
-                    raise
-            tenant_service_port = port_service.get_service_port_by_port(
-                service, container_port)
-
-            if not tenant_service_port.is_outer_service:
-                return Response(
-                    general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
-
-            # 添加tcp策略
-            code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
-                                                            default_port, rule_extensions, default_ip)
-
+        if service.service_source == "third_party":
+            msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, service)
             if code != 200:
-                return Response(general_message(code, "bind domain error", msg), status=code)
+                logger.exception(msg, msg_show)
+                return Response(general_message(code, msg, msg_show), status=code)
 
-            result = general_message(200, "success", "tcp策略添加成功", bean=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        if whether_open:
+            try:
+                tenant_service_port = port_service.get_service_port_by_port(
+                    service, container_port)
+                # 仅打开对外端口
+                code, msg, data = port_service.manage_port(
+                    self.tenant, service, service.service_region, int(tenant_service_port.container_port),
+                    "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
+                if code != 200:
+                    return Response(general_message(code, "change port fail", msg), status=code)
+            except Exception:
+                raise
+        tenant_service_port = port_service.get_service_port_by_port(
+            service, container_port)
+
+        if not tenant_service_port.is_outer_service:
+            return Response(
+                general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
+
+        # 添加tcp策略
+        code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
+                                                        default_port, rule_extensions, default_ip)
+
+        if code != 200:
+            return Response(general_message(code, "bind domain error", msg), status=code)
+
+        result = general_message(200, "success", "tcp策略添加成功", bean=data)
         return Response(result, status=result["code"])
 
     @never_cache
     @perm_required('control_operation')
     # 修改
     def put(self, request, *args, **kwargs):
+        container_port = request.data.get("container_port", None)
+        service_id = request.data.get("service_id", None)
+        end_point = request.data.get("end_point", None)
+        tcp_rule_id = request.data.get("tcp_rule_id", None)
+        rule_extensions = request.data.get("rule_extensions", None)
+        type = request.data.get("type", None)
+        default_ip = request.data.get("default_ip", None)
 
-        try:
-            container_port = request.data.get("container_port", None)
-            service_id = request.data.get("service_id", None)
-            end_point = request.data.get("end_point", None)
-            tcp_rule_id = request.data.get("tcp_rule_id", None)
-            rule_extensions = request.data.get("rule_extensions", None)
-            type = request.data.get("type", None)
-            default_ip = request.data.get("default_ip", None)
+        # 判断参数
+        if not tcp_rule_id:
+            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            # 判断参数
-            if not tcp_rule_id:
-                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        service = service_repo.get_service_by_service_id(service_id)
+        if not service:
+            return Response(general_message(400, "not service", "组件不存在"), status=400)
 
-            service = service_repo.get_service_by_service_id(service_id)
-            if not service:
-                return Response(general_message(400, "not service", "组件不存在"), status=400)
+        # 查询端口协议
+        tenant_service_port = port_service.get_service_port_by_port(
+            service, container_port)
+        if tenant_service_port:
+            protocol = tenant_service_port.protocol
+        else:
+            protocol = ''
 
-            # 查询端口协议
-            tenant_service_port = port_service.get_service_port_by_port(
-                service, container_port)
-            if tenant_service_port:
-                protocol = tenant_service_port.protocol
-            else:
-                protocol = ''
+        # Check if the given endpoint exists.
+        region = region_repo.get_region_by_region_name(service.service_region)
+        service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
+        if service_tcpdomain and service_tcpdomain[0].service_id != service_id:
+            result = general_message(400, "faild", "策略已存在")
+            return Response(result)
 
-            # 修改策略
-            code, msg = domain_service.update_tcpdomain(
-                self.tenant, self.user, service, end_point, container_port, tcp_rule_id, protocol, type,
-                rule_extensions, default_ip)
+        # 修改策略
+        code, msg = domain_service.update_tcpdomain(
+            self.tenant, self.user, service, end_point, container_port, tcp_rule_id, protocol, type,
+            rule_extensions, default_ip)
 
-            if code != 200:
-                return Response(general_message(code, "bind domain error", msg), status=code)
+        if code != 200:
+            return Response(general_message(code, "bind domain error", msg), status=code)
 
-            result = general_message(200, "success", "策略修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "策略修改成功")
+
         return Response(result, status=result["code"])
 
     @never_cache

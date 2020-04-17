@@ -22,6 +22,8 @@ from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.oauth_repo import oauth_user_repo
+from console.services.user_accesstoken_services import user_access_services
 from console.services.app_actions import app_manage_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
@@ -86,6 +88,7 @@ class UserService(object):
 
         codeRepositoriesService.createUser(user, email, password, user_name, user_name)
 
+    # delete user and delete user of tenant perm
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
         try:
@@ -255,7 +258,7 @@ class UserService(object):
         if not user_perm:
             token = self.generate_key()
             return enterprise_user_perm_repo.create_enterprise_user_perm(user_id, enterprise_id, "admin", token)
-            return user_perm
+        return user_perm
 
     def is_user_admin_in_current_enterprise(self, current_user, enterprise_id):
         """判断用户在该企业下是否为管理员"""
@@ -281,10 +284,16 @@ class UserService(object):
         return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
 
     def get_administrator_user_by_token(self, token):
-        perm = enterprise_user_perm_repo.get_by_token(token)
+        perm = user_access_services.check_user_access_key(token)
+        if not perm:
+            perm = enterprise_user_perm_repo.get_by_token(token)
         if not perm:
             return None
-        return self.get_user_by_user_id(perm.user_id)
+        user = self.get_user_by_user_id(perm.user_id)
+        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not permList:
+            return None
+        return user
 
     def get_administrator_user_token(self, user):
         permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
@@ -441,6 +450,7 @@ class UserService(object):
                 })
             except UserNotExistError:
                 logger.warning("user_id: {}; user not found".format(item.user_id))
+                continue
         return users
 
     def create_admin_user(self, user, ent):
@@ -494,6 +504,26 @@ class UserService(object):
         if not r.match(email):
             return False, "邮箱地址不合法"
         return True, "success"
+
+    def init_webhook_user(self, service, hook_type, committer_name=None):
+        nick_name = hook_type
+        if service.oauth_service_id:
+            oauth_user = oauth_user_repo.get_user_oauth_by_oauth_user_name(service.oauth_service_id, committer_name)
+            if not oauth_user:
+                nick_name = committer_name
+            else:
+                try:
+                    user = Users.objects.get(user_id=oauth_user.user_id)
+                    nick_name = user.get_name()
+                except Users.DoesNotExist:
+                    nick_name = None
+            if not nick_name:
+                nick_name = hook_type
+        user_obj = Users(
+            user_id=service.creater,
+            nick_name=nick_name
+        )
+        return user_obj
 
 
 user_services = UserService()

@@ -217,10 +217,9 @@ class AppVolumeService(object):
         if access_mode != "":
             return access_mode.upper()
         if volume_type == self.default_volume_type:
-            if service.extend_method == ComponentType.stateless_singleton.value:
+            access_mode = "RWO"
+            if service.extend_method == ComponentType.stateless_multiple.value:
                 access_mode = "RWX"
-            else:
-                access_mode = "RWO"
         elif volume_type == "config-file":
             access_mode = "RWX"
         elif volume_type == "memoryfs" or volume_type == "local":
@@ -356,18 +355,21 @@ class AppVolumeService(object):
             return 404, u"需要删除的路径不存在", None
         # if volume.volume_type == volume.SHARE:
         # 判断当前共享目录是否被使用
-        mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id,
-                                                     volume.volume_name)
+        mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
         if mnt:
             return 403, u"当前路径被共享,无法删除", None
         if service.create_status == "complete":
-            res, body = region_api.delete_service_volumes(
-                service.service_region, tenant.tenant_name,
-                service.service_alias, volume.volume_name,
-                tenant.enterprise_id)
-            logger.debug("service {0} delete volume {1}, result {2}".format(
-                service.service_cname, volume.volume_name, body))
-
+            try:
+                res, body = region_api.delete_service_volumes(
+                    service.service_region, tenant.tenant_name,
+                    service.service_alias, volume.volume_name,
+                    tenant.enterprise_id)
+                logger.debug("service {0} delete volume {1}, result {2}".format(
+                    service.service_cname, volume.volume_name, body))
+            except region_api.CallApiError as e:
+                if e.status != 404:
+                    raise ServiceHandleException(msg="delete volume from region failure",
+                                                 msg_show="从集群删除存储发生错误", status_code=500)
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume_id(volume_id)
 

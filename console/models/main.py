@@ -17,6 +17,7 @@ logger = logging.getLogger("default")
 app_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 plugin_scope = (("enterprise", u"企业"), ("team", u"团队"), ("goodrain", u"好雨云市"))
 user_identity = ((u"管理员", "admin"), )
+enterprise_identity = (("admin", u"管理员"), ("viewer", u"观察者"))
 
 
 class BaseModel(models.Model):
@@ -81,6 +82,7 @@ class ConsoleSysConfig(BaseModel):
     desc = models.CharField(max_length=100, null=True, blank=True, default="", help_text=u"描述")
     enable = models.BooleanField(default=True, help_text=u"是否生效")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    enterprise_id = models.CharField(max_length=32, help_text=u"eid", default="")
 
 
 class RainbondCenterApp(BaseModel):
@@ -93,7 +95,7 @@ class RainbondCenterApp(BaseModel):
     app_id = models.CharField(max_length=32, help_text=u"应用包")
     app_name = models.CharField(max_length=64, help_text=u"应用包名")
     create_user = models.IntegerField(null=True, blank=True, help_text=u"创建人id")
-    create_team = models.CharField(max_length=64, null=True, blank=True,  help_text=u"来源应用所属团队")
+    create_team = models.CharField(max_length=64, null=True, blank=True,  help_text=u"应用所属团队,可以和创建人id不统一")
     pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
@@ -212,6 +214,7 @@ class ServiceShareRecord(BaseModel):
     team_name = models.CharField(max_length=64, help_text=u"应用所在团队唯一名称")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
     share_version = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用组发布版本")
+    share_version_alias = models.CharField(max_length=32, null=True, blank=True, help_text=u"应用组发布版本别名")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")
     # 0 发布中 1 发布完成 2 取消发布 3 删除发布
@@ -424,6 +427,19 @@ class EnterpriseUserPerm(BaseModel):
     enterprise_id = models.CharField(max_length=32, help_text=u"企业id")
     identity = models.CharField(max_length=15, choices=user_identity, help_text=u"用户在企业的身份")
     token = models.CharField(max_length=64, help_text=u"API通信密钥", unique=True)
+
+
+class UserAccessKey(BaseModel):
+    """企业通信凭证"""
+
+    class Meta:
+        db_table = 'user_access_key'
+        unique_together = (('note', 'user_id'), )
+
+    note = models.CharField(max_length=32, help_text=u"凭证标识")
+    user_id = models.IntegerField(max_length=16, help_text=u"用户id")
+    access_key = models.CharField(max_length=64, unique=True, help_text=u"凭证")
+    expire_time = models.IntegerField(max_length=16, null=True, help_text=u"过期时间")
 
 
 class TenantUserRole(BaseModel):

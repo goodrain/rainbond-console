@@ -36,9 +36,9 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             for share_record in share_records:
                 app_model_name = None
                 app_model_id = None
-                version = None
                 version_alias = None
                 upgrade_time = None
+                # todo get store name
                 store_name = None
                 store_id = None
                 scope = share_record.scope
@@ -47,20 +47,29 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     app_model_id = share_record.app_id
                     app_model_name = app.app_name
                     store_id = share_record.share_app_market_id
-                    if store_id:
-                        market = share_service.get_cloud_markets(self.tenant.tenant_id)
-                        if market:
-                            store_name = market["name"]
-                app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
-                if app_version:
-                    version = app_version.version
-                    version_alias = app_version.version_alias
-                    upgrade_time = app_version.upgrade_time
+                    app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+                    if app_version:
+                        version_alias = app_version.version_alias
+                        upgrade_time = app_version.upgrade_time
+                else:
+                    if share_record.share_app_market_id:
+                        store_id = share_record.share_app_market_id
+                        try:
+                            if store_id and share_record.app_id:
+                                cloud_app = market_sycn_service.get_cloud_app(
+                                    self.tenant.enterprise_id,
+                                    share_record.share_app_market_id,
+                                    share_record.app_id)
+                                if cloud_app:
+                                    app_model_id = share_record.app_id
+                                    app_model_name = cloud_app.name
+                        except ServiceHandleException:
+                            app_model_id = share_record.app_id
                 data.append({
                     "app_model_id": app_model_id,
                     "app_model_name": app_model_name,
-                    "version": version,
-                    "version_alias": version_alias,
+                    "version": share_record.share_version,
+                    "version_alias": (share_record.share_version_alias if share_record.share_version_alias else version_alias),
                     "scope": scope,
                     "create_time": share_record.create_time,
                     "upgrade_time": upgrade_time,

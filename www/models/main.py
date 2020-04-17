@@ -234,15 +234,15 @@ class Users(models.Model):
     def is_authenticated(self):
         return True
 
+    def get_name(self):
+        return self.nick_name
+
     @property
     def is_sys_admin(self):
         """
         是否是系统管理员
         :return: True/False
         """
-        # admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
-        #           'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
-        # return bool(self.email in admins)
         if self.user_id:
             try:
                 SuperAdminUser.objects.get(user_id=self.user_id)
@@ -364,7 +364,7 @@ class TenantRegionInfo(BaseModel):
         unique_together = (('tenant_id', 'region_name'), )
 
     tenant_id = models.CharField(max_length=33, db_index=True, help_text=u"租户id")
-    region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
+    region_name = models.CharField(max_length=64, help_text=u"集群ID")
     is_active = models.BooleanField(default=True, help_text=u"是否已激活")
     is_init = models.BooleanField(default=False, help_text=u'是否创建租户网络')
     service_status = models.IntegerField(help_text=u"组件状态0:暂停，1:运行，2:关闭", default=1)
@@ -1316,6 +1316,7 @@ class TenantEnterprise(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"创建时间")
     enterprise_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text=u"企业身份token")
     is_active = models.IntegerField(default=0, help_text=u"是否在云市上激活, 0:未激活, 1:已激活")
+    logo = models.CharField(max_length=128, blank=True, null=True, default='', help_text=u"企业logo")
 
     def __unicode__(self):
         return self.to_dict()

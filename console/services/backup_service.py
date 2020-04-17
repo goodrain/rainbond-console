@@ -9,7 +9,6 @@ from console.enum.component_enum import is_state
 
 from console.exception.main import ServiceHandleException
 
-from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import auth_repo
@@ -36,7 +35,7 @@ from console.repositories.plugin.plugin_config import plugin_config_group_repo
 from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
-from console.services.config_service import config_service
+from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupInProgress
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrObjectStorageInfoNotFound
@@ -98,12 +97,8 @@ class GroupAppBackupService(object):
 
         return use_custom_svc
 
-    def is_hub_info_configed(self):
-        image_config = ConsoleSysConfig.objects.filter(key='APPSTORE_IMAGE_HUB')
-        return image_config is None
-
     def backup_group_apps(self, tenant, user, region, group_id, mode, note, force=False):
-        s3_config = config_service.get_cloud_obj_storage_info()
+        s3_config = EnterpriseConfigService(tenant.enterprise_id).get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
         services = group_service.get_group_services(group_id)
@@ -274,7 +269,7 @@ class GroupAppBackupService(object):
         service_compile_env = compile_env_repo.get_service_compile_env(service.service_id)
         service_extend_method = extend_repo.get_extend_method_by_service(service)
         service_mnts = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
-        service_volumes = volume_repo.get_service_volumes(service.service_id)
+        service_volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
         service_config_file = volume_repo.get_service_config_files(service.service_id)
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)

@@ -2,7 +2,6 @@
 """
   Created by leon on 18/1/5.
 """
-import json
 import logging
 import re
 
@@ -123,8 +122,8 @@ class GroupService(object):
             }
             group_service_relation_repo.create_service_group_relation(**params)
 
-    def get_groups_and_services(self, tenant, region):
-        groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region)
+    def get_groups_and_services(self, tenant, region, query=""):
+        groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region, query)
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
@@ -164,7 +163,6 @@ class GroupService(object):
         # memory info
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
-        logger.debug("status_list is : {0}".format(status_list))
         service_status = dict()
         for status in status_list:
             service_status[status["service_id"]] = status
@@ -268,10 +266,9 @@ class GroupService(object):
 
         return 200, u"删除成功", group_id
 
-    def get_service_group_memory(self, app_template_raw):
+    def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""
         try:
-            app_template = json.loads(app_template_raw)
             apps = app_template["apps"]
             total_memory = 0
             for app in apps:

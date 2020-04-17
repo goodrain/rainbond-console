@@ -10,12 +10,14 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
+from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.app_config import domain_service
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
@@ -27,10 +29,16 @@ from openapi.serializer.team_serializer import TeamBaseInfoSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import TeamRegionReqSerializer
 from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
+from openapi.serializer.team_serializer import TeamCertificatesLSerializer
+from openapi.serializer.team_serializer import TeamCertificatesCSerializer
+from openapi.serializer.team_serializer import TeamCertificatesRSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
+from openapi.serializer.utils import pagination
 from openapi.views.base import BaseOpenAPIView
+from openapi.views.base import TeamAPIView
 from openapi.views.base import ListAPIView
 from openapi.views.exceptions import ErrTeamNotFound
+from www.utils.crypt import make_uuid
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
 
@@ -41,7 +49,6 @@ class ListTeamInfo(ListAPIView):
     @swagger_auto_schema(
         operation_description="获取团队列表",
         manual_parameters=[
-            openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
             openapi.Parameter("query", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING),
             openapi.Parameter("tenant_names", openapi.IN_QUERY, description="根据租户名称获取列表", type=openapi.TYPE_STRING),
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
@@ -51,9 +58,6 @@ class ListTeamInfo(ListAPIView):
         tags=['openapi-team'],
     )
     def get(self, req, *args, **kwargs):
-        eid = req.GET.get("eid", "")
-        if not eid:
-            raise serializers.ValidationError("缺少'eid'字段")
         query = req.GET.get("query", "")
         try:
             page = int(req.GET.get("page", 1))
@@ -70,8 +74,8 @@ class ListTeamInfo(ListAPIView):
             result = {"tenants": data, "total": len(data)}
         else:
             data, total = team_services.list_teams_v2(
-                eid, query=query, page=page, page_size=page_size)
-            result = {"tenants": data, "total": total}
+                req.user.enterprise_id, query=query, page=page, page_size=page_size)
+            result = {"tenants": data, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
         return Response(result, status.HTTP_200_OK)
@@ -444,3 +448,98 @@ class ListRegionTeamServicesView(ListAPIView):
             raise exceptions.NotFound()
 
         return Response(None, status=status.HTTP_200_OK)
+
+
+class TeamCertificatesLCView(TeamAPIView):
+
+    @swagger_auto_schema(
+        operation_description="获取团队下证书列表",
+        manual_parameters=[
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_NUMBER),
+        ],
+        responses={200: TeamCertificatesLSerializer()},
+        tags=['openapi-team'],
+    )
+    def get(self, request, team_id, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        certificates, nums = domain_service.get_certificate(self.team, page, page_size)
+        data = pagination(certificates, nums, page, page_size)
+        serializer = TeamCertificatesLSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="添加证书",
+        request_body=TeamCertificatesCSerializer(),
+        responses={
+            status.HTTP_200_OK: TeamCertificatesRSerializer(),
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+        },
+        tags=['openapi-team'],
+    )
+    def post(self, request, team_id, *args, **kwargs):
+        serializer = TeamCertificatesCSerializer(data=request.data)
+        serializer.is_valid()
+        data = serializer.data
+        data.update({"tenant": self.team, "certificate_id": make_uuid()})
+        new_c = domain_service.add_certificate(**data)
+        rst = new_c.to_dict()
+        rst["id"] = rst["ID"]
+        rst_serializer = TeamCertificatesRSerializer(data=rst)
+        rst_serializer.is_valid(raise_exception=True)
+        return Response(rst_serializer.data, status=status.HTTP_200_OK)
+
+
+class TeamCertificatesRUDView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="获取团队下证书列表",
+        responses={200: TeamCertificatesRSerializer()},
+        tags=['openapi-team'],
+    )
+    def get(self, request, team_id, certificate_id, *args, **kwargs):
+        code, msg, certificate = domain_service.get_certificate_by_pk(
+            certificate_id)
+        if code != 200:
+            raise ServiceHandleException(msg=None, status_code=code, msg_show=msg)
+        serializer = TeamCertificatesRSerializer(data=certificate)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="更新证书",
+        request_body=TeamCertificatesCSerializer(),
+        responses={
+            status.HTTP_200_OK: TeamCertificatesRSerializer(),
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+        },
+        tags=['openapi-team'],
+    )
+    def put(self, request, team_id, certificate_id, *args, **kwargs):
+        serializer = TeamCertificatesCSerializer(data=request.data)
+
+        serializer.is_valid()
+        data = serializer.data
+        data.update({"tenant": self.team, "certificate_id": certificate_id})
+        new_c = domain_service.update_certificate(**data)
+        rst = new_c.to_dict()
+        rst["id"] = rst["ID"]
+        rst_serializer = TeamCertificatesRSerializer(data=rst)
+        rst_serializer.is_valid(raise_exception=True)
+        return Response(rst_serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="删除证书",
+        responses={
+            status.HTTP_201_CREATED: None,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+            status.HTTP_400_BAD_REQUEST: None,
+        },
+        tags=['openapi-team'],
+    )
+    def delete(self, request, team_id, certificate_id, *args, **kwargs):
+        domain_service.delete_certificate_by_pk(certificate_id)
+        return Response(data=None, status=status.HTTP_200_OK)

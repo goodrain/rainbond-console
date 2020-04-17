@@ -269,7 +269,6 @@ def custom_exception_handler(exc, context):
         Any unhandled exceptions may return `None`, which will cause a 500 error
         to be raised.
     """
-    logger.exception(exc)
     if isinstance(exc, RegionApiBaseHttpClient.InvalidLicenseError):
         data = {"code": 10400, "msg": "invalid license", "msg_show": "license不正确或已过期"}
         return Response(data, status=401)

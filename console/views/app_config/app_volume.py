@@ -8,6 +8,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.repositories.app_config import volume_repo
+from console.services.app_config import mnt_service
 from console.services.app_config import volume_service
 from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
@@ -54,16 +55,25 @@ class AppVolumeView(AppBaseView):
               paramType: path
         """
         is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
-        tenant_service_volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
+
+        volumes = volume_service.get_service_volumes(self.tenant, self.service, is_config)
         volumes_list = []
         if is_config:
-            for tenant_service_volume in tenant_service_volumes:
+            for tenant_service_volume in volumes:
                 cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
                 if cf_file:
                     tenant_service_volume["file_content"] = cf_file.file_content
                 volumes_list.append(tenant_service_volume)
         else:
-            for vo in tenant_service_volumes:
+            dependents = mnt_service.get_volume_dependent(self.tenant, self.service)
+            name2deps = {}
+            if dependents:
+                for dep in dependents:
+                    if name2deps.get(dep["volume_name"], None) is None:
+                        name2deps[dep["volume_name"]] = []
+                    name2deps[dep["volume_name"]].append(dep)
+            for vo in volumes:
+                vo["dep_services"] = name2deps.get(vo["volume_name"], None)
                 volumes_list.append(vo)
         result = general_message(200, "success", "查询成功", list=volumes_list)
         return Response(result, status=result["code"])
@@ -122,12 +132,9 @@ class AppVolumeView(AppBaseView):
         settings['reclaim_policy'] = reclaim_policy
         settings['allow_expansion'] = allow_expansion
 
-        code, msg, data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type,
-                                                            volume_name, file_content, settings)
-        if code != 200:
-            result = general_message(code, "add volume error", msg)
-            return Response(result, status=code)
-        result = general_message(code, msg, u"持久化路径添加成功", bean=data.to_dict())
+        data = volume_service.add_service_volume(
+            self.tenant, self.service, volume_path, volume_type, volume_name, file_content, settings)
+        result = general_message(200, "success", u"持久化路径添加成功", bean=data.to_dict())
 
         return Response(result, status=result["code"])
 
@@ -160,17 +167,10 @@ class AppVolumeManageView(AppBaseView):
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", u"未指定需要删除的持久化路径"), status=400)
-        try:
-            code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id))
-            logger.debug(code)
-            if code != 200:
-                result = general_message(code=code, msg="delete volume error", msg_show=msg)
-                return Response(result, status=result["code"])
-
-            result = general_message(200, "success", u"删除成功", bean=volume.to_dict())
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id))
+        result = general_message(200, "success", u"删除成功")
+        if code != 200:
+            result = general_message(code=code, msg="delete volume error", msg_show=msg)
         return Response(result, status=result["code"])
 
     @never_cache

@@ -7,8 +7,6 @@ import string
 
 from django.core.paginator import Paginator
 
-from console.exception.main import ServiceHandleException
-
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.enterprise_repo import enterprise_repo
@@ -217,17 +215,16 @@ class EnterpriseServices(object):
         component_total_num = len(app_relations)
 
         # 3. get all running component
+        # attention, component maybe belong to any other enterprise
         running_component_ids = []
         for region in regions:
             data = None
             try:
                 data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
             except region_api.CallApiError as e:
-                logger.exception(e)
-                raise ServiceHandleException("get running app failed", "获取运行中组件失败", status_code=500)
+                logger.exception("get region:'{0}' running failed: {1}".format(region.region_name, e))
             if data and data.get("service_ids"):
                 running_component_ids.extend(data.get("service_ids"))
-        component_running_num = len(running_component_ids)
 
         # 4 get all running app
         component_and_app = dict()
@@ -236,9 +233,12 @@ class EnterpriseServices(object):
 
         running_apps = []
         for running_component in running_component_ids:
-            app = component_and_app[running_component]
-            if app not in running_apps:
-                running_apps.append(app)
+            # if this running component belong to this enterprise
+            app = component_and_app.get(running_component)
+            if app:
+                component_running_num += 1
+                if app not in running_apps:
+                    running_apps.append(app)
         app_running_num = len(running_apps)
         data = {
             "service_groups": {
