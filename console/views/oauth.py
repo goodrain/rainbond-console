@@ -216,7 +216,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             if oauth_service.oauth_type == "enterprisecenter" and domain:
                 home_split_url = urlsplit(oauth_service.home_url)
-                oauth_service.home_url = home_split_url.scheme + "://" + domain + home_split_url.path
+                oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404,
