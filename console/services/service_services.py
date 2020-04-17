@@ -252,10 +252,10 @@ class BaseService(object):
                 if status_map.get("status") in ["undeploy", "closed"]:
                     not_run_service_ids.append(status_map.get("service_id"))
             if not_run_service_ids:
-                not_run_services = services.filter(service_id__in=not_run_service_ids)
-                for not_run_service in not_run_services:
-                    memory += not_run_service.min_memory
-                    node += not_run_service.min_node
+                for service in services:
+                    if service.service_id in not_run_service_ids:
+                        memory += service.min_memory
+                        node += service.min_node
         print memory, node
         return memory, node
 
