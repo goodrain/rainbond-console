@@ -245,7 +245,7 @@ class BaseService(object):
         memory = 0
         node = 0
         service_status_list = self.status_multi_service(
-            tenant.region, tenant.tenant_name, services.values_list("service_id", flat=True), services.enterprise_id)
+            tenant.region, tenant.tenant_name, services.values_list("service_id", flat=True), tenant.enterprise_id)
         if service_status_list:
             for status_map in service_status_list:
                 if status_map.get("status") in ["undeploy", "closed "]:
