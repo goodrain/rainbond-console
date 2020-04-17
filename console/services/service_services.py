@@ -249,13 +249,14 @@ class BaseService(object):
             tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
         if service_status_list:
             for status_map in service_status_list:
-                if status_map.get("status") in ["undeploy", "closed "]:
+                if status_map.get("status") in ["undeploy", "closed"]:
                     not_run_service_ids.append(status_map.get("service_id"))
             if not_run_service_ids:
                 not_run_services = services.filter(service_id__in=not_run_service_ids)
                 for not_run_service in not_run_services:
                     memory += not_run_service.min_memory
                     node += not_run_service.min_node
+        print memory, node
         return memory, node
 
 
