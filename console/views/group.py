@@ -263,9 +263,6 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCent
                 result = general_message(200, "success", "操作成功")
         except ResourceNotEnoughException as e:
             raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
