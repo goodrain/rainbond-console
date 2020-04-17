@@ -180,7 +180,6 @@ class RegionRepo(object):
         region.cert_file = data.get("cert_file")
         region.desc = data.get("desc")
         region.key_file = data.get("key_file")
-        region.region_type = json.dumps(data.get("region_type", []))
         region.save()
         return region
 
