@@ -48,6 +48,8 @@ from console.repositories.service_group_relation_repo import service_group_relat
 from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
+from console.services.service_services import base_service
+from console.services.app import app_service
 from console.services.app_config import AppEnvVarService
 from console.services.app_config import AppMntService
 from console.services.app_config import AppPortService
@@ -205,9 +207,11 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功"
 
     def restart(self, tenant, service, user, oauth_instance):
-        if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
-            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
+            status_info_map = app_service.get_service_status(tenant, service)
+            if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not check_memory_quota(
+                    oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+                raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body = dict()
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
@@ -226,7 +230,8 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功"
 
     def deploy(self, tenant, service, user, group_version, committer_name=None, oauth_instance=None):
-        if not check_memory_quota(
+        status_info_map = app_service.get_service_status(tenant, service)
+        if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not check_memory_quota(
                 oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body = dict()
@@ -444,7 +449,9 @@ class AppManageService(AppManageBase):
         return 200, "success"
 
     def upgrade(self, tenant, service, user, committer_name=None, oauth_instance=None):
-        if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+        status_info_map = app_service.get_service_status(tenant, service)
+        if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not check_memory_quota(
+                oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         body = dict()
         body["service_id"] = service.service_id
@@ -574,11 +581,12 @@ class AppManageService(AppManageBase):
         body["operation"] = "start"
         start_infos_list = []
         body["start_infos"] = start_infos_list
+        request_memory, request_node = base_service.get_not_run_services_request_memory_and_node(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory, request_node):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             if service.service_source == "":
                 continue
-            if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
-                raise ServiceHandleException(error_code=20002, msg="not enough quota")
             service_dict = dict()
             if service.create_status == "complete":
                 service_dict["service_id"] = service.service_id
@@ -600,9 +608,10 @@ class AppManageService(AppManageBase):
         body["operation"] = "upgrade"
         upgrade_infos_list = []
         body["upgrade_infos"] = upgrade_infos_list
+        request_memory, request_node = base_service.get_not_run_services_request_memory_and_node(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory, request_node):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
-            if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
-                raise ServiceHandleException(error_code=20002, msg="not enough quota")
             service_dict = dict()
             if service.create_status == "complete":
                 service_dict["service_id"] = service.service_id
@@ -613,9 +622,10 @@ class AppManageService(AppManageBase):
         body["operation"] = "build"
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
+        request_memory, request_node = base_service.get_not_run_services_request_memory_and_node(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory, request_node):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
-            if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
-                raise ServiceHandleException(error_code=20002, msg="not enough quota")
             service_dict = dict()
             service_dict["service_id"] = service.service_id
             service_dict["action"] = 'deploy'
