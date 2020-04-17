@@ -64,9 +64,10 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         '''
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
-        home_split_url = urlsplit(self.oauth_service.home_url)
+        home_split_url = urlsplit(self.oauth_service.proxy_home_url)
         redirect_split_url = urlsplit(self.oauth_service.redirect_uri)
         self.oauth_service.redirect_uri = home_split_url.scheme + "://" + home_split_url.netloc + redirect_split_url.path
+        logger.debug(self.oauth_service.redirect_uri)
         if code:
             headers = {
                 "Accept": "application/json",
