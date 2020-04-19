@@ -296,7 +296,8 @@ class RegionService(object):
     def add_region(self, region_data):
         region = region_repo.get_region_by_region_name(region_data["region_name"])
         if region:
-            raise RegionExistException("数据中心{0}已存在".format(region_data["region_name"]))
+            raise ServiceHandleException(status_code=400, msg="",
+                                         msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
             region_api.test_region_api(region_data)
         except ServiceHandleException:

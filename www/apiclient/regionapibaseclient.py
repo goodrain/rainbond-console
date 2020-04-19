@@ -129,10 +129,11 @@ class RegionApiBaseHttpClient(object):
         timeout = kwargs.get("timeout", 3)
         if kwargs.get("for_test"):
             region = region_name
+            region_name = region.region_name
         else:
             region = region_repo.get_region_by_region_name(region_name)
         if not region:
-            raise Exception("region {0} not found".format(region_name))
+            raise ServiceHandleException("region {0} not found".format(region_name))
         verify_ssl = False
         # 判断是否为https请求
         wsurl_split_list = region.url.split(':')
@@ -160,7 +161,7 @@ class RegionApiBaseHttpClient(object):
                 "error": str(e)
             })
         except MaxRetryError as e:
-            logger.exception('client_error', e)
+            logger.error('client_error', e)
             raise ServiceHandleException(
                 msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
