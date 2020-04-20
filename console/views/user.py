@@ -407,13 +407,13 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                     code = 400
                     result = general_message(code, "The role does not exist", "该角色在团队中不存在")
                     return Response(result, status=code)
-        # 创建用户团队关系表
-        if tenant_name:
-            team_services.create_tenant_role(
-                user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
-        user.is_active = True
-        user.save()
-        result = general_message(200, "success", "添加用户成功")
+            # 创建用户团队关系表
+            if tenant_name:
+                team_services.create_tenant_role(
+                    user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
+            user.is_active = True
+            user.save()
+            result = general_message(200, "success", "添加用户成功")
         return Response(result)
 
 
