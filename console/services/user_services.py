@@ -20,16 +20,16 @@ from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.oauth_repo import oauth_user_repo
-from console.services.user_accesstoken_services import user_access_services
 from console.services.app_actions import app_manage_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services
 from console.utils.oauth.oauth_types import get_oauth_instance
+from console.services.user_accesstoken_services import user_access_services
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -535,6 +535,8 @@ class UserService(object):
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
             return False, "邮箱地址不合法"
+        if self.get_user_by_email(email):
+            return False, "邮箱已存在"
         return True, "success"
 
     def init_webhook_user(self, service, hook_type, committer_name=None):

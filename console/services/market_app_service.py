@@ -770,6 +770,21 @@ class MarketAppService(object):
         for app in apps:
             app.tags = app_with_tags.get(app.app_id)
 
+    def _get_rainbond_app_min_memory(self, apps_model_versions):
+        apps_min_memory = dict()
+        for app_model_version in apps_model_versions:
+            if not apps_min_memory.get(app_model_version.app_id):
+                min_memory = 0
+                try:
+                    app_temp = json.loads(app_model_version.app_template)
+                    for app in app_temp.get("apps"):
+                        if app.get("extend_method_map"):
+                            min_memory += int(app.get("extend_method_map").get("min_memory"))
+                    apps_min_memory[app_model_version.app_id] = min_memory
+                except ValueError:
+                    apps_min_memory[app_model_version.app_id] = min_memory
+        return apps_min_memory
+
     # patch rainbond app versions
     def _patch_rainbond_app_versions(self, eid, apps, is_complete=None):
         app_ids = [app.app_id for app in apps]
@@ -788,13 +803,14 @@ class MarketAppService(object):
             }
             if version_info not in app_with_versions[version.app_id]:
                 app_with_versions[version.app_id].append(version_info)
-
+        apps_min_memory = self._get_rainbond_app_min_memory(versions)
         for app in apps:
             versions_info = app_with_versions.get(app.app_id)
             if versions_info:
                 # sort rainbond app versions by version
                 versions_info.sort(lambda x, y: cmp(x["version"], y["version"]))
             app.versions_info = versions_info
+            app.min_memory = apps_min_memory.get(app.app_id, 0)
 
     def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):
         limit = ""
