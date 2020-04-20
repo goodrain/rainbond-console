@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger("default")
 
 
-def check_memory_quota(oauth_instance, eid, memory, node):
+def check_memory_quota(oauth_instance, eid, memory, node=1):
     logger.debug("required memory: {}, node: {}".format(memory, node))
     memory_required = int(memory)*int(node)
     if memory_required <= 0:

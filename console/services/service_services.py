@@ -240,10 +240,9 @@ class BaseService(object):
                     bean["group_key"] = app.app_id
         return bean
 
-    def get_not_run_services_request_memory_and_node(self, tenant, services):
+    def get_not_run_services_request_memory(self, tenant, services):
         not_run_service_ids = []
         memory = 0
-        node = 0
         service_ids = [service.service_id for service in services]
         service_status_list = self.status_multi_service(
             tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
@@ -254,10 +253,8 @@ class BaseService(object):
             if not_run_service_ids:
                 for service in services:
                     if service.service_id in not_run_service_ids:
-                        memory += service.min_memory
-                        node += service.min_node
-        print memory, node
-        return memory, node
+                        memory += int(service.min_memory) * int(service.min_node)
+        return memory
 
 
 base_service = BaseService()

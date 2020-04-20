@@ -581,8 +581,8 @@ class AppManageService(AppManageBase):
         body["operation"] = "start"
         start_infos_list = []
         body["start_infos"] = start_infos_list
-        request_memory, request_node = base_service.get_not_run_services_request_memory_and_node(tenant, services)
-        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory, request_node):
+        request_memory = base_service.get_not_run_services_request_memory(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             if service.service_source == "":
@@ -608,8 +608,8 @@ class AppManageService(AppManageBase):
         body["operation"] = "upgrade"
         upgrade_infos_list = []
         body["upgrade_infos"] = upgrade_infos_list
-        request_memory, request_node = base_service.get_not_run_services_request_memory_and_node(tenant, services)
-        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory, request_node):
+        request_memory = base_service.get_not_run_services_request_memory(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             service_dict = dict()
@@ -622,8 +622,8 @@ class AppManageService(AppManageBase):
         body["operation"] = "build"
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
-        request_memory, request_node = base_service.get_not_run_services_request_memory_and_node(tenant, services)
-        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory, request_node):
+        request_memory = base_service.get_not_run_services_request_memory(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             service_dict = dict()
