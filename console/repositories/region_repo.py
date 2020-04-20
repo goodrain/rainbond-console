@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
 from django.db.models import Q
 
 from console.models.main import RegionConfig

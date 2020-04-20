@@ -301,9 +301,9 @@ class ChangeLoginPassword(JWTAuthApiView):
             new_password2 = request.data.get("new_password2", None)
             u = request.user
             code = 400
-            # if not user_services.check_user_password(user_id=u.user_id, password=password):
-            #     result = general_message(400, "old password error", "旧密码错误")
-            if new_password != new_password2:
+            if not user_services.check_user_password(user_id=u.user_id, password=password):
+                result = general_message(400, "old password error", "旧密码错误")
+            elif new_password != new_password2:
                 result = general_message(400, "two password disagree", "两个密码不一致")
             elif password == new_password:
                 result = general_message(400, "old and new password agree", "新旧密码一致")
