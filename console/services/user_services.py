@@ -54,7 +54,10 @@ class UserService(object):
     def check_user_password(self, user_id, password):
         u = user_repo.get_user_by_user_id(user_id=user_id)
         if u:
-            return u.check_password(password)
+            default_pass = u.check_password("goodrain")
+            if not default_pass:
+                return u.check_password(password)
+            return default_pass
         else:
             raise AccountNotExistError("账户不存在")
 
@@ -265,7 +268,7 @@ class UserService(object):
         }
         enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
         user = self.create_user_set_password(
-            enterprise_center_user.username, email, "goodrain",
+            enterprise_center_user.username, email, raw_password,
             rf, enterprise, client_ip,
             phone=phone, real_name=real_name)
         user.enterprise_center_user_id = enterprise_center_user.user_id

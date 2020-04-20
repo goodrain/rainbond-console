@@ -141,7 +141,7 @@ class RegionApiBaseHttpClient(object):
             verify_ssl = True
 
         config = Configuration(verify_ssl, region.ssl_ca_cert,
-                               region.cert_file, region.key_file, 
+                               region.cert_file, region.key_file,
                                region_name=region_name, enterprise_id=region.enterprise_id)
 
         client = self.get_client(config)
