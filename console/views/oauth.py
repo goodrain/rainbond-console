@@ -156,11 +156,10 @@ class EnterpriseOauthService(JWTAuthApiView):
         except Exception as e:
             logger.debug(e.message)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
-        service = oauth_repo.get_all_oauth_services(enterprise_id)
-        api = get_oauth_instance(service.oauth_type, service, None)
-        authorize_url = api.get_authorize_url()
         data = []
         for service in services:
+            api = get_oauth_instance(service.oauth_type, service, None)
+            authorize_url = api.get_authorize_url()
             data.append(
                 {
                     "service_id": service.ID,
