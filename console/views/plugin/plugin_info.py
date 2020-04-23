@@ -266,6 +266,7 @@ class PluginVersionInfoView(PluginBaseView):
             plugin_alias = request.data.get("plugin_alias", self.plugin.plugin_alias)
             update_info = request.data.get("update_info", self.plugin_version.update_info)
             build_cmd = request.data.get("build_cmd", self.plugin_version.build_cmd)
+            image = request.data.get("image", self.plugin.image)
             image_tag = request.data.get("image_tag", self.plugin_version.image_tag)
             code_version = request.data.get("code_version", self.plugin_version.code_version)
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
@@ -273,6 +274,7 @@ class PluginVersionInfoView(PluginBaseView):
             username = request.data.get("username", self.plugin.username)
             password = request.data.get("password", self.plugin.password)
 
+            self.plugin.image = image
             self.plugin.username = username
             self.plugin.password = password
             self.plugin.plugin_alias = plugin_alias
