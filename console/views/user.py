@@ -7,9 +7,6 @@ from django.contrib.auth import authenticate
 from django.views.decorators.cache import never_cache
 from django.db import transaction
 from rest_framework.response import Response
-
-from entsrv_client.rest import ApiException as EnterPriseCenterApiException
-
 from console.exception.exceptions import SameIdentityError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.user_repo import user_repo

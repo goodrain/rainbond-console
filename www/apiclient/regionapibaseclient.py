@@ -123,10 +123,10 @@ class RegionApiBaseHttpClient(object):
             return dict()
 
     @method_perf_time
-    def _request(self, url, method, headers=None, body=None, client=None, *args, **kwargs):
+    def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 3)
-        timeout = kwargs.get("timeout", 3)
+        timeout = kwargs.get("timeout", 5)
         if kwargs.get("for_test"):
             region = region_name
             region_name = region.region_name
@@ -165,7 +165,7 @@ class RegionApiBaseHttpClient(object):
             raise ServiceHandleException(
                 msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             raise ServiceHandleException(
                 msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络和配置")
 
@@ -296,10 +296,10 @@ class Configuration():
         self.verify_ssl = verify_ssl
         # Set this to customize the certificate file to verify the peer.
         # 兼容证书路径和内容
+        file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
         if not ssl_ca_cert or ssl_ca_cert.startswith('/'):
             self.ssl_ca_cert = ssl_ca_cert
         else:
-            file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
             path = file_path + "/" + "ca.pem"
             # 判断证书路径是否存在
             if os.path.isfile(path):
@@ -313,7 +313,6 @@ class Configuration():
         if not cert_file or cert_file.startswith('/'):
             self.cert_file = cert_file
         else:
-            file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
             path = file_path + "/" + "client.pem"
             if os.path.isfile(path):
                 self.cert_file = path
@@ -325,7 +324,6 @@ class Configuration():
         if not key_file or key_file.startswith('/'):
             self.key_file = key_file
         else:
-            file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
             path = file_path + "/" + "client.key.pem"
             if os.path.isfile(path):
                 self.key_file = path
