@@ -152,15 +152,14 @@ class EnterpriseOauthService(JWTAuthApiView):
     def post(self, request, enterprise_id, *args, **kwargs):
         values = request.data.get("oauth_services")
         try:
-            services = oauth_repo.create_or_update_console_oauth_services(values, enterprise_id)
+            services = oauth_repo.create_or_update_oauth_services(values, enterprise_id)
         except Exception as e:
             logger.debug(e.message)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
-        service = oauth_repo.get_conosle_oauth_service(enterprise_id)
-        api = get_oauth_instance(service.oauth_type, service, None)
-        authorize_url = api.get_authorize_url()
         data = []
         for service in services:
+            api = get_oauth_instance(service.oauth_type, service, None)
+            authorize_url = api.get_authorize_url()
             data.append(
                 {
                     "service_id": service.ID,
