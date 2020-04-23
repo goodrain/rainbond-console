@@ -32,9 +32,11 @@ class TenantPluginRepository(object):
 
     def get_by_plugin_id(self, plugin_id):
         plugin = TenantPlugin.objects.get(plugin_id=plugin_id)
-        ref = reference.Reference.parse(plugin.image)
-        _, name = ref.split_hostname()
-        plugin.image = settings.IMAGE_REPO + "/" + name
+        # if plugin build with image, parse image
+        if plugin.image:
+            ref = reference.Reference.parse(plugin.image)
+            _, name = ref.split_hostname()
+            plugin.image = settings.IMAGE_REPO + "/" + name
         return plugin
 
     def get_plugin_by_plugin_ids(self, plugin_ids):
