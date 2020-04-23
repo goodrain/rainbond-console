@@ -1,0 +1,58 @@
+# -*- coding: utf8 -*-
+"""
+  Created on 18/5/23.
+"""
+import logging
+
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
+
+from console.exception.main import ServiceHandleException
+from console.services.groupcopy_service import groupapp_copy_service
+from console.views.base import RegionTenantHeaderView
+from www.decorator import perm_required
+from www.utils.return_message import general_message
+
+logger = logging.getLogger('default')
+
+
+class GroupAppsCopyView(RegionTenantHeaderView):
+    @never_cache
+    def get(self, request, tenantName, group_id, **kwargs):
+        group_services = groupapp_copy_service.get_group_services_with_build_source(self.tenant, self.region_name, group_id)
+        result = general_message(200, "success", "获取成功", list=group_services)
+        return Response(result, status=200)
+
+    @never_cache
+    @perm_required("import_and_export_service")
+    def post(self, request, tenantName, group_id, *args, **kwargs):
+        """
+        应用复制
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: group_id
+              description: 应用id
+              required: true
+              type: int
+              paramType: path
+        """
+        services = request.data.get("services")
+        tar_team_name = request.data.get("tar_team_name")
+        tar_region_name = request.data.get("tar_region_name")
+        tar_group_id = request.data.get("tar_group_id")
+        if not tar_team_name or not tar_region_name or not tar_group_id:
+            raise ServiceHandleException(
+                msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
+        tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(
+            request.user, tar_team_name, tar_region_name, tar_group_id)
+        groupapp_copy_service.copy_group_services(
+            request.user, tar_team, tar_region_name, tar_group, group_id, services)
+        result = general_message(
+            200, "success", "获取成功",
+            bean={"tar_team_name": tar_team_name, "tar_region_name": tar_region_name, "tar_group_id": tar_group_id})
+        return Response(result, status=200)
