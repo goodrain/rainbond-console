@@ -270,7 +270,11 @@ class PluginVersionInfoView(PluginBaseView):
             code_version = request.data.get("code_version", self.plugin_version.code_version)
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
             min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
+            username = request.data.get("username", self.plugin.username)
+            password = request.data.get("password", self.plugin.password)
 
+            self.plugin.username = username
+            self.plugin.password = password
             self.plugin.plugin_alias = plugin_alias
             self.plugin.desc = update_info
             self.plugin_version.update_info = update_info
