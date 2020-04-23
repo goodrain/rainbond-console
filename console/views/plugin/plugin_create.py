@@ -90,6 +90,9 @@ class PluginCreateView(RegionTenantHeaderView):
         code_repo = request.data.get("code_repo", None)
         code_version = request.data.get("code_version", None)
         image = request.data.get("image", None)
+        # username and password is used for private docker hub or private git repo
+        username = request.data.get("username", None)
+        password = request.data.get("password", None)
         tenant_plugin = None
         plugin_build_version = None
         try:
@@ -121,7 +124,7 @@ class PluginCreateView(RegionTenantHeaderView):
             # 创建基本信息
             code, msg, tenant_plugin = plugin_service.create_tenant_plugin(self.tenant, self.user.user_id, self.response_region,
                                                                            desc, plugin_alias, category, build_source, image,
-                                                                           code_repo)
+                                                                           code_repo, username, password)
             if code != 200:
                 return Response(general_message(code, "create plugin error", msg), status=code)
 

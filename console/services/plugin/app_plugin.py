@@ -627,7 +627,7 @@ class PluginService(object):
         return plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
 
     def create_tenant_plugin(
-            self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo):
+            self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo, username, password):
         plugin_id = make_uuid()
         if build_source == "dockerfile" and not code_repo:
             return 400, "代码仓库不能为空", None
@@ -648,7 +648,9 @@ class PluginService(object):
             "category": category,
             "build_source": build_source,
             "image": image,
-            "code_repo": code_repo
+            "code_repo": code_repo,
+            "username": username,
+            "password": password
         }
         tenant_plugin = plugin_repo.create_plugin(**plugin_params)
         return 200, "success", tenant_plugin
@@ -692,6 +694,8 @@ class PluginService(object):
         build_data["plugin_memory"] = plugin_version.min_memory
         build_data["plugin_cpu"] = plugin_version.min_cpu
         build_data["repo_url"] = plugin_version.code_version
+        build_data["username"] = plugin.username  # git username
+        build_data["password"] = plugin.password  # git password
         build_data["tenant_id"] = tenant.tenant_id
         build_data["ImageInfo"] = image_info
         build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
