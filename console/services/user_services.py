@@ -327,16 +327,16 @@ class UserService(object):
         if not perm:
             return None
         user = self.get_user_by_user_id(perm.user_id)
-        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
-        if not permList:
+        perm_list = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not perm_list:
             return None
         return user
 
     def get_administrator_user_token(self, user):
-        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
-        if not permList:
+        perm_list = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not perm_list:
             return None
-        perm = permList[0]
+        perm = perm_list[0]
         if not perm.token:
             perm.token = self.generate_key()
             perm.save()

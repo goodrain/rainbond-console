@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-
+import yaml
 from django.core.paginator import Paginator
 from django.db import transaction
-
+from www.utils.crypt import make_uuid
 from console.exception.main import ServiceHandleException
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
@@ -163,6 +163,7 @@ class RegionService(object):
             return {}
 
     def get_all_regions(self, query="", page=None, page_size=None):
+        # 即将移除，仅用于OpenAPI V1
         regions = region_repo.get_all_regions(query)
         total = regions.count()
         paginator = Paginator(regions, page_size)
@@ -186,8 +187,16 @@ class RegionService(object):
                 "region_name": region.region_name,
                 "region_id": region.region_id
             })
-
         return result, total
+
+    def get_regions_with_resource(self, query="", page=None, page_size=None):
+        # get all region list
+        regions = region_repo.get_all_regions(query)
+        total = regions.count()
+        if page and page_size:
+            paginator = Paginator(regions, page_size)
+            regions = paginator.page(page)
+        return self.conver_regions_info(regions), total
 
     def get_region_httpdomain(self, region_name):
         region = region_repo.get_region_by_region_name(region_name)
@@ -378,6 +387,117 @@ class RegionService(object):
             region_config_list.append(config_map)
         data = json.dumps(region_config_list)
         return data
+
+    def parse_token(self, token, region_name, region_alias, region_type):
+        try:
+            info = yaml.load(token, Loader=yaml.BaseLoader)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceHandleException("parse yaml error", "Region Config 内容不是有效YAML格式", 400, 400)
+        if not isinstance(info, dict):
+            raise ServiceHandleException("parse yaml error", "Region Config 内容不是有效YAML格式", 400, 400)
+        if not info.get("ca.pem"):
+            raise ServiceHandleException("ca.pem not found", "CA证书不存在", 400, 400)
+        if not info.get("client.key.pem"):
+            raise ServiceHandleException("client.key.pem not found", "客户端密钥不存在", 400, 400)
+        if not info.get("client.pem"):
+            raise ServiceHandleException("client.pem not found", "客户端证书不存在", 400, 400)
+        if not info.get("apiAddress"):
+            raise ServiceHandleException("apiAddress not found", "API地址不存在", 400, 400)
+        if not info.get("websocketAddress"):
+            raise ServiceHandleException("websocketAddress not found", "Websocket地址不存在", 400, 400)
+        if not info.get("defaultDomainSuffix"):
+            raise ServiceHandleException("defaultDomainSuffix not found", "HTTP默认域名后缀不存在", 400, 400)
+        if not info.get("defaultTCPHost"):
+            raise ServiceHandleException("defaultTCPHost not found", "TCP默认IP地址不存在", 400, 400)
+        region_info = {
+            "region_alias": region_alias,
+            "region_name": region_name,
+            "region_type": region_type,
+            "ssl_ca_cert": info.get("ca.pem"),
+            "key_file": info.get("client.key.pem"),
+            "cert_file": info.get("client.pem"),
+            "url": info.get("apiAddress"),
+            "wsurl": info.get("websocketAddress"),
+            "httpdomain": info.get("defaultDomainSuffix"),
+            "tcpdomain": info.get("defaultTCPHost"),
+            "region_id": make_uuid()
+        }
+        return region_info
+
+    def __init_region_resource_data(self, region, level="open"):
+        region_resource = {}
+        region_resource["region_id"] = region.region_id
+        region_resource["region_alias"] = region.region_alias
+        region_resource["region_name"] = region.region_name
+        region_resource["status"] = region.status
+        region_resource["region_type"] = (json.loads(region.region_type) if region.region_type else [])
+        region_resource["enterprise_id"] = region.enterprise_id
+        region_resource["url"] = region.url
+        region_resource["scope"] = region.scope
+        if level == "open":
+            region_resource["wsurl"] = region.wsurl
+            region_resource["httpdomain"] = region.httpdomain
+            region_resource["tcpdomain"] = region.tcpdomain
+            region_resource["ssl_ca_cert"] = region.ssl_ca_cert
+            region_resource["cert_file"] = region.cert_file
+            region_resource["key_file"] = region.key_file
+
+        region_resource["desc"] = region.desc
+        region_resource["total_memory"] = 0
+        region_resource["used_memory"] = 0
+        region_resource["total_cpu"] = 0
+        region_resource["used_cpu"] = 0
+        region_resource["total_disk"] = 0
+        region_resource["used_disk"] = 0
+        region_resource["rbd_version"] = "unknown"
+        region_resource["health_status"] = "ok"
+        return region_resource
+
+    def conver_regions_info(self, regions, check_status, level="open"):
+        # 转换集群数据，若需要附加状态则从集群API获取
+        region_info_list = []
+        for region in regions:
+            region_info_list.append(self.conver_region_info(region, check_status, level))
+        return region_info_list
+
+    def conver_region_info(self, region, check_status, level="open"):
+        # 转换集群数据，若需要附加状态则从集群API获取
+        region_resource = self.__init_region_resource_data(region, level)
+        if check_status == "yes":
+            try:
+                res, rbd_version = region_api.get_enterprise_api_version_v2(region.enterprise_id, region=region.region_name)
+                res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
+                rbd_version = rbd_version["raw"].decode("utf-8")
+                if res.get("status") == 200:
+                    logger.debug(body["bean"]["cap_mem"])
+                    region_resource["total_memory"] = body["bean"]["cap_mem"]
+                    region_resource["used_memory"] = body["bean"]["req_mem"]
+                    region_resource["total_cpu"] = body["bean"]["cap_cpu"]
+                    region_resource["used_cpu"] = body["bean"]["req_cpu"]
+                    region_resource["total_disk"] = body["bean"]["cap_disk"]
+                    region_resource["used_disk"] = body["bean"]["req_disk"]
+                    region_resource["rbd_version"] = rbd_version
+            except (region_api.CallApiError, ServiceHandleException) as e:
+                logger.exception(e)
+                region_resource["rbd_version"] = ""
+                region_resource["health_status"] = "failure"
+        return region_resource
+
+    def get_enterprise_regions(self, enterprise_id, level="open", status="", check_status="yes"):
+        regions = region_repo.get_regions_by_enterprise_id(enterprise_id, status)
+        if not regions:
+            return []
+        return self.conver_regions_info(regions, level)
+
+    def get_enterprise_region(self, enterprise_id, region_id, check_status=True):
+        region = region_repo.get_region_by_id(enterprise_id, region_id)
+        if not region:
+            return None
+        return self.conver_region_info(region, check_status)
+
+    def update_enterprise_region(self, enterprise_id, region_id, data):
+        return self.__init_region_resource_data(region_repo.update_enterprise_region(enterprise_id, region_id, data))
 
     @transaction.atomic
     def del_by_region_id(self, region_id):
