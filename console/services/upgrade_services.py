@@ -224,6 +224,7 @@ class UpgradeService(object):
         app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, app_id=group_key)
         add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
         versions |= add_versions
+        versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x.split(".")), reverse=True)
         return versions
 
     def get_old_version(self, group_key, service_ids, cloud_version):

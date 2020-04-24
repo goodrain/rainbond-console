@@ -60,9 +60,14 @@ class PluginBuildView(PluginBaseView):
         event_id = make_uuid()
         self.plugin_version.build_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.plugin_version.save()
+        # prepare image info for
+        image_info = {
+            "hub_user": self.plugin.username,
+            "hub_password": self.plugin.password,
+        }
         try:
             plugin_service.build_plugin(self.response_region, self.plugin,
-                                        self.plugin_version, self.user, self.tenant, event_id)
+                                        self.plugin_version, self.user, self.tenant, event_id, image_info)
             self.plugin_version.build_status = "building"
             self.plugin_version.event_id = event_id
             self.plugin_version.save()
