@@ -11,13 +11,13 @@ from console.exception.exceptions import RegionUnreachableError
 from console.models.main import RegionConfig
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException
-from openapi.serializer.base_serializer import FailSerializer
-from openapi.serializer.region_serializer import RegionInfoRespSerializer
-from openapi.serializer.region_serializer import RegionInfoSerializer
-from openapi.serializer.region_serializer import UpdateRegionReqSerializer
-from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
-from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
+from openapi.v2.serializer.base_serializer import FailSerializer
+from openapi.v2.serializer.region_serializer import RegionInfoRespSerializer
+from openapi.v2.serializer.region_serializer import RegionInfoSerializer
+from openapi.v2.serializer.region_serializer import UpdateRegionReqSerializer
+from openapi.v2.serializer.region_serializer import UpdateRegionStatusReqSerializer
+from openapi.v2.views.base import BaseOpenAPIView
+from openapi.v2.views.base import ListAPIView
 from www.utils.crypt import make_uuid
 logger = logging.getLogger("default")
 
