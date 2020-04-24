@@ -20,7 +20,7 @@ logger = logging.getLogger('default')
 
 class GroupAppsCopyView(TeamAPIView):
     @swagger_auto_schema(
-        operation_description="获取用户的团队列表",
+        operation_description="获取需要复制的应用组件信息",
         responses={200: GroupAppCopyLSerializer()},
         tags=['openapi-apps'],
     )
@@ -36,7 +36,7 @@ class GroupAppsCopyView(TeamAPIView):
         return Response(result, status=200)
 
     @swagger_auto_schema(
-        operation_description="添加普通用户",
+        operation_description="复制应用",
         request_body=GroupAppCopyCSerializer(),
         responses={
             status.HTTP_200_OK: GroupAppCopyCResSerializer(),
