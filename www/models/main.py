@@ -564,7 +564,7 @@ class TenantServiceInfoDelete(BaseModel):
     category = models.CharField(max_length=15, help_text=u"组件分类：application,cache,store")
     service_port = models.IntegerField(help_text=u"组件端口", default=8000)
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web组件")
-    version = models.CharField(max_length=20, help_text=u"版本")
+    version = models.CharField(max_length=32, help_text=u"版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     image = models.CharField(max_length=200, help_text=u"镜像")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text=u"启动参数")
