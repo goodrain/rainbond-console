@@ -341,7 +341,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")
-        data = enterprise_services.get_enterprise_regions(
+        data = region_services.get_enterprise_regions(
             enterprise_id, level="safe", status=region_status, check_status=check_status)
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=status.HTTP_200_OK)
@@ -352,7 +352,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         region_alias = request.data.get("region_alias")
         desc = request.data.get("desc")
         region_type = json.dumps(request.data.get("region_type", []))
-        region_data = enterprise_services.parse_token(token, region_name, region_alias, region_type)
+        region_data = region_services.parse_token(token, region_name, region_alias, region_type)
         region_data["enterprise_id"] = enterprise_id
         region_data["desc"] = desc
         region_data["status"] = "1"
@@ -368,12 +368,12 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
 
 class EnterpriseRegionsRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
-        data = enterprise_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
+        data = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
         result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
     def put(self, request, enterprise_id, region_id, *args, **kwargs):
-        region = enterprise_services.update_enterprise_region(enterprise_id, region_id, request.data)
+        region = region_services.update_enterprise_region(enterprise_id, region_id, request.data)
         result = general_message(200, "success", "更新成功", bean=region)
         return Response(result, status=result.get("code", 200))
 

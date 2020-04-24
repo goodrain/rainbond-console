@@ -78,6 +78,8 @@ class RegionApiBaseHttpClient(object):
 
     def __init__(self, *args, **kwargs):
         self.timeout = 5
+        # cache client
+        self.clients = {}
         self.apitype = 'Not specified'
 
     def _jsondecode(self, string):
@@ -134,17 +136,10 @@ class RegionApiBaseHttpClient(object):
             region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name))
-        verify_ssl = False
-        # 判断是否为https请求
-        wsurl_split_list = region.url.split(':')
-        if wsurl_split_list[0] == "https":
-            verify_ssl = True
-
-        config = Configuration(verify_ssl, region.ssl_ca_cert,
-                               region.cert_file, region.key_file,
-                               region_name=region_name, enterprise_id=region.enterprise_id)
-
-        client = self.get_client(config)
+        client = self.get_client(region_config=region)
+        if not client:
+            raise ServiceHandleException(
+                msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查配置")
         try:
             if body is None:
                 response = client.request(
@@ -154,22 +149,33 @@ class RegionApiBaseHttpClient(object):
                     url=url, method=method, headers=headers, body=body, timeout=timeout, retries=retries)
             return response.status, response.data
         except socket.timeout as e:
-            logger.error('client_error', "timeout: %s" % url)
             logger.exception('client_error', e)
             raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                 "type": "request time out",
                 "error": str(e)
             })
         except MaxRetryError as e:
-            logger.error('client_error', e)
+            logger.exception('client_error', e)
             raise ServiceHandleException(
                 msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
             logger.exception(e)
             raise ServiceHandleException(
-                msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络和配置")
+                msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
 
-    def get_client(self, configuration, pools_size=4, maxsize=None, *args, **kwargs):
+    def get_client(self, region_config):
+        # get client from cache
+        key = hash(region_config.url+region_config.ssl_ca_cert+region_config.cert_file+region_config.key_file)
+        client = self.clients.get(key, None)
+        if client:
+            return client
+        config = Configuration(region_config)
+        pools_size = os.environ.get("CLIENT_POOL_SIZE", 8)
+        client = self.create_client(config, pools_size)
+        self.clients[key] = client
+        return client
+
+    def create_client(self, configuration, pools_size=4, maxsize=None, *args, **kwargs):
 
         if configuration.verify_ssl:
             cert_reqs = ssl.CERT_REQUIRED
@@ -258,8 +264,7 @@ class RegionApiBaseHttpClient(object):
         return res, body
 
 
-def createFile(path, name, body):
-
+def create_file(path, name, body):
     if not os.path.exists(path):
         os.makedirs(path)
     file_path = path + "/" + name
@@ -275,61 +280,51 @@ def createFile(path, name, body):
 
 
 def check_file_path(path, name, body):
-    file_path = createFile(path, name, body)
+    file_path = create_file(path, name, body)
     if not file_path:
-        check_file_path(path, name, body)
-    else:
-        return file_path
+        file_path = create_file(path, name, body)
+    return file_path
 
 
 class Configuration():
-    def __init__(self, verify_ssl=True, ssl_ca_cert=None, cert_file=None, key_file=None, assert_hostname=None,
-                 region_name=None, enterprise_id=""):
+    def __init__(self, region_config, assert_hostname=None):
         """
         Constructor
         """
+        # create new client
+        verify_ssl = False
+        # 判断是否为https请求
+        wsurl_split_list = region_config.url.split(':')
+        if wsurl_split_list[0] == "https":
+            verify_ssl = True
         # Default Base url
-        self.host = "https://localhost:8888"
+        self.host = region_config.url
 
         # SSL/TLS verification
         # Set this to false to skip verifying SSL certificate when calling API from https server.
         self.verify_ssl = verify_ssl
         # Set this to customize the certificate file to verify the peer.
         # 兼容证书路径和内容
-        file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(enterprise_id, region_name)
+        file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(region_config.enterprise_id, region_config.region_name)
+        ssl_ca_cert = region_config.ssl_ca_cert
+        cert_file = region_config.cert_file
+        key_file = region_config.key_file
         if not ssl_ca_cert or ssl_ca_cert.startswith('/'):
             self.ssl_ca_cert = ssl_ca_cert
         else:
-            path = file_path + "/" + "ca.pem"
-            # 判断证书路径是否存在
-            if os.path.isfile(path):
-                self.ssl_ca_cert = path
-            else:
-                # 校验证书文件是否写入成功
-                self.ssl_ca_cert = check_file_path(
-                    file_path, "ca.pem", ssl_ca_cert)
+            self.ssl_ca_cert = check_file_path(file_path, "ca.pem", ssl_ca_cert)
 
         # client certificate file
         if not cert_file or cert_file.startswith('/'):
             self.cert_file = cert_file
         else:
-            path = file_path + "/" + "client.pem"
-            if os.path.isfile(path):
-                self.cert_file = path
-            else:
-                self.cert_file = check_file_path(
-                    file_path, "client.pem", cert_file)
+            self.cert_file = check_file_path(file_path, "client.pem", cert_file)
 
         # client key file
         if not key_file or key_file.startswith('/'):
             self.key_file = key_file
         else:
-            path = file_path + "/" + "client.key.pem"
-            if os.path.isfile(path):
-                self.key_file = path
-            else:
-                self.key_file = check_file_path(
-                    file_path, "client.key.pem", key_file)
+            self.key_file = check_file_path(file_path, "client.key.pem", key_file)
 
         # Set this to True/False to enable/disable SSL hostname verification.
         self.assert_hostname = assert_hostname

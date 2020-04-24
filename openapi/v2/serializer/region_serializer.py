@@ -49,25 +49,38 @@ class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
                   "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
 
 
+class RegionTypesField(serializers.ListField):
+    child = serializers.CharField(max_length=32)
+
+
 class RegionInfoRespSerializer(serializers.Serializer):
     region_id = serializers.CharField(max_length=36, help_text=u"region id")
+    enterprise_id = serializers.CharField(max_length=36, help_text=u"企业ID")
+    enterprise_alias = serializers.CharField(max_length=256, help_text=u"企业别名")
     region_name = serializers.CharField(max_length=32, help_text=u"集群名称")
     region_alias = serializers.CharField(max_length=32, help_text=u"集群别名")
+    region_type = RegionTypesField(help_text=u"集群类型")
     url = serializers.CharField(max_length=256, help_text=u"集群API url")
     wsurl = serializers.CharField(max_length=256, help_text=u"集群Websocket url")
     httpdomain = serializers.CharField(max_length=256, help_text=u"集群http应用访问根域名")
     tcpdomain = serializers.CharField(max_length=256, help_text=u"集群tcp应用访问根域名")
     status = serializers.CharField(max_length=2, help_text=u"集群状态 0：编辑中 1:启用 2：停用 3:维护中")
     desc = serializers.CharField(max_length=128, allow_blank=True, help_text=u"集群描述")
-    scope = serializers.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
     ssl_ca_cert = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api ca file")
     cert_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api cert file")
     key_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api cert key file")
+    total_memory = serializers.IntegerField(help_text=u"调度内存总和MB")
+    used_memory = serializers.IntegerField(help_text=u"调度内存使用量MB")
+    total_cpu = serializers.IntegerField(help_text=u"调度CPU总和")
+    used_cpu = serializers.FloatField(help_text=u"调度CPU使用量")
+    total_disk = serializers.IntegerField(help_text=u"全局共享存储总量GB")
+    used_disk = serializers.IntegerField(help_text=u"全局共享存储使用量GB")
+    rbd_version = serializers.CharField(help_text=u"集群版本")
 
 
 class ListRegionsRespSerializer(serializers.Serializer):
     total = serializers.IntegerField(help_text=u"总数")
-    regions = RegionInfoRespSerializer(many=True)
+    data = RegionInfoRespSerializer(many=True)
 
 
 class UpdateRegionStatusReqSerializer(serializers.Serializer):

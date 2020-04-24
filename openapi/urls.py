@@ -3,7 +3,7 @@
 from django.conf.urls import url
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
-
+from django.conf.urls import include
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
@@ -18,9 +18,6 @@ from openapi.views.apps.apps import APPHttpDomainView
 from openapi.views.apps.market import MarketAppInstallView
 from openapi.views.appstore_view import AppStoreInfoView
 from openapi.views.appstore_view import ListAppStoresView
-# from openapi.views.config_view import BaseConfigView
-# from openapi.views.config_view import FeatureConfigView
-# from openapi.views.config_view import ListFeatureConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
@@ -104,5 +101,8 @@ urlpatterns = [
     url(r'^v1/market-install', MarketAppInstallView.as_view()),
     url(r'^v1/oauth/type$', OauthTypeView.as_view()),
     url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view()),
-
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
 ]
+
+urlpatterns.append(url(r'^v2', include('openapi.v2.urls')),)
