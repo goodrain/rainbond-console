@@ -33,7 +33,7 @@ class GroupAppCopyService(object):
         services_metadata, change_services_map = self.get_modify_group_metadata(tar_team, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(
             user, tar_team, tar_region_name, tar_group.ID, services_metadata, change_services_map)
-        groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID)
+        groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
     def get_group_services_with_build_source(self, tenant, region_name, group_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
@@ -124,7 +124,7 @@ class GroupAppCopyService(object):
     def change_services_map(self, tenant, service_ids):
         change_services = {}
         for service_id in service_ids:
-            new_service_id = make_uuid(tenant.tenant_id)
+            new_service_id = make_uuid()
             change_services.update({
                 service_id: {
                     "ServiceID": new_service_id,
@@ -143,33 +143,35 @@ class GroupAppCopyService(object):
                     return False
             return True
 
-    def build_services(self, user, tenant, region_name, group_id):
+    def build_services(self, user, tenant, region_name, group_id, change_services_map):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
+        change_service_ids = [change_service["ServiceID"] for change_service in change_services_map.values()]
         if not group_services:
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
         services = service_repo.get_service_by_service_ids(service_ids=service_ids)
         for service in services:
-            # probe = None
-            if service.service_source == "third_party":
-                # 数据中心连接创建第三方组件
-                new_service = app_service.create_third_party_service(tenant, service, user.nick_name)
-            else:
-                # 数据中心创建组件
-                new_service = app_service.create_region_service(tenant, service, user.nick_name)
+            if service.service_id in change_service_ids:
+                # probe = None
+                if service.service_source == "third_party":
+                    # 数据中心连接创建第三方组件
+                    new_service = app_service.create_third_party_service(tenant, service, user.nick_name)
+                else:
+                    # 数据中心创建组件
+                    new_service = app_service.create_region_service(tenant, service, user.nick_name)
 
-            service = new_service
-            # 为组件添加默认探针
-            if self.is_need_to_add_default_probe(service):
-                code, msg, probe = app_service.add_service_default_porbe(tenant, service)
-                logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
-            # 添加组件有无状态标签
-            label_service.update_service_state_label(tenant, service)
-            # 部署组件
-            app_manage_service.deploy(tenant, service, user, group_version=None)
+                service = new_service
+                # 为组件添加默认探针
+                if self.is_need_to_add_default_probe(service):
+                    code, msg, probe = app_service.add_service_default_porbe(tenant, service)
+                    logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
+                # 添加组件有无状态标签
+                label_service.update_service_state_label(tenant, service)
+                # 部署组件
+                app_manage_service.deploy(tenant, service, user, group_version=None)
 
-            # 添加组件部署关系
-            deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
+                # 添加组件部署关系
+                deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
 
 
 groupapp_copy_service = GroupAppCopyService()
