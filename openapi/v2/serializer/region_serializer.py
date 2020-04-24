@@ -75,7 +75,7 @@ class RegionInfoRespSerializer(serializers.Serializer):
     used_cpu = serializers.FloatField(help_text=u"调度CPU使用量")
     total_disk = serializers.IntegerField(help_text=u"全局共享存储总量GB")
     used_disk = serializers.IntegerField(help_text=u"全局共享存储使用量GB")
-    rbd_version = serializers.CharField(help_text=u"集群版本")
+    rbd_version = serializers.CharField(help_text=u"集群版本", allow_blank=True, allow_null=True)
 
 
 class ListRegionsRespSerializer(serializers.Serializer):
