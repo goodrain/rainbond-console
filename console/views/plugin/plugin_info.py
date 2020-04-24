@@ -197,6 +197,8 @@ class PluginVersionInfoView(PluginBaseView):
         """
         try:
             base_info = self.plugin
+            if base_info.image and base_info.build_source == "image":
+                base_info.image = base_info.image + ":" + self.plugin_version.image_tag
             data = base_info.to_dict()
             data.update(self.plugin_version.to_dict())
             update_status_thread = threading.Thread(
@@ -267,12 +269,18 @@ class PluginVersionInfoView(PluginBaseView):
             update_info = request.data.get("update_info", self.plugin_version.update_info)
             build_cmd = request.data.get("build_cmd", self.plugin_version.build_cmd)
             image = request.data.get("image", self.plugin.image)
-            image_tag = request.data.get("image_tag", self.plugin_version.image_tag)
             code_version = request.data.get("code_version", self.plugin_version.code_version)
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
             min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
             username = request.data.get("username", self.plugin.username)
             password = request.data.get("password", self.plugin.password)
+            image_tag = ""  # if build_source is dockerfile, image_tag should be empty
+            if image and self.plugin.build_source == "image":
+                image_and_tag = image.rsplit(":", 1)
+                image_tag = "latest"
+                image = image_and_tag[0]
+                if len(image_and_tag) > 1:
+                    image_tag = image_and_tag[1]
 
             self.plugin.image = image
             self.plugin.username = username
