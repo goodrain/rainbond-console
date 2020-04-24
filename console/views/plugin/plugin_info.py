@@ -3,6 +3,7 @@
   Created on 18/3/5.
 """
 from rest_framework.response import Response
+from docker_image import reference
 
 from console.views.base import RegionTenantHeaderView
 from console.views.plugin.base import PluginBaseView
@@ -276,11 +277,9 @@ class PluginVersionInfoView(PluginBaseView):
             password = request.data.get("password", self.plugin.password)
             image_tag = ""  # if build_source is dockerfile, image_tag should be empty
             if image and self.plugin.build_source == "image":
-                image_and_tag = image.rsplit(":", 1)
-                image_tag = "latest"
-                image = image_and_tag[0]
-                if len(image_and_tag) > 1:
-                    image_tag = image_and_tag[1]
+                ref = reference.Reference.parse(image)
+                image = ref["name"]
+                image_tag = ref["tag"]
 
             self.plugin.image = image
             self.plugin.username = username
