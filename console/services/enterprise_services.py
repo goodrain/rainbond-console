@@ -14,6 +14,9 @@ from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
 from www.utils.crypt import make_uuid
+from console.repositories.region_repo import region_repo
+from console.repositories.team_repo import team_repo
+from console.repositories.user_repo import user_repo
 
 logger = logging.getLogger('default')
 
@@ -31,7 +34,6 @@ class EnterpriseServices(object):
         total = ents.count()
         if total == 0:
             return [], 0
-
         paginator = Paginator(ents, page_size)
         pp = paginator.page(page)
         data = []
@@ -42,6 +44,9 @@ class EnterpriseServices(object):
                 "enterprise_alias": ent.enterprise_alias,
                 "create_time": ent.create_time,
                 "is_active": ent.is_active,
+                "region_num": region_repo.get_regions_by_enterprise_id(ent.enterprise_id).count(),
+                "user_num": user_repo.get_enterprise_users(ent.enterprise_id).count(),
+                "team_num": team_repo.get_team_by_enterprise_id(ent.enterprise_id).count()
             })
         return data, total
 

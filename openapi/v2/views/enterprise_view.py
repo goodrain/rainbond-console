@@ -15,12 +15,12 @@ from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
 from console.utils.timeutil import time_to_str
-from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
-from openapi.serializer.ent_serializers import ListEntsRespSerializer
-from openapi.serializer.ent_serializers import UpdEntReqSerializer
-from openapi.serializer.ent_serializers import EnterpriseSourceSerializer
-from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
+from openapi.v2.serializer.ent_serializers import EnterpriseInfoSerializer
+from openapi.v2.serializer.ent_serializers import ListEntsRespSerializer
+from openapi.v2.serializer.ent_serializers import UpdEntReqSerializer
+from openapi.v2.serializer.ent_serializers import EnterpriseSourceSerializer
+from openapi.v2.views.base import BaseOpenAPIView
+from openapi.v2.views.base import ListAPIView
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -31,25 +31,24 @@ class ListEnterpriseInfoView(ListAPIView):
         operation_description="获取企业列表",
         manual_parameters=[
             openapi.Parameter("query", openapi.IN_QUERY, description="按企业名称, 企业别名搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+            openapi.Parameter("current", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("pageSize", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
         responses={status.HTTP_200_OK: ListEntsRespSerializer()},
         tags=['openapi-entreprise'],
     )
     def get(self, req):
         try:
-            page = int(req.GET.get("page", 1))
+            page = int(req.GET.get("current", 1))
         except ValueError:
             page = 1
         try:
-            page_size = int(req.GET.get("page_size", 10))
+            page_size = int(req.GET.get("pageSize", 10))
         except ValueError:
             page_size = 10
         query = req.GET.get("query", "")
-
         ents, total = enterprise_services.list_all(query, page, page_size)
-        serializer = ListEntsRespSerializer({"ents": ents, "total": total})
+        serializer = ListEntsRespSerializer({"data": ents, "total": total})
         return Response(serializer.data, status.HTTP_200_OK)
 
 

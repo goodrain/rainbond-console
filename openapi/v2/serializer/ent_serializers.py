@@ -8,11 +8,15 @@ class EnterpriseInfoSerializer(serializers.Serializer):
     enterprise_name = serializers.CharField(max_length=64, help_text=u"企业名称")
     enterprise_alias = serializers.CharField(max_length=64, help_text=u"企业别名")
     create_time = serializers.DateTimeField(help_text=u"创建时间")
+    region_num = serializers.IntegerField(help_text=u"集群数量")
+    user_num = serializers.IntegerField(help_text=u"用户数量")
+    team_num = serializers.IntegerField(help_text=u"团队数量")
+    is_active = serializers.BooleanField(help_text=u"是否启用")
 
 
 class ListEntsRespSerializer(serializers.Serializer):
     total = serializers.IntegerField(help_text=u"总数")
-    ents = EnterpriseInfoSerializer(many=True)
+    data = EnterpriseInfoSerializer(many=True)
 
 
 class UpdEntReqSerializer(serializers.Serializer):

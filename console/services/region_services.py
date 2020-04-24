@@ -18,6 +18,7 @@ from console.services.service_services import base_service
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
+from console.services.enterprise_services import enterprise_services
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -196,7 +197,7 @@ class RegionService(object):
         if page and page_size:
             paginator = Paginator(regions, page_size)
             regions = paginator.page(page)
-        return self.conver_regions_info(regions), total
+        return self.conver_regions_info(regions, "yes"), total
 
     def get_region_httpdomain(self, region_name):
         region = region_repo.get_region_by_region_name(region_name)
@@ -442,7 +443,6 @@ class RegionService(object):
             region_resource["ssl_ca_cert"] = region.ssl_ca_cert
             region_resource["cert_file"] = region.cert_file
             region_resource["key_file"] = region.key_file
-
         region_resource["desc"] = region.desc
         region_resource["total_memory"] = 0
         region_resource["used_memory"] = 0
@@ -452,6 +452,10 @@ class RegionService(object):
         region_resource["used_disk"] = 0
         region_resource["rbd_version"] = "unknown"
         region_resource["health_status"] = "ok"
+        region_resource["enterprise_id"] = region.enterprise_id
+        enterprise_info = enterprise_services.get_enterprise_by_enterprise_id(region.enterprise_id)
+        if enterprise_info:
+            region_resource["enterprise_alias"] = enterprise_info.enterprise_alias
         return region_resource
 
     def conver_regions_info(self, regions, check_status, level="open"):
@@ -466,17 +470,17 @@ class RegionService(object):
         region_resource = self.__init_region_resource_data(region, level)
         if check_status == "yes":
             try:
-                res, rbd_version = region_api.get_enterprise_api_version_v2(region.enterprise_id, region=region.region_name)
+                _, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id=region.enterprise_id,
+                                                                          region=region.region_name)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
                 rbd_version = rbd_version["raw"].decode("utf-8")
                 if res.get("status") == 200:
-                    logger.debug(body["bean"]["cap_mem"])
                     region_resource["total_memory"] = body["bean"]["cap_mem"]
                     region_resource["used_memory"] = body["bean"]["req_mem"]
                     region_resource["total_cpu"] = body["bean"]["cap_cpu"]
                     region_resource["used_cpu"] = body["bean"]["req_cpu"]
-                    region_resource["total_disk"] = body["bean"]["cap_disk"]
-                    region_resource["used_disk"] = body["bean"]["req_disk"]
+                    region_resource["total_disk"] = body["bean"]["cap_disk"]/1024/1024/1024
+                    region_resource["used_disk"] = body["bean"]["req_disk"]/1024/1024/1024
                     region_resource["rbd_version"] = rbd_version
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)

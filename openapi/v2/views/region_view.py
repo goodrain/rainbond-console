@@ -12,7 +12,7 @@ from console.models.main import RegionConfig
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException
 from openapi.v2.serializer.base_serializer import FailSerializer
-from openapi.v2.serializer.region_serializer import RegionInfoRespSerializer
+from openapi.v2.serializer.region_serializer import ListRegionsRespSerializer
 from openapi.v2.serializer.region_serializer import RegionInfoSerializer
 from openapi.v2.serializer.region_serializer import UpdateRegionReqSerializer
 from openapi.v2.serializer.region_serializer import UpdateRegionStatusReqSerializer
@@ -28,25 +28,24 @@ class ListRegionInfo(ListAPIView):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+            openapi.Parameter("current", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+            openapi.Parameter("pageSize", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
-        responses={200: RegionInfoRespSerializer(many=True)},
+        responses={200: ListRegionsRespSerializer()},
         tags=['openapi-region'],
         operation_description="获取全部数据中心列表")
     def get(self, req):
         query = req.GET.get("query", "")
         try:
-            page = int(req.GET.get("page", 1))
+            page = int(req.GET.get("current", 1))
         except ValueError:
             page = 1
         try:
-            page_size = int(req.GET.get("page_size", 99))
+            page_size = int(req.GET.get("pageSize", 99))
         except ValueError:
             page_size = 99
-
         regions, total = region_services.get_regions_with_resource(query, page, page_size)
-        serializer = RegionInfoRespSerializer(data=regions, many=True)
+        serializer = ListRegionsRespSerializer(data={"data": regions, "total": total})
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
 
