@@ -179,8 +179,8 @@ class TenantEnterpriseRepo(object):
     def list_all(self, query):
         if query:
             return TenantEnterprise.objects.filter(Q(enterprise_name__contains=query) |
-                                                   Q(enterprise_alias__contains=query)).all()
-        return TenantEnterprise.objects.all()
+                                                   Q(enterprise_alias__contains=query)).all().order_by("-create_time")
+        return TenantEnterprise.objects.all().order_by("-create_time")
 
     def update(self, eid, **data):
         TenantEnterprise.objects.filter(enterprise_id=eid).update(**data)
