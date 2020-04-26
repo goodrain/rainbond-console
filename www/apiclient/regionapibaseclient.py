@@ -124,7 +124,6 @@ class RegionApiBaseHttpClient(object):
         else:
             return dict()
 
-    @method_perf_time
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 3)
