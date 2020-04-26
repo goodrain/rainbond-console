@@ -377,75 +377,70 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        try:
-            code = 200
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
-            order = request.GET.get('order_type', 'desc')
-            fields = request.GET.get('fields', 'update_time')
-            query_key = request.GET.get("query_key", '')
-            service_status = request.GET.get("service_status", 'all')
-            if not self.team:
-                result = general_message(400, "failed", "该团队不存在")
-                return Response(result, status=400)
-            services_list = base_service.get_fuzzy_services_list(
-                team_id=self.team.tenant_id, region_name=self.response_region, query_key=query_key, fields=fields, order=order)
-            if services_list:
-                try:
-                    service_ids = [service["service_id"] for service in services_list]
-                    status_list = base_service.status_multi_service(
-                        region=self.response_region,
-                        tenant_name=self.team_name,
-                        service_ids=service_ids,
-                        enterprise_id=self.team.enterprise_id)
-                    status_cache = {}
-                    statuscn_cache = {}
-                    for status in status_list:
-                        status_cache[status["service_id"]] = status["status"]
-                        statuscn_cache[status["service_id"]] = status["status_cn"]
-                    result = []
-                    for service in services_list:
-                        if service["group_id"] is None:
-                            service["group_name"] = "未分组"
-                            service["group_id"] = "-1"
-                        if service_status == "all":
-                            service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
-                            status = status_cache.get(service["service_id"], "unknow")
-                            if status == "unknow" and service["create_status"] != "complete":
-                                service["status"] = "creating"
-                                service["status_cn"] = "创建中"
-                            else:
-                                service["status"] = status_cache.get(service["service_id"], "unknow")
-                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
+        code = 200
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+        order = request.GET.get('order_type', 'desc')
+        fields = request.GET.get('fields', 'update_time')
+        query_key = request.GET.get("query_key", '')
+        service_status = request.GET.get("service_status", 'all')
+        if not self.team:
+            result = general_message(400, "failed", "该团队不存在")
+            return Response(result, status=400)
+        services_list = base_service.get_fuzzy_services_list(
+            team_id=self.team.tenant_id, region_name=self.response_region, query_key=query_key, fields=fields, order=order)
+        if services_list:
+            try:
+                service_ids = [service["service_id"] for service in services_list]
+                status_list = base_service.status_multi_service(
+                    region=self.response_region,
+                    tenant_name=self.team_name,
+                    service_ids=service_ids,
+                    enterprise_id=self.team.enterprise_id)
+                status_cache = {}
+                statuscn_cache = {}
+                for status in status_list:
+                    status_cache[status["service_id"]] = status["status"]
+                    statuscn_cache[status["service_id"]] = status["status_cn"]
+                result = []
+                for service in services_list:
+                    if service["group_id"] is None:
+                        service["group_name"] = "未分组"
+                        service["group_id"] = "-1"
+                    if service_status == "all":
+                        service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
+                        status = status_cache.get(service["service_id"], "unknow")
+                        if status == "unknow" and service["create_status"] != "complete":
+                            service["status"] = "creating"
+                            service["status_cn"] = "创建中"
+                        else:
+                            service["status"] = status_cache.get(service["service_id"], "unknow")
+                            service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
+                        if service["status"] == "closed" or service["status"] == "undeploy":
+                            service["min_memory"] = 0
+                        result.append(service)
+                    else:
+                        if status_cache.get(service.service_id) == service_status:
+                            service["status"] = status_cache.get(service.service_id, "unknow")
+                            service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                             if service["status"] == "closed" or service["status"] == "undeploy":
                                 service["min_memory"] = 0
                             result.append(service)
-                        else:
-                            if status_cache.get(service.service_id) == service_status:
-                                service["status"] = status_cache.get(service.service_id, "unknow")
-                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
-                                if service["status"] == "closed" or service["status"] == "undeploy":
-                                    service["min_memory"] = 0
-                                result.append(service)
-                    paginator = Paginator(result, page_size)
-                    try:
-                        result = paginator.page(page).object_list
-                    except PageNotAnInteger:
-                        result = paginator.page(1).object_list
-                    except EmptyPage:
-                        result = paginator.page(paginator.num_pages).object_list
-                    result = general_message(200, "query user success", "查询用户成功", list=result, total=paginator.count)
-                except Exception as e:
-                    logger.exception(e)
-                    return Response(services_list, status=200)
-                return Response(result, status=code)
-            else:
-                result = general_message(200, "success", "当前团队没有创建应用")
-                return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+                paginator = Paginator(result, page_size)
+                try:
+                    result = paginator.page(page).object_list
+                except PageNotAnInteger:
+                    result = paginator.page(1).object_list
+                except EmptyPage:
+                    result = paginator.page(paginator.num_pages).object_list
+                result = general_message(200, "query user success", "查询用户成功", list=result, total=paginator.count)
+            except Exception as e:
+                logger.exception(e)
+                return Response(services_list, status=200)
+            return Response(result, status=code)
+        else:
+            result = general_message(200, "success", "当前团队没有创建应用")
+            return Response(result, status=200)
 
 
 class TeamAppSortViewView(RegionTenantHeaderView):
@@ -453,26 +448,22 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         """
         总览 团队应用信息
         """
-        try:
-            query = request.GET.get("query", "")
-            page = int(request.GET.get("page", 1))
-            page_size = int(request.GET.get("page_size", 10))
-            groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)
-            total = len(groups)
-            app_num_dict = {"total": total}
-            start = (page - 1) * page_size
-            end = page * page_size
-            apps = []
-            if groups:
-                group_ids = [group.ID for group in groups]
-                apps = group_service.get_multi_apps_all_info(group_ids, self.response_region,
-                                                             self.team_name, self.team.enterprise_id)
-                apps = apps[start:end]
-            return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        query = request.GET.get("query", "")
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)
+        total = len(groups)
+        app_num_dict = {"total": total}
+        start = (page - 1) * page_size
+        end = page * page_size
+        apps = []
+        if groups:
+            group_ids = [group.ID for group in groups]
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region,
+                                                            self.team_name, self.team.enterprise_id)
+            apps = apps[start:end]
+        return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
+        
 
 
 # 团队下应用环境变量模糊查询

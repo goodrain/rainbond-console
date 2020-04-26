@@ -149,7 +149,7 @@ class RegionApiBaseHttpClient(object):
                     url=url, method=method, headers=headers, body=body, timeout=timeout, retries=retries)
             return response.status, response.data
         except socket.timeout as e:
-            logger.exception('client_error', e)
+            logger.error('client_error', e)
             raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                 "type": "request time out",
                 "error": str(e)
@@ -159,7 +159,7 @@ class RegionApiBaseHttpClient(object):
             raise ServiceHandleException(
                 msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
-            logger.exception(e)
+            logger.error(e)
             raise ServiceHandleException(
                 msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
 
@@ -170,7 +170,8 @@ class RegionApiBaseHttpClient(object):
         if client:
             return client
         config = Configuration(region_config)
-        pools_size = os.environ.get("CLIENT_POOL_SIZE", 8)
+        pools_size = os.environ.get("CLIENT_POOL_SIZE", 20)
+        config.connection_pool_maxsize = pools_size
         client = self.create_client(config, pools_size)
         self.clients[key] = client
         return client
@@ -209,7 +210,7 @@ class RegionApiBaseHttpClient(object):
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
                 proxy_url=configuration.proxy,
-                timeout=3,
+                timeout=5,
                 **addition_pool_args)
         else:
             self.pool_manager = urllib3.PoolManager(
@@ -219,7 +220,7 @@ class RegionApiBaseHttpClient(object):
                 ca_certs=ca_certs,
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
-                timeout=3,
+                timeout=5,
                 **addition_pool_args)
         return self.pool_manager
 

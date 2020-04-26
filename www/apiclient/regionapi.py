@@ -1064,7 +1064,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/api/v1/query" + params
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(url, self.default_headers, region=region, timeout=10)
         return res, body
 
     def get_query_service_access(self, region, tenant_name, params):
@@ -1073,7 +1073,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/api/v1/query" + params
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(url, self.default_headers, region=region, timeout=10)
         return res, body
 
     def get_query_domain_access(self, region, tenant_name, params):
