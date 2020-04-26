@@ -170,8 +170,7 @@ class RegionApiBaseHttpClient(object):
         if client:
             return client
         config = Configuration(region_config)
-        pools_size = os.environ.get("CLIENT_POOL_SIZE", 20)
-        config.connection_pool_maxsize = pools_size
+        pools_size = int(os.environ.get("CLIENT_POOL_SIZE", 20))
         client = self.create_client(config, pools_size)
         self.clients[key] = client
         return client
