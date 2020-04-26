@@ -23,14 +23,14 @@ logger = logging.getLogger("default")
 
 class GroupAppCopyService(object):
     @transaction.atomic()
-    def copy_group_services(self, user, tar_team, tar_region_name, tar_group, group_id, choose_services):
+    def copy_group_services(self, user, old_team, tar_team, tar_region_name, tar_group, group_id, choose_services):
         changes = {}
         service_ids = []
         if choose_services:
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
-        services_metadata, change_services_map = self.get_modify_group_metadata(tar_team, group_id, service_ids, changes)
+        services_metadata, change_services_map = self.get_modify_group_metadata(old_team, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(
             user, tar_team, tar_region_name, tar_group.ID, services_metadata, change_services_map)
         groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
@@ -62,15 +62,15 @@ class GroupAppCopyService(object):
                 msg="group app and team relation no found", msg_show="目标应用不属于目标团队", status_code=400)
         return team, group
 
-    def get_modify_group_metadata(self, tenant, group_id, service_ids, changes):
-        total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, tenant)
+    def get_modify_group_metadata(self, old_team, group_id, service_ids, changes):
+        total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team)
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
         services_metadata = self.pop_remove_services_metadata(services_metadata, remove_service_ids)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
-        change_services_map = self.change_services_map(tenant, service_ids)
+        change_services_map = self.change_services_map(service_ids)
         return services_metadata, change_services_map
 
     def pop_remove_services_metadata(self, metadata, remove_service_ids):
@@ -121,7 +121,7 @@ class GroupAppCopyService(object):
     def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map):
         migrate_service.save_data(tar_team, region_name, user, changed_service_map, metadata, group_id)
 
-    def change_services_map(self, tenant, service_ids):
+    def change_services_map(self, service_ids):
         change_services = {}
         for service_id in service_ids:
             new_service_id = make_uuid()

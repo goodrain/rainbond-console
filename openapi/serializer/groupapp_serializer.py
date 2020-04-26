@@ -45,7 +45,7 @@ class GroupAppCopyLSerializer(serializers.Serializer):
 
 
 class GroupAppChangeBuildSourceSerializer(serializers.Serializer):
-    version = serializers.CharField(max_length=32, help_text="版本")
+    version = serializers.CharField(max_length=32, allow_null=True, help_text="版本")
 
 
 class GroupAppModifyInfoSerializer(serializers.Serializer):

@@ -51,7 +51,7 @@ class GroupAppsCopyView(RegionTenantHeaderView):
         tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(
             request.user, tar_team_name, tar_region_name, tar_group_id)
         groupapp_copy_service.copy_group_services(
-            request.user, tar_team, tar_region_name, tar_group, group_id, services)
+            request.user, self.tenant, tar_team, tar_region_name, tar_group, group_id, services)
         result = general_message(
             200, "success", "获取成功",
             bean={"tar_team_name": tar_team_name, "tar_region_name": tar_region_name, "tar_group_id": tar_group_id})
