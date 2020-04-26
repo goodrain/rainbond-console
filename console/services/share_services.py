@@ -1065,7 +1065,7 @@ class ShareService(object):
                     "app_describe": app.describe,
                     "dev_status": app.dev_status,
                     "versions": sorted(app_versions,
-                                       key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x["version"].split(".")),
+                                       key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
                                        reverse=True),
                     "scope": app.scope,
                 })
@@ -1094,7 +1094,7 @@ class ShareService(object):
                         "app_name": app.name,
                         "app_id": app.app_key_id,
                         "versions": sorted(versions,
-                                           key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x["version"].split(".")),
+                                           key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
                                            reverse=True),
                         "pic": app.pic,
                         "app_describe": app.desc,
