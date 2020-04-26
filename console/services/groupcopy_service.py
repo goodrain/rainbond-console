@@ -30,7 +30,8 @@ class GroupAppCopyService(object):
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
-        services_metadata, change_services_map = self.get_modify_group_metadata(old_team, group_id, service_ids, changes)
+        services_metadata, change_services_map = self.get_modify_group_metadata(
+            old_team, tar_team, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(
             user, tar_team, tar_region_name, tar_group.ID, services_metadata, change_services_map)
         groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
@@ -62,21 +63,21 @@ class GroupAppCopyService(object):
                 msg="group app and team relation no found", msg_show="目标应用不属于目标团队", status_code=400)
         return team, group
 
-    def get_modify_group_metadata(self, old_team, group_id, service_ids, changes):
+    def get_modify_group_metadata(self, old_team, tar_team, group_id, service_ids, changes):
         total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team)
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
-        services_metadata = self.pop_remove_services_metadata(services_metadata, remove_service_ids)
+        services_metadata = self.pop_remove_services_metadata(
+            old_team, tar_team, services_metadata, remove_service_ids, service_ids)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
         change_services_map = self.change_services_map(service_ids)
         return services_metadata, change_services_map
 
-    def pop_remove_services_metadata(self, metadata, remove_service_ids):
+    def pop_remove_services_metadata(self, old_team, tar_team, metadata, remove_service_ids, service_ids):
         if not remove_service_ids:
             return metadata
-        lose_dep_services = []
         new_metadata = {}
         new_metadata["compose_group_info"] = metadata["compose_group_info"]
         new_metadata["group_info"] = metadata["group_info"]
@@ -90,9 +91,15 @@ class GroupAppCopyService(object):
                 new_metadata["service_group_relation"].append(relation_service)
         for service in metadata["apps"]:
             if service["service_base"]["service_id"] not in remove_service_ids:
+                new_relation = []
                 for dep_service_info in service["service_relation"]:
-                    if dep_service_info["dep_service_id"] in remove_service_ids:
-                        lose_dep_services.append(service["service_base"]["service_cname"])
+                    if old_team.tenant_id == tar_team.tenant_id:
+                        new_relation.append(dep_service_info)
+                    else:
+                        if dep_service_info["dep_service_id"] in service_ids and \
+                                dep_service_info["dep_service_id"] not in remove_service_ids:
+                            new_relation.append(dep_service_info)
+                service["service_relation"] = new_relation
                 new_metadata["apps"].append(service)
         if metadata["compose_service_relation"] is not None:
             for service in metadata["compose_service_relation"]:
