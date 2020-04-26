@@ -1068,9 +1068,11 @@ class AppManageService(AppManageBase):
 
     def delete_region_service(self, tenant, service):
         try:
+            data = {}
             logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant.tenant_name))
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
             region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id)
+                                      service.service_alias, tenant.enterprise_id, data)
             return 200, "success"
         except region_api.CallApiError as e:
             if e.status != 404:

@@ -49,6 +49,11 @@ class TeamRepo(object):
             tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
         return tenants
 
+    def get_user_tenant_by_name(self, user_id, name):
+        tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
+        tenant = Tenants.objects.filter(ID__in=tenant_ids, tenant_name=name).first()
+        return tenant
+
     def get_tenants_by_user_id_and_eid(self, eid, user_id, name=None):
         tenants = []
         enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
@@ -308,6 +313,9 @@ class TeamRepo(object):
 
     def get_team_regions(self, team_id):
         return TenantRegionInfo.objects.filter(tenant_id=team_id)
+
+    def get_team_region_by_name(self, team_id, region_name):
+        return TenantRegionInfo.objects.filter(tenant_id=team_id, region_name=region_name)
 
     def get_teams_by_create_user(self, enterprise_id, user_id):
         return Tenants.objects.filter(creater=user_id, enterprise_id=enterprise_id)

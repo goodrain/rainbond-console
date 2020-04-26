@@ -74,7 +74,7 @@ class GroupappsMigrateService(object):
                 new_group = self.__create_new_group_by_group_name(
                     migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         else:
-            new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
+            new_group = self.create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
             # 获取原有数据中心数据
             original_data = region_api.get_backup_status_by_backup_id(
@@ -108,7 +108,7 @@ class GroupappsMigrateService(object):
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
 
-    def __create_new_group(self, tenant_id, region, old_group_id):
+    def create_new_group(self, tenant_id, region, old_group_id):
 
         old_group = group_repo.get_group_by_id(old_group_id)
         if old_group:
@@ -545,7 +545,10 @@ class GroupappsMigrateService(object):
                 new_service_relation = TenantServiceRelation(**relation)
                 new_service_relation.tenant_id = tenant.tenant_id
                 new_service_relation.service_id = old_new_service_id_map[relation["service_id"]]
-                new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
+                if old_new_service_id_map.get(relation["dep_service_id"]):
+                    new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
+                else:
+                    new_service_relation.dep_service_id = relation["dep_service_id"]
                 new_service_relation_list.append(new_service_relation)
             TenantServiceRelation.objects.bulk_create(new_service_relation_list)
 
@@ -557,9 +560,11 @@ class GroupappsMigrateService(object):
                 new_service_mnt = TenantServiceMountRelation(**mnt)
                 new_service_mnt.tenant_id = tenant.tenant_id
                 new_service_mnt.service_id = old_new_service_id_map[mnt["service_id"]]
-                new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]
+                if old_new_service_id_map.get(mnt["dep_service_id"]):
+                    new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]
+                else:
+                    new_service_mnt.dep_service_id = mnt["dep_service_id"]
                 new_service_mnt_relation_list.append(new_service_mnt)
-
             TenantServiceMountRelation.objects.bulk_create(new_service_mnt_relation_list)
 
     def update_migrate_original_group_id(self, old_original_group_id, new_original_group_id):
