@@ -280,6 +280,12 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiFrequentError):
         data = {"code": 409, "msg": "wait a moment please", "msg_show": "操作过于频繁，请稍后再试"}
         return Response(data, status=409)
+    elif isinstance(exc, RegionApiBaseHttpClient.CallApiError):
+        if exc.message.get("httpcode") == 404:
+            data = {"code": 404, "msg": "region no found this resource", "msg_show": u"数据中心资源不存在"}
+        else:
+            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作失败"}
+        return Response(data, status=404)
     elif isinstance(exc, ValidationError):
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):

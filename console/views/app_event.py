@@ -145,18 +145,14 @@ class AppLogView(AppBaseView):
               paramType: query
 
         """
-        try:
-            action = request.GET.get("action", "service")
-            lines = request.GET.get("lines", 100)
+        action = request.GET.get("action", "service")
+        lines = request.GET.get("lines", 100)
 
-            code, msg, log_list = log_service.get_service_logs(
-                self.tenant, self.service, action, int(lines))
-            if code != 200:
-                return Response(general_message(code, "query service log error", msg), status=code)
-            result = general_message(200, "success", "查询成功", list=log_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg, log_list = log_service.get_service_logs(
+            self.tenant, self.service, action, int(lines))
+        if code != 200:
+            return Response(general_message(code, "query service log error", msg), status=code)
+        result = general_message(200, "success", "查询成功", list=log_list)
         return Response(result, status=result["code"])
 
 
