@@ -492,7 +492,7 @@ class RegionService(object):
         regions = region_repo.get_regions_by_enterprise_id(enterprise_id, status)
         if not regions:
             return []
-        return self.conver_regions_info(regions, level)
+        return self.conver_regions_info(regions, check_status, level)
 
     def get_enterprise_region(self, enterprise_id, region_id, check_status=True):
         region = region_repo.get_region_by_id(enterprise_id, region_id)

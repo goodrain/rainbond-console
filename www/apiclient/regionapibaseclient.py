@@ -155,7 +155,7 @@ class RegionApiBaseHttpClient(object):
                 "error": str(e)
             })
         except MaxRetryError as e:
-            logger.exception('client_error', e)
+            logger.error('client_error', e)
             raise ServiceHandleException(
                 msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
