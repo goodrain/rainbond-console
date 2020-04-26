@@ -36,10 +36,13 @@ class TeamAPIView(BaseOpenAPIView):
     def __init__(self):
         super(TeamAPIView, self).__init__()
         self.team = None
+        self.region_name = None
 
     def initial(self, request, *args, **kwargs):
         super(TeamAPIView, self).initial(request, *args, **kwargs)
         team_id = kwargs.get("team_id")
+        region_name = kwargs.get("region_name")
         if team_id:
             self.team = team_services.get_team_by_team_id(team_id)
+            self.region_name = region_name
             self.team_regions = region_services.get_team_usable_regions(self.team.tenant_name)

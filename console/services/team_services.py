@@ -575,6 +575,15 @@ class TeamService(object):
                 teams_list.append(self.__team_with_region_info(tenant, user_id))
         return teams_list
 
+    def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
+        tenant = team_repo.get_user_tenant_by_name(user_id, tenant_name)
+        if not tenant:
+            return tenant
+        if not team_repo.get_team_region_by_name(tenant.tenant_id, region_name):
+            return None
+        else:
+            return tenant
+
     def get_team_by_team_alias(self, team_alias):
         return team_repo.get_team_by_team_alias(team_alias)
 

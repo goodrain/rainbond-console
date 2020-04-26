@@ -124,6 +124,7 @@ from console.views.center_pool.groupapp_backup import GroupAppsBackupImportView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupStatusView
 from console.views.center_pool.groupapp_backup import GroupAppsBackupView
 from console.views.center_pool.groupapp_backup import TeamGroupAppsBackupView
+from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import GroupAppsMigrateView
 from console.views.center_pool.groupapp_migration import GroupAppsView
 from console.views.center_pool.groupapp_migration import MigrateRecordView
@@ -784,6 +785,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/backup/import$',
         GroupAppsBackupImportView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/backup$', TeamGroupAppsBackupView.as_view()),
+    # 应用复制
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/copy$', GroupAppsCopyView.as_view()),
     # 获取团队下的所有备份记录
     url(r'^teams/(?P<tenantName>[\w\-]+)/all/groupapp/backup$', AllTeamGroupAppsBackupView.as_view()),
     # 应用迁移恢复

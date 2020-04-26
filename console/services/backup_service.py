@@ -110,7 +110,7 @@ class GroupAppBackupService(object):
         data = {
             "event_id": event_id,
             "group_id": group_uuid,
-            "metadata": metadata,
+            "metadata": json.dumps(metadata),
             "service_ids": [s.service_id for s in services],
             "mode": mode,
             "version": version,
@@ -253,8 +253,7 @@ class GroupAppBackupService(object):
         all_data["plugin_info"]["plugin_build_versions"] = plugin_build_versions
         all_data["plugin_info"]["plugin_config_groups"] = plugin_config_groups
         all_data["plugin_info"]["plugin_config_items"] = plugin_config_items
-
-        return total_memory, json.dumps(all_data)
+        return total_memory, all_data
 
     def get_service_details(self, tenant, service):
         service_base = service.to_dict()
