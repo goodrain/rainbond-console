@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from www.apiclient.baseclient import HttpClient
 from console.exception.main import ServiceHandleException
 from console.services.groupcopy_service import groupapp_copy_service
 from console.views.base import RegionTenantHeaderView
@@ -50,9 +51,25 @@ class GroupAppsCopyView(RegionTenantHeaderView):
                 msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
         tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(
             request.user, tar_team_name, tar_region_name, tar_group_id)
-        groupapp_copy_service.copy_group_services(
-            request.user, self.tenant, tar_team, tar_region_name, tar_group, group_id, services)
-        result = general_message(
-            200, "success", "获取成功",
-            bean={"tar_team_name": tar_team_name, "tar_region_name": tar_region_name, "tar_group_id": tar_group_id})
-        return Response(result, status=200)
+        try:
+            groupapp_copy_service.copy_group_services(
+                request.user, self.tenant, tar_team, tar_region_name, tar_group, group_id, services)
+            result = general_message(
+                200, "success", "获取成功",
+                bean={"tar_team_name": tar_team_name, "tar_region_name": tar_region_name, "tar_group_id": tar_group_id})
+            status = 200
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                result = general_message(10407, "no cloud permission", e.message)
+                status = e.status
+            elif e.status == 400:
+                if "is exist" in e.message.get("body", ""):
+                    result = general_message(400, "the service is exist in region", "组件名称在数据中心已存在")
+                else:
+                    result = general_message(400, "call cloud api failure", e.message)
+                status = e.status
+            else:
+                result = general_message(500, "call cloud api failure", e.message)
+                status = 500
+        return Response(result, status=status)
