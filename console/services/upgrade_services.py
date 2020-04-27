@@ -2,17 +2,17 @@
 """存放组件升级细节"""
 import json
 import logging
-from datetime import datetime
 import socket
-import httplib2
-from urllib3.exceptions import ConnectTimeoutError
-from urllib3.exceptions import MaxRetryError
+from datetime import datetime
 
+import httplib2
 from django.db import DatabaseError
 from django.db import transaction
 from django.db.models import Q
-
 from market_client.rest import ApiException
+from urllib3.exceptions import ConnectTimeoutError
+from urllib3.exceptions import MaxRetryError
+
 from console.exception.main import AbortRequest
 from console.exception.main import RbdAppNotFound
 from console.exception.main import RecordNotFound
@@ -26,15 +26,15 @@ from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_actions.properties_changes import get_upgrade_app_version_template_app
+from console.services.app_actions.properties_changes import PropertiesChanges
 from console.utils.restful_client import get_default_market_client
 from console.utils.restful_client import get_market_client
 from www.apiclient.marketclient import MarketOpenAPI
-from www.models.main import TenantEnterprise
-from www.models.main import TenantEnterpriseToken
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models.main import TenantEnterprise
+from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
 
 region_api = RegionInvokeApi()
@@ -224,6 +224,7 @@ class UpgradeService(object):
         app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, app_id=group_key)
         add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
         versions |= add_versions
+        versions = [str(version) for version in versions]
         versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x.split(".")), reverse=True)
         return versions
 
