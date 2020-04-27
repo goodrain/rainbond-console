@@ -2,6 +2,7 @@
 # create by: panda-zxs
 
 from rest_framework import serializers
+from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 
 
 class CompomentBuildSourceSerializer(serializers.Serializer):
@@ -65,4 +66,4 @@ class GroupAppCopyCSerializer(serializers.Serializer):
 
 
 class GroupAppCopyCResSerializer(serializers.Serializer):
-    group_app_url = serializers.CharField(max_length=128, help_text="应用路由")
+    services = ServiceBaseInfoSerializer(many=True)

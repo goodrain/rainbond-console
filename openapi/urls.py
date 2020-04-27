@@ -104,7 +104,7 @@ urlpatterns = [
     url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/groupapp/(?P<group_id>[\d\-]+)/copy$',
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/copy$',
         GroupAppsCopyView.as_view()),
 ]
 

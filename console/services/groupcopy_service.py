@@ -157,9 +157,9 @@ class GroupAppCopyService(object):
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
         services = service_repo.get_service_by_service_ids(service_ids=service_ids)
+        result = []
         for service in services:
             if service.service_id in change_service_ids:
-                # probe = None
                 if service.service_source == "third_party":
                     # 数据中心连接创建第三方组件
                     new_service = app_service.create_third_party_service(tenant, service, user.nick_name)
@@ -179,6 +179,8 @@ class GroupAppCopyService(object):
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
+                result.push(service)
+        return result
 
 
 groupapp_copy_service = GroupAppCopyService()
