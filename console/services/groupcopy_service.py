@@ -34,7 +34,7 @@ class GroupAppCopyService(object):
             old_team, tar_team, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(
             user, tar_team, tar_region_name, tar_group.ID, services_metadata, change_services_map)
-        groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
+        return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
     def get_group_services_with_build_source(self, tenant, region_name, group_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
@@ -180,7 +180,7 @@ class GroupAppCopyService(object):
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
-                result.push(service)
+                result.extend(service)
         return result
 
 
