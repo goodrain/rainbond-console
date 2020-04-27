@@ -43,6 +43,7 @@ class GroupAppCopyService(object):
         service_ids = [group_service.get("service_id") for group_service in group_services]
         services = service_repo.get_service_by_service_ids(service_ids=service_ids)
         for group_service in group_services:
+            group_service["app_name"] = group_service.get("group_name")
             for service in services:
                 if group_service["service_id"] == service.service_id:
                     group_service["build_source"] = base_service.get_build_info(tenant, service)

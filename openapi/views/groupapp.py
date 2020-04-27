@@ -11,9 +11,9 @@ from rest_framework.response import Response
 
 from openapi.views.base import TeamAPIView
 from console.services.groupcopy_service import groupapp_copy_service
-from openapi.serializer.groupapp_serializer import GroupAppCopyLSerializer
-from openapi.serializer.groupapp_serializer import GroupAppCopyCSerializer
-from openapi.serializer.groupapp_serializer import GroupAppCopyCResSerializer
+from openapi.serializer.groupapp_serializer import AppCopyLSerializer
+from openapi.serializer.groupapp_serializer import AppCopyCSerializer
+from openapi.serializer.groupapp_serializer import AppCopyCResSerializer
 
 logger = logging.getLogger('default')
 
@@ -21,13 +21,13 @@ logger = logging.getLogger('default')
 class GroupAppsCopyView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取需要复制的应用组件信息",
-        responses={200: GroupAppCopyLSerializer()},
+        responses={200: AppCopyLSerializer()},
         tags=['openapi-apps'],
     )
     @never_cache
     def get(self, request, team_id, app_id, **kwargs):
         group_services = groupapp_copy_service.get_group_services_with_build_source(self.team, self.region_name, group_id=app_id)
-        serializer = GroupAppCopyLSerializer(data=group_services, many=True)
+        serializer = AppCopyLSerializer(data=group_services, many=True)
         serializer.is_valid(raise_exception=True)
         result = {
             "result": serializer.validated_data,
@@ -37,9 +37,9 @@ class GroupAppsCopyView(TeamAPIView):
 
     @swagger_auto_schema(
         operation_description="复制应用",
-        request_body=GroupAppCopyCSerializer(),
+        request_body=AppCopyCSerializer(),
         responses={
-            status.HTTP_200_OK: GroupAppCopyCResSerializer(),
+            status.HTTP_200_OK: AppCopyCResSerializer(),
             status.HTTP_400_BAD_REQUEST: None,
             status.HTTP_500_INTERNAL_SERVER_ERROR: None,
         },
@@ -62,18 +62,18 @@ class GroupAppsCopyView(TeamAPIView):
               type: int
               paramType: path
         """
-        serializers = GroupAppCopyCSerializer(data=request.data)
+        serializers = AppCopyCSerializer(data=request.data)
         serializers.is_valid(raise_exception=True)
         services = serializers.data.get("services")
         tar_team_name = request.data.get("target_team_name")
         tar_region_name = request.data.get("target_region_name")
-        tar_group_id = request.data.get("target_group_id")
+        tar_app_id = request.data.get("target_app_id")
         if not self.team:
             return Response({"msg": "应用所在团队不存在"}, status=404)
         tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(
-            request.user, tar_team_name, tar_region_name, tar_group_id)
+            request.user, tar_team_name, tar_region_name, tar_app_id)
         services = groupapp_copy_service.copy_group_services(
             request.user, self.team, tar_team, tar_region_name, tar_group, app_id, services)
-        serializers = GroupAppCopyCResSerializer(data={"services": services})
+        serializers = AppCopyCResSerializer(data={"services": services})
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)

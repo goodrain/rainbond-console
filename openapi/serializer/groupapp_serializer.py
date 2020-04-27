@@ -24,7 +24,7 @@ class CompomentBuildSourceSerializer(serializers.Serializer):
     service_source = serializers.CharField(max_length=32, allow_null=True, help_text="应用来源")
 
 
-class GroupAppCopyLSerializer(serializers.Serializer):
+class AppCopyLSerializer(serializers.Serializer):
     build_source = CompomentBuildSourceSerializer()
     update_time = serializers.DateTimeField(help_text="更新日期",  allow_null=True)
     deploy_version = serializers.CharField(max_length=32, help_text="构建版本", allow_null=True)
@@ -34,36 +34,36 @@ class GroupAppCopyLSerializer(serializers.Serializer):
     version = serializers.CharField(max_length=32, allow_null=True, help_text="版本")
     service_type = serializers.CharField(max_length=32, allow_null=True, help_text="组件类型")
     service_id = serializers.CharField(max_length=32, allow_null=True, help_text="id")
-    group_name = serializers.CharField(max_length=32, allow_null=True, help_text="应用名称")
+    app_name = serializers.CharField(max_length=32, allow_null=True, help_text="应用名称")
     min_memory = serializers.CharField(max_length=32, allow_null=True, help_text="组件运行内存")
 
     def to_internal_value(self, data):
         self._writable_fields.pop(0)
-        internal = super(GroupAppCopyLSerializer, self).to_internal_value(data)
+        internal = super(AppCopyLSerializer, self).to_internal_value(data)
         ser = CompomentBuildSourceSerializer(data["build_source"])
         internal["build_source"] = ser.data
         return internal
 
 
-class GroupAppChangeBuildSourceSerializer(serializers.Serializer):
+class AppChangeBuildSourceSerializer(serializers.Serializer):
     version = serializers.CharField(max_length=32, allow_null=True, help_text="版本")
 
 
-class GroupAppModifyInfoSerializer(serializers.Serializer):
-    build_source = GroupAppChangeBuildSourceSerializer()
+class AppModifyInfoSerializer(serializers.Serializer):
+    build_source = AppChangeBuildSourceSerializer()
 
 
-class GroupAppCopyModifySerializer(serializers.Serializer):
+class AppCopyModifySerializer(serializers.Serializer):
     service_id = serializers.CharField(max_length=32, help_text="id")
-    change = GroupAppModifyInfoSerializer()
+    change = AppModifyInfoSerializer()
 
 
-class GroupAppCopyCSerializer(serializers.Serializer):
-    services = GroupAppCopyModifySerializer(many=True)
-    tar_team_name = serializers.CharField(max_length=32, help_text="团队id")
-    tar_region_name = serializers.CharField(max_length=32, help_text="数据中心名称")
-    tar_group_id = serializers.IntegerField(help_text="应用id")
+class AppCopyCSerializer(serializers.Serializer):
+    services = AppCopyModifySerializer(many=True)
+    target_team_name = serializers.CharField(max_length=32, help_text="团队id")
+    target_region_name = serializers.CharField(max_length=32, help_text="数据中心名称")
+    target_app_id = serializers.IntegerField(help_text="应用id")
 
 
-class GroupAppCopyCResSerializer(serializers.Serializer):
+class AppCopyCResSerializer(serializers.Serializer):
     services = ServiceBaseInfoSerializer(many=True)
