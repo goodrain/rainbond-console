@@ -14,6 +14,7 @@ from console.services.groupcopy_service import groupapp_copy_service
 from openapi.serializer.groupapp_serializer import AppCopyLSerializer
 from openapi.serializer.groupapp_serializer import AppCopyCSerializer
 from openapi.serializer.groupapp_serializer import AppCopyCResSerializer
+from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 
 logger = logging.getLogger('default')
 
@@ -64,12 +65,10 @@ class GroupAppsCopyView(TeamAPIView):
         tar_team_name = request.data.get("target_team_name")
         tar_region_name = request.data.get("target_region_name")
         tar_app_id = request.data.get("target_app_id")
-        if not self.team:
-            return Response({"msg": "应用所在团队不存在"}, status=404)
         tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(
             request.user, tar_team_name, tar_region_name, tar_app_id)
         services = groupapp_copy_service.copy_group_services(
             request.user, self.team, tar_team, tar_region_name, tar_group, app_id, services)
-        serializers = AppCopyCResSerializer(data={"services": services})
+        serializers = AppCopyCResSerializer(data={"services": ServiceBaseInfoSerializer(data=services, many=True).data})
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)

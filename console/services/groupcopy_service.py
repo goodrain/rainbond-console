@@ -180,7 +180,7 @@ class GroupAppCopyService(object):
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
-                result.extend(service)
+                result.append(service)
         return result
 
 
