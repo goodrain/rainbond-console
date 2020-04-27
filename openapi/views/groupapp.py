@@ -21,7 +21,7 @@ logger = logging.getLogger('default')
 class GroupAppsCopyView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取需要复制的应用组件信息",
-        responses={200: AppCopyLSerializer()},
+        responses={200: AppCopyLSerializer(many=True)},
         tags=['openapi-apps'],
     )
     @never_cache
@@ -29,11 +29,7 @@ class GroupAppsCopyView(TeamAPIView):
         group_services = groupapp_copy_service.get_group_services_with_build_source(self.team, self.region_name, group_id=app_id)
         serializer = AppCopyLSerializer(data=group_services, many=True)
         serializer.is_valid(raise_exception=True)
-        result = {
-            "result": serializer.validated_data,
-            "total": len(serializer.validated_data)
-        }
-        return Response(result, status=200)
+        return Response(serializer.data, status=200)
 
     @swagger_auto_schema(
         operation_description="复制应用",
