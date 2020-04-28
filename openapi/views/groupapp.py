@@ -69,8 +69,6 @@ class GroupAppsCopyView(TeamAPIView):
             request.user, tar_team_name, tar_region_name, tar_app_id)
         services = groupapp_copy_service.copy_group_services(
             request.user, self.team, tar_team, tar_region_name, tar_group, app_id, services)
-        service_serializers = ServiceBaseInfoSerializer(data=[model_to_dict(service) for service in services], many=True)
-        service_serializers.is_valid(raise_exception=True)
-        serializers = AppCopyCResSerializer(data={"services": service_serializers.data})
+        serializers = AppCopyCResSerializer(data={"services": services})
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
