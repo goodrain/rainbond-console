@@ -331,7 +331,14 @@ class TenantServiceMntRelationRepository(object):
         return TenantServiceMountRelation.objects.filter(dep_service_id=dep_service_id, mnt_name=mnt_name)
 
     def get_service_mnts(self, tenant_id, service_id):
-        dep_mnts = TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
+        volume_types = ['share-file', 'memoryfs', 'local']
+        dep_mnts = []
+        real_dep_mnts = self.get_service_mnts_filter_volume_type(
+            tenant_id=tenant_id, service_id=service_id, volume_types=volume_types)
+        if real_dep_mnts:
+            volume_names = [mnt.get("volume_name") for mnt in real_dep_mnts]
+            dep_mnts = TenantServiceMountRelation.objects.filter(
+                tenant_id=tenant_id, service_id=service_id, mnt_name__in=volume_names)
         return dep_mnts
 
     def get_by_dep_service_id(self, tenant_id, dep_service_id):
