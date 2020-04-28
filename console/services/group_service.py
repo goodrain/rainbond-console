@@ -164,8 +164,6 @@ class GroupService(object):
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
         service_status = dict()
-        if not status_list:
-            raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
         for status in status_list:
             service_status[status["service_id"]] = status
 
