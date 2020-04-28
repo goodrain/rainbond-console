@@ -3,7 +3,12 @@ import logging
 from datetime import datetime
 
 from django.db import models
-from django.db.models.fields import DateTimeField, CharField, AutoField, BooleanField, DecimalField, IntegerField
+from django.db.models.fields import AutoField
+from django.db.models.fields import BooleanField
+from django.db.models.fields import CharField
+from django.db.models.fields import DateTimeField
+from django.db.models.fields import DecimalField
+from django.db.models.fields import IntegerField
 from django.db.models.fields.files import FileField
 from enum import Enum
 from enum import IntEnum
@@ -212,7 +217,8 @@ class ServiceShareRecord(BaseModel):
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"发布应用组或插件的唯一Key")
     group_id = models.CharField(max_length=32, help_text=u"分享应用组id或者单独插件ID")
     team_name = models.CharField(max_length=64, help_text=u"应用所在团队唯一名称")
-    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
+    event_id = models.CharField(max_length=32, null=True, blank=True,
+                                help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
     share_version = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用组发布版本")
     share_version_alias = models.CharField(max_length=32, null=True, blank=True, help_text=u"应用组发布版本别名")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
@@ -861,3 +867,10 @@ class UserFavorite(BaseModel):
     update_time = models.DateTimeField(auto_now=True)
     custom_sort = models.IntegerField(help_text=u"用户自定义排序")
     is_default = models.BooleanField(default=False, help_text=u"用户自定义排序")
+
+
+class Errlog(BaseModel):
+    class Meta:
+        db_table = "errlog"
+
+    msg = models.CharField(max_length=255, null=True, blank=True, default="", help_text=u"error log of front end")
