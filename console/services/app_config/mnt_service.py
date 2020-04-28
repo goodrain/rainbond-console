@@ -77,16 +77,17 @@ class AppMntService(object):
 
         current_tenant_services_id = service_ids
         # 已挂载的组件路径
-        mounted_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name', flat=True)
+        mounted = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
+        mounted_ids = [mnt.volume_id for mnt in mounted]
         # 当前未被挂载的共享路径
         service_volumes = []
         # 配置文件无论组件是否是共享存储都可以共享，只需过滤掉已经挂载的存储；其他存储类型则需要考虑排除有状态组件的存储
         if is_config:
             service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type=self.CONFIG) \
-                .exclude(volume_name__in=mounted_names)
+                .exclude(ID__in=mounted_ids)
         else:
             service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type=self.SHARE) \
-                .exclude(volume_name__in=mounted_names).exclude(service_id__in=state_service_ids)
+                .exclude(ID__in=mounted_ids).exclude(service_id__in=state_service_ids)
         # TODO 使用函数进行存储的排查，确定哪些存储不可以进行共享，哪些存储可以共享，而不是现在这样简单的提供一个self.SHARE
 
         total = len(service_volumes)
@@ -115,12 +116,13 @@ class AppMntService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         current_tenant_services_id = service_ids
         # 已挂载的组件路径
-        dep_mnt_names = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id).values_list('mnt_name', flat=True)
+        dep_mnts = mnt_repo.get_service_mnts(tenant.tenant_id, service.service_id)
+        dep_volume_ids = [dep_mnt.volume_id for dep_mnt in dep_mnts]
         # 当前未被挂载的共享路径
         service_volumes = volume_repo.get_services_volumes(current_tenant_services_id) \
             .filter(volume_type__in=[self.SHARE, self.CONFIG]) \
             .exclude(service_id=service.service_id) \
-            .exclude(volume_name__in=dep_mnt_names).filter(q)
+            .exclude(ID__in=dep_volume_ids).filter(q)
         # 只展示无状态的组件(有状态组件的存储类型为config-file也可)
         volumes = list(service_volumes)
         copy_volumes = copy.copy(volumes)

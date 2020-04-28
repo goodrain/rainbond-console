@@ -331,32 +331,45 @@ class TenantServiceMntRelationRepository(object):
         return TenantServiceMountRelation.objects.filter(dep_service_id=dep_service_id, mnt_name=mnt_name)
 
     def get_service_mnts(self, tenant_id, service_id):
-        real_dep_mnts = self.get_service_mnts_filter_volume_type(
-            tenant_id=tenant_id, service_id=service_id)
-        volume_names = [mnt.get("volume_name") for mnt in real_dep_mnts]
-        dep_mnts = TenantServiceMountRelation.objects.filter(
-            tenant_id=tenant_id, service_id=service_id, mnt_name__in=volume_names)
-        return dep_mnts
+        return self.get_service_mnts_filter_volume_type(tenant_id=tenant_id, service_id=service_id)
 
     def get_by_dep_service_id(self, tenant_id, dep_service_id):
         return TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, dep_service_id=dep_service_id)
 
     def get_service_mnts_filter_volume_type(self, tenant_id, service_id, volume_types=None):
-        query = "mnt.tenant_id = %s and mnt.service_id = %s"
+        conn = BaseConnection()
+        query = "mnt.tenant_id = '%s' and mnt.service_id = '%s'" % (tenant_id, service_id)
         if volume_types:
-            query += " and volume.volume_type in ({})".format(','.join(['%s'] * len(volume_types)))
+            vol_type_sql = " and volume.volume_type in ({})".format(','.join(["'%s'"] * len(volume_types)))
+            query += vol_type_sql % tuple(volume_types)
 
         sql = """
-        select *
+        select mnt.mnt_name,
+            mnt.mnt_dir,
+            mnt.dep_service_id,
+            mnt.service_id,
+            mnt.tenant_id,
+            volume.volume_type,
+            volume.ID as volume_id
         from tenant_service_mnt_relation as mnt
                  inner join tenant_service_volume as volume
                             on mnt.dep_service_id = volume.service_id and mnt.mnt_name = volume.volume_name
         where {};
         """.format(query)
-
-        params = [tenant_id, service_id] + (volume_types or [])
-
-        return list(TenantServiceMountRelation.objects.raw(sql, params=params))
+        result = conn.query(sql)
+        dep_mnts = []
+        for real_dep_mnt in result:
+            mnt = TenantServiceMountRelation(
+                tenant_id=real_dep_mnt.get("tenant_id"),
+                service_id=real_dep_mnt.get("service_id"),
+                dep_service_id=real_dep_mnt.get("dep_service_id"),
+                mnt_name=real_dep_mnt.get("mnt_name"),
+                mnt_dir=real_dep_mnt.get("mnt_dir")
+            )
+            mnt.volume_type = real_dep_mnt.get("volume_type")
+            mnt.volume_id = real_dep_mnt.get("volume_id")
+            dep_mnts.append(mnt)
+        return dep_mnts
 
     def list_mnt_relations_by_service_ids(self, tenant_id, service_ids):
         dep_mnts = TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
