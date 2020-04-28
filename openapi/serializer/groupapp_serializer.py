@@ -6,26 +6,33 @@ from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 
 
 class CompomentBuildSourceSerializer(serializers.Serializer):
-    oauth_service_id = serializers.IntegerField(allow_null=True, help_text="OAuth服务id")
     version = serializers.CharField(max_length=32, allow_null=True, help_text="版本")
     language = serializers.CharField(max_length=32, allow_null=True, help_text="语言")
     code_from = serializers.CharField(max_length=32, allow_null=True, help_text="构建类型")
-    image = serializers.CharField(max_length=32, allow_null=True, help_text="镜像")
-    cmd = serializers.CharField(max_length=32, allow_null=True, help_text="cmd")
-    server_type = serializers.CharField(max_length=32, allow_null=True, help_text="服务类型")
-    docker_cmd = serializers.CharField(max_length=32, allow_null=True, help_text="docker_cmd")
-    create_time = serializers.DateTimeField(allow_null=True, help_text="创建日期")
-    git_url = serializers.CharField(max_length=32, allow_null=True, help_text="git地址")
-    full_name = serializers.CharField(max_length=32, allow_null=True, help_text="git仓库full_name")
-    service_id = serializers.CharField(max_length=32, allow_null=True, help_text="id")
-    password = serializers.CharField(max_length=32, allow_null=True, help_text="密码")
-    user_name = serializers.CharField(max_length=32, allow_null=True, help_text="用户名")
-    code_version = serializers.CharField(max_length=32, allow_null=True, help_text="代码版本")
     service_source = serializers.CharField(max_length=32, allow_null=True, help_text="应用来源")
 
 
+class CompomentDockerImageBuildSourceSerializer(CompomentBuildSourceSerializer):
+    docker_cmd = serializers.CharField(max_length=32, allow_null=True, help_text="docker_cmd")
+    image = serializers.CharField(max_length=32, allow_null=True, help_text="镜像")
+    password = serializers.CharField(max_length=32, allow_null=True, help_text="密码")
+    user_name = serializers.CharField(max_length=32, allow_null=True, help_text="用户名")
+
+class CompomentMarketBuildSourceSerializer(CompomentBuildSourceSerializer):
+    pass
+
+class CompomentCodeBuildSourceSerializer(CompomentBuildSourceSerializer):
+    code_version = serializers.CharField(max_length=32, allow_null=True, help_text="版本")
+    git_url = serializers.CharField(max_length=64, allow_null=True, help_text="git地址")
+    full_name = serializers.CharField(max_length=32, allow_null=True, help_text="git仓库full_name")
+    service_id = serializers.CharField(max_length=32, allow_null=True, help_text="id")
+    oauth_service_id = serializers.IntegerField(allow_null=True, help_text="OAuth服务id")
+    user_name = serializers.CharField(max_length=32, allow_null=True, help_text="用户名")
+    password = serializers.CharField(max_length=32, allow_null=True, help_text="密码")
+
+
 class AppCopyLSerializer(serializers.Serializer):
-    build_source = CompomentBuildSourceSerializer()
+    build_source = serializers.SerializerMethodField()
     update_time = serializers.DateTimeField(help_text="更新日期",  allow_null=True)
     deploy_version = serializers.CharField(max_length=32, help_text="构建版本", allow_null=True)
     create_status = serializers.CharField(max_length=32, allow_null=True, help_text="创建状态")
@@ -38,12 +45,24 @@ class AppCopyLSerializer(serializers.Serializer):
     min_memory = serializers.CharField(max_length=32, allow_null=True, help_text="组件运行内存")
 
     def to_internal_value(self, data):
-        if self._writable_fields:
-            self._writable_fields.pop(0)
-        internal = super(AppCopyLSerializer, self).to_internal_value(data)
-        ser = CompomentBuildSourceSerializer(data["build_source"])
-        internal["build_source"] = ser.data
-        return internal
+        return data
+
+    def get_build_source(self, instance):
+        build_source = instance.get("build_source")
+        service_source = build_source.get("service_source")
+        if service_source == "docker_image":
+            serializer = CompomentDockerImageBuildSourceSerializer(data=build_source)
+            serializer.is_valid(raise_exception=True)
+        elif service_source == "market":
+            serializer = CompomentMarketBuildSourceSerializer(data=build_source)
+            serializer.is_valid(raise_exception=True)
+        elif service_source == "source_code":
+            serializer = CompomentCodeBuildSourceSerializer(data=build_source)
+            serializer.is_valid(raise_exception=True)
+        else:
+            serializer = CompomentBuildSourceSerializer(data=build_source)
+            serializer.is_valid(raise_exception=True)
+        return serializer.data
 
 
 class AppChangeBuildSourceSerializer(serializers.Serializer):
@@ -51,12 +70,42 @@ class AppChangeBuildSourceSerializer(serializers.Serializer):
 
 
 class AppModifyInfoSerializer(serializers.Serializer):
-    build_source = AppChangeBuildSourceSerializer()
+    build_source = serializers.SerializerMethodField()
+
+    def get_build_source(self, instance):
+        default_build_source = {
+            "version": None
+        }
+        build_source = instance.get("build_source")
+        if not build_source:
+            return default_build_source
+        else:
+            serializer = AppChangeBuildSourceSerializer(data=build_source)
+            serializer.is_valid(raise_exception=True)
+            return serializer.data
+
+
+    def to_internal_value(self, data):
+        return data
 
 
 class AppCopyModifySerializer(serializers.Serializer):
     service_id = serializers.CharField(max_length=32, help_text="id")
-    change = AppModifyInfoSerializer()
+    change = serializers.SerializerMethodField()
+
+    def get_change(self, instance):
+        default_change = {
+            "build_source":{
+                "version": None
+            }
+        }
+        change = instance.get("change")
+        if not change:
+            return default_change
+        else:
+            serializer = AppModifyInfoSerializer(data=change)
+            serializer.is_valid(raise_exception=True)
+            return serializer.data
 
 
 class AppCopyCSerializer(serializers.Serializer):
@@ -64,6 +113,9 @@ class AppCopyCSerializer(serializers.Serializer):
     target_team_name = serializers.CharField(max_length=32, help_text="团队id")
     target_region_name = serializers.CharField(max_length=32, help_text="数据中心名称")
     target_app_id = serializers.IntegerField(help_text="应用id")
+
+    def to_internal_value(self, data):
+        return data
 
 
 class AppCopyCResSerializer(serializers.Serializer):
