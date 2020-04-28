@@ -120,3 +120,6 @@ class AppCopyCSerializer(serializers.Serializer):
 
 class AppCopyCResSerializer(serializers.Serializer):
     services = ServiceBaseInfoSerializer(many=True)
+
+    def to_internal_value(self, data):
+        return data
