@@ -38,7 +38,8 @@ class AppCopyLSerializer(serializers.Serializer):
     min_memory = serializers.CharField(max_length=32, allow_null=True, help_text="组件运行内存")
 
     def to_internal_value(self, data):
-        self._writable_fields.pop(0)
+        if self._writable_fields:
+            self._writable_fields.pop(0)
         internal = super(AppCopyLSerializer, self).to_internal_value(data)
         ser = CompomentBuildSourceSerializer(data["build_source"])
         internal["build_source"] = ser.data
