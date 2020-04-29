@@ -20,7 +20,7 @@ class CompomentDockerImageBuildSourceSerializer(CompomentBuildSourceSerializer):
 
 
 class CompomentMarketBuildSourceSerializer(CompomentBuildSourceSerializer):
-    pass
+    rain_app_name = serializers.CharField(max_length=64, allow_null=True, help_text="应用包名")
 
 
 class CompomentCodeBuildSourceSerializer(CompomentBuildSourceSerializer):
