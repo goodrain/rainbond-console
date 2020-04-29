@@ -13,7 +13,7 @@ from django.forms.models import model_to_dict
 from console.constants import DomainType
 
 from openapi.serializer.base_serializer import FailSerializer, SuccessSerializer
-from openapi.views.base import TeamListAPIView, TeamAPIView
+from openapi.views.base import TeamAPIView
 from openapi.serializer.app_serializer import AppInfoSerializer, AppBaseInfoSerializer, AppPostInfoSerializer
 from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 from openapi.serializer.app_serializer import ServiceGroupOperationsSerializer
@@ -29,7 +29,7 @@ from console.services.app_config import domain_service
 logger = logging.getLogger("default")
 
 
-class ListAppsView(TeamListAPIView):
+class ListAppsView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="团队应用列表",
         manual_parameters=[
@@ -54,7 +54,7 @@ class ListAppsView(TeamListAPIView):
         serializer = AppPostInfoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        group_info = group_service.add_group(self.team, self.region_name, data["app_name"], data.get("group_note"))
+        group_info = group_service.add_group(self.team, self.region_name, data["app_name"], data.get("app_note"))
         re = AppBaseInfoSerializer(group_info)
         return Response(re.data, status=status.HTTP_201_CREATED)
 
@@ -66,7 +66,7 @@ class AppInfoView(TeamAPIView):
         tags=['openapi-apps'],
     )
     def get(self, req, app_id, *args, **kwargs):
-        app = group_service.get_group_by_id(self.team.tenant_name, self.region_name, self.app_id)
+        app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         if not app:
             return Response(None, status.HTTP_404_NOT_FOUND)
         tenant = team_services.get_team_by_team_id(app.tenant_id)

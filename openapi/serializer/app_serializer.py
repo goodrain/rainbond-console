@@ -20,7 +20,7 @@ class AppBaseInfoSerializer(serializers.ModelSerializer):
 
 class AppPostInfoSerializer(serializers.Serializer):
     app_name = serializers.CharField(max_length=128, help_text=u"应用名称")
-    group_note = serializers.CharField(max_length=2048, allow_blank=True, default="", help_text=u"应用备注")
+    app_note = serializers.CharField(max_length=2048, allow_blank=True, default="", help_text=u"应用备注")
 
 
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
