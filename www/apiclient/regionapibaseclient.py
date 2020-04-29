@@ -17,7 +17,6 @@ from django.conf import settings
 
 from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo
-from goodrain_web.decorator import method_perf_time
 
 logger = logging.getLogger('default')
 
