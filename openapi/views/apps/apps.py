@@ -5,7 +5,6 @@ import logging
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.views.base import BaseOpenAPIView
-from rest_framework import serializers
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -32,7 +31,7 @@ logger = logging.getLogger("default")
 
 class ListAppsView(TeamListAPIView):
     @swagger_auto_schema(
-        operation_description="应用列表",
+        operation_description="团队应用列表",
         manual_parameters=[
            openapi.Parameter("query", openapi.IN_QUERY, description="搜索查询应用名称，团队名称", type=openapi.TYPE_STRING),
         ],
@@ -55,8 +54,7 @@ class ListAppsView(TeamListAPIView):
         serializer = AppPostInfoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        logger.info(data["team_alias"])
-        group_info = group_service.add_group(self.team, data["region_name"], data["app_name"], data.get("group_note"))
+        group_info = group_service.add_group(self.team, self.region_name, data["app_name"], data.get("group_note"))
         re = AppBaseInfoSerializer(group_info)
         return Response(re.data, status=status.HTTP_201_CREATED)
 

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from console.exception.main import ServiceHandleException
-from rest_framework import serializers
 
 # 业务码
 # 企业: 1xxx 团队2xxx 组件3xxx
@@ -19,4 +18,9 @@ ErrEnterpriseNotFound = ServiceHandleException(
     error_code=1000
 )
 
-ErrRegionNotFound = serializers.ValidationError("指定数据中心不存在")
+ErrRegionNotFound = ServiceHandleException(
+    msg="the region is not found",
+    msg_show="集群不存在",
+    status_code=404,
+    error_code=3000
+)

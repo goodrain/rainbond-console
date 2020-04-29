@@ -6,7 +6,7 @@ from openapi.auth.permissions import OpenAPIPermissions
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from openapi.views.exceptions import ErrTeamNotFound, ErrEnterpriseNotFound
+from openapi.views.exceptions import ErrTeamNotFound, ErrEnterpriseNotFound, ErrRegionNotFound
 from rest_framework import generics
 
 
@@ -45,6 +45,11 @@ class TeamListAPIView(ListAPIView):
         super(TeamAPIView, self).initial(request, *args, **kwargs)
         team_id = kwargs.get("team_id")
         self.region_name = kwargs.get("region_name")
+        if self.region_name:
+            self.region = region_services.get_enterprise_region_by_region_name(enterprise_id=self.enterprise.enterprise_id,
+                                                                               region_name=self.region_name)
+        if not self.region:
+            raise ErrRegionNotFound
         if team_id:
             # team_id support id and name
             self.team = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id=self.enterprise.enterprise_id,
@@ -67,6 +72,11 @@ class TeamAPIView(BaseOpenAPIView):
         super(TeamAPIView, self).initial(request, *args, **kwargs)
         team_id = kwargs.get("team_id")
         self.region_name = kwargs.get("region_name")
+        if self.region_name:
+            self.region = region_services.get_enterprise_region_by_region_name(enterprise_id=self.enterprise.enterprise_id,
+                                                                               region_name=self.region_name)
+        if not self.region:
+            raise ErrRegionNotFound
         if team_id:
             # team_id support id and name
             self.team = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id=self.enterprise.enterprise_id,

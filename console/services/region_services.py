@@ -49,6 +49,9 @@ class RegionService(object):
     def get_region_by_region_name(self, region_name):
         return region_repo.get_region_by_region_name(region_name=region_name)
 
+    def get_enterprise_region_by_region_name(self, enterprise_id, region_name):
+        return region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
+
     def get_by_region_name(self, region_name):
         return region_repo.get_by_region_name(region_name)
 

@@ -19,9 +19,7 @@ class AppBaseInfoSerializer(serializers.ModelSerializer):
 
 
 class AppPostInfoSerializer(serializers.Serializer):
-    team_alias = serializers.CharField(max_length=16, help_text=u"所属团队别名")
     app_name = serializers.CharField(max_length=128, help_text=u"应用名称")
-    region_name = serializers.CharField(max_length=64, help_text=u"数据中心唯一名称")
     group_note = serializers.CharField(max_length=2048, allow_blank=True, default="", help_text=u"应用备注")
 
 
