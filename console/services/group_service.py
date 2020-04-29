@@ -30,8 +30,8 @@ class GroupService(object):
     def check_group_name(self, tenant, region_name, group_name):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
-        if len(group_name) > 15:
-            raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称最多支持15个字符")
+        if len(group_name) > 128:
+            raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称最多支持128个字符")
         r = re.compile(u'^[a-zA-Z0-9_\\.\\-\u4e00-\u9fa5]+$')
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
