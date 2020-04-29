@@ -210,8 +210,10 @@ class GroupService(object):
                 backup_records[int(backup_info.group_id)] = {"backup_record_num": 0}
             backup_records[int(backup_info.group_id)]["backup_record_num"] += 1
 
-        app_list = []
-        for group_id, app in apps.iteritems():
+        re_app_list = []
+        for a in app_list:
+            group_id = a.ID
+            app = apps.get(a.ID)
             app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
             app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
             app["services_num"] = len(app["service_list"])
@@ -227,11 +229,9 @@ class GroupService(object):
                     # if is running used_mem ++
                     app["used_mem"] += svc.min_memory
                     app["run_service_num"] += 1
-
             app.pop("service_list")
-            app_list.append(app)
-
-        return app_list
+            re_app_list.append(app)
+        return re_app_list
 
     def get_rainbond_services(self, group_id, group_key):
         """获取云市应用下的所有组件"""
