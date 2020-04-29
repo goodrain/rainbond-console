@@ -12,7 +12,7 @@ logger = logging.getLogger("default")
 
 class GroupRepository(object):
     def list_tenant_group_on_region(self, tenant, region_name):
-        return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
+        return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name).order_by("-order_index")
 
     def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False):
         group = ServiceGroup.objects.create(
@@ -50,7 +50,8 @@ class GroupRepository(object):
         return group_count
 
     def get_tenant_region_groups(self, team_id, region, query=""):
-        return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region, group_name__icontains=query)
+        return ServiceGroup.objects.filter(tenant_id=team_id, 
+                                           region_name=region, group_name__icontains=query).order_by("-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
