@@ -50,14 +50,14 @@ class GroupRepository(object):
         return group_count
 
     def get_tenant_region_groups(self, team_id, region, query=""):
-        return ServiceGroup.objects.filter(tenant_id=team_id, 
+        return ServiceGroup.objects.filter(tenant_id=team_id,
                                            region_name=region, group_name__icontains=query).order_by("-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
 
     def get_groups_by_tenant_ids(self, tenant_ids):
-        return ServiceGroup.objects.filter(tenant_id__in=tenant_ids)
+        return ServiceGroup.objects.filter(tenant_id__in=tenant_ids).order_by("-order_index")
 
     def get_group_by_id(self, group_id):
         return ServiceGroup.objects.filter(pk=group_id).first()
@@ -82,14 +82,14 @@ class GroupRepository(object):
         if team_id:
             q = q & Q(tenant_id=team_id)
         if q:
-            return ServiceGroup.objects.filter(q)
-        return ServiceGroup.objects.all()
+            return ServiceGroup.objects.filter(q).order_by("-order_index")
+        return ServiceGroup.objects.all().order_by("-order_index")
 
     def get_multi_app_info(self, app_ids):
-        return ServiceGroup.objects.filter(ID__in=app_ids)
+        return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-order_index")
 
     def get_apps_in_multi_team(self, team_ids):
-        return ServiceGroup.objects.filter(tenant_id__in=team_ids)
+        return ServiceGroup.objects.filter(tenant_id__in=team_ids).order_by("-order_index")
 
 
 class GroupServiceRelationRepository(object):
