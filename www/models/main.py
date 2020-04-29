@@ -992,7 +992,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
 
 class ServiceGroup(BaseModel):
-    """组件分组"""
+    """组件分组（应用）"""
 
     class Meta:
         db_table = 'service_group'
@@ -1001,6 +1001,7 @@ class ServiceGroup(BaseModel):
     group_name = models.CharField(max_length=128, help_text=u"组名")
     region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
+    order_index = models.IntegerField(default=0, help_text=u"应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
 
 
