@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 from rest_framework.views import APIView
-from openapi.auth.authentication import OpenAPIAuthentication
+from openapi.auth.authentication import OpenAPIAuthentication, OpenAPIManageAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from openapi.views.exceptions import ErrTeamNotFound, ErrEnterpriseNotFound, ErrRegionNotFound
+from rest_framework import generics
+
+
+class ListAPIView(generics.ListAPIView):
+    authentication_classes = [OpenAPIManageAuthentication]
+    permission_classes = [OpenAPIPermissions]
 
 
 class BaseOpenAPIView(APIView):
