@@ -1093,9 +1093,10 @@ class ShareService(object):
                     dt["app_model_list"].append({
                         "app_name": app.name,
                         "app_id": app.app_key_id,
-                        "versions": sorted(versions,
-                                           key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
-                                           reverse=True),
+                        "versions": sorted(
+                            versions,
+                            key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
+                            reverse=True),
                         "pic": app.pic,
                         "app_describe": app.desc,
                         "dev_status": app.dev_status,
