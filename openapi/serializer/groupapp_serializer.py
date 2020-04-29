@@ -15,8 +15,8 @@ class CompomentBuildSourceSerializer(serializers.Serializer):
 class CompomentDockerImageBuildSourceSerializer(CompomentBuildSourceSerializer):
     docker_cmd = serializers.CharField(max_length=1024, allow_null=True, help_text="docker_cmd")
     image = serializers.CharField(max_length=200, allow_null=True, help_text="镜像")
-    password = serializers.CharField(max_length=32, allow_null=True, help_text="密码")
-    user_name = serializers.CharField(max_length=32, allow_null=True, help_text="用户名")
+    password = serializers.CharField(max_length=255, allow_null=True, help_text="密码")
+    user_name = serializers.CharField(max_length=255, allow_null=True, help_text="用户名")
 
 
 class CompomentMarketBuildSourceSerializer(CompomentBuildSourceSerializer):
@@ -29,8 +29,8 @@ class CompomentCodeBuildSourceSerializer(CompomentBuildSourceSerializer):
     full_name = serializers.CharField(max_length=64, allow_null=True, help_text="git仓库full_name")
     service_id = serializers.CharField(max_length=32, allow_null=True, help_text="id")
     oauth_service_id = serializers.IntegerField(allow_null=True, help_text="OAuth服务id")
-    user_name = serializers.CharField(max_length=64, allow_null=True, help_text="用户名")
-    password = serializers.CharField(max_length=32, allow_null=True, help_text="密码")
+    user_name = serializers.CharField(max_length=255, allow_null=True, help_text="用户名")
+    password = serializers.CharField(max_length=255, allow_null=True, help_text="密码")
 
 
 class AppCopyLSerializer(serializers.Serializer):
