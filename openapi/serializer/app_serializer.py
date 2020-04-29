@@ -35,7 +35,6 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
 
 class AppInfoSerializer(AppBaseInfoSerializer):
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
-    # service_list = ServiceBaseInfoSerializer(many=True, required=False)
     service_count = serializers.IntegerField(help_text=u"组件数量")
     running_service_count = serializers.IntegerField(help_text=u"正在运行的组件数量")
     used_momory = serializers.IntegerField(help_text=u"分配的内存")

@@ -43,6 +43,7 @@ from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
 from openapi.views.oauth import OauthTypeView
 from openapi.views.groupapp import GroupAppsCopyView
+import os
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -66,46 +67,46 @@ urlpatterns = [
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
-
-
-    # Below is the OPEN API that needs to be tweaked, not sure about availability
-    url(r'^v1/auth-token$', TokenInfoView.as_view()),
-    url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
-    url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$',
-        ListRegionTeamServicesView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view()),
-    url(r'^v1/users$', ListUsersView.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
-    url(r'^v1/user/changepwd$', ChangePassword.as_view()),
-    url(r'^v1/administrators$', ListAdminsView.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
-    url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
-    url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
-    url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
-    url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
-    url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
-    url(r'^v1/announcements$', ListAnnouncementView.as_view()),
-    url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
-    url(r'^v1/upload-file$', UploadView.as_view()),
-    url(r'^v1/apps/httpdomain$', APPHttpDomainView.as_view()),
-    url(r'^v1/apps$', ListAppsView.as_view()),
-    url(r'^v1/apps/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
-    url(r'^v1/apps/(?P<app_id>[\w\-]+)/httprules$', ListAppGatewayHTTPRuleView.as_view()),
-    url(r'^v1/market-install', MarketAppInstallView.as_view()),
-    url(r'^v1/oauth/type$', OauthTypeView.as_view()),
-    url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/copy$',
         GroupAppsCopyView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
+    # Below is the OPEN API that needs to be tweaked, not sure about availability
 ]
+if os.environ.get("OPENAPI_V2") == "true":
+    urlpatterns.append(url(r'^v2', include('openapi.v2.urls')),)
 
-urlpatterns.append(url(r'^v2', include('openapi.v2.urls')),)
+if os.environ.get("OPENAPI_DEBUG") == "true":
+    urlpatterns.append(
+        url(r'^v1/auth-token$', TokenInfoView.as_view()),
+        url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
+        url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
+        url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$',
+            ListRegionTeamServicesView.as_view()),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view()),
+        url(r'^v1/users$', ListUsersView.as_view()),
+        url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+        url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
+        url(r'^v1/user/changepwd$', ChangePassword.as_view()),
+        url(r'^v1/administrators$', ListAdminsView.as_view()),
+        url(r'^v1/users/(?P<user_id>[\w\-]+)/administrator$', AdminInfoView.as_view()),
+        url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
+        url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
+        url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
+        url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
+        url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
+        url(r'^v1/announcements$', ListAnnouncementView.as_view()),
+        url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
+        url(r'^v1/upload-file$', UploadView.as_view()),
+        url(r'^v1/apps/httpdomain$', APPHttpDomainView.as_view()),
+        url(r'^v1/apps/(?P<app_id>[\w\-]+)/httprules$', ListAppGatewayHTTPRuleView.as_view()),
+        url(r'^v1/market-install', MarketAppInstallView.as_view()),
+        url(r'^v1/oauth/type$', OauthTypeView.as_view()),
+        url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view())
+    )
