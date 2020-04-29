@@ -358,7 +358,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         region_data["status"] = "1"
         region = region_services.add_region(region_data)
         if region:
-            data = enterprise_services.get_enterprise_region(enterprise_id, region.region_id)
+            data = region_services.get_enterprise_region(enterprise_id, region.region_id, check_status=False)
             result = general_message(200, "success", "创建成功", bean=data)
             return Response(result, status=status.HTTP_200_OK)
         else:
