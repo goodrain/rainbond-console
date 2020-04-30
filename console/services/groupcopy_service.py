@@ -77,6 +77,15 @@ class GroupAppCopyService(object):
 
     def pop_services_metadata(self, old_team, tar_team, metadata, remove_service_ids, service_ids):
         if not remove_service_ids:
+            for service in metadata["apps"]:
+                # 处理组件存储依赖关系
+                if service["service_mnts"]:
+                    new_service_mnts = []
+                    for service_mnt in service["service_mnts"]:
+                        if old_team.tenant_id == tar_team.tenant_id:
+                            if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
+                                new_service_mnts.append(service_mnt)
+                    service["service_mnts"] = new_service_mnts
             return metadata
         new_metadata = {}
         new_metadata["compose_group_info"] = metadata["compose_group_info"]
