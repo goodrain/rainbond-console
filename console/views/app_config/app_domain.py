@@ -33,6 +33,7 @@ from www.models.main import TenantServiceInfo
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from rest_framework import status
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -544,7 +545,8 @@ class HttpStrategyView(RegionTenantHeaderView):
             "rule_extensions": rule_extensions
         }
         data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
-        result = general_message(200, "success", "策略添加成功", bean=data)
+        result = general_message(201, "success", "策略添加成功", bean=data)
+        return Response(result, status=status.HTTP_201_CREATED)
 
     @never_cache
     @perm_required('control_operation')
