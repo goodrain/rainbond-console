@@ -45,7 +45,7 @@ from www.models.main import Tenants
 logger = logging.getLogger("default")
 
 
-class ListTeamInfo(ListAPIView):
+class ListTeamInfo(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取用户所在团队列表",
         manual_parameters=[
@@ -67,11 +67,11 @@ class ListTeamInfo(ListAPIView):
         except ValueError:
             page_size = 10
         tenants, total = team_services.list_teams_by_user_id(
-            eid=req.user.enterprise_id, user_id=req.user.user_id, query=query, page=page, page_size=page_size)
+            eid=self.enterprise.enterprise_id, user_id=req.user.user_id, query=query, page=page, page_size=page_size)
         result = {"tenants": tenants, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
-        return Response(result, status.HTTP_200_OK)
+        return Response(serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="add team",
