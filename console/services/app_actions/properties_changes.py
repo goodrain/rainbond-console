@@ -88,9 +88,11 @@ class PropertiesChanges(object):
             for version in app_versions:
                 new_version_time = time.mktime(version.update_time.timetuple())
                 current_version_time = time.mktime(self.current_version.update_time.timetuple())
-                if new_version_time > current_version_time:
-                    same, max_version = self.checkVersionG2(self.current_version.version, version.version)
-                    if not same:
+                same, max_version = self.checkVersionG2(self.current_version.version, version.version)
+                if not same:
+                    upgradeble_versions.append(version.version)
+                else:
+                    if new_version_time > current_version_time:
                         upgradeble_versions.append(version.version)
 
         else:
