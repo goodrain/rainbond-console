@@ -24,3 +24,10 @@ ErrRegionNotFound = ServiceHandleException(
     status_code=404,
     error_code=3000
 )
+
+ErrAppNotFound = ServiceHandleException(
+    msg="the app is not found",
+    msg_show="应用不存在",
+    status_code=404,
+    error_code=4000
+)

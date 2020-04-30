@@ -553,6 +553,8 @@ class AppManageService(AppManageBase):
     # 5.1新版批量操作（启动，关闭，构建）
     def batch_operations(self, tenant, user, action, service_ids, oauth_instance):
         services = service_repo.get_services_by_service_ids(service_ids)
+        if not services or len(services) == 0:
+            return 200, "无组件被操作"
         # 获取所有组件信息
         body = dict()
         code = 200

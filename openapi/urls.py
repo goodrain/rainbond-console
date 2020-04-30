@@ -14,7 +14,6 @@ from openapi.views.announcement_view import ListAnnouncementView
 from openapi.views.apps.apps import AppInfoView
 from openapi.views.apps.apps import ListAppsView
 from openapi.views.apps.apps import APPOperationsView
-from openapi.views.apps.apps import APPHttpDomainView
 from openapi.views.apps.market import MarketAppInstallView
 from openapi.views.appstore_view import AppStoreInfoView
 from openapi.views.appstore_view import ListAppStoresView
@@ -23,7 +22,7 @@ from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo
 from openapi.views.enterprise_view import EnterpriseSourceView
-
+from openapi.views.apps.apps import ListAppServicesView
 from openapi.views.region_view import RegionInfo
 from openapi.views.region_view import RegionStatusView
 from openapi.views.team_view import ListRegionsView
@@ -71,6 +70,12 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/copy$',
         GroupAppsCopyView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/operations$',
+        APPOperationsView.as_view()),
+    url(r'^^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/httpdomains$',
+        ListAppGatewayHTTPRuleView.as_view()),
+    url(r'^^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/services$',
+        ListAppServicesView.as_view())
     # Below is the OPEN API that needs to be tweaked, not sure about availability
 ]
 if os.environ.get("OPENAPI_V2") == "true":
@@ -104,9 +109,6 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/announcements$', ListAnnouncementView.as_view()),
         url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
         url(r'^v1/upload-file$', UploadView.as_view()),
-        url(r'^v1/apps/httpdomain$', APPHttpDomainView.as_view()),
-        url(r'^v1/apps/(?P<app_id>[\w\-]+)/httprules$', ListAppGatewayHTTPRuleView.as_view()),
         url(r'^v1/market-install', MarketAppInstallView.as_view()),
         url(r'^v1/oauth/type$', OauthTypeView.as_view()),
-        url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view())
     ]

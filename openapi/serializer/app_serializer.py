@@ -11,6 +11,12 @@ ACTION_CHOICE = (
     ("deploy", ("deploy")),
 )
 
+APP_STATUS_CHOICE = (
+    ("running", ("running")),
+    ("part_running", ("part_running")),
+    ("closed", ("closed")),
+)
+
 
 class AppBaseInfoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,7 +34,8 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
         model = TenantServiceInfo
         exclude = ["ID", "service_port", "is_web_service", "setting", "env", "inner_port", "volume_mount_path",
                    "host_path", "deploy_version", "is_code_upload", "protocol", "namespace", "volume_type",
-                   "port_type", "service_name", "secret"]
+                   "port_type", "service_name", "secret", "git_full_name"]
+    status = serializers.CharField(max_length=32, help_text=u"组件状态")
 
 
 class AppInfoSerializer(AppBaseInfoSerializer):
@@ -39,7 +46,7 @@ class AppInfoSerializer(AppBaseInfoSerializer):
     used_cpu = serializers.IntegerField(help_text=u"分配的cpu")
     app_id = serializers.IntegerField(help_text=u"应用id")
     team_name = serializers.CharField(max_length=32, help_text=u"团队名")
-    status = serializers.CharField(max_length=32, help_text=u"应用状态")
+    status = serializers.ChoiceField(choices=APP_STATUS_CHOICE, help_text=u"应用状态")
 
 
 class MarketInstallSerializer(serializers.Serializer):
@@ -49,39 +56,4 @@ class MarketInstallSerializer(serializers.Serializer):
 
 class ServiceGroupOperationsSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=ACTION_CHOICE, help_text=u"操作类型")
-
-
-class APPHttpDomainSerializer(serializers.Serializer):
-    app_id = serializers.IntegerField(help_text=u"应用id")
-    service_key = serializers.CharField(help_text=u"应用组件id")
-    container_port = serializers.IntegerField(help_text=u"绑定端口")
-    certificate_id = serializers.CharField(help_text=u"证书id", allow_null=True,
-                                           allow_blank=True, default="")
-    domain_name = serializers.CharField(max_length=253, help_text=u"域名")
-    domain_cookie = serializers.CharField(help_text=u"域名cookie", required=False)
-    domain_header = serializers.CharField(help_text=u"域名header", required=False)
-    the_weight = serializers.CharField(required=False)
-    domain_path = serializers.CharField(default="/", help_text=u"域名路径")
-    rule_extensions = serializers.ListField(help_text=u"规则扩展", default=[])
-    whether_open = serializers.BooleanField(help_text=u"是否开放", default=False)
-
-
-class APPHttpDomainRspSerializer(serializers.Serializer):
-    protocol = serializers.CharField(max_length=64, help_text=u"http or https")
-    region_id = serializers.CharField(max_length=64, help_text=u"数据中心id")
-    http_rule_id = serializers.CharField(max_length=64, help_text=u"http规则id")
-    rule_extensions = serializers.ListField(help_text=u"规则参数")
-    service_name = serializers.CharField(max_length=64, help_text=u"组件名称")
-    domain_heander = serializers.CharField(max_length=64, allow_blank=True, allow_null=True, help_text=u"header")
-    domain_name = serializers.CharField(max_length=64, help_text=u"域名")
-    the_weight = serializers.IntegerField()
-    service_alias = serializers.CharField(max_length=64, help_text=u"组件昵称")
-    domain_type = serializers.CharField(max_length=64, help_text=u"类型")
-    create_time = serializers.DateTimeField()
-    domain_path = serializers.CharField(help_text=u"域名路径")
-    tenant_id = serializers.CharField(help_text=u"团队id")
-    certificate_id = serializers.CharField(help_text=u"证书id", allow_null=True, allow_blank=True)
-    service_id = serializers.CharField(help_text=u"组件id")
-    container_port = serializers.IntegerField(help_text=u"绑定端口")
-    type = serializers.IntegerField()
-    domain_cookie = serializers.CharField(help_text=u"域名cookie")
+    service_ids = serializers.ListField(help_text=u"组件ID列表，不传值则操作应用下所有组件", required=False, default=None)

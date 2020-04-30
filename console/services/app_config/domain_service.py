@@ -9,7 +9,7 @@ import re
 
 from django.db import transaction
 from django.db import connection
-
+from console.exception.main import ServiceHandleException
 from console.constants import DomainType
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
@@ -131,25 +131,19 @@ class DomainService(object):
                 continue
         return cert
 
-    def __check_domain_name(self, team_name, domain_name, domain_type, certificate_id):
+    def __check_domain_name(self, team_id, domain_name, domain_type, certificate_id):
         if not domain_name:
-            return 400, u"域名不能为空"
-        zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
-        match = zhPattern.search(domain_name.decode('utf-8'))
+            raise ServiceHandleException(400, 400, "domain can not be empty", "域名不能为空")
+        zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
+        match = zh_pattern.search(domain_name.decode('utf-8'))
         if match:
-            return 400, u"域名不能包含中文"
+            raise ServiceHandleException(400, 400, "domain can not be include chinese", "域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         s_domain = domain_repo.get_domain_by_domain_name(domain_name)
-        if s_domain:
-            team = team_services.get_tenant_by_tenant_name(team_name)
-            if team:
-                if s_domain.tenant_id != team.tenant_id:
-                    return 400, u"该域名已被其他团队使用"
-        # re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
-        # if not re.match(re_exp, domain_name):
-        #     return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
+        if s_domain and s_domain.tenant_id != team_id:
+            raise ServiceHandleException(400, 400, "domain be used other team", "域名已经被其他团队使用")
         if len(domain_name) > 256:
-            return 400, u"域名过长"
+            raise ServiceHandleException(400, 400, "domain more than 256 bytes", "域名超过256个字符")
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate)
@@ -160,13 +154,10 @@ class DomainService(object):
                     domain_suffix = certificat_domain_name[2:]
                 else:
                     domain_suffix = certificat_domain_name
-                logger.debug('---------domain_suffix-------->{0}'.format(domain_suffix))
                 domain_str = domain_name.encode('utf-8')
                 if domain_str.endswith(domain_suffix):
-                    return 200, u"success"
-            return 400, u"域名和证书不匹配"
-
-        return 200, u"success"
+                    return
+            raise ServiceHandleException(400, 400, "domain ", "域名与选择的证书不匹配")
 
     def __is_domain_conflict(self, domain_name, team_name):
         regions = region_repo.get_usable_regions()
@@ -193,7 +184,7 @@ class DomainService(object):
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     rule_extensions):
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
+        code, msg = self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
 
         if code != 200:
             return code, msg
@@ -304,14 +295,19 @@ class DomainService(object):
             return domain_repo.get_domain_by_domain_name(domain_name)
         return None
 
-    def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
-                        domain_path, domain_cookie, domain_heander, the_weight, rule_extensions):
+    def bind_httpdomain(self, tenant, user, service, httpdomain, return_model=False):
+        domain_name = httpdomain["domain_name"]
+        certificate_id = httpdomain["certificate_id"]
+        rule_extensions = httpdomain.get("rule_extensions", None)
+        domain_path = httpdomain.get("domain_path", None)
+        domain_cookie = httpdomain.get("domain_cookie", None)
+        domain_heander = httpdomain.get("domain_heander", None)
+        protocol = httpdomain.get("protocol", None)
+        domain_type = httpdomain["domain_type"]
         # 校验域名格式
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
+        self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
         http_rule_id = make_uuid(domain_name)
         domain_info = dict()
-        if code != 200:
-            return code, msg, domain_info
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
@@ -322,19 +318,17 @@ class DomainService(object):
         data["tenant_id"] = tenant.tenant_id
         data["tenant_name"] = tenant.tenant_name
         data["protocol"] = protocol
-        data["container_port"] = int(container_port)
+        data["container_port"] = int(httpdomain["container_port"])
         data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         data["add_user"] = user.nick_name if user else ""
         data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = http_rule_id
-        data["path"] = domain_path if domain_path else None
-        data["cookie"] = domain_cookie if domain_cookie else None
-        data["header"] = domain_heander if domain_heander else None
-        data["weight"] = int(the_weight)
+        data["path"] = domain_path
+        data["cookie"] = domain_cookie
+        data["header"] = domain_heander
+        data["weight"] = int(httpdomain.get("the_weight", 100))
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
-
-        # 证书信息
         data["certificate"] = ""
         data["private_key"] = ""
         data["certificate_name"] = ""
@@ -345,8 +339,6 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         try:
-            # 给数据中心传送数据绑定域名
-            logger.debug('---------------------------->{0}'.format(data))
             region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
@@ -367,12 +359,12 @@ class DomainService(object):
         domain_info["domain_type"] = domain_type
         domain_info["service_alias"] = service.service_cname
         domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        domain_info["container_port"] = int(container_port)
+        domain_info["container_port"] = int(httpdomain["container_port"])
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else '/'
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else ""
         domain_info["domain_heander"] = domain_heander if domain_heander else ""
-        domain_info["the_weight"] = the_weight
+        domain_info["the_weight"] = int(httpdomain.get("the_weight", 100))
         domain_info["tenant_id"] = tenant.tenant_id
 
         rule_extensions_str = ""
@@ -389,21 +381,25 @@ class DomainService(object):
         domain_info["region_id"] = region.region_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
-        if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(
-                region.httpdomain):
+        if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"],
+                                                   service.service_alias,
+                                                   tenant.tenant_name,
+                                                   region.httpdomain):
             domain_info["type"] = 1
         # 高级路由
-        domain_repo.add_service_domain(**domain_info)
+        model = domain_repo.add_service_domain(**domain_info)
+        if return_model:
+            return model
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:
             domain_info.update({"certificate_name": certificate_info.alias})
-        return 200, u"success", domain_info
+        return domain_info
 
     def update_httpdomain(
             self, tenant, user, service, domain_name, container_port, certificate_id, domain_type, domain_path,
             domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
         # 校验域名格式
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
+        code, msg = self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
         domain_info = dict()
         if code != 200:
             return code, msg, domain_info
@@ -786,3 +782,27 @@ class DomainService(object):
                     tenant.tenant_id, region.region_id, start, end, app_id))
             tenant_tuples = cursor.fetchall()
         return tenant_tuples, total
+
+    def check_domain_exist(self, service_id, container_port, domain_name, protocol, domain_path, rule_extensions):
+        rst = False
+        http_exist = False
+        add_httptohttps = False
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(
+            service_id, container_port,
+            domain_name, protocol, domain_path
+        )
+        if service_domain:
+            rst = True
+        domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
+        for domain in domains:
+            if "http" == domain.protocol:
+                http_exist = True
+            if "httptohttps" in domain.rule_extensions:
+                rst = True
+        if rule_extensions:
+            for rule in rule_extensions:
+                if rule["key"] == "httptohttps":
+                    add_httptohttps = True
+        if http_exist and add_httptohttps:
+            rst = True
+        return rst

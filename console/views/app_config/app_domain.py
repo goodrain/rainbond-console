@@ -453,101 +453,98 @@ class HttpStrategyView(RegionTenantHeaderView):
         添加http策略
 
         """
-        try:
-            container_port = request.data.get("container_port", None)
-            domain_name = request.data.get("domain_name", None)
-            flag, msg = validate_domain(domain_name)
-            if not flag:
-                result = general_message(400, "invalid domain", msg)
-                return Response(result, status=400)
-            certificate_id = request.data.get("certificate_id", None)
-            service_id = request.data.get("service_id", None)
-            do_path = request.data.get("domain_path", None)
-            domain_cookie = request.data.get("domain_cookie", None)
-            domain_heander = request.data.get("domain_heander", None)
-            rule_extensions = request.data.get("rule_extensions", None)
-            whether_open = request.data.get("whether_open", False)
-            the_weight = request.data.get("the_weight", 100)
-            domain_path = do_path if do_path else "/"
+        container_port = request.data.get("container_port", None)
+        domain_name = request.data.get("domain_name", None)
+        flag, msg = validate_domain(domain_name)
+        if not flag:
+            result = general_message(400, "invalid domain", msg)
+            return Response(result, status=400)
+        certificate_id = request.data.get("certificate_id", None)
+        service_id = request.data.get("service_id", None)
+        do_path = request.data.get("domain_path", None)
+        domain_cookie = request.data.get("domain_cookie", None)
+        domain_heander = request.data.get("domain_heander", None)
+        rule_extensions = request.data.get("rule_extensions", None)
+        whether_open = request.data.get("whether_open", False)
+        the_weight = request.data.get("the_weight", 100)
+        domain_path = do_path if do_path else "/"
 
-            # 判断参数
-            if not container_port or not domain_name or not service_id:
-                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        # 判断参数
+        if not container_port or not domain_name or not service_id:
+            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            service = service_repo.get_service_by_service_id(service_id)
-            if not service:
-                return Response(general_message(400, "not service", "组件不存在"), status=400)
+        service = service_repo.get_service_by_service_id(service_id)
+        if not service:
+            return Response(general_message(400, "not service", "组件不存在"), status=400)
+        protocol = "http"
+        if certificate_id:
+            protocol = "https"
+        # 判断策略是否存在
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port,
+                                                                              domain_name, protocol, domain_path)
+        if service_domain:
+            result = general_message(400, "faild", "策略已存在")
+            return Response(result, status=400)
 
-            protocol = "http"
-            if certificate_id:
-                protocol = "https"
-            # 判断策略是否存在
-            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port,
-                                                                                  domain_name, protocol, domain_path)
-            if service_domain:
-                result = general_message(400, "faild", "策略已存在")
-                return Response(result, status=400)
+        # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+        domains = domain_repo.get_domain_by_name_and_path(
+            domain_name, domain_path)
+        domain_protocol_list = []
+        is_httptohttps = False
+        if domains:
+            for domain in domains:
+                domain_protocol_list.append(domain.protocol)
+                if "httptohttps" in domain.rule_extensions:
+                    is_httptohttps = True
 
-            # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
-            domains = domain_repo.get_domain_by_name_and_path(
-                domain_name, domain_path)
-            domain_protocol_list = []
-            is_httptohttps = False
-            if domains:
-                for domain in domains:
-                    domain_protocol_list.append(domain.protocol)
-                    if "httptohttps" in domain.rule_extensions:
-                        is_httptohttps = True
+        if is_httptohttps:
+            result = general_message(400, "faild", "策略已存在")
+            return Response(result, status=400)
+        add_httptohttps = False
+        if rule_extensions:
+            for rule in rule_extensions:
+                if rule["key"] == "httptohttps":
+                    add_httptohttps = True
+        if "http" in domain_protocol_list and add_httptohttps:
+            result = general_message(400, "faild", "策略已存在")
+            return Response(result, status=400)
 
-            if is_httptohttps:
-                result = general_message(400, "faild", "策略已存在")
-                return Response(result, status=400)
-            add_httptohttps = False
-            if rule_extensions:
-                for rule in rule_extensions:
-                    if rule["key"] == "httptohttps":
-                        add_httptohttps = True
-            if "http" in domain_protocol_list and add_httptohttps:
-                result = general_message(400, "faild", "策略已存在")
-                return Response(result, status=400)
+        if service.service_source == "third_party":
+            msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, service)
+            if code != 200:
+                logger.exception(msg, msg_show)
+                return Response(general_message(code, msg, msg_show), status=code)
 
-            if service.service_source == "third_party":
-                msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, service)
-                if code != 200:
-                    logger.exception(msg, msg_show)
-                    return Response(general_message(code, msg, msg_show), status=code)
-
-            if whether_open:
-                try:
-                    tenant_service_port = port_service.get_service_port_by_port(
-                        service, container_port)
-                    # 仅开启对外端口
-                    code, msg, data = port_service.manage_port(
-                        self.tenant, service, service.service_region, int(tenant_service_port.container_port),
-                        "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
-                    if code != 200:
-                        return Response(general_message(code, "change port fail", msg), status=code)
-                except Exception:
-                    raise
-
+        if whether_open:
             tenant_service_port = port_service.get_service_port_by_port(
                 service, container_port)
-            if not tenant_service_port.is_outer_service:
-                return Response(
-                    general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
-
-            # 绑定端口(添加策略)
-            code, msg, data = domain_service.bind_httpdomain(
-                self.tenant, self.user, service, domain_name, container_port, protocol, certificate_id, DomainType.WWW,
-                domain_path, domain_cookie, domain_heander, the_weight, rule_extensions)
+            # 仅开启对外端口
+            code, msg, data = port_service.manage_port(
+                self.tenant, service, service.service_region, int(tenant_service_port.container_port),
+                "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
             if code != 200:
-                return Response(general_message(code, "bind domain error", msg), status=code)
+                return Response(general_message(code, "change port fail", msg), status=code)
+        tenant_service_port = port_service.get_service_port_by_port(
+            service, container_port)
+        if not tenant_service_port.is_outer_service:
+            return Response(
+                general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
-            result = general_message(200, "success", "策略添加成功", bean=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
+        # 绑定端口(添加策略)
+        httpdomain = {
+            "domain_name": domain_name,
+            "container_port": container_port,
+            "protocol": protocol,
+            "certificate_id": certificate_id,
+            "domain_type": DomainType.WWW,
+            "domain_path": domain_path,
+            "domain_cookie": domain_cookie,
+            "domain_heander": domain_heander,
+            "the_weight": the_weight,
+            "rule_extensions": rule_extensions
+        }
+        data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
+        result = general_message(200, "success", "策略添加成功", bean=data)
 
     @never_cache
     @perm_required('control_operation')
@@ -555,65 +552,61 @@ class HttpStrategyView(RegionTenantHeaderView):
         """
         编辑http策略
         """
-        try:
-            container_port = request.data.get("container_port", None)
-            domain_name = request.data.get("domain_name", None)
-            flag, msg = validate_domain(domain_name)
-            if not flag:
-                result = general_message(400, "invalid domain", msg)
-                return Response(result, status=400)
-            certificate_id = request.data.get("certificate_id", None)
-            service_id = request.data.get("service_id", None)
-            do_path = request.data.get("domain_path", None)
-            domain_cookie = request.data.get("domain_cookie", None)
-            domain_heander = request.data.get("domain_heander", None)
-            rule_extensions = request.data.get("rule_extensions", None)
-            http_rule_id = request.data.get("http_rule_id", None)
-            the_weight = request.data.get("the_weight", 100)
-            domain_path = do_path if do_path else "/"
 
-            # 判断参数
-            if not service_id or not container_port or not domain_name or not http_rule_id:
-                return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
+        container_port = request.data.get("container_port", None)
+        domain_name = request.data.get("domain_name", None)
+        flag, msg = validate_domain(domain_name)
+        if not flag:
+            result = general_message(400, "invalid domain", msg)
+            return Response(result, status=400)
+        certificate_id = request.data.get("certificate_id", None)
+        service_id = request.data.get("service_id", None)
+        do_path = request.data.get("domain_path", None)
+        domain_cookie = request.data.get("domain_cookie", None)
+        domain_heander = request.data.get("domain_heander", None)
+        rule_extensions = request.data.get("rule_extensions", None)
+        http_rule_id = request.data.get("http_rule_id", None)
+        the_weight = request.data.get("the_weight", 100)
+        domain_path = do_path if do_path else "/"
 
-            service = service_repo.get_service_by_service_id(service_id)
-            if not service:
-                return Response(general_message(400, "not service", "组件不存在"), status=400)
+        # 判断参数
+        if not service_id or not container_port or not domain_name or not http_rule_id:
+            return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
-            add_httptohttps = False
-            if rule_extensions:
-                for rule in rule_extensions:
-                    if rule["key"] == "httptohttps":
-                        add_httptohttps = True
+        service = service_repo.get_service_by_service_id(service_id)
+        if not service:
+            return Response(general_message(400, "not service", "组件不存在"), status=400)
 
-            domains = domain_repo.get_domain_by_name_and_path_and_protocol(
-                domain_name, domain_path, "http")
-            rule_id_list = []
-            if domains:
-                for domain in domains:
-                    rule_id_list.append(domain.http_rule_id)
-            if len(rule_id_list) > 1 and add_httptohttps:
-                result = general_message(400, "faild", "策略已存在")
-                return Response(result, status=400)
-            if len(rule_id_list) == 1 and add_httptohttps and http_rule_id != rule_id_list[0]:
-                result = general_message(400, "faild", "策略已存在")
-                return Response(result, status=400)
+        # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+        add_httptohttps = False
+        if rule_extensions:
+            for rule in rule_extensions:
+                if rule["key"] == "httptohttps":
+                    add_httptohttps = True
 
-            # 编辑域名
-            code, msg, data = domain_service.update_httpdomain(
-                self.tenant, self.user, service, domain_name, container_port, certificate_id, DomainType.WWW,
-                domain_path, domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions)
+        domains = domain_repo.get_domain_by_name_and_path_and_protocol(
+            domain_name, domain_path, "http")
+        rule_id_list = []
+        if domains:
+            for domain in domains:
+                rule_id_list.append(domain.http_rule_id)
+        if len(rule_id_list) > 1 and add_httptohttps:
+            result = general_message(400, "faild", "策略已存在")
+            return Response(result, status=400)
+        if len(rule_id_list) == 1 and add_httptohttps and http_rule_id != rule_id_list[0]:
+            result = general_message(400, "faild", "策略已存在")
+            return Response(result, status=400)
 
-            if code != 200:
-                return Response(general_message(code, "bind domain error", msg), status=code)
+        # 编辑域名
+        code, msg, data = domain_service.update_httpdomain(
+            self.tenant, self.user, service, domain_name, container_port, certificate_id, DomainType.WWW,
+            domain_path, domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions)
 
-            result = general_message(200, "success", "策略编辑成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
+        if code != 200:
+            return Response(general_message(code, "bind domain error", msg), status=code)
+        result = general_message(200, "success", "策略编辑成功")
+        return Response(result, status=code)
+    
     @never_cache
     @perm_required('control_operation')
     def delete(self, request, *args, **kwargs):
@@ -621,22 +614,18 @@ class HttpStrategyView(RegionTenantHeaderView):
        删除策略
 
         """
-        try:
-            service_id = request.data.get("service_id", None)
-            http_rule_id = request.data.get("http_rule_id", None)
+        service_id = request.data.get("service_id", None)
+        http_rule_id = request.data.get("http_rule_id", None)
 
-            if not http_rule_id or not service_id:
-                return Response(general_message(400, "params error", "参数错误"), status=400)
+        if not http_rule_id or not service_id:
+            return Response(general_message(400, "params error", "参数错误"), status=400)
 
-            # 解绑域名
-            code, msg = domain_service.unbind_httpdomain(
-                self.tenant, self.response_region, http_rule_id)
-            if code != 200:
-                return Response(general_message(code, "delete domain error", msg), status=code)
-            result = general_message(200, "success", "策略删除成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # 解绑域名
+        code, msg = domain_service.unbind_httpdomain(
+            self.tenant, self.response_region, http_rule_id)
+        if code != 200:
+            return Response(general_message(code, "delete domain error", msg), status=code)
+        result = general_message(200, "success", "策略删除成功")
         return Response(result, status=result["code"])
 
 
@@ -660,16 +649,12 @@ class DomainView(RegionTenantHeaderView):
               paramType: query
 
         """
-        try:
-            domain_name = request.GET.get("domain_name", None)
-            if not domain_name:
-                return Response(general_message(400, "domain name cannot be null", "查询的域名不能为空"), status=400)
-            is_exist = domain_service.is_domain_exist(domain_name)
-            bean = {"is_domain_exist": is_exist}
-            result = general_message(200, "success", "查询成功", bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        domain_name = request.GET.get("domain_name", None)
+        if not domain_name:
+            return Response(general_message(400, "domain name cannot be null", "查询的域名不能为空"), status=400)
+        is_exist = domain_service.is_domain_exist(domain_name)
+        bean = {"is_domain_exist": is_exist}
+        result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
 
@@ -692,15 +677,11 @@ class SecondLevelDomainView(AppBaseView):
               type: string
               paramType: path
         """
-        try:
-            http_domain = region_services.get_region_httpdomain(
-                self.service.service_region)
-            sld_suffix = "{0}.{1}".format(self.tenant.tenant_name, http_domain)
-            result = general_message(200, "success", "查询成功", {
-                "sld_suffix": sld_suffix})
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        http_domain = region_services.get_region_httpdomain(
+            self.service.service_region)
+        sld_suffix = "{0}.{1}".format(self.tenant.tenant_name, http_domain)
+        result = general_message(200, "success", "查询成功", {
+            "sld_suffix": sld_suffix})
         return Response(result, status=result["code"])
 
     @never_cache
@@ -732,38 +713,35 @@ class SecondLevelDomainView(AppBaseView):
               paramType: form
 
         """
-        try:
-            container_port = request.data.get("container_port", None)
-            domain_name = request.data.get("domain_name", None)
-            if not container_port or not domain_name:
-                return Response(general_message(400, "params error", "参数错误"), status=400)
-            flag, msg = validate_domain(domain_name)
-            if not flag:
-                result = general_message(400, "invalid domain", msg)
-                return Response(result, status=400)
-            container_port = int(container_port)
-            sld_domains = domain_service.get_sld_domains(
-                self.service, container_port)
-            if not sld_domains:
+    
+        container_port = request.data.get("container_port", None)
+        domain_name = request.data.get("domain_name", None)
+        if not container_port or not domain_name:
+            return Response(general_message(400, "params error", "参数错误"), status=400)
+        flag, msg = validate_domain(domain_name)
+        if not flag:
+            result = general_message(400, "invalid domain", msg)
+            return Response(result, status=400)
+        container_port = int(container_port)
+        sld_domains = domain_service.get_sld_domains(
+            self.service, container_port)
+        if not sld_domains:
 
-                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
-                                                       container_port,
-                                                       "http", None, DomainType.SLD_DOMAIN)
-                if code != 200:
-                    return Response(general_message(code, "bind domain error", msg), status=code)
-            else:
-                # 先解绑 再绑定
-                code, msg = domain_service.unbind_domain(
-                    self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False)
-                if code != 200:
-                    return Response(general_message(code, "unbind domain error", msg), status=code)
-                domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
-                                           container_port, "http", None, DomainType.SLD_DOMAIN)
+            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
+                                                    container_port,
+                                                    "http", None, DomainType.SLD_DOMAIN)
+            if code != 200:
+                return Response(general_message(code, "bind domain error", msg), status=code)
+        else:
+            # 先解绑 再绑定
+            code, msg = domain_service.unbind_domain(
+                self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False)
+            if code != 200:
+                return Response(general_message(code, "unbind domain error", msg), status=code)
+            domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
+                                        container_port, "http", None, DomainType.SLD_DOMAIN)
 
-            result = general_message(200, "success", "二级域名修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "二级域名修改成功")
         return Response(result, status=result["code"])
 
 
