@@ -74,10 +74,10 @@ urlpatterns = [
     # Below is the OPEN API that needs to be tweaked, not sure about availability
 ]
 if os.environ.get("OPENAPI_V2") == "true":
-    urlpatterns.append(url(r'^v2', include('openapi.v2.urls')),)
+    urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]
 
 if os.environ.get("OPENAPI_DEBUG") == "true":
-    urlpatterns.append(
+    urlpatterns += [
         url(r'^v1/auth-token$', TokenInfoView.as_view()),
         url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
         url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
@@ -109,4 +109,4 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/market-install', MarketAppInstallView.as_view()),
         url(r'^v1/oauth/type$', OauthTypeView.as_view()),
         url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view())
-    )
+    ]
