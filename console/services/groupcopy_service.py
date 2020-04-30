@@ -70,13 +70,13 @@ class GroupAppCopyService(object):
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
-        services_metadata = self.pop_remove_services_metadata(
+        services_metadata = self.pop_services_metadata(
             old_team, tar_team, services_metadata, remove_service_ids, service_ids)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
         change_services_map = self.change_services_map(service_ids)
         return services_metadata, change_services_map
 
-    def pop_remove_services_metadata(self, old_team, tar_team, metadata, remove_service_ids, service_ids):
+    def pop_services_metadata(self, old_team, tar_team, metadata, remove_service_ids, service_ids):
         if not remove_service_ids:
             return metadata
         new_metadata = {}
@@ -91,6 +91,7 @@ class GroupAppCopyService(object):
             if relation_service["service_id"] not in remove_service_ids:
                 new_metadata["service_group_relation"].append(relation_service)
         for service in metadata["apps"]:
+            # 处理组件之间的依赖关系
             if service["service_base"]["service_id"] not in remove_service_ids:
                 new_relation = []
                 for dep_service_info in service["service_relation"]:
@@ -102,6 +103,15 @@ class GroupAppCopyService(object):
                             new_relation.append(dep_service_info)
                 service["service_relation"] = new_relation
                 new_metadata["apps"].append(service)
+            # 处理组件存储依赖关系
+            if service["service_mnts"]:
+                new_service_mnts = []
+                for service_mnt in service["service_mnts"]:
+                    if old_team.tenant_id == tar_team.tenant_id:
+                        if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
+                            new_service_mnts.append(service_mnt)
+                service["service_mnts"] = new_service_mnts
+
         if metadata["compose_service_relation"] is not None:
             for service in metadata["compose_service_relation"]:
                 if service["service_id"] not in remove_service_ids:

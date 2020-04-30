@@ -134,9 +134,9 @@ from console.views.code_repo import GithubCodeRepoView
 from console.views.code_repo import GitlabCodeRepoView
 from console.views.code_repo import GitLabUserRegisterView
 from console.views.code_repo import ServiceCodeBranch
+from console.views.enterprise import EnterpriseAppComponentsLView
 from console.views.enterprise import EnterpriseAppOverView
 from console.views.enterprise import EnterpriseAppsLView
-from console.views.enterprise import EnterpriseAppComponentsLView
 from console.views.enterprise import EnterpriseMonitor
 from console.views.enterprise import EnterpriseOverview
 from console.views.enterprise import EnterpriseRUDView
@@ -146,6 +146,7 @@ from console.views.enterprise import EnterpriseTeams
 from console.views.enterprise import EnterpriseUserTeams
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_active import BindMarketEnterpriseOptimizAccessTokenView
+from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import GroupStatusView
 from console.views.group import TenantGroupCommonOperationView
@@ -302,6 +303,8 @@ from console.views.webhook import WebHooksStatus
 
 
 urlpatterns = [
+    # record error logs
+    url(r'^errlog$', ErrLogView.as_view()),
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigRUDView.as_view()),
     # OAuth
