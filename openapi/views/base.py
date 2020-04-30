@@ -35,21 +35,15 @@ class BaseOpenAPIView(APIView):
                 request.user.is_administrator = True
 
 
-class TeamAPIView(BaseOpenAPIView):
+class TeamNoRegionAPIView(BaseOpenAPIView):
+
     def __init__(self):
-        super(TeamAPIView, self).__init__()
+        super(TeamNoRegionAPIView, self).__init__()
         self.team = None
-        self.region_name = None
 
     def initial(self, request, *args, **kwargs):
-        super(TeamAPIView, self).initial(request, *args, **kwargs)
+        super(TeamNoRegionAPIView, self).initial(request, *args, **kwargs)
         team_id = kwargs.get("team_id")
-        self.region_name = kwargs.get("region_name")
-        if self.region_name:
-            self.region = region_services.get_enterprise_region_by_region_name(enterprise_id=self.enterprise.enterprise_id,
-                                                                               region_name=self.region_name)
-        if not self.region:
-            raise ErrRegionNotFound
         if team_id:
             # team_id support id and name
             self.team = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id=self.enterprise.enterprise_id,
@@ -60,3 +54,20 @@ class TeamAPIView(BaseOpenAPIView):
             if not self.team:
                 raise ErrTeamNotFound
             self.team_regions = region_services.get_team_usable_regions(self.team.tenant_name, self.enterprise.enterprise_id)
+
+
+class TeamAPIView(TeamNoRegionAPIView):
+    def __init__(self):
+        super(TeamAPIView, self).__init__()
+        self.region_name = None
+
+    def initial(self, request, *args, **kwargs):
+        super(TeamAPIView, self).initial(request, *args, **kwargs)
+        self.region_name = kwargs.get("region_name")
+        if self.region_name:
+            self.region = region_services.get_enterprise_region_by_region_name(enterprise_id=self.enterprise.enterprise_id,
+                                                                               region_name=self.region_name)
+        else:
+            raise ErrRegionNotFound
+        if not self.region:
+            raise ErrRegionNotFound

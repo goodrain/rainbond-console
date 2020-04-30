@@ -35,7 +35,7 @@ from openapi.serializer.team_serializer import TeamCertificatesRSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
 from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import TeamAPIView
+from openapi.views.base import TeamNoRegionAPIView
 from openapi.views.base import ListAPIView
 from openapi.views.exceptions import ErrTeamNotFound, ErrRegionNotFound
 from www.utils.crypt import make_uuid
@@ -416,7 +416,7 @@ class TeamRegionView(BaseOpenAPIView):
             return Response(None, status=status.HTTP_404_NOT_FOUND)
 
 
-class ListRegionTeamServicesView(ListAPIView):
+class ListRegionTeamServicesView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取团队下指定数据中心组件信息",
         manual_parameters=[
@@ -443,7 +443,7 @@ class ListRegionTeamServicesView(ListAPIView):
         return Response(None, status=status.HTTP_200_OK)
 
 
-class TeamCertificatesLCView(TeamAPIView):
+class TeamCertificatesLCView(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="获取团队下证书列表",
@@ -486,7 +486,7 @@ class TeamCertificatesLCView(TeamAPIView):
         return Response(rst_serializer.data, status=status.HTTP_200_OK)
 
 
-class TeamCertificatesRUDView(TeamAPIView):
+class TeamCertificatesRUDView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="获取团队下证书列表",
         responses={200: TeamCertificatesRSerializer()},
