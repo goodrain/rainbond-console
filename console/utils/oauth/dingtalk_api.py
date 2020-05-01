@@ -92,9 +92,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
         if code:
-            headers = {
-                "Content-Type": "application/json"
-            }
+            headers = {"Content-Type": "application/json"}
             timestamp = str(int(round(time.time()))) + '000'
             signature = self._compute_signature(self.oauth_service.client_secret, timestamp)
             query = {
@@ -108,8 +106,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
             }
             url = self.get_user_url(self.oauth_service.home_url) + "?" + query_str
             try:
-                rst = self._session.request(method='POST', url=url,
-                                            headers=headers, json=params)
+                rst = self._session.request(method='POST', url=url, headers=headers, json=params)
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
@@ -137,7 +134,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
             params = {
                 "appid": self.oauth_service.client_id,
                 "scope": "snsapi_login",
-                "redirect_uri": urllib.quote(self.oauth_service.redirect_uri+"?service_id="+str(self.oauth_service.ID)),
+                "redirect_uri": urllib.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)

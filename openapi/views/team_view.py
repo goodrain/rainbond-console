@@ -73,8 +73,7 @@ class ListTeamInfo(ListAPIView):
             data = team_services.list_by_tenant_names(tenant_names.split(","))
             result = {"tenants": data, "total": len(data)}
         else:
-            data, total = team_services.list_teams_v2(
-                req.user.enterprise_id, query=query, page=page, page_size=page_size)
+            data, total = team_services.list_teams_v2(req.user.enterprise_id, query=query, page=page, page_size=page_size)
             result = {"tenants": data, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
@@ -147,7 +146,7 @@ class TeamInfo(BaseOpenAPIView):
         },
         tags=['openapi-team'],
     )
-    def delete(self, req, team_id,  *args, **kwargs):
+    def delete(self, req, team_id, *args, **kwargs):
         try:
             res = team_services.delete_by_tenant_id(tenant_id=team_id)
             if res:
@@ -212,8 +211,7 @@ class ListTeamUsersInfo(ListAPIView):
         except ValueError:
             page_size = 10
         query = req.GET.get("query", "")
-        users, total = user_services.list_users_by_tenant_id(
-            tenant_id=team_id, page=page, size=page_size, query=query)
+        users, total = user_services.list_users_by_tenant_id(tenant_id=team_id, page=page, size=page_size, query=query)
         serializer = ListTeamUsersRespSerializer(data={"users": users, "total": total})
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status.HTTP_200_OK)
@@ -451,7 +449,6 @@ class ListRegionTeamServicesView(ListAPIView):
 
 
 class TeamCertificatesLCView(TeamAPIView):
-
     @swagger_auto_schema(
         operation_description="获取团队下证书列表",
         manual_parameters=[
@@ -500,8 +497,7 @@ class TeamCertificatesRUDView(TeamAPIView):
         tags=['openapi-team'],
     )
     def get(self, request, team_id, certificate_id, *args, **kwargs):
-        code, msg, certificate = domain_service.get_certificate_by_pk(
-            certificate_id)
+        code, msg, certificate = domain_service.get_certificate_by_pk(certificate_id)
         if code != 200:
             raise ServiceHandleException(msg=None, status_code=code, msg_show=msg)
         serializer = TeamCertificatesRSerializer(data=certificate)

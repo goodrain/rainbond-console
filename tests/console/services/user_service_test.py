@@ -18,10 +18,7 @@ def test_create_tenant_not_exist():
 @pytest.mark.django_db
 def test_create_user_exits():
     from console.services.user_services import user_services
-    Tenants.objects.create(
-        tenant_id="dummy_tenant_id",
-        tenant_name="dummy_tenant_name"
-    )
+    Tenants.objects.create(tenant_id="dummy_tenant_id", tenant_name="dummy_tenant_name")
     Users.objects.create(
         nick_name="foobar",
         password="goodrain",

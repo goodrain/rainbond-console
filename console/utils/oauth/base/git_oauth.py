@@ -48,12 +48,14 @@ class GitOAuth2Interface(OAuth2Interface):
         get repository branch list
         :return:
         '''
+
     @abstractmethod
     def get_tags(self, repo_name):
         '''
         get repository tag list
         :return:
         '''
+
     @abstractmethod
     def get_branches_or_tags(self, type, full_name):
         '''

@@ -9,9 +9,10 @@ class ConfigRepository(object):
         return ConsoleSysConfig.objects.filter(enable=True, key__in=keys)
 
     def delete_by_key(self, key):
-        KEYS = ["OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE",
-                "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP",
-                "CLOUD_MARKET", "REGISTER_STATUS"]
+        KEYS = [
+            "OPEN_DATA_CENTER_STATUS", "NEWBIE_GUIDE", "DOCUMENT", "OFFICIAL_DEMO", "EXPORT_APP", "CLOUD_MARKET",
+            "REGISTER_STATUS"
+        ]
         cfg = ConsoleSysConfig.objects.get(key=key)
         if key in KEYS:
             cfg.value = "False"
@@ -36,8 +37,7 @@ class ConfigRepository(object):
                 type="json",
                 desc="git配置",
                 enable=True,
-                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            )
+                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     def get_by_key(self, key):
         return ConsoleSysConfig.objects.get(key=key, enable=True)

@@ -37,8 +37,7 @@ class ListAnnouncementView(ListAPIView):
         except ValueError:
             page_size = 10
         ancm, total = announcement_service.list(page, page_size)
-        serializer = ListAnnouncementRespSerializer({"total": total,
-                                                     "announcements": ancm})
+        serializer = ListAnnouncementRespSerializer({"total": total, "announcements": ancm})
         return Response(serializer.data)
 
     @swagger_auto_schema(
@@ -53,7 +52,6 @@ class ListAnnouncementView(ListAPIView):
 
 
 class AnnouncementView(BaseOpenAPIView):
-
     @swagger_auto_schema(
         operation_description="更新站内信",
         request_body=UpdateAncmReqSerilizer(),

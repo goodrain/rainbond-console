@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-
 region_config_data = {
     "region_id": "3dddf798efc34be4acbd1442a81daff2",
     "region_name": "test-add-region",
@@ -34,8 +33,7 @@ def test_del_by_region_id_tx(mocker):
     from console.models.main import RegionConfig
 
     RegionConfig.objects.create(**region_config_data)
-    mocker.patch("console.services.region_services.region_services.update_region_config",
-                 side_effect=Exception('Boom!'))
+    mocker.patch("console.services.region_services.region_services.update_region_config", side_effect=Exception('Boom!'))
     with pytest.raises(Exception):
         region_services.del_by_region_id("3dddf798efc34be4acbd1442a81daff2")
     region = RegionConfig.objects.get(region_id="3dddf798efc34be4acbd1442a81daff2")

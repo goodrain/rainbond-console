@@ -182,8 +182,8 @@ class ServicePluginOperationView(AppBaseView):
             data["plugin_memory"] = memory
             data["plugin_cpu"] = cpu
             # 更新数据中心数据参数
-            region_api.update_plugin_service_relation(
-                self.response_region, self.tenant.tenant_name, self.service.service_alias, data)
+            region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
+                                                      data)
             # 更新本地数据
             app_plugin_service.start_stop_service_plugin(self.service.service_id, plugin_id, is_active, cpu, memory)
             result = general_message(200, "success", "操作成功")
@@ -226,8 +226,7 @@ class ServicePluginConfigView(AppBaseView):
             logger.error("plugin.relation", u'参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "请指定插件版本"), status=400)
         try:
-            result_bean = app_plugin_service.get_service_plugin_config(
-                self.tenant, self.service, plugin_id, build_version)
+            result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
             svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
             pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
             if pbv:
@@ -275,7 +274,7 @@ class ServicePluginConfigView(AppBaseView):
         if not pbv:
             return Response(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status=400)
         # update service plugin config
-        app_plugin_service.update_service_plugin_config(self.tenant, self.service, plugin_id,
-                                                        pbv.build_version, config, self.response_region)
+        app_plugin_service.update_service_plugin_config(self.tenant, self.service, plugin_id, pbv.build_version, config,
+                                                        self.response_region)
         result = general_message(200, "success", "配置更新成功")
         return Response(result, result["code"])

@@ -77,11 +77,9 @@ class TenantCertificateView(RegionTenantHeaderView):
         page = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 10))
         try:
-            certificates, nums = domain_service.get_certificate(
-                self.tenant, page, page_size)
+            certificates, nums = domain_service.get_certificate(self.tenant, page, page_size)
             bean = {"nums": nums}
-            result = general_message(
-                200, "success", "查询成功", list=certificates, bean=bean)
+            result = general_message(200, "success", "查询成功", list=certificates, bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -123,8 +121,7 @@ class TenantCertificateView(RegionTenantHeaderView):
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         certificate_id = make_uuid()
-        new_c = domain_service.add_certificate(
-            self.tenant, alias, certificate_id, certificate, private_key, certificate_type)
+        new_c = domain_service.add_certificate(self.tenant, alias, certificate_id, certificate, private_key, certificate_type)
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
         return Response(result, status=result["code"])
@@ -199,8 +196,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
-        domain_service.update_certificate(
-            self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
+        domain_service.update_certificate(self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
         result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 
@@ -225,8 +221,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         """
         try:
             certificate_id = kwargs.get("certificate_id", None)
-            code, msg, certificate = domain_service.get_certificate_by_pk(
-                certificate_id)
+            code, msg, certificate = domain_service.get_certificate_by_pk(certificate_id)
             if code != 200:
                 return Response(general_message(code, "delete error", msg), status=code)
 
@@ -265,8 +260,7 @@ class ServiceDomainView(AppBaseView):
         try:
             container_port = request.GET.get("container_port", None)
 
-            domains = domain_service.get_port_bind_domains(
-                self.service, int(container_port))
+            domains = domain_service.get_port_bind_domains(self.service, int(container_port))
             domain_list = [domain.to_dict() for domain in domains]
             result = general_message(200, "success", "查询成功", list=domain_list)
         except Exception as e:
@@ -325,22 +319,21 @@ class ServiceDomainView(AppBaseView):
             rule_extensions = request.data.get("rule_extensions", None)
 
             # 判断策略是否存在
-            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(
-                self.service.service_id, container_port, domain_name, protocol)
+            service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(self.service.service_id, container_port,
+                                                                                  domain_name, protocol)
             if service_domain:
                 result = general_message(400, "faild", "策略已存在")
                 return Response(result, status=400)
 
-            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                   protocol, certificate_id, DomainType.WWW, rule_extensions)
+            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol,
+                                                   certificate_id, DomainType.WWW, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
             # htt与https共存的协议需存储两条数据(创建完https数据再创建一条http数据)
             if protocol == "httpandhttps":
                 certificate_id = 0
-                code, msg = domain_service.bind_domain(
-                    self.tenant, self.user, self.service, domain_name, container_port, protocol, certificate_id,
-                    DomainType.WWW, rule_extensions)
+                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
+                                                       protocol, certificate_id, DomainType.WWW, rule_extensions)
                 if code != 200:
                     return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -389,8 +382,7 @@ class ServiceDomainView(AppBaseView):
             is_tcp = request.data.get("is_tcp", False)
             if not container_port or not domain_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
-            code, msg = domain_service.unbind_domain(
-                self.tenant, self.service, container_port, domain_name, is_tcp)
+            code, msg = domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "域名解绑成功")
@@ -414,25 +406,21 @@ class HttpStrategyView(RegionTenantHeaderView):
             if not http_rule_id:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
-            domain = domain_repo.get_service_domain_by_http_rule_id(
-                http_rule_id)
+            domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
             if domain:
                 bean = domain.to_dict()
-                service = service_repo.get_service_by_service_id(
-                    domain.service_id)
+                service = service_repo.get_service_by_service_id(domain.service_id)
                 service_alias = service.service_cname if service else ''
                 group_name = ''
                 g_id = 0
                 if service:
-                    gsr = group_service_relation_repo.get_group_by_service_id(
-                        service.service_id)
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                     if gsr:
                         group = group_repo.get_group_by_id(int(gsr.group_id))
                         group_name = group.group_name if group else ''
                         g_id = int(gsr.group_id)
                 if domain.certificate_id:
-                    certificate_info = domain_repo.get_certificate_by_pk(
-                        int(domain.certificate_id))
+                    certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
 
                     bean.update({"certificate_name": certificate_info.alias})
                 bean.update({"service_alias": service_alias})
@@ -489,8 +477,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(result, status=400)
 
             # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
-            domains = domain_repo.get_domain_by_name_and_path(
-                domain_name, domain_path)
+            domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
             domain_protocol_list = []
             is_httptohttps = False
             if domains:
@@ -519,27 +506,25 @@ class HttpStrategyView(RegionTenantHeaderView):
 
             if whether_open:
                 try:
-                    tenant_service_port = port_service.get_service_port_by_port(
-                        service, container_port)
+                    tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                     # 仅开启对外端口
-                    code, msg, data = port_service.manage_port(
-                        self.tenant, service, service.service_region, int(tenant_service_port.container_port),
-                        "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
+                    code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
+                                                               int(tenant_service_port.container_port), "only_open_outer",
+                                                               tenant_service_port.protocol, tenant_service_port.port_alias)
                     if code != 200:
                         return Response(general_message(code, "change port fail", msg), status=code)
                 except Exception:
                     raise
 
-            tenant_service_port = port_service.get_service_port_by_port(
-                service, container_port)
+            tenant_service_port = port_service.get_service_port_by_port(service, container_port)
             if not tenant_service_port.is_outer_service:
                 return Response(
                     general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
             # 绑定端口(添加策略)
-            code, msg, data = domain_service.bind_httpdomain(
-                self.tenant, self.user, service, domain_name, container_port, protocol, certificate_id, DomainType.WWW,
-                domain_path, domain_cookie, domain_heander, the_weight, rule_extensions)
+            code, msg, data = domain_service.bind_httpdomain(self.tenant, self.user, service, domain_name, container_port,
+                                                             protocol, certificate_id, DomainType.WWW, domain_path,
+                                                             domain_cookie, domain_heander, the_weight, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -587,8 +572,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                     if rule["key"] == "httptohttps":
                         add_httptohttps = True
 
-            domains = domain_repo.get_domain_by_name_and_path_and_protocol(
-                domain_name, domain_path, "http")
+            domains = domain_repo.get_domain_by_name_and_path_and_protocol(domain_name, domain_path, "http")
             rule_id_list = []
             if domains:
                 for domain in domains:
@@ -601,9 +585,9 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(result, status=400)
 
             # 编辑域名
-            code, msg, data = domain_service.update_httpdomain(
-                self.tenant, self.user, service, domain_name, container_port, certificate_id, DomainType.WWW,
-                domain_path, domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions)
+            code, msg, data = domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port,
+                                                               certificate_id, DomainType.WWW, domain_path, domain_cookie,
+                                                               domain_heander, http_rule_id, the_weight, rule_extensions)
 
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
@@ -629,8 +613,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(general_message(400, "params error", "参数错误"), status=400)
 
             # 解绑域名
-            code, msg = domain_service.unbind_httpdomain(
-                self.tenant, self.response_region, http_rule_id)
+            code, msg = domain_service.unbind_httpdomain(self.tenant, self.response_region, http_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "策略删除成功")
@@ -693,11 +676,9 @@ class SecondLevelDomainView(AppBaseView):
               paramType: path
         """
         try:
-            http_domain = region_services.get_region_httpdomain(
-                self.service.service_region)
+            http_domain = region_services.get_region_httpdomain(self.service.service_region)
             sld_suffix = "{0}.{1}".format(self.tenant.tenant_name, http_domain)
-            result = general_message(200, "success", "查询成功", {
-                "sld_suffix": sld_suffix})
+            result = general_message(200, "success", "查询成功", {"sld_suffix": sld_suffix})
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -742,12 +723,10 @@ class SecondLevelDomainView(AppBaseView):
                 result = general_message(400, "invalid domain", msg)
                 return Response(result, status=400)
             container_port = int(container_port)
-            sld_domains = domain_service.get_sld_domains(
-                self.service, container_port)
+            sld_domains = domain_service.get_sld_domains(self.service, container_port)
             if not sld_domains:
 
-                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
-                                                       container_port,
+                code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
                                                        "http", None, DomainType.SLD_DOMAIN)
                 if code != 200:
                     return Response(general_message(code, "bind domain error", msg), status=code)
@@ -757,8 +736,8 @@ class SecondLevelDomainView(AppBaseView):
                     self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False)
                 if code != 200:
                     return Response(general_message(code, "unbind domain error", msg), status=code)
-                domain_service.bind_domain(self.tenant, self.user, self.service, domain_name,
-                                           container_port, "http", None, DomainType.SLD_DOMAIN)
+                domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http", None,
+                                           DomainType.SLD_DOMAIN)
 
             result = general_message(200, "success", "二级域名修改成功")
         except Exception as e:
@@ -775,8 +754,7 @@ class DomainQueryView(RegionTenantHeaderView):
             page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
-            region = region_repo.get_region_by_region_name(
-                self.response_region)
+            region = region_repo.get_region_by_region_name(self.response_region)
             try:
                 # 查询分页排序
                 if search_conditions:
@@ -790,8 +768,7 @@ class DomainQueryView(RegionTenantHeaderView):
                         where sd.tenant_id='{0}' and sd.region_id='{1}' \
                             and (sd.domain_name like '%{2}%' \
                                 or sd.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id,
-                                                                        search_conditions))
+                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -802,8 +779,7 @@ class DomainQueryView(RegionTenantHeaderView):
                         end = remaining_num
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+                    cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                             sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                             sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
                             sd.is_outer_service \
@@ -815,16 +791,15 @@ class DomainQueryView(RegionTenantHeaderView):
                             and (sd.domain_name like '%{2}%' \
                                 or sd.service_alias like '%{2}%' \
                                 or sg.group_name like '%{2}%') \
-                        order by type desc LIMIT {3},{4};".format(
-                            tenant.tenant_id, region.region_id, search_conditions, start, end))
+                        order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start,
+                                                                  end))
                     tenant_tuples = cursor.fetchall()
                 else:
 
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(1) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
-                            tenant.tenant_id, region.region_id))
+                    cursor.execute("select count(1) from service_domain where tenant_id='{0}' and region_id='{1}';".format(
+                        tenant.tenant_id, region.region_id))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -839,8 +814,7 @@ class DomainQueryView(RegionTenantHeaderView):
                     cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                         service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
                         domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}'
-                        and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id,
-                                                                                        region.region_id,
+                        and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id,
                                                                                         start, end))
                     tenant_tuples = cursor.fetchall()
 
@@ -852,21 +826,18 @@ class DomainQueryView(RegionTenantHeaderView):
             # 拼接展示数据
             domain_list = list()
             for tenant_tuple in tenant_tuples:
-                service = service_repo.get_service_by_service_id(
-                    tenant_tuple[9])
+                service = service_repo.get_service_by_service_id(tenant_tuple[9])
                 service_alias = service.service_cname if service else ''
                 group_name = ''
                 group_id = 0
                 if service:
-                    gsr = group_service_relation_repo.get_group_by_service_id(
-                        service.service_id)
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                     if gsr:
                         group = group_repo.get_group_by_id(int(gsr.group_id))
                         group_name = group.group_name if group else ''
                         group_id = int(gsr.group_id)
                 domain_dict = dict()
-                certificate_info = domain_repo.get_certificate_by_pk(
-                    int(tenant_tuple[3]))
+                certificate_info = domain_repo.get_certificate_by_pk(int(tenant_tuple[3]))
                 if not certificate_info:
                     domain_dict["certificate_alias"] = ''
                 else:
@@ -889,8 +860,7 @@ class DomainQueryView(RegionTenantHeaderView):
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
-            result = general_message(
-                200, "success", "查询成功", list=domain_list, bean=bean)
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -905,23 +875,21 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_tenant_by_tenant_name(tenantName)
-            region = region_repo.get_region_by_region_name(
-                self.response_region)
+            region = region_repo.get_region_by_region_name(self.response_region)
             try:
                 # 查询分页排序
                 if search_conditions:
                     search_conditions = search_conditions.decode('utf-8')
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(1) from service_tcp_domain std \
+                    cursor.execute("select count(1) from service_tcp_domain std \
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
                             left join service_group sg on sgr.group_id = sg.id  \
                         where std.tenant_id='{0}' and std.region_id='{1}' \
                             and (std.end_point like '%{2}%' \
                                 or std.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%');".format(
-                            tenant.tenant_id, region.region_id, search_conditions, search_conditions))
+                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions,
+                                                                        search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -932,8 +900,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                         end = remaining_num
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
+                    cursor.execute("select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
                             std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
                         from service_tcp_domain std \
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
@@ -942,16 +909,14 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                             and (std.end_point like '%{2}%' \
                                 or std.service_alias like '%{2}%' \
                                 or sg.group_name like '%{2}%') \
-                        order by type desc LIMIT {5},{6};".format(
-                            tenant.tenant_id, region.region_id, search_conditions, search_conditions,
-                            search_conditions, start, end))
+                        order by type desc LIMIT {5},{6};".format(tenant.tenant_id, region.region_id, search_conditions,
+                                                                  search_conditions, search_conditions, start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     # 获取总数
                     cursor = connection.cursor()
-                    cursor.execute(
-                        "select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
-                            tenant.tenant_id, region.region_id))
+                    cursor.execute("select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
+                        tenant.tenant_id, region.region_id))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -962,8 +927,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                         end = remaining_num
 
                     cursor = connection.cursor()
-                    cursor.execute(
-                        """
+                    cursor.execute("""
                             select end_point, type,
                             protocol, service_name,
                             service_alias, container_port,
@@ -982,14 +946,12 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
             # 拼接展示数据
             domain_list = list()
             for tenant_tuple in tenant_tuples:
-                service = service_repo.get_service_by_service_id(
-                    tenant_tuple[7])
+                service = service_repo.get_service_by_service_id(tenant_tuple[7])
                 service_alias = service.service_cname if service else ''
                 group_name = ''
                 group_id = 0
                 if service:
-                    gsr = group_service_relation_repo.get_group_by_service_id(
-                        service.service_id)
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                     if gsr:
                         group = group_repo.get_group_by_id(int(gsr.group_id))
                         group_name = group.group_name if group else ''
@@ -1011,8 +973,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
-            result = general_message(
-                200, "success", "查询成功", list=domain_list, bean=bean)
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -1027,11 +988,10 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
-            region = region_repo.get_region_by_region_name(
-                self.response_region)
+            region = region_repo.get_region_by_region_name(self.response_region)
             try:
-                tenant_tuples, total = domain_service.get_app_service_domain_list(
-                    region, tenant, app_id, search_conditions, page, page_size)
+                tenant_tuples, total = domain_service.get_app_service_domain_list(region, tenant, app_id, search_conditions,
+                                                                                  page, page_size)
 
             except Exception as e:
                 logger.exception(e)
@@ -1041,21 +1001,18 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             # 拼接展示数据
             domain_list = list()
             for tenant_tuple in tenant_tuples:
-                service = service_repo.get_service_by_service_id(
-                    tenant_tuple[9])
+                service = service_repo.get_service_by_service_id(tenant_tuple[9])
                 service_alias = service.service_cname if service else ''
                 group_name = ''
                 group_id = 0
                 if service:
-                    gsr = group_service_relation_repo.get_group_by_service_id(
-                        service.service_id)
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                     if gsr:
                         group = group_repo.get_group_by_id(int(gsr.group_id))
                         group_name = group.group_name if group else ''
                         group_id = int(gsr.group_id)
                 domain_dict = dict()
-                certificate_info = domain_repo.get_certificate_by_pk(
-                    int(tenant_tuple[3]))
+                certificate_info = domain_repo.get_certificate_by_pk(int(tenant_tuple[3]))
                 if not certificate_info:
                     domain_dict["certificate_alias"] = ''
                 else:
@@ -1078,8 +1035,7 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
-            result = general_message(
-                200, "success", "查询成功", list=domain_list, bean=bean)
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -1094,11 +1050,10 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
             page_size = int(request.GET.get("page_size", 10))
             search_conditions = request.GET.get("search_conditions", None)
             tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
-            region = region_repo.get_region_by_region_name(
-                self.response_region)
+            region = region_repo.get_region_by_region_name(self.response_region)
             try:
-                tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(
-                    region, tenant, app_id, search_conditions, page, page_size)
+                tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(region, tenant, app_id, search_conditions,
+                                                                                      page, page_size)
             except Exception as e:
                 logger.exception(e)
                 result = general_message(405, "faild", "查询数据库失败")
@@ -1107,14 +1062,12 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
             # 拼接展示数据
             domain_list = list()
             for tenant_tuple in tenant_tuples:
-                service = service_repo.get_service_by_service_id(
-                    tenant_tuple[7])
+                service = service_repo.get_service_by_service_id(tenant_tuple[7])
                 service_alias = service.service_cname if service else ''
                 group_name = ''
                 group_id = 0
                 if service:
-                    gsr = group_service_relation_repo.get_group_by_service_id(
-                        service.service_id)
+                    gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                     if gsr:
                         group = group_repo.get_group_by_id(int(gsr.group_id))
                         group_name = group.group_name if group else ''
@@ -1136,8 +1089,7 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
                 domain_list.append(domain_dict)
             bean = dict()
             bean["total"] = total
-            result = general_message(
-                200, "success", "查询成功", list=domain_list, bean=bean)
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -1158,14 +1110,12 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
         if tcpdomain:
             bean = tcpdomain.to_dict()
-            service = service_repo.get_service_by_service_id(
-                tcpdomain.service_id)
+            service = service_repo.get_service_by_service_id(tcpdomain.service_id)
             service_alias = service.service_cname if service else ''
             group_name = ''
             g_id = 0
             if service:
-                gsr = group_service_relation_repo.get_group_by_service_id(
-                    service.service_id)
+                gsr = group_service_relation_repo.get_group_by_service_id(service.service_id)
                 if gsr:
                     group = group_repo.get_group_by_id(int(gsr.group_id))
                     group_name = group.group_name if group else ''
@@ -1213,22 +1163,19 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 
         if whether_open:
             try:
-                tenant_service_port = port_service.get_service_port_by_port(
-                    service, container_port)
+                tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                 # 仅打开对外端口
-                code, msg, data = port_service.manage_port(
-                    self.tenant, service, service.service_region, int(tenant_service_port.container_port),
-                    "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
+                code, msg, data = port_service.manage_port(self.tenant, service, service.service_region,
+                                                           int(tenant_service_port.container_port), "only_open_outer",
+                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     return Response(general_message(code, "change port fail", msg), status=code)
             except Exception:
                 raise
-        tenant_service_port = port_service.get_service_port_by_port(
-            service, container_port)
+        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
 
         if not tenant_service_port.is_outer_service:
-            return Response(
-                general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
+            return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
         # 添加tcp策略
         code, msg, data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port,
@@ -1261,8 +1208,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             return Response(general_message(400, "not service", "组件不存在"), status=400)
 
         # 查询端口协议
-        tenant_service_port = port_service.get_service_port_by_port(
-            service, container_port)
+        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
         if tenant_service_port:
             protocol = tenant_service_port.protocol
         else:
@@ -1276,9 +1222,8 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             return Response(result)
 
         # 修改策略
-        code, msg = domain_service.update_tcpdomain(
-            self.tenant, self.user, service, end_point, container_port, tcp_rule_id, protocol, type,
-            rule_extensions, default_ip)
+        code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port, tcp_rule_id,
+                                                    protocol, type, rule_extensions, default_ip)
 
         if code != 200:
             return Response(general_message(code, "bind domain error", msg), status=code)
@@ -1299,8 +1244,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
                 return Response(general_message(400, "params error", "参数错误"), status=400)
 
             # 删除策略
-            code, msg = domain_service.unbind_tcpdomain(
-                self.tenant, self.response_region, tcp_rule_id)
+            code, msg = domain_service.unbind_tcpdomain(self.tenant, self.response_region, tcp_rule_id)
             if code != 200:
                 return Response(general_message(code, "delete domain error", msg), status=code)
             result = general_message(200, "success", "策略删除成功")
@@ -1314,13 +1258,11 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
 class GetPortView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         try:
-            ipres, ipdata = region_api.get_ips(
-                self.response_region, self.tenant.tenant_name)
+            ipres, ipdata = region_api.get_ips(self.response_region, self.tenant.tenant_name)
             if int(ipres.status) != 200:
                 result = general_message(400, "call region error", "请求数据中心异常")
                 return Response(result, status=400)
-            result = general_message(
-                200, "success", "可用端口查询成功", list=ipdata.get("list"))
+            result = general_message(200, "success", "可用端口查询成功", list=ipdata.get("list"))
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -1336,10 +1278,8 @@ class GetSeniorUrlView(RegionTenantHeaderView):
             # 判断参数
             if not http_rule_id:
                 return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
-            service_domain = domain_repo.get_service_domain_by_http_rule_id(
-                http_rule_id)
-            result = general_message(
-                200, "success", "查询成功", bean=service_domain.to_dict())
+            service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
+            result = general_message(200, "success", "查询成功", bean=service_domain.to_dict())
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -1373,16 +1313,14 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     @never_cache
     @perm_required('control_operation')
     def put(self, request, rule_id, *args, **kwargs):
-        value = parse_item(request, 'value', required=True,
-                           error='value is a required parameter')
+        value = parse_item(request, 'value', required=True, error='value is a required parameter')
         try:
             self.check_set_header(value["set_headers"])
         except Exception as e:
             logger.exception(e)
             result = general_message(400, "forbidden custom header name", FORBIDDEN_MESSAGE)
             return Response(result, status=400)
-        service_domain = get_object_or_404(
-            ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
+        service_domain = get_object_or_404(ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
         service = get_object_or_404(
             TenantServiceInfo, msg="no service", msg_show=u"组件不存在", service_id=service_domain.service_id)
 
@@ -1391,8 +1329,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
         gcc_dict["body"] = value
         gcc_dict["rule_id"] = rule_id
         try:
-            res, data = region_api.upgrade_configuration(
-                self.response_region, self.tenant, service.service_alias, gcc_dict)
+            res, data = region_api.upgrade_configuration(self.response_region, self.tenant, service.service_alias, gcc_dict)
             if res.status == 200:
                 if cf:
                     cf.value = json.dumps(value)
@@ -1406,8 +1343,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
                 return Response(result, status=200)
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            result = general_message(
-                409, "upgrade configuration failed", "操作过于频繁，请稍后再试")
+            result = general_message(409, "upgrade configuration failed", "操作过于频繁，请稍后再试")
             return Response(result, status=409)
 
     def check_set_header(self, set_headers):

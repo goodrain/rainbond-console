@@ -82,11 +82,7 @@ class AliYunApiV1(AliYunApiV1MiXin, OAuth2Interface):
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
         if code:
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Connection": "close"
-            }
+            headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "Connection": "close"}
             params = {
                 "client_id": self.oauth_service.client_id,
                 "client_secret": self.oauth_service.client_secret,
@@ -96,8 +92,7 @@ class AliYunApiV1(AliYunApiV1MiXin, OAuth2Interface):
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
-                rst = self._session.request(method='POST', url=url,
-                                            headers=headers, params=params)
+                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
@@ -143,7 +138,7 @@ class AliYunApiV1(AliYunApiV1MiXin, OAuth2Interface):
         if self.oauth_service:
             params = {
                 "client_id": self.oauth_service.client_id,
-                "redirect_uri": self.oauth_service.redirect_uri+"?service_id="+str(self.oauth_service.ID),
+                "redirect_uri": self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)

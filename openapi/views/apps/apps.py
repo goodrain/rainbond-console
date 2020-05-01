@@ -127,8 +127,7 @@ class APPOperationsView(BaseOpenAPIView):
             return Response(rst_serializer.data, status=status.HTTP_400_BAD_REQUEST)
         tenant, service_ids = app_service.get_group_services_by_id(app_id)
         if tenant:
-            code, msg = app_service.group_services_operation(tenant,
-                                                             serializers.data.get("action"), service_ids)
+            code, msg = app_service.group_services_operation(tenant, serializers.data.get("action"), service_ids)
             if code != 200:
                 result = {"msg": "batch manage error"}
                 rst_serializer = FailSerializer(data=result)
@@ -191,8 +190,8 @@ class APPHttpDomainView(BaseOpenAPIView):
         if certificate_id:
             protocol = "https"
 
-        strategy_status = app_service.check_strategy_exist(
-            service, container_port, domain_name, protocol, domain_path, rule_extensions)
+        strategy_status = app_service.check_strategy_exist(service, container_port, domain_name, protocol, domain_path,
+                                                           rule_extensions)
         if strategy_status:
             rst = {"msg": "策略已存在"}
             return Response(rst, status=status.HTTP_400_BAD_REQUEST)
@@ -205,26 +204,24 @@ class APPHttpDomainView(BaseOpenAPIView):
 
         if whether_open:
             try:
-                tenant_service_port = port_service.get_service_port_by_port(
-                    service, container_port)
+                tenant_service_port = port_service.get_service_port_by_port(service, container_port)
                 # 仅开启对外端口
-                code, msg, data = port_service.manage_port(
-                    tenant, service, service.service_region, int(tenant_service_port.container_port),
-                    "only_open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
+                code, msg, data = port_service.manage_port(tenant, service, service.service_region,
+                                                           int(tenant_service_port.container_port), "only_open_outer",
+                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     return Response({"msg": "change port fail"}, status=code)
             except Exception as e:
                 logger.debug(e)
                 return Response({"msg": e}, status=status.HTTP_400_BAD_REQUEST)
-        tenant_service_port = port_service.get_service_port_by_port(
-            service, container_port)
+        tenant_service_port = port_service.get_service_port_by_port(service, container_port)
         if not tenant_service_port.is_outer_service:
             return Response({"msg": "没有开启对外端口"}, status=status.HTTP_400_BAD_REQUEST)
 
         # 绑定端口(添加策略)
-        code, msg, data = domain_service.bind_httpdomain(
-            tenant, self.request.user, service, domain_name, container_port, protocol, certificate_id, DomainType.WWW,
-            domain_path, domain_cookie, domain_heander, the_weight, rule_extensions)
+        code, msg, data = domain_service.bind_httpdomain(tenant, self.request.user, service, domain_name, container_port,
+                                                         protocol, certificate_id, DomainType.WWW, domain_path, domain_cookie,
+                                                         domain_heander, the_weight, rule_extensions)
         if code != 200:
             return Response({"msg": "bind domain error"}, status=status.HTTP_400_BAD_REQUEST)
         try:

@@ -40,8 +40,7 @@ class TenantServiceEnvVarRepository(object):
         return TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, scope=scope).all()
 
     def get_by_attr_name_and_scope(self, tenant_id, service_id, attr_name, scope):
-        envs = TenantServiceEnvVar.objects.filter(
-            tenant_id=tenant_id, service_id=service_id, attr_name=attr_name, scope=scope)
+        envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name, scope=scope)
         if envs:
             return envs[0]
         return None
@@ -62,8 +61,7 @@ class TenantServiceEnvVarRepository(object):
             ID=env_id)
 
     def get_env_by_ids_and_attr_names(self, tenant_id, service_ids, attr_names):
-        envs = TenantServiceEnvVar.objects.filter(
-            tenant_id=tenant_id, service_id__in=service_ids, attr_name__in=attr_names)
+        envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, attr_name__in=attr_names)
         return envs
 
     def get_env_by_ids_and_env_id(self, tenant_id, service_id, env_id):
@@ -90,8 +88,7 @@ class TenantServiceEnvVarRepository(object):
         TenantServiceEnvVar.objects.filter(pk=pk).delete()
 
     def delete_service_env_by_port(self, tenant_id, service_id, container_port):
-        TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id,
-                                           container_port=container_port).delete()
+        TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, container_port=container_port).delete()
 
     def update_env_var(self, tenant_id, service_id, attr_name, **update_params):
         TenantServiceEnvVar.objects.filter(
@@ -102,9 +99,7 @@ class TenantServiceEnvVarRepository(object):
         default_envs = Q(attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
         prefix_start_env = Q(attr_name__startswith="BUILD_")
         build_start_env = Q(scope="build")
-        buildEnvs = self.get_service_env(
-            tenant_id, service_id).filter(
-            default_envs | prefix_start_env | build_start_env)
+        buildEnvs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | build_start_env)
         for benv in buildEnvs:
             attr_name = benv.attr_name
             if attr_name.startswith("BUILD_"):
@@ -140,8 +135,7 @@ class TenantServicePortRepository(object):
         return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
     def get_service_port_by_port(self, tenant_id, service_id, container_port):
-        ports = TenantServicesPort.objects.filter(
-            tenant_id=tenant_id, service_id=service_id, container_port=container_port)
+        ports = TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id, container_port=container_port)
         if ports:
             return ports[0]
         return None
@@ -154,8 +148,7 @@ class TenantServicePortRepository(object):
         TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id).delete()
 
     def delete_serivce_port_by_port(self, tenant_id, service_id, container_port):
-        TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id,
-                                          container_port=container_port).delete()
+        TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id, container_port=container_port).delete()
 
     def delete_service_port_by_pk(self, pk):
         TenantServicesPort.objects.filter(pk=pk).delete()
@@ -254,8 +247,7 @@ class TenantServiceRelationRepository(object):
         return TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
     def get_depency_by_serivce_id_and_dep_service_id(self, tenant_id, service_id, dep_service_id):
-        deps = TenantServiceRelation.objects.filter(
-            tenant_id=tenant_id, service_id=service_id, dep_service_id=dep_service_id)
+        deps = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id, dep_service_id=dep_service_id)
         if deps:
             return deps[0]
         return None
@@ -364,8 +356,7 @@ class TenantServiceMntRelationRepository(object):
                 service_id=real_dep_mnt.get("service_id"),
                 dep_service_id=real_dep_mnt.get("dep_service_id"),
                 mnt_name=real_dep_mnt.get("mnt_name"),
-                mnt_dir=real_dep_mnt.get("mnt_dir")
-            )
+                mnt_dir=real_dep_mnt.get("mnt_dir"))
             mnt.volume_type = real_dep_mnt.get("volume_type")
             mnt.volume_id = real_dep_mnt.get("volume_id")
             dep_mnts.append(mnt)
@@ -463,8 +454,7 @@ class ServiceDomainRepository(object):
         except ServiceDomain.DoesNotExist:
             return None
 
-    def get_domain_by_name_and_port_and_protocol(
-            self, service_id, container_port, domain_name, protocol, domain_path=None):
+    def get_domain_by_name_and_port_and_protocol(self, service_id, container_port, domain_name, protocol, domain_path=None):
         if domain_path:
             try:
                 return ServiceDomain.objects.get(
@@ -490,8 +480,7 @@ class ServiceDomainRepository(object):
 
     def get_domain_by_name_and_path_and_protocol(self, domain_name, domain_path, protocol):
         if domain_path:
-            return ServiceDomain.objects.filter(
-                domain_name=domain_name, domain_path=domain_path, protocol=protocol).all()
+            return ServiceDomain.objects.filter(domain_name=domain_name, domain_path=domain_path, protocol=protocol).all()
         else:
             return None
 
@@ -555,9 +544,8 @@ class ServiceDomainRepository(object):
     def get_service_domains(self, service_id):
         return ServiceDomain.objects.filter(service_id=service_id).all()
 
-    def create_service_domains(
-            self, service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id, tenant_id,
-            service_alias, region_id):
+    def create_service_domains(self, service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id,
+                               tenant_id, service_alias, region_id):
         ServiceDomain.objects.create(
             service_id=service_id,
             service_name=service_name,
@@ -699,8 +687,7 @@ class ServiceTcpDomainRepository(object):
 
     def get_tcpdomain_by_name_and_port(self, service_id, container_port, end_point):
         try:
-            return ServiceTcpDomain.objects.get(
-                service_id=service_id, container_port=container_port, end_point=end_point)
+            return ServiceTcpDomain.objects.get(service_id=service_id, container_port=container_port, end_point=end_point)
         except ServiceTcpDomain.DoesNotExist:
             return None
 
@@ -712,8 +699,7 @@ class ServiceTcpDomainRepository(object):
                     query = Q(region_id=region_id, end_point__icontains=":{}".format(hostport[1]))
                     return ServiceTcpDomain.objects.filter(query)
                 queryDefaultEndpoint = "0.0.0.0:{0}".format(hostport[1])
-                query = Q(region_id=region_id, end_point=end_point) | Q(
-                    region_id=region_id, end_point=queryDefaultEndpoint)
+                query = Q(region_id=region_id, end_point=end_point) | Q(region_id=region_id, end_point=queryDefaultEndpoint)
                 return ServiceTcpDomain.objects.filter(query)
             return None
         except ServiceTcpDomain.DoesNotExist:

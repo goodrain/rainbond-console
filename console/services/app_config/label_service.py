@@ -11,7 +11,6 @@ from console.repositories.region_repo import region_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
 
-
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 

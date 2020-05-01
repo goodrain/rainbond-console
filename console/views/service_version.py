@@ -47,8 +47,7 @@ class AppVersionsView(AppBaseView):
         """
         page = request.GET.get("page_num", 1)
         page_size = request.GET.get("page_size", 10)
-        body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name,
-                                                     self.service.service_alias)
+        body = region_api.get_service_build_versions(self.response_region, self.tenant.tenant_name, self.service.service_alias)
         build_version_sort = body["bean"]["list"]
         run_version = body["bean"]["deploy_version"]
         total_num_list = list()
@@ -158,8 +157,8 @@ class AppVersionManageView(AppBaseView):
         version_id = kwargs.get("version_id", None)
         if not version_id:
             return Response(general_message(400, "attr_name not specify", u"请指定需要删除的具体版本"))
-        region_api.delete_service_build_version(
-            self.response_region, self.tenant.tenant_name, self.service.service_alias, version_id)
+        region_api.delete_service_build_version(self.response_region, self.tenant.tenant_name, self.service.service_alias,
+                                                version_id)
         # event_repo.delete_event_by_build_version(self.service.service_id, version_id)
         result = general_message(200, "success", u"删除成功")
         return Response(result, status=result["code"])

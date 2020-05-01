@@ -70,12 +70,12 @@ class AppMntView(AppBaseView):
         if query_type == "mnt":
             mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_types)
         elif query_type == "unmnt":
-            services = app_service.get_app_list(
-                self.tenant.pk, self.user, self.tenant.tenant_id, self.service.service_region, query)
+            services = app_service.get_app_list(self.tenant.pk, self.user, self.tenant.tenant_id, self.service.service_region,
+                                                query)
 
             services_ids = [s.service_id for s in services]
-            mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids,
-                                                                          page, page_size, is_config)
+            mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids, page,
+                                                                          page_size, is_config)
         else:
             return Response(general_message(400, "param error", "参数错误"), status=400)
         result = general_message(200, "success", "查询成功", list=mnt_list, total=total)

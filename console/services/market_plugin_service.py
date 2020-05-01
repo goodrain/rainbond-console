@@ -227,9 +227,7 @@ class MarketPluginService(object):
                 event_status='not_start')
             event.save()
 
-            RainbondCenterPlugin.objects.filter(
-                version=plugin_info["version"],
-                plugin_id=share_record.group_id).delete()
+            RainbondCenterPlugin.objects.filter(version=plugin_info["version"], plugin_id=share_record.group_id).delete()
 
             plugin_info["source"] = "local"
             plugin_info["record_id"] = share_record.ID
@@ -440,9 +438,8 @@ class MarketPluginService(object):
 
             plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
 
-            ret = plugin_service.build_plugin(
-                region_name, plugin_base_info, plugin_build_version, user, tenant, event_id, share_plugin_info.get(
-                    "plugin_image", None))
+            ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,
+                                              share_plugin_info.get("plugin_image", None))
             plugin_build_version.build_status = ret.get('bean').get('status')
             plugin_build_version.save()
 
