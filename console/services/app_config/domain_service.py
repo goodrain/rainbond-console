@@ -808,6 +808,7 @@ class DomainService(object):
         # append tenant name
         for domain in domains:
             rule = model_to_dict(domain)
+            rule["create_time"] = domain.create_time
             rule["team_name"] = team_names[domain.tenant_id]
             region_ids.append(domain.region_id)
             service_ids.append(domain.service_id)

@@ -11,8 +11,7 @@ from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantRegionInfo
-from www.models.main import Tenants
+from www.models.main import TenantRegionInfo, Tenants
 
 logger = logging.getLogger('default')
 
@@ -874,7 +873,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains/" + \
             body["domain"]
-
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
@@ -885,9 +883,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         body["tenant_id"] = tenant_region.region_tenant_id
         url = url + "/v2/tenants/" + tenant_name + "/http-rule"
-
         self._set_headers(token)
-        logger.debug('------------------------------------>{0}'.format(body))
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
