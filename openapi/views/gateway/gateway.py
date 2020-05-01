@@ -93,14 +93,17 @@ class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取企业应用http访问策略列表",
         manual_parameters=[
-            openapi.Parameter("auto_tls", openapi.IN_QUERY, description="查询条件，是否为需要自动匹配证书的策略", type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter("auto_ssl", openapi.IN_QUERY, description="查询条件，是否为需要自动匹配证书的策略", type=openapi.TYPE_BOOLEAN),
         ],
         responses={200: EnterpriseHTTPGatewayRuleSerializer(many=True)},
         tags=['openapi-gateway'],
     )
     def get(self, req, *args, **kwargs):
-        is_auto_tls = req.GET.get("auto_tls", None)
-        rules = domain_service.get_http_rules_by_enterprise_id(self.enterprise.enterprise_id, is_auto_tls)
+        auto_ssl = req.GET.get("auto_tls", None)
+        is_auto_ssl = False
+        if auto_ssl and auto_ssl.lower() == "true":
+            is_auto_ssl = True
+        rules = domain_service.get_http_rules_by_enterprise_id(self.enterprise.enterprise_id, is_auto_ssl)
         re = EnterpriseHTTPGatewayRuleSerializer(data=rules, many=True)
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)
