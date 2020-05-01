@@ -10,23 +10,10 @@ from django.db.models import Q
 from console.exception.main import AbortRequest
 from console.utils.shortcuts import get_object_or_404
 from www.db.base import BaseConnection
-from www.models.main import GatewayCustomConfiguration
-from www.models.main import ImageServiceRelation
-from www.models.main import ServiceAttachInfo
-from www.models.main import ServiceCreateStep
-from www.models.main import ServiceDomain
-from www.models.main import ServiceDomainCertificate
-from www.models.main import ServicePaymentNotify
-from www.models.main import ServiceTcpDomain
-from www.models.main import TenantServiceAuth
-from www.models.main import TenantServiceConfigurationFile
-from www.models.main import TenantServiceEnv
-from www.models.main import TenantServiceEnvVar
-from www.models.main import TenantServiceMountRelation
-from www.models.main import TenantServiceRelation
-from www.models.main import TenantServicesPort
-from www.models.main import TenantServiceVolume
-from www.models.main import ThirdPartyServiceEndpoints
+from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation, ServiceAttachInfo, ServiceCreateStep,
+                             ServiceDomain, ServiceDomainCertificate, ServicePaymentNotify, ServiceTcpDomain, TenantServiceAuth,
+                             TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
+                             TenantServiceRelation, TenantServicesPort, TenantServiceVolume, ThirdPartyServiceEndpoints)
 from www.models.service_publish import ServiceExtendMethod
 
 logger = logging.getLogger("default")
@@ -99,8 +86,8 @@ class TenantServiceEnvVarRepository(object):
         default_envs = Q(attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
         prefix_start_env = Q(attr_name__startswith="BUILD_")
         build_start_env = Q(scope="build")
-        buildEnvs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | build_start_env)
-        for benv in buildEnvs:
+        build_envs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | build_start_env)
+        for benv in build_envs:
             attr_name = benv.attr_name
             if attr_name.startswith("BUILD_"):
                 attr_name = attr_name.replace("BUILD_", "", 1)
@@ -704,8 +691,8 @@ class ServiceTcpDomainRepository(object):
                 if hostport[0] == "0.0.0.0":
                     query = Q(region_id=region_id, end_point__icontains=":{}".format(hostport[1]))
                     return ServiceTcpDomain.objects.filter(query)
-                queryDefaultEndpoint = "0.0.0.0:{0}".format(hostport[1])
-                query = Q(region_id=region_id, end_point=end_point) | Q(region_id=region_id, end_point=queryDefaultEndpoint)
+                query_default_endpoint = "0.0.0.0:{0}".format(hostport[1])
+                query = Q(region_id=region_id, end_point=end_point) | Q(region_id=region_id, end_point=query_default_endpoint)
                 return ServiceTcpDomain.objects.filter(query)
             return None
         except ServiceTcpDomain.DoesNotExist:
