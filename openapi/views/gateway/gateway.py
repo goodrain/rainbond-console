@@ -140,7 +140,7 @@ class UpdateAppGatewayHTTPRuleView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="删除HTTP访问策略",
         manual_parameters=[],
-        responses={200: HTTPGatewayRuleSerializer(many=True)},
+        responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
     def delete(self, request, app_id, rule_id, *args, **kwargs):
