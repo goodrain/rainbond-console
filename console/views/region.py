@@ -252,11 +252,9 @@ class PublicRegionListView(JWTAuthApiView):
             team_name = request.GET.get("team_name", None)
             if not team_name:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id, tenant_name=team_name)
+            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
 
-            role_name_list = team_services.get_user_perm_role_in_permtenant(
-                user_id=request.user.user_id, tenant_name=team_name)
+            role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
             perm = "owner" not in perm_list and "admin" not in perm_list
             if perm and "owner" not in role_name_list and "admin" not in role_name_list:
                 code = 400
@@ -335,8 +333,8 @@ class RegionResPrice(JWTAuthApiView):
             disk = int(request.data.get('disk', 0))
             rent_time = request.data.get('rent_time')
 
-            ret, msg, status = market_api.get_region_res_price(
-                region_name, team.tenant_id, team.enterprise_id, memory, disk, rent_time)
+            ret, msg, status = market_api.get_region_res_price(region_name, team.tenant_id, team.enterprise_id, memory, disk,
+                                                               rent_time)
 
             return Response(status=status, data=general_message(status, msg, msg, ret))
         except Exception as e:

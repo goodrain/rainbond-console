@@ -15,7 +15,6 @@ configKey = "SYS_C_F_K"
 
 
 class ConfigCenter(object):
-
     def __getattr__(self, name):
         configs = self.configs()
         if name in configs:

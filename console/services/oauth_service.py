@@ -43,8 +43,8 @@ class OAuthUserService(object):
             user.save()
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(oauth_user.enterprise_id)
         if not enterprise:
-            enterprise = enterprise_services.create_oauth_enterprise(
-                oauth_user.enterprise_domain, oauth_user.enterprise_name, oauth_user.enterprise_id)
+            enterprise = enterprise_services.create_oauth_enterprise(oauth_user.enterprise_domain, oauth_user.enterprise_name,
+                                                                     oauth_user.enterprise_id)
             user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
         user.enterprise_id = enterprise.enterprise_id
         user.save()
@@ -55,8 +55,7 @@ class OAuthUserService(object):
         if api.is_communication_oauth():
             logger.debug(oauth_user.name)
             user = user_repo.get_enterprise_user_by_username(oauth_user.enterprise_id, oauth_user.name)
-        authenticated_user = oauth_user_repo.user_oauth_exists(
-            service_id=oauth_service.ID, oauth_user_id=oauth_user.id)
+        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=oauth_service.ID, oauth_user_id=oauth_user.id)
         if authenticated_user is not None:
             authenticated_user.oauth_user_id = oauth_user.id
             authenticated_user.oauth_user_name = oauth_user.name
@@ -71,12 +70,10 @@ class OAuthUserService(object):
                 login_user = user_repo.get_by_user_id(authenticated_user.user_id)
                 payload = jwt_payload_handler(login_user)
                 token = jwt_encode_handler(payload)
-                response = Response({"data": {"bean": {"token": token}}},
-                                    status=200)
+                response = Response({"data": {"bean": {"token": token}}}, status=200)
                 if api_settings.JWT_AUTH_COOKIE:
                     expiration = (datetime.datetime.now() + api_settings.JWT_EXPIRATION_DELTA)
-                    response.set_cookie(
-                        api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
                 return response
 
             else:
@@ -90,8 +87,7 @@ class OAuthUserService(object):
                     "code": code,
                 }
                 msg = "user is not authenticated"
-                return Response({"data": {"bean": {"result": rst, "msg": msg}}},
-                                status=200)
+                return Response({"data": {"bean": {"result": rst, "msg": msg}}}, status=200)
         else:
             usr = oauth_user_repo.save_oauth(
                 oauth_user_id=oauth_user.id,
@@ -117,12 +113,10 @@ class OAuthUserService(object):
             if user:
                 payload = jwt_payload_handler(user)
                 token = jwt_encode_handler(payload)
-                response = Response({"data": {"bean": {"token": token}}},
-                                    status=200)
+                response = Response({"data": {"bean": {"token": token}}}, status=200)
                 if api_settings.JWT_AUTH_COOKIE:
                     expiration = (datetime.datetime.now() + api_settings.JWT_EXPIRATION_DELTA)
-                    response.set_cookie(
-                        api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
                 return response
             msg = "user is not authenticated"
             return Response({"data": {"bean": {"result": rst, "msg": msg}}}, status=200)

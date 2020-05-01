@@ -15,7 +15,7 @@ from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
-from www.models.main import ServiceGroup
+from www.models.main import ServiceGroup, ServiceGroupRelation
 from console.services.service_services import base_service
 from console.repositories.plugin import app_plugin_relation_repo
 from console.exception.main import ServiceHandleException
@@ -286,6 +286,12 @@ class GroupService(object):
 
     def get_apps_list(self, team_id=None, region_name=None, query=None):
         return group_repo.get_apps_list(team_id, region_name, query)
+
+    # get apps by service ids
+    # return app id and service id maps
+    def get_app_id_by_service_ids(self, service_ids):
+        sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
+        return {s.service_id: s.group_id for s in sgr}
 
 
 group_service = GroupService()

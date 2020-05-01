@@ -52,8 +52,8 @@ class PropertiesChanges(object):
             app, app_version = rainbond_app_repo.get_rainbond_app_and_version(
                 self.tenant.enterprise_id, self.service_source.group_key, self.service_source.version)
         else:
-            app, app_version = market_app_service.get_app_from_cloud(
-                self.tenant, self.service_source.group_key, self.service_source.version)
+            app, app_version = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key,
+                                                                     self.service_source.version)
             self.market_id = app.market_id
         if app_version:
             self.template = json.loads(app_version.app_template)
@@ -79,8 +79,7 @@ class PropertiesChanges(object):
         if not self.install_from_cloud:
             # 获取最新的时间列表, 判断版本号大小，TODO 确认版本号大小
             # 直接查出当前版本，对比时间，对比版本号大小
-            app_versions = rainbond_app_repo.get_rainbond_app_versions(
-                self.tenant.enterprise_id, self.service_source.group_key)
+            app_versions = rainbond_app_repo.get_rainbond_app_versions(self.tenant.enterprise_id, self.service_source.group_key)
             if not app_versions:
                 logger.debug("no app versions")
                 return None
@@ -94,8 +93,8 @@ class PropertiesChanges(object):
                         upgradeble_versions.append(version.version)
 
         else:
-            app_version_list = market_app_service.get_cloud_app_versions(
-                self.tenant.enterprise_id, self.service_source.group_key, self.market_id)
+            app_version_list = market_app_service.get_cloud_app_versions(self.tenant.enterprise_id,
+                                                                         self.service_source.group_key, self.market_id)
             if not app_version_list:
                 return None
             for version in app_version_list:
@@ -352,8 +351,7 @@ class PropertiesChanges(object):
     def plugin_changes(self, new_plugins):
         if not new_plugins:
             return None
-        old_plugins, _ = app_plugin_service.get_plugins_by_service_id(self.service.service_region,
-                                                                      self.service.tenant_id,
+        old_plugins, _ = app_plugin_service.get_plugins_by_service_id(self.service.service_region, self.service.tenant_id,
                                                                       self.service.service_id, "")
         if not old_plugins:
             return None
@@ -473,6 +471,7 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
             result = x.get("service_share_uuid", None) == pc.service_source.service_share_uuid \
                      or x.get("service_key", None) == pc.service_source.service_share_uuid
             return result
+
         app = next(iter(filter(lambda x: func(x), apps)), None)
     else:
         app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)

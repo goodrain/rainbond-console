@@ -71,8 +71,7 @@ class CenterAppListView(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         app_list = []
-        apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(
-            enterprise_id, app_name, tags, scope, page, page_size)
+        apps = rainbond_app_repo.get_rainbond_apps_versions_by_eid(enterprise_id, app_name, tags, scope, page, page_size)
         if apps and apps[0].app_name:
             for app in apps:
                 versions_info = (json.loads(app.versions_info) if app.versions_info else [])
@@ -98,8 +97,7 @@ class CenterAppListView(JWTAuthApiView):
                     "create_team": app.create_team,
                 })
 
-        return MessageResponse(
-            "success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
+        return MessageResponse("success", msg_show="查询成功", list=app_list, total=len(app_list), next_page=int(page) + 1)
 
 
 class CenterAppView(RegionTenantHeaderView):
@@ -149,8 +147,8 @@ class CenterAppView(RegionTenantHeaderView):
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
-                app, app_version_info = market_app_service.get_rainbond_app_and_version(
-                    self.user.enterprise_id, app_id, app_version)
+                app, app_version_info = market_app_service.get_rainbond_app_and_version(self.user.enterprise_id, app_id,
+                                                                                        app_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
@@ -209,8 +207,8 @@ class CenterAppCLView(JWTAuthApiView):
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        apps, count = market_app_service.get_visiable_apps(
-            self.user, enterprise_id, scope, app_name, tags, is_complete, page, page_size)
+        apps, count = market_app_service.get_visiable_apps(self.user, enterprise_id, scope, app_name, tags, is_complete, page,
+                                                           page_size)
         return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
 
     @never_cache
@@ -258,6 +256,7 @@ class CenterAppUDView(JWTAuthApiView):
         编辑和删除应用市场应用
         ---
     """
+
     def put(self, request, enterprise_id, app_id, *args, **kwargs):
         name = request.data.get("name")
         describe = request.data.get("describe", 'This is a default description.')
@@ -312,9 +311,7 @@ class CenterAppManageView(JWTAuthApiView):
         try:
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(
-                        general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-                        status=403)
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
             app_id = request.data.get("app_id", None)
             app_version_list = request.data.get("app_versions", [])
             action = request.data.get("action", None)
@@ -377,17 +374,14 @@ class DownloadMarketAppTemplateView(JWTAuthApiView):
 
             if not self.user.is_sys_admin:
                 if not user_services.is_user_admin_in_current_enterprise(self.user, enterprise_id):
-                    return Response(
-                        general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"),
-                        status=403)
+                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
             logger.debug("start synchronized market apps detail")
             enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
             if not enterprise.is_active:
                 return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
 
             for version in app_versions:
-                market_sycn_service.down_market_group_app_detail(
-                    self.user, enterprise_id, app_id, version, template_version)
+                market_sycn_service.down_market_group_app_detail(self.user, enterprise_id, app_id, version, template_version)
             result = general_message(200, "success", "应用同步成功")
         except HttpClient.CallApiError as e:
             logger.exception(e)
@@ -519,12 +513,7 @@ class GetCloudRecommendedAppList(JWTAuthApiView):
         try:
             apps, total, page = market_sycn_service.get_recommended_app_list(enterprise_id, page, page_size, app_name)
             if apps:
-                return MessageResponse(
-                    "success",
-                    msg_show="查询成功",
-                    list=apps,
-                    total=total,
-                    next_page=int(page) + 1)
+                return MessageResponse("success", msg_show="查询成功", list=apps, total=total, next_page=int(page) + 1)
             else:
                 return Response(general_message(200, "no apps", u"查询成功"), status=200)
         except Exception as e:
@@ -538,10 +527,7 @@ class TagCLView(JWTAuthApiView):
         app_tag_list = app_tag_repo.get_all_tag_list(enterprise_id)
         if app_tag_list:
             for app_tag in app_tag_list:
-                data.append({
-                    "name": app_tag.name,
-                    "tag_id": app_tag.ID
-                })
+                data.append({"name": app_tag.name, "tag_id": app_tag.ID})
         result = general_message(200, "success", None, list=data)
         return Response(result, status=status.HTTP_200_OK)
 

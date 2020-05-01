@@ -50,8 +50,8 @@ class GroupRepository(object):
         return group_count
 
     def get_tenant_region_groups(self, team_id, region, query=""):
-        return ServiceGroup.objects.filter(tenant_id=team_id,
-                                           region_name=region, group_name__icontains=query).order_by("-order_index")
+        return ServiceGroup.objects.filter(
+            tenant_id=team_id, region_name=region, group_name__icontains=query).order_by("-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
@@ -132,7 +132,6 @@ class GroupServiceRelationRepository(object):
                 group_info["group_name"] = "未分组"
                 group_info["group_id"] = -1
                 result_map[service_id] = group_info
-
         return result_map
 
     def create_service_group_relation(self, **params):

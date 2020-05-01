@@ -14,9 +14,7 @@ from goodrain_web import settings
 reload(sys)  # Python2.5 初始化后会删除 sys.setdefaultencoding 这个方法，我们需要重新载入
 sys.setdefaultencoding('utf-8')
 
-kwargs = {
-    "document_root": settings.MEDIA_ROOT
-}
+kwargs = {"document_root": settings.MEDIA_ROOT}
 
 
 def static(prefix, view=serve, **kwargs):
@@ -35,5 +33,5 @@ urlpatterns = [
     url(r'^console/', include('console.urls')),
 ]
 if settings.IS_OPEN_API:
-    urlpatterns.append(url(r'^openapi/', include('openapi.urls')),)
+    urlpatterns.append(url(r'^openapi/', include('openapi.urls')), )
 urlpatterns += staticfiles_urlpatterns() + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

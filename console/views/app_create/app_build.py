@@ -57,8 +57,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         is_deploy = request.data.get("is_deploy", True)
         status = 200
         try:
-            if not check_memory_quota(
-                    self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory, self.service.min_node):
+            if not check_memory_quota(self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory,
+                                      self.service.min_node):
                 raise ServiceHandleException(msg="not enough quota", error_code=20002)
             if self.service.service_source == "third_party":
                 is_deploy = False
@@ -174,8 +174,7 @@ class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             group_compose.save()
             for s in new_app_list:
                 try:
-                    app_manage_service.deploy(
-                        self.tenant, s, self.user, group_version=None, oauth_instance=self.oauth_instance)
+                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None, oauth_instance=self.oauth_instance)
                 except Exception as e:
                     logger.exception(e)
                     continue

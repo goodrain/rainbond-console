@@ -30,10 +30,10 @@ class GroupAppCopyService(object):
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
-        services_metadata, change_services_map = self.get_modify_group_metadata(
-            old_team, tar_team, group_id, service_ids, changes)
-        groupapp_copy_service.save_new_group_app(
-            user, tar_team, tar_region_name, tar_group.ID, services_metadata, change_services_map)
+        services_metadata, change_services_map = self.get_modify_group_metadata(old_team, tar_team, group_id, service_ids,
+                                                                                changes)
+        groupapp_copy_service.save_new_group_app(user, tar_team, tar_region_name, tar_group.ID, services_metadata,
+                                                 change_services_map)
         return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
     def get_group_services_with_build_source(self, tenant, region_name, group_id):
@@ -54,14 +54,12 @@ class GroupAppCopyService(object):
         team = team_services.check_and_get_user_team_by_name_and_region(user.user_id, team_name, region_name)
         if not team:
             raise ServiceHandleException(
-                msg="no found team or team not join this region",
-                msg_show="目标团队不存在，或团队为加入该数据中心", status_code=404)
+                msg="no found team or team not join this region", msg_show="目标团队不存在，或团队为加入该数据中心", status_code=404)
         group = group_repo.get_group_by_id(group_id)
         if not group:
             raise ServiceHandleException(msg="no found group app", msg_show="目标应用不存在", status_code=404)
         if group.tenant_id != team.tenant_id:
-            raise ServiceHandleException(
-                msg="group app and team relation no found", msg_show="目标应用不属于目标团队", status_code=400)
+            raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标团队", status_code=400)
         return team, group
 
     def get_modify_group_metadata(self, old_team, tar_team, group_id, service_ids, changes):
@@ -70,8 +68,7 @@ class GroupAppCopyService(object):
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
-        services_metadata = self.pop_services_metadata(
-            old_team, tar_team, services_metadata, remove_service_ids, service_ids)
+        services_metadata = self.pop_services_metadata(old_team, tar_team, services_metadata, remove_service_ids, service_ids)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
         change_services_map = self.change_services_map(service_ids)
         return services_metadata, change_services_map
@@ -152,12 +149,11 @@ class GroupAppCopyService(object):
         change_services = {}
         for service_id in service_ids:
             new_service_id = make_uuid()
-            change_services.update({
-                service_id: {
+            change_services.update(
+                {service_id: {
                     "ServiceID": new_service_id,
                     "ServiceAlias": app_service.create_service_alias(new_service_id)
-                }
-            })
+                }})
         return change_services
 
     def is_need_to_add_default_probe(self, service):

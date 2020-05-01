@@ -141,22 +141,12 @@ class FileUploadService(object):
                 import_record.status = "upload_success"
                 import_record.save()
                 upload_file.close()
-                rst_list.append({
-                    "status": 200,
-                    "msg": "上传成功",
-                    "data": import_record,
-                    "region": region.region_name
-                })
+                rst_list.append({"status": 200, "msg": "上传成功", "data": import_record, "region": region.region_name})
             else:
                 logger.debug("file upload failed !")
                 import_record.delete()
                 upload_file.close()
-                rst_list.append({
-                    "status": 500,
-                    "msg": "上传失败",
-                    "data": None,
-                    "region": region.region_name
-                })
+                rst_list.append({"status": 500, "msg": "上传失败", "data": None, "region": region.region_name})
         return rst_list
 
 

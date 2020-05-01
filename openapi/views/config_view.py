@@ -19,7 +19,6 @@ import logging
 
 logger = logging.getLogger("default")
 
-
 # class BaseConfigView(BaseOpenAPIView):
 #     @swagger_auto_schema(
 #         operation_description="获取基础配置",
@@ -47,7 +46,6 @@ logger = logging.getLogger("default")
 #         serializer.is_valid(raise_exception=True)
 #         config_service.update_or_create(req.user.enterprise_id, req.data)
 #         return Response(None, status=status.HTTP_200_OK)
-
 
 # class ListFeatureConfigView(BaseOpenAPIView):
 #     @swagger_auto_schema(

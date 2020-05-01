@@ -180,8 +180,7 @@ class UserPemTraView(JWTAuthApiView):
                 result = general_message(code, "no identity", "你不是最高管理员")
             else:
                 user_name = request.data.get("user_name", None)
-                other_user = user_services.get_enterprise_user_by_username(
-                    request.user.enterprise_id, user_name=user_name)
+                other_user = user_services.get_enterprise_user_by_username(request.user.enterprise_id, user_name=user_name)
                 if other_user.nick_name != user_name:
                     code = 400
                     result = general_message(code, "identity modify failed", "{}不能修改自己的权限".format(user_name))
@@ -261,8 +260,7 @@ class UserAddPemView(JWTAuthApiView):
                 new_identitys = request.data.get("identitys", None)
                 if new_identitys:
                     new_identitys = new_identitys.split(',') if new_identitys else []
-                    other_user = user_services.get_enterprise_user_by_username(
-                        request.user.enterprise_id, user_name=user_name)
+                    other_user = user_services.get_enterprise_user_by_username(request.user.enterprise_id, user_name=user_name)
                     if other_user.user_id == request.user.user_id:
                         result = general_message(400, "failed", "您不能修改自己的权限！")
                         return Response(result, status=400)
@@ -372,8 +370,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
             # 校验用户信息
-        is_pass, msg = user_services.check_params(
-            user_name, email, password, re_password, request.user.enterprise_id)
+        is_pass, msg = user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
         if not is_pass:
             result = general_message(403, "user information is not passed", msg)
             return Response(result)
@@ -383,13 +380,10 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
 
         if oauth_instance:
-            user = user_services.create_enterprise_center_user_set_password(
-                user_name, email, password, "admin add",
-                enterprise, client_ip, phone, real_name, oauth_instance
-            )
+            user = user_services.create_enterprise_center_user_set_password(user_name, email, password, "admin add", enterprise,
+                                                                            client_ip, phone, real_name, oauth_instance)
         else:
-            user = user_services.create_user_set_password(
-                user_name, email, password, "admin add", enterprise, client_ip, phone)
+            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone)
         result = general_message(200, "success", "添加用户成功")
         if role_ids:
             try:
@@ -406,8 +400,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                     return Response(result, status=code)
             # 创建用户团队关系表
             if tenant_name:
-                team_services.create_tenant_role(
-                    user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
+                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
             user.is_active = True
             user.save()
             result = general_message(200, "success", "添加用户成功")
@@ -419,8 +412,7 @@ class EnterPriseUsersUDView(JWTAuthApiView):
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
         password = request.data.get("password", None)
         real_name = request.data.get("real_name", None)
-        user = user_services.update_user_set_password(
-            enterprise_id, user_id, password, real_name)
+        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name)
         user.save()
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
         if oauth_instance:

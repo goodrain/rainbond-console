@@ -61,8 +61,7 @@ class ConsoleTest(TestCase):
         assert len(all) == 1
 
         # 修改
-        ConsoleSysConfig.objects.filter(
-            key=all[0].key).update(desc=None, enable=False)
+        ConsoleSysConfig.objects.filter(key=all[0].key).update(desc=None, enable=False)
 
         updated = ConsoleSysConfig.objects.get(key=all[0].key)
         assert updated.desc is None
@@ -206,14 +205,12 @@ class ConsoleTest(TestCase):
         RainbondCenterAppInherit.objects.filter(group_key=all[0].group_key).update(
             version="v2.0", derived_group_key="91f0daa5ff88471d9f7d518b2cdf038b")
 
-        updated = RainbondCenterAppInherit.objects.get(
-            group_key=all[0].group_key)
+        updated = RainbondCenterAppInherit.objects.get(group_key=all[0].group_key)
         assert updated.version == 'v2.0'
         assert updated.derived_group_key == '91f0daa5ff88471d9f7d518b2cdf038b'
 
         # 删除
-        RainbondCenterAppInherit.objects.filter(
-            group_key=all[0].group_key).delete()
+        RainbondCenterAppInherit.objects.filter(group_key=all[0].group_key).delete()
         assert len(RainbondCenterAppInherit.objects.all()) == 0
 
     def test_rainbond_center_plugin(self):
@@ -318,18 +315,15 @@ class ConsoleTest(TestCase):
         assert len(all) == 1
 
         # 修改
-        RainbondCenterPlugin.objects.filter(plugin_key=all[0].plugin_key).update(
-            plugin_name="network plugin", details=None)
+        RainbondCenterPlugin.objects.filter(plugin_key=all[0].plugin_key).update(plugin_name="network plugin", details=None)
 
-        updated = RainbondCenterPlugin.objects.get(
-            plugin_key=all[0].plugin_key)
+        updated = RainbondCenterPlugin.objects.get(plugin_key=all[0].plugin_key)
         assert updated.plugin_name == "network plugin"
         assert updated.details is None
 
         # 删除
 
-        RainbondCenterPlugin.objects.filter(
-            plugin_key=all[0].plugin_key).delete()
+        RainbondCenterPlugin.objects.filter(plugin_key=all[0].plugin_key).delete()
         assert len(RainbondCenterPlugin.objects.all()) == 0
 
     def test_service_share_record(self):
@@ -351,17 +345,14 @@ class ConsoleTest(TestCase):
         assert len(all) == 1
 
         # 修改
-        ServiceShareRecord.objects.filter(
-            group_share_id=all[0].group_share_id).update(is_success=False, step=2)
+        ServiceShareRecord.objects.filter(group_share_id=all[0].group_share_id).update(is_success=False, step=2)
 
-        updated = ServiceShareRecord.objects.get(
-            group_share_id=all[0].group_share_id)
+        updated = ServiceShareRecord.objects.get(group_share_id=all[0].group_share_id)
         assert updated.is_success is False
         assert updated.step == 2
 
         # 删除
-        ServiceShareRecord.objects.filter(
-            group_share_id=all[0].group_share_id).delete()
+        ServiceShareRecord.objects.filter(group_share_id=all[0].group_share_id).delete()
         assert len(ServiceShareRecord.objects.all()) == 0
 
     def test_service_share_recordd_event(self):
@@ -386,17 +377,14 @@ class ConsoleTest(TestCase):
         assert len(all) == 1
 
         # 修改
-        ServiceShareRecordEvent.objects.filter(record_id=all[0].record_id).update(
-            event_status="failed", service_name="nginx")
+        ServiceShareRecordEvent.objects.filter(record_id=all[0].record_id).update(event_status="failed", service_name="nginx")
 
-        updated = ServiceShareRecordEvent.objects.get(
-            record_id=all[0].record_id)
+        updated = ServiceShareRecordEvent.objects.get(record_id=all[0].record_id)
         assert updated.event_status == "failed"
         assert updated.service_name == 'nginx'
 
         # 删除
-        ServiceShareRecordEvent.objects.filter(
-            record_id=all[0].record_id).delete()
+        ServiceShareRecordEvent.objects.filter(record_id=all[0].record_id).delete()
         assert len(ServiceShareRecordEvent.objects.all()) == 0
 
     def test_plugin_share_record_event(self):
@@ -422,14 +410,12 @@ class ConsoleTest(TestCase):
         PluginShareRecordEvent.objects.filter(record_id=all[0].record_id).update(
             event_status="not_start", plugin_name="test plugin name")
 
-        updated = PluginShareRecordEvent.objects.get(
-            record_id=all[0].record_id)
+        updated = PluginShareRecordEvent.objects.get(record_id=all[0].record_id)
         assert updated.event_status == "not_start"
         assert updated.plugin_name == "test plugin name"
 
         # 删除
-        PluginShareRecordEvent.objects.filter(
-            record_id=all[0].record_id).delete()
+        PluginShareRecordEvent.objects.filter(record_id=all[0].record_id).delete()
         assert len(PluginShareRecordEvent.objects.all()) == 0
 
     def test_compose_group(self):
@@ -462,8 +448,7 @@ services:
         assert len(all) == 1
 
         # 修改
-        ComposeGroup.objects.filter(group_id=all[0].group_id).update(
-            hub_user="fanyangyang", create_status="failed")
+        ComposeGroup.objects.filter(group_id=all[0].group_id).update(hub_user="fanyangyang", create_status="failed")
 
         updated = ComposeGroup.objects.get(group_id=all[0].group_id)
         assert updated.hub_user == "fanyangyang"
@@ -479,16 +464,14 @@ services:
             team_id="fe38ded3f8fb4d78962c691ec31b51c3",
             service_id="fe38ded3f8fb4d78962c691ec31b51c3",
             compose_id="8cb61669b82e4563bb447b2196bbfc09",
-            create_time=now
-        ).save()
+            create_time=now).save()
 
         # 查询
         all = ComposeServiceRelation.objects.all()
         assert len(all) == 1
 
         # 修改
-        ComposeServiceRelation.objects.filter(team_id=all[0].team_id).update(
-            service_id="8cb61669b82e4563bb447b2196bbfc09")
+        ComposeServiceRelation.objects.filter(team_id=all[0].team_id).update(service_id="8cb61669b82e4563bb447b2196bbfc09")
 
         updated = ComposeServiceRelation.objects.get(team_id=all[0].team_id)
         assert updated.service_id == "8cb61669b82e4563bb447b2196bbfc09"
@@ -537,8 +520,7 @@ services:
             respo_url="https://github.com/goodrain/rainbond.git",
             git_project_id=1,
             code_version="v5.1.8",
-            create_time=now
-        ).save()
+            create_time=now).save()
 
         # 查询
         all = TeamGitlabInfo.objects.all()
@@ -615,9 +597,9 @@ services:
         assert len(all) == 1
 
         # 修改
-        ServiceRecycleBin.objects.filter(service_id="b0baf29788500c429a242185605f8cf6",
-                                         tenant_id="b73e01d3b83546cc8d33d60a1618a79f").update(
-            language="go", is_service=1, deploy_version="20191028173818000")
+        ServiceRecycleBin.objects.filter(
+            service_id="b0baf29788500c429a242185605f8cf6", tenant_id="b73e01d3b83546cc8d33d60a1618a79f").update(
+                language="go", is_service=1, deploy_version="20191028173818000")
 
         updated = ServiceRecycleBin.objects.get(
             service_id="b0baf29788500c429a242185605f8cf6", tenant_id="b73e01d3b83546cc8d33d60a1618a79f")
@@ -645,9 +627,9 @@ services:
         assert len(all) == 1
 
         # 修改
-        ServiceRelationRecycleBin.objects.filter(service_id="b0baf29788500c429a242185605f8cf6",
-                                                 tenant_id="b73e01d3b83546cc8d33d60a1618a79f").update(dep_service_type="web",
-                                                                                                      dep_order=2)
+        ServiceRelationRecycleBin.objects.filter(
+            service_id="b0baf29788500c429a242185605f8cf6", tenant_id="b73e01d3b83546cc8d33d60a1618a79f").update(
+                dep_service_type="web", dep_order=2)
 
         updated = ServiceRelationRecycleBin.objects.get(
             service_id="b0baf29788500c429a242185605f8cf6", tenant_id="b73e01d3b83546cc8d33d60a1618a79f")
@@ -673,8 +655,7 @@ services:
         assert len(all) == 1
 
         # 修改
-        EnterpriseUserPerm.objects.filter(user_id=1).update(
-            token="7ea3f9e18369c8ebdb0773926779ffd7", identity="developer")
+        EnterpriseUserPerm.objects.filter(user_id=1).update(token="7ea3f9e18369c8ebdb0773926779ffd7", identity="developer")
 
         updated = EnterpriseUserPerm.objects.get(user_id=1)
         assert updated.token == "7ea3f9e18369c8ebdb0773926779ffd7"
@@ -686,19 +667,14 @@ services:
 
     def test_tenant_user_role(self):
         # 增加
-        TenantUserRole.objects.create(
-            role_name="test",
-            tenant_id=154,
-            is_default=False
-        ).save()
+        TenantUserRole.objects.create(role_name="test", tenant_id=154, is_default=False).save()
 
         # 查询
         all = TenantUserRole.objects.all()
         assert len(all) == 1
 
         # 修改
-        TenantUserRole.objects.filter(tenant_id=154).update(
-            is_default=True, role_name="developer")
+        TenantUserRole.objects.filter(tenant_id=154).update(is_default=True, role_name="developer")
 
         updated = TenantUserRole.objects.get(tenant_id=154)
         assert updated.is_default is True
@@ -724,7 +700,8 @@ services:
 
         # 修改
         TenantUserPermission.objects.filter(group=1).update(
-            per_explanation="this is describe about tenant_user_permisssion", per_info="delete threepart service",
+            per_explanation="this is describe about tenant_user_permisssion",
+            per_info="delete threepart service",
             codename="delete_three_service")
 
         updated = TenantUserPermission.objects.get()
@@ -738,10 +715,7 @@ services:
 
     def test_tenant_user_role_permission(self):
         # 增加
-        TenantUserRolePermission.objects.create(
-            role_id=0,
-            per_id=1
-        ).save()
+        TenantUserRolePermission.objects.create(role_id=0, per_id=1).save()
 
         # 查询
         all = TenantUserRolePermission.objects.all()
@@ -759,17 +733,14 @@ services:
 
     def test_tenant_permission_group(self):
         # 增加
-        PermGroup.objects.create(
-            group_name="group name"
-        ).save()
+        PermGroup.objects.create(group_name="group name").save()
 
         # 查询
         all = PermGroup.objects.all()
         assert len(all) == 1
 
         # 修改
-        PermGroup.objects.filter(group_name="group name").update(
-            group_name="new name")
+        PermGroup.objects.filter(group_name="group name").update(group_name="new name")
 
         updated = PermGroup.objects.get(ID=1)
         assert updated.group_name == "new name"
@@ -791,8 +762,7 @@ services:
         assert len(all) == 1
 
         # 修改
-        ServiceRelPerms.objects.filter(
-            user_id=6616, service_id=2568).update(perm_id=4)
+        ServiceRelPerms.objects.filter(user_id=6616, service_id=2568).update(perm_id=4)
 
         updated = ServiceRelPerms.objects.get(user_id=6616, service_id=2568)
         assert updated.perm_id == 4
@@ -823,15 +793,13 @@ services:
         AppExportRecord.objects.filter(group_key="f900b84ac20b4a56af649193e0004dcd").update(
             status='exporting', version='v0.19.20391203', format="docker-compse")
 
-        updated = AppExportRecord.objects.get(
-            group_key="f900b84ac20b4a56af649193e0004dcd")
+        updated = AppExportRecord.objects.get(group_key="f900b84ac20b4a56af649193e0004dcd")
         assert updated.status == 'exporting'
         assert updated.version == 'v0.19.20391203'
         assert updated.format == "docker-compse"
 
         # 删除
-        AppExportRecord.objects.filter(
-            group_key="f900b84ac20b4a56af649193e0004dcd").delete()
+        AppExportRecord.objects.filter(group_key="f900b84ac20b4a56af649193e0004dcd").delete()
         assert len(AppExportRecord.objects.all()) == 0
 
     def test_user_message(self):
@@ -854,17 +822,14 @@ services:
         assert len(all) == 1
 
         # 修改
-        UserMessage.objects.filter(message_id="51c5dc9b784943cbbabae055b9630e36").update(
-            is_read=True, level="mid")
+        UserMessage.objects.filter(message_id="51c5dc9b784943cbbabae055b9630e36").update(is_read=True, level="mid")
 
-        updated = UserMessage.objects.get(
-            message_id="51c5dc9b784943cbbabae055b9630e36")
+        updated = UserMessage.objects.get(message_id="51c5dc9b784943cbbabae055b9630e36")
         assert updated.is_read is True
         assert updated.level == "mid"
 
         # 删除
-        UserMessage.objects.filter(
-            message_id="51c5dc9b784943cbbabae055b9630e36").delete()
+        UserMessage.objects.filter(message_id="51c5dc9b784943cbbabae055b9630e36").delete()
         assert len(UserMessage.objects.all()) == 0
 
     def test_app_import_record(self):
@@ -887,17 +852,14 @@ services:
         assert len(all) == 1
 
         # 修改
-        AppImportRecord.objects.filter(event_id="4a7a5189d00d4b708eaf8e4898621336").update(
-            status="success", scope="group")
+        AppImportRecord.objects.filter(event_id="4a7a5189d00d4b708eaf8e4898621336").update(status="success", scope="group")
 
-        updated = AppImportRecord.objects.get(
-            event_id="4a7a5189d00d4b708eaf8e4898621336")
+        updated = AppImportRecord.objects.get(event_id="4a7a5189d00d4b708eaf8e4898621336")
         assert updated.status == "success"
         assert updated.scope == "group"
 
         # 删除
-        AppImportRecord.objects.filter(
-            event_id="4a7a5189d00d4b708eaf8e4898621336").delete()
+        AppImportRecord.objects.filter(event_id="4a7a5189d00d4b708eaf8e4898621336").delete()
         assert len(AppImportRecord.objects.all()) == 0
 
     def test_groupapp_backup(self):
@@ -932,17 +894,15 @@ services:
 
         # 修改
         GroupAppBackupRecord.objects.filter(event_id="547515b3d12f43db9bb661d4f51c7c9e").update(
-            total_memory=1024*8, backup_size=4096*1024, mode="patch", status="failed")
-        updated = GroupAppBackupRecord.objects.get(
-            event_id="547515b3d12f43db9bb661d4f51c7c9e")
-        assert updated.total_memory == 1024*8
-        assert updated.backup_size == 4096*1024
+            total_memory=1024 * 8, backup_size=4096 * 1024, mode="patch", status="failed")
+        updated = GroupAppBackupRecord.objects.get(event_id="547515b3d12f43db9bb661d4f51c7c9e")
+        assert updated.total_memory == 1024 * 8
+        assert updated.backup_size == 4096 * 1024
         assert updated.mode == "patch"
         assert updated.status == "failed"
 
         # 删除
-        GroupAppBackupRecord.objects.filter(
-            event_id="547515b3d12f43db9bb661d4f51c7c9e").delete()
+        GroupAppBackupRecord.objects.filter(event_id="547515b3d12f43db9bb661d4f51c7c9e").delete()
         assert len(GroupAppBackupRecord.objects.all()) == 0
 
     def test_groupapp_migrate(self):
@@ -972,14 +932,12 @@ services:
         GroupAppMigrateRecord.objects.filter(event_id="accfa9736f904d62940d4e033128c9ed").update(
             status="failed", version="20191028185721000")
 
-        updated = GroupAppMigrateRecord.objects.get(
-            event_id="accfa9736f904d62940d4e033128c9ed")
+        updated = GroupAppMigrateRecord.objects.get(event_id="accfa9736f904d62940d4e033128c9ed")
         assert updated.status == "failed"
         assert updated.version == "20191028185721000"
 
         # 删除
-        GroupAppMigrateRecord.objects.filter(
-            event_id="accfa9736f904d62940d4e033128c9ed").delete()
+        GroupAppMigrateRecord.objects.filter(event_id="accfa9736f904d62940d4e033128c9ed").delete()
         assert len(GroupAppMigrateRecord.objects.all()) == 0
 
     def test_groupapp_backup_import(self):
@@ -1002,15 +960,13 @@ services:
         GroupAppBackupImportRecord.objects.filter(event_id="accfa9736f904d62940d4e033128c9ed").update(
             team_name="team_name", region="test region", status="success")
 
-        updated = GroupAppBackupImportRecord.objects.get(
-            event_id="accfa9736f904d62940d4e033128c9ed")
+        updated = GroupAppBackupImportRecord.objects.get(event_id="accfa9736f904d62940d4e033128c9ed")
         assert updated.team_name == "team_name"
         assert updated.region == "test region"
         assert updated.status == "success"
 
         # 删除
-        GroupAppBackupImportRecord.objects.filter(
-            event_id="accfa9736f904d62940d4e033128c9ed").delete()
+        GroupAppBackupImportRecord.objects.filter(event_id="accfa9736f904d62940d4e033128c9ed").delete()
         assert len(GroupAppBackupImportRecord.objects.all()) == 0
 
     def test_applicants(self):
@@ -1044,49 +1000,40 @@ services:
         DeployRelation.objects.create(
             service_id="ac96eed7c78dcda7106bbcd63c78816a",
             key_type='',
-            secret_key="KGRwMApTJ3NlY3JldF9rZXknCnAxClMnb2p5cEc3TlknCnAyCnMu"
-        ).save()
+            secret_key="KGRwMApTJ3NlY3JldF9rZXknCnAxClMnb2p5cEc3TlknCnAyCnMu").save()
 
         # 查询
         all = DeployRelation.objects.all()
         assert len(all) == 1
 
         # 修改
-        DeployRelation.objects.filter(
-            service_id="ac96eed7c78dcda7106bbcd63c78816a").update(key_type="unknown")
+        DeployRelation.objects.filter(service_id="ac96eed7c78dcda7106bbcd63c78816a").update(key_type="unknown")
 
-        updated = DeployRelation.objects.get(
-            service_id="ac96eed7c78dcda7106bbcd63c78816a")
+        updated = DeployRelation.objects.get(service_id="ac96eed7c78dcda7106bbcd63c78816a")
         assert updated.key_type == "unknown"
 
         # 删除
-        DeployRelation.objects.filter(
-            service_id="ac96eed7c78dcda7106bbcd63c78816a").delete()
+        DeployRelation.objects.filter(service_id="ac96eed7c78dcda7106bbcd63c78816a").delete()
         assert len(DeployRelation.objects.all()) == 0
 
     def test_service_build_source(self):
         # 增加
         ServiceBuildSource.objects.create(
-            service_id="ac96eed7c78dcda7106bbcd63c78816a",
-            group_key="19ae84cad71943e5b58f0ddc501415c6",
-            version="2019201545"
-        ).save()
+            service_id="ac96eed7c78dcda7106bbcd63c78816a", group_key="19ae84cad71943e5b58f0ddc501415c6",
+            version="2019201545").save()
 
         # 查询
         all = ServiceBuildSource.objects.all()
         assert len(all) == 1
 
         # 修改
-        ServiceBuildSource.objects.filter(
-            service_id="ac96eed7c78dcda7106bbcd63c78816a").update(version="201928191853")
+        ServiceBuildSource.objects.filter(service_id="ac96eed7c78dcda7106bbcd63c78816a").update(version="201928191853")
 
-        updated = ServiceBuildSource.objects.get(
-            service_id="ac96eed7c78dcda7106bbcd63c78816a")
+        updated = ServiceBuildSource.objects.get(service_id="ac96eed7c78dcda7106bbcd63c78816a")
         assert updated.version == "201928191853"
 
         # 删除
-        ServiceBuildSource.objects.filter(
-            service_id="ac96eed7c78dcda7106bbcd63c78816a").delete()
+        ServiceBuildSource.objects.filter(service_id="ac96eed7c78dcda7106bbcd63c78816a").delete()
         assert len(ServiceBuildSource.objects.all()) == 0
 
     def test_tenant_service_backup(self):
@@ -1137,8 +1084,7 @@ services:
         TenantServiceBackup.objects.filter(
             tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
             service_id="b7992f6a242b48dab0783b0a8b49374b",
-            backup_id="dd172f863fb743c681c59b20c32082e3").update(
-                backup_data="""
+            backup_id="dd172f863fb743c681c59b20c32082e3").update(backup_data="""
 {"service_config_file": [], "service_extend_method": {"min_node": 1, "step_memory": 128,
 "max_memory": 65536, "step_node": 1, "is_restart": false, "max_node": 1,
 "service_key": "ea30f85acb714fc080251b0417cf6544", "app_version": "percona-5.7", "min_memory": 512, "ID": 28},
@@ -1165,9 +1111,10 @@ services:
 "user_name": "\u609f\u7a7a", "ID": 12893}]}
         """)
 
-        updated = TenantServiceBackup.objects.get(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                                                  service_id="b7992f6a242b48dab0783b0a8b49374b",
-                                                  backup_id="dd172f863fb743c681c59b20c32082e3")
+        updated = TenantServiceBackup.objects.get(
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
+            service_id="b7992f6a242b48dab0783b0a8b49374b",
+            backup_id="dd172f863fb743c681c59b20c32082e3")
         assert updated.backup_data == """
 {"service_config_file": [], "service_extend_method": {"min_node": 1, "step_memory": 128,
 "max_memory": 65536, "step_node": 1, "is_restart": false, "max_node": 1,
@@ -1196,9 +1143,10 @@ services:
         """
 
         # 删除
-        TenantServiceBackup.objects.filter(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                                           service_id="b7992f6a242b48dab0783b0a8b49374b",
-                                           backup_id="dd172f863fb743c681c59b20c32082e3").delete()
+        TenantServiceBackup.objects.filter(
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
+            service_id="b7992f6a242b48dab0783b0a8b49374b",
+            backup_id="dd172f863fb743c681c59b20c32082e3").delete()
         assert len(TenantServiceBackup.objects.all()) == 0
 
     def test_app_upgrade_record(self):
@@ -1220,8 +1168,9 @@ services:
         assert len(all) == 1
 
         # 修改
-        AppUpgradeRecord.objects.filter(tenant_id="e4dd12842fdd4395815dd486cacf360d", group_id=240,
-                                        group_key="f6d1ac6efee14b8d9a49d450030e551d").update(version="v5.1.8-release", status=3)
+        AppUpgradeRecord.objects.filter(
+            tenant_id="e4dd12842fdd4395815dd486cacf360d", group_id=240, group_key="f6d1ac6efee14b8d9a49d450030e551d").update(
+                version="v5.1.8-release", status=3)
 
         updated = AppUpgradeRecord.objects.get(
             tenant_id="e4dd12842fdd4395815dd486cacf360d", group_id=240, group_key="f6d1ac6efee14b8d9a49d450030e551d")
@@ -1229,8 +1178,8 @@ services:
         assert updated.status == 3
 
         # 删除
-        AppUpgradeRecord.objects.filter(tenant_id="e4dd12842fdd4395815dd486cacf360d",
-                                        group_id=240, group_key="f6d1ac6efee14b8d9a49d450030e551d").delete()
+        AppUpgradeRecord.objects.filter(
+            tenant_id="e4dd12842fdd4395815dd486cacf360d", group_id=240, group_key="f6d1ac6efee14b8d9a49d450030e551d").delete()
         assert len(AppUpgradeRecord.objects.all()) == 0
 
     def test_service_upgrade_record(self):
@@ -1252,8 +1201,7 @@ services:
         assert len(all) == 1
 
         # 修改
-        ServiceUpgradeRecord.objects.filter(
-            app_upgrade_record_id=1).update(status=2)
+        ServiceUpgradeRecord.objects.filter(app_upgrade_record_id=1).update(status=2)
 
         updated = ServiceUpgradeRecord.objects.get(app_upgrade_record_id=1)
         assert updated.status == 2
@@ -1287,17 +1235,14 @@ services:
         assert len(all) == 1
 
         # 修改
-        RegionConfig.objects.filter(region_id="asdasdasdasdasdasdasdasdas").update(
-            status="2", scope="publish")
+        RegionConfig.objects.filter(region_id="asdasdasdasdasdasdasdasdas").update(status="2", scope="publish")
 
-        updated = RegionConfig.objects.get(
-            region_id="asdasdasdasdasdasdasdasdas")
+        updated = RegionConfig.objects.get(region_id="asdasdasdasdasdasdasdasdas")
         assert updated.status == "2"
         assert updated.scope == "publish"
 
         # 删除
-        RegionConfig.objects.filter(
-            region_id="asdasdasdasdasdasdasdasdas").delete()
+        RegionConfig.objects.filter(region_id="asdasdasdasdasdasdasdasdas").delete()
         assert len(RegionConfig.objects.all()) == 0
 
     def test_clound_bang_images(self):
@@ -1313,8 +1258,8 @@ services:
         assert len(all) == 1
 
         # 修改
-        CloundBangImages.objects.filter(
-            identify="clound_bang_logo").update(logo="/data/media/logo/c954dc154dde49dfa6d4cf047ee778.png")
+        CloundBangImages.objects.filter(identify="clound_bang_logo").update(
+            logo="/data/media/logo/c954dc154dde49dfa6d4cf047ee778.png")
 
         updated = CloundBangImages.objects.get(identify="clound_bang_logo")
         assert updated.logo == "/data/media/logo/c954dc154dde49dfa6d4cf047ee778.png"
@@ -1345,12 +1290,10 @@ services:
         Announcement.objects.filter(announcement_id="7ccf2ab053624ff3bf26778a24469fc1").update(
             level='low', title="announcement")
 
-        updated = Announcement.objects.get(
-            announcement_id="7ccf2ab053624ff3bf26778a24469fc1")
+        updated = Announcement.objects.get(announcement_id="7ccf2ab053624ff3bf26778a24469fc1")
         assert updated.level == 'low'
         assert updated.title == "announcement"
 
         # 删除
-        Announcement.objects.filter(
-            announcement_id="7ccf2ab053624ff3bf26778a24469fc1").delete()
+        Announcement.objects.filter(announcement_id="7ccf2ab053624ff3bf26778a24469fc1").delete()
         assert len(Announcement.objects.all()) == 0

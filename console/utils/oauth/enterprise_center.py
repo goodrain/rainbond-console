@@ -21,15 +21,17 @@ def check_enterprise_center_code():
     """
     检测权限装饰器
     """
+
     def wrapper(func):
         @functools.wraps(func)
         def __wrapper(self, *args, **kwargs):
             rst = func(self, *args, **kwargs)
             if hasattr(rst, "code"):
-                raise ServiceHandleException(
-                    status_code=rst.code, msg="enterprise center operate error", msg_show="操作失败")
+                raise ServiceHandleException(status_code=rst.code, msg="enterprise center operate error", msg_show="操作失败")
             return rst
+
         return __wrapper
+
     return wrapper
 
 
@@ -72,11 +74,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         self.oauth_service.redirect_uri = home_split_url.scheme + "://" + home_split_url.netloc + redirect_split_url.path
         logger.debug(self.oauth_service.redirect_uri)
         if code:
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Connection": "close"
-            }
+            headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "Connection": "close"}
             params = {
                 "client_id": self.oauth_service.client_id,
                 "client_secret": self.oauth_service.client_secret,
@@ -87,8 +85,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             url = self.get_access_token_url(self.oauth_service.home_url)
             logger.debug(url)
             try:
-                rst = self._session.request(method='POST', url=url,
-                                            headers=headers, params=params)
+                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
                 logger.debug(rst.content)
             except Exception as e:
                 logger.debug(e)
@@ -129,10 +126,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             raise NoAccessKeyErr("can not get access key")
 
     def refresh_access_token(self):
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
         params = {
             "refresh_token": self.oauth_user.refresh_token,
@@ -140,8 +134,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             "client_id": self.oauth_service.client_id,
             "client_secret": self.oauth_service.client_secret,
         }
-        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url,
-                                    headers=headers, params=params)
+        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url, headers=headers, params=params)
         data = rst.json()
         if rst.status_code == 200:
             self.oauth_user.refresh_token = data.get("refresh_token")
@@ -166,7 +159,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
         if self.oauth_service:
             params = {
                 "client_id": self.oauth_service.client_id,
-                "redirect_uri": self.oauth_service.redirect_uri+"?service_id="+str(self.oauth_service.ID),
+                "redirect_uri": self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)

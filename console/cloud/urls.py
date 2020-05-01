@@ -5,7 +5,6 @@ from console.cloud.views import EnterpriseOrdersCLView
 from console.cloud.views import BankInfoView
 from console.cloud.views import ProxyView
 
-
 urlpatterns = [
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/subscribe$", EnterpriseSubscribe.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/orders$", EnterpriseOrdersCLView.as_view()),

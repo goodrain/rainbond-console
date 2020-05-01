@@ -38,11 +38,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
         if code:
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Connection": "close"
-            }
+            headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "Connection": "close"}
             params = {
                 "client_id": self.oauth_service.client_id,
                 "client_secret": self.oauth_service.client_secret,
@@ -52,8 +48,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
-                rst = self._session.request(method='POST', url=url,
-                                            headers=headers, params=params)
+                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
@@ -98,7 +93,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
         if self.oauth_service:
             params = {
                 "client_id": self.oauth_service.client_id,
-                "redirect_uri": self.oauth_service.redirect_uri+"?service_id="+str(self.oauth_service.ID),
+                "redirect_uri": self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)
@@ -112,19 +107,17 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
             page = 1
         repo_list = []
         for repo in self.api.get_user().get_repos().get_page(page=int(page) - 1):
-            repo_list.append(
-                {
-                    "project_id": repo.id,
-                    "project_full_name": repo.full_name,
-                    "project_name": repo.name,
-                    "project_description": repo.description,
-                    "project_url": repo.clone_url,
-                    "project_ssh_url": repo.ssh_url,
-                    "project_default_branch": repo.default_branch,
-                    "updated_at": repo.updated_at,
-                    "created_at": repo.created_at
-                }
-            )
+            repo_list.append({
+                "project_id": repo.id,
+                "project_full_name": repo.full_name,
+                "project_name": repo.name,
+                "project_description": repo.description,
+                "project_url": repo.clone_url,
+                "project_ssh_url": repo.ssh_url,
+                "project_default_branch": repo.default_branch,
+                "updated_at": repo.updated_at,
+                "created_at": repo.created_at
+            })
         return repo_list
 
     def search_repos(self, full_name, *args, **kwargs):
@@ -202,10 +195,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
     def create_hook(self, host, full_name, endpoint='console/webhooks'):
         access_token, _ = self._get_access_token()
         repo = self.api.get_repo(full_name)
-        config = {
-            "url": "{host}/{endpoint}".format(host=host, endpoint=endpoint),
-            "content_type": "json"
-        }
+        config = {"url": "{host}/{endpoint}".format(host=host, endpoint=endpoint), "content_type": "json"}
         return repo.create_hook("web", config, self.events, active=True)
 
     def get_clone_user_password(self):

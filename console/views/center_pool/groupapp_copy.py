@@ -47,16 +47,21 @@ class GroupAppsCopyView(RegionTenantHeaderView):
         tar_region_name = request.data.get("tar_region_name")
         tar_group_id = request.data.get("tar_group_id")
         if not tar_team_name or not tar_region_name or not tar_group_id:
-            raise ServiceHandleException(
-                msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
-        tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(
-            request.user, tar_team_name, tar_region_name, tar_group_id)
+            raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
+        tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(request.user, tar_team_name, tar_region_name,
+                                                                             tar_group_id)
         try:
-            groupapp_copy_service.copy_group_services(
-                request.user, self.tenant, tar_team, tar_region_name, tar_group, group_id, services)
+            groupapp_copy_service.copy_group_services(request.user, self.tenant, tar_team, tar_region_name, tar_group, group_id,
+                                                      services)
             result = general_message(
-                200, "success", "获取成功",
-                bean={"tar_team_name": tar_team_name, "tar_region_name": tar_region_name, "tar_group_id": tar_group_id})
+                200,
+                "success",
+                "获取成功",
+                bean={
+                    "tar_team_name": tar_team_name,
+                    "tar_region_name": tar_region_name,
+                    "tar_group_id": tar_group_id
+                })
             status = 200
         except HttpClient.CallApiError as e:
             logger.exception(e)

@@ -76,7 +76,7 @@ class TenantGroupView(RegionTenantHeaderView):
                 "group_name": data.group_name,
                 "is_default": data.is_default,
                 "group_id": data.ID,
-                }
+            }
             result = general_message(200, "success", "创建成功", bean=bean)
         except ServiceHandleException as e:
             result = general_message(400, e.msg, e.msg_show)
@@ -253,8 +253,7 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCent
             if no_perm:
                 return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
             # 批量操作
-            code, msg = app_manage_service.batch_operations(
-                self.tenant, self.user, action, service_ids, self.oauth_instance)
+            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)
             else:

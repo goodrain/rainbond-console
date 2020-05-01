@@ -44,8 +44,7 @@ DATABASES = {
     },
 }
 
-REGION_SERVICE_API = [{'url': 'http://region.goodrain.me:8888',
-                       'apitype': 'region service', 'region_name': 'cloudbang'}]
+REGION_SERVICE_API = [{'url': 'http://region.goodrain.me:8888', 'apitype': 'region service', 'region_name': 'cloudbang'}]
 
 WEBSOCKET_URL = {
     'cloudbang': 'ws://:/websocket',

@@ -297,12 +297,11 @@ class ListAppPodsView(AppBaseView):
               paramType: path
         """
 
-        data = region_api.get_service_pods(self.service.service_region,
-                                           self.tenant.tenant_name,
-                                           self.service.service_alias,
+        data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                            self.tenant.enterprise_id)
         result = {}
         if data["bean"]:
+
             def foobar(data):
                 if data is None:
                     return
@@ -333,6 +332,7 @@ class ListAppPodsView(AppBaseView):
                     bean["container"] = container_list
                     res.append(bean)
                 return res
+
             pods = data["bean"]
             newpods = foobar(pods.get("new_pods", None))
             old_pods = foobar(pods.get("old_pods", None))
@@ -528,14 +528,10 @@ class AppDockerView(AppBaseView):
                 main_url = region_services.get_region_wsurl(self.service.service_region)
                 if main_url == "auto":
                     bean["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-                        settings.DOCKER_WSS_URL["type"],
-                        settings.DOCKER_WSS_URL[self.service.service_region],
-                        t_docker_h_id
-                    )
+                        settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
                 else:
                     bean["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
-                response = Response(general_message(200, "success", "信息获取成功"),
-                                    status=200, template_name="www/console.html")
+                response = Response(general_message(200, "success", "信息获取成功"), status=200, template_name="www/console.html")
         except Exception as e:
             logger.exception(e)
 
@@ -711,29 +707,19 @@ class BuildSourceinfo(AppBaseView):
                     if is_oauth:
                         try:
                             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                                service_id=oauth_service_id, user_id=user_id)
+                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None},
-                                   "status": 400,
-                                   "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"
-                                   }
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
                             return Response(rst, status=200)
                         try:
                             instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None},
-                                   "status": 400,
-                                   "msg_show": u"未找到OAuth服务"
-                                   }
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务"}
                             return Response(rst, status=200)
                         if not instance.is_git_oauth():
-                            rst = {"data": {"bean": None},
-                                   "status": 400,
-                                   "msg_show": u"该OAuth服务不是代码仓库类型"
-                                   }
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
                             return Response(rst, status=200)
                         service_code_from = "oauth_" + oauth_service.oauth_type
                         self.service.code_from = service_code_from

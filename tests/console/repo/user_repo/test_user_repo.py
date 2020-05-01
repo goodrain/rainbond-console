@@ -22,23 +22,76 @@ def test_list_users_by_tenant_id():
     }
     team = team_repo.create_tenant(**params)
 
-    userinfo = [
-        {"nick_name": "foo", "email": "foo@goodrain.com", "password": "goodrain", "eid": eid},
-        {"nick_name": "bar", "email": "bar@goodrain.com", "password": "goodrain", "eid": eid},
-        {"nick_name": "dummy", "email": "dummy@goodrain.com", "password": "goodrain", "eid": eid}
-    ]
+    userinfo = [{
+        "nick_name": "foo",
+        "email": "foo@goodrain.com",
+        "password": "goodrain",
+        "eid": eid
+    }, {
+        "nick_name": "bar",
+        "email": "bar@goodrain.com",
+        "password": "goodrain",
+        "eid": eid
+    }, {
+        "nick_name": "dummy",
+        "email": "dummy@goodrain.com",
+        "password": "goodrain",
+        "eid": eid
+    }]
     for item in userinfo:
         user = user_services.create(item)
         perminfo = {"user_id": user.user_id, "tenant_id": team.ID, "identity": "owner", "enterprise_id": 1}
         perms_repo.add_user_tenant_perm(perminfo)
 
     testcases = [
-        {"tenant_id": tenant_id, "query": "", "page": None, "size": None, "count": 3, "user_id": 1},
-        {"tenant_id": tenant_id, "query": "bar", "page": None, "size": None, "count": 1, "user_id": 2},
-        {"tenant_id": tenant_id, "query": "foo@goodrain.com", "page": None, "size": None, "count": 1, "user_id": 1},
-        {"tenant_id": tenant_id, "query": "", "page": 2, "size": 2, "count": 1, "user_id": 3},
-        {"tenant_id": tenant_id, "query": "nothing", "page": None, "size": None, "count": 0, "user_id": 0},
-        {"tenant_id": tenant_id, "query": "", "page": -1, "size": None, "count": 3, "user_id": 1},
+        {
+            "tenant_id": tenant_id,
+            "query": "",
+            "page": None,
+            "size": None,
+            "count": 3,
+            "user_id": 1
+        },
+        {
+            "tenant_id": tenant_id,
+            "query": "bar",
+            "page": None,
+            "size": None,
+            "count": 1,
+            "user_id": 2
+        },
+        {
+            "tenant_id": tenant_id,
+            "query": "foo@goodrain.com",
+            "page": None,
+            "size": None,
+            "count": 1,
+            "user_id": 1
+        },
+        {
+            "tenant_id": tenant_id,
+            "query": "",
+            "page": 2,
+            "size": 2,
+            "count": 1,
+            "user_id": 3
+        },
+        {
+            "tenant_id": tenant_id,
+            "query": "nothing",
+            "page": None,
+            "size": None,
+            "count": 0,
+            "user_id": 0
+        },
+        {
+            "tenant_id": tenant_id,
+            "query": "",
+            "page": -1,
+            "size": None,
+            "count": 3,
+            "user_id": 1
+        },
     ]
 
     for tc in testcases:

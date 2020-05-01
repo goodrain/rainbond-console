@@ -176,8 +176,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                 all_ips.append(no_dot_ip)
 
         response_time, throughput_rate = self.get_query_statements(service_id_list, all_ips)
-        res, response_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name,
-                                                       prefix + response_time)
+        res, response_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name, prefix + response_time)
 
         res, throughput_body = region_api.get_query_data(self.response_region, self.tenant.tenant_name,
                                                          prefix + throughput_rate)
@@ -206,10 +205,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
                     else:
                         continue
 
-                    result_bean["data"] = {
-                        "response_time": float(r["value"][1]),
-                        "throughput_rate": float(t["value"][1])
-                    }
+                    result_bean["data"] = {"response_time": float(r["value"][1]), "throughput_rate": float(t["value"][1])}
                     result_list.append(result_bean)
 
         result = general_message(200, "success", "成功", list=result_list)

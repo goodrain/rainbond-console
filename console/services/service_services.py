@@ -11,7 +11,6 @@ from console.repositories.app import service_source_repo
 from console.exception.main import RbdAppNotFound
 from console.utils.oauth.oauth_types import support_oauth_type
 
-
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -220,8 +219,8 @@ class BaseService(object):
                 if service_source.extend_info:
                     extend_info = json.loads(service_source.extend_info)
                     if extend_info and extend_info.get("install_from_cloud", False):
-                        app, app_version = market_app_service.get_app_from_cloud(
-                            tenant, service_source.group_key, service_source.version)
+                        app, app_version = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
+                                                                                 service_source.version)
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
                 if not app:
@@ -229,8 +228,8 @@ class BaseService(object):
                         app, app_version = market_app_service.get_rainbond_app_and_version(
                             tenant.enterprise_id, service_source.group_key, service_source.version)
                     except RbdAppNotFound:
-                        logger.warning("not found app {0} version {1} in local market".format(service_source.group_key,
-                                                                                              service_source.version))
+                        logger.warning("not found app {0} version {1} in local market".format(
+                            service_source.group_key, service_source.version))
                 if app and app_version:
                     bean["rain_app_name"] = app.app_name
                     bean["details"] = app.details
@@ -244,8 +243,7 @@ class BaseService(object):
         not_run_service_ids = []
         memory = 0
         service_ids = [service.service_id for service in services]
-        service_status_list = self.status_multi_service(
-            tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
+        service_status_list = self.status_multi_service(tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
         if service_status_list:
             for status_map in service_status_list:
                 if status_map.get("status") in ["undeploy", "closed"]:

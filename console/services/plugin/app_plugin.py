@@ -77,8 +77,7 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def create_service_plugin_relation(
-            self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
+    def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
@@ -141,8 +140,7 @@ class AppPluginService(object):
         if category == "analysis":
             query_installed_plugin = """{0} AND tp.category="{1}" """.format(QUERY_INSTALLED_SQL, "analyst-plugin:perf")
 
-            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(
-                QUERI_UNINSTALLED_SQL, "analyst-plugin:perf")
+            query_uninstalled_plugin = """{0} AND tp.category="{1}" """.format(QUERI_UNINSTALLED_SQL, "analyst-plugin:perf")
 
         elif category == "net_manage":
             query_installed_plugin = """{0} AND tp.category in {1} """.format(
@@ -216,8 +214,7 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 if not self.__check_ports_for_config_items(ports, items):
-                    raise ServiceHandleException(msg="do not support protocol",
-                                                 status_code=409, msg_show="插件支持的协议与组件端口协议不一致")
+                    raise ServiceHandleException(msg="do not support protocol", status_code=409, msg_show="插件支持的协议与组件端口协议不一致")
                 for port in ports:
                     attrs_map = dict()
                     for item in items:
@@ -239,13 +236,12 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
                 if not dep_services:
-                    raise ServiceHandleException(msg="can't use this plugin",
-                                                 status_code=409, msg_show="组件没有依赖其他组件，不能安装此插件")
+                    raise ServiceHandleException(msg="can't use this plugin", status_code=409, msg_show="组件没有依赖其他组件，不能安装此插件")
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     if not self.__check_ports_for_config_items(ports, items):
-                        raise ServiceHandleException(msg="do not support protocol", status_code=409,
-                                                     msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
+                        raise ServiceHandleException(
+                            msg="do not support protocol", status_code=409, msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
                     for port in ports:
                         attrs_map = dict()
                         for item in items:
@@ -431,8 +427,7 @@ class AppPluginService(object):
                                 "is_change": item.is_change
                             }
                             if downstream_options:
-                                item_option["attr_value"] = downstream_options.get(
-                                    item.attr_name, item.attr_default_value)
+                                item_option["attr_value"] = downstream_options.get(item.attr_name, item.attr_default_value)
                             if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                                 options.append(item_option)
                         downstream_env_list.append({
@@ -462,8 +457,8 @@ class AppPluginService(object):
         self.__update_service_plugin_config(service, plugin_id, build_version, config)
         # 更新数据中心配置
         region_config = self.get_region_config_from_db(service, plugin_id, build_version)
-        region_api.update_service_plugin_config(response_region, tenant.tenant_name,
-                                                service.service_alias, plugin_id, region_config)
+        region_api.update_service_plugin_config(response_region, tenant.tenant_name, service.service_alias, plugin_id,
+                                                region_config)
 
     def __update_service_plugin_config(self, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
@@ -543,8 +538,7 @@ class AppPluginService(object):
         data.update(region_config)
         return data
 
-    def create_plugin_cfg_4marketsvc(
-            self, tenant, service, version, plugin_id, build_version, service_plugin_config_vars):
+    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id, build_version, service_plugin_config_vars):
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         config_list = []
         for config in service_plugin_config_vars:
@@ -604,8 +598,8 @@ class AppPluginService(object):
                 pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
-                    self.update_service_plugin_config(tenant, service, plugin.plugin_id,
-                                                      pbv.build_version, configs, service.service_region)
+                    self.update_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version, configs,
+                                                      service.service_region)
 
     # if have entrance network plugin, will change config
     def update_config_if_have_entrance_plugin(self, tenant, service):
@@ -615,8 +609,8 @@ class AppPluginService(object):
                 pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
-                    self.update_service_plugin_config(tenant, service, plugin.plugin_id,
-                                                      pbv.build_version, configs, service.service_region)
+                    self.update_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version, configs,
+                                                      service.service_region)
 
 
 class PluginService(object):
@@ -626,8 +620,8 @@ class PluginService(object):
     def get_plugin_by_plugin_id(self, tenant, plugin_id):
         return plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
 
-    def create_tenant_plugin(
-            self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo, username, password):
+    def create_tenant_plugin(self, tenant, user_id, region, desc, plugin_alias, category, build_source, image, code_repo,
+                             username, password):
         plugin_id = make_uuid()
         if build_source == "dockerfile" and not code_repo:
             return 400, "代码仓库不能为空", None

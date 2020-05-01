@@ -412,8 +412,8 @@ class APPPluginConfigView(AppBaseView):
             body["tenant_id"] = self.tenant.tenant_id
             body["service_id"] = self.service.service_id
             body["config_envs"] = config_envs
-            region_api.putPluginAttr(self.service.service_region, self.tenant.tenant_name,
-                                     self.service.service_alias, plugin_id, body)
+            region_api.putPluginAttr(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                     plugin_id, body)
             result = general_message(200, "config success", "配置成功")
             return Response(result, result["code"])
         except Exception as e:

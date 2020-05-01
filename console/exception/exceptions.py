@@ -122,12 +122,7 @@ class PasswordWrongError(BaseException):
     pass
 
 
-TenantNotExistError = ServiceHandleException(
-    msg="the team is not found",
-    msg_show="团队不存在",
-    status_code=404,
-    error_code=2002
-)
+TenantNotExistError = ServiceHandleException(msg="the team is not found", msg_show="团队不存在", status_code=404, error_code=2002)
 
 
 class TenantExistError(BaseException):

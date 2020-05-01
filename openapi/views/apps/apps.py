@@ -23,7 +23,7 @@ class ListAppsView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="团队应用列表",
         manual_parameters=[
-           openapi.Parameter("query", openapi.IN_QUERY, description="搜索查询应用名称，团队名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("query", openapi.IN_QUERY, description="搜索查询应用名称，团队名称", type=openapi.TYPE_STRING),
         ],
         responses={200: AppBaseInfoSerializer(many=True)},
         tags=['openapi-apps'],

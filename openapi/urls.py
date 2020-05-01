@@ -1,48 +1,27 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from django.conf.urls import url
+import os
+
+from django.conf.urls import include, url
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
-from django.conf.urls import include
+
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
-from openapi.views.admin_view import AdminInfoView
-from openapi.views.admin_view import ListAdminsView
-from openapi.views.announcement_view import AnnouncementView
-from openapi.views.announcement_view import ListAnnouncementView
-from openapi.views.apps.apps import AppInfoView
-from openapi.views.apps.apps import ListAppsView
-from openapi.views.apps.apps import APPOperationsView
+from openapi.views.admin_view import AdminInfoView, ListAdminsView
+from openapi.views.announcement_view import (AnnouncementView, ListAnnouncementView)
 from openapi.views.apps.market import MarketAppInstallView
-from openapi.views.appstore_view import AppStoreInfoView
-from openapi.views.appstore_view import ListAppStoresView
-from openapi.views.enterprise_view import EnterpriseInfoView
-from openapi.views.enterprise_view import ListEnterpriseInfoView
-from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
-from openapi.views.region_view import ListRegionInfo
-from openapi.views.enterprise_view import EnterpriseSourceView
-from openapi.views.apps.apps import ListAppServicesView
-from openapi.views.region_view import RegionInfo
-from openapi.views.region_view import RegionStatusView
-from openapi.views.team_view import ListRegionsView
-from openapi.views.team_view import ListRegionTeamServicesView
-from openapi.views.team_view import TeamCertificatesLCView
-from openapi.views.team_view import TeamCertificatesRUDView
-from openapi.views.team_view import ListTeamInfo
-from openapi.views.team_view import ListTeamUsersInfo
-from openapi.views.team_view import ListUserRolesView
-from openapi.views.team_view import TeamInfo
-from openapi.views.team_view import TeamRegionView
-from openapi.views.team_view import TeamUserInfoView
-from openapi.views.upload_view import UploadView
-from openapi.views.user_view import ListUsersView
-from openapi.views.user_view import ChangePassword
-from openapi.views.user_view import UserInfoView
-from openapi.views.user_view import UserTeamInfoView
+from openapi.views.appstore_view import AppStoreInfoView, ListAppStoresView
+from openapi.views.enterprise_view import (EnterpriseInfoView, EnterpriseSourceView, ListEnterpriseInfoView)
+from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.oauth import OauthTypeView
-from openapi.views.groupapp import GroupAppsCopyView
-import os
+from openapi.views.region_view import (ListRegionInfo, RegionInfo, RegionStatusView)
+from openapi.views.team_view import (ListRegionsView, ListRegionTeamServicesView, ListTeamInfo, ListTeamUsersInfo,
+                                     ListUserRolesView, TeamCertificatesLCView, TeamCertificatesRUDView, TeamInfo,
+                                     TeamRegionView, TeamUserInfoView)
+from openapi.views.upload_view import UploadView
+from openapi.views.user_view import (ChangePassword, ListUsersView, UserInfoView, UserTeamInfoView)
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -66,17 +45,8 @@ urlpatterns = [
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/copy$',
-        GroupAppsCopyView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/operations$',
-        APPOperationsView.as_view()),
-    url(r'^^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/httpdomains$',
-        ListAppGatewayHTTPRuleView.as_view()),
-    url(r'^^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/services$',
-        ListAppServicesView.as_view())
-    # Below is the OPEN API that needs to be tweaked, not sure about availability
+    url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps', include('openapi.sub_urls.app_url')),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
     urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]
@@ -92,8 +62,7 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
-        url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$',
-            ListRegionTeamServicesView.as_view()),
+        url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$', ListRegionTeamServicesView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view()),
         url(r'^v1/users$', ListUsersView.as_view()),
         url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 from rest_framework import serializers
+
 from www.models.main import ServiceDomain
 
 
@@ -8,6 +9,16 @@ class HTTPGatewayRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceDomain
         fields = "__all__"
+
+
+class EnterpriseHTTPGatewayRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceDomain
+        fields = "__all__"
+
+    region_name = serializers.CharField(help_text=u"所属集群ID")
+    team_name = serializers.CharField(help_text=u"所属团队唯一名称")
+    app_id = serializers.IntegerField(help_text=u"所属应用ID")
 
 
 class PostHTTPGatewayRuleSerializer(serializers.Serializer):

@@ -19,8 +19,7 @@ logger = logging.getLogger("default")
 class EnterpriseSubscribe(CloudEnterpriseCenterView):
     def get(self, request, enterprise_id, *args, **kwargs):
         rst = self.oauth_instance.get_ent_subscribe(eid=enterprise_id)
-        result = general_message(
-            200, "success", None, bean=rst.to_dict())
+        result = general_message(200, "success", None, bean=rst.to_dict())
         return Response(result, status=200)
 
 
@@ -32,8 +31,7 @@ class EnterpriseOrdersCLView(CloudEnterpriseCenterView):
             "page_size": request.GET.get("page_size", None)
         }
         order_list = self.oauth_instance.list_ent_order(enterprise_id, **path_params)
-        result = general_message(
-            200, "success", None, **order_list.to_dict())
+        result = general_message(200, "success", None, **order_list.to_dict())
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, *args, **kwargs):
@@ -46,8 +44,7 @@ class EnterpriseOrdersCLView(CloudEnterpriseCenterView):
 class EnterpriseOrdersRView(CloudEnterpriseCenterView):
     def get(self, request, enterprise_id, order_id, *args, **kwargs):
         order = self.oauth_instance.get_ent_order(eid=enterprise_id, order_id=order_id)
-        result = general_message(
-            200, "success", None, bean=order.to_dict())
+        result = general_message(200, "success", None, bean=order.to_dict())
         return Response(result, status=200)
 
 
@@ -70,13 +67,15 @@ class ProxyView(CloudEnterpriseCenterView):
             self.initial(request, *args, **kwargs)
             token, _ = self.oauth_instance._get_access_token()
             extra_requests_args = {
-                "headers": {"Authorization": token},
+                "headers": {
+                    "Authorization": token
+                },
             }
             if self.oauth_instance.oauth_service.home_url:
                 remoteurl = "{0}/{1}".format(self.oauth_instance.oauth_service.home_url, path)
             else:
-                remoteurl = "http://{0}:{1}/{2}".format(os.getenv("ENTERPRISE_HOST", "127.0.0.1"),
-                                                        os.getenv("ENTERPRISE_PORT", "8080"), path)
+                remoteurl = "http://{0}:{1}/{2}".format(
+                    os.getenv("ENTERPRISE_HOST", "127.0.0.1"), os.getenv("ENTERPRISE_PORT", "8080"), path)
             response = self.proxy_view(request, remoteurl, extra_requests_args)
         except Exception as exc:
             response = self.handle_exception(exc)
@@ -119,9 +118,7 @@ class ProxyView(CloudEnterpriseCenterView):
             requests_args['headers'].pop("AUTHORIZATION")
         response = requests.request(request.method, url, **requests_args)
 
-        proxy_response = HttpResponse(
-            response.content,
-            status=response.status_code)
+        proxy_response = HttpResponse(response.content, status=response.status_code)
 
         excluded_headers = set([
             # Hop-by-hop headers
@@ -129,8 +126,13 @@ class ProxyView(CloudEnterpriseCenterView):
             # Certain response headers should NOT be just tunneled through.  These
             # are they.  For more info, see:
             # http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1
-            'connection', 'keep-alive', 'proxy-authenticate',
-            'proxy-authorization', 'te', 'trailers', 'transfer-encoding',
+            'connection',
+            'keep-alive',
+            'proxy-authenticate',
+            'proxy-authorization',
+            'te',
+            'trailers',
+            'transfer-encoding',
             'upgrade',
 
             # Although content-encoding is not listed among the hop-by-hop headers,

@@ -16,7 +16,7 @@ def method_perf_time(func):
         ret = func(self, *args, **kwargs)
         end = datetime.datetime.now()
         logger.debug("query region api {0} take time {1} retries {2}".format(args,
-                                                                             float((end-start).microseconds)/1000000,
+                                                                             float((end - start).microseconds) / 1000000,
                                                                              kwargs.get("retries", 3)))
         return ret
 

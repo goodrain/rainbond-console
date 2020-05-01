@@ -69,16 +69,18 @@ class GroupAppsBackupView(RegionTenantHeaderView):
             code, running_state_services = groupapp_backup_service.check_backup_condition(
                 self.tenant, self.region_name, group_id)
             if running_state_services:
-                return Response(general_message(code=4121, msg="state service is running", msg_show="有状态组件未关闭",
-                                                list=running_state_services), status=412)
+                return Response(
+                    general_message(
+                        code=4121, msg="state service is running", msg_show="有状态组件未关闭", list=running_state_services),
+                    status=412)
             # if service use custom service, can't backup
             use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id)
             if use_custom_svc:
-                return Response(general_message(code=4122, msg="use custom volume", msg_show="组件使用了自定义存储",
-                                                list=use_custom_svc), status=412)
+                return Response(
+                    general_message(code=4122, msg="use custom volume", msg_show="组件使用了自定义存储", list=use_custom_svc), status=412)
 
-        back_up_record = groupapp_backup_service.backup_group_apps(
-            self.tenant, self.user, self.region_name, group_id, mode, note, force)
+        back_up_record = groupapp_backup_service.backup_group_apps(self.tenant, self.user, self.region_name, group_id, mode,
+                                                                   note, force)
 
         bean = back_up_record.to_dict()
         result = general_message(200, "success", "操作成功，正在备份中", bean=bean)
@@ -137,8 +139,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         backup_id = request.data.get("backup_id", None)
         if not backup_id:
             return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
-        groupapp_backup_service.delete_group_backup_by_backup_id(
-            self.tenant, self.response_region, backup_id)
+        groupapp_backup_service.delete_group_backup_by_backup_id(self.tenant, self.response_region, backup_id)
 
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
@@ -224,8 +225,8 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
         backup_records = paginator.page(int(page))
         obj_storage = EnterpriseConfigService(self.user.enterprise_id).get_cloud_obj_storage_info()
         bean = {"is_configed": obj_storage is not None}
-        result = general_message(200, "success", "查询成功", bean=bean,
-                                 list=[backup.to_dict() for backup in backup_records], total=paginator.count)
+        result = general_message(
+            200, "success", "查询成功", bean=bean, list=[backup.to_dict() for backup in backup_records], total=paginator.count)
         return Response(result, status=result["code"])
 
 

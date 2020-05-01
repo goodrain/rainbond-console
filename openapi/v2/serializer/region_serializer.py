@@ -38,15 +38,19 @@ class RegionReqValidate(object):
 class RegionInfoSerializer(serializers.ModelSerializer, RegionReqValidate):
     class Meta:
         model = RegionConfig
-        fields = ["region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain",
-                  "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
+        fields = [
+            "region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope",
+            "ssl_ca_cert", "cert_file", "key_file", "status", "desc"
+        ]
 
 
 class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
     class Meta:
         model = RegionConfig
-        fields = ["region_alias", "url", "token", "wsurl", "httpdomain",
-                  "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file", "status", "desc"]
+        fields = [
+            "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file", "key_file",
+            "status", "desc"
+        ]
 
 
 class RegionTypesField(serializers.ListField):
@@ -90,6 +94,5 @@ class UpdateRegionStatusReqSerializer(serializers.Serializer):
         status = status.upper()
         names = RegionStatusEnum.names()
         if status not in names:
-            raise serializers.ValidationError("不支持状态: '{}', 仅支持: {}".format(
-                status, ",".join(names)))
+            raise serializers.ValidationError("不支持状态: '{}', 仅支持: {}".format(status, ",".join(names)))
         return status

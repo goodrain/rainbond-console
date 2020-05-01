@@ -100,8 +100,7 @@ class RegionApiBaseHttpClient(object):
             body = Dict(body)
         if 400 <= status <= 600:
             if status == 409:
-                raise self.CallApiFrequentError(
-                    self.apitype, url, method, res, body)
+                raise self.CallApiFrequentError(self.apitype, url, method, res, body)
             if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
                 logger.warning(body["bean"]["msg"])
                 raise self.InvalidLicenseError()
@@ -136,15 +135,12 @@ class RegionApiBaseHttpClient(object):
             raise ServiceHandleException("region {0} not found".format(region_name))
         client = self.get_client(region_config=region)
         if not client:
-            raise ServiceHandleException(
-                msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查配置")
+            raise ServiceHandleException(msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查配置")
         try:
             if body is None:
-                response = client.request(
-                    url=url, method=method, headers=headers, timeout=timeout, retries=retries)
+                response = client.request(url=url, method=method, headers=headers, timeout=timeout, retries=retries)
             else:
-                response = client.request(
-                    url=url, method=method, headers=headers, body=body, timeout=timeout, retries=retries)
+                response = client.request(url=url, method=method, headers=headers, body=body, timeout=timeout, retries=retries)
             return response.status, response.data
         except socket.timeout as e:
             logger.error('client_error', e)
@@ -154,16 +150,14 @@ class RegionApiBaseHttpClient(object):
             })
         except MaxRetryError as e:
             logger.error('client_error', e)
-            raise ServiceHandleException(
-                msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
+            raise ServiceHandleException(msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
             logger.error(e)
-            raise ServiceHandleException(
-                msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
+            raise ServiceHandleException(msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
 
     def get_client(self, region_config):
         # get client from cache
-        key = hash(region_config.url+region_config.ssl_ca_cert+region_config.cert_file+region_config.key_file)
+        key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)
         client = self.clients.get(key, None)
         if client:
             return client
@@ -223,41 +217,33 @@ class RegionApiBaseHttpClient(object):
 
     def _get(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(
-                url, 'GET', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'GET', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(
-                url, 'GET', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'GET', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 
     def _post(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(
-                url, 'POST', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'POST', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(
-                url, 'POST', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'POST', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'POST', response, content)
         return res, body
 
     def _put(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(
-                url, 'PUT', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'PUT', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(
-                url, 'PUT', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'PUT', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'PUT', response, content)
         return res, body
 
     def _delete(self, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(
-                url, 'DELETE', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'DELETE', headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(
-                url, 'DELETE', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'DELETE', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'DELETE', response, content)
         return res, body
 

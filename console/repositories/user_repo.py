@@ -107,7 +107,8 @@ class UserRepo(object):
             WHERE a.user_id = b.user_id
             AND b.tenant_id = c.ID
             AND a.user_id = {user_id}
-            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id, user_id=user_id)
+            AND c.tenant_id = '{tenant_id}'""".format(
+            tenant_id=tenant_id, user_id=user_id)
         result = conn.query(sql)
         if len(result) == 0:
             raise UserNotExistError("用户{0}不存在于团队{1}中".format(user_id, tenant_id))
@@ -145,7 +146,8 @@ class UserRepo(object):
                 tenant_perms b,
                 tenant_info c
             {where}
-            {limit}""".format(tenant_id=tenant_id, where=where, limit=limit)
+            {limit}""".format(
+            tenant_id=tenant_id, where=where, limit=limit)
         result = conn.query(sql)
         return result
 
@@ -200,13 +202,7 @@ class UserRepo(object):
             custom_sort = user_favorites.last().custom_sort + 1
         else:
             custom_sort = 0
-        UserFavorite.objects.create(
-            user_id=user_id,
-            name=name,
-            url=url,
-            custom_sort=custom_sort,
-            is_default=is_default
-        )
+        UserFavorite.objects.create(user_id=user_id, name=name, url=url, custom_sort=custom_sort, is_default=is_default)
 
     def update_user_favorite(self, user_favorite, name, url, custom_sort, is_default):
         rst = True
@@ -217,13 +213,13 @@ class UserRepo(object):
             if custom_sort != user_favorite.custom_sort:
                 user_favorites = self.get_user_favorite(user_favorite.user_id)
                 if custom_sort < user_favorite.custom_sort:
-                    operate_user_favorites = user_favorites[custom_sort: user_favorite.custom_sort]
+                    operate_user_favorites = user_favorites[custom_sort:user_favorite.custom_sort]
                     for operate_user_favorite in operate_user_favorites:
                         print operate_user_favorite.ID
                         operate_user_favorite.custom_sort += 1
                         operate_user_favorite.save()
                 elif custom_sort > user_favorite.custom_sort:
-                    operate_user_favorites = user_favorites[user_favorite.custom_sort+1: custom_sort+1]
+                    operate_user_favorites = user_favorites[user_favorite.custom_sort + 1:custom_sort + 1]
                     for operate_user_favorite in operate_user_favorites:
                         operate_user_favorite.custom_sort -= 1
                         operate_user_favorite.save()

@@ -157,8 +157,7 @@ class RegionService(object):
 
     def get_public_key(self, tenant, region):
         try:
-            res, body = region_api.get_region_publickey(
-                tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
+            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
             if body and body["bean"]:
                 return body["bean"]
             return {}
@@ -238,8 +237,7 @@ class RegionService(object):
             tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
             tenant_region = region_repo.create_tenant_region(**tenant_region_info)
         if not tenant_region.is_init:
-            res, body = region_api.create_tenant(region_name, tenant.tenant_name,
-                                                 tenant.tenant_id, tenant.enterprise_id)
+            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id)
             if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
                 return res["status"], u"数据中心创建租户失败", None
             tenant_region.is_active = True
@@ -267,8 +265,8 @@ class RegionService(object):
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
         except Exception as e:
-            logger.error("get_new_user_free_res_pkg error with params: {}".format(
-                (tenant_id, enterprise_id, region_name, user_name)))
+            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name,
+                                                                                   user_name)))
             logger.exception(e)
             return False
 
@@ -299,8 +297,7 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name, enterprise_id):
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(
-            team_name).filter(is_init=True, region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True, region_name__in=region_names)
         return team_opened_regions
 
     def get_regions_by_enterprise_id(self, enterprise_id):
@@ -309,13 +306,11 @@ class RegionService(object):
     def add_region(self, region_data):
         region = region_repo.get_region_by_region_name(region_data["region_name"])
         if region:
-            raise ServiceHandleException(status_code=400, msg="",
-                                         msg_show="集群ID{0}已存在".format(region_data["region_name"]))
+            raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
             region_api.test_region_api(region_data)
         except ServiceHandleException:
-            raise ServiceHandleException(
-                status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
+            raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
         region = region_repo.create_region(region_data)
         return region
 
@@ -473,8 +468,8 @@ class RegionService(object):
         region_resource = self.__init_region_resource_data(region, level)
         if check_status == "yes":
             try:
-                _, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id=region.enterprise_id,
-                                                                          region=region.region_name)
+                _, rbd_version = region_api.get_enterprise_api_version_v2(
+                    enterprise_id=region.enterprise_id, region=region.region_name)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
                 rbd_version = rbd_version["raw"].decode("utf-8")
                 if res.get("status") == 200:
@@ -482,8 +477,8 @@ class RegionService(object):
                     region_resource["used_memory"] = body["bean"]["req_mem"]
                     region_resource["total_cpu"] = body["bean"]["cap_cpu"]
                     region_resource["used_cpu"] = body["bean"]["req_cpu"]
-                    region_resource["total_disk"] = body["bean"]["cap_disk"]/1024/1024/1024
-                    region_resource["used_disk"] = body["bean"]["req_disk"]/1024/1024/1024
+                    region_resource["total_disk"] = body["bean"]["cap_disk"] / 1024 / 1024 / 1024
+                    region_resource["used_disk"] = body["bean"]["req_disk"] / 1024 / 1024 / 1024
                     region_resource["rbd_version"] = rbd_version
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)

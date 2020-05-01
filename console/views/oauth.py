@@ -23,7 +23,6 @@ from www.utils.return_message import error_message
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 
-
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
@@ -46,8 +45,7 @@ class OauthConfig(JWTAuthApiView):
     def put(self, request, *args, **kwargs):
         data = request.data.get("oauth_services")
         enable = data.get("enable")
-        EnterpriseConfigService(request.user.enterprise_id).update_config_enable_status(
-            key="OAUTH_SERVICES", enable=enable)
+        EnterpriseConfigService(request.user.enterprise_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
         rst = {"data": {"bean": {"oauth_services": data}}}
         return Response(rst, status=status.HTTP_200_OK)
 
@@ -96,25 +94,23 @@ class OauthService(JWTAuthApiView):
         authorize_url = api.get_authorize_url()
         data = []
         for service in services:
-            data.append(
-                {
-                    "service_id": service.ID,
-                    "name": service.name,
-                    "oauth_type": service.oauth_type,
-                    "client_id": service.client_id,
-                    "client_secret": service.client_secret,
-                    "enable": service.enable,
-                    "eid": service.eid,
-                    "redirect_uri": service.redirect_uri,
-                    "home_url": service.home_url,
-                    "auth_url": service.auth_url,
-                    "access_token_url": service.access_token_url,
-                    "api_url": service.api_url,
-                    "is_auto_login": service.is_auto_login,
-                    "is_git": service.is_git,
-                    "authorize_url": authorize_url,
-                }
-            )
+            data.append({
+                "service_id": service.ID,
+                "name": service.name,
+                "oauth_type": service.oauth_type,
+                "client_id": service.client_id,
+                "client_secret": service.client_secret,
+                "enable": service.enable,
+                "eid": service.eid,
+                "redirect_uri": service.redirect_uri,
+                "home_url": service.home_url,
+                "auth_url": service.auth_url,
+                "access_token_url": service.access_token_url,
+                "api_url": service.api_url,
+                "is_auto_login": service.is_auto_login,
+                "is_git": service.is_git,
+                "authorize_url": authorize_url,
+            })
         rst = {"data": {"bean": {"oauth_services": data}}}
         return Response(rst, status=status.HTTP_200_OK)
 
@@ -160,25 +156,23 @@ class EnterpriseOauthService(JWTAuthApiView):
         for service in services:
             api = get_oauth_instance(service.oauth_type, service, None)
             authorize_url = api.get_authorize_url()
-            data.append(
-                {
-                    "service_id": service.ID,
-                    "name": service.name,
-                    "oauth_type": service.oauth_type,
-                    "client_id": service.client_id,
-                    "client_secret": service.client_secret,
-                    "enable": service.enable,
-                    "eid": service.eid,
-                    "redirect_uri": service.redirect_uri,
-                    "home_url": service.home_url,
-                    "auth_url": service.auth_url,
-                    "access_token_url": service.access_token_url,
-                    "api_url": service.api_url,
-                    "is_auto_login": service.is_auto_login,
-                    "is_git": service.is_git,
-                    "authorize_url": authorize_url,
-                }
-            )
+            data.append({
+                "service_id": service.ID,
+                "name": service.name,
+                "oauth_type": service.oauth_type,
+                "client_id": service.client_id,
+                "client_secret": service.client_secret,
+                "enable": service.enable,
+                "eid": service.eid,
+                "redirect_uri": service.redirect_uri,
+                "home_url": service.home_url,
+                "auth_url": service.auth_url,
+                "access_token_url": service.access_token_url,
+                "api_url": service.api_url,
+                "is_auto_login": service.is_auto_login,
+                "is_git": service.is_git,
+                "authorize_url": authorize_url,
+            })
         rst = {"data": {"bean": {"oauth_services": data}}}
         return Response(rst, status=status.HTTP_200_OK)
 
@@ -218,8 +212,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
                 oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404,
-                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
@@ -239,13 +232,11 @@ class OAuthServerAuthorize(AlowAnyApiView):
             logger.debug(home_split_url.netloc.split("."))
             if oauth_user.enterprise_domain != domain.split(".")[0] and \
                     domain.split(".")[0] != home_split_url.netloc.split(".")[0]:
-                raise ServiceHandleException(
-                    msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
+                raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
             client_ip = request.META.get("REMOTE_ADDR", None)
             oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
-        return oauth_sev_user_service.set_oauth_user_relation(
-            api, oauth_service, oauth_user, access_token, refresh_token, code)
+        return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)
 
 
 class OAuthUserInfo(AlowAnyApiView):
@@ -288,8 +279,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404,
-                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
@@ -307,10 +297,8 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         user_name = user.name
         user_id = str(user.id)
         user_email = user.email
-        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id,
-                                                               oauth_user_id=user_id)
-        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id,
-                                                              user_id=login_user.user_id)
+        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=user_id)
+        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=login_user.user_id)
         if link_user is not None and link_user.oauth_user_id != user_id:
             rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该用户已绑定其他账号"}
             return Response(rst, status=status.HTTP_200_OK)
@@ -352,8 +340,7 @@ class UserOAuthLink(JWTAuthApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404,
-                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         user_id = request.user.user_id
         oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=oauth_user_id)
@@ -391,21 +378,14 @@ class OAuthGitUserRepositories(JWTAuthApiView):
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404,
-                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"未成功获取第三方用户信息"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
         service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
         if not service.is_git_oauth():
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"该OAuth服务不是代码仓库类型"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             if len(search) > 0 and search is not None:
@@ -413,15 +393,22 @@ class OAuthGitUserRepositories(JWTAuthApiView):
                 data = service.search_repos(true_search, page=page)
             else:
                 data = service.get_repos(page=page)
-            rst = {"data": {"bean": {
-                "repositories": data, "user_id": user_id,
-                "service_id": service_id, "service_type": oauth_service.oauth_type,
-                "service_name": oauth_service.name, "total": 10}}}
+            rst = {
+                "data": {
+                    "bean": {
+                        "repositories": data,
+                        "user_id": user_id,
+                        "service_id": service_id,
+                        "service_type": oauth_service.oauth_type,
+                        "service_name": oauth_service.name,
+                        "total": 10
+                    }
+                }
+            }
             return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
             logger.debug(e)
-            rst = {
-                "data": {"bean": None}, "status": 400, "msg_show": u"Access Token 已过期"}
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"Access Token 已过期"}
             return Response(rst, status=status.HTTP_200_OK)
 
 
@@ -434,29 +421,19 @@ class OAuthGitUserRepository(JWTAuthApiView):
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404,
-                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"未成功获取第三方用户信息"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"未找到OAuth服务"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         if not service.is_git_oauth():
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"该OAuth服务不是代码仓库类型"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
             return Response(rst, status=status.HTTP_200_OK)
 
         repo_list = []
@@ -464,16 +441,22 @@ class OAuthGitUserRepository(JWTAuthApiView):
         try:
             for data in service.get_repo_detail(full_name):
                 repo_list.append(data)
-            rst = {"data": {"bean": {
-                "repositories": repo_list, "user_id": user_id,
-                "service_id": service_id, "service_type": oauth_service.oauth_type,
-                "service_name": oauth_service.name, "total": 10}}}
+            rst = {
+                "data": {
+                    "bean": {
+                        "repositories": repo_list,
+                        "user_id": user_id,
+                        "service_id": service_id,
+                        "service_type": oauth_service.oauth_type,
+                        "service_name": oauth_service.name,
+                        "total": 10
+                    }
+                }
+            }
             return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"Access Token 已过期"}
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"Access Token 已过期"}
             return Response(rst, status=status.HTTP_200_OK)
 
 
@@ -487,29 +470,19 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404,
-                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"未成功获取第三方用户信息"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"未找到OAuth服务"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         if not service.is_git_oauth():
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"该OAuth服务不是代码仓库类型"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             data = service.get_branches_or_tags(type, full_name)
@@ -517,9 +490,7 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
             return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"Access Token 已过期"}
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"Access Token 已过期"}
             return Response(rst, status=status.HTTP_200_OK)
 
 
@@ -535,30 +506,20 @@ class OAuthGitCodeDetection(JWTAuthApiView):
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404,
-                   "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"未成功获取第三方用户信息"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
 
         try:
             service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"未找到OAuth服务"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         if not service.is_git_oauth():
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"该OAuth服务不是代码仓库类型"
-                   }
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
             return Response(rst, status=status.HTTP_200_OK)
         tenant = Tenants.objects.get(tenant_name=tenant_name)
         service_code_version = version
@@ -566,9 +527,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
             service_code_clone_url = service.get_clone_url(git_url)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None},
-                   "status": 400,
-                   "msg_show": u"Access Token 已过期"}
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"Access Token 已过期"}
             return Response(rst, status=status.HTTP_200_OK)
         sb = {
             "server_type": 'git',

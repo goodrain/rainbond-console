@@ -22,3 +22,5 @@ alter table service_share_record add share_version_alias varchar(32) DEFAULT NUL
 alter table tenant_service_delete modify version varchar(32) DEFAULT NULL;
 
 alter table service_group add order_index int(16) DEFAULT 0;
+
+alter table service_domain add auto_ssl TINYINT(1) DEFAULT 0;

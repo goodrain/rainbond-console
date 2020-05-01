@@ -28,7 +28,6 @@ logger = logging.getLogger("default")
 
 
 class TenantEnterpriseRepo(object):
-
     def is_user_admin_in_enterprise(self, user, enterprise_id):
         """判断用户在该企业下是否为管理员"""
         if user.enterprise_id != enterprise_id:
@@ -55,8 +54,8 @@ class TenantEnterpriseRepo(object):
         try:
             user = user_repo.get_user_by_user_id(user_id)
             tenant_ids = team_repo.get_tenants_by_user_id(user_id).values_list("tenant_id", flat=True)
-            enterprise_ids = list(TenantRegionInfo.objects.filter(
-                tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True))
+            enterprise_ids = list(
+                TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids).values_list("enterprise_id", flat=True))
             enterprise_ids.append(user.enterprise_id)
             enterprises = TenantEnterprise.objects.filter(enterprise_id__in=enterprise_ids)
             return enterprises
@@ -90,8 +89,7 @@ class TenantEnterpriseRepo(object):
         for team in teams:
             if team:
                 team_ids.append(team.tenant_id)
-        return Applicants.objects.filter(
-            user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
+        return Applicants.objects.filter(user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
 
     def get_enterprise_teams(self, enterprise_id, name=None):
         if name:
@@ -178,8 +176,8 @@ class TenantEnterpriseRepo(object):
 
     def list_all(self, query):
         if query:
-            return TenantEnterprise.objects.filter(Q(enterprise_name__contains=query) |
-                                                   Q(enterprise_alias__contains=query)).all().order_by("-create_time")
+            return TenantEnterprise.objects.filter(Q(enterprise_name__contains=query)
+                                                   | Q(enterprise_alias__contains=query)).all().order_by("-create_time")
         return TenantEnterprise.objects.all().order_by("-create_time")
 
     def update(self, eid, **data):
@@ -193,8 +191,7 @@ class TenantEnterpriseRepo(object):
             limit = "Limit {page}, {size}".format(page=page, size=page_size)
         where = ""
         if query:
-            where = "WHERE a.enterprise_alias LIKE '%{query}%' OR a.enterprise_name LIKE '%{query}%'".format(
-                query=query)
+            where = "WHERE a.enterprise_alias LIKE '%{query}%' OR a.enterprise_name LIKE '%{query}%'".format(query=query)
         sql = """
         SELECT
             a.enterprise_id,
@@ -206,7 +203,8 @@ class TenantEnterpriseRepo(object):
             JOIN tenant_enterprise_token b ON a.id = b.enterprise_id
         {where}
         {limit}
-        """.format(where=where, limit=limit)
+        """.format(
+            where=where, limit=limit)
 
         conn = BaseConnection()
         result = conn.query(sql)
@@ -215,8 +213,7 @@ class TenantEnterpriseRepo(object):
     def count_appstore_infos(self, query=""):
         where = ""
         if query:
-            where = "WHERE a.enterprise_alias LIKE '%{query}%' OR a.enterprise_name LIKE '%{query}%'".format(
-                query=query)
+            where = "WHERE a.enterprise_alias LIKE '%{query}%' OR a.enterprise_name LIKE '%{query}%'".format(query=query)
         sql = """
         SELECT
             count(*) as total
@@ -232,8 +229,7 @@ class TenantEnterpriseRepo(object):
 
     def get_enterprise_user_request_join(self, enterprise_id, user_id):
         team_ids = self.get_enterprise_teams(enterprise_id).values_list("tenant_id", flat=True)
-        return Applicants.objects.filter(
-            user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
+        return Applicants.objects.filter(user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
 
     def get_enterprise_tenant_ids(self, enterprise_id, user=None):
         if user is None:
@@ -271,7 +267,7 @@ class TenantEnterpriseRepo(object):
         enterprise_apps = group_repo.get_groups_by_tenant_ids(tenant_ids)
         if not enterprise_apps:
             return [], 0
-        return enterprise_apps[(page-1)*page_size: page*page_size], enterprise_apps.count()
+        return enterprise_apps[(page - 1) * page_size:page * page_size], enterprise_apps.count()
 
     def get_enterprise_app_component_list(self, app_id, page=1, page_size=10):
         group_relation_services = group_service_relation_repo.get_services_by_group(app_id)
@@ -279,7 +275,7 @@ class TenantEnterpriseRepo(object):
             return [], 0
         service_ids = group_relation_services.values_list("service_id", flat=True)
         services = service_repo.get_service_by_service_ids(service_ids)
-        return services[(page-1)*page_size: page*page_size], services.count()
+        return services[(page - 1) * page_size:page * page_size], services.count()
 
 
 class TenantEnterpriseUserPermRepo(object):

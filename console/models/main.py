@@ -101,7 +101,7 @@ class RainbondCenterApp(BaseModel):
     app_id = models.CharField(max_length=32, help_text=u"应用包")
     app_name = models.CharField(max_length=64, help_text=u"应用包名")
     create_user = models.IntegerField(null=True, blank=True, help_text=u"创建人id")
-    create_team = models.CharField(max_length=64, null=True, blank=True,  help_text=u"应用所属团队,可以和创建人id不统一")
+    create_team = models.CharField(max_length=64, null=True, blank=True, help_text=u"应用所属团队,可以和创建人id不统一")
     pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
@@ -118,8 +118,10 @@ class RainbondCenterApp(BaseModel):
 
 class RainbondCenterAppVersion(BaseModel):
     """云市应用版本"""
+
     class Meta:
         db_table = "rainbond_center_app_version"
+
     enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     app_id = models.CharField(max_length=32, help_text=u"应用id")
     version = models.CharField(max_length=32, help_text=u"版本")
@@ -218,8 +220,7 @@ class ServiceShareRecord(BaseModel):
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"发布应用组或插件的唯一Key")
     group_id = models.CharField(max_length=32, help_text=u"分享应用组id或者单独插件ID")
     team_name = models.CharField(max_length=64, help_text=u"应用所在团队唯一名称")
-    event_id = models.CharField(max_length=32, null=True, blank=True,
-                                help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text=u"介质同步事件ID,弃用，使用表service_share_record_event")
     share_version = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用组发布版本")
     share_version_alias = models.CharField(max_length=32, null=True, blank=True, help_text=u"应用组发布版本别名")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
@@ -385,8 +386,7 @@ class ServiceRecycleBin(BaseModel):
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
-    service_type = models.CharField(max_length=50, null=True, blank=True,
-                                    help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text=u"服务创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     protocol = models.CharField(max_length=15, default='', help_text=u"服务协议：http,stream")
@@ -395,15 +395,13 @@ class ServiceRecycleBin(BaseModel):
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
     volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
-    port_type = models.CharField(max_length=15, default='multi_outer',
-                                 help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
     service_source = models.CharField(
-        max_length=15, default="", null=True, blank=True,
-        help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
+        max_length=15, default="", null=True, blank=True, help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text=u"应用检测ID")
@@ -825,6 +823,7 @@ class AutoscalerRuleMetrics(BaseModel):
 class OAuthServices(BaseModel):
     class Meta:
         db_table = "oauth_service"
+
     name = models.CharField(max_length=32, null=False, unique=True, help_text=u"oauth服务名称")
     client_id = models.CharField(max_length=64, null=False, help_text=u"client_id")
     client_secret = models.CharField(max_length=64, null=False, help_text=u"client_secret")
@@ -856,7 +855,7 @@ class UserOAuthServices(BaseModel):
     access_token = models.CharField(max_length=255, null=True, help_text=u"access_token_url")
     refresh_token = models.CharField(max_length=64, null=True, help_text=u"refresh_token")
     user_id = models.IntegerField(null=True, default=None, help_text=u"user_id")
-    code = models.CharField(max_length=256, null=True,  help_text=u"user_id")
+    code = models.CharField(max_length=256, null=True, help_text=u"user_id")
 
 
 class UserFavorite(BaseModel):

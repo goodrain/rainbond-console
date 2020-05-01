@@ -59,8 +59,7 @@ class StartAppView(AppBaseView, CloudEnterpriseCenterView):
 
         """
         try:
-            code, msg = app_manage_service.start(
-                self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+            code, msg = app_manage_service.start(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
@@ -199,8 +198,7 @@ class RollBackAppView(AppBaseView):
             if not deploy_version or not upgrade_or_rollback:
                 return Response(general_message(400, "deploy version is not found", "请指明版本及操作类型"), status=400)
 
-            code, msg = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version,
-                                                     upgrade_or_rollback)
+            code, msg = app_manage_service.roll_back(self.tenant, self.service, self.user, deploy_version, upgrade_or_rollback)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "roll back app error", msg, bean=bean), status=code)
@@ -333,8 +331,7 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         move_group_id = request.data.get("move_group_id", None)
         if action not in ("stop", "start", "restart", "move"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
-        identitys = team_services.get_user_perm_identitys_in_permtenant(
-            user_id=self.user.user_id, tenant_name=self.tenant_name)
+        identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
 
         if action == "stop":
@@ -354,8 +351,8 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
                     not in identitys and "developer" not in identitys:
                 return Response(general_message(400, "Permission denied", "没有变更组件分组权限"), status=400)
         service_id_list = service_ids.split(",")
-        code, msg = app_manage_service.batch_action(
-            self.tenant, self.user, action, service_id_list, move_group_id, self.oauth_instance)
+        code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id,
+                                                    self.oauth_instance)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
@@ -418,8 +415,7 @@ class BatchDelete(RegionTenantHeaderView):
               paramType: form
         """
         service_ids = request.data.get("service_ids", None)
-        identitys = team_services.get_user_perm_identitys_in_permtenant(
-            user_id=self.user.user_id, tenant_name=self.tenant_name)
+        identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                 not in identitys and "developer" not in identitys:
@@ -460,8 +456,7 @@ class AgainDelete(RegionTenantHeaderView):
               paramType: form
         """
         service_id = request.data.get("service_id", None)
-        identitys = team_services.get_user_perm_identitys_in_permtenant(
-            user_id=self.user.user_id, tenant_name=self.tenant_name)
+        identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
                 not in identitys and "developer" not in identitys:
@@ -511,8 +506,7 @@ class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
         更新
         """
         try:
-            code, msg, _ = app_manage_service.upgrade(
-                self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+            code, msg, _ = app_manage_service.upgrade(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
@@ -541,8 +535,7 @@ class ChangeServiceNameView(AppBaseView):
             return Response(general_message(400, "select the application type", "请输入修改后的名称"), status=400)
         extend_method = self.service.extend_method
         if not is_state(extend_method):
-            return Response(
-                general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"), status=400)
+            return Response(general_message(400, "stateless applications cannot be modified", "无状态组件不可修改"), status=400)
         self.service.service_name = service_name
         self.service.save()
         result = general_message(200, "success", "操作成功")
@@ -575,13 +568,11 @@ class MarketServiceUpgradeView(AppBaseView):
     def get(self, request, *args, **kwargs):
         if self.service.service_source != "market":
             return Response(
-                general_message(
-                    400, "non-cloud installed applications require no judgment", "非云市安装的组件无需判断"),
-                status=400)
+                general_message(400, "non-cloud installed applications require no judgment", "非云市安装的组件无需判断"), status=400)
 
         # 判断组件状态，未部署的组件不提供升级数据
-        body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name,
-                                               self.service.service_alias, self.tenant.enterprise_id)
+        body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                               self.tenant.enterprise_id)
         status = body["bean"]["cur_status"]
         if status == "undeploy" or status == "unknown":
             result = general_message(200, "success", "查询成功", list=[])

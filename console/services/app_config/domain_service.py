@@ -7,31 +7,33 @@ import datetime
 import logging
 import re
 
-from django.db import transaction
-from django.db import connection
-from console.exception.main import ServiceHandleException
+from django.db import connection, transaction
+from django.forms.models import model_to_dict
+
 from console.constants import DomainType
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import tcp_domain
+from console.exception.main import ServiceHandleException
+from console.repositories.app_config import domain_repo, port_repo, tcp_domain
 from console.repositories.region_repo import region_repo
-from console.services.app_config.exceptoin import err_cert_name_exists
-from console.services.app_config.exceptoin import err_cert_not_found
-from console.services.app_config.exceptoin import err_still_has_http_rules
+from console.repositories.team_repo import team_repo
+from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
 from console.services.group_service import group_service
-from console.services.team_services import team_services
 from console.services.region_services import region_services
-from console.utils.certutil import analyze_cert
-from console.utils.certutil import cert_is_effective
+from console.utils.certutil import analyze_cert, cert_is_effective
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
+ErrNotFoundDomain = ServiceHandleException(status_code=404, error_code=1404, msg="domain not found", msg_show="域名不存在")
+ErrNotFoundStreamDomain = ServiceHandleException(status_code=404, error_code=2404, msg="domain not found", msg_show="策略不存在")
+
 
 class DomainService(object):
     HTTP = "http"
+
+    def get_time_now(self):
+        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     def get_certificate(self, tenant, page, page_size):
         end = page_size * page - 1  # 一页数据的开始索引
@@ -49,9 +51,6 @@ class DomainService(object):
         return c_list, nums
 
     def __check_certificate_alias(self, tenant, alias):
-        # r = re.compile("^[A-Za-z0-9]+$")
-        # if not r.match(alias):
-        #     return 400, u"证书别名只能是数字和字母的组合"
         if domain_repo.get_certificate_by_alias(tenant.tenant_id, alias):
             raise err_cert_name_exists
 
@@ -59,8 +58,8 @@ class DomainService(object):
         self.__check_certificate_alias(tenant, alias)
         cert_is_effective(certificate)
         certificate = base64.b64encode(certificate)
-        certificate = domain_repo.add_certificate(
-            tenant.tenant_id, alias, certificate_id, certificate, private_key, certificate_type)
+        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
+                                                  certificate_type)
         return certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
@@ -97,8 +96,7 @@ class DomainService(object):
         cert.delete()
 
     @transaction.atomic
-    def update_certificate(
-            self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
+    def update_certificate(self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
         cert_is_effective(certificate)
 
         cert = domain_repo.get_certificate_by_pk(certificate_id)
@@ -174,9 +172,8 @@ class DomainService(object):
         return tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, container_port)
 
     def get_sld_domains(self, service, container_port):
-        return domain_repo.get_service_domain_by_container_port(
-            service.service_id, container_port).filter(
-            domain_type=DomainType.SLD_DOMAIN)
+        return domain_repo.get_service_domain_by_container_port(service.service_id,
+                                                                container_port).filter(domain_type=DomainType.SLD_DOMAIN)
 
     def is_domain_exist(self, domain_name):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
@@ -184,10 +181,7 @@ class DomainService(object):
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     rule_extensions):
-        code, msg = self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
-
-        if code != 200:
-            return code, msg
+        self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
         certificate_info = None
         http_rule_id = make_uuid(domain_name)
         if certificate_id:
@@ -211,7 +205,6 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
-
         domain_info = dict()
         region = region_repo.get_region_by_region_name(service.service_region)
         domain_info["service_id"] = service.service_id
@@ -219,7 +212,7 @@ class DomainService(object):
         domain_info["domain_name"] = domain_name
         domain_info["domain_type"] = domain_type
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
         domain_info["protocol"] = "http"
         if certificate_id:
@@ -232,15 +225,14 @@ class DomainService(object):
         domain_info["service_alias"] = service.service_cname
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["region_id"] = region.region_id
-        domain_repo.add_service_domain(**domain_info)
-        return 200, u"success"
+        return domain_repo.add_service_domain(**domain_info)
 
     def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False):
         if not is_tcp:
-            servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
-            if not servicerDomain:
-                return 404, u"域名不存在"
-            for servicer_domain in servicerDomain:
+            service_domains = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+            if not service_domains:
+                raise ErrNotFoundDomain
+            for servicer_domain in service_domains:
                 data = dict()
                 data["service_id"] = servicer_domain.service_id
                 data["domain"] = servicer_domain.domain_name
@@ -249,22 +241,19 @@ class DomainService(object):
                 try:
                     region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
                     servicer_domain.delete()
-                    return 200, u"success"
                 except region_api.CallApiError as e:
                     if e.status != 404:
                         raise e
-
         else:
             servicer_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(
                 service.service_id, container_port, domain_name)
             if not servicer_tcp_domain:
-                return 404, u"域名不存在"
+                raise ErrNotFoundStreamDomain
             data = dict()
             data["tcp_rule_id"] = servicer_tcp_domain.tcp_rule_id
             try:
                 region_api.unbindTcpDomain(service.service_region, tenant.tenant_name, data)
                 servicer_tcp_domain.delete()
-                return 200, u"success"
             except region_api.CallApiError as e:
                 if e.status != 404:
                     raise e
@@ -288,12 +277,8 @@ class DomainService(object):
             return False, u"do not delete this domain id {0} service_id {1}".format(domain_id, service.service_id)
 
     def bind_siample_http_domain(self, tenant, user, service, domain_name, container_port):
-
-        res, msg = self.bind_domain(tenant, user, service, domain_name,
-                                    container_port, "http", None, DomainType.WWW, None)
-        if res == 200:
-            return domain_repo.get_domain_by_domain_name(domain_name)
-        return None
+        self.bind_domain(tenant, user, service, domain_name, container_port, "http", None, DomainType.WWW, None)
+        return domain_repo.get_domain_by_domain_name(domain_name)
 
     def bind_httpdomain(self, tenant, user, service, httpdomain, return_model=False):
         domain_name = httpdomain["domain_name"]
@@ -319,7 +304,7 @@ class DomainService(object):
         data["tenant_name"] = tenant.tenant_name
         data["protocol"] = protocol
         data["container_port"] = int(httpdomain["container_port"])
-        data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        data["add_time"] = self.get_time_now()
         data["add_user"] = user.nick_name if user else ""
         data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = http_rule_id
@@ -358,7 +343,7 @@ class DomainService(object):
         domain_info["domain_name"] = domain_name
         domain_info["domain_type"] = domain_type
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(httpdomain["container_port"])
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else '/'
@@ -381,9 +366,7 @@ class DomainService(object):
         domain_info["region_id"] = region.region_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
-        if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"],
-                                                   service.service_alias,
-                                                   tenant.tenant_name,
+        if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"], service.service_alias, tenant.tenant_name,
                                                    region.httpdomain):
             domain_info["type"] = 1
         # 高级路由
@@ -395,14 +378,24 @@ class DomainService(object):
             domain_info.update({"certificate_name": certificate_info.alias})
         return domain_info
 
-    def update_httpdomain(
-            self, tenant, user, service, domain_name, container_port, certificate_id, domain_type, domain_path,
-            domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
+    def update_httpdomain(self,
+                          tenant,
+                          user,
+                          service,
+                          domain_name,
+                          container_port,
+                          certificate_id,
+                          domain_type,
+                          domain_path,
+                          domain_cookie,
+                          domain_heander,
+                          http_rule_id,
+                          the_weight,
+                          rule_extensions,
+                          re_model=False):
         # 校验域名格式
-        code, msg = self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
+        self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
         domain_info = dict()
-        if code != 200:
-            return code, msg, domain_info
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
@@ -452,7 +445,7 @@ class DomainService(object):
         domain_info["domain_name"] = domain_name
         domain_info["domain_type"] = domain_type
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else '/'
@@ -478,17 +471,18 @@ class DomainService(object):
                 region.httpdomain):
             domain_info["type"] = 1
 
-        domain_repo.add_service_domain(**domain_info)
+        model = domain_repo.add_service_domain(**domain_info)
+        if re_model:
+            return model
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:
             domain_info.update({"certificate_name": certificate_info.alias})
-        return 200, u"success", domain_info
+        return domain_info
 
     def unbind_httpdomain(self, tenant, region, http_rule_id):
         servicer_http_omain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
-
         if not servicer_http_omain:
-            return 404, u"域名不存在"
+            raise self.ErrNotFoundDomain
         data = dict()
         data["service_id"] = servicer_http_omain.service_id
         data["domain"] = servicer_http_omain.domain_name
@@ -499,7 +493,6 @@ class DomainService(object):
             if e.status != 404:
                 raise e
         servicer_http_omain.delete()
-        return 200, u"success"
 
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, default_port, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(tenant.tenant_name)
@@ -526,7 +519,7 @@ class DomainService(object):
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
         domain_info["tenant_id"] = tenant.tenant_id
         # 查询端口协议
@@ -541,7 +534,6 @@ class DomainService(object):
             domain_info["protocol"] = 'tcp'
         domain_info["end_point"] = end_point
         domain_info["region_id"] = region.region_id
-
         rule_extensions_str = ""
         if rule_extensions:
             # 拼接字符串，存入数据库
@@ -558,11 +550,10 @@ class DomainService(object):
             domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
-        return 200, u"success", domain_info
+        return domain_info
 
-    def update_tcpdomain(
-            self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
-            default_ip):
+    def update_tcpdomain(self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
+                         default_ip):
 
         ip = end_point.split(":")[0]
         ip.replace(' ', '')
@@ -591,7 +582,7 @@ class DomainService(object):
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["protocol"] = protocol
@@ -615,7 +606,7 @@ class DomainService(object):
     def unbind_tcpdomain(self, tenant, region, tcp_rule_id):
         service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
         if not service_tcp_domain:
-            return 404, u"策略不存在"
+            raise ErrNotFoundStreamDomain
         data = dict()
         data["tcp_rule_id"] = tcp_rule_id
         try:
@@ -625,13 +616,20 @@ class DomainService(object):
             if e.status != 404:
                 raise e
         service_tcp_domain.delete()
-        return 200, u"success"
 
     # get all http rules in define app
     def get_http_rules_by_app_id(self, app_id):
         services = group_service.get_group_services(app_id)
         service_ids = [s.service_id for s in services]
         return domain_repo.get_domains_by_service_ids(service_ids)
+
+    # get http rule by rule_id
+    # if not exist, return None
+    def get_http_rule_by_id(self, tenant_id, rule_id):
+        rule = domain_repo.get_service_domain_by_http_rule_id(rule_id)
+        if rule and rule.tenant_id != tenant_id:
+            return None
+        return rule
 
     # 获取应用下策略列表
     def get_app_service_domain_list(self, region, tenant, app_id, search_conditions, page, page_size):
@@ -647,8 +645,7 @@ class DomainService(object):
                 where sd.tenant_id='{0}' and sd.region_id='{1}' and  sgr.group_id='{3}'\
                     and (sd.domain_name like '%{2}%' \
                         or sd.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%');".format(
-                tenant.tenant_id, region.region_id, search_conditions, app_id))
+                        or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions, app_id))
             domain_count = cursor.fetchall()
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -657,8 +654,7 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
             cursor = connection.cursor()
-            cursor.execute(
-                "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+            cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
                     sd.is_outer_service \
@@ -671,8 +667,8 @@ class DomainService(object):
                     and (sd.domain_name like '%{2}%' \
                         or sd.service_alias like '%{2}%' \
                         or sg.group_name like '%{2}%') \
-                order by type desc LIMIT {3},{4};".format(
-                    tenant.tenant_id, region.region_id, search_conditions, start, end, app_id))
+                order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start, end,
+                                                          app_id))
             tenant_tuples = cursor.fetchall()
         else:
             # 获取总数
@@ -683,8 +679,7 @@ class DomainService(object):
                                         left join service_group sg on sgr.group_id = sg.id  \
                                     where sd.tenant_id='{0}' and \
                                     sd.region_id='{1}' and \
-                                    sgr.group_id='{2}';".format(
-                tenant.tenant_id, region.region_id, app_id))
+                                    sgr.group_id='{2}';".format(tenant.tenant_id, region.region_id, app_id))
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -696,8 +691,7 @@ class DomainService(object):
 
             cursor = connection.cursor()
 
-            cursor.execute(
-                "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+            cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
                     sd.is_outer_service \
@@ -707,8 +701,7 @@ class DomainService(object):
                 where sd.tenant_id='{0}' \
                     and sd.region_id='{1}' \
                     and sgr.group_id='{2}' \
-                order by type desc;".format(
-                    tenant.tenant_id, region.region_id, app_id))
+                order by type desc;".format(tenant.tenant_id, region.region_id, app_id))
             tenant_tuples = cursor.fetchall()
 
         return tenant_tuples, total
@@ -720,15 +713,13 @@ class DomainService(object):
             search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             cursor = connection.cursor()
-            cursor.execute(
-                "select count(1) from service_tcp_domain std \
+            cursor.execute("select count(1) from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id  \
                 where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{3}' \
                     and (std.end_point like '%{2}%' \
                         or std.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%');".format(
-                    tenant.tenant_id, region.region_id, search_conditions, app_id))
+                        or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions, app_id))
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -739,8 +730,7 @@ class DomainService(object):
                 end = remaining_num
 
             cursor = connection.cursor()
-            cursor.execute(
-                "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
+            cursor.execute("select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
                     std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
                 from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
@@ -749,18 +739,17 @@ class DomainService(object):
                     and (std.end_point like '%{2}%' \
                         or std.service_alias like '%{2}%' \
                         or sg.group_name like '%{2}%') \
-                order by type desc LIMIT {3},{4};".format(
-                    tenant.tenant_id, region.region_id, search_conditions, start, end, app_id))
+                order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start, end,
+                                                          app_id))
             tenant_tuples = cursor.fetchall()
         else:
             # 获取总数
             cursor = connection.cursor()
-            cursor.execute(
-                "select count(1) from service_tcp_domain std \
+            cursor.execute("select count(1) from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id  \
                 where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{2}';".format(
-                    tenant.tenant_id, region.region_id, app_id))
+                tenant.tenant_id, region.region_id, app_id))
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -771,15 +760,13 @@ class DomainService(object):
                 end = remaining_num
 
             cursor = connection.cursor()
-            cursor.execute(
-                "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
+            cursor.execute("select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
                     std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
                 from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id  \
                 where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{4}' \
-                order by type desc LIMIT {2},{3};".format(
-                    tenant.tenant_id, region.region_id, start, end, app_id))
+                order by type desc LIMIT {2},{3};".format(tenant.tenant_id, region.region_id, start, end, app_id))
             tenant_tuples = cursor.fetchall()
         return tenant_tuples, total
 
@@ -787,10 +774,8 @@ class DomainService(object):
         rst = False
         http_exist = False
         add_httptohttps = False
-        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(
-            service_id, container_port,
-            domain_name, protocol, domain_path
-        )
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service_id, container_port, domain_name, protocol,
+                                                                              domain_path)
         if service_domain:
             rst = True
         domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
@@ -806,3 +791,42 @@ class DomainService(object):
         if http_exist and add_httptohttps:
             rst = True
         return rst
+
+    # Get http gateway rule list by enterprise id
+    # retun dict list
+    def get_http_rules_by_enterprise_id(self, enterprise_id, is_auto_ssl=None):
+        teams = team_repo.get_teams_by_enterprise_id(enterprise_id)
+        if not teams:
+            return []
+        team_ids = []
+        team_names = {}
+        for team in teams:
+            team_ids.append(team.tenant_id)
+            team_names[team.tenant_id] = team.tenant_name
+        domains = domain_repo.get_domains_by_tenant_ids(team_ids, is_auto_ssl)
+        rules = []
+        region_ids = []
+        service_ids = []
+        # append tenant name
+        for domain in domains:
+            rule = model_to_dict(domain)
+            rule["team_name"] = team_names[domain.tenant_id]
+            region_ids.append(domain.region_id)
+            service_ids.append(domain.service_id)
+            rules.append(rule)
+        # append region name
+        region_ids_new = list(set(region_ids))
+        regions = region_repo.get_regions_by_region_ids(enterprise_id, region_ids_new)
+        region_names = {}
+        for region in regions:
+            region_names[region.region_id] = region.region_name
+        # append app id
+        app_ids = group_service.get_app_id_by_service_ids(service_ids)
+        re_rules = []
+        for rule in rules:
+            rule["region_name"] = region_names.get(rule["region_id"])
+            rule["app_id"] = app_ids.get(rule["service_id"])
+            # ignore region name or app id not found rule
+            if rule["region_name"] and rule["app_id"]:
+                re_rules.append(rule)
+        return re_rules

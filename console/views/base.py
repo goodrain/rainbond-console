@@ -195,8 +195,7 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
                 oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
-            oauth_user = UserOAuthServices.objects.get(
-                service_id=oauth_service.ID, user_id=self.user.user_id)
+            oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=self.user.user_id)
         except OAuthServices.DoesNotExist:
             raise NotFound("enterprise center oauth server not found")
         except UserOAuthServices.DoesNotExist:
@@ -369,5 +368,4 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

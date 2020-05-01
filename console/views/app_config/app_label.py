@@ -13,7 +13,6 @@ from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.repositories.label_repo import label_repo, node_label_repo, service_label_repo
 
-
 logger = logging.getLogger("default")
 
 

@@ -35,9 +35,7 @@ class UserAccessTokenCLView(JWTAuthApiView):
 
     def get(self, request, *args, **kwargs):
         access_key_list = user_access_services.get_user_access_key(request.user.user_id)
-        result = general_message(
-            200, "success", None,
-            list=access_key_list.values("note", "expire_time", "user_id", "ID"))
+        result = general_message(200, "success", None, list=access_key_list.values("note", "expire_time", "user_id", "ID"))
         return Response(result, status=200)
 
 

@@ -12,7 +12,6 @@ from openapi.views.base import ListAPIView
 
 from openapi.serializer.oauth_serializer import OAuthTypeSerializer
 
-
 logger = logging.getLogger("default")
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER

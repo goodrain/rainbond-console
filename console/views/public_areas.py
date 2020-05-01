@@ -57,8 +57,11 @@ class AllServiceInfo(RegionTenantHeaderView):
             service_ids = request.data["service_ids"]
             print(service_ids)
             if len(service_ids) > 0:
-                status_list = base_service.status_multi_service(region=self.response_region, tenant_name=self.team_name,
-                                                                service_ids=service_ids, enterprise_id=self.team.enterprise_id)
+                status_list = base_service.status_multi_service(
+                    region=self.response_region,
+                    tenant_name=self.team_name,
+                    service_ids=service_ids,
+                    enterprise_id=self.team.enterprise_id)
                 result = general_message(code, "success", "批量获取状态成功", list=status_list)
                 return Response(result, status=code)
         except Exception as e:
@@ -296,8 +299,9 @@ class ServiceEventsView(RegionTenantHeaderView):
             event_service_dynamic_list = []
             for region in regionsList:
                 try:
-                    events, event_count, has_next = event_service.get_target_events(
-                        "tenant", self.tenant.tenant_id, self.tenant, region.region_name, int(page), int(page_size))
+                    events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id,
+                                                                                    self.tenant, region.region_name, int(page),
+                                                                                    int(page_size))
                     event_service_dynamic_list = event_service_dynamic_list + events
                     total = total + event_count
                 except Exception as e:
@@ -459,15 +463,14 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         apps = []
         if groups:
             group_ids = [group.ID for group in groups]
-            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region,
-                                                         self.team_name, self.team.enterprise_id)
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
+                                                         self.team.enterprise_id)
             apps = apps[start:end]
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 
 # 团队下应用环境变量模糊查询
 class TenantServiceEnvsView(RegionTenantHeaderView):
-
     def get(self, request, *args, **kwargs):
         attr_name = request.GET.get("attr_name", None)
         attr_value = request.GET.get("attr_value", None)

@@ -41,8 +41,8 @@ class TopologicalService(object):
 
         # 拼接组件状态
         try:
-            dynamic_services_info = region_api.get_dynamic_services_pods(
-                region, team_name, [service.service_id for service in service_list])
+            dynamic_services_info = region_api.get_dynamic_services_pods(region, team_name,
+                                                                         [service.service_id for service in service_list])
             dynamic_services_list = dynamic_services_info["list"]
         except Exception as e:
             logger.debug(e)

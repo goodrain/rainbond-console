@@ -767,8 +767,8 @@ class EndpointService(object):
         data = {"address": address, "is_online": is_online}
 
         try:
-            res, _ = region_api.post_third_party_service_endpoints(
-                service.service_region, tenant.tenant_name, service.service_alias, data)
+            res, _ = region_api.post_third_party_service_endpoints(service.service_region, tenant.tenant_name,
+                                                                   service.service_alias, data)
         except region_api.CallApiError as e:
             logger.exception(e)
             raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")

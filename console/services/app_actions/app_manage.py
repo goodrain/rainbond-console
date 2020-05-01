@@ -121,8 +121,8 @@ class AppManageBase(object):
         """查询当前组件占用的内存"""
         memory = 0
         try:
-            body = region_api.check_service_status(
-                cur_service.service_region, tenant.tenant_name, cur_service.service_alias, tenant.enterprise_id)
+            body = region_api.check_service_status(cur_service.service_region, tenant.tenant_name, cur_service.service_alias,
+                                                   tenant.enterprise_id)
             status = body["bean"]["cur_status"]
             # 占用内存的状态
             occupy_memory_status = (
@@ -209,8 +209,9 @@ class AppManageService(AppManageBase):
     def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
             status_info_map = app_service.get_service_status(tenant, service)
-            if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not check_memory_quota(
-                    oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+            if status_info_map.get("status", "Unknown") in [
+                    "undeploy", "closed "
+            ] and not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
                 raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -231,8 +232,9 @@ class AppManageService(AppManageBase):
 
     def deploy(self, tenant, service, user, group_version, committer_name=None, oauth_instance=None):
         status_info_map = app_service.get_service_status(tenant, service)
-        if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not check_memory_quota(
-                oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+        if status_info_map.get("status", "Unknown") in [
+                "undeploy", "closed "
+        ] and not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body = dict()
         # 默认更新升级
@@ -249,8 +251,7 @@ class AppManageService(AppManageBase):
         if kind == "build_from_source_code" or kind == "source":
             if service.oauth_service_id:
                 try:
-                    oauth_service = oauth_repo.get_oauth_services_by_service_id(
-                        service_id=service.oauth_service_id)
+                    oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
                     oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
                         service_id=service.oauth_service_id, user_id=user.user_id)
                 except Exception as e:
@@ -367,8 +368,13 @@ class AppManageService(AppManageBase):
             settings = {}
             settings["volume_capacity"] = volume["volume_capacity"]
             volume_service.add_service_volume(
-                tenant, service, volume["volume_path"], volume_type=volume["volume_type"], volume_name=volume["volume_name"],
-                file_content=file_content, settings=settings)
+                tenant,
+                service,
+                volume["volume_path"],
+                volume_type=volume["volume_type"],
+                volume_name=volume["volume_name"],
+                file_content=file_content,
+                settings=settings)
         return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
@@ -409,8 +415,7 @@ class AppManageService(AppManageBase):
         for port in ports:
             mapping_port = int(port["container_port"])
             env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
-            service_port = port_repo.get_service_port_by_port(
-                tenant.tenant_id, service.service_id, int(port["container_port"]))
+            service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
             if service_port:
                 if port["is_inner_service"]:
                     code, msg, data = env_var_service.add_service_env_var(
@@ -437,12 +442,9 @@ class AppManageService(AppManageBase):
                         return code, msg
                 continue
 
-            code, msg, port_data = port_service.add_service_port(
-                tenant, service, int(port["container_port"]),
-                port["protocol"],
-                port["port_alias"],
-                port["is_inner_service"],
-                port["is_outer_service"])
+            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
+                                                                 port["port_alias"], port["is_inner_service"],
+                                                                 port["is_outer_service"])
             if code != 200:
                 logger.error("save market app port error: {}".format(msg))
                 return code, msg
@@ -450,8 +452,9 @@ class AppManageService(AppManageBase):
 
     def upgrade(self, tenant, service, user, committer_name=None, oauth_instance=None):
         status_info_map = app_service.get_service_status(tenant, service)
-        if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not check_memory_quota(
-                oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+        if status_info_map.get("status", "Unknown") in [
+                "undeploy", "closed "
+        ] and not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         body = dict()
         body["service_id"] = service.service_id
@@ -676,8 +679,8 @@ class AppManageService(AppManageBase):
                             install_from_cloud = True
                             # TODO:Skip the subcontract structure to avoid loop introduction
                             from console.services.market_app_service import market_app_service
-                            _, app_version = market_app_service.get_app_from_cloud(
-                                tenant, service_source.group_key, service_source.version)
+                            _, app_version = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
+                                                                                   service_source.version)
                         # install from local cloud
                         else:
                             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
@@ -708,8 +711,7 @@ class AppManageService(AppManageBase):
                                             service_dict["image_info"] = source_image
                                             source_image["image_url"] = share_image
                                             source_image["user"] = template_app.get("service_image").get("hub_user")
-                                            source_image["password"] = template_app.get(
-                                                "service_image").get("hub_password")
+                                            source_image["password"] = template_app.get("service_image").get("hub_password")
                                             source_image["cmd"] = service.cmd
                                             new_extend_info = template_app["service_image"]
                                     if share_slug_path:
@@ -758,8 +760,8 @@ class AppManageService(AppManageBase):
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
         if new_memory > service.min_memory:
-            if not check_memory_quota(
-                    oauth_instance, tenant.enterprise_id, new_memory - int(service.min_memory), service.min_node):
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, new_memory - int(service.min_memory),
+                                      service.min_node):
                 raise ServiceHandleException(error_code=20002, msg="not enough quota")
 
         new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
@@ -789,18 +791,16 @@ class AppManageService(AppManageBase):
         """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
-            raise ServiceHandleException(
-                status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
+            raise ServiceHandleException(status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
         if new_node == service.min_node:
             raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
 
         if new_node > 1 and is_singleton(service.extend_method):
-            raise ServiceHandleException(
-                status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
+            raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
 
         if new_node > service.min_node:
-            if not check_memory_quota(
-                    oauth_instance, tenant.enterprise_id, service.min_memory, new_node - int(service.min_node)):
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory,
+                                      new_node - int(service.min_node)):
                 raise ServiceHandleException(status_code=20002, msg="not enough quota")
 
         if service.create_status == "complete":
@@ -886,8 +886,8 @@ class AppManageService(AppManageBase):
         try:
             data = {}
             data["etcd_keys"] = self.get_etcd_keys(tenant, service)
-            region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id, data)
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id,
+                                      data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -993,8 +993,8 @@ class AppManageService(AppManageBase):
                 task["dep_service_type"] = "v"
                 task["enterprise_id"] = tenant.enterprise_id
                 try:
-                    region_api.delete_service_dependency(
-                        service.service_region, tenant.tenant_name, service.service_alias, task)
+                    region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
+                                                         task)
                 except Exception as e:
                     logger.exception(e)
                 recycle_relation.delete()
@@ -1034,8 +1034,7 @@ class AppManageService(AppManageBase):
         group_ids = []
         if tsrs:
             sids = list(set([tsr.service_id for tsr in tsrs]))
-            service_group = ServiceGroupRelation.objects.get(
-                service_id=service.service_id, tenant_id=tenant.tenant_id)
+            service_group = ServiceGroupRelation.objects.get(service_id=service.service_id, tenant_id=tenant.tenant_id)
             groups = ServiceGroupRelation.objects.filter(service_id__in=sids, tenant_id=tenant.tenant_id)
             for group in groups:
                 group_ids.append(group.group_id)
@@ -1050,11 +1049,10 @@ class AppManageService(AppManageBase):
         try:
             if service.create_status != "complete":
                 return False
-            status_info = region_api.check_service_status(
-                service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
+            status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
+                                                          tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure",
-                          "unKnow", "unusual", "abnormal", "some_abnormal"):
+            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:
@@ -1062,8 +1060,7 @@ class AppManageService(AppManageBase):
         return False
 
     def __is_service_has_plugins(self, service):
-        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
-            service.service_id)
+        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         if service_plugin_relations:
             return True
         return False
@@ -1073,8 +1070,8 @@ class AppManageService(AppManageBase):
             data = {}
             logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant.tenant_name))
             data["etcd_keys"] = self.get_etcd_keys(tenant, service)
-            region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id, data)
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id,
+                                      data)
             return 200, "success"
         except region_api.CallApiError as e:
             if e.status != 404:
@@ -1166,8 +1163,8 @@ class AppManageService(AppManageBase):
         try:
             data = {}
             data["etcd_keys"] = self.get_etcd_keys(tenant, service)
-            region_api.delete_service(service.service_region, tenant.tenant_name,
-                                      service.service_alias, tenant.enterprise_id, data)
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id,
+                                      data)
         except region_api.CallApiError as e:
             if int(e.status) != 404:
                 logger.exception(e)
@@ -1231,8 +1228,7 @@ class AppManageService(AppManageBase):
                             msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态单实例组件")
                 if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):
-                        raise ServiceHandleException(msg="storage access mode do not support",
-                                                     msg_show="存储读写属性限制,不可修改为无状态组件")
+                        raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
         # 实例个数限制
         if is_singleton(extend_method) and service.min_node > 1:
             raise ServiceHandleException(

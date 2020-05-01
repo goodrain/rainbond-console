@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 
-from www.models.main import Users
 from console.services.user_services import user_services
+from www.models.main import Users
 
 
 class ErrorUser(Exception):
@@ -17,7 +17,7 @@ class APIUserService(object):
         return user_services.get_administrator_user_token(user)
 
     def get_user_by_token(self, token):
-        return user_services.get_administrator_user_by_token(token)
+        return user_services.get_user_by_openapi_token(token)
 
     def login_api_user(self, username, password):
         user = user_services.get_user_by_username(username)

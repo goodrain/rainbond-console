@@ -11,13 +11,8 @@ from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
-from console.exception.exceptions import AccountNotExistError
-from console.exception.exceptions import EmailExistError
-from console.exception.exceptions import PasswordTooShortError
-from console.exception.exceptions import PhoneExistError
-from console.exception.exceptions import TenantNotExistError
-from console.exception.exceptions import UserExistError
-from console.exception.exceptions import UserNotExistError
+from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
+                                          TenantNotExistError, UserExistError, UserNotExistError)
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -25,15 +20,12 @@ from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
-from console.services.exception import ErrAdminUserDoesNotExist
-from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
 from console.services.team_services import team_services
-from console.utils.oauth.oauth_types import get_oauth_instance
 from console.services.user_accesstoken_services import user_access_services
+from console.utils.oauth.oauth_types import get_oauth_instance
 from www.gitlab_http import GitlabApi
-from www.models.main import PermRelTenant
-from www.models.main import Tenants
-from www.models.main import Users
+from www.models.main import PermRelTenant, Tenants, Users
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.crypt import encrypt_passwd
 from www.utils.return_message import general_message
@@ -193,7 +185,7 @@ class UserService(object):
 
         user = {
             "nick_name": data["nick_name"],
-            "password": encrypt_passwd(data["email"]+data["password"]),
+            "password": encrypt_passwd(data["email"] + data["password"]),
             "email": data.get("email", ""),
             "phone": data.get("phone", ""),
             "enterprise_id": data["eid"],
@@ -232,8 +224,7 @@ class UserService(object):
             rf=rf)
         return user
 
-    def create_user_set_password(
-            self, user_name, email, raw_password, rf, enterprise, client_ip, phone=None, real_name=None):
+    def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip, phone=None, real_name=None):
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
@@ -252,13 +243,12 @@ class UserService(object):
     def check_user_is_enterprise_center_user(self, user_id):
         oauth_user, oauth_service = oauth_user_repo.get_enterprise_center_user_by_user_id(user_id)
         if oauth_user and oauth_service:
-            return get_oauth_instance(
-                oauth_service.oauth_type, oauth_service, oauth_user), oauth_user
+            return get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user), oauth_user
         return None, None
 
     @transaction.atomic()
-    def create_enterprise_center_user_set_password(
-            self, user_name, email, raw_password, rf, enterprise, client_ip, phone, real_name, instance):
+    def create_enterprise_center_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip, phone,
+                                                   real_name, instance):
         data = {
             "username": user_name,
             "real_name": real_name,
@@ -268,9 +258,7 @@ class UserService(object):
         }
         enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
         user = self.create_user_set_password(
-            enterprise_center_user.username, email, raw_password,
-            rf, enterprise, client_ip,
-            phone=phone, real_name=real_name)
+            enterprise_center_user.username, email, raw_password, rf, enterprise, client_ip, phone=phone, real_name=real_name)
         user.enterprise_center_user_id = enterprise_center_user.user_id
         user.save()
         return user
@@ -309,8 +297,7 @@ class UserService(object):
                 # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
                 if admin_user.user_id == current_user.user_id:
                     token = self.generate_key()
-                    enterprise_user_perm_repo.create_enterprise_user_perm(
-                        current_user.user_id, enterprise_id, "admin", token)
+                    enterprise_user_perm_repo.create_enterprise_user_perm(current_user.user_id, enterprise_id, "admin", token)
                     return True
                 else:
                     return False
@@ -320,10 +307,8 @@ class UserService(object):
     def get_user_in_enterprise_perm(self, user, enterprise_id):
         return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
 
-    def get_administrator_user_by_token(self, token):
+    def get_user_by_openapi_token(self, token):
         perm = user_access_services.check_user_access_key(token)
-        if not perm:
-            perm = enterprise_user_perm_repo.get_by_token(token)
         if not perm:
             return None
         user = self.get_user_by_user_id(perm.user_id)
@@ -365,7 +350,7 @@ class UserService(object):
         if name:
             users = users.filter(nick_name__contains=name)
         total = users.count()
-        return users[(page-1)*page_size: page*page_size], total
+        return users[(page - 1) * page_size:page * page_size], total
 
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None, oauth_instance=None):
         """重新构建"""
@@ -553,10 +538,7 @@ class UserService(object):
                     nick_name = None
             if not nick_name:
                 nick_name = hook_type
-        user_obj = Users(
-            user_id=service.creater,
-            nick_name=nick_name
-        )
+        user_obj = Users(user_id=service.creater, nick_name=nick_name)
         return user_obj
 
 
