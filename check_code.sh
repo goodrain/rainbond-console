@@ -8,6 +8,7 @@ fi
 
 # check code format
 yapf --exclude env --exclude static --exclude www/alipay_direct --exclude www/utils/mnssdk --exclude backends --style style.cfg  -r ./ -i
+[[ -z $(git status -s) ]] || (echo "some code do not format before commit, please run 'make format' before git commit" && exit 1)
 
 
 
