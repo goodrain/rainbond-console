@@ -13,5 +13,5 @@ git:
   depth: 1
 
 script:
-  - ./check_code || travis_terminate 1;
+  - ./check_code.sh || travis_terminate 1;
   - ./travis_build.sh || travis_terminate 1;
