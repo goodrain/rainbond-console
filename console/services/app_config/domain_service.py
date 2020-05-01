@@ -131,17 +131,18 @@ class DomainService(object):
 
     def __check_domain_name(self, team_id, domain_name, domain_type, certificate_id):
         if not domain_name:
-            raise ServiceHandleException(400, 400, "domain can not be empty", "域名不能为空")
+            raise ServiceHandleException(status_code=400, code=400, msg="domain can not be empty", msg_show="域名不能为空")
         zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
         match = zh_pattern.search(domain_name.decode('utf-8'))
         if match:
-            raise ServiceHandleException(400, 400, "domain can not be include chinese", "域名不能包含中文")
+            raise ServiceHandleException(
+                status_code=400, code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         s_domain = domain_repo.get_domain_by_domain_name(domain_name)
         if s_domain and s_domain.tenant_id != team_id:
-            raise ServiceHandleException(400, 400, "domain be used other team", "域名已经被其他团队使用")
+            raise ServiceHandleException(status_code=400, code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:
-            raise ServiceHandleException(400, 400, "domain more than 256 bytes", "域名超过256个字符")
+            raise ServiceHandleException(status_code=400, code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate)
@@ -155,7 +156,7 @@ class DomainService(object):
                 domain_str = domain_name.encode('utf-8')
                 if domain_str.endswith(domain_suffix):
                     return
-            raise ServiceHandleException(400, 400, "domain ", "域名与选择的证书不匹配")
+            raise ServiceHandleException(status_code=400, code=400, msg="domain", msg_show="域名与选择的证书不匹配")
 
     def __is_domain_conflict(self, domain_name, team_name):
         regions = region_repo.get_usable_regions()
