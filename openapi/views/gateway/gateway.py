@@ -99,7 +99,7 @@ class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):
         tags=['openapi-gateway'],
     )
     def get(self, req, *args, **kwargs):
-        auto_ssl = req.GET.get("auto_tls", None)
+        auto_ssl = req.GET.get("auto_ssl", None)
         is_auto_ssl = False
         if auto_ssl and auto_ssl.lower() == "true":
             is_auto_ssl = True
