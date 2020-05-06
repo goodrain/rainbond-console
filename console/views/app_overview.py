@@ -15,19 +15,14 @@ from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
-from console.constants import AppConstants
-from console.constants import PluginCategoryConstants
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.exception.main import RbdAppNotFound
-from console.exception.main import MarketAppLost
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.app import service_webhooks_repo
+
+from console.constants import AppConstants, PluginCategoryConstants
+from console.exception.main import MarketAppLost, RbdAppNotFound
+from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
@@ -37,13 +32,13 @@ from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.md5Util import md5fun
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 from www.utils.url import get_redirect_url
 
 logger = logging.getLogger("default")
@@ -315,8 +310,6 @@ class ListAppPodsView(AppBaseView):
                     container_list = []
                     for key, val in container.items():
                         if key == "POD":
-                            continue
-                        if key != self.service.service_id:
                             continue
                         container_dict = dict()
                         container_dict["container_name"] = key
