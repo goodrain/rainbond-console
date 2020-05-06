@@ -73,8 +73,7 @@ class ListAdminsView(ListAPIView):
             raise exceptions.NotFound("用户'{}'不存在".format(req.data["user_id"]))
         ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["eid"])
         if ent is None:
-            raise serializers.ValidationError("企业'{}'不存在".format(req.data["eid"]),
-                                              status.HTTP_404_NOT_FOUND)
+            raise serializers.ValidationError("企业'{}'不存在".format(req.data["eid"]), status.HTTP_404_NOT_FOUND)
 
         user_services.create_admin_user(user, ent)
 

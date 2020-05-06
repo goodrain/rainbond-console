@@ -40,11 +40,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
         if code:
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Connection": "close"
-            }
+            headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "Connection": "close"}
             params = {
                 "client_id": self.oauth_service.client_id,
                 "client_secret": self.oauth_service.client_secret,
@@ -54,8 +50,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
-                rst = self._session.request(method='POST', url=url,
-                                            headers=headers, params=params)
+                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
@@ -92,18 +87,10 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
             raise NoAccessKeyErr("can not get access key")
 
     def refresh_access_token(self):
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
+        headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
 
-        params = {
-            "refresh_token": self.refresh_token,
-            "grant_type": "refresh_token",
-            "scope": "api"
-        }
-        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url,
-                                    headers=headers, params=params)
+        params = {"refresh_token": self.refresh_token, "grant_type": "refresh_token", "scope": "api"}
+        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url, headers=headers, params=params)
         data = rst.json()
         if rst.status_code == 200:
             self.oauth_user.refresh_token = data.get("refresh_token")
@@ -123,7 +110,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         if self.oauth_service:
             params = {
                 "client_id": self.oauth_service.client_id,
-                "redirect_uri": self.oauth_service.redirect_uri+"?service_id="+str(self.oauth_service.ID),
+                "redirect_uri": self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)
@@ -138,19 +125,17 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         if per_page is None:
             per_page = 10
         for repo in self.api.projects.list(page=page, size=per_page):
-            repo_list.append(
-                {
-                    "project_id": repo.id,
-                    "project_full_name": repo.path_with_namespace,
-                    "project_name": repo.name,
-                    "project_description": repo.description,
-                    "project_url": repo.http_url_to_repo,
-                    "project_default_branch": repo.default_branch,
-                    "project_ssl_url": repo.ssh_url_to_repo,
-                    "updated_at": repo.last_activity_at,
-                    "created_at": repo.created_at
-                }
-            )
+            repo_list.append({
+                "project_id": repo.id,
+                "project_full_name": repo.path_with_namespace,
+                "project_name": repo.name,
+                "project_description": repo.description,
+                "project_url": repo.http_url_to_repo,
+                "project_default_branch": repo.default_branch,
+                "project_ssl_url": repo.ssh_url_to_repo,
+                "updated_at": repo.last_activity_at,
+                "created_at": repo.created_at
+            })
         return repo_list
 
     def search_repos(self, full_name, *args, **kwargs):
@@ -159,8 +144,26 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         repo_list = []
         name = full_name.split("/")[-1]
         for repo in self.api.projects.list(search=name, page=page):
-            repo_list.append(
-                {
+            repo_list.append({
+                "project_id": repo.id,
+                "project_full_name": repo.path_with_namespace,
+                "project_name": repo.name,
+                "project_description": repo.description,
+                "project_url": repo.http_url_to_repo,
+                "project_default_branch": repo.default_branch,
+                "project_ssl_url": repo.ssh_url_to_repo,
+                "updated_at": repo.last_activity_at,
+                "created_at": repo.created_at
+            })
+        return repo_list
+
+    def get_repo_detail(self, full_name, *args, **kwargs):
+        access_token, _ = self._get_access_token()
+        repo_list = []
+        name = full_name.split("/")[-1]
+        for repo in self.api.projects.list(search=name, page=1):
+            if repo.path_with_namespace == full_name:
+                repo_list.append({
                     "project_id": repo.id,
                     "project_full_name": repo.path_with_namespace,
                     "project_name": repo.name,
@@ -170,29 +173,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                     "project_ssl_url": repo.ssh_url_to_repo,
                     "updated_at": repo.last_activity_at,
                     "created_at": repo.created_at
-                }
-            )
-        return repo_list
-
-    def get_repo_detail(self, full_name, *args, **kwargs):
-        access_token, _ = self._get_access_token()
-        repo_list = []
-        name = full_name.split("/")[-1]
-        for repo in self.api.projects.list(search=name, page=1):
-            if repo.path_with_namespace == full_name:
-                repo_list.append(
-                    {
-                        "project_id": repo.id,
-                        "project_full_name": repo.path_with_namespace,
-                        "project_name": repo.name,
-                        "project_description": repo.description,
-                        "project_url": repo.http_url_to_repo,
-                        "project_default_branch": repo.default_branch,
-                        "project_ssl_url": repo.ssh_url_to_repo,
-                        "updated_at": repo.last_activity_at,
-                        "created_at": repo.created_at
-                    }
-                )
+                })
         return repo_list
 
     def get_branches(self, full_name):

@@ -34,10 +34,7 @@ class PluginBaseView(RegionTenantHeaderView):
             team_info = Tenants.objects.filter(tenant_id=self.plugin.tenant_id)
             if team_info:
                 raise BusinessException(
-                    response=Response(
-                        general_message(
-                            10403, "plugin team is not current team", "插件不属于当前团队"),
-                        status=404))
+                    response=Response(general_message(10403, "plugin team is not current team", "插件不属于当前团队"), status=404))
             else:
                 raise BusinessException(
                     response=Response(general_message(10403, "current team is not exist", "团队不存在"), status=404))
@@ -56,10 +53,8 @@ class PluginBaseView(RegionTenantHeaderView):
             else:
                 raise BusinessException(
                     response=Response(
-                        general_message(
-                            10403, "plugin id {0}, build version {1} is not exist".format(
-                                plugin_id, build_version),
-                            "当前版本插件不存在"),
+                        general_message(10403, "plugin id {0}, build version {1} is not exist".format(plugin_id, build_version),
+                                        "当前版本插件不存在"),
                         status=404))
 
     def initial_header_info(self, request):

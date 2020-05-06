@@ -75,7 +75,7 @@ class TenantGroupView(RegionTenantHeaderView):
                 "group_name": data.group_name,
                 "is_default": data.is_default,
                 "group_id": data.ID,
-                }
+            }
             result = general_message(200, "success", "创建成功", bean=bean)
         except ServiceHandleException as e:
             result = general_message(400, e.msg, e.msg_show)

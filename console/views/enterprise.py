@@ -128,11 +128,7 @@ class EnterpriseOverview(JWTAuthApiView):
         team = enterprise_repo.get_enterprise_teams(enterprise_id)
         team_nums = len(team)
         shared_app_nums = enterprise_repo.get_enterprise_shared_app_nums(enterprise_id)
-        data = {
-            "shared_apps": shared_app_nums,
-            "total_teams": team_nums,
-            "total_users": user_nums
-        }
+        data = {"shared_apps": shared_app_nums, "total_teams": team_nums, "total_users": user_nums}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -146,12 +142,7 @@ class EnterpriseTeams(JWTAuthApiView):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
         teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, page=page, page_size=page_size)
-        data = {
-            "total_count": total,
-            "page": page,
-            "page_size": page_size,
-            "list": teams
-        }
+        data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -314,8 +305,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
         data = []
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(
-            enterprise_id, self.user, page, page_size)
+        enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(enterprise_id, self.user, page, page_size)
         if enterprise_apps:
             for app in enterprise_apps:
                 try:
@@ -330,8 +320,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
                     "tenant_name": tenant_name,
                     "region_name": app.region_name
                 })
-        result = general_message(200, "success", "获取成功", list=data,
-                                 total_count=apps_count, page=page, page_size=page_size)
+        result = general_message(200, "success", "获取成功", list=data, total_count=apps_count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
 
 
@@ -360,6 +349,5 @@ class EnterpriseAppComponentsLView(JWTAuthApiView):
                         "service_cname": service.service_cname,
                         "service_key": service.service_key,
                     })
-        result = general_message(200, "success", "获取成功", list=data,
-                                 total_count=count, page=page, page_size=page_size)
+        result = general_message(200, "success", "获取成功", list=data, total_count=count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)

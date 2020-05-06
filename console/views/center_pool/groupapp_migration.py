@@ -75,13 +75,11 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
             return Response(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status=404)
         regions = region_services.get_team_usable_regions(migrate_team)
         if migrate_region not in [r.region_name for r in regions]:
-            msg_cn = "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(
-                migrate_region, migrate_team.tenant_name)
+            msg_cn = "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(migrate_region, migrate_team.tenant_name)
             return Response(general_message(412, "region is not usable", msg_cn), status=412)
 
-        migrate_record = migrate_service.start_migrate(
-            self.user, self.tenant, self.region_name, migrate_team, migrate_region,
-            backup_id, migrate_type, event_id, restore_id)
+        migrate_record = migrate_service.start_migrate(self.user, self.tenant, self.region_name, migrate_team, migrate_region,
+                                                       backup_id, migrate_type, event_id, restore_id)
         result = general_message(200, "success", "操作成功，开始迁移应用", bean=migrate_record.to_dict())
         return Response(result, status=result["code"])
 
@@ -160,9 +158,7 @@ class GroupAppsView(RegionTenantHeaderView):
 
             new_group = group_repo.get_group_by_id(new_group_id)
             if not new_group:
-                return Response(
-                    general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)),
-                    status=400)
+                return Response(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)), status=400)
             services = group_service.get_group_services(group_id)
             for service in services:
                 try:

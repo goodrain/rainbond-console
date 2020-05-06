@@ -4,7 +4,6 @@ from console.models.main import AutoscalerRules
 
 
 class AutoscalerRulesRepository(object):
-
     def create(self, **data):
         return AutoscalerRules.objects.create(**data)
 
@@ -21,17 +20,17 @@ class AutoscalerRulesRepository(object):
 
 
 class AutoscalerRuleMetricsRepository(object):
-
     def bulk_create(self, data):
         metrics = []
         for item in data:
-            metrics.append(AutoscalerRuleMetrics(
-                rule_id=item["rule_id"],
-                metric_type=item["metric_type"],
-                metric_name=item["metric_name"],
-                metric_target_type=item["metric_target_type"],
-                metric_target_value=item["metric_target_value"],
-            ))
+            metrics.append(
+                AutoscalerRuleMetrics(
+                    rule_id=item["rule_id"],
+                    metric_type=item["metric_type"],
+                    metric_name=item["metric_name"],
+                    metric_target_type=item["metric_target_type"],
+                    metric_target_value=item["metric_target_value"],
+                ))
         return AutoscalerRuleMetrics.objects.bulk_create(metrics)
 
     def list_by_rule_ids(self, rule_ids):

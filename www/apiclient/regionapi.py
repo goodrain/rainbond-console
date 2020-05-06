@@ -728,8 +728,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_target_events_list(self, region, tenant_name, target, target_id, page, page_size):
         """获取作用对象事件日志列表"""
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(
-            target, target_id, page, page_size)
+        url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
@@ -1632,5 +1631,4 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             return res, body
         except Exception as e:
             logger.debug(e)
-            raise ServiceHandleException(
-                msg="link error", msg_show="无法连接到数据中心: {}， 请检查配置".format(region_name))
+            raise ServiceHandleException(msg="link error", msg_show="无法连接到数据中心: {}， 请检查配置".format(region_name))

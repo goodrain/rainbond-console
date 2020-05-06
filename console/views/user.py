@@ -372,8 +372,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         # 创建用户
-        user = user_services.create_user_set_password(
-            user_name, email, password, "admin add", enterprise, client_ip)
+        user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
         result = general_message(200, "success", "添加用户成功")
         if role_ids:
             try:
@@ -390,8 +389,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                     return Response(result, status=code)
             # 创建用户团队关系表
             if tenant_name:
-                team_services.create_tenant_role(
-                    user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
+                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
             user.is_active = True
             user.save()
             result = general_message(200, "success", "添加用户成功")

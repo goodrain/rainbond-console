@@ -19,16 +19,14 @@ class UploadFileRespSerializer(serializers.Serializer):
 
 
 class UploadView(BaseOpenAPIView):
-    parser_classes = (MultiPartParser,)
+    parser_classes = (MultiPartParser, )
 
     @swagger_auto_schema(
         operation_description="上传文件",
         manual_parameters=[
             openapi.Parameter("file", openapi.IN_FORM, description="文件", type=openapi.TYPE_FILE),
         ],
-        responses={
-            status.HTTP_200_OK: UploadFileRespSerializer()
-        },
+        responses={status.HTTP_200_OK: UploadFileRespSerializer()},
         tags=['openapi-upload'],
     )
     def post(self, request):

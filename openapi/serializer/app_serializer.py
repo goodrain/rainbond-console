@@ -3,7 +3,6 @@
 from rest_framework import serializers
 from www.models.main import TenantServiceInfo, ServiceGroup
 
-
 ACTION_CHOICE = (
     ("stop", ("stop")),
     ("start", ("start")),
@@ -28,9 +27,10 @@ class AppPostInfoSerializer(serializers.Serializer):
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantServiceInfo
-        exclude = ["ID", "service_port", "is_web_service", "setting", "env", "inner_port", "volume_mount_path",
-                   "host_path", "deploy_version", "is_code_upload", "protocol", "namespace", "volume_type",
-                   "port_type", "service_name", "secret"]
+        exclude = [
+            "ID", "service_port", "is_web_service", "setting", "env", "inner_port", "volume_mount_path", "host_path",
+            "deploy_version", "is_code_upload", "protocol", "namespace", "volume_type", "port_type", "service_name", "secret"
+        ]
 
 
 class AppInfoSerializer(AppBaseInfoSerializer):
@@ -58,8 +58,7 @@ class APPHttpDomainSerializer(serializers.Serializer):
     app_id = serializers.IntegerField(help_text=u"应用id")
     service_key = serializers.CharField(help_text=u"应用组件id")
     container_port = serializers.IntegerField(help_text=u"绑定端口")
-    certificate_id = serializers.CharField(help_text=u"证书id", allow_null=True,
-                                           allow_blank=True, default="")
+    certificate_id = serializers.CharField(help_text=u"证书id", allow_null=True, allow_blank=True, default="")
     domain_name = serializers.CharField(max_length=253, help_text=u"域名")
     domain_cookie = serializers.CharField(help_text=u"域名cookie", required=False)
     domain_header = serializers.CharField(help_text=u"域名header", required=False)

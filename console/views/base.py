@@ -348,5 +348,4 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from console.exception.main import ServiceHandleException
 
-err_cert_name_exists = ServiceHandleException(
-    "certificate name already exists",
-    u"证书别名已存在", 412, 412)
+err_cert_name_exists = ServiceHandleException("certificate name already exists", u"证书别名已存在", 412, 412)
 
 err_cert_not_found = ServiceHandleException("certificate not found", u"证书不存在", 404, 404)
 

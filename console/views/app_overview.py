@@ -15,19 +15,14 @@ from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
-from console.constants import AppConstants
-from console.constants import PluginCategoryConstants
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.exception.main import RbdAppNotFound
-from console.exception.main import MarketAppLost
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.app import service_webhooks_repo
+
+from console.constants import AppConstants, PluginCategoryConstants
+from console.exception.main import MarketAppLost, RbdAppNotFound
+from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
@@ -37,13 +32,13 @@ from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
 from www.utils.md5Util import md5fun
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 from www.utils.url import get_redirect_url
 
 logger = logging.getLogger("default")
@@ -297,12 +292,11 @@ class ListAppPodsView(AppBaseView):
               paramType: path
         """
 
-        data = region_api.get_service_pods(self.service.service_region,
-                                           self.tenant.tenant_name,
-                                           self.service.service_alias,
+        data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                            self.tenant.enterprise_id)
         result = {}
         if data["bean"]:
+
             def foobar(data):
                 if data is None:
                     return
@@ -316,8 +310,6 @@ class ListAppPodsView(AppBaseView):
                     container_list = []
                     for key, val in container.items():
                         if key == "POD":
-                            continue
-                        if key != self.service.service_id:
                             continue
                         container_dict = dict()
                         container_dict["container_name"] = key
@@ -333,6 +325,7 @@ class ListAppPodsView(AppBaseView):
                     bean["container"] = container_list
                     res.append(bean)
                 return res
+
             pods = data["bean"]
             newpods = foobar(pods.get("new_pods", None))
             old_pods = foobar(pods.get("old_pods", None))
@@ -528,14 +521,10 @@ class AppDockerView(AppBaseView):
                 main_url = region_services.get_region_wsurl(self.service.service_region)
                 if main_url == "auto":
                     bean["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-                        settings.DOCKER_WSS_URL["type"],
-                        settings.DOCKER_WSS_URL[self.service.service_region],
-                        t_docker_h_id
-                    )
+                        settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
                 else:
                     bean["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
-                response = Response(general_message(200, "success", "信息获取成功"),
-                                    status=200, template_name="www/console.html")
+                response = Response(general_message(200, "success", "信息获取成功"), status=200, template_name="www/console.html")
         except Exception as e:
             logger.exception(e)
 
@@ -711,29 +700,19 @@ class BuildSourceinfo(AppBaseView):
                     if is_oauth:
                         try:
                             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                                service_id=oauth_service_id, user_id=user_id)
+                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None},
-                                   "status": 400,
-                                   "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"
-                                   }
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
                             return Response(rst, status=200)
                         try:
                             instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None},
-                                   "status": 400,
-                                   "msg_show": u"未找到OAuth服务"
-                                   }
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务"}
                             return Response(rst, status=200)
                         if not instance.is_git_oauth():
-                            rst = {"data": {"bean": None},
-                                   "status": 400,
-                                   "msg_show": u"该OAuth服务不是代码仓库类型"
-                                   }
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
                             return Response(rst, status=200)
                         service_code_from = "oauth_" + oauth_service.oauth_type
                         self.service.code_from = service_code_from
