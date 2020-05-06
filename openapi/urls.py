@@ -13,7 +13,8 @@ from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.announcement_view import (AnnouncementView, ListAnnouncementView)
 from openapi.views.apps.market import MarketAppInstallView
 from openapi.views.appstore_view import AppStoreInfoView, ListAppStoresView
-from openapi.views.enterprise_view import (EnterpriseInfoView, EnterpriseSourceView, ListEnterpriseInfoView)
+from openapi.views.enterprise_view import (EnterpriseInfoView, EnterpriseSourceView,
+                                           ListEnterpriseInfoView, EnterpriseConfigView)
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.oauth import OauthTypeView
 from openapi.views.region_view import (ListRegionInfo, RegionInfo, RegionStatusView)
@@ -73,6 +74,7 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
         url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
         url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
+        url(r'^v1/enterprises/(?P<eid>[\w\-]+)/configs$', EnterpriseConfigView.as_view(), name="ent_info"),
         url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
         url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
         url(r'^v1/announcements$', ListAnnouncementView.as_view()),

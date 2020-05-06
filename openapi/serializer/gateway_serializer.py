@@ -19,6 +19,7 @@ class EnterpriseHTTPGatewayRuleSerializer(serializers.ModelSerializer):
     region_name = serializers.CharField(help_text=u"所属集群ID")
     team_name = serializers.CharField(help_text=u"所属团队唯一名称")
     app_id = serializers.IntegerField(help_text=u"所属应用ID")
+    rule_name = serializers.CharField(max_length=32, help_text=u"分发方式")
 
 
 class PostHTTPGatewayRuleSerializer(serializers.Serializer):

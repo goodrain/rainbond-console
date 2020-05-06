@@ -474,7 +474,7 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
             result = general_message(400, "parameter is null", "参数缺失")
             return Response(result)
         if attr_name and attr_value:
-            result = general_message(400, "faild", "变量名和值不能同时存在")
+            result = general_message(400, "failed", "变量名和值不能同时存在")
             return Response(result)
         try:
             # 查询变量名

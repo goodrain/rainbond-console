@@ -292,6 +292,9 @@ class DomainService(object):
         domain_heander = httpdomain.get("domain_heander", None)
         protocol = httpdomain.get("protocol", None)
         domain_type = httpdomain["domain_type"]
+        auto_ssl = httpdomain["auto_ssl"]
+        auto_ssl_config = httpdomain["auto_ssl_config"]
+
         # 校验域名格式
         self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
         http_rule_id = make_uuid(domain_name)
@@ -354,6 +357,8 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else ""
         domain_info["the_weight"] = int(httpdomain.get("the_weight", 100))
         domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["auto_ssl"] = auto_ssl
+        domain_info["auto_ssl_config"] = auto_ssl_config
 
         rule_extensions_str = ""
         if rule_extensions:
