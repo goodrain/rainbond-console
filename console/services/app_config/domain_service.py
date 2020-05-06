@@ -295,7 +295,7 @@ class DomainService(object):
         protocol = httpdomain.get("protocol", None)
         domain_type = httpdomain["domain_type"]
         auto_ssl = httpdomain["auto_ssl"]
-        rule_name = httpdomain["rule_name"]
+        auto_ssl_config = httpdomain["auto_ssl_config"]
 
         # 校验域名格式
         self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
@@ -360,7 +360,7 @@ class DomainService(object):
         domain_info["the_weight"] = int(httpdomain.get("the_weight", 100))
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["auto_ssl"] = auto_ssl
-        domain_info["rule_name"] = rule_name
+        domain_info["auto_ssl_config"] = auto_ssl_config
 
         rule_extensions_str = ""
         if rule_extensions:

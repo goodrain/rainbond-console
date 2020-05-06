@@ -74,7 +74,7 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
         url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
         url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
-        url(r'^v1/enterprises/(?P<eid>[\w\-]+)/config$', EnterpriseConfigView.as_view(), name="ent_info"),
+        url(r'^v1/enterprises/(?P<eid>[\w\-]+)/configs$', EnterpriseConfigView.as_view(), name="ent_info"),
         url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
         url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
         url(r'^v1/announcements$', ListAnnouncementView.as_view()),

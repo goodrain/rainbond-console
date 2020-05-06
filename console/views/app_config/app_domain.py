@@ -421,7 +421,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         the_weight = request.data.get("the_weight", 100)
         domain_path = do_path if do_path else "/"
         auto_ssl = request.data.get("auto_ssl", False)
-        rule_name = request.data.get("auto_ssl", None)
+        auto_ssl_config = request.data.get("auto_ssl_config", None)
 
         # 判断参数
         if not container_port or not domain_name or not service_id:
@@ -443,13 +443,13 @@ class HttpStrategyView(RegionTenantHeaderView):
         if auto_ssl:
             auto_ssl = True
         if auto_ssl:
-            auto_ssl_config = EnterpriseConfigService(self.tenant.enterprise_id).get_auto_ssl_info()
-            if not auto_ssl_config:
+            auto_ssl_configs = EnterpriseConfigService(self.tenant.enterprise_id).get_auto_ssl_info()
+            if not auto_ssl_configs:
                 result = general_message(400, "failed", "未找到自动分发证书相关配置")
                 return Response(result, status=400)
 
             else:
-                if rule_name not in auto_ssl_config.keys():
+                if auto_ssl_config not in auto_ssl_configs.keys():
                     result = general_message(400, "failed", "未找到该自动分发方式")
                     return Response(result, status=400)
 
@@ -506,7 +506,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             "the_weight": the_weight,
             "rule_extensions": rule_extensions,
             "auto_ssl": auto_ssl,
-            "rule_name": rule_name,
+            "auto_ssl_config": auto_ssl_config,
         }
         data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
         result = general_message(201, "success", "策略添加成功", bean=data)

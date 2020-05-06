@@ -192,26 +192,3 @@ class EnterpriseConfigView(BaseOpenAPIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")
-
-    @swagger_auto_schema(
-        operation_description="重置企业配置信息",
-        responses={200: EnterpriseConfigSeralizer},
-        tags=['openapi-entreprise'],
-    )
-    def delete(self, req, eid, *args, **kwargs):
-        key = req.GET.get("key")
-        if not key:
-            raise ServiceHandleException(status_code=404, msg="no found config key {0}".format(key), msg_show=u"重置失败")
-
-        value = req.data.get(key)
-        if not value:
-            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"重置失败")
-        ent_config_servier = EnterpriseConfigService(eid)
-        key = key.upper()
-        if key in ent_config_servier.cfg_keys:
-            data = ent_config_servier.delete_config(key)
-            serializer = EnterpriseConfigSeralizer(data=data)
-            serializer.is_valid(raise_exception=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")
