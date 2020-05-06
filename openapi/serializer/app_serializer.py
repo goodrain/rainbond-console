@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 from rest_framework import serializers
-from www.models.main import TenantServiceInfo, ServiceGroup
+
+from www.models.main import ServiceGroup, TenantServiceInfo
 
 ACTION_CHOICE = (
     ("stop", ("stop")),

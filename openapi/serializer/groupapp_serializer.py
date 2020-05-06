@@ -2,6 +2,7 @@
 # create by: panda-zxs
 
 from rest_framework import serializers
+
 from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 
 

@@ -4,25 +4,15 @@ import logging
 from django.db.models import Q
 
 from console.exception.exceptions import ExterpriseNotExistError
-from console.models.main import EnterpriseUserPerm
+from console.models.main import (Applicants, EnterpriseUserPerm, RainbondCenterApp)
 from console.repositories.base import BaseConnection
+from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.user_role_repo import user_role_repo
-from console.repositories.user_role_repo import UserRoleNotFoundException
-from console.repositories.group import group_service_relation_repo
-from console.repositories.group import group_repo
-from console.repositories.service_repo import service_repo
-from console.models.main import Applicants
-from console.models.main import RainbondCenterApp
-
-from www.models.main import TenantEnterprise
-from www.models.main import TenantRegionInfo
-from www.models.main import ServiceGroup
-from www.models.main import ServiceGroupRelation
-from www.models.main import Users
-from www.models.main import Tenants
-from www.models.main import PermRelTenant
+from console.repositories.user_role_repo import (UserRoleNotFoundException, user_role_repo)
+from www.models.main import (PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise, TenantRegionInfo, Tenants,
+                             Users)
 
 logger = logging.getLogger("default")
 
@@ -86,9 +76,7 @@ class TenantEnterpriseRepo(object):
         teams = self.get_enterprise_user_teams(enterprise_id, user_id)
         if not teams:
             return teams
-        for team in teams:
-            if team:
-                team_ids.append(team.tenant_id)
+        team_ids = [team.tenant_id for team in teams]
         return Applicants.objects.filter(user_id=user_id, is_pass=1, team_id__in=team_ids).order_by("-apply_time")
 
     def get_enterprise_teams(self, enterprise_id, name=None):
@@ -232,12 +220,7 @@ class TenantEnterpriseRepo(object):
         return Applicants.objects.filter(user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
 
     def get_enterprise_tenant_ids(self, enterprise_id, user=None):
-        if user is None:
-            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
-            if not teams:
-                return None
-            team_ids = teams.values_list("tenant_id", flat=True)
-        elif self.is_user_admin_in_enterprise(user, enterprise_id):
+        if user is None or self.is_user_admin_in_enterprise(user, enterprise_id):
             teams = Tenants.objects.filter(enterprise_id=enterprise_id)
             if not teams:
                 return None

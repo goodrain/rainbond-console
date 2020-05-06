@@ -4,43 +4,30 @@ import logging
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import exceptions
-from rest_framework import serializers
-from rest_framework import status
+from rest_framework import exceptions, serializers, status
 from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from console.services.app_config import domain_service
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
-from console.services.app_config import domain_service
 from openapi.serializer.base_serializer import FailSerializer
-from openapi.serializer.team_serializer import CreateTeamReqSerializer
-from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
-from openapi.serializer.team_serializer import ListRegionTeamServicesSerializer
-from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
-from openapi.serializer.team_serializer import ListTeamRespSerializer
-from openapi.serializer.team_serializer import RoleInfoRespSerializer
-from openapi.serializer.team_serializer import TeamBaseInfoSerializer
-from openapi.serializer.team_serializer import TeamInfoSerializer
-from openapi.serializer.team_serializer import TeamRegionReqSerializer
-from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
-from openapi.serializer.team_serializer import TeamCertificatesLSerializer
-from openapi.serializer.team_serializer import TeamCertificatesCSerializer
-from openapi.serializer.team_serializer import TeamCertificatesRSerializer
+from openapi.serializer.team_serializer import (
+    CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
+    ListTeamRespSerializer, RoleInfoRespSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
+    TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer,
+    UpdateTeamInfoReqSerializer)
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
-from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import TeamNoRegionAPIView
-from openapi.views.base import ListAPIView
-from openapi.views.exceptions import ErrTeamNotFound, ErrRegionNotFound
+from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamNoRegionAPIView)
+from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
+from www.models.main import PermRelTenant, Tenants
 from www.utils.crypt import make_uuid
-from www.models.main import PermRelTenant
-from www.models.main import Tenants
 
 logger = logging.getLogger("default")
 

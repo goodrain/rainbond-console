@@ -2,20 +2,22 @@
 # creater by: barnett
 
 import logging
+
+from django.forms.models import model_to_dict
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
-from django.forms.models import model_to_dict
-from openapi.serializer.base_serializer import FailSerializer, SuccessSerializer
-from openapi.views.base import TeamAPIView
-from openapi.serializer.app_serializer import AppInfoSerializer, AppBaseInfoSerializer, AppPostInfoSerializer
-from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
-from openapi.serializer.app_serializer import ServiceGroupOperationsSerializer
-from openapi.views.exceptions import ErrAppNotFound
-from console.services.group_service import group_service
-from openapi.services.app_service import app_service
+
 from console.services.app_actions import app_manage_service
+from console.services.group_service import group_service
+from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
+                                               ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer)
+from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
+from openapi.services.app_service import app_service
+from openapi.views.base import TeamAPIView
+from openapi.views.exceptions import ErrAppNotFound
+
 logger = logging.getLogger("default")
 
 
