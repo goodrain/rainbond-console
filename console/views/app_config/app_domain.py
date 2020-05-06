@@ -19,6 +19,7 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config import domain_service, port_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.services.config_service import EnterpriseConfigService
 from console.utils.reqparse import parse_item
 from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
@@ -303,7 +304,7 @@ class ServiceDomainView(AppBaseView):
         service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(self.service.service_id, container_port,
                                                                               domain_name, protocol)
         if service_domain:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
 
         domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol, certificate_id,
@@ -419,6 +420,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         whether_open = request.data.get("whether_open", False)
         the_weight = request.data.get("the_weight", 100)
         domain_path = do_path if do_path else "/"
+        auto_ssl = request.data.get("auto_ssl", False)
+        rule_name = request.data.get("auto_ssl", None)
 
         # 判断参数
         if not container_port or not domain_name or not service_id:
@@ -434,10 +437,23 @@ class HttpStrategyView(RegionTenantHeaderView):
         service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name,
                                                                               protocol, domain_path)
         if service_domain:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
 
-        # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+        if auto_ssl:
+            auto_ssl = True
+        if auto_ssl:
+            auto_ssl_config = EnterpriseConfigService(self.tenant.enterprise_id).get_auto_ssl_info()
+            if not auto_ssl_config:
+                result = general_message(400, "failed", "未找到自动分发证书相关配置")
+                return Response(result, status=400)
+
+            else:
+                if rule_name not in auto_ssl_config.keys():
+                    result = general_message(400, "failed", "未找到该自动分发方式")
+                    return Response(result, status=400)
+
+    # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
         domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
         domain_protocol_list = []
         is_httptohttps = False
@@ -448,7 +464,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                     is_httptohttps = True
 
         if is_httptohttps:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
         add_httptohttps = False
         if rule_extensions:
@@ -456,7 +472,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                 if rule["key"] == "httptohttps":
                     add_httptohttps = True
         if "http" in domain_protocol_list and add_httptohttps:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
 
         if service.service_source == "third_party":
@@ -488,7 +504,9 @@ class HttpStrategyView(RegionTenantHeaderView):
             "domain_cookie": domain_cookie,
             "domain_heander": domain_heander,
             "the_weight": the_weight,
-            "rule_extensions": rule_extensions
+            "rule_extensions": rule_extensions,
+            "auto_ssl": auto_ssl,
+            "rule_name": rule_name,
         }
         data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
         result = general_message(201, "success", "策略添加成功", bean=data)
@@ -538,10 +556,10 @@ class HttpStrategyView(RegionTenantHeaderView):
             for domain in domains:
                 rule_id_list.append(domain.http_rule_id)
         if len(rule_id_list) > 1 and add_httptohttps:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
         if len(rule_id_list) == 1 and add_httptohttps and http_rule_id != rule_id_list[0]:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
         domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port, certificate_id,
                                          DomainType.WWW, domain_path, domain_cookie, domain_heander, http_rule_id, the_weight,
@@ -1039,7 +1057,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         region = region_repo.get_region_by_region_name(service.service_region)
         service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
         if service_tcpdomain:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result)
 
         if service.service_source == "third_party":
@@ -1098,7 +1116,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         region = region_repo.get_region_by_region_name(service.service_region)
         service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
         if service_tcpdomain and service_tcpdomain[0].service_id != service_id:
-            result = general_message(400, "faild", "策略已存在")
+            result = general_message(400, "failed", "策略已存在")
             return Response(result)
 
         # 修改策略

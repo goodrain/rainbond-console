@@ -169,6 +169,7 @@ class EnterpriseConfigService(ConfigService):
             "EXPORT_APP",
             "CLOUD_MARKET",
             "OBJECT_STORAGE",
+            "AUTO_SSL",
         ]
         self.cfg_keys_value = {
             "APPSTORE_IMAGE_HUB": {
@@ -207,6 +208,11 @@ class EnterpriseConfigService(ConfigService):
                 "desc": u"云端备份使用的对象存储信息",
                 "enable": False
             },
+            "AUTO_SSL": {
+                "value": None,
+                "desc": u"证书自动签发",
+                "enable": False
+            }
         }
 
     def init_base_config_value(self):
@@ -252,6 +258,12 @@ class EnterpriseConfigService(ConfigService):
         if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
             return None
         return eval(cloud_obj_storage_info.value)
+
+    def get_auto_ssl_info(self):
+        auto_ssl_config = self.get_config_by_key("AUTO_SSL")
+        if not auto_ssl_config or not auto_ssl_config.enable:
+            return None
+        return eval(auto_ssl_config.value)
 
 
 class PlatformConfigService(ConfigService):

@@ -12,12 +12,14 @@ from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
+from console.services.config_service import EnterpriseConfigService
 from www.apiclient.regionapi import RegionInvokeApi
 from console.utils.timeutil import time_to_str
 from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
 from openapi.serializer.ent_serializers import ListEntsRespSerializer
 from openapi.serializer.ent_serializers import UpdEntReqSerializer
 from openapi.serializer.ent_serializers import EnterpriseSourceSerializer
+from openapi.serializer.config_serializers import EnterpriseConfigSeralizer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 
@@ -143,3 +145,73 @@ class EntUserInfoView(BaseOpenAPIView):
 
         result = {"list": admin_list, "total": admins_num}
         return Response(result, status.HTTP_200_OK)
+
+
+class EnterpriseConfigView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取企业配置信息",
+        responses={200: EnterpriseConfigSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, eid):
+        key = req.GET.get("key", None)
+        ent = enterprise_services.get_enterprise_by_id(eid)
+        if ent is None:
+            return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
+        ent_config = EnterpriseConfigService(eid).initialization_or_get_config
+        if key is None:
+            serializer = EnterpriseConfigSeralizer(data=ent_config)
+        elif key in ent_config.keys():
+            serializer = EnterpriseConfigSeralizer(data={key: ent_config[key]})
+        else:
+            raise ServiceHandleException(
+                status_code=404, msg="no found config key {}".format(key), msg_show=u"企业没有 {} 配置".format(key))
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="更新企业配置信息",
+        request_body=EnterpriseConfigSeralizer,
+        responses={200: EnterpriseConfigSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def put(self, req, eid, *args, **kwargs):
+        key = req.GET.get("key")
+        if not key:
+            raise ServiceHandleException(status_code=404, msg="no found config key {0}".format(key), msg_show=u"更新失败")
+        value = req.data.get(key)
+        if not value:
+            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")
+        ent_config_servier = EnterpriseConfigService(eid)
+        key = key.upper()
+        if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
+            print value
+            data = ent_config_servier.update_config(key, value)
+            serializer = EnterpriseConfigSeralizer(data=data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")
+
+    @swagger_auto_schema(
+        operation_description="重置企业配置信息",
+        responses={200: EnterpriseConfigSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def delete(self, req, eid, *args, **kwargs):
+        key = req.GET.get("key")
+        if not key:
+            raise ServiceHandleException(status_code=404, msg="no found config key {0}".format(key), msg_show=u"重置失败")
+
+        value = req.data.get(key)
+        if not value:
+            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"重置失败")
+        ent_config_servier = EnterpriseConfigService(eid)
+        key = key.upper()
+        if key in ent_config_servier.cfg_keys:
+            data = ent_config_servier.delete_config(key)
+            serializer = EnterpriseConfigSeralizer(data=data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")
