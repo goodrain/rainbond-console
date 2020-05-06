@@ -11,9 +11,9 @@ import ssl
 
 import certifi
 import urllib3
-from urllib3.exceptions import MaxRetryError
 from addict import Dict
 from django.conf import settings
+from urllib3.exceptions import MaxRetryError
 
 from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo

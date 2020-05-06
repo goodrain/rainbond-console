@@ -179,13 +179,14 @@ class EnterpriseConfigView(BaseOpenAPIView):
         key = req.GET.get("key")
         if not key:
             raise ServiceHandleException(status_code=404, msg="no found config key {0}".format(key), msg_show=u"更新失败")
-        value = req.data.get(key)
-        if not value:
+        serializer = EnterpriseConfigSeralizer(data=req.data)
+        serializer.is_valid(raise_exception=True)
+        if not serializer.data:
             raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")
+        value = serializer.data[key]
         ent_config_servier = EnterpriseConfigService(eid)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
-            print value
             data = ent_config_servier.update_config(key, value)
             serializer = EnterpriseConfigSeralizer(data=data)
             serializer.is_valid(raise_exception=True)

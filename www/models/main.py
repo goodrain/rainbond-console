@@ -2,23 +2,16 @@
 import logging
 import re
 from datetime import datetime
+from enum import Enum
 
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import AutoField
-from django.db.models.fields import BooleanField
-from django.db.models.fields import CharField
-from django.db.models.fields import DateTimeField
-from django.db.models.fields import DecimalField
-from django.db.models.fields import IntegerField
+from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
-from enum import Enum
 
 from console.utils import runner_util
-from www.utils.crypt import encrypt_passwd
-from www.utils.crypt import make_tenant_id
-from www.utils.crypt import make_uuid
+from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
 
 logger = logging.getLogger("default")
 

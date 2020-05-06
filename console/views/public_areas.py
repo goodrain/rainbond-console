@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.core.paginator import EmptyPage
-from django.core.paginator import PageNotAnInteger
-from django.core.paginator import Paginator
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import connection
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.exceptions import GroupNotExistError
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import tcp_domain
+from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
@@ -24,8 +21,7 @@ from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.decorator import perm_required
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 from www.utils.status_translate import get_status_info_map
 
 event_service = AppEventService()
@@ -295,9 +291,9 @@ class ServiceEventsView(RegionTenantHeaderView):
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 3)
             total = 0
-            regionsList = region_repo.get_team_opened_region(self.tenant)
+            regions_list = region_repo.get_team_opened_region(self.tenant)
             event_service_dynamic_list = []
-            for region in regionsList:
+            for region in regions_list:
                 try:
                     events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id,
                                                                                     self.tenant, region.region_name, int(page),

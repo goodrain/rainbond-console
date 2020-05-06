@@ -428,9 +428,20 @@ class MarketAppService(object):
                 image = image_and_tag[0]
                 image_tag = "latest"
 
-        status, msg, plugin_base_info = plugin_service.create_tenant_plugin(
-            tenant, user.user_id, region_name, plugin_template["desc"], plugin_template["plugin_alias"],
-            plugin_template["category"], "image", image, plugin_template["code_repo"])
+        plugin_params = {
+            "tenant_id": tenant.tenant_id,
+            "region": region_name,
+            "create_user": user.user_id,
+            "desc": plugin_template["desc"],
+            "plugin_alias": plugin_template["plugin_alias"],
+            "category": plugin_template["category"],
+            "build_source": "image",
+            "image": image,
+            "code_repo": plugin_template["code_repo"],
+            "username": "",
+            "password": ""
+        }
+        status, msg, plugin_base_info = plugin_service.create_tenant_plugin(plugin_params)
         if status != 200:
             return status, msg
 

@@ -4,24 +4,19 @@ import logging
 from urlparse import urlsplit
 
 from django.shortcuts import redirect
-
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
 
 from console.exception.main import ServiceHandleException
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
-from console.views.base import JWTAuthApiView, AlowAnyApiView
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
 from console.services.oauth_service import oauth_sev_user_service
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import NoSupportOAuthType
-from console.utils.oauth.oauth_types import support_oauth_type
-from www.utils.return_message import error_message
-
+from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
+from console.views.base import AlowAnyApiView, JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
+from www.utils.return_message import error_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")

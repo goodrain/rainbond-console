@@ -4,15 +4,14 @@
 """
 import logging
 
+from django.views.decorators.cache import never_cache
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from openapi.views.base import TeamAPIView
+
 from console.services.groupcopy_service import groupapp_copy_service
-from openapi.serializer.groupapp_serializer import AppCopyLSerializer
-from openapi.serializer.groupapp_serializer import AppCopyCSerializer
-from openapi.serializer.groupapp_serializer import AppCopyCResSerializer
+from openapi.serializer.groupapp_serializer import (AppCopyCResSerializer, AppCopyCSerializer, AppCopyLSerializer)
+from openapi.views.base import TeamAPIView
 
 logger = logging.getLogger('default')
 

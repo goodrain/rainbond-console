@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 
 class ConfigBaseSerializer(serializers.Serializer):
-    enable = serializers.BooleanField(required=False)
+    enable = serializers.BooleanField(required=False, default=False)
 
 
 class AppStoreImageHubRespSerializer(serializers.Serializer):

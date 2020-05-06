@@ -4,18 +4,17 @@ import logging
 from django.db import transaction
 
 from console.exception.main import ServiceHandleException
+from console.repositories.deploy_repo import deploy_repo
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
-from console.repositories.deploy_repo import deploy_repo
-from console.services.groupapp_recovery.groupapps_migrate import migrate_service
-from console.services.service_services import base_service
-from console.services.team_services import team_services
-from console.services.backup_service import groupapp_backup_service
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import label_service
-from console.services.app_config import port_service
-
+from console.services.app_config import label_service, port_service
+from console.services.backup_service import groupapp_backup_service
+from console.services.groupapp_recovery.groupapps_migrate import \
+    migrate_service
+from console.services.service_services import base_service
+from console.services.team_services import team_services
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")

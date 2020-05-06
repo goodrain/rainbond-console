@@ -4,15 +4,10 @@ import logging
 from django.db import transaction
 from django.db.models import Q
 
-from console.models.main import PermGroup
-from console.models.main import ServiceRelPerms
-from console.models.main import TenantUserPermission
-from console.models.main import TenantUserRole
-from console.models.main import TenantUserRolePermission
+from console.models.main import (PermGroup, ServiceRelPerms, TenantUserPermission, TenantUserRole, TenantUserRolePermission)
 from console.repositories.team_repo import team_repo
-from www.models.main import PermRelService
-from www.models.main import PermRelTenant
-from www.models.main import Tenants
+from www.models.main import PermRelService, PermRelTenant, Tenants
+
 logger = logging.getLogger('default')
 
 

@@ -1,28 +1,27 @@
 # -*- coding: utf8 -*-
-import logging
 import json
+import logging
 
 from rest_framework import status
 from rest_framework.response import Response
-from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import general_message
+
+from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
-from console.exception.exceptions import UserNotExistError
-from console.services.config_service import EnterpriseConfigService
-from console.services.user_services import user_services
-from console.services.enterprise_services import enterprise_services
-from console.services.region_services import region_services
-from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.exceptions import UserRoleNotFoundException
-from console.exception.exceptions import TenantNotExistError
 from console.repositories.group import group_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.region_repo import region_repo
 from console.repositories.user_role_repo import user_role_repo
-from console.views.base import JWTAuthApiView
+from console.services.config_service import EnterpriseConfigService
+from console.services.enterprise_services import enterprise_services
+from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.services.user_services import user_services
+from console.views.base import JWTAuthApiView
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")

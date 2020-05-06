@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
-import os
 import logging
+import os
 from datetime import datetime
 
 from django.conf import settings
 from django.db.models import Q
+
 from console.exception.exceptions import ConfigExistError
-from console.models.main import ConsoleSysConfig
-from console.models.main import OAuthServices
-from console.services.enterprise_services import enterprise_services
+from console.models.main import ConsoleSysConfig, OAuthServices
 from console.repositories.user_repo import user_repo
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import NoSupportOAuthType
+from console.services.enterprise_services import enterprise_services
+from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
 from goodrain_web.custom_config import custom_config as custom_settings
 
 logger = logging.getLogger("default")
