@@ -7,7 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.constants import PluginCategoryConstants
+from console.services.plugin.app_plugin import allow_plugins
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.base import RegionTenantHeaderView
@@ -105,9 +105,7 @@ class PluginCreateView(RegionTenantHeaderView):
             if not category:
                 return Response(general_message(400, "plugin category is null", "插件类别未指明"), status=400)
             else:
-                if category not in (PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET,
-                                    PluginCategoryConstants.INPUT_NET, PluginCategoryConstants.PERFORMANCE_ANALYSIS,
-                                    PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE):
+                if category not in allow_plugins:
                     return Response(general_message(400, "plugin category is wrong", "插件类别参数错误，详情请参数API说明"), status=400)
             if not desc:
                 return Response(general_message(400, "plugin desc is null", "请填写插件描述"), status=400)
@@ -122,9 +120,20 @@ class PluginCreateView(RegionTenantHeaderView):
                     image = image_and_tag[0]
                     image_tag = "latest"
             # 创建基本信息
-            code, msg, tenant_plugin = plugin_service.create_tenant_plugin(self.tenant, self.user.user_id, self.response_region,
-                                                                           desc, plugin_alias, category, build_source, image,
-                                                                           code_repo, username, password)
+            plugin_params = {
+                "tenant_id": self.tenant.tenant_id,
+                "region": self.response_region,
+                "create_user": self.user.user_id,
+                "desc": desc,
+                "plugin_alias": plugin_alias,
+                "category": category,
+                "build_source": build_source,
+                "image": image,
+                "code_repo": code_repo,
+                "username": username,
+                "password": password
+            }
+            code, msg, tenant_plugin = plugin_service.create_tenant_plugin(plugin_params)
             if code != 200:
                 return Response(general_message(code, "create plugin error", msg), status=code)
 

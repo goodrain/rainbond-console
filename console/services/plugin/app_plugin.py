@@ -40,6 +40,12 @@ plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
 
 has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
+allow_plugins = [PluginCategoryConstants.OUTPUT_INPUT_NET,
+                 PluginCategoryConstants.OUTPUT_NET,
+                 PluginCategoryConstants.INPUT_NET,
+                 PluginCategoryConstants.PERFORMANCE_ANALYSIS,
+                 PluginCategoryConstants.INIT_TYPE,
+                 PluginCategoryConstants.COMMON_TYPE]
 
 
 class AppPluginService(object):
@@ -611,42 +617,16 @@ class PluginService(object):
     def get_plugin_by_plugin_id(self, tenant, plugin_id):
         return plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
 
-    def create_tenant_plugin(self,
-                             tenant,
-                             user_id,
-                             region,
-                             desc,
-                             plugin_alias,
-                             category,
-                             build_source,
-                             image,
-                             code_repo,
-                             username="",
-                             password=""):
+    def create_tenant_plugin(self, plugin_params):
         plugin_id = make_uuid()
-        if build_source == "dockerfile" and not code_repo:
+        plugin_params["plugin_id"] = plugin_id
+        plugin_params["plugin_name"] = "gr" + plugin_id[:6]
+        if plugin_params["build_source"] == "dockerfile" and not plugin_params["code_repo"]:
             return 400, "代码仓库不能为空", None
-        if build_source == "image" and not image:
+        if plugin_params["build_source"] == "image" and not plugin_params["image"]:
             return 400, "镜像地址不能为空", None
-        if category not in (PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET,
-                            PluginCategoryConstants.INPUT_NET, PluginCategoryConstants.PERFORMANCE_ANALYSIS,
-                            PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE):
+        if plugin_params["category"] not in allow_plugins:
             return 400, "插件类别参数不支持", None
-        plugin_params = {
-            "plugin_id": plugin_id,
-            "tenant_id": tenant.tenant_id,
-            "region": region,
-            "create_user": user_id,
-            "desc": desc,
-            "plugin_name": "gr" + plugin_id[:6],
-            "plugin_alias": plugin_alias,
-            "category": category,
-            "build_source": build_source,
-            "image": image,
-            "code_repo": code_repo,
-            "username": username,
-            "password": password
-        }
         tenant_plugin = plugin_repo.create_plugin(**plugin_params)
         return 200, "success", tenant_plugin
 
@@ -721,10 +701,20 @@ class PluginService(object):
             ref = reference.Reference.parse(needed_plugin_config["image"])
             _, name = ref.split_hostname()
             image = settings.IMAGE_REPO + "/" + name
-            code, msg, plugin_base_info = self.create_tenant_plugin(
-                tenant, user.user_id, region, needed_plugin_config["desc"], needed_plugin_config["plugin_alias"],
-                needed_plugin_config["category"], needed_plugin_config["build_source"], image,
-                needed_plugin_config["code_repo"])
+            plugin_params = {
+                "tenant_id": tenant.tenant_id,
+                "region": region,
+                "create_user": user.user_id,
+                "desc": needed_plugin_config["desc"],
+                "plugin_alias": needed_plugin_config["plugin_alias"],
+                "category": needed_plugin_config["category"],
+                "build_source": needed_plugin_config["build_source"],
+                "image": image,
+                "code_repo": needed_plugin_config["code_repo"],
+                "username": "",
+                "password": ""
+            }
+            code, msg, plugin_base_info = self.create_tenant_plugin(plugin_params)
             plugin_base_info.origin = "local_market"
             plugin_base_info.origin_share_id = plugin_type
             plugin_base_info.save()
