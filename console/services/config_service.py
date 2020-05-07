@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-import os
 import logging
+import os
 from datetime import datetime
 
 from django.conf import settings
 from django.db.models import Q
+
 from console.exception.exceptions import ConfigExistError
 from console.models.main import ConsoleSysConfig
 from console.models.main import OAuthServices
-from console.services.enterprise_services import enterprise_services
 from console.repositories.user_repo import user_repo
+from console.services.enterprise_services import enterprise_services
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.oauth.oauth_types import NoSupportOAuthType
 from goodrain_web.custom_config import custom_config as custom_settings
@@ -82,6 +83,7 @@ class ConfigService(object):
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
+        rst_datas["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
         return rst_datas
 
     def update_config(self, key, value):
@@ -327,7 +329,8 @@ class PlatformConfigService(ConfigService):
 
     def get_enterprise_center_oauth(self):
         try:
-            oauth_service = OAuthServices.objects.get(is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
+            oauth_service = OAuthServices.objects.get(
+                is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
         except OAuthServices.DoesNotExist:
             return None
         try:
