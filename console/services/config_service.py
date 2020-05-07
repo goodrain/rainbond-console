@@ -329,8 +329,7 @@ class PlatformConfigService(ConfigService):
 
     def get_enterprise_center_oauth(self):
         try:
-            oauth_service = OAuthServices.objects.get(
-                is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
+            oauth_service = OAuthServices.objects.get(is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
         except OAuthServices.DoesNotExist:
             return None
         try:
