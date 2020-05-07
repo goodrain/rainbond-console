@@ -151,6 +151,9 @@ class ServiceSourceRepository(object):
             return service_sources[0]
         return None
 
+    def get_service_sources(self, team_id, service_ids):
+        return ServiceSourceInfo.objects.filter(team_id=team_id, service_id__in=service_ids)
+
     def create_service_source(self, **params):
         return ServiceSourceInfo.objects.create(**params)
 
