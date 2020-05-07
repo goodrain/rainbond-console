@@ -221,7 +221,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug(status)
                 committer_name = commits_info.get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
-                if status == "running" or status == "abnormal":
+                if status == "running" or status == "abnormal" or status == "failure":
+
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
