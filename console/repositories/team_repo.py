@@ -317,10 +317,10 @@ class TeamRepo(object):
         return result[0].get("total")
 
     def get_team_regions(self, team_id):
-        return TenantRegionInfo.objects.filter(tenant_id=team_id)
+        return TenantRegionInfo.objects.filter(tenant_id=team_id, is_active=1, is_init=1)
 
     def get_team_region_by_name(self, team_id, region_name):
-        return TenantRegionInfo.objects.filter(tenant_id=team_id, region_name=region_name)
+        return TenantRegionInfo.objects.filter(tenant_id=team_id, region_name=region_name, is_active=1, is_init=1)
 
     def get_teams_by_create_user(self, enterprise_id, user_id):
         return Tenants.objects.filter(creater=user_id, enterprise_id=enterprise_id)

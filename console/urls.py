@@ -273,6 +273,8 @@ from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
 from console.views.team import UserFuzSerView
+from console.views.team import TeamRegionsLCView
+from console.views.team import TeamRegionsDView
 from console.views.user import AdminUserDView
 from console.views.user import AdminUserLCView
 from console.views.user import CheckSourceView
@@ -378,6 +380,9 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/invitation$', TeamInvView.as_view()),
     # 团队详情
     url(r'^teams/(?P<team_name>[\w\-]+)/detail$', TeamDetailView.as_view()),
+    # 团队所挂载的数据中心增删改查
+    url(r'^teams/(?P<tenantName>[\w\-]+)/regions$', TeamRegionsLCView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionsDView.as_view()),
     # 获取团队下域名访问量排序
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$',
         TeamSortDomainQueryView.as_view()),

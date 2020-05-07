@@ -27,6 +27,22 @@ class RegionService(object):
     def get_region_by_tenant_name(self, tenant_name):
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
 
+    def get_region_info_by_tenant_name(self, tenant):
+        tenant_regions = region_repo.get_active_region_by_tenant_name(tenant_name=tenant.tenant_name)
+        regions = []
+        if tenant_regions:
+            tenant_region_names = tenant_regions.values_list("region_name", flat=True)
+            regions = region_repo.get_regions_by_region_names(tenant.enterprise_id, tenant_region_names)
+        return regions
+
+    def get_tenant_region_by_region_name(self, tenant, region_name):
+        tenant_regions = region_repo.get_team_region_by_tenant_and_region(tenant_name=tenant.tenant_name)
+        regions = []
+        if tenant_regions:
+            tenant_region_names = tenant_regions.values_list("region_name", flat=True)
+            regions = region_repo.get_regions_by_region_names(tenant.enterprise_id, tenant_region_names)
+        return regions
+
     def get_region_by_region_id(self, region_id):
         return region_repo.get_region_by_region_id(region_id=region_id)
 

@@ -84,6 +84,9 @@ class RegionRepo(object):
             return RegionConfig.objects.filter(Q(region_name__constains=query) | Q(region_alias__constains=query)).all()
         return RegionConfig.objects.all()
 
+    def get_regions_by_region_names(self, enterprise_id, regiosn_names):
+        return RegionConfig.objects.filter(region_name__in=regiosn_names, enterprise_id=enterprise_id)
+
     def get_regions_by_tenant_ids(self, tenant_ids):
         return TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_init=True).values_list("region_name", flat=True)
 
