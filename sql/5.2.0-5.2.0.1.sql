@@ -18,4 +18,10 @@ alter table service_share_record add share_version_alias varchar(32) DEFAULT NUL
 
 alter table tenant_service_delete modify version varchar(32) DEFAULT NULL;
 
+CREATE TABLE IF NOT EXISTS `errlog` (
+  `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `note` varchar(255) NOT NULL DEFAULT '',
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 alter table service_group add order_index int(16) DEFAULT 0;
