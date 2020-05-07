@@ -99,7 +99,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug(status)
                 committer_name = commits_info.get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
-                if status == "running" or status == "abnormal":
+                if status != "closed":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
@@ -166,7 +166,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info[-1].get("author").get("name")
                 user = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 logger.debug("status", status_map)
-                if status == "running" or status == "abnormal":
+                if status != "closed":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user, committer_name=committer_name)
                 else:
@@ -218,7 +218,8 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug(status)
                 committer_name = commits_info.get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
-                if status == "running" or status == "abnormal":
+                if status != "closed":
+
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
@@ -269,7 +270,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug(status)
                 committer_name = commits_info[0].get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
-                if status == "running" or status == "abnormal":
+                if status != "closed":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
@@ -329,7 +330,7 @@ class WebHooksDeploy(AlowAnyApiView):
                 logger.debug(status)
                 committer_name = commits_info.get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
-                if status == "running" or status == "abnormal":
+                if status != "closed":
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
@@ -556,7 +557,7 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         user_name = user_obj.nick_name
         status = status_map.get("status", None)
         logger.debug(status)
-        if status == "running" or status == "abnormal":
+        if status != "closed":
             return user_services.deploy_service(
                 tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=user_name)
         else:
@@ -661,8 +662,7 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             status = status_map.get("status", None)
             user_obj = user_services.init_webhook_user(service_obj, "ImageWebhook", pusher)
             committer_name = pusher
-            if status != "undeploy" and status != "closed" \
-                    and status != "closed":
+            if status != "closed":
                 return user_services.deploy_service(
                     tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
             else:
