@@ -56,15 +56,12 @@ class ShareService(object):
                 # 批量查询组件状态
                 service_ids = [service.service_id for service in service_list]
                 status_list = base_service.status_multi_service(
-                    region=region_name, tenant_name=team_name,
-                    service_ids=service_ids, enterprise_id=team.enterprise_id)
+                    region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
                 for status in status_list:
                     if status["status"] != "running":
-                        data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(),
-                                "bean": dict()}
+                        data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(), "bean": dict()}
                         return data
-                data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(),
-                        "bean": dict()}
+                data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(), "bean": dict()}
                 return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
@@ -211,8 +208,7 @@ class ShareService(object):
 
     def get_team_service_deploy_version(self, region, team, service_ids):
         try:
-            res, body = region_api.get_team_services_deploy_version(
-                region, team.tenant_name, {"service_ids": service_ids})
+            res, body = region_api.get_team_services_deploy_version(region, team.tenant_name, {"service_ids": service_ids})
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
@@ -259,8 +255,7 @@ class ShareService(object):
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
                 data['service_key'] = service.service_key
-                if (service.service_key == 'application' or service.service_key == '0000'
-                        or service.service_key == 'mysql'):
+                if (service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql'):
                     data['service_key'] = make_uuid()
                     service.service_key = data['service_key']
                     service.save()
@@ -276,8 +271,7 @@ class ShareService(object):
                 data['memory'] = service.min_memory - service.min_memory % 32
                 data['service_type'] = service.service_type
                 data['service_source'] = service.service_source
-                data['deploy_version'] = deploy_versions[data['service_id']
-                                                         ] if deploy_versions else service.deploy_version
+                data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
                 data['image'] = service.image
                 data['service_alias'] = service.service_alias
                 data['service_name'] = service.service_name
@@ -358,10 +352,10 @@ class ShareService(object):
                 if service_last_share_info:
                     service_data = service_last_share_info.get(service.service_id)
                     if service_data:
-                        data["extend_method_map"] = self.service_last_share_cache(
-                            data["extend_method_map"], service_data["extend_method_map"])
-                        data["service_env_map_list"] = self.service_last_share_cache(
-                            data["service_env_map_list"], service_data["service_env_map_list"])
+                        data["extend_method_map"] = self.service_last_share_cache(data["extend_method_map"],
+                                                                                  service_data["extend_method_map"])
+                        data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
+                                                                                     service_data["service_env_map_list"])
                         data["service_connect_info_map_list"] = self.service_last_share_cache(
                             data["service_connect_info_map_list"], service_data["service_connect_info_map_list"])
 
@@ -396,11 +390,11 @@ class ShareService(object):
                 if service_last_share_info:
                     service_data = service_last_share_info.get(service_id)
                     if service_data:
-                        service["dep_service_map_list"] = self.service_last_share_cache(
-                            service["dep_service_map_list"], service_data["dep_service_map_list"])
+                        service["dep_service_map_list"] = self.service_last_share_cache(service["dep_service_map_list"],
+                                                                                        service_data["dep_service_map_list"])
 
-                        service["mnt_relation_list"] = self.service_last_share_cache(
-                            service["mnt_relation_list"], service_data["mnt_relation_list"])
+                        service["mnt_relation_list"] = self.service_last_share_cache(service["mnt_relation_list"],
+                                                                                     service_data["mnt_relation_list"])
                 all_data.append(service)
             return all_data
         else:
@@ -740,8 +734,7 @@ class ShareService(object):
             if market_id:
                 try:
                     scope = "goodrain"
-                    cloud_app = market_sycn_service.get_cloud_app(
-                        share_team.enterprise_id, market_id, app_model_id)
+                    cloud_app = market_sycn_service.get_cloud_app(share_team.enterprise_id, market_id, app_model_id)
                     if cloud_app:
                         app_model_name = cloud_app.name
                 except Exception as e:
@@ -779,8 +772,8 @@ class ShareService(object):
 
                     for plugin_info in plugins:
                         # one account for one plugin
-                        share_image_info = app_store.get_image_connection_info(
-                            scope, share_team.enterprise_id, share_team.tenant_name)
+                        share_image_info = app_store.get_image_connection_info(scope, share_team.enterprise_id,
+                                                                               share_team.tenant_name)
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
@@ -806,9 +799,8 @@ class ShareService(object):
                 if services:
                     new_services = list()
                     service_ids = [s["service_id"] for s in services]
-                    version_list = base_service.get_apps_deploy_versions(
-                        services[0]["service_region"],
-                        share_team.tenant_name, service_ids)
+                    version_list = base_service.get_apps_deploy_versions(services[0]["service_region"], share_team.tenant_name,
+                                                                         service_ids)
                     delivered_type_map = {v["service_id"]: v["delivered_type"] for v in version_list}
 
                     dep_service_keys = {service['service_share_uuid'] for service in services}
@@ -958,19 +950,17 @@ class ShareService(object):
             data["group_template"] = app.app_template
             data["share_type"] = share_type
             data["group_version_alias"] = app.version_alias
-            result = market_sycn_service.create_cloud_market_app_version(
-                tenant.enterprise_id, share_record.share_app_market_id, share_record.app_id, data)
+            result = market_sycn_service.create_cloud_market_app_version(tenant.enterprise_id, share_record.share_app_market_id,
+                                                                         share_record.app_id, data)
             # 云市url
             app_url = result.data.bean.get("app_url")
             return app_url
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
-                                             status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
-                                             status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     @staticmethod
     def get_shared_services_list(service):
@@ -1038,8 +1028,7 @@ class ShareService(object):
         apps = share_repo.get_local_apps()
         if apps:
             for app in apps:
-                app_versions = list(set(share_repo.get_app_versions_by_app_id(
-                    app.app_id).values_list("version", flat=True)))
+                app_versions = list(set(share_repo.get_app_versions_by_app_id(app.app_id).values_list("version", flat=True)))
                 app_list.append({
                     "app_name": app.app_name,
                     "app_id": app.app_id,
@@ -1056,18 +1045,25 @@ class ShareService(object):
         apps = share_repo.get_enterprise_team_apps(enterprise_id, team_name)
         if apps:
             for app in apps:
-                app_versions = list(share_repo.get_last_app_versions_by_app_id(
-                    app.app_id))
+                app_versions = list(share_repo.get_last_app_versions_by_app_id(app.app_id))
                 app_list.append({
-                    "app_name": app.app_name,
-                    "app_id": app.app_id,
-                    "pic": app.pic,
-                    "app_describe": app.describe,
-                    "dev_status": app.dev_status,
-                    "versions": sorted(app_versions,
-                                       key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x["version"].split(".")),
-                                       reverse=True),
-                    "scope": app.scope,
+                    "app_name":
+                    app.app_name,
+                    "app_id":
+                    app.app_id,
+                    "pic":
+                    app.pic,
+                    "app_describe":
+                    app.describe,
+                    "dev_status":
+                    app.dev_status,
+                    "versions":
+                    sorted(
+                        app_versions,
+                        key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
+                        reverse=True),
+                    "scope":
+                    app.scope,
                 })
         return app_list
 
@@ -1091,14 +1087,21 @@ class ShareService(object):
                                 "version_alias": version.app_version_alias,
                             })
                     dt["app_model_list"].append({
-                        "app_name": app.name,
-                        "app_id": app.app_key_id,
-                        "versions": sorted(versions,
-                                           key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x["version"].split(".")),
-                                           reverse=True),
-                        "pic": app.pic,
-                        "app_describe": app.desc,
-                        "dev_status": app.dev_status,
+                        "app_name":
+                        app.name,
+                        "app_id":
+                        app.app_key_id,
+                        "versions":
+                        sorted(
+                            versions,
+                            key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
+                            reverse=True),
+                        "pic":
+                        app.pic,
+                        "app_describe":
+                        app.desc,
+                        "dev_status":
+                        app.dev_status,
                         "scope": ("goodrain:" + app.publish_type).strip(":")
                     })
                     if last_shared and app.app_key_id == last_shared.app_id:
@@ -1160,8 +1163,7 @@ class ShareService(object):
         if not last_shared:
             return None, None
         if last_shared.scope == "goodrain":
-            dt = self.get_cloud_app_version(
-                tenant.tenant_id, last_shared.app_id, last_shared.share_version)
+            dt = self.get_cloud_app_version(tenant.tenant_id, last_shared.app_id, last_shared.share_version)
         else:
             app_version = share_repo.get_app_version(last_shared.app_id, last_shared.share_version)
             if not app_version:

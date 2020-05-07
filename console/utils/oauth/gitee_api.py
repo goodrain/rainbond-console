@@ -65,8 +65,7 @@ class Gitee(object):
         return self._api_get(url_suffix, params)
 
     def search_repos(self, full_name, page=1):
-        url_suffix = 'search/repositories?q={full_name}&page={page}&per_page=10'.format(full_name=full_name,
-                                                                                        page=page)
+        url_suffix = 'search/repositories?q={full_name}&page={page}&per_page=10'.format(full_name=full_name, page=page)
         return self._api_get(url_suffix)
 
     def get_repo(self, full_name):
@@ -83,10 +82,7 @@ class Gitee(object):
 
     def create_hook(self, host, endpoint, full_name):
         url_suffix = 'repos/{full_name}/hooks'.format(full_name=full_name)
-        data = {
-            "url": '{host}/{endpoint}'.format(host=host, endpoint=endpoint),
-            "push_events": True
-        }
+        data = {"url": '{host}/{endpoint}'.format(host=host, endpoint=endpoint), "push_events": True}
         return self._api_post(url_suffix, data=data)
 
 
@@ -123,11 +119,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
         if code:
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Connection": "close"
-            }
+            headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "Connection": "close"}
             params = {
                 "client_id": self.oauth_service.client_id,
                 "client_secret": self.oauth_service.client_secret,
@@ -137,8 +129,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
-                rst = self._session.request(method='POST', url=url,
-                                            headers=headers, params=params)
+                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
@@ -173,17 +164,13 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             raise NoAccessKeyErr("can not get access key")
 
     def refresh_access_token(self):
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
+        headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
 
         params = {
             "refresh_token": self.oauth_user.refresh_token,
             "grant_type": "refresh_token",
         }
-        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url,
-                                    headers=headers, params=params)
+        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url, headers=headers, params=params)
         data = rst.json()
         if rst.status_code == 200:
             self.oauth_user.refresh_token = data.get("refresh_token")
@@ -203,7 +190,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         if self.oauth_service:
             params = {
                 "client_id": self.oauth_service.client_id,
-                "redirect_uri": self.oauth_service.redirect_uri+"?service_id="+str(self.oauth_service.ID),
+                "redirect_uri": self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)
@@ -218,19 +205,17 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         repos = self.api.get_repos(page=page, per_page=per_page)
         if repos:
             for repo in repos:
-                repo_list.append(
-                    {
-                        "project_id": repo["id"],
-                        "project_full_name": repo["full_name"],
-                        "project_name": repo["name"],
-                        "project_description": repo["description"],
-                        "project_url": repo["html_url"],
-                        "project_default_branch": repo["default_branch"],
-                        "project_ssl_url": repo["ssh_url"],
-                        "updated_at": repo["updated_at"],
-                        "created_at": repo["created_at"]
-                    }
-                )
+                repo_list.append({
+                    "project_id": repo["id"],
+                    "project_full_name": repo["full_name"],
+                    "project_name": repo["name"],
+                    "project_description": repo["description"],
+                    "project_url": repo["html_url"],
+                    "project_default_branch": repo["default_branch"],
+                    "project_ssl_url": repo["ssh_url"],
+                    "updated_at": repo["updated_at"],
+                    "created_at": repo["created_at"]
+                })
         return repo_list
 
     def search_repos(self, full_name, *args, **kwargs):
@@ -242,19 +227,17 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             if repo is None:
                 pass
             else:
-                repo_list.append(
-                    {
-                        "project_id": repo["id"],
-                        "project_full_name": repo["full_name"],
-                        "project_name": repo["name"],
-                        "project_description": repo["description"],
-                        "project_url": repo["html_url"],
-                        "project_default_branch": repo["default_branch"],
-                        "project_ssl_url": repo["ssh_url"],
-                        "updated_at": repo["updated_at"],
-                        "created_at": repo["created_at"]
-                    }
-                )
+                repo_list.append({
+                    "project_id": repo["id"],
+                    "project_full_name": repo["full_name"],
+                    "project_name": repo["name"],
+                    "project_description": repo["description"],
+                    "project_url": repo["html_url"],
+                    "project_default_branch": repo["default_branch"],
+                    "project_ssl_url": repo["ssh_url"],
+                    "updated_at": repo["updated_at"],
+                    "created_at": repo["created_at"]
+                })
         return repo_list
 
     def get_repo_detail(self, full_name, *args, **kwargs):
@@ -265,19 +248,17 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             if repo is None:
                 pass
             elif full_name == repo["full_name"]:
-                repo_list.append(
-                    {
-                        "project_id": repo["id"],
-                        "project_full_name": repo["full_name"],
-                        "project_name": repo["name"],
-                        "project_description": repo["description"],
-                        "project_url": repo["html_url"],
-                        "project_default_branch": repo["default_branch"],
-                        "project_ssl_url": repo["ssh_url"],
-                        "updated_at": repo["updated_at"],
-                        "created_at": repo["created_at"]
-                    }
-                )
+                repo_list.append({
+                    "project_id": repo["id"],
+                    "project_full_name": repo["full_name"],
+                    "project_name": repo["name"],
+                    "project_description": repo["description"],
+                    "project_url": repo["html_url"],
+                    "project_default_branch": repo["default_branch"],
+                    "project_ssl_url": repo["ssh_url"],
+                    "updated_at": repo["updated_at"],
+                    "created_at": repo["created_at"]
+                })
         return repo_list
 
     def get_branches(self, full_name):

@@ -264,8 +264,7 @@ class AppEventService(object):
         msg_list = []
         has_next = False
         total = 0
-        res, rt_data = region_api.get_target_events_list(
-            region, tenant.tenant_name, target, target_id, page, page_size)
+        res, rt_data = region_api.get_target_events_list(region, tenant.tenant_name, target, target_id, page, page_size)
         if int(res.status) == 200:
             msg_list = rt_data.get("list", [])
             total = rt_data.get("number", 0)

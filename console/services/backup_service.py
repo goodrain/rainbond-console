@@ -212,8 +212,8 @@ class GroupAppBackupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
 
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
-        all_data["compose_service_relation"] = [
-            relation.to_dict() for relation in compose_service_relation] if compose_service_relation else None
+        all_data["compose_service_relation"] = [relation.to_dict()
+                                                for relation in compose_service_relation] if compose_service_relation else None
         all_data["group_info"] = group_info.to_dict()
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []

@@ -4,7 +4,6 @@ from www.models.main import TenantRegionInfo
 
 
 class TenantRegionRepo(object):
-
     def count_by_tenant_id(self, tenant_id):
         sql = """
         SELECT

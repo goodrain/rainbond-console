@@ -23,3 +23,5 @@ CREATE TABLE IF NOT EXISTS `errlog` (
   `note` varchar(255) NOT NULL DEFAULT '',
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+alter table service_group add order_index int(16) DEFAULT 0;

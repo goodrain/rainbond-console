@@ -24,7 +24,6 @@ from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.app import service_webhooks_repo
 from console.views.app_config.base import AppBaseView
 
-
 logger = logging.getLogger("default")
 
 
@@ -116,25 +115,16 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
             except Exception as e:
                 logger.debug(e)
-                rst = {"data": {"bean": None},
-                       "status": 400,
-                       "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"
-                       }
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
                 return Response(rst, status=200)
             try:
                 git_service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
             except Exception as e:
                 logger.debug(e)
-                rst = {"data": {"bean": None},
-                       "status": 400,
-                       "msg_show": u"未找到OAuth服务"
-                       }
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务"}
                 return Response(rst, status=200)
             if not git_service.is_git_oauth():
-                rst = {"data": {"bean": None},
-                       "status": 400,
-                       "msg_show": u"该OAuth服务不是代码仓库类型"
-                       }
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
                 return Response(rst, status=200)
 
             service_code_from = "oauth_" + oauth_service.oauth_type
@@ -150,9 +140,8 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
             code, msg_show, new_service = app_service.create_source_code_app(
-                self.response_region, self.tenant, self.user, service_code_from, service_cname,
-                service_code_clone_url, service_code_id, service_code_version, server_type,
-                check_uuid, event_id, oauth_service_id, git_full_name)
+                self.response_region, self.tenant, self.user, service_code_from, service_cname, service_code_clone_url,
+                service_code_id, service_code_version, server_type, check_uuid, event_id, oauth_service_id, git_full_name)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             # 添加username,password信息
@@ -166,8 +155,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 service_webhook.deploy_keyword = "deploy"
                 service_webhook.save()
                 try:
-                    git_service.create_hook(host, git_full_name,
-                                            endpoint='console/webhooks/' + new_service.service_id)
+                    git_service.create_hook(host, git_full_name, endpoint='console/webhooks/' + new_service.service_id)
                     new_service.open_webhooks = True
                 except Exception as e:
                     logger.debug(e)

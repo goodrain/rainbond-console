@@ -50,14 +50,13 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         if not endpoints and endpoints_type != "api":
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
 
-        code, msg_show, new_service = app_service.create_third_party_app(
-            self.response_region, self.tenant, self.user, service_cname, endpoints, endpoints_type)
+        code, msg_show, new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user,
+                                                                         service_cname, endpoints, endpoints_type)
         if code != 200:
             return Response(general_message(code, "service create fail", msg_show), status=code)
 
         # 添加组件所在组
-        code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
-                                                            new_service.service_id)
+        code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, new_service.service_id)
         if code != 200:
             logger.debug("service.create", msg_show)
 
@@ -176,8 +175,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             endpoint_list = body["list"]
             # 添加
             if not endpoint_list:
-                res, body = region_api.post_third_party_service_endpoints(
-                    service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias, endpoint_dict)
+                res, body = region_api.post_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name,
+                                                                          service_obj.service_alias, endpoint_dict)
                 if res.status != 200:
                     return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
                 return Response(general_message(200, "success", "修改成功"))
@@ -191,8 +190,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                 return Response(general_message(400, "do not allow multi domain endpoints", "不允许添加多个域名组件实例地址"), status=400)
             if address not in addresses:
                 # 添加
-                res, body = region_api.post_third_party_service_endpoints(
-                    service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias, endpoint_dict)
+                res, body = region_api.post_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name,
+                                                                          service_obj.service_alias, endpoint_dict)
                 if res.status != 200:
                     return Response(general_message(412, "region error", "数据中心添加失败"), status=412)
                 return Response(general_message(200, "success", "修改成功"))
@@ -202,8 +201,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                     bean = dict()
                     bean["ep_id"] = endpoint["ep_id"]
                     bean["is_online"] = is_online
-                    res, body = region_api.put_third_party_service_endpoints(
-                        service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias, bean)
+                    res, body = region_api.put_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name,
+                                                                             service_obj.service_alias, bean)
                     if res.status != 200:
                         return Response(general_message(412, "region error", "数据中心修改失败"), status=412)
 
@@ -246,8 +245,8 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
             if endpoint["address"] == address:
                 endpoint_dict = dict()
                 endpoint_dict["ep_id"] = endpoint["ep_id"]
-                res, body = region_api.delete_third_party_service_endpoints(
-                    service_obj.service_region, tenant_obj.tenant_name, service_obj.service_alias, endpoint_dict)
+                res, body = region_api.delete_third_party_service_endpoints(service_obj.service_region, tenant_obj.tenant_name,
+                                                                            service_obj.service_alias, endpoint_dict)
                 if res.status != 200:
                     return Response(general_message(412, "region error", "数据中心删除失败"), status=412)
 

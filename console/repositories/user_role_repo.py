@@ -17,13 +17,13 @@ class UserRoleRepo(object):
             a.role_id = b.ID
             AND a.tenant_id = c.ID
             AND a.user_id = {user_id}
-            AND c.tenant_id = '{tenant_id}'""".format(user_id=user_id, tenant_id=tenant_id)
+            AND c.tenant_id = '{tenant_id}'""".format(
+            user_id=user_id, tenant_id=tenant_id)
         conn = BaseConnection()
         result = conn.query(sql)
         if len(result) == 0 or result[0].get("role_names") is None:
-            raise UserRoleNotFoundException(
-                "tenant_id: {tenant_id}; user_id: {user_id}; user role not found".format(
-                    tenant_id=tenant_id, user_id=user_id))
+            raise UserRoleNotFoundException("tenant_id: {tenant_id}; user_id: {user_id}; user role not found".format(
+                tenant_id=tenant_id, user_id=user_id))
         return result[0].get("role_names")
 
     def get_viewer_role(self):

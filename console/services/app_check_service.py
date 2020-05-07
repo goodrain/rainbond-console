@@ -183,8 +183,7 @@ class AppCheckService(object):
             logger.exception(e)
             if sid:
                 transaction.savepoint_rollback(sid)
-            raise ServiceHandleException(
-                status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
+            raise ServiceHandleException(status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
 
     def save_service_check_info(self, tenant, service, data):
         # 检测成功将信息存储
@@ -262,17 +261,16 @@ class AppCheckService(object):
         if envs:
             # 删除原有的build类型环境变量
             env_var_service.delete_service_build_env(tenant, service)
-            SENSITIVE_ENV_NAMES = (
-                'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
-                'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH',
-                'PORT', 'POD_NET_IP', 'LOG_MATCH')
+            SENSITIVE_ENV_NAMES = ('TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
+                                   'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
+                                   'PATH', 'PORT', 'POD_NET_IP', 'LOG_MATCH')
             for env in envs:
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue
                 # BUILD_开头的env保存为build类型的环境变量
                 elif env["name"].startswith("BUILD_"):
-                    code, msg, data = env_var_service.add_service_build_env_var(
-                        tenant, service, 0, env["name"], env["name"], env["value"], True)
+                    code, msg, data = env_var_service.add_service_build_env_var(tenant, service, 0, env["name"], env["name"],
+                                                                                env["value"], True)
                     if code != 200:
                         logger.error("service.check", "save service check info env error {0}".format(msg))
         return 200, "success"
@@ -285,8 +283,8 @@ class AppCheckService(object):
         service.min_memory = memory - memory % 32
         service.min_cpu = min_cpu
         # Set the deployment type based on the test results
-        logger.debug("save svc extend_method {0}".format(service_info.get("service_type",
-                                                         ComponentType.stateless_multiple.value)))
+        logger.debug("save svc extend_method {0}".format(
+            service_info.get("service_type", ComponentType.stateless_multiple.value)))
         service.extend_method = service_info.get("service_type", ComponentType.stateless_multiple.value)
         args = service_info.get("args", None)
         if args:
@@ -344,22 +342,21 @@ class AppCheckService(object):
             env_var_service.delete_service_env(tenant, service)
             # 删除原有的build类型环境变量
             env_var_service.delete_service_build_env(tenant, service)
-            SENSITIVE_ENV_NAMES = (
-                'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
-                'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER', 'PATH',
-                'POD_NET_IP')
+            SENSITIVE_ENV_NAMES = ('TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE',
+                                   'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
+                                   'PATH', 'POD_NET_IP')
             for env in envs:
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue
                 # BUILD_开头的env保存为build类型的环境变量
                 elif env["name"].startswith("BUILD_"):
-                    code, msg, data = env_var_service.add_service_build_env_var(
-                        tenant, service, 0, env["name"], env["name"], env["value"], True)
+                    code, msg, data = env_var_service.add_service_build_env_var(tenant, service, 0, env["name"], env["name"],
+                                                                                env["value"], True)
                     if code != 200:
                         logger.error("service.check", "save service check info env error {0}".format(msg))
                 else:
-                    code, msg, env_data = env_var_service.add_service_env_var(
-                        tenant, service, 0, env["name"], env["name"], env["value"], True, "inner")
+                    code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["name"],
+                                                                              env["value"], True, "inner")
                     if code != 200:
                         logger.error("service.check", "save service check info env error {0}".format(msg))
                         # return code, msg
@@ -392,13 +389,13 @@ class AppCheckService(object):
                 index += 1
                 volume_name = service.service_alias.upper() + "_" + str(index)
                 if "file_content" in volume.keys():
-                    volume_service.add_service_volume(
-                        tenant, service, volume["volume_path"], volume["volume_type"], volume_name, volume["file_content"])
+                    volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
+                                                      volume_name, volume["file_content"])
                 else:
                     settings = {}
                     settings["volume_capacity"] = volume["volume_capacity"]
-                    volume_service.add_service_volume(
-                        tenant, service, volume["volume_path"], volume["volume_type"], volume_name, None, settings)
+                    volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
+                                                      volume_name, None, settings)
         return 200, "success"
 
     def wrap_service_check_info(self, service, data):
@@ -432,8 +429,11 @@ class AppCheckService(object):
             }
             service_attr_list.append(service_port_bean)
         if service_info["volumes"]:
-            service_volume_bean = {"type": "volumes", "key": "持久化目录", "value": [
-                volume["volume_path"] + "(" + volume["volume_type"] + ")" for volume in service_info["volumes"]]}
+            service_volume_bean = {
+                "type": "volumes",
+                "key": "持久化目录",
+                "value": [volume["volume_path"] + "(" + volume["volume_type"] + ")" for volume in service_info["volumes"]]
+            }
             service_attr_list.append(service_volume_bean)
         service_code_from = {}
         service_language = {}

@@ -22,7 +22,7 @@ class ListAppGatewayHTTPRuleView(ListAPIView):
         responses={200: HTTPGatewayRuleSerializer(many=True)},
         tags=['openapi-gateway'],
     )
-    def get(self, req, app_id,  *args, **kwargs):
+    def get(self, req, app_id, *args, **kwargs):
         app = group_service.get_app_by_id(app_id)
         if not app:
             return Response({"msg": "app is not exist"}, status=status.HTTP_404_NOT_FOUND)

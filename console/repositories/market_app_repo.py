@@ -70,7 +70,8 @@ class RainbondCenterAppRepository(object):
                 and app.enterprise_id = '{eid}'
                 {extend_where}
             limit {offset}, {rows}
-            """.format(eid=eid, scope=scope, extend_where=extend_where, offset=(page-1) * page_size, rows=page_size)
+            """.format(
+            eid=eid, scope=scope, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size)
         return sql
 
     def get_rainbond_app_in_teams_by_querey(self, eid, teams, app_name, tag_names=None, page=1, page_size=10):
@@ -82,8 +83,7 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names):
         extend_where = ""
         if tag_names:
-            extend_where += " and tag.name in ({0})".format(
-                ",".join("'{0}'".format(tag_name) for tag_name in tag_names))
+            extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
         if app_name:
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
         # if teams is None, create_team scope is ('')
@@ -109,7 +109,8 @@ class RainbondCenterAppRepository(object):
                 `scope` = '{scope}'
                 and app.enterprise_id = '{eid}'
                 {extend_where}
-            """.format(eid=eid, scope=scope, extend_where=extend_where)
+            """.format(
+            eid=eid, scope=scope, extend_where=extend_where)
         conn = BaseConnection()
         count = conn.query(sql)
         return count
@@ -132,8 +133,15 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_version_by_id(self, eid, app_id):
         return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
 
-    def get_rainbond_apps_versions_by_eid(self, eid, name=None, tags=None, scope=None, team_names=None,
-                                          is_complete=None, page=1, page_size=10):
+    def get_rainbond_apps_versions_by_eid(self,
+                                          eid,
+                                          name=None,
+                                          tags=None,
+                                          scope=None,
+                                          team_names=None,
+                                          is_complete=None,
+                                          page=1,
+                                          page_size=10):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
         where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
@@ -217,8 +225,7 @@ class RainbondCenterAppRepository(object):
         result = conn.query(sql)
         return result
 
-    def get_rainbond_apps_versions_with_template_by_eid(self, eid, name=None, tags=None,
-                                                        scope=None, page=1, page_size=10):
+    def get_rainbond_apps_versions_with_template_by_eid(self, eid, name=None, tags=None, scope=None, page=1, page_size=10):
         page = (page - 1) * page_size
         limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
         where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
@@ -414,8 +421,7 @@ class RainbondCenterAppRepository(object):
         return None, None
 
     def list_by_key_time(self, group_key, time):
-        rcapps = RainbondCenterAppVersion.objects.filter(
-            app_id=group_key, update_time__gte=time, is_complete=True).all()
+        rcapps = RainbondCenterAppVersion.objects.filter(app_id=group_key, update_time__gte=time, is_complete=True).all()
         if rcapps:
             return rcapps
         return None
@@ -428,8 +434,7 @@ class RainbondCenterAppRepository(object):
         """使用group_key 和 version 获取一个云市应用"""
         app = RainbondCenterApp.objects.filter(app_id=group_key).first()
         app_version = RainbondCenterAppVersion.objects.filter(
-            app_id=group_key, version=version, scope__in=["team", "enterprise", "goodrain"]
-        ).order_by("-upgrade_time").first()
+            app_id=group_key, version=version, scope__in=["team", "enterprise", "goodrain"]).order_by("-upgrade_time").first()
         if app and app_version:
             app_version.app_name = app.app_name
         return app_version
@@ -437,8 +442,7 @@ class RainbondCenterAppRepository(object):
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
         rcapps = RainbondCenterAppVersion.objects.filter(
-            app_id=group_key, version=group_version,
-            enterprise_id__in=["public", enterprise_id]).order_by("-update_time")
+            app_id=group_key, version=group_version, enterprise_id__in=["public", enterprise_id]).order_by("-update_time")
         if rcapps and app:
             rcapp = rcapps.filter(enterprise_id=enterprise_id)
             # 优先获取企业下的应用
@@ -457,8 +461,7 @@ class RainbondCenterAppRepository(object):
         return None
 
     def get_enterpirse_app_by_key(self, enterprise_id, group_key):
-        rcapps = RainbondCenterApp.objects.filter(
-            app_id=group_key, enterprise_id__in=["public", enterprise_id])
+        rcapps = RainbondCenterApp.objects.filter(app_id=group_key, enterprise_id__in=["public", enterprise_id])
         if rcapps:
             rcapp = rcapps.filter(enterprise_id=enterprise_id)
             # 优先获取企业下的应用
@@ -503,11 +506,7 @@ class AppExportRepository(object):
 
     def get_export_record(self, eid, app_id, app_version, export_format):
         records = AppExportRecord.objects.filter(
-            group_key=app_id,
-            version=app_version,
-            format=export_format,
-            enterprise_id__in=[eid, "public"],
-            status="exporting")
+            group_key=app_id, version=app_version, format=export_format, enterprise_id__in=[eid, "public"], status="exporting")
         if not records:
             return None
         return records[0]
@@ -559,8 +558,7 @@ class AppImportRepository(object):
             user_name=user_name, team_name=team_name).exclude(status__in=["success", "failed"])
 
     def get_user_not_finished_import_record_in_enterprise(self, eid, user_name):
-        return AppImportRecord.objects.filter(
-            user_name=user_name, enterprise_id=eid).exclude(status__in=["success", "failed"])
+        return AppImportRecord.objects.filter(user_name=user_name, enterprise_id=eid).exclude(status__in=["success", "failed"])
 
 
 rainbond_app_repo = RainbondCenterAppRepository()

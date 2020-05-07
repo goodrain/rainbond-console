@@ -44,7 +44,6 @@ ErrBackupInProgress = ServiceHandleException(
     status_code=409,
 )
 
-
 ErrNeedAllServiceCloesed = ServiceHandleException(
     msg="restore the backup, please make sure that all services are all closed.",
     msg_show="请先关闭所有的组件",
@@ -55,39 +54,16 @@ ErrDuplicateMetrics = ServiceHandleException(
     msg_show="重复的指标",
 )
 
-ErrAutoscalerRuleNotFound = ServiceHandleException(
-    msg="autoscaler rule not found",
-    msg_show="自动伸缩规程不存在",
-    status_code=404
-)
+ErrAutoscalerRuleNotFound = ServiceHandleException(msg="autoscaler rule not found", msg_show="自动伸缩规程不存在", status_code=404)
 
 ErrStillHasServices = ServiceHandleException(
-    msg="the team still has service",
-    msg_show="团队仍有组件, 无法删除",
-    status_code=409,
-    error_code=2001
-)
+    msg="the team still has service", msg_show="团队仍有组件, 无法删除", status_code=409, error_code=2001)
 
 ErrAllTenantDeletionFailed = ServiceHandleException(
-    msg="delete of all tenants failed",
-    msg_show="所有租户的删除都失败了",
-    status_code=400,
-    error_code=400
-)
+    msg="delete of all tenants failed", msg_show="所有租户的删除都失败了", status_code=400, error_code=400)
 
 ErrVolumeTypeNotFound = ServiceHandleException(
-    msg="volume type do not found",
-    msg_show="存储类型不可用",
-    status_code=400,
-    error_code=400
-)
+    msg="volume type do not found", msg_show="存储类型不可用", status_code=400, error_code=400)
 
-ErrVolumeTypeDoNotAllowMultiNode = ServiceHandleException(
-    msg="volume type do not allow multi node",
-    msg_show="存储类型不支持多个实例读写"
-)
-ErrChangeServiceType = ServiceHandleException(
-    error_code=500,
-    msg="change service type failed",
-    msg_show="更新组件类型失败"
-)
+ErrVolumeTypeDoNotAllowMultiNode = ServiceHandleException(msg="volume type do not allow multi node", msg_show="存储类型不支持多个实例读写")
+ErrChangeServiceType = ServiceHandleException(error_code=500, msg="change service type failed", msg_show="更新组件类型失败")

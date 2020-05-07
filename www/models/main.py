@@ -219,8 +219,7 @@ class Users(models.Model):
     union_id = models.CharField(max_length=100, help_text=u'绑定微信的union_id')
     sso_user_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
     sso_user_token = models.CharField(max_length=256, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
-    enterprise_id = models.CharField(max_length=32, null=True, blank=True,
-                                     default='', help_text=u"统一认证中心的enterprise_id")
+    enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"统一认证中心的enterprise_id")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
@@ -372,8 +371,7 @@ class TenantRegionInfo(BaseModel):
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     region_tenant_name = models.CharField(max_length=64, null=True, blank=True, default='', help_text=u"数据中心租户名")
     region_tenant_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心租户id")
-    region_scope = models.CharField(max_length=32, null=True, blank=True,
-                                    default='', help_text=u"数据中心类型 private/public")
+    region_scope = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"数据中心类型 private/public")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"企业id")
 
 
@@ -438,8 +436,7 @@ class ServiceInfo(BaseModel):
     inner_port = models.IntegerField(help_text=u"内部端口", default=0)
     publish_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text=u"mount目录")
-    service_type = models.CharField(max_length=50, null=True, blank=True,
-                                    help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
     is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
     creater = models.IntegerField(null=True, help_text=u"创建人")
     publish_type = models.CharField(max_length=10, default="single", help_text=u"判断组件是否属于组")
@@ -487,8 +484,7 @@ class TenantServiceInfo(BaseModel):
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
-    service_type = models.CharField(max_length=50, null=True, blank=True,
-                                    help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text=u"组件创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     protocol = models.CharField(max_length=15, default='', help_text=u"服务协议：http,stream")
@@ -497,8 +493,7 @@ class TenantServiceInfo(BaseModel):
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
     volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
-    port_type = models.CharField(max_length=15, default='multi_outer',
-                                 help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"组件创建类型cloud云市组件,assistant云帮组件")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
@@ -506,8 +501,7 @@ class TenantServiceInfo(BaseModel):
     open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能（兼容老版本组件）')
 
     service_source = models.CharField(
-        max_length=15, default="", null=True, blank=True,
-        help_text=u"组件来源(source_code, market, docker_run, docker_compose)")
+        max_length=15, default="", null=True, blank=True, help_text=u"组件来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"组件创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text=u"组件检测ID")
@@ -584,8 +578,7 @@ class TenantServiceInfoDelete(BaseModel):
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
-    service_type = models.CharField(max_length=50, null=True, blank=True,
-                                    help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
     delete_time = models.DateTimeField(auto_now_add=True)
     creater = models.IntegerField(help_text=u"组件创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
@@ -594,8 +587,7 @@ class TenantServiceInfoDelete(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner组件")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
     volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
-    port_type = models.CharField(max_length=15, default='multi_outer',
-                                 help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"组件创建类型cloud云市组件,assistant云帮组件")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
@@ -992,7 +984,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
 
 class ServiceGroup(BaseModel):
-    """组件分组"""
+    """组件分组（应用）"""
 
     class Meta:
         db_table = 'service_group'
@@ -1001,6 +993,7 @@ class ServiceGroup(BaseModel):
     group_name = models.CharField(max_length=128, help_text=u"组名")
     region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
+    order_index = models.IntegerField(default=0, help_text=u"应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
 
 
@@ -1057,8 +1050,7 @@ class ServiceRule(BaseModel):
     count = models.IntegerField(default=0)
     node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
     port = models.CharField(max_length=10)
-    port_type = models.CharField(max_length=15, default='multi_outer',
-                                 help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
 
 
 class ServiceRuleHistory(BaseModel):
@@ -1398,8 +1390,7 @@ class ServiceWebhooks(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"组件id")
     state = models.BooleanField(default=False, help_text=u"状态（开启，关闭）")
-    webhooks_type = models.CharField(
-        max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
+    webhooks_type = models.CharField(max_length=128, help_text=u"webhooks类型（image_webhooks, code_webhooks, api_webhooks）")
     deploy_keyword = models.CharField(max_length=128, default='deploy', help_text=u"触发自动部署关键字")
     trigger = models.CharField(max_length=256, default='', help_text=u"触发正则表达式")
 

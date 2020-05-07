@@ -39,8 +39,7 @@ class MarketOpenAPI(HttpClient):
         return self._unpack(body)
 
     def get_remote_app_templates(self, enterprise_id, group_key, group_version, install=False):
-        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_enterprise_id(
-            enterprise_id)
+        url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_enterprise_id(enterprise_id)
         url = url + "/openapi/console/v1/enter-market/apps/{0}?group_version={1}&install={2}".format(
             group_key, group_version, install)
         res, body = self._get(url, self.__auth_header(market_client_id, market_client_token))
@@ -149,8 +148,7 @@ class MarketOpenAPI(HttpClient):
     def publish_v2_create_app(self, tenant_id, data):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/console/v1/enter-market/apps"
-        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token),
-                               json.dumps(data), timeout=30)
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data), timeout=30)
         return self._unpack(body)
 
     def publish_plugin_template_data(self, tenant_id, data):
@@ -307,8 +305,7 @@ class MarketOpenAPIV2(HttpClient):
     def create_market_app(self, tenant_id, data):
         url, market_client_id, market_client_token = client_auth_service.get_market_access_token_by_tenant(tenant_id)
         url += "/openapi/v2/enter-market/apps"
-        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token),
-                               json.dumps(data), timeout=30)
+        res, body = self._post(url, self.__auth_header(market_client_id, market_client_token), json.dumps(data), timeout=30)
         return self._unpack(body)
 
     def create_market_app_by_enterprise_id(self, enterprise_id, data):

@@ -202,8 +202,16 @@ class EnterpriseServices(object):
         teams = enterprise_repo.get_enterprise_teams(enterprise_id)
         if not teams:
             return {
-                "service_groups": {"total": 0, "running": 0, "closed": 0},
-                "components": {"total": 0, "running": 0, "closed": 0}
+                "service_groups": {
+                    "total": 0,
+                    "running": 0,
+                    "closed": 0
+                },
+                "components": {
+                    "total": 0,
+                    "running": 0,
+                    "closed": 0
+                }
             }
         # 2. get all apps in all teams
         team_ids = [team.tenant_id for team in teams]

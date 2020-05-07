@@ -95,9 +95,19 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_source_code_app(self, region, tenant, user, service_code_from, service_cname,
-                               service_code_clone_url, service_code_id, service_code_version,
-                               server_type, check_uuid=None, event_id=None, oauth_service_id=None,
+    def create_source_code_app(self,
+                               region,
+                               tenant,
+                               user,
+                               service_code_from,
+                               service_cname,
+                               service_code_clone_url,
+                               service_code_id,
+                               service_code_version,
+                               server_type,
+                               check_uuid=None,
+                               event_id=None,
+                               oauth_service_id=None,
                                git_full_name=None):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
@@ -113,18 +123,16 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = server_type
         new_service.save()
-        code, msg = self.init_repositories(new_service, user, service_code_from,
-                                           service_code_clone_url, service_code_id,
-                                           service_code_version, check_uuid, event_id,
-                                           oauth_service_id, git_full_name)
+        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
+                                           service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
         if code != 200:
             return code, msg, new_service
         logger.debug("service.create", "user:{0} create service from source code".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, u"创建成功", ts
 
-    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id,
-                          service_code_version, check_uuid, event_id, oauth_service_id, git_full_name):
+    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
+                          check_uuid, event_id, oauth_service_id, git_full_name):
         if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
             service_code_id = "0"
 
@@ -378,7 +386,7 @@ class AppService(object):
                         AND sp.service_id = s.ID
                         AND s.service_cname LIKE "%{query}%"
                         AND s.service_region = "{region}" { add_sql }""".format(
-                            tenant_id=tenant_id, user_id=user_pk, region=region, query=query, add_sql=add_sql)
+                        tenant_id=tenant_id, user_id=user_pk, region=region, query=query, add_sql=add_sql)
                     query_sql = '''
                         SELECT
                             s.*

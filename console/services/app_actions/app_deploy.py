@@ -672,7 +672,11 @@ class MarketService(object):
 
         body = {"volumes": []}
         for item in service_volumes:
-            item["file_content"] = cfgfs.get(item["ID"], "")
+            item_id = item.get("ID")
+            if not item_id:
+                item["file_content"] = ""
+            else:
+                item["file_content"] = cfgfs.get(item_id, "")
             body["volumes"].append(item)
         try:
             region_api.restore_properties(self.tenant.region, self.tenant.tenant_name, self.service.service_alias,
