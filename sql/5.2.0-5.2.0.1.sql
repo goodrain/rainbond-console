@@ -17,3 +17,9 @@ CREATE TABLE `user_access_key` (
 alter table service_share_record add share_version_alias varchar(32) DEFAULT NULL;
 
 alter table tenant_service_delete modify version varchar(32) DEFAULT NULL;
+
+CREATE TABLE IF NOT EXISTS `errlog` (
+  `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `note` varchar(255) NOT NULL DEFAULT '',
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
