@@ -51,17 +51,15 @@ class PropertiesChanges(object):
         from console.services.market_app_service import market_app_service
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
         service_ids = group_service_relation_repo.get_services_by_group(group_id).values_list("service_id", flat=True)
-        versions = service_source_repo.get_service_sources(
-            self.tenant.tenant_id, service_ids).values_list("version", flat=True)
-        sorted_versions = sorted(versions,
-                                 key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
+        versions = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids).values_list("version", flat=True)
+        sorted_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
         current_version = sorted_versions[-1]
         if not self.install_from_cloud:
-            app, app_version = rainbond_app_repo.get_rainbond_app_and_version(
-                self.tenant.enterprise_id, self.service_source.group_key, current_version)
+            app, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id,
+                                                                              self.service_source.group_key, current_version)
         else:
-            app, app_version = market_app_service.get_app_from_cloud(
-                self.tenant, self.service_source.group_key, current_version)
+            app, app_version = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key,
+                                                                     current_version)
             self.market_id = app.market_id
         if app_version:
             self.template = json.loads(app_version.app_template)

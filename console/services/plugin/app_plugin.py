@@ -40,12 +40,10 @@ plugin_version_service = PluginBuildVersionService()
 dependency_service = AppServiceRelationService()
 
 has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
-allow_plugins = [PluginCategoryConstants.OUTPUT_INPUT_NET,
-                 PluginCategoryConstants.OUTPUT_NET,
-                 PluginCategoryConstants.INPUT_NET,
-                 PluginCategoryConstants.PERFORMANCE_ANALYSIS,
-                 PluginCategoryConstants.INIT_TYPE,
-                 PluginCategoryConstants.COMMON_TYPE]
+allow_plugins = [
+    PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
+    PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE
+]
 
 
 class AppPluginService(object):
