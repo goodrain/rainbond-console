@@ -189,8 +189,7 @@ class RegionDView(JWTAuthApiView):
             return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=404)
         is_admin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
         if not is_admin:
-            return Response(
-                general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"), status=403)
+            return Response(general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"), status=403)
         code, msg, tenant_region = region_services.close_tenant_region(team, region_name)
         if code != 200:
             return Response(general_message(code, "close region error", msg), status=code)

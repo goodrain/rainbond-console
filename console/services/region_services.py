@@ -270,7 +270,8 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name):
         usable_regions = region_repo.get_usable_regions()
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True, region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(
+            is_active=True, is_init=True, region_name__in=region_names)
         return team_opened_regions
 
     def get_regions_by_enterprise_id(self, enterprise_id):
