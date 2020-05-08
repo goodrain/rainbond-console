@@ -209,6 +209,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             status=UpgradeStatus.NOT.value,
             pk=data['upgrade_record_id'],
         )
+        old_service = group_service.get_rainbond_services(group_id, group_key).first()
+        pc = PropertiesChanges(old_service, self.tenant)
 
         # 处理新增的组件
         add_service_infos = {
@@ -246,8 +248,6 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
 
         app_record.version = version
-        old_service = group_service.get_rainbond_services(group_id, group_key).first()
-        pc = PropertiesChanges(old_service, self.tenant)
         app_record.old_version = pc.current_version.version
         app_record.save()
 
