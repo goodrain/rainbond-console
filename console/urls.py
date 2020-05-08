@@ -215,6 +215,7 @@ from console.views.receipt import EnterReceiptDetailAPIView
 from console.views.receipt import EnterReceiptOrdersAIPView
 from console.views.region import GetRegionPublicKeyView
 from console.views.region import RegionCView
+from console.views.region import RegionDView
 from console.views.region import QyeryRegionView
 from console.views.region import RegQuyView
 from console.views.region import RegSimQuyView
@@ -392,6 +393,7 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/region/unopen$', RegUnopenView.as_view()),
     # 开通数据中心
     url(r'^teams/(?P<team_name>[\w\-]+)/region$', RegionCView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/region/(?P<region_name>[\w\-]+)$', RegionDView.as_view()),
 
     # 总览 团队信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view()),
