@@ -20,7 +20,10 @@ alter table tenant_service_delete modify version varchar(32) DEFAULT NULL;
 
 CREATE TABLE IF NOT EXISTS `errlog` (
   `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `note` varchar(255) NOT NULL DEFAULT '',
+  `msg` varchar(2047) NOT NULL DEFAULT '',
+  `username` varchar(255) NOT NULL DEFAULT '',
+  `enterprise_id` varchar(255) NOT NULL DEFAULT '',
+  `address` varchar(2047) NOT NULL DEFAULT '',
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
