@@ -12,6 +12,7 @@ from console.models.main import RegionConfig
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.service_repo import service_repo
 from console.services.config_service import platform_config_service
 from console.services.service_services import base_service
 from www.apiclient.baseclient import client_auth_service
@@ -26,22 +27,6 @@ market_api = MarketOpenAPI()
 class RegionService(object):
     def get_region_by_tenant_name(self, tenant_name):
         return region_repo.get_region_by_tenant_name(tenant_name=tenant_name)
-
-    def get_region_info_by_tenant_name(self, tenant):
-        tenant_regions = region_repo.get_active_region_by_tenant_name(tenant_name=tenant.tenant_name)
-        regions = []
-        if tenant_regions:
-            tenant_region_names = tenant_regions.values_list("region_name", flat=True)
-            regions = region_repo.get_regions_by_region_names(tenant.enterprise_id, tenant_region_names)
-        return regions
-
-    def get_tenant_region_by_region_name(self, tenant, region_name):
-        tenant_regions = region_repo.get_team_region_by_tenant_and_region(tenant_name=tenant.tenant_name)
-        regions = []
-        if tenant_regions:
-            tenant_region_names = tenant_regions.values_list("region_name", flat=True)
-            regions = region_repo.get_regions_by_region_names(tenant.enterprise_id, tenant_region_names)
-        return regions
 
     def get_region_by_region_id(self, region_id):
         return region_repo.get_region_by_region_id(region_id=region_id)
@@ -143,7 +128,7 @@ class RegionService(object):
 
     def get_team_unopen_region(self, team_name):
         usable_regions = region_repo.get_usable_regions()
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
+        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_active=True, is_init=True)
         opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
@@ -386,6 +371,32 @@ class RegionService(object):
 
     def check_region_in_config(self, region_name):
         return None
+
+    def close_tenant_region(self, team, region_name):
+        has_running_service = False
+        region_config = region_repo.get_region_by_region_name(region_name)
+        if not region_config:
+            return 404, u"需要卸载的数据中心{0}不存在".format(region_name), None
+        tenant_region = region_repo.get_team_region_by_tenant_and_region(team.tenant_id, region_name)
+        if not tenant_region:
+            return 404, u"需要卸载的数据中心{0}不存在".format(region_name), None
+
+        services = service_repo.get_tenant_region_services(region_name, team.tenant_id)
+        if services:
+            service_ids = services.values_list("service_id", flat=True)
+            service_status_list = region_api.service_status(region_name, team.tenant_name, {
+                "service_ids": service_ids,
+                "enterprise_id": team.enterprise_id
+            })
+            for service_status in service_status_list["list"]:
+                if service_status.get("status") == "running":
+                    has_running_service = True
+                    break
+        if has_running_service:
+            return 400, u"当前团队的数据中心存在运行中的组件,不能卸载", None
+        tenant_region.is_active = 0
+        tenant_region.save()
+        return 200, u"success", tenant_region
 
 
 class RegionExistException(Exception):

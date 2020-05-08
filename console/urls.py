@@ -214,7 +214,7 @@ from console.views.receipt import EnterReceiptConfirmAPIView
 from console.views.receipt import EnterReceiptDetailAPIView
 from console.views.receipt import EnterReceiptOrdersAIPView
 from console.views.region import GetRegionPublicKeyView
-from console.views.region import OpenRegionView
+from console.views.region import RegionCView
 from console.views.region import QyeryRegionView
 from console.views.region import RegQuyView
 from console.views.region import RegSimQuyView
@@ -273,8 +273,6 @@ from console.views.team import UserAllTeamView
 from console.views.team import UserApplyStatusView
 from console.views.team import UserDelView
 from console.views.team import UserFuzSerView
-from console.views.team import TeamRegionsLCView
-from console.views.team import TeamRegionsDView
 from console.views.user import AdminUserDView
 from console.views.user import AdminUserLCView
 from console.views.user import CheckSourceView
@@ -380,9 +378,6 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/invitation$', TeamInvView.as_view()),
     # 团队详情
     url(r'^teams/(?P<team_name>[\w\-]+)/detail$', TeamDetailView.as_view()),
-    # 团队所挂载的数据中心增删改查
-    url(r'^teams/(?P<tenantName>[\w\-]+)/regions$', TeamRegionsLCView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionsDView.as_view()),
     # 获取团队下域名访问量排序
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$',
         TeamSortDomainQueryView.as_view()),
@@ -396,7 +391,7 @@ urlpatterns = [
     # 获取当前团队未开通的数据中心
     url(r'^teams/(?P<team_name>[\w\-]+)/region/unopen$', RegUnopenView.as_view()),
     # 开通数据中心
-    url(r'^teams/(?P<team_name>[\w\-]+)/region$', OpenRegionView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/region$', RegionCView.as_view()),
 
     # 总览 团队信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view()),
