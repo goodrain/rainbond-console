@@ -400,6 +400,8 @@ class DomainService(object):
                           http_rule_id,
                           the_weight,
                           rule_extensions,
+                          auto_ssl=False,
+                          auto_ssl_config=None,
                           re_model=False):
         # 校验域名格式
         self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
@@ -461,6 +463,8 @@ class DomainService(object):
         domain_info["domain_heander"] = domain_heander if domain_heander else ""
         domain_info["the_weight"] = the_weight
         domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["auto_ssl"] = auto_ssl
+        domain_info["auto_ssl_config"] = auto_ssl_config
         rule_extensions_str = ""
         if rule_extensions:
             # 拼接字符串，存入数据库
