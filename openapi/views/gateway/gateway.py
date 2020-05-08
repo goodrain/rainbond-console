@@ -132,7 +132,8 @@ class UpdateAppGatewayHTTPRuleView(TeamAPIView):
                                                 httpdomain["container_port"], httpdomain.get("certificate_id"), DomainType.WWW,
                                                 httpdomain.get("domain_path"), httpdomain.get("domain_cookie"),
                                                 httpdomain.get("domain_header"), rule_id, httpdomain.get("the_weight", 100),
-                                                httpdomain.get("rule_extensions"), True)
+                                                httpdomain.get("rule_extensions"), httpdomain.get("auto_ssl", False),
+                                                httpdomain.get("auto_ssl_config", None), True)
         re = HTTPGatewayRuleSerializer(data=model_to_dict(data))
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)

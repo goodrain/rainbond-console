@@ -534,6 +534,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         http_rule_id = request.data.get("http_rule_id", None)
         the_weight = request.data.get("the_weight", 100)
         domain_path = do_path if do_path else "/"
+        auto_ssl = request.data.get("auto_ssl", False)
+        auto_ssl_config = request.data.get("auto_ssl_config", None)
 
         # 判断参数
         if not service_id or not container_port or not domain_name or not http_rule_id:
@@ -563,7 +565,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             return Response(result, status=400)
         domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port, certificate_id,
                                          DomainType.WWW, domain_path, domain_cookie, domain_heander, http_rule_id, the_weight,
-                                         rule_extensions)
+                                         rule_extensions, auto_ssl=auto_ssl, auto_ssl_config=auto_ssl_config)
         result = general_message(200, "success", "策略编辑成功")
         return Response(result, status=200)
 
