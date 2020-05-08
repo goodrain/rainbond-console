@@ -132,10 +132,10 @@ class RegionApiBaseHttpClient(object):
         else:
             region = region_repo.get_region_by_region_name(region_name)
         if not region:
-            raise ServiceHandleException("region {0} not found".format(region_name))
+            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
         if not client:
-            raise ServiceHandleException(msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查配置")
+            raise ServiceHandleException(msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查配置", error_code=10411)
         try:
             if body is None:
                 response = client.request(url=url, method=method, headers=headers, timeout=timeout, retries=retries)
@@ -146,14 +146,17 @@ class RegionApiBaseHttpClient(object):
             logger.error('client_error', e)
             raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                 "type": "request time out",
-                "error": str(e)
+                "error": str(e),
+                "error_code": 10411,
             })
         except MaxRetryError as e:
             logger.error('client_error', e)
-            raise ServiceHandleException(msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
+            raise ServiceHandleException(
+                error_code=10411, msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
             logger.error(e)
-            raise ServiceHandleException(msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
+            raise ServiceHandleException(
+                error_code=10411, msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
 
     def get_client(self, region_config):
         # get client from cache
