@@ -13,7 +13,10 @@ logger = logging.getLogger("default")
 class ErrLogView(JWTAuthApiView):
     def post(self, req, *args, **kwargslf):
         msg = req.data.get("msg")
+        username = req.data.get("username")
+        enterprise_id = req.data.get("enterprise_id")
+        address = req.data.get("address")
         if msg:
             logger.error("error from frontend: %s".format(msg))
-            errlog_service.create(msg)
+            errlog_service.create(msg, username, enterprise_id, address)
         return Response(general_message(200, "success", u"ok"), status=200)
