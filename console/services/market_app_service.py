@@ -986,10 +986,9 @@ class MarketAppService(object):
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def conversion_cloud_version_to_app(self, cloud_version):
-        app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", share_user=0, source="cloud", scope="market")
+        app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", source="cloud", scope="market")
         app_version = RainbondCenterAppVersion(
             app_id=cloud_version.app_key_id,
-            app_name="",
             version=cloud_version.app_version,
             share_user=0,
             record_id=0,

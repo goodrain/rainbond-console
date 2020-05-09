@@ -32,7 +32,7 @@ class MarketAppInstallView(BaseOpenAPIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         logger.info(data)
-        app = group_service.get_app_by_id(data["app_id"])
+        app = group_service.get_app_by_pk(data["app_id"])
         if not app:
             return Response(FailSerializer({"msg": "install target app not found"}), status=status.HTTP_400_BAD_REQUEST)
         tenant = team_services.get_team_by_team_id(app.tenant_id)
@@ -49,7 +49,7 @@ class MarketAppInstallView(BaseOpenAPIView):
             services = group_service.get_group_services(data["app_id"])
             appInfo = model_to_dict(app)
             appInfo["enterprise_id"] = tenant.enterprise_id
-            appInfo["service_list"] = ServiceBaseInfoSerializer(services, many=True).data
+            appInfo["service_list"] = ServiceBaseInfoSerializer(services, many=True)
             reapp = AppInfoSerializer(data=appInfo)
             reapp.is_valid()
             return Response(reapp.data, status=status.HTTP_200_OK)
