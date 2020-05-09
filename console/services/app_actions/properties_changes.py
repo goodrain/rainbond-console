@@ -51,8 +51,9 @@ class PropertiesChanges(object):
         from console.services.market_app_service import market_app_service
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
         service_ids = group_service_relation_repo.get_services_by_group(group_id).values_list("service_id", flat=True)
-        versions = service_source_repo.get_service_sources(
-            self.tenant.tenant_id, service_ids).exclude(version=None).values_list("version", flat=True)
+        versions = service_source_repo.get_service_sources(self.tenant.tenant_id,
+                                                           service_ids).exclude(version=None).values_list(
+                                                               "version", flat=True)
         sorted_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
         current_version = sorted_versions[-1]
         if not self.install_from_cloud:
