@@ -19,7 +19,7 @@ class EnterpriseHTTPGatewayRuleSerializer(serializers.ModelSerializer):
     region_name = serializers.CharField(help_text=u"所属集群ID")
     team_name = serializers.CharField(help_text=u"所属团队唯一名称")
     app_id = serializers.IntegerField(help_text=u"所属应用ID")
-    rule_name = serializers.CharField(max_length=32, help_text=u"分发方式")
+    auto_ssl_config = serializers.CharField(max_length=32, help_text=u"自动签发方式")
 
 
 class PostHTTPGatewayRuleSerializer(serializers.Serializer):
@@ -33,3 +33,5 @@ class PostHTTPGatewayRuleSerializer(serializers.Serializer):
     domain_path = serializers.CharField(default="/", help_text=u"域名路径")
     rule_extensions = serializers.ListField(help_text=u"规则扩展", default=[])
     whether_open = serializers.BooleanField(help_text=u"是否开放", default=False)
+    auto_ssl = serializers.BooleanField(help_text=u"是否自动签发", default=False)
+    auto_ssl_config = serializers.BooleanField(help_text=u"自动签发方式", default=False)
