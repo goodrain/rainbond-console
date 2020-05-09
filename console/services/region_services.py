@@ -165,6 +165,32 @@ class RegionService(object):
             logger.exception(e)
             return {}
 
+    def get_enterprise_all_regions(self, eid="", page=None, page_size=None):
+        regions = region_repo.get_regions_by_enterprise_id(eid)
+        total = regions.count()
+        paginator = Paginator(regions, page_size)
+        rp = paginator.page(page)
+
+        result = []
+        for region in rp:
+            result.append({
+                "region_alias": region.region_alias,
+                "url": region.url,
+                "token": region.token,
+                "wsurl": region.wsurl,
+                "httpdomain": region.httpdomain,
+                "tcpdomain": region.tcpdomain,
+                "scope": region.scope,
+                "ssl_ca_cert": region.ssl_ca_cert,
+                "cert_file": region.cert_file,
+                "key_file": region.key_file,
+                "status": region.status,
+                "desc": region.desc,
+                "region_name": region.region_name,
+                "region_id": region.region_id
+            })
+        return result, total
+
     def get_all_regions(self, query="", page=None, page_size=None):
         # 即将移除，仅用于OpenAPI V1
         regions = region_repo.get_all_regions(query)

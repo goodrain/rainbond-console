@@ -34,7 +34,6 @@ class ListRegionInfo(BaseOpenAPIView):
         tags=['openapi-region'],
         operation_description="获取全部数据中心列表")
     def get(self, req):
-        query = req.GET.get("query", "")
         try:
             page = int(req.GET.get("page", 1))
         except ValueError:
@@ -44,7 +43,8 @@ class ListRegionInfo(BaseOpenAPIView):
         except ValueError:
             page_size = 99
 
-        regions, total = region_services.get_all_regions(query, page, page_size)
+        eid = self.enterprise.enterprise_id
+        regions, total = region_services.get_enterprise_all_regions(eid, page, page_size)
         serializer = RegionInfoRespSerializer(data=regions, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
