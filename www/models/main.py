@@ -698,7 +698,7 @@ class ServiceDomain(BaseModel):
     the_weight = models.IntegerField(default=100, help_text=u"权重")
     rule_extensions = models.TextField(blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
-    auto_ssl = models.BooleanField(default=False, help_text=u"是否自动分发证书")
+    auto_ssl = models.BooleanField(default=False, help_text=u"是否自动匹配证书，升级为https，如果开启，由外部服务完成升级")
     auto_ssl_config = models.CharField(max_length=32, null=True, default=None, blank=True, help_text=u"自动分发证书配置")
 
     def __unicode__(self):

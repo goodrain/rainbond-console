@@ -33,5 +33,5 @@ class PostHTTPGatewayRuleSerializer(serializers.Serializer):
     domain_path = serializers.CharField(default="/", help_text=u"域名路径")
     rule_extensions = serializers.ListField(help_text=u"规则扩展", default=[])
     whether_open = serializers.BooleanField(help_text=u"是否开放", default=False)
-    auto_ssl = serializers.BooleanField(help_text=u"是否自动签发", default=False)
-    auto_ssl_config = serializers.BooleanField(help_text=u"自动签发方式", default=False)
+    auto_ssl = serializers.BooleanField(help_text=u"是否自动匹配证书，升级为https，如果开启，由外部服务完成升级", default=False)
+    auto_ssl_config = serializers.BooleanField(help_text=u"自动分发证书配置", default=False)

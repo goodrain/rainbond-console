@@ -153,12 +153,12 @@ class EnterpriseConfigView(BaseOpenAPIView):
         responses={200: EnterpriseConfigSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, eid):
+    def get(self, req, *args, **kwargs):
         key = req.GET.get("key", None)
-        ent = enterprise_services.get_enterprise_by_id(eid)
+        ent = enterprise_services.get_enterprise_by_id(self.enterprise.enterprise_id)
         if ent is None:
             return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
-        ent_config = EnterpriseConfigService(eid).initialization_or_get_config
+        ent_config = EnterpriseConfigService(self.enterprise.enterprise_id).initialization_or_get_config
         if key is None:
             serializer = EnterpriseConfigSeralizer(data=ent_config)
         elif key in ent_config.keys():

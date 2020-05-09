@@ -43,6 +43,7 @@ urlpatterns = [
     url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # get user teams
+    url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
@@ -74,7 +75,6 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/enterprises$', ListEnterpriseInfoView.as_view(), name="list_ent_info"),
         url(r'^v1/enterprises/(?P<eid>[\w\-]+)/resource$', EnterpriseSourceView.as_view(), name="ent_info"),
         url(r'^v1/enterprises/(?P<eid>[\w\-]+)$', EnterpriseInfoView.as_view(), name="ent_info"),
-        url(r'^v1/enterprises/(?P<eid>[\w\-]+)/configs$', EnterpriseConfigView.as_view(), name="ent_info"),
         url(r'^v1/appstores$', ListAppStoresView.as_view(), name="list_appstore_infos"),
         url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
         url(r'^v1/announcements$', ListAnnouncementView.as_view()),
