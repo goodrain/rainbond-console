@@ -875,4 +875,7 @@ class Errlog(BaseModel):
     class Meta:
         db_table = "errlog"
 
-    msg = models.CharField(max_length=255, null=True, blank=True, default="", help_text=u"error log of front end")
+    msg = models.CharField(max_length=2047, null=True, blank=True, default="", help_text=u"error log of front end")
+    username = models.CharField(max_length=255, null=True, blank=True, default="")
+    enterprise_id = models.CharField(max_length=255, null=True, blank=True, default="")
+    address = models.CharField(max_length=2047, null=True, blank=True, default="")
