@@ -18,8 +18,7 @@ class BaseTaskGuidance:
             logger.info("Enterprise id: {}; initialize basic tasks information".format(eid))
             data = self.init_base_task()
             # TODO: handle error
-            platform_config_service.add_config_without_reload(
-                key=eid, default_value=data, type="json")
+            platform_config_service.add_config_without_reload(key=eid, default_value=data, type="json")
         else:
             data = eval(cfg.value)
         need_update = False

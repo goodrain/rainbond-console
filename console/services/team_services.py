@@ -67,8 +67,7 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
             user = request.user
-            user_perms = self.get_user_perm_identitys_in_permtenant(
-                user_id=user.user_id, tenant_name=tenant.tenant_name)
+            user_perms = self.get_user_perm_identitys_in_permtenant(user_id=user.user_id, tenant_name=tenant.tenant_name)
             user_ids = [int(r) for r in list(set(user_ids))]
             exist_team_user = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id__in=user_ids).all()
             exist = []
@@ -81,8 +80,7 @@ class TeamService(object):
                         for identity in identitys:
                             new_user_list.append(
                                 PermRelTenant(
-                                    user_id=user_id, tenant_id=tenant.pk, identity=identity,
-                                    enterprise_id=enterprise.ID))
+                                    user_id=user_id, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID))
             if new_user_list:
                 try:
                     PermRelTenant.objects.bulk_create(new_user_list)
@@ -111,7 +109,12 @@ class TeamService(object):
         user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         return user_perms
 
-    def get_not_join_users(self, enterprise, tenant, query,):
+    def get_not_join_users(
+            self,
+            enterprise,
+            tenant,
+            query,
+    ):
         return team_repo.get_not_join_users(enterprise, tenant, query)
 
     def get_user_perms_in_permtenant_list(self, user_id, tenant_name):
@@ -200,11 +203,8 @@ class TeamService(object):
         filter = Q(is_default=True)
         if not allow_owner:
             filter &= ~Q(role_name="owner")
-        default_role_id_list = TenantUserRole.objects.filter(filter).values_list(
-            "pk", flat=True)
-        team_role_id_list = TenantUserRole.objects.filter(
-            tenant_id=team_obj.pk, is_default=False).values_list(
-            "pk", flat=True)
+        default_role_id_list = TenantUserRole.objects.filter(filter).values_list("pk", flat=True)
+        team_role_id_list = TenantUserRole.objects.filter(tenant_id=team_obj.pk, is_default=False).values_list("pk", flat=True)
         return list(default_role_id_list) + list(team_role_id_list)
 
     def add_role_by_team_name_perm_list(self, role_name, tenant_name, perm_id_list):
@@ -294,9 +294,8 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
             viewer = user_role_repo.get_viewer_role()
-            PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk,
-                                                   identity="viewer", enterprise_id=enterprise.pk,
-                                                   role_id=viewer.pk)
+            PermRelTenant.objects.update_or_create(
+                user_id=user_id, tenant_id=tenant.pk, identity="viewer", enterprise_id=enterprise.pk, role_id=viewer.pk)
 
     def user_is_exist_in_team(self, user_list, tenant_name):
         """判断一个用户是否存在于一个团队中"""
@@ -347,8 +346,8 @@ class TeamService(object):
                 region_api.delete_tenant(tenant_region["region_name"], tenant_region["tenant_name"])
                 success_count = success_count + 1
             except Exception as e:
-                logger.error("tenantid: {}; region name: {}; delete tenant: {}".format(
-                    tenant_id, tenant_region["tenant_name"], e))
+                logger.error("tenantid: {}; region name: {}; delete tenant: {}".format(tenant_id, tenant_region["tenant_name"],
+                                                                                       e))
         # The current strategy is that if a tenant is deleted successfully, it is considered successful.
         # For tenants that have not been deleted successfully, other deletion paths need to be taken.
         if success_count == 0:
@@ -371,8 +370,7 @@ class TeamService(object):
             tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
             team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID).delete()
             team_repo.get_user_perms_in_permtenant(user_id=other_user_id, tenant_id=tenant.ID).delete()
-            own_perm_info = {"user_id": user_id, "tenant_id": tenant.ID,
-                             "identity": "viewer", "enterprise_id": enterprise.ID}
+            own_perm_info = {"user_id": user_id, "tenant_id": tenant.ID, "identity": "viewer", "enterprise_id": enterprise.ID}
             other_perm_info = {
                 "user_id": other_user_id,
                 "tenant_id": tenant.ID,
@@ -512,11 +510,9 @@ class TeamService(object):
 
         for tenant in tenants:
             # 获取一个用户在一个团队中的身份列表
-            perms_identitys = self.get_user_perm_identitys_in_permtenant(
-                user_id=user_id, tenant_name=tenant["tenant_id"])
+            perms_identitys = self.get_user_perm_identitys_in_permtenant(user_id=user_id, tenant_name=tenant["tenant_id"])
             # 获取一个用户在一个团队中的角色ID列表
-            perms_role_list = self.get_user_perm_role_id_in_permtenant(
-                user_id=user_id, tenant_name=tenant["tenant_id"])
+            perms_role_list = self.get_user_perm_role_id_in_permtenant(user_id=user_id, tenant_name=tenant["tenant_id"])
 
             role_infos = []
             for identity in perms_identitys:
@@ -574,6 +570,15 @@ class TeamService(object):
             for tenant in tenants:
                 teams_list.append(self.__team_with_region_info(tenant, user_id))
         return teams_list
+
+    def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
+        tenant = team_repo.get_user_tenant_by_name(user_id, tenant_name)
+        if not tenant:
+            return tenant
+        if not team_repo.get_team_region_by_name(tenant.tenant_id, region_name):
+            return None
+        else:
+            return tenant
 
     def get_team_by_team_alias(self, team_alias):
         return team_repo.get_team_by_team_alias(team_alias)

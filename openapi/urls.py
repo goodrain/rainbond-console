@@ -45,6 +45,7 @@ from openapi.views.user_view import ChangePassword
 from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
 from openapi.views.oauth import OauthTypeView
+from openapi.views.groupapp import GroupAppsCopyView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -74,8 +75,7 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$',
-        ListRegionTeamServicesView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$', ListRegionTeamServicesView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view()),
     url(r'^v1/users$', ListUsersView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
@@ -103,5 +103,6 @@ urlpatterns = [
     url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
-
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/groupapp/(?P<group_id>[\d\-]+)/copy$',
+        GroupAppsCopyView.as_view()),
 ]

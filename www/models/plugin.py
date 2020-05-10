@@ -36,6 +36,8 @@ class TenantPlugin(BaseModel):
     origin = models.CharField(
         max_length=12, default="source_code", null=False, blank=False, help_text=u"插件来源 source_code|market|local_market")
     origin_share_id = models.CharField(max_length=32, default="new_create", help_text=u"分享的插件的id,自己创建为new_create")
+    username = models.CharField(max_length=32, null=True, blank=True, help_text="镜像仓库或代码仓库用户名")
+    password = models.CharField(max_length=32, null=True, blank=True, help_text="镜像仓库或代码仓库秘密")
 
 
 class PluginBuildVersion(BaseModel):

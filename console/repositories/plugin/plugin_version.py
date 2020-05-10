@@ -28,8 +28,8 @@ class PluginVersionRepository(object):
         PluginBuildVersion.objects.filter(plugin_id=plugin_id).delete()
 
     def get_last_ok_one(self, plugin_id, tenant_id):
-        pbv = PluginBuildVersion.objects.filter(plugin_id=plugin_id, tenant_id=tenant_id,
-                                                build_status="build_success").order_by("-build_time")
+        pbv = PluginBuildVersion.objects.filter(
+            plugin_id=plugin_id, tenant_id=tenant_id, build_status="build_success").order_by("-build_time")
         if not pbv:
             return None
         return pbv[0]

@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-import os
 import logging
+import os
 from datetime import datetime
 
 from django.conf import settings
 from django.db.models import Q
+
 from console.exception.exceptions import ConfigExistError
 from console.models.main import ConsoleSysConfig
 from console.models.main import OAuthServices
-from console.services.enterprise_services import enterprise_services
 from console.repositories.user_repo import user_repo
+from console.services.enterprise_services import enterprise_services
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.oauth.oauth_types import NoSupportOAuthType
 from goodrain_web.custom_config import custom_config as custom_settings
@@ -43,8 +44,7 @@ class ConfigService(object):
                     type = "json"
                 else:
                     type = "string"
-                rst_key = self.add_config(
-                    key=key, default_value=value, type=type, enable=enable, desc=desc)
+                rst_key = self.add_config(key=key, default_value=value, type=type, enable=enable, desc=desc)
 
                 value = rst_key.value
                 enable = rst_key.enable
@@ -57,8 +57,7 @@ class ConfigService(object):
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
-                rst_datas[key.lower()] = {"enable": tar_key.enable,
-                                          "value": self.base_cfg_keys_value[key]["value"]}
+                rst_datas[key.lower()] = {"enable": tar_key.enable, "value": self.base_cfg_keys_value[key]["value"]}
 
         for key in self.cfg_keys:
             tar_key = self.get_config_by_key(key)
@@ -71,8 +70,7 @@ class ConfigService(object):
                     type = "json"
                 else:
                     type = "string"
-                rst_key = self.add_config(
-                    key=key, default_value=value, type=type, enable=enable, desc=desc)
+                rst_key = self.add_config(key=key, default_value=value, type=type, enable=enable, desc=desc)
 
                 value = rst_key.value
                 enable = rst_key.enable
@@ -85,6 +83,7 @@ class ConfigService(object):
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
+        rst_datas["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
         return rst_datas
 
     def update_config(self, key, value):
@@ -97,8 +96,12 @@ class ConfigService(object):
         if not ConsoleSysConfig.objects.filter(key=key, enterprise_id=self.enterprise_id).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
-                key=key, type=type, value=default_value,
-                desc=desc, create_time=create_time, enable=enable,
+                key=key,
+                type=type,
+                value=default_value,
+                desc=desc,
+                create_time=create_time,
+                enable=enable,
                 enterprise_id=self.enterprise_id)
             custom_settings.reload()
             return config
@@ -158,31 +161,63 @@ class ConfigService(object):
 
 
 class EnterpriseConfigService(ConfigService):
-
     def __init__(self, eid):
         super(EnterpriseConfigService, self).__init__()
         self.enterprise_id = eid
-        self.base_cfg_keys = [
-            "OAUTH_SERVICES"
-        ]
+        self.base_cfg_keys = ["OAUTH_SERVICES"]
         self.cfg_keys = [
-            "APPSTORE_IMAGE_HUB", "NEWBIE_GUIDE", "EXPORT_APP",
-            "CLOUD_MARKET", "OBJECT_STORAGE",
+            "APPSTORE_IMAGE_HUB",
+            "NEWBIE_GUIDE",
+            "EXPORT_APP",
+            "CLOUD_MARKET",
+            "OBJECT_STORAGE",
         ]
         self.cfg_keys_value = {
-            "APPSTORE_IMAGE_HUB": {"value": {"hub_user": None, "hub_url": None, "namespace": None, "hub_password": None},
-                                   "desc": u"AppStore镜像仓库配置", "enable": True},
-            "NEWBIE_GUIDE": {"value": None, "desc": u"开启/关闭新手引导", "enable": True},
-            "EXPORT_APP": {"value": None, "desc": u"开启/关闭导出应用", "enable": False},
-            "CLOUD_MARKET": {"value": None, "desc": u"开启/关闭云应用市场", "enable": True},
-            "OBJECT_STORAGE":  {"value": {"provider": "", "endpoint": "", "access_key": "",
-                                          "secret_key": "", "bucket_name": "", },
-                                "desc": u"云端备份使用的对象存储信息", "enable": False},
+            "APPSTORE_IMAGE_HUB": {
+                "value": {
+                    "hub_user": None,
+                    "hub_url": None,
+                    "namespace": None,
+                    "hub_password": None
+                },
+                "desc": u"AppStore镜像仓库配置",
+                "enable": True
+            },
+            "NEWBIE_GUIDE": {
+                "value": None,
+                "desc": u"开启/关闭新手引导",
+                "enable": True
+            },
+            "EXPORT_APP": {
+                "value": None,
+                "desc": u"开启/关闭导出应用",
+                "enable": False
+            },
+            "CLOUD_MARKET": {
+                "value": None,
+                "desc": u"开启/关闭云应用市场",
+                "enable": True
+            },
+            "OBJECT_STORAGE": {
+                "value": {
+                    "provider": "",
+                    "endpoint": "",
+                    "access_key": "",
+                    "secret_key": "",
+                    "bucket_name": "",
+                },
+                "desc": u"云端备份使用的对象存储信息",
+                "enable": False
+            },
         }
 
     def init_base_config_value(self):
         self.base_cfg_keys_value = {
-            "OAUTH_SERVICES": {"value": self.get_oauth_services(), "desc": u"开启/关闭OAuthServices功能", "enable": True},
+            "OAUTH_SERVICES": {
+                "value": self.get_oauth_services(),
+                "desc": u"开启/关闭OAuthServices功能",
+                "enable": True
+            },
         }
 
     def get_oauth_services(self):
@@ -192,8 +227,7 @@ class EnterpriseConfigService(ConfigService):
             oauth_services = OAuthServices.objects.filter(
                 ~Q(oauth_type="enterprisecenter"), eid=enterprise.enterprise_id, is_deleted=False, enable=True)
         else:
-            oauth_services = OAuthServices.objects.filter(
-                eid=enterprise.enterprise_id, is_deleted=False, enable=True)
+            oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True)
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
@@ -225,41 +259,77 @@ class EnterpriseConfigService(ConfigService):
 class PlatformConfigService(ConfigService):
     def __init__(self):
         super(PlatformConfigService, self).__init__()
-        self.base_cfg_keys = [
-            "IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"
-        ]
+        self.base_cfg_keys = ["IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"]
 
         self.cfg_keys = [
-            "TITLE", "LOGO", "IS_REGIST",
-            "DOCUMENT", "OFFICIAL_DEMO",
+            "TITLE",
+            "LOGO",
+            "IS_REGIST",
+            "DOCUMENT",
+            "OFFICIAL_DEMO",
         ]
         self.cfg_keys_value = {
-            "TITLE": {"value": "Rainbond-企业云应用操作系统，开发、交付云解决方案",
-                      "desc": u"云帮title", "enable": True},
-            "LOGO": {"value": None, "desc": u"云帮图标", "enable": True},
-            "DOCUMENT": {"value": {"platform_url": "https://www.rainbond.com/", },
-                         "desc": u"开启/关闭文档", "enable": True},
-            "OFFICIAL_DEMO": {"value": None, "desc": u"开启/关闭官方Demo", "enable": True},
-            "IS_REGIST": {"value": None, "desc": u"是否允许注册", "enable": True},
+            "TITLE": {
+                "value": "Rainbond-企业云应用操作系统，开发、交付云解决方案",
+                "desc": u"云帮title",
+                "enable": True
+            },
+            "LOGO": {
+                "value": None,
+                "desc": u"云帮图标",
+                "enable": True
+            },
+            "DOCUMENT": {
+                "value": {
+                    "platform_url": "https://www.rainbond.com/",
+                },
+                "desc": u"开启/关闭文档",
+                "enable": True
+            },
+            "OFFICIAL_DEMO": {
+                "value": None,
+                "desc": u"开启/关闭官方Demo",
+                "enable": True
+            },
+            "IS_REGIST": {
+                "value": None,
+                "desc": u"是否允许注册",
+                "enable": True
+            },
         }
 
     def init_base_config_value(self):
         self.base_cfg_keys_value = {
-            "IS_PUBLIC": {"value": os.getenv('IS_PUBLIC', False), "desc": u"是否是公有", "enable": True},
-            "MARKET_URL": {"value": os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"]),
-                           "desc": u"商店路由", "enable": True},
-            "ENTERPRISE_CENTER_OAUTH": {"value": self.get_enterprise_center_oauth(),
-                                        "desc": u"enterprise center oauth 配置", "enable": True},
-            "VERSION": {"value": os.getenv("RELEASE_DESC", "public-cloud"),
-                        "desc": u"平台版本", "enable": True},
-            "IS_USER_REGISTER": {"value": self.is_user_register(), "desc": u"开启/关闭OAuthServices功能", "enable": True},
-
+            "IS_PUBLIC": {
+                "value": os.getenv('IS_PUBLIC', False),
+                "desc": u"是否是公有",
+                "enable": True
+            },
+            "MARKET_URL": {
+                "value": os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"]),
+                "desc": u"商店路由",
+                "enable": True
+            },
+            "ENTERPRISE_CENTER_OAUTH": {
+                "value": self.get_enterprise_center_oauth(),
+                "desc": u"enterprise center oauth 配置",
+                "enable": True
+            },
+            "VERSION": {
+                "value": os.getenv("RELEASE_DESC", "public-cloud"),
+                "desc": u"平台版本",
+                "enable": True
+            },
+            "IS_USER_REGISTER": {
+                "value": self.is_user_register(),
+                "desc": u"开启/关闭OAuthServices功能",
+                "enable": True
+            },
         }
 
     def get_enterprise_center_oauth(self):
         try:
-            oauth_service = OAuthServices.objects.get(
-                is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
+            oauth_service = OAuthServices.objects.get(is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
         except OAuthServices.DoesNotExist:
             return None
         try:
@@ -289,8 +359,7 @@ class PlatformConfigService(ConfigService):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
-                key=key, type=type, value=default_value,
-                desc=desc, create_time=create_time, enterprise_id="")
+                key=key, type=type, value=default_value, desc=desc, create_time=create_time, enterprise_id="")
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))

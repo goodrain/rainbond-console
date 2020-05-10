@@ -85,12 +85,7 @@ class EnterpriseSourceView(BaseOpenAPIView):
         tags=['openapi-entreprise'],
     )
     def get(self, req, eid):
-        data = {
-            "enterprise_id": eid,
-            "used_cpu": 0,
-            "used_memory": 0,
-            "used_disk": 0
-        }
+        data = {"enterprise_id": eid, "used_cpu": 0, "used_memory": 0, "used_disk": 0}
         if not req.user.is_administrator:
             raise ServiceHandleException(status_code=401, error_code=401, msg="Permission denied")
         ent = enterprise_services.get_enterprise_by_id(eid)
@@ -129,8 +124,8 @@ class EntUserInfoView(BaseOpenAPIView):
 
         cursor = connection.cursor()
         cursor.execute(
-            "select user_id from enterprise_user_perm where enterprise_id='{0}' order by user_id desc LIMIT {1},{2};".
-            format(enterprise_id, start, end))
+            "select user_id from enterprise_user_perm where enterprise_id='{0}' order by user_id desc LIMIT {1},{2};".format(
+                enterprise_id, start, end))
         admin_tuples = cursor.fetchall()
         for admin in admin_tuples:
             user = user_repo.get_by_user_id(user_id=admin[0])
@@ -143,8 +138,5 @@ class EntUserInfoView(BaseOpenAPIView):
                 bean["user_id"] = user.user_id
             admin_list.append(bean)
 
-        result = {
-            "list": admin_list,
-            "total": admins_num
-        }
+        result = {"list": admin_list, "total": admins_num}
         return Response(result, status.HTTP_200_OK)

@@ -207,6 +207,9 @@ class ServiceSourceRepository(object):
             return service_sources[0]
         return None
 
+    def get_service_sources(self, team_id, service_ids):
+        return ServiceSourceInfo.objects.filter(team_id=team_id, service_id__in=service_ids)
+
     def create_service_source(self, **params):
         return ServiceSourceInfo.objects.create(**params)
 
@@ -290,45 +293,28 @@ class AppTagRepository(object):
         if old_tag:
             return False
         for name in names:
-            tag_list.append(RainbondCenterAppTag.objects.create(
-                enterprise_id=enterprise_id, name=name, is_deleted=False))
+            tag_list.append(RainbondCenterAppTag.objects.create(enterprise_id=enterprise_id, name=name, is_deleted=False))
         return RainbondCenterAppTag.objects.bulk_create(tag_list)
 
     def create_app_tag_relation(self, app, tag_id):
         old_relation = RainbondCenterAppTagsRelation.objects.filter(
-            enterprise_id=app.enterprise_id,
-            app_id=app.app_id,
-            tag_id=tag_id
-        )
+            enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id)
         if old_relation:
             return True
-        return RainbondCenterAppTagsRelation.objects.create(
-            enterprise_id=app.enterprise_id,
-            app_id=app.app_id,
-            tag_id=tag_id
-        )
+        return RainbondCenterAppTagsRelation.objects.create(enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id)
 
     @transaction.atomic
     def create_app_tags_relation(self, app, tag_ids):
         relation_list = []
-        RainbondCenterAppTagsRelation.objects.filter(
-            enterprise_id=app.enterprise_id,
-            app_id=app.app_id
-        ).delete()
+        RainbondCenterAppTagsRelation.objects.filter(enterprise_id=app.enterprise_id, app_id=app.app_id).delete()
         for tag_id in tag_ids:
-            relation_list.append(RainbondCenterAppTagsRelation(
-                enterprise_id=app.enterprise_id,
-                app_id=app.app_id,
-                tag_id=tag_id
-            ))
+            relation_list.append(
+                RainbondCenterAppTagsRelation(enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id))
         return RainbondCenterAppTagsRelation.objects.bulk_create(relation_list)
 
     def delete_app_tag_relation(self, app, tag_id):
         return RainbondCenterAppTagsRelation.objects.filter(
-            enterprise_id=app.enterprise_id,
-            app_id=app.app_id,
-            tag_id=tag_id
-        ).delete()
+            enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id).delete()
 
     def delete_tag(self, enterprise_id, tag_id):
         status = True
@@ -345,8 +331,7 @@ class AppTagRepository(object):
         status = True
         try:
             app_tag = RainbondCenterAppTag.objects.filter(ID__in=tag_ids, enterprise_id=enterprise_id)
-            app_tag_relation = RainbondCenterAppTagsRelation.objects.filter(
-                tag_id__in=tag_ids, enterprise_id=enterprise_id)
+            app_tag_relation = RainbondCenterAppTagsRelation.objects.filter(tag_id__in=tag_ids, enterprise_id=enterprise_id)
             app_tag.delete()
             app_tag_relation.delete()
         except Exception:
@@ -382,7 +367,8 @@ class AppTagRepository(object):
         where
             atr.enterprise_id = '{eid}'
             and atr.app_id in ({app_ids});
-        """.format(eid=eid, app_ids=app_ids)
+        """.format(
+            eid=eid, app_ids=app_ids)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
@@ -399,7 +385,8 @@ class AppTagRepository(object):
                 where
                     atr.enterprise_id = '{eid}'
                     and atr.app_id = '{app_id}';
-                """.format(eid=eid, app_id=app_id)
+                """.format(
+            eid=eid, app_id=app_id)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps

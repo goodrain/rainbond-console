@@ -3,24 +3,28 @@ import json
 import logging
 
 from django.conf import settings
+from django.contrib.auth import authenticate
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.exceptions import SameIdentityError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.user_repo import user_repo
-from console.services.team_services import team_services
-from console.services.user_services import user_services
+from console.services.auth import login
+from console.services.auth import logout
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
-from console.views.base import BaseApiView, JWTAuthApiView, AlowAnyApiView
+from console.services.team_services import team_services
+from console.services.user_services import user_services
+from console.views.base import AlowAnyApiView
+from console.views.base import BaseApiView
+from console.views.base import JWTAuthApiView
 from www.apiclient.baseclient import HttpClient
-from console.services.auth import login, logout
-from django.contrib.auth import authenticate
 from www.models.main import AnonymousUser
 from www.services import user_svc
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -351,50 +355,44 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, *args, **kwargs):
-        try:
-            tenant_name = request.data.get("tenant_name", None)
-            user_name = request.data.get("user_name", None)
-            email = request.data.get("email", None)
-            password = request.data.get("password", None)
-            re_password = request.data.get("re_password", None)
-            role_ids = request.data.get("role_ids", None)
-            if len(password) < 8:
-                result = general_message(400, "len error", "密码长度最少为8位")
-                return Response(result)
-                # 校验用户信息
-            is_pass, msg = user_services.check_params(user_name, email, password, re_password)
-            if not is_pass:
-                result = general_message(403, "user information is not passed", msg)
-                return Response(result)
-            client_ip = user_services.get_client_ip(request)
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
-            # 创建用户
-            user = user_services.create_user_set_password(
-                user_name, email, password, "admin add", enterprise, client_ip)
-            result = general_message(200, "success", "添加用户成功")
-            if role_ids:
-                try:
-                    role_id_list = [int(id) for id in role_ids.split(",")]
-                except Exception as e:
-                    logger.exception(e)
+        tenant_name = request.data.get("tenant_name", None)
+        user_name = request.data.get("user_name", None)
+        email = request.data.get("email", None)
+        password = request.data.get("password", None)
+        re_password = request.data.get("re_password", None)
+        role_ids = request.data.get("role_ids", None)
+        if len(password) < 8:
+            result = general_message(400, "len error", "密码长度最少为8位")
+            return Response(result)
+            # 校验用户信息
+        is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+        if not is_pass:
+            result = general_message(403, "user information is not passed", msg)
+            return Response(result)
+        client_ip = user_services.get_client_ip(request)
+        enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+        # 创建用户
+        user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
+        result = general_message(200, "success", "添加用户成功")
+        if role_ids:
+            try:
+                role_id_list = [int(id) for id in role_ids.split(",")]
+            except Exception as e:
+                logger.exception(e)
+                code = 400
+                result = general_message(code, "params is empty", "参数格式不正确")
+                return Response(result, status=code)
+            for id in role_id_list:
+                if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
                     code = 400
-                    result = general_message(code, "params is empty", "参数格式不正确")
+                    result = general_message(code, "The role does not exist", "该角色在团队中不存在")
                     return Response(result, status=code)
-                for id in role_id_list:
-                    if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
-                        code = 400
-                        result = general_message(code, "The role does not exist", "该角色在团队中不存在")
-                        return Response(result, status=code)
-                # 创建用户团队关系表
-                if tenant_name:
-                    team_services.create_tenant_role(
-                        user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
-                user.is_active = True
-                user.save()
-                result = general_message(200, "success", "添加用户成功")
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(500, e.message, "系统异常")
+            # 创建用户团队关系表
+            if tenant_name:
+                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
+            user.is_active = True
+            user.save()
+            result = general_message(200, "success", "添加用户成功")
         return Response(result)
 
 

@@ -2,17 +2,17 @@
 """存放组件升级细节"""
 import json
 import logging
-from datetime import datetime
 import socket
-import httplib2
-from urllib3.exceptions import ConnectTimeoutError
-from urllib3.exceptions import MaxRetryError
+from datetime import datetime
 
+import httplib2
 from django.db import DatabaseError
 from django.db import transaction
 from django.db.models import Q
-
 from market_client.rest import ApiException
+from urllib3.exceptions import ConnectTimeoutError
+from urllib3.exceptions import MaxRetryError
+
 from console.exception.main import AbortRequest
 from console.exception.main import RbdAppNotFound
 from console.exception.main import RecordNotFound
@@ -26,15 +26,15 @@ from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_actions.properties_changes import get_upgrade_app_version_template_app
+from console.services.app_actions.properties_changes import PropertiesChanges
 from console.utils.restful_client import get_default_market_client
 from console.utils.restful_client import get_market_client
 from www.apiclient.marketclient import MarketOpenAPI
-from www.models.main import TenantEnterprise
-from www.models.main import TenantEnterpriseToken
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models.main import TenantEnterprise
+from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
 
 region_api = RegionInvokeApi()
@@ -62,17 +62,14 @@ class UpgradeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException(
-                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
-            raise ServiceHandleException(
-                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            raise ServiceHandleException(
-                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
+            raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
     def get_cloud_market_apps(self, enterprise_id, market_id):
         try:
@@ -81,23 +78,19 @@ class UpgradeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            markets = market_client.get_apps_with_version(
-                market_id, _request_timeout=10)
+            markets = market_client.get_apps_with_version(market_id, _request_timeout=10)
             return markets.list
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException(
-                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
-            raise ServiceHandleException(
-                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            raise ServiceHandleException(
-                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
+            raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
     def get_cloud_app(self, enterprise_id, market_id, app_id):
         try:
@@ -106,23 +99,19 @@ class UpgradeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            market = market_client.get_app_versions(
-                market_id=market_id, app_id=app_id, _request_timeout=10)
+            market = market_client.get_app_versions(market_id=market_id, app_id=app_id, _request_timeout=10)
             return market
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException(
-                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
-            raise ServiceHandleException(
-                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            raise ServiceHandleException(
-                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
+            raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
     def get_cloud_app_version(self, enterprise_id, market_id, app_id, version):
         try:
@@ -131,23 +120,19 @@ class UpgradeService(object):
                 market_client = get_market_client(token.access_id, token.access_token, token.access_url)
             else:
                 market_client = get_default_market_client()
-            app = market_client.get_app_version(
-                market_id=market_id, app_id=app_id, version_id=version, _request_timeout=10)
+            app = market_client.get_app_version(market_id=market_id, app_id=app_id, version_id=version, _request_timeout=10)
             return app
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException(
-                    "no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
-            raise ServiceHandleException(
-                "call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
             raise e
         except socket.timeout as e:
             logger.warning("request cloud app list timeout", e)
-            raise ServiceHandleException(
-                "connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
+            raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
     def get_or_create_upgrade_record(self, tenant_id, group_id, group_key):
         """获取或创建升级记录"""
@@ -158,8 +143,7 @@ class UpgradeService(object):
             "create_time": datetime.now(),
         }
         try:
-            app_record = upgrade_repo.get_app_not_upgrade_record(
-                status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
+            app_record = upgrade_repo.get_app_not_upgrade_record(status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
         except AppUpgradeRecord.DoesNotExist:
             from console.services.group_service import group_service
             tenant = Tenants.objects.get(tenant_id=tenant_id)
@@ -179,19 +163,11 @@ class UpgradeService(object):
                                 app_name = cloud_app.name
                                 is_cloud_app = True
                     if not is_cloud_app:
-                        raise AbortRequest(
-                            msg="the rainbond app is not in the group",
-                            msg_show="该应用中没有这个云市组件",
-                            status_code=404
-                        )
+                        raise AbortRequest(msg="the rainbond app is not in the group", msg_show="该应用中没有这个云市组件", status_code=404)
                 app_record = upgrade_repo.create_app_upgrade_record(group_name=app_name, **recode_kwargs)
                 return app_record
             else:
-                raise AbortRequest(
-                    msg="the rainbond app is not in the group",
-                    msg_show="该应用中没有这个云市组件",
-                    status_code=404
-                )
+                raise AbortRequest(msg="the rainbond app is not in the group", msg_show="该应用中没有这个云市组件", status_code=404)
 
     def get_app_not_upgrade_record(self, tenant_id, group_id, group_key):
         """获取未完成升级记录"""
@@ -224,6 +200,8 @@ class UpgradeService(object):
         app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, app_id=group_key)
         add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
         versions |= add_versions
+        versions = [str(version) for version in versions]
+        versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x.split(".")), reverse=True)
         return versions
 
     def get_old_version(self, group_key, service_ids, cloud_version):
@@ -232,10 +210,10 @@ class UpgradeService(object):
         versions = ServiceSourceInfo.objects.filter(
             group_key=group_key,
             service_id__in=service_ids,
-        ).values_list('version', flat=True) or []
+        ).values_list(
+            'version', flat=True) or []
 
-        app = RainbondCenterAppVersion.objects.filter(
-            app_id=group_key, version__in=versions).order_by('-create_time').first()
+        app = RainbondCenterAppVersion.objects.filter(app_id=group_key, version__in=versions).order_by('-create_time').first()
         if app and app.version:
             return app.version
         elif cloud_version and len(versions) >= 1:
@@ -354,8 +332,7 @@ class UpgradeService(object):
     def create_add_service_record(app_record, events, add_service_infos):
         """创建新增组件升级记录"""
         service_id_event_mapping = {events[key]: key for key in events}
-        services = service_repo.get_services_by_service_ids_and_group_key(
-            app_record.group_key, service_id_event_mapping.keys())
+        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_id_event_mapping.keys())
         for service in services:
             upgrade_repo.create_service_upgrade_record(
                 app_record,
@@ -401,8 +378,7 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event_id = app_deploy_service.execute(
-                tenant, market_service.service, user, True, app_record.version)
+            code, msg, event_id = app_deploy_service.execute(tenant, market_service.service, user, True, app_record.version)
 
             upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event_id,
                                                        service_infos[market_service.service.service_id],
@@ -463,9 +439,9 @@ class UpgradeService(object):
         if UpgradeStatus.ROLLING.value in service_status:
             return
         elif len(service_status) > 1 and service_status <= {
-            UpgradeStatus.ROLLBACK_FAILED.value,
-            UpgradeStatus.ROLLBACK.value,
-            UpgradeStatus.UPGRADED.value,
+                UpgradeStatus.ROLLBACK_FAILED.value,
+                UpgradeStatus.ROLLBACK.value,
+                UpgradeStatus.UPGRADED.value,
         }:
             status = UpgradeStatus.PARTIAL_ROLLBACK.value
         elif service_status == {UpgradeStatus.ROLLBACK.value}:
@@ -493,8 +469,7 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event_id = app_deploy_service.execute(
-                tenant, market_service.service, user, True, app_record.version)
+            code, msg, event_id = app_deploy_service.execute(tenant, market_service.service, user, True, app_record.version)
             service_record = service_records.get(service_id=market_service.service.service_id)
             upgrade_repo.change_service_record_status(service_record, self._get_sync_rolling_status(code, event_id))
             # 改变event id

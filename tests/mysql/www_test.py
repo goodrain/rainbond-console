@@ -92,8 +92,7 @@ AGKzUrJgbKUQwAIumDggE00NAKz6IrVSxPindKMVqRhFCU8AOLHDaHclr-79pviCtKETqZKAcAAAJUK"
         assert len(all) == 1
 
         # 修改
-        WeChatConfig.objects.filter(config="fanyangyang").update(
-            access_token="new token", access_token_expires_at=2019102822)
+        WeChatConfig.objects.filter(config="fanyangyang").update(access_token="new token", access_token_expires_at=2019102822)
 
         updated = WeChatConfig.objects.get(config="fanyangyang")
         assert updated.access_token == "new token"
@@ -123,17 +122,14 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(all) == 1
 
         # 修改
-        WeChatUser.objects.filter(open_id="open_id_wx_useridsldkGidndksdnRKdDkner").update(
-            union_id="1234567890", sex=2)
+        WeChatUser.objects.filter(open_id="open_id_wx_useridsldkGidndksdnRKdDkner").update(union_id="1234567890", sex=2)
 
-        updated = WeChatUser.objects.get(
-            open_id="open_id_wx_useridsldkGidndksdnRKdDkner")
+        updated = WeChatUser.objects.get(open_id="open_id_wx_useridsldkGidndksdnRKdDkner")
         assert updated.union_id == "1234567890"
         assert updated.sex == 2
 
         # 删除
-        WeChatUser.objects.filter(
-            open_id="open_id_wx_useridsldkGidndksdnRKdDkner").delete()
+        WeChatUser.objects.filter(open_id="open_id_wx_useridsldkGidndksdnRKdDkner").delete()
         assert len(WeChatUser.objects.all()) == 0
 
     def test_wechat_unbind(self):
@@ -230,8 +226,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(user_id=1)
-        Users.objects.filter(filter).update(
-            nick_name="dev", is_active=True, origion="rainbond", status=True)
+        Users.objects.filter(filter).update(nick_name="dev", is_active=True, origion="rainbond", status=True)
 
         updated = Users.objects.get(filter)
         assert updated.nick_name == "dev"
@@ -268,8 +263,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         # 修改
 
         filter = Q(tenant_id="a3b5a5912838485df888977b1784d2fa")
-        Tenants.objects.filter(filter).update(
-            is_active=True, limit_memory=2048, tenant_alias="testalias")
+        Tenants.objects.filter(filter).update(is_active=True, limit_memory=2048, tenant_alias="testalias")
 
         updated = Tenants.objects.get(filter)
         assert updated.is_active is True
@@ -301,8 +295,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(tenant_id="a3b5a5912838485df888977b1784d2fa")
-        TenantRegionInfo.objects.filter(filter).update(
-            is_active=True, is_init=True, service_status=1)
+        TenantRegionInfo.objects.filter(filter).update(is_active=True, is_init=True, service_status=1)
 
         updated = TenantRegionInfo.objects.get(filter)
         assert updated.is_active is True
@@ -333,10 +326,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantRegionResource.objects.all()) == 1
 
         # 修改
-        filter = Q(enterprise_id="bf952b88382844d7adbd260af7b6296d",
-                   tenant_id="a3b5a5912838485df888977b1784d2fa")
-        TenantRegionResource.objects.filter(filter).update(
-            region_name="testname", memory_limit=4096)
+        filter = Q(enterprise_id="bf952b88382844d7adbd260af7b6296d", tenant_id="a3b5a5912838485df888977b1784d2fa")
+        TenantRegionResource.objects.filter(filter).update(region_name="testname", memory_limit=4096)
 
         updated = TenantRegionResource.objects.get(filter)
         assert updated.region_name == "testname"
@@ -386,8 +377,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(service_key="3d0d32121e5b444daf6310d728a6ba8f")
-        ServiceInfo.objects.filter(filter).update(
-            service_type="mysql", min_node=2)
+        ServiceInfo.objects.filter(filter).update(service_type="mysql", min_node=2)
 
         updated = ServiceInfo.objects.get(filter)
         assert updated.service_type == "mysql"
@@ -462,8 +452,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(service_id="ac96eed7c78dcda7106bbcd63c78816a")
-        TenantServiceInfoDelete.objects.filter(
-            filter).update(deploy_version="2019102911432310")
+        TenantServiceInfoDelete.objects.filter(filter).update(deploy_version="2019102911432310")
 
         updated = TenantServiceInfoDelete.objects.get(filter)
         assert updated.deploy_version == "2019102911432310"
@@ -511,10 +500,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceRelation.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="3ceb45680e2e8b83197c56a05d7cdbaf")
-        TenantServiceRelation.objects.filter(filter).update(
-            dep_service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="3ceb45680e2e8b83197c56a05d7cdbaf")
+        TenantServiceRelation.objects.filter(filter).update(dep_service_id="2aab7a1728ce42a1a4ba820ad405420a")
 
         updated = TenantServiceRelation.objects.get(filter)
         assert updated.dep_service_id == "2aab7a1728ce42a1a4ba820ad405420a"
@@ -562,8 +549,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(service_id="6c6457ff1050dcf924690644b50c6691")
-        TenantServiceAuth.objects.filter(
-            filter).update(user=None, password=None)
+        TenantServiceAuth.objects.filter(filter).update(user=None, password=None)
 
         updated = TenantServiceAuth.objects.get(filter)
         assert updated.user is None
@@ -591,10 +577,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceExtendMethod.objects.all()) == 1
 
         # 修改
-        filter = Q(service_key="6c6457ff1050dcf924690644b50c6691",
-                   version="latest")
-        TenantServiceExtendMethod.objects.filter(
-            filter).update(step_node=2, step_memory=2048)
+        filter = Q(service_key="6c6457ff1050dcf924690644b50c6691", version="latest")
+        TenantServiceExtendMethod.objects.filter(filter).update(step_node=2, step_memory=2048)
 
         updated = TenantServiceExtendMethod.objects.get(filter)
         assert updated.step_node == 2
@@ -634,8 +618,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(http_rule_id="64924007e66321802c8dd20df1f57854")
-        ServiceDomain.objects.filter(filter).update(
-            is_outer_service=True, domain_path="/test")
+        ServiceDomain.objects.filter(filter).update(is_outer_service=True, domain_path="/test")
 
         updated = ServiceDomain.objects.get(filter)
         assert updated.is_outer_service is True
@@ -661,8 +644,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceDomainCertificate.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                   certificate_id="62f2b326b28c486fbb0c4de575aa2fc1")
+        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68", certificate_id="62f2b326b28c486fbb0c4de575aa2fc1")
         ServiceDomainCertificate.objects.filter(filter).update(
             certificate="LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUdNakNDQlJxZ0F3SUJBZ0lRQ")
 
@@ -687,8 +669,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(user_id=1, service_id=1)
-        PermRelService.objects.filter(filter).update(
-            identity="developer", role_id=2)
+        PermRelService.objects.filter(filter).update(identity="developer", role_id=2)
 
         updated = PermRelService.objects.get(filter)
         assert updated.identity == "developer"
@@ -713,8 +694,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(user_id=8441, tenant_id=3)
-        PermRelTenant.objects.filter(filter).update(
-            identity="developer", role_id=0)
+        PermRelTenant.objects.filter(filter).update(identity="developer", role_id=0)
 
         updated = PermRelTenant.objects.get(filter)
         assert updated.identity == "developer"
@@ -745,8 +725,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantRecharge.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                   order_no="9102938238123")
+        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68", order_no="9102938238123")
         TenantRecharge.objects.filter(filter).update(status="success")
 
         updated = TenantRecharge.objects.get(filter)
@@ -785,8 +764,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceStatics.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                   service_id="866cf9d9ed37b98e50581ee76a72d597")
+        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68", service_id="866cf9d9ed37b98e50581ee76a72d597")
         TenantServiceStatics.objects.filter(filter).update(status=2, flow=10)
 
         updated = TenantServiceStatics.objects.get(filter)
@@ -814,17 +792,14 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
             pay_status="failed",
             region="rainbond",
             status=0,
-            time=now
-        ).save()
+            time=now).save()
 
         # 查询
         assert len(TenantConsumeDetail.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                   service_id="866cf9d9ed37b98e50581ee76a72d597")
-        TenantConsumeDetail.objects.filter(
-            filter).update(status=1, pay_status="success")
+        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68", service_id="866cf9d9ed37b98e50581ee76a72d597")
+        TenantConsumeDetail.objects.filter(filter).update(status=1, pay_status="success")
 
         updated = TenantConsumeDetail.objects.get(filter)
         assert updated.status == 1
@@ -949,8 +924,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
             buy_start_time=now,
             buy_end_time=now,
             buy_money=20,
-            create_time=now
-        ).save()
+            create_time=now).save()
 
         # 查询
         assert len(TenantRegionPayModel.objects.all()) == 1
@@ -979,10 +953,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceL7Info.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                   service_id="866cf9d9ed37b98e50581ee76a72d597")
-        TenantServiceL7Info.objects.filter(filter).update(
-            dep_service_id="8cb61669b82e4563bb447b2196bbfc09")
+        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68", service_id="866cf9d9ed37b98e50581ee76a72d597")
+        TenantServiceL7Info.objects.filter(filter).update(dep_service_id="8cb61669b82e4563bb447b2196bbfc09")
 
         updated = TenantServiceL7Info.objects.get(filter)
         assert updated.dep_service_id == "8cb61669b82e4563bb447b2196bbfc09"
@@ -1009,10 +981,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceEnvVar.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                   service_id="866cf9d9ed37b98e50581ee76a72d597")
-        TenantServiceEnvVar.objects.filter(filter).update(
-            attr_value="27017", attr_name="MONGODB_PORT")
+        filter = Q(tenant_id="e0090b27209c446e83313cd4e03e6d68", service_id="866cf9d9ed37b98e50581ee76a72d597")
+        TenantServiceEnvVar.objects.filter(filter).update(attr_value="27017", attr_name="MONGODB_PORT")
 
         updated = TenantServiceEnvVar.objects.get(filter)
         assert updated.attr_value == "27017"
@@ -1040,10 +1010,9 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServicesPort.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b9662d34f1ec49a4b81c2d415f678af3",
-                   service_id="866cf9d9ed37b98e50581ee76a72d597", container_port=5000)
-        TenantServicesPort.objects.filter(filter).update(
-            is_inner_service=True, is_outer_service=False)
+        filter = Q(
+            tenant_id="b9662d34f1ec49a4b81c2d415f678af3", service_id="866cf9d9ed37b98e50581ee76a72d597", container_port=5000)
+        TenantServicesPort.objects.filter(filter).update(is_inner_service=True, is_outer_service=False)
 
         updated = TenantServicesPort.objects.get(filter)
         assert updated.is_inner_service is True
@@ -1067,10 +1036,11 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceMountRelation.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="4797d3ac8f8149e4904ee4f679723e49",
-                   service_id="4117899c6756be4f9bace8310192201a", dep_service_id="9216556f8c6242358a0ce760eaff6808")
-        TenantServiceMountRelation.objects.filter(
-            filter).update(mnt_dir="/mnt/grda43201")
+        filter = Q(
+            tenant_id="4797d3ac8f8149e4904ee4f679723e49",
+            service_id="4117899c6756be4f9bace8310192201a",
+            dep_service_id="9216556f8c6242358a0ce760eaff6808")
+        TenantServiceMountRelation.objects.filter(filter).update(mnt_dir="/mnt/grda43201")
 
         updated = TenantServiceMountRelation.objects.get(filter)
         assert updated.mnt_dir == "/mnt/grda43201"
@@ -1094,8 +1064,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceVolume.objects.all()) == 1
 
         # 修改
-        filter = Q(service_id="85905961a178441cb49f96c7943ae2bf",
-                   volume_path="/var/lib/mysql")
+        filter = Q(service_id="85905961a178441cb49f96c7943ae2bf", volume_path="/var/lib/mysql")
         TenantServiceVolume.objects.filter(filter).update(volume_name="db")
 
         updated = TenantServiceVolume.objects.get(filter)
@@ -1110,8 +1079,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         TenantServiceConfigurationFile.objects.create(
             service_id="ab9789311ed98aa1f444f6f94e9def80",
             volume_id=186,
-            file_content="mysql_host=${MYSQL_HOST} \n mysql_port=${MYSQL_PORT}"
-        ).save()
+            file_content="mysql_host=${MYSQL_HOST} \n mysql_port=${MYSQL_PORT}").save()
 
         # 查询
         assert len(TenantServiceConfigurationFile.objects.all()) == 1
@@ -1141,10 +1109,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceGroup.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="3b1f4056edb2411cac3f993fde23a85f",
-                   group_name="test dev ")
-        ServiceGroup.objects.filter(filter).update(
-            region_name="rainbond", is_default=True)
+        filter = Q(tenant_id="3b1f4056edb2411cac3f993fde23a85f", group_name="test dev ")
+        ServiceGroup.objects.filter(filter).update(region_name="rainbond", is_default=True)
 
         updated = ServiceGroup.objects.get(filter)
         assert updated.region_name == "rainbond"
@@ -1160,16 +1126,14 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
             service_id="2aab7a1728ce42a1a4ba820ad405420a",
             group_id=2,
             tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-            region_name="rainbond"
-        ).save()
+            region_name="rainbond").save()
 
         # 查询
         assert len(ServiceGroupRelation.objects.all()) == 1
 
         # 修改
         filter = Q(service_id="2aab7a1728ce42a1a4ba820ad405420a", group_id=2)
-        ServiceGroupRelation.objects.filter(
-            filter).update(region_name="test region")
+        ServiceGroupRelation.objects.filter(filter).update(region_name="test region")
 
         updated = ServiceGroupRelation.objects.get(filter)
         assert updated.region_name == "test region"
@@ -1184,17 +1148,14 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
             tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
             service_id='2aab7a1728ce42a1a4ba820ad405420a',
             image_url='goodrain.me/nginx',
-            service_cname='nginx'
-        ).save()
+            service_cname='nginx').save()
 
         # 查询
         assert len(ImageServiceRelation.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id='2aab7a1728ce42a1a4ba820ad405420a')
-        ImageServiceRelation.objects.filter(filter).update(
-            image_url="goodrain.me/envoy", service_cname="service mesh envoy")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id='2aab7a1728ce42a1a4ba820ad405420a')
+        ImageServiceRelation.objects.filter(filter).update(image_url="goodrain.me/envoy", service_cname="service mesh envoy")
 
         updated = ImageServiceRelation.objects.get(filter)
         assert updated.image_url == "goodrain.me/envoy"
@@ -1216,10 +1177,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ComposeServiceRelation.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   compose_file_id="4f6ad5fbb2f844d7b1ba12df520c15a7")
-        ComposeServiceRelation.objects.filter(filter).update(
-            compose_file="version: '3' \n services: \n nginx: \n image: nginx")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", compose_file_id="4f6ad5fbb2f844d7b1ba12df520c15a7")
+        ComposeServiceRelation.objects.filter(filter).update(compose_file="version: '3' \n services: \n nginx: \n image: nginx")
 
         updated = ComposeServiceRelation.objects.get(filter)
         assert updated.compose_file == "version: '3' \n services: \n nginx: \n image: nginx"
@@ -1250,10 +1209,9 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceRule.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   tenant_name="gr12nd92", service_id="2aab7a1728ce42a1a4ba820ad405420a")
-        ServiceRule.objects.filter(filter).update(
-            port_type="one_outer", port="80", status=True)
+        filter = Q(
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f", tenant_name="gr12nd92", service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        ServiceRule.objects.filter(filter).update(port_type="one_outer", port="80", status=True)
 
         updated = ServiceRule.objects.get(filter)
         assert updated.port_type == "one_outer"
@@ -1278,8 +1236,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(rule_id="2aab7a1728ce42a1a4ba820ad405420a")
-        ServiceRuleHistory.objects.filter(filter).update(
-            action="up-disk", message="up-disk success")
+        ServiceRuleHistory.objects.filter(filter).update(action="up-disk", message="up-disk success")
 
         updated = ServiceRuleHistory.objects.get(filter)
         assert updated.action == "up-disk"
@@ -1311,8 +1268,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceAttachInfo.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
         ServiceAttachInfo.objects.filter(filter).update(region="test dev")
 
         updated = ServiceAttachInfo.objects.get(filter)
@@ -1325,17 +1281,13 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
     def test_service_create_step(self):
         # 增加
         ServiceCreateStep.objects.create(
-            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-            service_id="2aab7a1728ce42a1a4ba820ad405420a",
-            app_step=5
-        ).save()
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a", app_step=5).save()
 
         # 查询
         assert len(ServiceCreateStep.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
         ServiceCreateStep.objects.filter(filter).update(app_step=4)
 
         updated = ServiceCreateStep.objects.get(filter)
@@ -1364,10 +1316,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ThirdAppInfo.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="2aab7a1728ce42a1a4ba820ad405420a")
-        ThirdAppInfo.objects.filter(filter).update(
-            open=True, name="thirdpart-mysql")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        ThirdAppInfo.objects.filter(filter).update(open=True, name="thirdpart-mysql")
 
         updated = ThirdAppInfo.objects.get(filter)
         assert updated.open is True
@@ -1395,8 +1345,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(CDNTrafficHourRecord.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
         CDNTrafficHourRecord.objects.filter(filter).update(traffic_number=2048)
 
         updated = CDNTrafficHourRecord.objects.get(filter)
@@ -1421,8 +1370,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(service_id="2aab7a1728ce42a1a4ba820ad405420a")
-        ThirdAppOperator.objects.filter(filter).update(
-            real_name="jackson", password="321321312")
+        ThirdAppOperator.objects.filter(filter).update(real_name="jackson", password="321321312")
 
         updated = ThirdAppOperator.objects.get(filter)
         assert updated.real_name == "jackson"
@@ -1484,8 +1432,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceFeeBill.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
         ServiceFeeBill.objects.filter(filter).update(buy_period=48)
 
         updated = ServiceFeeBill.objects.get(filter)
@@ -1520,8 +1467,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceConsume.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
         ServiceConsume.objects.filter(filter).update(status=1)
 
         updated = ServiceConsume.objects.get(filter)
@@ -1580,8 +1526,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(GroupCreateTemp.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   service_id="b0baf29788500c429a242185605f8cf6")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="b0baf29788500c429a242185605f8cf6")
         GroupCreateTemp.objects.filter(filter).update(service_cname="2048")
 
         updated = GroupCreateTemp.objects.get(filter)
@@ -1637,10 +1582,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceProbe.objects.all()) == 1
 
         # 修改
-        filter = Q(service_id="98744641a3577d58529b4602337d4b05",
-                   probe_id="149392f85c30442b9e2009f8d4fade3a")
-        ServiceProbe.objects.filter(filter).update(
-            is_used=True, failure_threshold=1)
+        filter = Q(service_id="98744641a3577d58529b4602337d4b05", probe_id="149392f85c30442b9e2009f8d4fade3a")
+        ServiceProbe.objects.filter(filter).update(is_used=True, failure_threshold=1)
 
         updated = ServiceProbe.objects.get(filter)
         assert updated.is_used is True
@@ -1664,8 +1607,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(key="config-logo")
-        ConsoleConfig.objects.filter(filter).update(
-            value="/data/images/logo.png")
+        ConsoleConfig.objects.filter(filter).update(value="/data/images/logo.png")
 
         updated = ConsoleConfig.objects.get(filter)
         assert updated.value == "/data/images/logo.png"
@@ -1721,8 +1663,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(enterprise_id=102)
-        TenantEnterpriseToken.objects.filter(filter).update(
-            access_token="2b4ddb679054cf117748803881b6121c")
+        TenantEnterpriseToken.objects.filter(filter).update(access_token="2b4ddb679054cf117748803881b6121c")
 
         updated = TenantEnterpriseToken.objects.get(filter)
         assert updated.access_token == "2b4ddb679054cf117748803881b6121c"
@@ -1747,8 +1688,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceGroup.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   group_name="gr_7fe7")
+        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", group_name="gr_7fe7")
         TenantServiceGroup.objects.filter(filter).update(group_version="2.0")
 
         updated = TenantServiceGroup.objects.get(filter)
@@ -1781,8 +1721,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(tcp_rule_id="98f8f6b5ff5967e747857a05083b9123")
-        ServiceTcpDomain.objects.filter(filter).update(
-            is_outer_service=True, protocol='stream', end_point="127.0.0.1:3309")
+        ServiceTcpDomain.objects.filter(filter).update(is_outer_service=True, protocol='stream', end_point="127.0.0.1:3309")
 
         updated = ServiceTcpDomain.objects.get(filter)
         assert updated.is_outer_service is True
@@ -1807,10 +1746,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ThirdPartyServiceEndpoints.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="4f6ad5fbb2f844d7b1ba12df520c15a7",
-                   service_id="de2bca6d5089d2274aba882c08038429")
-        ThirdPartyServiceEndpoints.objects.filter(filter).update(
-            endpoints_info='["192.168.2.182:5000"]')
+        filter = Q(tenant_id="4f6ad5fbb2f844d7b1ba12df520c15a7", service_id="de2bca6d5089d2274aba882c08038429")
+        ThirdPartyServiceEndpoints.objects.filter(filter).update(endpoints_info='["192.168.2.182:5000"]')
 
         updated = ThirdPartyServiceEndpoints.objects.get(filter)
         assert updated.endpoints_info == '["192.168.2.182:5000"]'
@@ -1932,8 +1869,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(service_id="b0baf29788500c429a242185605f8cf6")
-        TenantServiceInfo.objects.filter(filter).update(
-            service_name="unknown application name", total_memory=2048)
+        TenantServiceInfo.objects.filter(filter).update(service_name="unknown application name", total_memory=2048)
 
         updated = TenantServiceInfo.objects.get(filter)
         assert updated.service_name == "unknown application name"

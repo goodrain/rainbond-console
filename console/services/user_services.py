@@ -19,15 +19,15 @@ from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.oauth_repo import oauth_user_repo
-from console.services.user_accesstoken_services import user_access_services
 from console.services.app_actions import app_manage_service
 from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services
+from console.services.user_accesstoken_services import user_access_services
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -185,7 +185,7 @@ class UserService(object):
 
         user = {
             "nick_name": data["nick_name"],
-            "password": encrypt_passwd(data["email"]+data["password"]),
+            "password": encrypt_passwd(data["email"] + data["password"]),
             "email": data.get("email", ""),
             "phone": data.get("phone", ""),
             "enterprise_id": data["eid"],
@@ -272,8 +272,7 @@ class UserService(object):
                 # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
                 if admin_user.user_id == current_user.user_id:
                     token = self.generate_key()
-                    enterprise_user_perm_repo.create_enterprise_user_perm(
-                        current_user.user_id, enterprise_id, "admin", token)
+                    enterprise_user_perm_repo.create_enterprise_user_perm(current_user.user_id, enterprise_id, "admin", token)
                     return True
                 else:
                     return False
@@ -328,7 +327,7 @@ class UserService(object):
         if name:
             users = users.filter(nick_name__contains=name)
         total = users.count()
-        return users[(page-1)*page_size: page*page_size], total
+        return users[(page - 1) * page_size:page * page_size], total
 
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
         """重新构建"""
@@ -503,6 +502,8 @@ class UserService(object):
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
             return False, "邮箱地址不合法"
+        if self.get_user_by_email(email):
+            return False, "邮箱已存在"
         return True, "success"
 
     def init_webhook_user(self, service, hook_type, committer_name=None):
@@ -519,10 +520,7 @@ class UserService(object):
                     nick_name = None
             if not nick_name:
                 nick_name = hook_type
-        user_obj = Users(
-            user_id=service.creater,
-            nick_name=nick_name
-        )
+        user_obj = Users(user_id=service.creater, nick_name=nick_name)
         return user_obj
 
 

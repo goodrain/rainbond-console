@@ -225,8 +225,7 @@ class AppExportService(object):
             return "exporting"
 
     def get_file_down_req(self, export_format, tenant_name, app):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(
-            app.group_key, app.version, export_format)
+        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
         # TODO fix get region bugs, this func need app and version two parameters
         region = self.get_app_share_region(app)
 
@@ -475,8 +474,8 @@ class AppImportService(object):
         metadata = json.loads(metadata)
         key_and_version_list = []
         for app_template in metadata:
-            app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(
-                tenant.enterprise_id, app_template["group_key"], app_template["group_version"])
+            app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(tenant.enterprise_id, app_template["group_key"],
+                                                                            app_template["group_version"])
             if app:
                 # 覆盖原有应用数据
                 app.share_team = tenant.tenant_name  # 分享团队名暂时为那个团队将应用导入进来的

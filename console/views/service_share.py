@@ -57,30 +57,38 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                         try:
                             if store_id and share_record.app_id:
                                 cloud_app = market_sycn_service.get_cloud_app(
-                                    self.tenant.enterprise_id,
-                                    share_record.share_app_market_id,
-                                    share_record.app_id)
+                                    self.tenant.enterprise_id, share_record.share_app_market_id, share_record.app_id)
                                 if cloud_app:
                                     app_model_id = share_record.app_id
                                     app_model_name = cloud_app.name
                         except ServiceHandleException:
                             app_model_id = share_record.app_id
                 data.append({
-                    "app_model_id": app_model_id,
-                    "app_model_name": app_model_name,
-                    "version": share_record.share_version,
+                    "app_model_id":
+                    app_model_id,
+                    "app_model_name":
+                    app_model_name,
+                    "version":
+                    share_record.share_version,
                     "version_alias": (share_record.share_version_alias if share_record.share_version_alias else version_alias),
-                    "scope": scope,
-                    "create_time": share_record.create_time,
-                    "upgrade_time": upgrade_time,
-                    "step": share_record.step,
-                    "is_success": share_record.is_success,
-                    "status": share_record.status,
+                    "scope":
+                    scope,
+                    "create_time":
+                    share_record.create_time,
+                    "upgrade_time":
+                    upgrade_time,
+                    "step":
+                    share_record.step,
+                    "is_success":
+                    share_record.is_success,
+                    "status":
+                    share_record.status,
                     "scope_target": {
                         "store_name": store_name,
                         "store_id": store_id,
                     },
-                    "record_id": share_record.ID,
+                    "record_id":
+                    share_record.ID,
                 })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
@@ -281,8 +289,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             return Response(result, status=400)
         if not scope:
             scope = share_record.scope
-        service_info_list = share_service.query_share_service_info(
-            team=self.team, group_id=share_record.group_id, scope=scope)
+        service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id, scope=scope)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
         data["share_plugin_list"] = plugins
@@ -469,8 +476,8 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
 
-            bean = share_service.sync_service_plugin_event(
-                self.user, self.response_region, self.tenant.tenant_name, share_id, events[0])
+            bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name, share_id,
+                                                           events[0])
             result = general_message(200, "sync share event", "分享成功", bean=bean.to_dict())
             return Response(result, status=200)
         except ServiceHandleException as e:
@@ -526,8 +533,7 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 return Response(result, status=400)
             # 验证是否所有同步事件已完成
             count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            plugin_count = PluginShareRecordEvent.objects.filter(
-                Q(record_id=share_id) & ~Q(event_status="success")).count()
+            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
             if count > 0 or plugin_count > 0:
                 result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
                 return Response(result, status=415)
@@ -615,8 +621,7 @@ class ShareServicesListView(RegionTenantHeaderView):
             logger.debug(e)
             return Response(error_message(e.message), status=404)
         data = map(share_service.get_shared_services_list, share_services)
-        rst = general_message(
-                200, "get shared apps list complete", None, bean=data)
+        rst = general_message(200, "get shared apps list complete", None, bean=data)
         return Response(rst, status=200)
 
 
@@ -658,10 +663,10 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         scope = request.GET.get("scope", None)
         market_id = request.GET.get("market_id", None)
-        data = share_service.get_last_shared_app_and_app_list(
-            self.tenant.enterprise_id, self.tenant, group_id, scope, market_id)
-        result = general_message(200, "get shared apps list complete", None,
-                                 bean=data["last_shared_app"], list=data["app_model_list"])
+        data = share_service.get_last_shared_app_and_app_list(self.tenant.enterprise_id, self.tenant, group_id, scope,
+                                                              market_id)
+        result = general_message(
+            200, "get shared apps list complete", None, bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)
 
 

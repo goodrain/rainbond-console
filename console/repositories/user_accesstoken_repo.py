@@ -16,9 +16,7 @@ class UserAccessTokenRepo(object):
     def get_user_perm_by_access_key(self, access_key):
         _now = int(time())
         return UserAccessKey.objects.filter(
-            Q(access_key=access_key, expire_time__gt=_now) |
-            Q(access_key=access_key, expire_time=None)
-        ).first()
+            Q(access_key=access_key, expire_time__gt=_now) | Q(access_key=access_key, expire_time=None)).first()
 
     def get_user_access_key(self, user_id):
         return UserAccessKey.objects.filter(user_id=user_id)

@@ -60,9 +60,14 @@ class PluginBuildView(PluginBaseView):
         event_id = make_uuid()
         self.plugin_version.build_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.plugin_version.save()
+        # prepare image info for
+        image_info = {
+            "hub_user": self.plugin.username,
+            "hub_password": self.plugin.password,
+        }
         try:
-            plugin_service.build_plugin(self.response_region, self.plugin,
-                                        self.plugin_version, self.user, self.tenant, event_id)
+            plugin_service.build_plugin(self.response_region, self.plugin, self.plugin_version, self.user, self.tenant,
+                                        event_id, image_info)
             self.plugin_version.build_status = "building"
             self.plugin_version.event_id = event_id
             self.plugin_version.save()
@@ -99,9 +104,7 @@ class CreatePluginVersionView(PluginBaseView):
             if not plugin_versions:
                 return Response(general_message(412, "current version not exist", "插件不存在任何版本，无法创建"), status=412)
             if self.plugin.origin != "source_code":
-                return Response(
-                    general_message(412, "market plugin can not create new version", "云市插件不能创建版本"),
-                    status=412)
+                return Response(general_message(412, "market plugin can not create new version", "云市插件不能创建版本"), status=412)
             pbv = plugin_versions[0]
             if pbv.build_status != "build_success":
                 return Response(general_message(412, "no useable plugin version", "您的插件构建未成功，无法创建新版本"), status=412)

@@ -93,7 +93,7 @@ class GitHubApi(BaseHttpClient):
 
     def cloneReposUrl(self, user, repos, token, version):
         cmd = "git clone --branch " + version + " --depth 1 https://"
-        + token + "@github.com/" + user + "/" + repos + ".git"
+        +token + "@github.com/" + user + "/" + repos + ".git"
         return cmd
 
     def getUser(self, token):

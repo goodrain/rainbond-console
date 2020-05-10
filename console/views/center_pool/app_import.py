@@ -113,7 +113,7 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
             "event_id": r.event_id,
             "upload_url": upload_url,
             "region_name": region.region_alias,
-            }
+        }
 
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 

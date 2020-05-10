@@ -71,14 +71,14 @@ class GroupappsMigrateService(object):
             # restore on the original group
             new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
             if not new_group:
-                new_group = self.__create_new_group_by_group_name(
-                    migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
+                new_group = self.__create_new_group_by_group_name(migrate_team.tenant_id, migrate_region,
+                                                                  origin_backup_record.group_id)
         else:
-            new_group = self.__create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
+            new_group = self.create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
             # 获取原有数据中心数据
-            original_data = region_api.get_backup_status_by_backup_id(
-                current_region, current_team.tenant_name, origin_backup_record.backup_id)
+            original_data = region_api.get_backup_status_by_backup_id(current_region, current_team.tenant_name,
+                                                                      origin_backup_record.backup_id)
 
             new_event_id = make_uuid()
             new_group_uuid = make_uuid()
@@ -108,7 +108,7 @@ class GroupappsMigrateService(object):
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
 
-    def __create_new_group(self, tenant_id, region, old_group_id):
+    def create_new_group(self, tenant_id, region, old_group_id):
 
         old_group = group_repo.get_group_by_id(old_group_id)
         if old_group:
@@ -119,8 +119,8 @@ class GroupappsMigrateService(object):
         new_group = group_repo.add_group(tenant_id, region, new_group_name)
         return new_group
 
-    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region,
-                      backup_id, migrate_type, event_id, restore_id):
+    def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type, event_id,
+                      restore_id):
         backup_record = backup_record_repo.get_record_by_backup_id(current_team.tenant_id, backup_id)
         if not backup_record:
             raise ErrBackupRecordNotFound
@@ -130,16 +130,15 @@ class GroupappsMigrateService(object):
             raise ErrObjectStorageInfoNotFound
 
         if migrate_type == "recover":
-            is_all_services_closed = self.__check_group_service_status(
-                current_region, current_team, backup_record.group_id)
+            is_all_services_closed = self.__check_group_service_status(current_region, current_team, backup_record.group_id)
             if not is_all_services_closed:
                 raise ErrNeedAllServiceCloesed
 
         restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
 
         # 数据迁移到其他地方先处理数据中心数据拷贝
-        new_group, new_backup_record = self.__copy_backup_record(
-            restore_mode, backup_record, current_team, current_region, migrate_team, migrate_region, migrate_type)
+        new_group, new_backup_record = self.__copy_backup_record(restore_mode, backup_record, current_team, current_region,
+                                                                 migrate_team, migrate_region, migrate_type)
         if not new_backup_record:
             new_backup_record = backup_record
 
@@ -150,13 +149,12 @@ class GroupappsMigrateService(object):
             "tenant_id": migrate_team.tenant_id,
             "s3_config": s3_info,
         }
-        body = region_api.star_apps_migrate_task(
-            migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)
+        body = region_api.star_apps_migrate_task(migrate_region, migrate_team.tenant_name, new_backup_record.backup_id, data)
 
         if event_id:
             migrate_record = migrate_repo.get_by_event_id(event_id)
-            data = region_api.get_apps_migrate_status(
-                migrate_record.migrate_region, migrate_record.migrate_team, migrate_record.backup_id, restore_id)
+            data = region_api.get_apps_migrate_status(migrate_record.migrate_region, migrate_record.migrate_team,
+                                                      migrate_record.backup_id, restore_id)
             bean = data["bean"]
             migrate_record.status = bean["status"]
             migrate_record.save()
@@ -200,8 +198,8 @@ class GroupappsMigrateService(object):
         if not migrate_record:
             return None
         if migrate_record.status == "starting":
-            data = region_api.get_apps_migrate_status(
-                migrate_record.migrate_region, migrate_record.migrate_team, migrate_record.backup_id, restore_id)
+            data = region_api.get_apps_migrate_status(migrate_record.migrate_region, migrate_record.migrate_team,
+                                                      migrate_record.backup_id, restore_id)
             bean = data["bean"]
             status = bean["status"]
             if status == "success":
@@ -211,8 +209,8 @@ class GroupappsMigrateService(object):
                 migrate_team = team_repo.get_tenant_by_tenant_name(migrate_record.migrate_team)
                 try:
                     with transaction.atomic():
-                        self.save_data(migrate_team, migrate_record.migrate_region, user,
-                                       service_change, json.loads(metadata), migrate_record.group_id)
+                        self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata),
+                                       migrate_record.group_id)
                         if migrate_record.migrate_type == "recover":
                             # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
                             backup_record_repo.get_record_by_group_id(
@@ -237,8 +235,7 @@ class GroupappsMigrateService(object):
             service_base_info = app["service_base"]
             new_service_id = changed_service_map[service_base_info["service_id"]]["ServiceID"]
             new_service_alias = changed_service_map[service_base_info["service_id"]]["ServiceAlias"]
-            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias,
-                                 user, migrate_region, migrate_tenant)
+            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region, migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
@@ -322,10 +319,9 @@ class GroupappsMigrateService(object):
                         new_config_file.service_id = service.service_id
                         config_list.append(new_config_file)
             settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
-                                                                        volume.get("access_mode"),
-                                                                        volume.get("share_policy"),
-                                                                        volume.get("backup_policy"),
-                                                                        None, volume.get("volume_provider_name"))
+                                                                        volume.get("access_mode"), volume.get("share_policy"),
+                                                                        volume.get("backup_policy"), None,
+                                                                        volume.get("volume_provider_name"))
             if settings["changed"]:
                 logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
                 volume["volume_type"] = settings["volume_type"]
@@ -385,9 +381,9 @@ class GroupappsMigrateService(object):
                             tenant_id = tenant.tenant_id
                             service_alias = service.service_cname
                             region_id = region.region_id
-                            domain_repo.create_service_domains(
-                                service_id, service_name, domain_name, create_time, container_port, protocol,
-                                http_rule_id, tenant_id, service_alias, region_id)
+                            domain_repo.create_service_domains(service_id, service_name, domain_name, create_time,
+                                                               container_port, protocol, http_rule_id, tenant_id, service_alias,
+                                                               region_id)
                             # 给数据中心发请求添加默认域名
                             data = dict()
                             data["domain"] = domain_name
@@ -545,7 +541,10 @@ class GroupappsMigrateService(object):
                 new_service_relation = TenantServiceRelation(**relation)
                 new_service_relation.tenant_id = tenant.tenant_id
                 new_service_relation.service_id = old_new_service_id_map[relation["service_id"]]
-                new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
+                if old_new_service_id_map.get(relation["dep_service_id"]):
+                    new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
+                else:
+                    new_service_relation.dep_service_id = relation["dep_service_id"]
                 new_service_relation_list.append(new_service_relation)
             TenantServiceRelation.objects.bulk_create(new_service_relation_list)
 
@@ -557,9 +556,11 @@ class GroupappsMigrateService(object):
                 new_service_mnt = TenantServiceMountRelation(**mnt)
                 new_service_mnt.tenant_id = tenant.tenant_id
                 new_service_mnt.service_id = old_new_service_id_map[mnt["service_id"]]
-                new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]
+                if old_new_service_id_map.get(mnt["dep_service_id"]):
+                    new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]
+                else:
+                    new_service_mnt.dep_service_id = mnt["dep_service_id"]
                 new_service_mnt_relation_list.append(new_service_mnt)
-
             TenantServiceMountRelation.objects.bulk_create(new_service_mnt_relation_list)
 
     def update_migrate_original_group_id(self, old_original_group_id, new_original_group_id):

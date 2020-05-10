@@ -3,6 +3,7 @@
   Created on 18/3/5.
 """
 from rest_framework.response import Response
+from docker_image import reference
 
 from console.views.base import RegionTenantHeaderView
 from console.views.plugin.base import PluginBaseView
@@ -197,6 +198,8 @@ class PluginVersionInfoView(PluginBaseView):
         """
         try:
             base_info = self.plugin
+            if base_info.image and base_info.build_source == "image":
+                base_info.image = base_info.image + ":" + self.plugin_version.image_tag
             data = base_info.to_dict()
             data.update(self.plugin_version.to_dict())
             update_status_thread = threading.Thread(
@@ -266,11 +269,24 @@ class PluginVersionInfoView(PluginBaseView):
             plugin_alias = request.data.get("plugin_alias", self.plugin.plugin_alias)
             update_info = request.data.get("update_info", self.plugin_version.update_info)
             build_cmd = request.data.get("build_cmd", self.plugin_version.build_cmd)
-            image_tag = request.data.get("image_tag", self.plugin_version.image_tag)
+            image = request.data.get("image", self.plugin.image)
+            code_repo = request.data.get("code_repo", self.plugin.code_repo)
             code_version = request.data.get("code_version", self.plugin_version.code_version)
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
             min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
+            # if get username and password is "", means user remove the username and password
+            username = request.data.get("username", "")
+            password = request.data.get("password", "")
+            image_tag = ""  # if build_source is dockerfile, image_tag should be empty
+            if image and self.plugin.build_source == "image":
+                ref = reference.Reference.parse(image)
+                image = ref["name"]
+                image_tag = ref["tag"]
 
+            self.plugin.image = image
+            self.plugin.code_repo = code_repo
+            self.plugin.username = username
+            self.plugin.password = password
             self.plugin.plugin_alias = plugin_alias
             self.plugin.desc = update_info
             self.plugin_version.update_info = update_info

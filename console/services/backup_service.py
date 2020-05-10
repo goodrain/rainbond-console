@@ -110,7 +110,7 @@ class GroupAppBackupService(object):
         data = {
             "event_id": event_id,
             "group_id": group_uuid,
-            "metadata": metadata,
+            "metadata": json.dumps(metadata),
             "service_ids": [s.service_id for s in services],
             "mode": mode,
             "version": version,
@@ -212,8 +212,8 @@ class GroupAppBackupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
 
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
-        all_data["compose_service_relation"] = [
-            relation.to_dict() for relation in compose_service_relation] if compose_service_relation else None
+        all_data["compose_service_relation"] = [relation.to_dict()
+                                                for relation in compose_service_relation] if compose_service_relation else None
         all_data["group_info"] = group_info.to_dict()
         all_data["service_group_relation"] = [sgr.to_dict() for sgr in service_group_relations]
         apps = []
@@ -253,8 +253,7 @@ class GroupAppBackupService(object):
         all_data["plugin_info"]["plugin_build_versions"] = plugin_build_versions
         all_data["plugin_info"]["plugin_config_groups"] = plugin_config_groups
         all_data["plugin_info"]["plugin_config_items"] = plugin_config_items
-
-        return total_memory, json.dumps(all_data)
+        return total_memory, all_data
 
     def get_service_details(self, tenant, service):
         service_base = service.to_dict()

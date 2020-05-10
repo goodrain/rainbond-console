@@ -5,7 +5,6 @@ logger = logging.getLogger("default")
 
 
 class RegionInfo(object):
-
     @classmethod
     def region_names(cls, region_list):
         return tuple([e['name'] for e in region_list])

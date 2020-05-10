@@ -62,24 +62,22 @@ class ListFeatureConfigView(BaseOpenAPIView):
         services = oauth_repo.get_all_oauth_services(str(user.enterprise_id))
 
         for service in services:
-            oauth_services.append(
-                {
-                    "service_id": service.ID,
-                    "enable": service.enable,
-                    "name": service.name,
-                    "client_id": service.client_id,
-                    "auth_url": service.auth_url,
-                    "redirect_uri": service.redirect_uri,
-                    "oauth_type": service.oauth_type,
-                    "is_console": service.is_console,
-                    "home_url": service.home_url,
-                    "eid": service.eid,
-                    "access_token_url": service.access_token_url,
-                    "api_url": service.api_url,
-                    "client_secret": service.client_secret,
-                    "is_auto_login": service.is_auto_login
-                }
-            )
+            oauth_services.append({
+                "service_id": service.ID,
+                "enable": service.enable,
+                "name": service.name,
+                "client_id": service.client_id,
+                "auth_url": service.auth_url,
+                "redirect_uri": service.redirect_uri,
+                "oauth_type": service.oauth_type,
+                "is_console": service.is_console,
+                "home_url": service.home_url,
+                "eid": service.eid,
+                "access_token_url": service.access_token_url,
+                "api_url": service.api_url,
+                "client_secret": service.client_secret,
+                "is_auto_login": service.is_auto_login
+            })
         queryset["oauth_services"]["value"] = oauth_services
         serializer = FeatureConfigRespSerializer(queryset)
         return Response(serializer.data)

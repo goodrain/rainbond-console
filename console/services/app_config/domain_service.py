@@ -59,8 +59,8 @@ class DomainService(object):
         self.__check_certificate_alias(tenant, alias)
         cert_is_effective(certificate)
         certificate = base64.b64encode(certificate)
-        certificate = domain_repo.add_certificate(
-            tenant.tenant_id, alias, certificate_id, certificate, private_key, certificate_type)
+        certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
+                                                  certificate_type)
         return certificate
 
     def delete_certificate_by_alias(self, tenant, alias):
@@ -97,8 +97,7 @@ class DomainService(object):
         cert.delete()
 
     @transaction.atomic
-    def update_certificate(
-            self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
+    def update_certificate(self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
         cert_is_effective(certificate)
 
         cert = domain_repo.get_certificate_by_pk(certificate_id)
@@ -183,9 +182,8 @@ class DomainService(object):
         return tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, container_port)
 
     def get_sld_domains(self, service, container_port):
-        return domain_repo.get_service_domain_by_container_port(
-            service.service_id, container_port).filter(
-            domain_type=DomainType.SLD_DOMAIN)
+        return domain_repo.get_service_domain_by_container_port(service.service_id,
+                                                                container_port).filter(domain_type=DomainType.SLD_DOMAIN)
 
     def is_domain_exist(self, domain_name):
         domain = domain_repo.get_domain_by_domain_name(domain_name)
@@ -298,8 +296,7 @@ class DomainService(object):
 
     def bind_siample_http_domain(self, tenant, user, service, domain_name, container_port):
 
-        res, msg = self.bind_domain(tenant, user, service, domain_name,
-                                    container_port, "http", None, DomainType.WWW, None)
+        res, msg = self.bind_domain(tenant, user, service, domain_name, container_port, "http", None, DomainType.WWW, None)
         if res == 200:
             return domain_repo.get_domain_by_domain_name(domain_name)
         return None
@@ -399,9 +396,8 @@ class DomainService(object):
             domain_info.update({"certificate_name": certificate_info.alias})
         return 200, u"success", domain_info
 
-    def update_httpdomain(
-            self, tenant, user, service, domain_name, container_port, certificate_id, domain_type, domain_path,
-            domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
+    def update_httpdomain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type, domain_path,
+                          domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
         # 校验域名格式
         code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
         domain_info = dict()
@@ -564,9 +560,8 @@ class DomainService(object):
         domain_info.update({"rule_extensions": rule_extensions})
         return 200, u"success", domain_info
 
-    def update_tcpdomain(
-            self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
-            default_ip):
+    def update_tcpdomain(self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
+                         default_ip):
 
         ip = end_point.split(":")[0]
         ip.replace(' ', '')
@@ -651,8 +646,7 @@ class DomainService(object):
                 where sd.tenant_id='{0}' and sd.region_id='{1}' and  sgr.group_id='{3}'\
                     and (sd.domain_name like '%{2}%' \
                         or sd.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%');".format(
-                tenant.tenant_id, region.region_id, search_conditions, app_id))
+                        or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions, app_id))
             domain_count = cursor.fetchall()
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -661,8 +655,7 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
             cursor = connection.cursor()
-            cursor.execute(
-                "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+            cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
                     sd.is_outer_service \
@@ -675,8 +668,8 @@ class DomainService(object):
                     and (sd.domain_name like '%{2}%' \
                         or sd.service_alias like '%{2}%' \
                         or sg.group_name like '%{2}%') \
-                order by type desc LIMIT {3},{4};".format(
-                    tenant.tenant_id, region.region_id, search_conditions, start, end, app_id))
+                order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start, end,
+                                                          app_id))
             tenant_tuples = cursor.fetchall()
         else:
             # 获取总数
@@ -687,8 +680,7 @@ class DomainService(object):
                                         left join service_group sg on sgr.group_id = sg.id  \
                                     where sd.tenant_id='{0}' and \
                                     sd.region_id='{1}' and \
-                                    sgr.group_id='{2}';".format(
-                tenant.tenant_id, region.region_id, app_id))
+                                    sgr.group_id='{2}';".format(tenant.tenant_id, region.region_id, app_id))
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -700,8 +692,7 @@ class DomainService(object):
 
             cursor = connection.cursor()
 
-            cursor.execute(
-                "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+            cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
                     sd.is_outer_service \
@@ -711,8 +702,7 @@ class DomainService(object):
                 where sd.tenant_id='{0}' \
                     and sd.region_id='{1}' \
                     and sgr.group_id='{2}' \
-                order by type desc;".format(
-                    tenant.tenant_id, region.region_id, app_id))
+                order by type desc;".format(tenant.tenant_id, region.region_id, app_id))
             tenant_tuples = cursor.fetchall()
 
         return tenant_tuples, total
@@ -724,15 +714,13 @@ class DomainService(object):
             search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             cursor = connection.cursor()
-            cursor.execute(
-                "select count(1) from service_tcp_domain std \
+            cursor.execute("select count(1) from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id  \
                 where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{3}' \
                     and (std.end_point like '%{2}%' \
                         or std.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%');".format(
-                    tenant.tenant_id, region.region_id, search_conditions, app_id))
+                        or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions, app_id))
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -743,8 +731,7 @@ class DomainService(object):
                 end = remaining_num
 
             cursor = connection.cursor()
-            cursor.execute(
-                "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
+            cursor.execute("select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
                     std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
                 from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
@@ -753,18 +740,17 @@ class DomainService(object):
                     and (std.end_point like '%{2}%' \
                         or std.service_alias like '%{2}%' \
                         or sg.group_name like '%{2}%') \
-                order by type desc LIMIT {3},{4};".format(
-                    tenant.tenant_id, region.region_id, search_conditions, start, end, app_id))
+                order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start, end,
+                                                          app_id))
             tenant_tuples = cursor.fetchall()
         else:
             # 获取总数
             cursor = connection.cursor()
-            cursor.execute(
-                "select count(1) from service_tcp_domain std \
+            cursor.execute("select count(1) from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id  \
                 where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{2}';".format(
-                    tenant.tenant_id, region.region_id, app_id))
+                tenant.tenant_id, region.region_id, app_id))
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
@@ -775,14 +761,12 @@ class DomainService(object):
                 end = remaining_num
 
             cursor = connection.cursor()
-            cursor.execute(
-                "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
+            cursor.execute("select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
                     std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
                 from service_tcp_domain std \
                     left join service_group_relation sgr on std.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id  \
                 where std.tenant_id='{0}' and std.region_id='{1}' and sgr.group_id='{4}' \
-                order by type desc LIMIT {2},{3};".format(
-                    tenant.tenant_id, region.region_id, start, end, app_id))
+                order by type desc LIMIT {2},{3};".format(tenant.tenant_id, region.region_id, start, end, app_id))
             tenant_tuples = cursor.fetchall()
         return tenant_tuples, total

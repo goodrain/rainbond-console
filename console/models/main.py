@@ -3,7 +3,12 @@ import logging
 from datetime import datetime
 
 from django.db import models
-from django.db.models.fields import DateTimeField, CharField, AutoField, BooleanField, DecimalField, IntegerField
+from django.db.models.fields import AutoField
+from django.db.models.fields import BooleanField
+from django.db.models.fields import CharField
+from django.db.models.fields import DateTimeField
+from django.db.models.fields import DecimalField
+from django.db.models.fields import IntegerField
 from django.db.models.fields.files import FileField
 from enum import Enum
 from enum import IntEnum
@@ -95,7 +100,7 @@ class RainbondCenterApp(BaseModel):
     app_id = models.CharField(max_length=32, help_text=u"应用包")
     app_name = models.CharField(max_length=64, help_text=u"应用包名")
     create_user = models.IntegerField(null=True, blank=True, help_text=u"创建人id")
-    create_team = models.CharField(max_length=64, null=True, blank=True,  help_text=u"应用所属团队,可以和创建人id不统一")
+    create_team = models.CharField(max_length=64, null=True, blank=True, help_text=u"应用所属团队,可以和创建人id不统一")
     pic = models.CharField(max_length=200, null=True, blank=True, help_text=u"应用头像信息")
     source = models.CharField(max_length=15, default="", null=True, blank=True, help_text=u"应用来源(本地创建，好雨云市)")
     dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text=u"开发状态")
@@ -112,8 +117,10 @@ class RainbondCenterApp(BaseModel):
 
 class RainbondCenterAppVersion(BaseModel):
     """云市应用版本"""
+
     class Meta:
         db_table = "rainbond_center_app_version"
+
     enterprise_id = models.CharField(max_length=32, default="public", help_text=u"企业ID")
     app_id = models.CharField(max_length=32, help_text=u"应用id")
     version = models.CharField(max_length=32, help_text=u"版本")
@@ -378,8 +385,7 @@ class ServiceRecycleBin(BaseModel):
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
-    service_type = models.CharField(max_length=50, null=True, blank=True,
-                                    help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text=u"服务创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     protocol = models.CharField(max_length=15, default='', help_text=u"服务协议：http,stream")
@@ -388,15 +394,13 @@ class ServiceRecycleBin(BaseModel):
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
     volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
-    port_type = models.CharField(max_length=15, default='multi_outer',
-                                 help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"应用归属的服务组id")
     service_source = models.CharField(
-        max_length=15, default="", null=True, blank=True,
-        help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
+        max_length=15, default="", null=True, blank=True, help_text=u"应用来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"应用创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text=u"应用检测ID")
@@ -816,6 +820,7 @@ class AutoscalerRuleMetrics(BaseModel):
 class OAuthServices(BaseModel):
     class Meta:
         db_table = "oauth_service"
+
     name = models.CharField(max_length=32, null=False, unique=True, help_text=u"oauth服务名称")
     client_id = models.CharField(max_length=64, null=False, help_text=u"client_id")
     client_secret = models.CharField(max_length=64, null=False, help_text=u"client_secret")
@@ -847,7 +852,7 @@ class UserOAuthServices(BaseModel):
     access_token = models.CharField(max_length=255, null=True, help_text=u"access_token_url")
     refresh_token = models.CharField(max_length=64, null=True, help_text=u"refresh_token")
     user_id = models.IntegerField(null=True, default=None, help_text=u"user_id")
-    code = models.CharField(max_length=256, null=True,  help_text=u"user_id")
+    code = models.CharField(max_length=256, null=True, help_text=u"user_id")
 
 
 class UserFavorite(BaseModel):
@@ -861,3 +866,13 @@ class UserFavorite(BaseModel):
     update_time = models.DateTimeField(auto_now=True)
     custom_sort = models.IntegerField(help_text=u"用户自定义排序")
     is_default = models.BooleanField(default=False, help_text=u"用户自定义排序")
+
+
+class Errlog(BaseModel):
+    class Meta:
+        db_table = "errlog"
+
+    msg = models.CharField(max_length=2047, null=True, blank=True, default="", help_text=u"error log of front end")
+    username = models.CharField(max_length=255, null=True, blank=True, default="")
+    enterprise_id = models.CharField(max_length=255, null=True, blank=True, default="")
+    address = models.CharField(max_length=2047, null=True, blank=True, default="")

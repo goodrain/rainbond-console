@@ -43,23 +43,35 @@ class TeamRepo(object):
     def get_tenants_by_user_id(self, user_id, name=None):
         tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
         if name:
-            tenants = Tenants.objects.filter(
-                ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
+            tenants = Tenants.objects.filter(ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
         else:
             tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
         return tenants
 
+    def get_user_tenant_by_name(self, user_id, name):
+        tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
+        tenant = Tenants.objects.filter(ID__in=tenant_ids, tenant_name=name).first()
+        return tenant
+
     def get_tenants_by_user_id_and_eid(self, eid, user_id, name=None):
+        tenants = []
         enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
         if not enterprise:
             return enterprise
-        tenant_ids = list(PermRelTenant.objects.filter(
-            enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id", flat=True).order_by("-ID"))
+        tenant_ids = list(
+            PermRelTenant.objects.filter(enterprise_id=enterprise.ID, user_id=user_id).values_list("tenant_id",
+                                                                                                   flat=True).order_by("-ID"))
         tenant_ids = sorted(set(tenant_ids), key=tenant_ids.index)
         if name:
-            tenants = [Tenants.objects.filter(ID=tenant_id, tenant_alias__contains=name).first() for tenant_id in tenant_ids]
+            for tenant_id in tenant_ids:
+                tn = Tenants.objects.filter(ID=tenant_id, tenant_alias__contains=name).first()
+                if tn:
+                    tenants.append(tn)
         else:
-            tenants = [Tenants.objects.filter(ID=tenant_id).first() for tenant_id in tenant_ids]
+            for tenant_id in tenant_ids:
+                tn = Tenants.objects.filter(ID=tenant_id).first()
+                if tn:
+                    tenants.append(tn)
         return tenants
 
     def get_active_tenants_by_user_id(self, user_id):
@@ -97,7 +109,8 @@ class TeamRepo(object):
             FROM user_info
             WHERE user_id NOT IN {where}
             AND enterprise_id="{enterprise_id}"
-        """.format(where=where, enterprise_id=enterprise.enterprise_id)
+        """.format(
+            where=where, enterprise_id=enterprise.enterprise_id)
         if query:
             sql += """
             AND nick_name like "%{query}%"
@@ -236,7 +249,8 @@ class TeamRepo(object):
         ORDER BY
             service_num DESC
         {limit}
-        """.format(where=where, limit=limit)
+        """.format(
+            where=where, limit=limit)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -252,7 +266,8 @@ class TeamRepo(object):
                 AND a.creater = d.user_id
                 AND b.user_id = {user_id}
                 AND a.enterprise_id = '{eid}'
-                """.format(user_id=user_id, eid=eid)
+                """.format(
+            user_id=user_id, eid=eid)
         if query:
             where += """AND ( a.tenant_alias LIKE "%{query}%" OR d.nick_name LIKE "%{query}%" )""".format(query=query)
         sql = """
@@ -272,7 +287,8 @@ class TeamRepo(object):
                 user_info d
             {where}
             {limit}
-            """.format(where=where, limit=limit)
+            """.format(
+            where=where, limit=limit)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -282,7 +298,8 @@ class TeamRepo(object):
                 AND c.user_id = b.user_id
                 AND b.user_id = {user_id}
                 AND a.enterprise_id = '{eid}'
-                """.format(user_id=user_id, eid=eid)
+                """.format(
+            user_id=user_id, eid=eid)
         if query:
             where += """AND a.tenant_alias LIKE "%{query}%" """.format(query=query)
         sql = """
@@ -304,6 +321,9 @@ class TeamRepo(object):
 
     def get_team_regions(self, team_id):
         return TenantRegionInfo.objects.filter(tenant_id=team_id)
+
+    def get_team_region_by_name(self, team_id, region_name):
+        return TenantRegionInfo.objects.filter(tenant_id=team_id, region_name=region_name)
 
     def get_teams_by_create_user(self, enterprise_id, user_id):
         return Tenants.objects.filter(creater=user_id, enterprise_id=enterprise_id)

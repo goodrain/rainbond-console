@@ -22,7 +22,6 @@ from console.exception.main import ServiceHandleException
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
-
 volume_bound = "bound"
 volume_not_bound = "not_bound"
 volume_ready = "READY"
@@ -54,15 +53,23 @@ class AppVolumeService(object):
 
     default_volume_type = "share-file"
     simple_volume_type = [default_volume_type, "config-file", "memoryfs", "local"]
-    stateless_volume_types = [
-        {"volume_type": "share-file", "name_show": "共享存储（文件）"},
-        {"volume_type": "memoryfs", "name_show": "内存文件存储"}
-    ]
-    state_volume_types = [
-        {"volume_type": "share-file", "name_show": "共享存储（文件）"},
-        {"volume_type": "memoryfs", "name_show": "内存文件存储"},
-        {"volume_type": "local", "name_show": "本地存储"}
-    ]
+    stateless_volume_types = [{
+        "volume_type": "share-file",
+        "name_show": "共享存储（文件）"
+    }, {
+        "volume_type": "memoryfs",
+        "name_show": "内存文件存储"
+    }]
+    state_volume_types = [{
+        "volume_type": "share-file",
+        "name_show": "共享存储（文件）"
+    }, {
+        "volume_type": "memoryfs",
+        "name_show": "内存文件存储"
+    }, {
+        "volume_type": "local",
+        "name_show": "本地存储"
+    }]
 
     def is_simple_volume_type(self, volume_type):
         if volume_type in self.simple_volume_type:
@@ -80,10 +87,7 @@ class AppVolumeService(object):
         return True
 
     def get_service_support_volume_options(self, tenant, service):
-        base_opts = [
-            {"volume_type": "share-file", "name_show": "共享存储（文件）"},
-            {"volume_type": "memoryfs", "name_show": "内存文件存储"}
-        ]
+        base_opts = [{"volume_type": "share-file", "name_show": "共享存储（文件）"}, {"volume_type": "memoryfs", "name_show": "内存文件存储"}]
         state = False
         # state service
         if is_state(service.extend_method):
@@ -98,8 +102,15 @@ class AppVolumeService(object):
                 base_opts.append(opt)
         return base_opts
 
-    def get_best_suitable_volume_settings(self, tenant, service, volume_type, access_mode=None, share_policy=None,
-                                          backup_policy=None, reclaim_policy=None, provider_name=None):
+    def get_best_suitable_volume_settings(self,
+                                          tenant,
+                                          service,
+                                          volume_type,
+                                          access_mode=None,
+                                          share_policy=None,
+                                          backup_policy=None,
+                                          reclaim_policy=None,
+                                          provider_name=None):
         """
         settings 结构
         volume_type: string 新的存储类型，没有合适的相同的存储则返回新的存储
@@ -148,8 +159,8 @@ class AppVolumeService(object):
                 vo["status"] = volume_not_bound
                 vos.append(vo)
             return vos
-        res, body = region_api.get_service_volumes(service.service_region, tenant.tenant_name,
-                                                   service.service_alias, tenant.enterprise_id)
+        res, body = region_api.get_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
+                                                   tenant.enterprise_id)
         if body and body.list:
             status = {}
             for volume in body.list:
@@ -325,19 +336,19 @@ class AppVolumeService(object):
         # region端添加数据
         if service.create_status == "complete":
             data = {
-                    "category": service.category,
-                    "volume_name": volume_name,
-                    "volume_path": volume_path,
-                    "volume_type": volume_type,
-                    "enterprise_id": tenant.enterprise_id,
-                    "volume_capacity": settings['volume_capacity'],
-                    "volume_provider_name": settings['volume_provider_name'],
-                    "access_mode": settings['access_mode'],
-                    "share_policy": settings['share_policy'],
-                    "backup_policy": settings['backup_policy'],
-                    "reclaim_policy": settings['reclaim_policy'],
-                    "allow_expansion": settings['allow_expansion'],
-                }
+                "category": service.category,
+                "volume_name": volume_name,
+                "volume_path": volume_path,
+                "volume_type": volume_type,
+                "enterprise_id": tenant.enterprise_id,
+                "volume_capacity": settings['volume_capacity'],
+                "volume_provider_name": settings['volume_provider_name'],
+                "access_mode": settings['access_mode'],
+                "share_policy": settings['share_policy'],
+                "backup_policy": settings['backup_policy'],
+                "reclaim_policy": settings['reclaim_policy'],
+                "allow_expansion": settings['allow_expansion'],
+            }
             if volume_type == "config-file":
                 data["file_content"] = file_content
             res, body = region_api.add_service_volumes(service.service_region, tenant.tenant_name, service.service_alias, data)
@@ -360,16 +371,14 @@ class AppVolumeService(object):
             return 403, u"当前路径被共享,无法删除", None
         if service.create_status == "complete":
             try:
-                res, body = region_api.delete_service_volumes(
-                    service.service_region, tenant.tenant_name,
-                    service.service_alias, volume.volume_name,
-                    tenant.enterprise_id)
-                logger.debug("service {0} delete volume {1}, result {2}".format(
-                    service.service_cname, volume.volume_name, body))
+                res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
+                                                              volume.volume_name, tenant.enterprise_id)
+                logger.debug("service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name,
+                                                                                body))
             except region_api.CallApiError as e:
                 if e.status != 404:
-                    raise ServiceHandleException(msg="delete volume from region failure",
-                                                 msg_show="从集群删除存储发生错误", status_code=500)
+                    raise ServiceHandleException(
+                        msg="delete volume from region failure", msg_show="从集群删除存储发生错误", status_code=500)
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume_id(volume_id)
 
@@ -382,9 +391,7 @@ class AppVolumeService(object):
         volumes = volume_repo.get_service_volumes(service.service_id)
         for volume in volumes:
             try:
-                res, body = region_api.delete_service_volumes(
-                    service.service_region, tenant.tenant_name,
-                    service.service_alias, volume.volume_name,
-                    tenant.enterprise_id)
+                res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
+                                                              volume.volume_name, tenant.enterprise_id)
             except Exception as e:
                 logger.exception(e)

@@ -47,8 +47,7 @@ class LabelsReporsitory(object):
     def create_label(self, label_name, label_alias):
         label_id = make_uuid("labels")
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        label = Labels(
-            label_id=label_id, label_name=label_name, label_alias=label_alias, create_time=create_time)
+        label = Labels(label_id=label_id, label_name=label_name, label_alias=label_alias, create_time=create_time)
         label.save()
         return label
 
