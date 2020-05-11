@@ -43,7 +43,7 @@ class ListRegionInfo(BaseOpenAPIView):
         except ValueError:
             page_size = 99
 
-        regions, total = region_services.get_enterprise_all_regions(self.enterprise.enterprise_id, page, page_size)
+        regions, total = region_services.list_region_by_eid(self.enterprise.enterprise_id, page, page_size)
         serializer = RegionInfoRespSerializer(data=regions, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)

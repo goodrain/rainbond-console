@@ -165,7 +165,7 @@ class RegionService(object):
             logger.exception(e)
             return {}
 
-    def get_enterprise_all_regions(self, eid="", page=None, page_size=None):
+    def list_region_by_eid(self, eid, page=None, page_size=None):
         regions = self.get_enterprise_regions(eid, level="", check_status="")
         total = len(regions)
         paginator = Paginator(regions, page_size)
