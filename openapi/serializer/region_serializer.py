@@ -54,19 +54,19 @@ class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
 
 
 class RegionInfoRespSerializer(serializers.Serializer):
-    region_id = serializers.CharField(max_length=36, help_text=u"region id")
+    region_id = serializers.CharField(max_length=36, required=False, help_text=u"region id")
     region_name = serializers.CharField(max_length=32, help_text=u"集群名称")
     region_alias = serializers.CharField(max_length=32, help_text=u"集群别名")
     url = serializers.CharField(max_length=256, help_text=u"集群API url")
-    wsurl = serializers.CharField(max_length=256, help_text=u"集群Websocket url")
-    httpdomain = serializers.CharField(max_length=256, help_text=u"集群http应用访问根域名")
-    tcpdomain = serializers.CharField(max_length=256, help_text=u"集群tcp应用访问根域名")
+    wsurl = serializers.CharField(max_length=256, required=False, help_text=u"集群Websocket url")
+    httpdomain = serializers.CharField(max_length=256, required=False, help_text=u"集群http应用访问根域名")
+    tcpdomain = serializers.CharField(max_length=256, required=False, help_text=u"集群tcp应用访问根域名")
     status = serializers.CharField(max_length=2, help_text=u"集群状态 0：编辑中 1:启用 2：停用 3:维护中")
     desc = serializers.CharField(max_length=128, allow_blank=True, help_text=u"集群描述")
     scope = serializers.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
-    ssl_ca_cert = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api ca file")
-    cert_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api cert file")
-    key_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api cert key file")
+    ssl_ca_cert = serializers.CharField(max_length=65535, required=False, allow_null=True, help_text=u"api ca file")
+    cert_file = serializers.CharField(max_length=65535, required=False, allow_null=True, help_text=u"api cert file")
+    key_file = serializers.CharField(max_length=65535, required=False, allow_null=True, help_text=u"api cert key file")
 
 
 class ListRegionsRespSerializer(serializers.Serializer):
