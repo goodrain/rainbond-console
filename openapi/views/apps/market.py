@@ -27,11 +27,11 @@ class MarketAppInstallView(TeamAPIView):
         responses={200: AppInfoSerializer()},
         tags=['openapi-apps'],
     )
-    def post(self, request, *args, **kwargs):
+    def post(self, request, app_id, *args, **kwargs):
         serializer = MarketInstallSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        app = group_service.get_app_by_id(self.team, self.region_name, data["app_id"])
+        app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         if not app:
             return Response(FailSerializer({"msg": "install target app not found"}), status=status.HTTP_400_BAD_REQUEST)
         tenant = team_services.get_team_by_team_id(app.tenant_id)
@@ -45,7 +45,7 @@ class MarketAppInstallView(TeamAPIView):
             rainbond_app, rainbond_app_version = market_app_service.conversion_cloud_version_to_app(app_version)
             market_app_service.install_service(tenant, app.region_name, request.user, app.ID, rainbond_app,
                                                rainbond_app_version, True, True)
-            services = group_service.get_group_services(data["app_id"])
+            services = group_service.get_group_services(app_id)
             appInfo = model_to_dict(app)
             appInfo["enterprise_id"] = tenant.enterprise_id
             appInfo["service_list"] = ServiceBaseInfoSerializer(services, many=True)

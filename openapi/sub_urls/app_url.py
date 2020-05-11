@@ -14,7 +14,7 @@ from openapi.views.groupapp import GroupAppsCopyView
 urlpatterns = [
     url(r'^$', ListAppsView.as_view()),
     url(r'^/(?P<app_id>[\w\-]+)$', AppInfoView.as_view()),
-    url(r'^/(?P<app_id>[\w\-]+)/market-install$', MarketAppInstallView.as_view()),
+    url(r'^/(?P<app_id>[\w\-]+)/install$', MarketAppInstallView.as_view()),
     url(r'^/(?P<app_id>[\d\-]+)/copy$', GroupAppsCopyView.as_view()),
     url(r'^/(?P<app_id>[\d\-]+)/operations$', APPOperationsView.as_view()),
     url(r'^/(?P<app_id>[\d\-]+)/httpdomains$', ListAppGatewayHTTPRuleView.as_view()),

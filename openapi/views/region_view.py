@@ -25,25 +25,11 @@ class ListRegionInfo(BaseOpenAPIView):
     view_perms = ["regions"]
 
     @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
-        ],
         responses={200: RegionInfoRespSerializer(many=True)},
         tags=['openapi-region'],
         operation_description="获取全部数据中心列表")
     def get(self, req):
-        try:
-            page = int(req.GET.get("page", 1))
-        except ValueError:
-            page = 1
-        try:
-            page_size = int(req.GET.get("page_size", 99))
-        except ValueError:
-            page_size = 99
-
-        regions, total = region_services.list_region_by_eid(self.enterprise.enterprise_id, page, page_size)
+        regions = region_services.list_region_by_eid(self.enterprise.enterprise_id)
         serializer = RegionInfoRespSerializer(data=regions, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
