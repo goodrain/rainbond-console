@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import os
 
 from rest_framework.response import Response
 
@@ -25,6 +26,8 @@ class ConfigRUDView(AlowAnyApiView):
             code = 200
             status = role_perm_repo.initialize_permission_settings()
             data = platform_config_service.initialization_or_get_config
+            if data.get("enterprise_id", None) is None:
+                data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
             result = general_message(code, "query success", u"Logo获取成功", bean=data, initialize_info=status)
             return Response(result, status=code)
         except Exception as e:
