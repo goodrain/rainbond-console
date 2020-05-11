@@ -11,7 +11,6 @@ from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.announcement_view import (AnnouncementView, ListAnnouncementView)
-from openapi.views.apps.market import MarketAppInstallView
 from openapi.views.appstore_view import AppStoreInfoView, ListAppStoresView
 from openapi.views.enterprise_view import (EnterpriseInfoView, EnterpriseSourceView,
                                            ListEnterpriseInfoView, EnterpriseConfigView)
@@ -50,8 +49,7 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
-    # market install
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/market-install', MarketAppInstallView.as_view()),
+    # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps', include('openapi.sub_urls.app_url')),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
