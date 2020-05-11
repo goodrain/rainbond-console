@@ -84,9 +84,6 @@ class GroupService(object):
     def get_app_by_id(self, tenant, region, app_id):
         return group_repo.get_group_by_pk(tenant.tenant_id, region, app_id)
 
-    def get_app_by_pk(self, app_id):
-        return group_repo.get_app_by_pk(app_id)
-
     def get_group_or_404(self, tenant, response_region, group_id):
         """
         :param tenant:

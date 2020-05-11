@@ -30,7 +30,7 @@ class ListAppGatewayHTTPRuleView(TeamAPIView):
         operation_description="获取应用http访问策略列表",
         manual_parameters=[],
         responses={200: HTTPGatewayRuleSerializer(many=True)},
-        tags=['openapi-apps'],
+        tags=['openapi-gateway'],
     )
     def get(self, req, app_id, *args, **kwargs):
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)

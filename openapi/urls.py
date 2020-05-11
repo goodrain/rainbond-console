@@ -42,18 +42,16 @@ urlpatterns = [
     url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    # auth
-    url(r'^v1/auth-token$', TokenInfoView.as_view()),
     # get enterprise regions
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
-    # market install
-    url(r'^v1/market-install', MarketAppInstallView.as_view()),
     # get user teams
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
+    # market install
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/market-install', MarketAppInstallView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps', include('openapi.sub_urls.app_url')),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
