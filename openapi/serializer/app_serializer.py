@@ -38,6 +38,7 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
             "git_full_name"
         ]
 
+    # component status
     status = serializers.CharField(max_length=32, help_text=u"组件状态")
 
 
@@ -52,9 +53,8 @@ class AppInfoSerializer(AppBaseInfoSerializer):
     status = serializers.ChoiceField(choices=APP_STATUS_CHOICE, help_text=u"应用状态")
 
 
-class MarketInstallSerializer(serializers.Serializer):
+class InstallSerializer(serializers.Serializer):
     order_id = serializers.CharField(max_length=36, help_text=u"订单ID,通过订单ID去市场下载安装的应用元数据")
-    app_id = serializers.IntegerField(help_text=u"安装应用ID")
 
 
 class ServiceGroupOperationsSerializer(serializers.Serializer):

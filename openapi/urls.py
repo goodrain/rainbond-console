@@ -11,7 +11,6 @@ from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.announcement_view import (AnnouncementView, ListAnnouncementView)
-from openapi.views.apps.market import MarketAppInstallView
 from openapi.views.appstore_view import AppStoreInfoView, ListAppStoresView
 from openapi.views.enterprise_view import (EnterpriseInfoView, EnterpriseSourceView,
                                            ListEnterpriseInfoView, EnterpriseConfigView)
@@ -42,12 +41,16 @@ urlpatterns = [
     url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    # get enterprise regions
+    url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
     # get user teams
     url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
+    # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps', include('openapi.sub_urls.app_url')),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
@@ -56,7 +59,6 @@ if os.environ.get("OPENAPI_V2") == "true":
 if os.environ.get("OPENAPI_DEBUG") == "true":
     urlpatterns += [
         url(r'^v1/auth-token$', TokenInfoView.as_view()),
-        url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
         url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
         url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
@@ -80,6 +82,6 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/announcements$', ListAnnouncementView.as_view()),
         url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
         url(r'^v1/upload-file$', UploadView.as_view()),
-        url(r'^v1/market-install', MarketAppInstallView.as_view()),
+
         url(r'^v1/oauth/type$', OauthTypeView.as_view()),
     ]
