@@ -81,7 +81,6 @@ class ConfigService(object):
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
-        rst_datas["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
         return rst_datas
 
     def update_config(self, key, value):

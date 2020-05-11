@@ -51,11 +51,15 @@ class PropertiesChanges(object):
         from console.services.market_app_service import market_app_service
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
         service_ids = group_service_relation_repo.get_services_by_group(group_id).values_list("service_id", flat=True)
-        versions = service_source_repo.get_service_sources(self.tenant.tenant_id,
-                                                           service_ids).exclude(version=None).values_list(
-                                                               "version", flat=True)
-        sorted_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
-        current_version = sorted_versions[-1]
+        service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
+        versions = service_sources.exclude(version=None).values_list("version", flat=True)
+        if versions:
+            sorted_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
+            current_version = sorted_versions[-1]
+            current_version_source = service_sources.filter(version=current_version).first()
+        else:
+            current_version = None
+            current_version_source = None
         if not self.install_from_cloud:
             app, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id,
                                                                               self.service_source.group_key, current_version)
@@ -67,6 +71,8 @@ class PropertiesChanges(object):
             self.template = json.loads(app_version.app_template)
             self.current_app = app
             self.current_version = app_version
+            if current_version_source:
+                self.service_source.create_time = current_version_source.create_time
 
     @property
     def get_upgradeable_versions(self):
@@ -94,7 +100,7 @@ class PropertiesChanges(object):
 
             for version in app_versions:
                 new_version_time = time.mktime(version.update_time.timetuple())
-                current_version_time = time.mktime(self.current_version.update_time.timetuple())
+                current_version_time = time.mktime(self.service_source.create_time.timetuple())
                 same, max_version = self.checkVersionG2(self.current_version.version, version.version)
                 if not same:
                     upgradeble_versions.append(version.version)
