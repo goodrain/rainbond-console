@@ -105,7 +105,7 @@ class PropertiesChanges(object):
                 if not same:
                     upgradeble_versions.append(version.version)
                 else:
-                    if new_version_time > current_version_time:
+                    if new_version_time > current_version_time and max_version == version.version:
                         upgradeble_versions.append(version.version)
 
         else:
