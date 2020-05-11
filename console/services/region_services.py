@@ -165,10 +165,6 @@ class RegionService(object):
             logger.exception(e)
             return {}
 
-    def list_region_by_eid(self, eid):
-        regions = self.get_enterprise_regions(eid, level="", check_status="")
-        return regions
-
     def get_all_regions(self, query="", page=None, page_size=None):
         # 即将移除，仅用于OpenAPI V1
         regions = region_repo.get_all_regions(query)

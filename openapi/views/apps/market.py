@@ -8,7 +8,7 @@ from rest_framework import status
 from openapi.serializer.base_serializer import FailSerializer
 from rest_framework.response import Response
 from django.forms.models import model_to_dict
-from openapi.serializer.app_serializer import MarketInstallSerializer, ServiceBaseInfoSerializer, AppInfoSerializer
+from openapi.serializer.app_serializer import InstallSerializer, ServiceBaseInfoSerializer, AppInfoSerializer
 from console.services.group_service import group_service
 from console.services.team_services import team_services
 from console.services.market_app_service import market_app_service
@@ -20,15 +20,15 @@ logger = logging.getLogger("default")
 
 # Install cloud city application, which is implemented by a simplified scheme.
 # Users provide cloud city application information and initiate to download application metadata to the application market.
-class MarketAppInstallView(TeamAPIView):
+class AppInstallView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="安装云市应用",
-        request_body=MarketInstallSerializer(),
+        request_body=InstallSerializer(),
         responses={200: AppInfoSerializer()},
         tags=['openapi-apps'],
     )
     def post(self, request, app_id, *args, **kwargs):
-        serializer = MarketInstallSerializer(data=request.data)
+        serializer = InstallSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)

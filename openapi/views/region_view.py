@@ -29,7 +29,7 @@ class ListRegionInfo(BaseOpenAPIView):
         tags=['openapi-region'],
         operation_description="获取全部数据中心列表")
     def get(self, req):
-        regions = region_services.list_region_by_eid(self.enterprise.enterprise_id)
+        regions = region_services.get_enterprise_regions(self.enterprise.enterprise_id, level="")
         serializer = RegionInfoRespSerializer(data=regions, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
