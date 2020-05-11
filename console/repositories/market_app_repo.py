@@ -407,7 +407,7 @@ class RainbondCenterAppRepository(object):
             app_id=app_id,
             version=app_version,
             scope__in=["gooodrain", "team", "enterprise"],
-        ).first()
+        ).order_by("-upgrade_time").first()
         if app_version and app:
             return app, app_version
         app_version = RainbondCenterAppVersion.objects.filter(
@@ -415,7 +415,7 @@ class RainbondCenterAppRepository(object):
             app_id=app_id,
             version=app_version,
             scope__in=["gooodrain", "team", "enterprise"],
-        ).first()
+        ).order_by("-upgrade_time").first()
         if app_version and app:
             return app, app_version
         return None, None
