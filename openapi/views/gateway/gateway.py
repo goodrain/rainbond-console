@@ -129,12 +129,6 @@ class UpdateAppGatewayHTTPRuleView(TeamAPIView):
             rst = {"msg": "组件不存在"}
             return Response(rst, status=status.HTTP_400_BAD_REQUEST)
         data = domain_service.update_httpdomain(self.team, service, rule_id, ads.data, True)
-        # data = domain_service.update_httpdomain(self.team, request.user, service, rule_id, httpdomain["domain_name"],
-        #                                         httpdomain["container_port"], httpdomain.get("certificate_id"), DomainType.WWW,
-        #                                         httpdomain.get("domain_path"), httpdomain.get("domain_cookie"),
-        #                                         httpdomain.get("domain_header"), httpdomain.get("the_weight", 100),
-        #                                         httpdomain.get("rule_extensions"), httpdomain.get("auto_ssl", False),
-        #                                         httpdomain.get("auto_ssl_config", None), True)
 
         re = HTTPGatewayRuleSerializer(data=model_to_dict(data))
         re.is_valid()
