@@ -411,7 +411,7 @@ class DomainService(object):
         if "rule_extensions" in update_data.keys():
             data["rule_extensions"] = domain_info["rule_extensions"]
         else:
-            data["rule_extensions"] = eval(domain_info["rule_extensions"])
+            data["rule_extensions"] = eval(domain_info["rule_extensions"]) if domain_info["rule_extensions"] != "" else ""
 
         # 证书信息
         data["certificate"] = ""
