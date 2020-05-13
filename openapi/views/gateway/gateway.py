@@ -18,7 +18,7 @@ from console.services.app_config import domain_service, port_service
 from console.services.app_config.domain_service import ErrNotFoundDomain
 from console.services.group_service import group_service
 from openapi.serializer.gateway_serializer import (EnterpriseHTTPGatewayRuleSerializer, HTTPGatewayRuleSerializer,
-                                                   PostHTTPGatewayRuleSerializer, PostHTTPGatewayRuleUSerializer)
+                                                   PostHTTPGatewayRuleSerializer, UpdatePostHTTPGatewayRuleSerializer)
 from openapi.views.base import BaseOpenAPIView, TeamAPIView
 from openapi.views.exceptions import ErrAppNotFound
 
@@ -113,12 +113,12 @@ class UpdateAppGatewayHTTPRuleView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="更新HTTP访问策略",
         manual_parameters=[],
-        request_body=PostHTTPGatewayRuleUSerializer(),
+        request_body=UpdatePostHTTPGatewayRuleSerializer(),
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
     def put(self, request, app_id, rule_id, *args, **kwargs):
-        ads = PostHTTPGatewayRuleUSerializer(data=request.data)
+        ads = UpdatePostHTTPGatewayRuleSerializer(data=request.data)
         ads.is_valid(raise_exception=True)
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         if not app:

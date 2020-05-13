@@ -37,7 +37,7 @@ class PostHTTPGatewayRuleSerializer(serializers.Serializer):
     auto_ssl_config = serializers.BooleanField(help_text=u"自动分发证书配置", required=False)
 
 
-class PostHTTPGatewayRuleUSerializer(serializers.Serializer):
+class UpdatePostHTTPGatewayRuleSerializer(serializers.Serializer):
     service_id = serializers.CharField(help_text=u"应用组件id")
     container_port = serializers.IntegerField(help_text=u"绑定端口", required=False)
     certificate_id = serializers.IntegerField(help_text=u"证书id", default=0, required=False)
