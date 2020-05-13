@@ -389,6 +389,8 @@ class DomainService(object):
 
     def update_httpdomain(self, tenant, service, http_rule_id, update_data, re_model=False):
         service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
+        if not service_domain:
+            raise ServiceHandleException(msg="no found", status_code=404)
         domain_info = service_domain.to_dict()
         domain_info.update(update_data)
         certificate_info = None
@@ -406,7 +408,7 @@ class DomainService(object):
         data["cookie"] = domain_info["domain_cookie"] if domain_info["domain_cookie"] else None
         data["header"] = domain_info["domain_heander"] if domain_info["domain_heander"] else None
         data["weight"] = int(domain_info["the_weight"])
-        if update_data.get("rule_extensions"):
+        if "rule_extensions" in update_data.keys():
             data["rule_extensions"] = domain_info["rule_extensions"]
         else:
             data["rule_extensions"] = eval(domain_info["rule_extensions"])
@@ -427,7 +429,7 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-        if update_data.get("rule_extensions"):
+        if "rule_extensions" in update_data.keys():
             rule_extensions_str = ""
             # 拼接字符串，存入数据库
             for rule in update_data["rule_extensions"]:
