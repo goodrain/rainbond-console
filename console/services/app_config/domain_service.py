@@ -406,7 +406,9 @@ class DomainService(object):
         data["cookie"] = domain_info["domain_cookie"] if domain_info["domain_cookie"] else None
         data["header"] = domain_info["domain_heander"] if domain_info["domain_heander"] else None
         data["weight"] = int(domain_info["the_weight"])
-        if domain_info["rule_extensions"]:
+        if update_data.get("rule_extensions"):
+            data["rule_extensions"] = domain_info["rule_extensions"]
+        else:
             data["rule_extensions"] = eval(domain_info["rule_extensions"])
 
         # 证书信息
@@ -425,9 +427,8 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-
-        rule_extensions_str = domain_info["rule_extensions"]
         if update_data.get("rule_extensions"):
+            rule_extensions_str = ""
             # 拼接字符串，存入数据库
             for rule in update_data["rule_extensions"]:
                 last_index = len(update_data["rule_extensions"]) - 1
@@ -435,6 +436,8 @@ class DomainService(object):
                     rule_extensions_str += rule["key"] + ":" + rule["value"]
                     continue
                 rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
+        else:
+            rule_extensions_str = domain_info["rule_extensions"]
         domain_info["rule_extensions"] = rule_extensions_str
         if domain_info["domain_path"] and domain_info["domain_path"] != "/" or \
                 domain_info["domain_cookie"] or domain_info["domain_heander"]:
