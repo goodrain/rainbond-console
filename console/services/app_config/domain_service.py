@@ -409,9 +409,15 @@ class DomainService(object):
         data["header"] = domain_info["domain_heander"] if domain_info["domain_heander"] else None
         data["weight"] = int(domain_info["the_weight"])
         if "rule_extensions" in update_data.keys():
-            data["rule_extensions"] = domain_info["rule_extensions"]
+            if domain_info["rule_extensions"]:
+                data["rule_extensions"] = domain_info["rule_extensions"]
         else:
-            data["rule_extensions"] = eval(domain_info["rule_extensions"]) if domain_info["rule_extensions"] != "" else ""
+            try:
+                rule_extensions = eval(domain_info["rule_extensions"])
+            except Exception:
+                rule_extensions = []
+            if rule_extensions:
+                data["rule_extensions"] = rule_extensions
 
         # 证书信息
         data["certificate"] = ""
