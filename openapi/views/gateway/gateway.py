@@ -18,7 +18,7 @@ from console.services.app_config import domain_service, port_service
 from console.services.app_config.domain_service import ErrNotFoundDomain
 from console.services.group_service import group_service
 from openapi.serializer.gateway_serializer import (EnterpriseHTTPGatewayRuleSerializer, HTTPGatewayRuleSerializer,
-                                                   PostHTTPGatewayRuleSerializer)
+                                                   PostHTTPGatewayRuleSerializer, UpdatePostHTTPGatewayRuleSerializer)
 from openapi.views.base import BaseOpenAPIView, TeamAPIView
 from openapi.views.exceptions import ErrAppNotFound
 
@@ -113,12 +113,12 @@ class UpdateAppGatewayHTTPRuleView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="更新HTTP访问策略",
         manual_parameters=[],
-        request_body=PostHTTPGatewayRuleSerializer(),
+        request_body=UpdatePostHTTPGatewayRuleSerializer(),
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
     def put(self, request, app_id, rule_id, *args, **kwargs):
-        ads = PostHTTPGatewayRuleSerializer(data=request.data)
+        ads = UpdatePostHTTPGatewayRuleSerializer(data=request.data)
         ads.is_valid(raise_exception=True)
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         if not app:
@@ -128,12 +128,8 @@ class UpdateAppGatewayHTTPRuleView(TeamAPIView):
         if not service:
             rst = {"msg": "组件不存在"}
             return Response(rst, status=status.HTTP_400_BAD_REQUEST)
-        data = domain_service.update_httpdomain(self.team, request.user, service, httpdomain["domain_name"],
-                                                httpdomain["container_port"], httpdomain.get("certificate_id"), DomainType.WWW,
-                                                httpdomain.get("domain_path"), httpdomain.get("domain_cookie"),
-                                                httpdomain.get("domain_header"), rule_id, httpdomain.get("the_weight", 100),
-                                                httpdomain.get("rule_extensions"), httpdomain.get("auto_ssl", False),
-                                                httpdomain.get("auto_ssl_config", None), True)
+        data = domain_service.update_httpdomain(self.team, service, rule_id, ads.data, True)
+
         re = HTTPGatewayRuleSerializer(data=model_to_dict(data))
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)
