@@ -140,7 +140,8 @@ class UserRepo(object):
                 tenant_perms b,
                 tenant_info c
             {where}
-            {limit}""".format(where=where, limit=limit)
+            {limit}""".format(
+            where=where, limit=limit)
         result = conn.query(sql)
         return result
 
