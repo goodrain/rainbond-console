@@ -598,7 +598,7 @@ class MarketAppService(object):
                                                                  port["port_alias"], port["is_inner_service"],
                                                                  port["is_outer_service"])
             if code != 200:
-                logger.error("save market app port error".format(msg))
+                logger.error("save market app port error{}".format(msg))
                 return code, msg
         return 200, "success"
 

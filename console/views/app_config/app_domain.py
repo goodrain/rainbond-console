@@ -888,8 +888,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                         where std.tenant_id='{0}' and std.region_id='{1}' \
                             and (std.end_point like '%{2}%' \
                                 or std.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions,
-                                                                        search_conditions))
+                                or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions))
                     domain_count = cursor.fetchall()
 
                     total = domain_count[0][0]
@@ -909,8 +908,8 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                             and (std.end_point like '%{2}%' \
                                 or std.service_alias like '%{2}%' \
                                 or sg.group_name like '%{2}%') \
-                        order by type desc LIMIT {5},{6};".format(tenant.tenant_id, region.region_id, search_conditions,
-                                                                  search_conditions, search_conditions, start, end))
+                        order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions,
+                                                                  start, end))
                     tenant_tuples = cursor.fetchall()
                 else:
                     # 获取总数
