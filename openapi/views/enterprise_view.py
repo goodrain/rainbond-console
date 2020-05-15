@@ -164,10 +164,11 @@ class EnterpriseConfigView(BaseOpenAPIView):
         auto_ssl = ent_config.get("auto_ssl")
         if auto_ssl:
             auto_ssl_body = auto_ssl.get("value", {})
-            try:
-                ent_config["auto_ssl"]["value"] = json.loads(auto_ssl_body)
-            except ValueError:
-                pass
+            if isinstance(auto_ssl_body, (str, unicode)):
+                try:
+                    ent_config["auto_ssl"]["value"] = json.loads(auto_ssl_body)
+                except Exception:
+                    pass
         if key is None:
             serializer = EnterpriseConfigSeralizer(data=ent_config)
         elif key in ent_config.keys():
@@ -176,6 +177,10 @@ class EnterpriseConfigView(BaseOpenAPIView):
             raise ServiceHandleException(
                 status_code=404, msg="no found config key {}".format(key), msg_show=u"企业没有 {} 配置".format(key))
         serializer.is_valid(raise_exception=True)
+        if serializer.data.get("auto_ssl"):
+            if isinstance(serializer.data["auto_ssl"]["value"], dict):
+                for vl in serializer.data["auto_ssl"]["value"].keys():
+                    serializer.data["auto_ssl"]["value"][vl] = json.dumps(serializer.data["auto_ssl"]["value"][vl])
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -191,10 +196,12 @@ class EnterpriseConfigView(BaseOpenAPIView):
         if key == "auto_ssl":
             validate_data = copy.deepcopy(req.data)
             auto_ssl_body = validate_data.get("value", {})
-            try:
-                validate_data["value"] = json.loads(auto_ssl_body)
-            except ValueError:
-                pass
+            if isinstance(auto_ssl_body, dict):
+                try:
+                    for key in auto_ssl_body.keys():
+                        validate_data["value"][key] = json.loads(validate_data["value"][key])
+                except Exception:
+                    pass
             serializer = EnterpriseConfigSeralizer(data=validate_data)
         else:
             serializer = EnterpriseConfigSeralizer(data=req.data)
@@ -205,11 +212,15 @@ class EnterpriseConfigView(BaseOpenAPIView):
         ent_config_servier = EnterpriseConfigService(eid)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
+            if key == "auto_ssl":
+                value = json.dumps(value)
             data = ent_config_servier.update_config(key, value)
             if key == "auto_ssl":
                 try:
                     data["auto_ssl"]["value"] = json.loads(data["auto_ssl"]["value"])
-                except ValueError:
+                    for key in data["auto_ssl"]["value"]:
+                        data["auto_ssl"]["value"][key] = json.dumps(data["auto_ssl"]["value"][key])
+                except Exception:
                     pass
             serializer = EnterpriseConfigSeralizer(data=data)
             serializer.is_valid(raise_exception=True)
