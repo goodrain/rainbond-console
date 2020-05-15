@@ -1,6 +1,14 @@
 # -*- coding: utf8 -*-
 from django.conf.urls import url
 
+from console.views.perms import PermsInfoLView
+from console.views.perms import TeamRolesLCView
+from console.views.perms import TeamRolesRUDView
+from console.views.perms import TeamRolesPermsLView
+from console.views.perms import TeamRolePermsRUDView
+from console.views.perms import TeamUsersRolesLView
+from console.views.perms import TeamUserRolesRUDView
+from console.views.perms import TeamUserPermsLView
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
 from console.views.app_autoscaler import AppAutoscalerView
@@ -304,6 +312,8 @@ urlpatterns = [
     url(r'^errlog$', ErrLogView.as_view()),
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigRUDView.as_view()),
+    # 获取权限列表
+    url(r'^perms$', PermsInfoLView.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view()),
     url(r"^oauth/oauth-services$", OauthService.as_view()),
@@ -345,6 +355,17 @@ urlpatterns = [
     url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
+    # 团队角色权限管理
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/perms$', TeamRolesPermsLView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)/perms$', TeamRolePermsRUDView.as_view()),
+    # 团队角色管理
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles$', TeamRolesLCView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)$', TeamRolesRUDView.as_view()),
+    # 团队成员角色管理
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/roles', TeamUsersRolesLView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/roles', TeamUserRolesRUDView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/perms', TeamUserPermsLView.as_view()),
+
     # 移交团队管理权
     url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view()),
     # 可选权限展示
