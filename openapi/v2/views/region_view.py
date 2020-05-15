@@ -9,16 +9,13 @@ from rest_framework.response import Response
 
 from console.exception.exceptions import RegionUnreachableError
 from console.models.main import RegionConfig
-from console.services.region_services import region_services
-from console.services.region_services import RegionExistException
-from openapi.v2.serializer.base_serializer import FailSerializer
-from openapi.v2.serializer.region_serializer import ListRegionsRespSerializer
-from openapi.v2.serializer.region_serializer import RegionInfoSerializer
-from openapi.v2.serializer.region_serializer import UpdateRegionReqSerializer
-from openapi.v2.serializer.region_serializer import UpdateRegionStatusReqSerializer
-from openapi.v2.views.base import BaseOpenAPIView
-from openapi.v2.views.base import ListAPIView
+from console.services.region_services import (RegionExistException, region_services)
+from openapi.serializer.base_serializer import FailSerializer
+from openapi.v2.serializer.region_serializer import (ListRegionsRespSerializer, RegionInfoSerializer, UpdateRegionReqSerializer,
+                                                     UpdateRegionStatusReqSerializer)
+from openapi.v2.views.base import BaseOpenAPIView, ListAPIView
 from www.utils.crypt import make_uuid
+
 logger = logging.getLogger("default")
 
 

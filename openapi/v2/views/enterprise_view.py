@@ -13,14 +13,11 @@ from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
-from www.apiclient.regionapi import RegionInvokeApi
 from console.utils.timeutil import time_to_str
-from openapi.v2.serializer.ent_serializers import EnterpriseInfoSerializer
-from openapi.v2.serializer.ent_serializers import ListEntsRespSerializer
-from openapi.v2.serializer.ent_serializers import UpdEntReqSerializer
-from openapi.v2.serializer.ent_serializers import EnterpriseSourceSerializer
-from openapi.v2.views.base import BaseOpenAPIView
-from openapi.v2.views.base import ListAPIView
+from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
+from openapi.v2.serializer.ent_serializers import (EnterpriseSourceSerializer, ListEntsRespSerializer, UpdEntReqSerializer)
+from openapi.v2.views.base import BaseOpenAPIView, ListAPIView
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
