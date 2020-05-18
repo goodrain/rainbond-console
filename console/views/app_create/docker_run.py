@@ -19,7 +19,7 @@ logger = logging.getLogger("default")
 
 class DockerRunCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         image和docker-run创建组件
@@ -86,7 +86,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message()
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message()
         return Response(result, status=result["code"])

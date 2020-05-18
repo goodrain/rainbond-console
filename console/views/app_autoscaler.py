@@ -53,14 +53,14 @@ def validate_parameter(data):
 
 class ListAppAutoscalerView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, req, *args, **kwargs):
         rules = autoscaler_service.list_autoscaler_rules(self.service.service_id)
         result = general_message(200, "success", "查询成功", list=rules)
         return Response(data=result, status=200)
 
     @never_cache
-    @perm_required('manage_service_extend')
+    # @perm_required('manage_service_extend')
     def post(self, req, *args, **kwargs):
         validate_parameter(req.data)
 
@@ -75,7 +75,7 @@ class ListAppAutoscalerView(AppBaseView):
 
 class AppAutoscalerView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, req, rule_id, *args, **kwargs):
         res = autoscaler_service.get_by_rule_id(rule_id)
 
@@ -83,7 +83,7 @@ class AppAutoscalerView(AppBaseView):
         return Response(data=result, status=200)
 
     @never_cache
-    @perm_required('manage_service_extend')
+    # @perm_required('manage_service_extend')
     def put(self, req, rule_id, *args, **kwargs):
         validate_parameter(req.data)
 
@@ -96,7 +96,7 @@ class AppAutoscalerView(AppBaseView):
 
 class AppScalingRecords(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, req, *args, **kwargs):
         page = req.GET.get("page", 1)
         page_size = req.GET.get("page_size", 10)

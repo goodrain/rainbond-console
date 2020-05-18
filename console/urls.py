@@ -228,14 +228,14 @@ from console.views.region import RegQuyView
 from console.views.region import RegSimQuyView
 from console.views.region import RegUnopenView
 from console.views.role_prems import PermOptionsView
-from console.views.role_prems import ServicePermissionView
-from console.views.role_prems import TeamAddRoleView
+# from console.views.role_prems import ServicePermissionView
+# from console.views.role_prems import TeamAddRoleView
 from console.views.role_prems import TeamAddUserView
-from console.views.role_prems import TeamDelRoleView
+# from console.views.role_prems import TeamDelRoleView
 from console.views.role_prems import ThreeServicePermOptionsView
-from console.views.role_prems import UserModifyPemView
-from console.views.role_prems import UserRoleView
-from console.views.role_prems import UserUpdatePemView
+# from console.views.role_prems import UserModifyPemView
+# from console.views.role_prems import UserRoleView
+# from console.views.role_prems import UserUpdatePemView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import CloudAppModelMarketInfo
 from console.views.service_share import CloudAppModelMarkets
@@ -286,10 +286,10 @@ from console.views.user import AdminUserLCView
 from console.views.user import CheckSourceView
 from console.views.user import EnterPriseUsersCLView
 from console.views.user import EnterPriseUsersUDView
-from console.views.user import UserAddPemView
+# from console.views.user import UserAddPemView
 from console.views.user import UserLogoutView
 from console.views.user import UserPemTraView
-from console.views.user import UserPemView
+# from console.views.user import UserPemView
 from console.views.user_accesstoken import UserAccessTokenCLView
 from console.views.user_accesstoken import UserAccessTokenRUDView
 from console.views.user_operation import ChangeLoginPassword
@@ -369,11 +369,12 @@ urlpatterns = [
     # 移交团队管理权
     url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view()),
     # 可选权限展示
-    url(r'^teams/user/identity$', UserPemView.as_view()),
+    # url(r'^teams/user/identity$', UserPemView.as_view()),
     # 修改成员权限
-    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/modidentity$', UserAddPemView.as_view()),
+    # url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/modidentity$', UserAddPemView.as_view()),
 
     # 获取当前用户加入的所有团队
+    # TODO 废弃
     url(r'^users/teams/query', UserAllTeamView.as_view()),
     # 新建团队
     url(r'^teams/add-teams$', AddTeamView.as_view()),
@@ -382,8 +383,10 @@ urlpatterns = [
     # 获取企业下未加入当前团队的用户列表
     url(r'^teams/(?P<team_name>[\w\-]+)/notjoinusers$', NotJoinTeamUserView.as_view()),
     # 获取当前用户在团队下是否为管理员或拥有者
+    # TODO 废弃
     url(r'^teams/(?P<team_name>[\w\-]+)/users/is_admin$', TeamUserAdminView.as_view()),
     # 添加新用户
+    # TODO 废弃
     url(r'^teams/(?P<team_name>[\w\-]+)/add-user$', TeamUserAddView.as_view()),
     # 删除团队成员
     url(r'^teams/(?P<team_name>[\w\-]+)/users/batch/delete', UserDelView.as_view()),
@@ -396,8 +399,10 @@ urlpatterns = [
     # 退出当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/exit$', TeamExitView.as_view()),
     # 邀请注册
+    # TODO 废弃
     url(r'^teams/(?P<team_name>[\w\-]+)/invitation$', TeamInvView.as_view()),
     # 团队详情
+    # TODO 废弃
     url(r'^teams/(?P<team_name>[\w\-]+)/detail$', TeamDetailView.as_view()),
     # 获取团队下域名访问量排序
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$',
@@ -408,6 +413,7 @@ urlpatterns = [
     # 获取当前租户已开通的数据中心(详细)
     url(r'^teams/(?P<team_name>[\w\-]+)/region/query$', RegQuyView.as_view()),
     # 获取当前租户已开通的数据中心(简表)
+    # TODO 废弃
     url(r'^teams/(?P<team_name>[\w\-]+)/region/simple/query$', RegSimQuyView.as_view()),
     # 获取当前团队未开通的数据中心
     url(r'^teams/(?P<team_name>[\w\-]+)/region/unopen$', RegUnopenView.as_view()),
@@ -466,6 +472,7 @@ urlpatterns = [
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view()),
     # 应用(组)常见操作
+    # TODO 权限修改
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
         TenantGroupCommonOperationView.as_view()),
     # git仓库对接
@@ -619,10 +626,13 @@ urlpatterns = [
         MarketServiceUpgradeView.as_view()),
 
     # 批量操作
+    # TODO 修改权限验证
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
     # 批量删除应用
+    # TODO 修改权限验证
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_delete$', BatchDelete.as_view()),
     # 二次确认删除应用
+    # TODO 修改权限验证
     url(r'^teams/(?P<tenantName>[\w\-]+)/again_delete$', AgainDelete.as_view()),
 
     # 某个组件的event
@@ -761,20 +771,28 @@ urlpatterns = [
     url(r'^teams/operate_options$', PermOptionsView.as_view()),
     # 获取第三方组件自定义角色时可给角色绑定的权限选项
     url(r'^teams/three_service/operate_options$', ThreeServicePermOptionsView.as_view()),
+
+
     # 在一个团队中创建一个角色
-    url(r'^teams/(?P<team_name>[\w\-]+)/add-role$', TeamAddRoleView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/(?P<team_name>[\w\-]+)/add-role$', TeamAddRoleView.as_view()),
     # 在一个团队中删除一个角色
-    url(r'^teams/(?P<team_name>[\w\-]+)/del-role$', TeamDelRoleView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/(?P<team_name>[\w\-]+)/del-role$', TeamDelRoleView.as_view()),
     # 在一个团队中修改角色名称及角色对应的权限
-    url(r'^teams/(?P<team_name>[\w\-]+)/update_role_perms$', UserUpdatePemView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/(?P<team_name>[\w\-]+)/update_role_perms$', UserUpdatePemView.as_view()),
     # 获取一个团队中所有可展示的的角色及角色对应的权限信息展示(不含owner)
-    url(r'^teams/(?P<team_name>[\w\-]+)/role-list$', UserRoleView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/(?P<team_name>[\w\-]+)/role-list$', UserRoleView.as_view()),
     # 修改团队中成员角色
-    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_id>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_id>[\w\-]+)/mod-role$', UserModifyPemView.as_view()),
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view()),
     # 应用权限设置
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/perms$', ServicePermissionView.as_view()),
 
     # 站内信信息获取
     url(r'^teams/(?P<team_name>[\w\-]+)/message$', UserMessageView.as_view()),
@@ -814,18 +832,24 @@ urlpatterns = [
     # 自动部署功能状态与操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/webhooks/status', WebHooksStatus.as_view()),
     # 创建并开通数据中心
+    # TODO 权限修改
     url(r'^teams/init', TeamRegionInitView.as_view()),
 
     # 企业发票相关
+    # TODO 废弃
     url(r'receipts$', EnterReceiptAPIView.as_view()),
+    # TODO 废弃
     url(r'receipts/confirm$', EnterReceiptConfirmAPIView.as_view()),
+    # TODO 废弃
     url(r'receipts/(?P<receipt_id>\d+)$', EnterReceiptDetailAPIView.as_view()),
+    # TODO 废弃
     url(r'receipt-orders$', EnterReceiptOrdersAIPView.as_view()),
     # 应用版本管理
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version$', AppVersionsView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/version/(?P<version_id>[\w\-]+)$',
         AppVersionManageView.as_view()),
     # 获取当前团队所有的申请者
+    # TODO 权限修改
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息

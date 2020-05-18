@@ -461,7 +461,7 @@ class ImageWebHooksTrigger(AppBaseView):
 
 
 class WebHooksStatus(AppBaseView):
-    @perm_required("manage_service_config")
+    # @perm_required("manage_service_config")
     def post(self, request, *args, **kwargs):
         """
         开启或关闭自动部署功能

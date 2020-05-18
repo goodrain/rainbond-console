@@ -25,7 +25,7 @@ class GroupAppsCopyView(RegionTenantHeaderView):
         return Response(result, status=200)
 
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def post(self, request, tenantName, group_id, *args, **kwargs):
         """
         应用复制

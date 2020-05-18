@@ -42,60 +42,60 @@ class AppProbeView(AppBaseView):
               type: string
               paramType: query
         """
-        try:
-            if self.service.service_source == "third_party":
+        # try:
+        if self.service.service_source == "third_party":
+            code, msg, probe = probe_service.get_service_probe(self.service)
+            if code != 200:
+                return Response(general_message(code, "get probe error", msg))
+            result = general_message(200, "success", "查询成功", bean=probe.to_dict())
+        else:
+            mode = request.GET.get("mode", None)
+            if not mode:
                 code, msg, probe = probe_service.get_service_probe(self.service)
                 if code != 200:
                     return Response(general_message(code, "get probe error", msg))
                 result = general_message(200, "success", "查询成功", bean=probe.to_dict())
             else:
-                mode = request.GET.get("mode", None)
+                code, msg, probe = probe_service.get_service_probe_by_mode(self.service, mode)
+                if code != 200:
+                    return Response(general_message(code, "get probe error", msg))
                 if not mode:
-                    code, msg, probe = probe_service.get_service_probe(self.service)
-                    if code != 200:
-                        return Response(general_message(code, "get probe error", msg))
-                    result = general_message(200, "success", "查询成功", bean=probe.to_dict())
+                    result = general_message(200, "success", "查询成功", list=probe)
                 else:
-                    code, msg, probe = probe_service.get_service_probe_by_mode(self.service, mode)
-                    if code != 200:
-                        return Response(general_message(code, "get probe error", msg))
-                    if not mode:
-                        result = general_message(200, "success", "查询成功", list=probe)
-                    else:
-                        result = general_message(200, "success", "查询成功", bean=probe.to_dict())
-            return Response(result, status=result["code"])
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=result["code"])
+                    result = general_message(200, "success", "查询成功", bean=probe.to_dict())
+        return Response(result, status=result["code"])
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
+        #     return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         添加组件探针
         ---
         serializer: ProbeSerilizer
         """
-        try:
-            data = request.data
+        # try:
+        data = request.data
 
-            serializer = ProbeSerilizer(data=data)
-            if not serializer.is_valid():
-                result = general_message(400, "{0}".format(serializer.errors), "参数异常")
-                return Response(result, status=result["code"])
-            params = dict(serializer.data)
-            code, msg, probe = probe_service.add_service_probe(self.tenant, self.service, params)
-            if code != 200:
-                return Response(general_message(code, "add probe error", msg))
-            result = general_message(200, u"success", "添加成功", bean=probe.to_dict())
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        serializer = ProbeSerilizer(data=data)
+        if not serializer.is_valid():
+            result = general_message(400, "{0}".format(serializer.errors), "参数异常")
+            return Response(result, status=result["code"])
+        params = dict(serializer.data)
+        code, msg, probe = probe_service.add_service_probe(self.tenant, self.service, params)
+        if code != 200:
+            return Response(general_message(code, "add probe error", msg))
+        result = general_message(200, u"success", "添加成功", bean=probe.to_dict())
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改组件探针,包括启用停用 mode参数必填

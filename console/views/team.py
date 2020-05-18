@@ -7,6 +7,7 @@ from django.core.paginator import EmptyPage
 from django.core.paginator import PageNotAnInteger
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.db import transaction
 from rest_framework.response import Response
 
 from console.exception.exceptions import NoEnableRegionError
@@ -33,6 +34,8 @@ from console.services.perm_services import perm_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.perm_services import user_kind_role_service
+from console.services.perm_services import role_kind_services
 from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView
 from console.views.base import RegionTenantHeaderView
@@ -69,38 +72,23 @@ class UserFuzSerView(JWTAuthApiView):
               type: string
               paramType: query
         """
-        try:
-            query_key = request.GET.get("query_key", None)
-            if query_key:
-                q_obj = Q(nick_name__icontains=query_key) | Q(email__icontains=query_key)
-                users = user_services.get_user_by_filter(args=(q_obj, ))
-                user_list = [{
-                    "nick_name": user_info.nick_name,
-                    "email": user_info.email,
-                    "user_id": user_info.user_id
-                } for user_info in users]
-                result = general_message(200, "query user success", "查询用户成功", list=user_list)
-                return Response(result, status=200)
-            else:
-                result = general_message(200, "query user success", "你没有查询任何用户")
-                return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        query_key = request.GET.get("query_key", None)
+        if query_key:
+            q_obj = Q(nick_name__icontains=query_key) | Q(email__icontains=query_key)
+            users = user_services.get_user_by_filter(args=(q_obj, ))
+            user_list = [{
+                "nick_name": user_info.nick_name,
+                "email": user_info.email,
+                "user_id": user_info.user_id
+            } for user_info in users]
+            result = general_message(200, "query user success", "查询用户成功", list=user_list)
+            return Response(result, status=200)
+        else:
+            result = general_message(200, "query user success", "你没有查询任何用户")
+            return Response(result, status=200)
 
 
 class TeamUserDetaislView(JWTAuthApiView):
-    def get_highest_identity(self, identitys):
-        identity_map = {"access": 1, "viewer": 2, "developer": 3, "admin": 4, "owner": 5}
-        final_identity = identitys[0]
-        identity_num = -1
-        for i in identitys:
-            num = identity_map.get(final_identity)
-            if num > identity_num:
-                final_identity = i
-                identity_num = num
-        return final_identity
 
     def get(self, request, team_name, user_name, *args, **kwargs):
         """
@@ -118,19 +106,24 @@ class TeamUserDetaislView(JWTAuthApiView):
               type: string
               paramType: path
         """
+        is_team_owner = False
         try:
             # u, perms = user_services.get_user_detail(tenant_name=team_name, nick_name=user_name)
             team = team_services.get_tenant_by_tenant_name(team_name)
-            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
-            perms = team_services.get_user_perm_identitys_in_permtenant(self.user.user_id, team_name)
-            role_list = team_services.get_user_perm_role_in_permtenant(user_id=self.user.user_id, tenant_name=team_name)
+            # is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
+            # perms = team_services.get_user_perm_identitys_in_permtenant(self.user.user_id, team_name)
+            # role_list = team_services.get_user_perm_role_in_permtenant(user_id=self.user.user_id, tenant_name=team_name)
             # teams = [{"team_identity": perm.identity} for perm in perms]
             data = dict()
             data["nick_name"] = self.user.nick_name
             data["email"] = self.user.email
             # data["teams_identity"] = teams[0]["team_identity"]
-            data["teams_identity"] = perms + role_list
-            data["is_user_enter_amdin"] = is_user_enter_amdin
+            role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=team.tenant_id, user=self.user)
+            data["teams_identity"] = role_list["roles"]
+            data["is_enterprise_admin"] = self.is_enterprise_admin
+            if team.creater == self.user.user_id:
+                is_team_owner = True
+            data["is_team_owner"] = is_team_owner
             code = 200
             result = general_message(code, "user details query success.", "用户详情获取成功", bean=data)
             return Response(result, status=code)
@@ -139,10 +132,6 @@ class TeamUserDetaislView(JWTAuthApiView):
             code = 400
             result = general_message(code, "this user does not exist on this team.", "该用户不存在这个团队")
             return Response(result, status=code)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
 
 
 class UserAllTeamView(JWTAuthApiView):
@@ -182,6 +171,7 @@ class UserAllTeamView(JWTAuthApiView):
 
 
 class AddTeamView(JWTAuthApiView):
+    @transaction.atomic()
     def post(self, request, *args, **kwargs):
         """
         新建团队
@@ -216,8 +206,11 @@ class AddTeamView(JWTAuthApiView):
                 if not enterprise:
                     return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
                 code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
-
-                role_obj = role_repo.get_default_role_by_role_name(role_name="owner", is_default=True)
+                # 初始化默认角色
+                role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
+                admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
+                user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
+                # role_obj = role_repo.get_default_role_by_role_name(role_name="owner", is_default=True)
 
                 # 创建用户在团队的权限
                 perm_info = {
@@ -225,14 +218,15 @@ class AddTeamView(JWTAuthApiView):
                     "tenant_id": team.ID,
                     "enterprise_id": enterprise.pk,
                     # 创建团队时给创建用户添加owner的角色
-                    "role_id": role_obj.pk
+                    "role_id": None
                 }
                 perm_services.add_user_tenant_perm(perm_info)
                 for r in regions:
                     code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
                     if code != 200:
-                        team_services.delete_tenant(team.tenant_name)
-                        return Response(general_message(code, "add team error", msg), status=code)
+                        # team_services.delete_tenant(team.tenant_name)
+                        continue
+                        # return Response(general_message(code, "add team error", msg), status=code)
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)
@@ -244,13 +238,9 @@ class AddTeamView(JWTAuthApiView):
             code = 400
             result = general_message(code, "no enable region", "无可用数据中心")
             return Response(result, status=code)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
 
 
-class TeamUserView(JWTAuthApiView):
+class TeamUserView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         获取某团队下的所有用户(每页展示八个用户)
@@ -277,17 +267,12 @@ class TeamUserView(JWTAuthApiView):
             users_list = list()
             for user in user_list:
                 # get role list
-                perms_role_list = team_services.get_user_perm_role_id_in_permtenant(user_id=user.user_id, tenant_name=team_name)
-                role_info_list = []
-                for role in perms_role_list:
-                    role_name = role_repo.get_role_name_by_role_id(role)
-                    role_info_list.append({"role_name": role_name, "role_id": role})
-
+                role_info_list = user_kind_role_service.get_user_roles(kind="team", kind_id=self.tenant.tenant_id, user=self.user)
                 users_list.append({
                     "user_id": user.user_id,
                     "user_name": user.get_name(),
                     "email": user.email,
-                    "role_info": role_info_list
+                    "role_info": role_info_list["roles"]
                 })
             paginator = Paginator(users_list, 8)
             total = paginator.count
@@ -318,7 +303,7 @@ class NotJoinTeamUserView(JWTAuthApiView):
         return Response(data=result, status=200)
 
 
-class TeamUserAddView(JWTAuthApiView):
+class TeamUserAddView(RegionTenantHeaderView):
     def post(self, request, team_name, *args, **kwargs):
         """
         团队中添加新用户
@@ -341,17 +326,17 @@ class TeamUserAddView(JWTAuthApiView):
               type: string
               paramType: body
         """
-        perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-        # 根据用户在一个团队的角色来获取这个角色对应的所有权限操作
-        role_perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
-        if perm_list:
-            no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
-        else:
-            no_auth = "manage_team_member_permissions" not in role_perm_tuple
-        if no_auth:
-            code = 400
-            result = general_message(code, "no identity", "您不是管理员，没有权限做此操作")
-            return Response(result, status=code)
+        # perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        # # 根据用户在一个团队的角色来获取这个角色对应的所有权限操作
+        # role_perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+        # if perm_list:
+        #     no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
+        # else:
+        #     no_auth = "manage_team_member_permissions" not in role_perm_tuple
+        # if no_auth:
+        #     code = 400
+        #     result = general_message(code, "no identity", "您不是管理员，没有权限做此操作")
+        #     return Response(result, status=code)
         try:
             user_ids = request.data.get('user_ids', None)
             identitys = request.data.get('identitys', None)
@@ -393,7 +378,7 @@ class TeamUserAddView(JWTAuthApiView):
         return Response(result, status=code)
 
 
-class UserDelView(JWTAuthApiView):
+class UserDelView(RegionTenantHeaderView):
     def delete(self, request, team_name, *args, **kwargs):
         """
         删除租户内的用户
@@ -412,15 +397,15 @@ class UserDelView(JWTAuthApiView):
               paramType: body
         """
         try:
-            identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+            # identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
 
-            perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
-
-            if "owner" not in identitys and "admin" not in identitys \
-                    and "manage_team_member_permissions" not in perm_tuple:
-                code = 400
-                result = general_message(code, "no identity", "没有权限")
-                return Response(result, status=code)
+            # perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+            #
+            # if "owner" not in identitys and "admin" not in identitys \
+            #         and "manage_team_member_permissions" not in perm_tuple:
+            #     code = 400
+            #     result = general_message(code, "no identity", "没有权限")
+            #     return Response(result, status=code)
 
             user_ids = str(request.data.get("user_ids", None))
             if not user_ids:
@@ -439,11 +424,10 @@ class UserDelView(JWTAuthApiView):
                 return Response(result, status=400)
 
             for user_id in user_id_list:
-                print user_id
-                role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=user_id, tenant_name=team_name)
-                identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user_id, tenant_name=team_name)
-                print role_name_list
-                if "owner" in role_name_list or "owner" in identity_list:
+                # role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=user_id, tenant_name=team_name)
+                # identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=user_id, tenant_name=team_name)
+
+                if user_id == self.tenant.creater:
                     result = general_message(400, "failed", "不能删除团队创建者！")
                     return Response(result, status=400)
             try:
@@ -480,36 +464,30 @@ class TeamNameModView(JWTAuthApiView):
               type: string
               paramType: body
         """
-        try:
-            perms = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-            perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
-
-            no_auth = True
-
-            if "owner" in perms or "modify_team_name" in perm_tuple:
-                no_auth = False
-
-            if no_auth:
-                code = 400
-                result = general_message(code, "no identity", "权限不足不能修改团队名")
-            else:
-                new_team_alias = request.data.get("new_team_alias", "")
-                if new_team_alias:
-                    try:
-                        code = 200
-                        team = team_services.update_tenant_alias(tenant_name=team_name, new_team_alias=new_team_alias)
-                        result = general_message(code, "update success", "团队名修改成功", bean=team.to_dict())
-                    except Exception as e:
-                        code = 500
-                        result = general_message(code, "update failed", "团队名修改失败")
-                        logger.exception(e)
-                else:
-                    result = general_message(400, "failed", "修改的团队名不能为空")
-                    code = 400
-        except Exception as e:
-            code = 500
-            result = general_message(code, "update failed", "团队名修改失败")
-            logger.exception(e)
+        # perms = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        # perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+        #
+        # no_auth = True
+        #
+        # if "owner" in perms or "modify_team_name" in perm_tuple:
+        #     no_auth = False
+        #
+        # if no_auth:
+        #     code = 400
+        #     result = general_message(code, "no identity", "权限不足不能修改团队名")
+        new_team_alias = request.data.get("new_team_alias", "")
+        if new_team_alias:
+            try:
+                code = 200
+                team = team_services.update_tenant_alias(tenant_name=team_name, new_team_alias=new_team_alias)
+                result = general_message(code, "update success", "团队名修改成功", bean=team.to_dict())
+            except Exception as e:
+                code = 500
+                result = general_message(code, "update failed", "团队名修改失败")
+                logger.exception(e)
+        else:
+            result = general_message(400, "failed", "修改的团队名不能为空")
+            code = 400
         return Response(result, status=code)
 
 
@@ -527,14 +505,14 @@ class TeamDelView(JWTAuthApiView):
         """
         code = 200
 
-        identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-        perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
-        team = team_services.get_tenant_by_tenant_name(team_name)
-        if not user_services.is_user_admin_in_current_enterprise(request.user, team.enterprise_id):
-            if "owner" not in identity_list and "drop_tenant" not in perm_tuple:
-                code = 400
-                result = general_message(code, "no identity", "您不是最高管理员，不能删除团队")
-                return Response(result, status=code)
+        # identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        # perm_tuple = team_services.get_user_perm_in_tenant(user_id=request.user.user_id, tenant_name=team_name)
+        # team = team_services.get_tenant_by_tenant_name(team_name)
+        # if not user_services.is_user_admin_in_current_enterprise(request.user, team.enterprise_id):
+        #     if "owner" not in identity_list and "drop_tenant" not in perm_tuple:
+        #         code = 400
+        #         result = general_message(code, "no identity", "您不是最高管理员，不能删除团队")
+        #         return Response(result, status=code)
 
         tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
         if tenant is None:
@@ -587,37 +565,33 @@ class TeamExitView(JWTAuthApiView):
               paramType: path
         """
 
-        identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        # identity_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
 
-        role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
+        # role_name_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
 
-        if "owner" in identity_list:
-            result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
-            return Response(result, status=409)
-        if "admin" in identity_list:
-            result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
-            return Response(result, status=409)
+        # if "owner" in identity_list:
+        #     result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
+        #     return Response(result, status=409)
+        # if "admin" in identity_list:
+        #     result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
+        #     return Response(result, status=409)
+        #
+        # if "owner" in role_name_list:
+        #     result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
+        #     return Response(result, status=409)
+        # if "admin" in role_name_list:
+        #     result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
+        #     return Response(result, status=409)
 
-        if "owner" in role_name_list:
-            result = general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队")
-            return Response(result, status=409)
-        if "admin" in role_name_list:
-            result = general_message(409, "not allow exit.", "您是当前团队管理员，不能退出此团队")
-            return Response(result, status=409)
+        # try:
+            # if request.user.nick_name == "rainbond-demo" and team_name == "a5qw69mz":
+            #     return Response(general_message(403, "permission denied!", "您无法退出此团队"), status=403)
 
-        try:
-            if request.user.nick_name == "rainbond-demo" and team_name == "a5qw69mz":
-                return Response(general_message(403, "permission denied!", "您无法退出此团队"), status=403)
-
-            code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
-            if code == 200:
-                result = general_message(code=code, msg="success", msg_show=msg_show)
-            else:
-                result = general_message(code=code, msg="failed", msg_show=msg_show)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
+        code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
+        if code == 200:
+            result = general_message(code=code, msg="success", msg_show=msg_show)
+        else:
+            result = general_message(code=code, msg="failed", msg_show=msg_show)
 
 
 class TeamDetailView(JWTAuthApiView):
@@ -723,6 +697,7 @@ class TeamRegionInitView(JWTAuthApiView):
             code, msg, team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
             if not code:
                 return Response(general_message(code, "create team error", msg), status=code)
+            # 初始化默认角色
             perm_info = {
                 "user_id": self.user.user_id,
                 "tenant_id": team.ID,
@@ -730,6 +705,10 @@ class TeamRegionInitView(JWTAuthApiView):
                 "enterprise_id": enterprise.pk
             }
             perm_services.add_user_tenant_perm(perm_info)
+            role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
+            admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
+            user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
+
             # 创建用户在企业的权限
             # user_services.make_user_as_admin_for_enterprise(self.user.user_id, enterprise.enterprise_id)
             # 为团队开通默认数据中心并在数据中心创建租户
@@ -753,7 +732,7 @@ class TeamRegionInitView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
 
-class ApplicantsView(JWTAuthApiView):
+class ApplicantsView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         初始化团队和数据中心信息
@@ -775,60 +754,47 @@ class ApplicantsView(JWTAuthApiView):
               type: string
               paramType: query
         """
-        try:
-            # 判断角色
-            identity_list = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id, tenant_name=team_name)
-            page_num = int(request.GET.get("page_num", 1))
-            page_size = int(request.GET.get("page_size", 5))
-            rt_list = []
-            total = 0
-            # 是管理员
-            if "owner" or "admin" in identity_list:
-                # 查询申请用户
-                applicants = apply_repo.get_applicants(team_name=team_name)
-                for applicant in applicants:
-                    is_pass = applicant.is_pass
-                    if is_pass == 0:
-                        rt_list.append(applicant.to_dict())
-                apc_paginator = JuncheePaginator(rt_list, int(page_size))
-                total = apc_paginator.count
-                page_aplic = apc_paginator.page(page_num)
-                rt_list = [apc for apc in page_aplic]
-            # 返回
-            result = general_message(200, "success", "查询成功", list=rt_list, total=total)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # 判断角色
+        # identity_list = team_services.get_user_perm_identitys_in_permtenant(
+        #     user_id=request.user.user_id, tenant_name=team_name)
+        page_num = int(request.GET.get("page_num", 1))
+        page_size = int(request.GET.get("page_size", 5))
+        rt_list = []
+        total = 0
+        # 是管理员
+        # if "owner" or "admin" in identity_list:
+            # 查询申请用户
+        applicants = apply_repo.get_applicants(team_name=team_name)
+        for applicant in applicants:
+            is_pass = applicant.is_pass
+            if is_pass == 0:
+                rt_list.append(applicant.to_dict())
+        apc_paginator = JuncheePaginator(rt_list, int(page_size))
+        total = apc_paginator.count
+        page_aplic = apc_paginator.page(page_num)
+        rt_list = [apc for apc in page_aplic]
+        # 返回
+        result = general_message(200, "success", "查询成功", list=rt_list, total=total)
         return Response(result, status=result["code"])
 
     def put(self, request, team_name, *args, **kwargs):
         """管理员审核用户"""
-        try:
-            # 判断角色
-            identity_list = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=request.user.user_id, tenant_name=team_name)
-            if "owner" or "admin" in identity_list:
-                user_id = request.data.get("user_id")
-                action = request.data.get("action")
-                join = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
-                if action is True:
-                    join.update(is_pass=1)
-                    team = team_repo.get_team_by_team_name(team_name=team_name)
-                    team_services.add_user_to_team_by_viewer(tenant=team, user_id=user_id)
-                    # 发送通知
-                    info = "同意"
-                    self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
-                    return Response(general_message(200, "join success", "加入成功"), status=200)
-                else:
-                    join.update(is_pass=2)
-                    info = "拒绝"
-                    self.send_user_message_for_apply_info(user_id=user_id, team_name=team_name, info=info)
-                    return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=result["code"])
+        user_id = request.data.get("user_id")
+        action = request.data.get("action")
+        join = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
+        if action is True:
+            join.update(is_pass=1)
+            team = team_repo.get_team_by_team_name(team_name=team_name)
+            team_services.add_user_to_team_by_viewer(tenant=team, user_id=user_id)
+            # 发送通知
+            info = "同意"
+            self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
+            return Response(general_message(200, "join success", "加入成功"), status=200)
+        else:
+            join.update(is_pass=2)
+            info = "拒绝"
+            self.send_user_message_for_apply_info(user_id=user_id, team_name=team_name, info=info)
+            return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
 
     # 用户加入团队，发送站内信给用户
     def send_user_message_for_apply_info(self, user_id, team_name, info):
@@ -1219,7 +1185,7 @@ class CertificateView(JWTAuthApiView):
         return Response(result)
 
 
-class TeamSortDomainQueryView(JWTAuthApiView):
+class TeamSortDomainQueryView(RegionTenantHeaderView):
     def get(self, request, team_name, region_name, *args, **kwargs):
         """
         获取团队下域名访问量排序
@@ -1234,42 +1200,37 @@ class TeamSortDomainQueryView(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 5))
         repo = request.GET.get("repo", "1")
-        try:
-            team = team_services.get_tenant_by_tenant_name(team_name)
-            if not team:
-                result = general_message(400, "team id null", "团队不存在")
-                return Response(result, status=400)
-            if repo == "1":
-                query = "?query=sort_desc(sum(%20ceil(increase("\
-                    + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
-                sufix = query.format(team.tenant_id)
-                res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
-                total = len(body["data"]["result"])
-                domains = body["data"]["result"]
-                total_traffic = 0
-                for domain in domains:
-                    total_traffic += int(domain["value"][1])
-                start = (page - 1) * page_size
-                end = page * page_size
-                bean = {"total": total, "total_traffic": total_traffic}
-                domain_list = body["data"]["result"][start:end]
-                result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
-                return Response(result, status=200)
-            else:
-                start = request.GET.get("start", None)
-                end = request.GET.get("end", None)
-                sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
-                    + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(team.tenant_id, start, end)
-                res, body = region_api.get_query_range_data(region_name, team_name, sufix)
-                result = general_message(200, "success", "查询成功", bean=body)
-                return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(400, e.message, "查询失败")
-            return Response(result, status=result["code"])
+        # team = team_services.get_tenant_by_tenant_name(team_name)
+        # if not team:
+        #     result = general_message(400, "team id null", "团队不存在")
+        #     return Response(result, status=400)
+        if repo == "1":
+            query = "?query=sort_desc(sum(%20ceil(increase("\
+                + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
+            sufix = query.format(self.tenant.tenant_id)
+            res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
+            total = len(body["data"]["result"])
+            domains = body["data"]["result"]
+            total_traffic = 0
+            for domain in domains:
+                total_traffic += int(domain["value"][1])
+            start = (page - 1) * page_size
+            end = page * page_size
+            bean = {"total": total, "total_traffic": total_traffic}
+            domain_list = body["data"]["result"][start:end]
+            result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+            return Response(result, status=200)
+        else:
+            start = request.GET.get("start", None)
+            end = request.GET.get("end", None)
+            sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
+                + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(self.tenant.tenant_id, start, end)
+            res, body = region_api.get_query_range_data(region_name, team_name, sufix)
+            result = general_message(200, "success", "查询成功", bean=body)
+            return Response(result, status=200)
 
 
-class TeamSortServiceQueryView(JWTAuthApiView):
+class TeamSortServiceQueryView(RegionTenantHeaderView):
     def get(self, request, team_name, region_name, *args, **kwargs):
         """
         获取团队下组件访问量排序
@@ -1281,64 +1242,63 @@ class TeamSortServiceQueryView(JWTAuthApiView):
               type: string
               paramType: path
         """
-        try:
-            team = team_services.get_tenant_by_tenant_name(team_name)
-            if not team:
-                result = general_message(400, "team id null", "团队不存在")
-                return Response(result, status=400)
-            sufix_outer = "?query=sort_desc(sum(%20ceil(increase("\
-                + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(team.tenant_id)
+        # team = team_services.get_tenant_by_tenant_name(team_name)
+        # if not team:
+        #     result = general_message(400, "team id null", "团队不存在")
+        #     return Response(result, status=400)
+        sufix_outer = "?query=sort_desc(sum(%20ceil(increase("\
+            + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(self.tenant.tenant_id)
 
-            sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7B"\
-                + "tenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(team.tenant_id)
-            # 对外组件访问量
-            res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
-            outer_service_list = body["data"]["result"][0:10]
+        sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7B"\
+            + "tenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(self.tenant.tenant_id)
+        # 对外组件访问量
+        res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
+        outer_service_list = body["data"]["result"][0:10]
 
-            # 对外组件访问量
-            res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
-            inner_service_list = body["data"]["result"][0:10]
+        # 对外组件访问量
+        res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
+        inner_service_list = body["data"]["result"][0:10]
 
-            # 合并
-            service_id_list = []
+        # 合并
+        service_id_list = []
+        for service in outer_service_list:
+            service_id_list.append(service["metric"]["service"])
+        for service_oj in inner_service_list:
+            if service_oj["metric"]["service"] not in service_id_list:
+                service_id_list.append(service_oj["metric"]["service"])
+        service_traffic_list = []
+        for service_id in service_id_list:
+            service_dict = dict()
+            metric = dict()
+            value = []
+            service_dict["metric"] = metric
+            service_dict["value"] = value
+            traffic_num = 0
+            v1 = 0
             for service in outer_service_list:
-                service_id_list.append(service["metric"]["service"])
+                if service["metric"]["service"] == service_id:
+                    traffic_num += int(service["value"][1])
+                    v1 = service["value"][0]
             for service_oj in inner_service_list:
-                if service_oj["metric"]["service"] not in service_id_list:
-                    service_id_list.append(service_oj["metric"]["service"])
-            service_traffic_list = []
-            for service_id in service_id_list:
-                service_dict = dict()
-                metric = dict()
-                value = []
-                service_dict["metric"] = metric
-                service_dict["value"] = value
-                traffic_num = 0
-                v1 = 0
-                for service in outer_service_list:
-                    if service["metric"]["service"] == service_id:
-                        traffic_num += int(service["value"][1])
-                        v1 = service["value"][0]
-                for service_oj in inner_service_list:
-                    if service_oj["metric"]["service"] == service_id:
-                        traffic_num += int(service_oj["value"][1])
-                        v1 = service_oj["value"][0]
-                metric["service"] = service_id
-                value.append(v1)
-                value.append(traffic_num)
-                service_traffic_list.append(service_dict)
-            for service_traffic in service_traffic_list[::-1]:
-                service_obj = service_repo.get_service_by_service_id(service_traffic["metric"]["service"])
-                if service_obj:
-                    service_traffic["metric"]["service_cname"] = service_obj.service_cname
-                    service_traffic["metric"]["service_alias"] = service_obj.service_alias
-                if not service_obj:
-                    service_traffic_list.remove(service_traffic)
-            # 排序取前十
-            service_list = sorted(service_traffic_list, key=lambda x: x["value"][1], reverse=True)[0:10]
+                if service_oj["metric"]["service"] == service_id:
+                    traffic_num += int(service_oj["value"][1])
+                    v1 = service_oj["value"][0]
+            metric["service"] = service_id
+            value.append(v1)
+            value.append(traffic_num)
+            service_traffic_list.append(service_dict)
+        for service_traffic in service_traffic_list[::-1]:
+            service_obj = service_repo.get_service_by_service_id(service_traffic["metric"]["service"])
+            if service_obj:
+                service_traffic["metric"]["service_cname"] = service_obj.service_cname
+                service_traffic["metric"]["service_alias"] = service_obj.service_alias
+            if not service_obj:
+                service_traffic_list.remove(service_traffic)
+        # 排序取前十
+        service_list = sorted(service_traffic_list, key=lambda x: x["value"][1], reverse=True)[0:10]
 
-            result = general_message(200, "success", "查询成功", list=service_list)
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(400, e.message, "查询失败")
+        result = general_message(200, "success", "查询成功", list=service_list)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = general_message(400, e.message, "查询失败")
         return Response(result, status=result["code"])

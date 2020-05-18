@@ -66,7 +66,7 @@ class ComposeBaseView(RegionTenantHeaderView):
 
 class DockerComposeCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         docker-compose创建组件
@@ -111,35 +111,35 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             return Response(general_message(400, 'params error', "请指明需要创建的compose组名"), status=400)
         if not yaml_content:
             return Response(general_message(400, "params error", "未指明yaml内容"), status=400)
-        try:
-            # Parsing yaml determines whether the input is illegal
-            code, msg, json_data = compose_service.yaml_to_json(yaml_content)
-            if code != 200:
-                return Response(general_message(code, "parse yaml error", msg), status=code)
-            # 创建组
-            group_info = group_service.add_group(self.tenant, self.response_region, group_name, group_note)
-            code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region, group_info.ID,
-                                                                            yaml_content, hub_user, hub_pass)
-            if code != 200:
-                return Response(general_message(code, "create group compose error", msg), status=code)
-            bean = dict()
-            bean["group_id"] = group_compose.group_id
-            bean["compose_id"] = group_compose.compose_id
-            bean["group_name"] = group_info.group_name
-            result = general_message(200, "operation success", "compose组创建成功", bean=bean)
-        except Exception as e:
-            if group_info:
-                group_info.delete()
-            if group_compose:
-                group_compose.delete()
-            logger.exception(e)
-            result = error_message()
+        # try:
+        # Parsing yaml determines whether the input is illegal
+        code, msg, json_data = compose_service.yaml_to_json(yaml_content)
+        if code != 200:
+            return Response(general_message(code, "parse yaml error", msg), status=code)
+        # 创建组
+        group_info = group_service.add_group(self.tenant, self.response_region, group_name, group_note)
+        code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region, group_info.ID,
+                                                                        yaml_content, hub_user, hub_pass)
+        if code != 200:
+            return Response(general_message(code, "create group compose error", msg), status=code)
+        bean = dict()
+        bean["group_id"] = group_compose.group_id
+        bean["compose_id"] = group_compose.compose_id
+        bean["group_name"] = group_info.group_name
+        result = general_message(200, "operation success", "compose组创建成功", bean=bean)
+        # except Exception as e:
+        #     if group_info:
+        #         group_info.delete()
+        #     if group_compose:
+        #         group_compose.delete()
+        #     logger.exception(e)
+        #     result = error_message()
         return Response(result, status=result["code"])
 
 
 class GetComposeCheckUUID(ComposeGroupBaseView):
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         compose_id = request.GET.get("compose_id", None)
         if not compose_id:
@@ -154,7 +154,7 @@ class GetComposeCheckUUID(ComposeGroupBaseView):
 
 class ComposeCheckView(ComposeGroupBaseView):
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         docker-compose组件检测
@@ -176,22 +176,22 @@ class ComposeCheckView(ComposeGroupBaseView):
               type: string
               paramType: form
         """
-        try:
-            compose_id = request.data.get("compose_id", None)
+        # try:
+        compose_id = request.data.get("compose_id", None)
 
-            if not compose_id:
-                return Response(general_message(400, "params error", "需要检测的compose ID "), status=400)
-            code, msg, compose_bean = compose_service.check_compose(self.response_region, self.tenant, compose_id)
-            if code != 200:
-                return Response(general_message(code, "check compose error", msg))
-            result = general_message(code, "compose check task send success", "检测任务发送成功", bean=compose_bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message("{0}".format(e))
+        if not compose_id:
+            return Response(general_message(400, "params error", "需要检测的compose ID "), status=400)
+        code, msg, compose_bean = compose_service.check_compose(self.response_region, self.tenant, compose_id)
+        if code != 200:
+            return Response(general_message(code, "check compose error", msg))
+        result = general_message(code, "compose check task send success", "检测任务发送成功", bean=compose_bean)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message("{0}".format(e))
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         """
         获取compose文件检测信息
@@ -252,15 +252,15 @@ class ComposeCheckView(ComposeGroupBaseView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class ComposeCheckUpdate(ComposeGroupBaseView):
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
         compose文件内容修改
@@ -288,25 +288,25 @@ class ComposeCheckUpdate(ComposeGroupBaseView):
               paramType: form
 
         """
-        try:
-            group_id = kwargs.get("group_id", None)
-            yaml_content = request.data.get("compose_content", None)
-            group_name = request.data.get("group_name", None)
-            if not yaml_content and not group_name:
-                return Response(general_message(400, "params error", "请填入需要修改的参数"), status=400)
-            if group_name:
-                group_service.update_group(self.tenant, self.response_region, group_id, group_name)
-            if yaml_content:
-                code, msg, json_data = compose_service.yaml_to_json(yaml_content)
-                if code != 200:
-                    return Response(general_message(code, "parse yaml error", msg), status=code)
-                code, msg, new_compose = compose_service.update_compose(group_id, json_data)
-                if code != 200:
-                    return Response(general_message(code, "save yaml content error", msg), status=code)
-            result = general_message(200, u"success", "修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # try:
+        group_id = kwargs.get("group_id", None)
+        yaml_content = request.data.get("compose_content", None)
+        group_name = request.data.get("group_name", None)
+        if not yaml_content and not group_name:
+            return Response(general_message(400, "params error", "请填入需要修改的参数"), status=400)
+        if group_name:
+            group_service.update_group(self.tenant, self.response_region, group_id, group_name)
+        if yaml_content:
+            code, msg, json_data = compose_service.yaml_to_json(yaml_content)
+            if code != 200:
+                return Response(general_message(code, "parse yaml error", msg), status=code)
+            code, msg, new_compose = compose_service.update_compose(group_id, json_data)
+            if code != 200:
+                return Response(general_message(code, "save yaml content error", msg), status=code)
+        result = general_message(200, u"success", "修改成功")
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
@@ -314,7 +314,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
     """放弃创建compose"""
 
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def delete(self, request, *args, **kwargs):
         """
         放弃创建compose组组件
@@ -336,27 +336,27 @@ class ComposeDeleteView(ComposeGroupBaseView):
               type: string
               paramType: form
         """
-        try:
-            compose_id = request.data.get("compose_id", None)
-            group_id = kwargs.get("group_id", None)
-            if group_id:
-                if group_id < 1:
-                    return Response(general_message(400, "params error", "所在组参数错误 "), status=400)
-            else:
-                return Response(general_message(400, "params error", "请指明需要删除的组标识 "), status=400)
-            if not compose_id:
-                return Response(general_message(400, "params error", "请指明需要删除的compose ID "), status=400)
-            compose_service.give_up_compose_create(self.tenant, group_id, compose_id)
-            result = general_message(200, "compose delete success", "删除成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message("{0}".format(e))
+        # try:
+        compose_id = request.data.get("compose_id", None)
+        group_id = kwargs.get("group_id", None)
+        if group_id:
+            if group_id < 1:
+                return Response(general_message(400, "params error", "所在组参数错误 "), status=400)
+        else:
+            return Response(general_message(400, "params error", "请指明需要删除的组标识 "), status=400)
+        if not compose_id:
+            return Response(general_message(400, "params error", "请指明需要删除的compose ID "), status=400)
+        compose_service.give_up_compose_create(self.tenant, group_id, compose_id)
+        result = general_message(200, "compose delete success", "删除成功")
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message("{0}".format(e))
         return Response(result, status=result["code"])
 
 
 class ComposeServicesView(ComposeBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取compose组下的组件
@@ -373,19 +373,19 @@ class ComposeServicesView(ComposeBaseView):
               type: string
               paramType: path
         """
-        try:
-            services = compose_service.get_compose_services(self.group_compose.compose_id)
-            s_list = [s.to_dict() for s in services]
-            result = general_message(200, "success", "查询成功", list=s_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message("{0}".format(e))
+        # try:
+        services = compose_service.get_compose_services(self.group_compose.compose_id)
+        s_list = [s.to_dict() for s in services]
+        result = general_message(200, "success", "查询成功", list=s_list)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message("{0}".format(e))
         return Response(result, status=result["code"])
 
 
 class ComposeContentView(ComposeBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取compose文件内容
@@ -402,9 +402,9 @@ class ComposeContentView(ComposeBaseView):
               type: string
               paramType: path
         """
-        try:
-            result = general_message(200, "success", "查询成功", bean=self.group_compose.to_dict())
-        except Exception as e:
-            logger.exception(e)
-            result = error_message("{0}".format(e))
+        # try:
+        result = general_message(200, "success", "查询成功", bean=self.group_compose.to_dict())
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message("{0}".format(e))
         return Response(result, status=result["code"])

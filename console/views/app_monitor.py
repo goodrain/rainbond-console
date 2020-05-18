@@ -28,7 +28,7 @@ def get_sufix_path(full_url):
 
 
 class AppMonitorQueryView(AppBaseView):
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         监控信息查询
@@ -47,17 +47,17 @@ class AppMonitorQueryView(AppBaseView):
 
         """
         sufix = get_sufix_path(request.get_full_path())
-        try:
-            res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
-            result = general_message(200, "success", "查询成功", bean=body["data"])
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(400, e.message, "查询失败")
+        # try:
+        res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
+        result = general_message(200, "success", "查询成功", bean=body["data"])
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = general_message(400, e.message, "查询失败")
         return Response(result, status=result["code"])
 
 
 class AppMonitorQueryRangeView(AppBaseView):
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         监控信息范围查询
@@ -76,17 +76,17 @@ class AppMonitorQueryRangeView(AppBaseView):
 
         """
         sufix = get_sufix_path(request.get_full_path())
-        try:
-            res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
-            result = general_message(200, "success", "查询成功", bean=body["data"])
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(400, e.message, "查询失败")
+        # try:
+        res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
+        result = general_message(200, "success", "查询成功", bean=body["data"])
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = general_message(400, e.message, "查询失败")
         return Response(result, status=result["code"])
 
 
 class AppResourceQueryView(AppBaseView):
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         组件资源查询
@@ -117,7 +117,7 @@ class AppResourceQueryView(AppBaseView):
 
 
 class BatchAppMonitorQueryView(RegionTenantHeaderView):
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         监控信息查询

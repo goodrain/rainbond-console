@@ -20,7 +20,7 @@ logger = logging.getLogger("default")
 
 class AppMntView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件挂载的组件
@@ -83,7 +83,7 @@ class AppMntView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为组件添加挂载依赖
@@ -119,7 +119,7 @@ class AppMntView(AppBaseView):
 
 class AppMntManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         为组件取消挂载依赖

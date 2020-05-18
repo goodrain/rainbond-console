@@ -18,6 +18,8 @@ from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
 from console.models.main import EnterpriseUserPerm
+from console.models.main import UserRole
+from console.models.main import RoleInfo
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import role_repo
@@ -28,6 +30,7 @@ from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
+from console.services.perm_services import role_kind_services
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -152,6 +155,10 @@ class UserService(object):
         except Tenants.DoesNotExist:
             tenant = Tenants.objects.get(tenant_id=tenant_name)
         PermRelTenant.objects.filter(user_id__in=user_id_list, tenant_id=tenant.ID).delete()
+        roles = role_kind_services.get_roles(kind="team", kind_id=tenant_name)
+        if roles:
+            role_ids = roles.values_list("ID", flat=True)
+            UserRole.objects.filter(user_id=user_id_list, role_id__in=role_ids).delete()
 
     def get_user_by_username(self, user_name):
         users = Users.objects.filter(nick_name=user_name)

@@ -31,7 +31,7 @@ logger = logging.getLogger("default")
 
 class AppBuild(AppBaseView):
     @never_cache
-    @perm_required('deploy_service')
+    # @perm_required('deploy_service')
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
@@ -121,7 +121,7 @@ class AppBuild(AppBaseView):
 
 class ComposeBuildView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         docker-compose组件检测

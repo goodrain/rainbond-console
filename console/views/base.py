@@ -27,11 +27,14 @@ from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
+from console.exception.main import NoPermissionsError
+from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_repo
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import Tenants
 from www.models.main import Users
+from www.models.main import TenantEnterprise
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -183,9 +186,26 @@ class JWTAuthApiView(APIView):
         super(JWTAuthApiView, self).__init__(*args, **kwargs)
         self.report = Dict({"ok": True})
         self.user = None
+        self.enterprise = None
+        self.is_enterprise_admin = False
 
     def initial(self, request, *args, **kwargs):
         self.user = request.user
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
+        if enterprise_user_perms:
+            self.is_enterprise_admin = True
+
+
+class EnterpriseAdminView(JWTAuthApiView):
+    def __init__(self, *args, **kwargs):
+        super(EnterpriseAdminView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        super(EnterpriseAdminView, self).initial(request, *args, **kwargs)
+        if not self.is_enterprise_admin:
+            raise NoPermissionsError
 
 
 class RegionTenantHeaderView(JWTAuthApiView):
@@ -199,6 +219,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.team = None
         self.report = Dict({"ok": True})
         self.user = None
+        self.is_team_owner = False
 
     def initial(self, request, *args, **kwargs):
 
@@ -222,7 +243,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.response_region = self.request.COOKIES.get('region_name', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team', None)
-
+        if not self.response_region:
+            self.response_region = "121"
         if not self.response_region:
             raise ImportError("region_name not found !")
         self.region_name = self.response_region
@@ -234,10 +256,29 @@ class RegionTenantHeaderView(JWTAuthApiView):
                 self.team = self.tenant
             except Tenants.DoesNotExist:
                 raise NotFound("tenant {0} not found".format(self.tenant_name))
+
+        if self.user.user_id == self.tenant.creater:
+            self.is_team_owner = True
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()
+        self.is_enterprise_admin = False
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.tenant.enterprise_id, user_id=self.user.user_id).first()
+        if enterprise_user_perms:
+            self.is_enterprise_admin = True
         self.initial_header_info(request)
 
     def initial_header_info(self, request):
         pass
+
+
+class TeamOwnerView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(TeamOwnerView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        super(TeamOwnerView, self).initial(request, *args, **kwargs)
+        if not self.is_team_owner:
+            raise NoPermissionsError
 
 
 class EnterpriseHeaderView(JWTAuthApiView):

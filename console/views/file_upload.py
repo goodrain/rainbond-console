@@ -28,20 +28,20 @@ class ConsoleUploadFileView(JWTAuthApiView):
               paramType: form
 
         """
-        try:
-            if not request.FILES or not request.FILES.get('file'):
-                return Response(general_message(400, "param error", "请指定需要上传的文件"), status=400)
-            upload_file = request.FILES.get('file')
-            if upload_file.size > 1048576 * 2:
-                return Response(general_message(400, "file is too large", "图片大小不能超过2M"), status=400)
+        # try:
+        if not request.FILES or not request.FILES.get('file'):
+            return Response(general_message(400, "param error", "请指定需要上传的文件"), status=400)
+        upload_file = request.FILES.get('file')
+        if upload_file.size > 1048576 * 2:
+            return Response(general_message(400, "file is too large", "图片大小不能超过2M"), status=400)
 
-            suffix = upload_file.name.split('.')[-1]
-            file_url = upload_service.upload_file(upload_file, suffix)
-            if not file_url:
-                result = general_message(400, "upload file error", "上传失败")
-            else:
-                result = general_message(200, "file upload success", "上传成功", bean={"file_url": file_url})
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        suffix = upload_file.name.split('.')[-1]
+        file_url = upload_service.upload_file(upload_file, suffix)
+        if not file_url:
+            result = general_message(400, "upload file error", "上传失败")
+        else:
+            result = general_message(200, "file upload success", "上传成功", bean={"file_url": file_url})
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])

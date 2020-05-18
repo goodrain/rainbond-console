@@ -24,6 +24,7 @@ from console.services.exception import ErrStillHasServices
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.perm_services import perm_services
 from console.services.region_services import region_services
+from console.services.perm_services import user_kind_role_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -128,22 +129,18 @@ class TeamService(object):
 
     def get_user_perm_identitys_in_permtenant(self, user_id, tenant_name):
         """获取用户在一个团队的身份列表"""
+        user = user_repo.get_by_user_id(user_id)
         try:
             tenant = self.get_tenant(tenant_name=tenant_name)
         except Tenants.DoesNotExist:
             tenant = self.get_team_by_team_id(tenant_name)
             if tenant is None:
                 raise Tenants.DoesNotExist()
-        user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
-        if not user_perms:
-            return []
-        identitys = [perm.identity for perm in user_perms]
-        identity_list = []
-        for identity in identitys:
-            if not identity:
-                continue
-            identity_list.append(identity)
-        return identity_list
+        # user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
+        user_roles = user_kind_role_service.get_user_roles(kind_id=tenant.ID, kind="team", user=user)
+        if tenant.creater == user_id:
+            user_roles["roles"].append("owner")
+        return user_roles
 
     def get_user_perm_role_in_permtenant(self, user_id, tenant_name):
         """获取一个用户在一个团队的角色名称列表"""
@@ -281,13 +278,15 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
             for user_id in user_ids:
-                for role_id in role_ids:
-                    PermRelTenant.objects.update_or_create(
-                        user_id=user_id,
-                        tenant_id=tenant.pk,
-                        enterprise_id=enterprise.pk,
-                        role_id=role_id,
-                        defaults={"role_id": role_id})
+                # for role_id in role_ids:
+                PermRelTenant.objects.update_or_create(
+                    user_id=user_id,
+                    tenant_id=tenant.pk,
+                    enterprise_id=enterprise.pk)
+                        # role_id=role_id,
+                        # defaults={"role_id": role_id})
+                user = user_repo.get_by_user_id(user_id)
+                user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
     def add_user_to_team_by_viewer(self, tenant, user_id):
         """在团队中添加一个用户并给用户分配一个默认viewer权限"""

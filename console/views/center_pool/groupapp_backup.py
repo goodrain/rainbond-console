@@ -26,7 +26,7 @@ logger = logging.getLogger('default')
 
 class GroupAppsBackupView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def post(self, request, *args, **kwargs):
         """
         应用备份
@@ -87,7 +87,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         根据应用备份ID查询备份状态
@@ -131,7 +131,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def delete(self, request, *args, **kwargs):
         """
         根据应用备份ID删除备份
@@ -147,7 +147,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
 
 class GroupAppsBackupStatusView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         一个组的备份状态查询
@@ -187,7 +187,7 @@ class GroupAppsBackupStatusView(RegionTenantHeaderView):
 
 class TeamGroupAppsBackupView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         查询备份信息
@@ -232,7 +232,7 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
 
 class AllTeamGroupAppsBackupView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         查询当前团队 数据中心下所有备份信息
@@ -338,7 +338,7 @@ class GroupAppsBackupExportView(AlowAnyApiView):
 
 class GroupAppsBackupImportView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
+    # @perm_required("import_and_export_service")
     def post(self, request, *args, **kwargs):
         """
         导入备份

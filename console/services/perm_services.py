@@ -11,7 +11,7 @@ from console.repositories.perm_repo import role_perm_relation_repo
 from console.repositories.perm_repo import role_kind_repo
 from console.repositories.perm_repo import user_kind_role_repo
 from console.repositories.enterprise_repo import enterprise_repo
-from console.utils.perms import get_perms_structure, get_perms_model, get_team_perms_model, get_enterprise_perms_model, get_perms_name_code_kv
+from console.utils.perms import get_perms_structure, get_perms_model, get_team_perms_model, get_enterprise_perms_model, get_perms_name_code_kv, DEFAULT_TEAM_ROLE_PERMS, DEFAULT_ENTERPRISE_ROLE_PERMS
 from console.models.main import RolePerms
 import logging
 
@@ -74,6 +74,26 @@ class RoleKindService(object):
         user_kind_role_repo.delete_users_role(kind, kind_id, role.ID)
         role.delete()
 
+    def init_default_role_perms(self, role):
+        if role.name in DEFAULT_TEAM_ROLE_PERMS.keys():
+            role_perm_relation_repo.delete_role_perm_relation(role.ID)
+            role_perm_relation_repo.create_role_perm_relation(role.ID, DEFAULT_TEAM_ROLE_PERMS[role.name])
+
+    def init_default_roles(self, kind, kind_id):
+        if kind == "team":
+            DEFAULT_ROLES = DEFAULT_TEAM_ROLE_PERMS.keys()
+        elif kind == "enterprise":
+            DEFAULT_ROLES = DEFAULT_ENTERPRISE_ROLE_PERMS.keys()
+        else:
+            DEFAULT_ROLES = []
+        if DEFAULT_ROLES == []:
+            pass
+        for default_role in DEFAULT_ROLES:
+            role = role_kind_repo.get_role_by_name(kind, kind_id, default_role)
+            if not role:
+                role = self.create_role(kind, kind_id, default_role)
+            self.init_default_role_perms(role)
+
 
 class RolePermService(object):
     def get_roles_perms(self, roles, kind=None):
@@ -101,7 +121,7 @@ class RolePermService(object):
             data.append(role_perms_info)
         return data
 
-    def get_roles_union_perms(self, roles, kind=None):
+    def get_roles_union_perms(self, roles, kind=None, is_owner=False):
         union_role_perms = []
         if roles:
             role_ids = roles.values_list("role_id", flat=True)
@@ -111,11 +131,11 @@ class RolePermService(object):
                 for roles_perm_relation in roles_perm_relations:
                     union_role_perms.append(roles_perm_relation["perm_code"])
         if kind == "team":
-            permissions = self.pack_role_perms_tree(get_team_perms_model(), union_role_perms)
+            permissions = self.pack_role_perms_tree(get_team_perms_model(), union_role_perms, is_owner)
         elif kind == "enterprise":
-            permissions = self.pack_role_perms_tree(get_enterprise_perms_model(), union_role_perms)
+            permissions = self.pack_role_perms_tree(get_enterprise_perms_model(), union_role_perms, is_owner)
         else:
-            permissions = self.pack_role_perms_tree(get_perms_model(), union_role_perms)
+            permissions = self.pack_role_perms_tree(get_perms_model(), union_role_perms, is_owner)
         return {"permissions": permissions}
 
     def get_role_perms(self, role, kind=None):
@@ -143,28 +163,31 @@ class RolePermService(object):
         return data[0]
 
     ### 已有一维角色权限列表变更权限模型权限的默认值
-    def __build_perms_list(self, model_perms, role_codes):
+    def __build_perms_list(self, model_perms, role_codes, is_owner):
         perms_list = []
         for model_perm in model_perms:
             model_perm_key = model_perm.keys()
             model_perm_key.remove("code")
-            if model_perm["code"] in role_codes:
+            if is_owner:
                 perms_list.append({model_perm_key[0]: True})
             else:
-                perms_list.append({model_perm_key[0]: False})
+                if model_perm["code"] in role_codes:
+                    perms_list.append({model_perm_key[0]: True})
+                else:
+                    perms_list.append({model_perm_key[0]: False})
         return perms_list
 
     ### 角色权限树打包
-    def pack_role_perms_tree(self, models, role_codes):
+    def pack_role_perms_tree(self, models, role_codes, is_owner=False):
         items_list = models.items()
         sub_models = []
         for items in items_list:
             kind_name, body = items
             if body["sub_models"]:
                 for sub in body["sub_models"]:
-                    sub_models.append(self.pack_role_perms_tree(sub, role_codes))
+                    sub_models.append(self.pack_role_perms_tree(sub, role_codes, is_owner))
                 models[kind_name]["sub_models"] = sub_models
-            models[kind_name]["perms"] = self.__build_perms_list(body["perms"], role_codes)
+            models[kind_name]["perms"] = self.__build_perms_list(body["perms"], role_codes, is_owner)
         return models
 
     def __unpack_to_build_perms_list(self, perms_model, role_id, perms_name_code_kv):
@@ -213,9 +236,9 @@ class UserKindRoleService(object):
 
 
 class UserKindPermService(object):
-    def get_user_perms(self, kind, kind_id, user):
+    def get_user_perms(self, kind, kind_id, user, is_owner=False):
         user_roles = user_kind_role_repo.get_user_roles_model(kind, kind_id, user)
-        perms = role_perm_service.get_roles_union_perms(user_roles, kind)
+        perms = role_perm_service.get_roles_union_perms(user_roles, kind, is_owner)
         data = {"user_id": user.user_id}
         data.update(perms)
         return data

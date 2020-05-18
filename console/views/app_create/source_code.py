@@ -29,7 +29,7 @@ logger = logging.getLogger("default")
 
 class SourceCodeCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         源码创建组件
@@ -175,15 +175,15 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class AppCompileEnvView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件运行环境信息
@@ -201,28 +201,28 @@ class AppCompileEnvView(AppBaseView):
               paramType: path
 
         """
-        try:
-            compile_env = compile_env_service.get_service_compile_env(self.service)
-            bean = dict()
-            selected_dependency = []
-            if compile_env:
-                check_dependency = json.loads(compile_env.check_dependency)
-                user_dependency = {}
-                if compile_env.user_dependency:
-                    user_dependency = json.loads(compile_env.user_dependency)
-                    selected_dependency = [key.replace("ext-", "") for key in user_dependency.get("dependencies", {}).keys()]
-                bean["check_dependency"] = check_dependency
-                bean["user_dependency"] = user_dependency
-                bean["service_id"] = compile_env.service_id
-                bean["selected_dependency"] = selected_dependency
-            result = general_message(200, "success", "查询编译环境成功", bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # try:
+        compile_env = compile_env_service.get_service_compile_env(self.service)
+        bean = dict()
+        selected_dependency = []
+        if compile_env:
+            check_dependency = json.loads(compile_env.check_dependency)
+            user_dependency = {}
+            if compile_env.user_dependency:
+                user_dependency = json.loads(compile_env.user_dependency)
+                selected_dependency = [key.replace("ext-", "") for key in user_dependency.get("dependencies", {}).keys()]
+            bean["check_dependency"] = check_dependency
+            bean["user_dependency"] = user_dependency
+            bean["service_id"] = compile_env.service_id
+            bean["selected_dependency"] = selected_dependency
+        result = general_message(200, "success", "查询编译环境成功", bean=bean)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('create_service')
+    # @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
         修改组件运行环境信息
@@ -255,37 +255,37 @@ class AppCompileEnvView(AppBaseView):
               paramType: form
 
         """
-        try:
-            service_runtimes = request.data.get("service_runtimes", "")
-            service_server = request.data.get("service_server", "")
-            service_dependency = request.data.get("service_dependency", "")
-            checkJson = {}
-            checkJson["language"] = self.service.language
-            checkJson["runtimes"] = service_runtimes
-            checkJson["procfile"] = service_server
-            if service_dependency != "":
-                dps = service_dependency.split(",")
-                d = {}
-                for dp in dps:
-                    if dp is not None and dp != "":
-                        d["ext-" + dp] = "*"
-                checkJson["dependencies"] = d
-            else:
-                checkJson["dependencies"] = {}
-            update_params = {"user_dependency": json.dumps(checkJson)}
-            compile_env = compile_env_service.update_service_compile_env(self.service, **update_params)
-            bean = dict()
-            if compile_env:
-                check_dependency = json.loads(compile_env.check_dependency)
-                user_dependency = {}
-                if compile_env.user_dependency:
-                    user_dependency = json.loads(compile_env.user_dependency)
-                bean["check_dependency"] = check_dependency
-                bean["user_dependency"] = user_dependency
-                bean["service_id"] = compile_env.service_id
+        # try:
+        service_runtimes = request.data.get("service_runtimes", "")
+        service_server = request.data.get("service_server", "")
+        service_dependency = request.data.get("service_dependency", "")
+        checkJson = {}
+        checkJson["language"] = self.service.language
+        checkJson["runtimes"] = service_runtimes
+        checkJson["procfile"] = service_server
+        if service_dependency != "":
+            dps = service_dependency.split(",")
+            d = {}
+            for dp in dps:
+                if dp is not None and dp != "":
+                    d["ext-" + dp] = "*"
+            checkJson["dependencies"] = d
+        else:
+            checkJson["dependencies"] = {}
+        update_params = {"user_dependency": json.dumps(checkJson)}
+        compile_env = compile_env_service.update_service_compile_env(self.service, **update_params)
+        bean = dict()
+        if compile_env:
+            check_dependency = json.loads(compile_env.check_dependency)
+            user_dependency = {}
+            if compile_env.user_dependency:
+                user_dependency = json.loads(compile_env.user_dependency)
+            bean["check_dependency"] = check_dependency
+            bean["user_dependency"] = user_dependency
+            bean["service_id"] = compile_env.service_id
 
-            result = general_message(200, "success", "操作成功", bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "操作成功", bean=bean)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])

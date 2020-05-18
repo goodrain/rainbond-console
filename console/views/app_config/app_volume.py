@@ -23,7 +23,7 @@ logger = logging.getLogger("default")
 
 class AppVolumeOptionsView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件可用的存储列表
@@ -37,7 +37,7 @@ class AppVolumeOptionsView(AppBaseView):
 
 class AppVolumeView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的持久化路径
@@ -79,7 +79,7 @@ class AppVolumeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为组件添加持久化目录
@@ -141,7 +141,7 @@ class AppVolumeView(AppBaseView):
 
 class AppVolumeManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除组件的某个持久化路径
@@ -174,7 +174,7 @@ class AppVolumeManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改存储设置
@@ -183,47 +183,47 @@ class AppVolumeManageView(AppBaseView):
         :param kwargs:
         :return:
         """
-        try:
-            volume_id = kwargs.get("volume_id", None)
-            new_volume_path = request.data.get("new_volume_path", None)
-            new_file_content = request.data.get("new_file_content", None)
-            if not volume_id:
-                return Response(general_message(400, "volume_id is null", u"未指定需要编辑的配置文件存储"), status=400)
-            volume = volume_repo.get_service_volume_by_pk(volume_id)
-            if not volume:
-                return Response(general_message(400, "volume is null", u"存储不存在"), status=400)
-            service_config = volume_repo.get_service_config_file(volume_id)
+        # try:
+        volume_id = kwargs.get("volume_id", None)
+        new_volume_path = request.data.get("new_volume_path", None)
+        new_file_content = request.data.get("new_file_content", None)
+        if not volume_id:
+            return Response(general_message(400, "volume_id is null", u"未指定需要编辑的配置文件存储"), status=400)
+        volume = volume_repo.get_service_volume_by_pk(volume_id)
+        if not volume:
+            return Response(general_message(400, "volume is null", u"存储不存在"), status=400)
+        service_config = volume_repo.get_service_config_file(volume_id)
+        if volume.volume_type == 'config-file':
+            if not service_config:
+                return Response(general_message(400, "file_content is null", u"配置文件内容不存在"), status=400)
+            if new_volume_path == volume.volume_path and new_file_content == service_config.file_content:
+                return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
+        else:
+            if new_volume_path == volume.volume_path:
+                return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
+        # try:
+        data = {
+            "volume_name": volume.volume_name,
+            "volume_path": new_volume_path,
+            "volume_type": volume.volume_type,
+            "file_content": new_file_content
+        }
+        res, body = region_api.upgrade_service_volumes(self.service.service_region, self.tenant.tenant_name,
+                                                       self.service.service_alias, data)
+        if res.status == 200:
+            volume.volume_path = new_volume_path
+            volume.save()
             if volume.volume_type == 'config-file':
-                if not service_config:
-                    return Response(general_message(400, "file_content is null", u"配置文件内容不存在"), status=400)
-                if new_volume_path == volume.volume_path and new_file_content == service_config.file_content:
-                    return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
-            else:
-                if new_volume_path == volume.volume_path:
-                    return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
-            try:
-                data = {
-                    "volume_name": volume.volume_name,
-                    "volume_path": new_volume_path,
-                    "volume_type": volume.volume_type,
-                    "file_content": new_file_content
-                }
-                res, body = region_api.upgrade_service_volumes(self.service.service_region, self.tenant.tenant_name,
-                                                               self.service.service_alias, data)
-                if res.status == 200:
-                    volume.volume_path = new_volume_path
-                    volume.save()
-                    if volume.volume_type == 'config-file':
-                        service_config.file_content = new_file_content
-                        service_config.save()
-                    result = general_message(200, "success", u"修改成功")
-                    return Response(result, status=result["code"])
-                return Response(general_message(405, "success", u"修改失败"), status=405)
-            except Exception as e:
-                logger.exception(e)
-                result = error_message(e.message)
-                return Response(result, status=500)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+                service_config.file_content = new_file_content
+                service_config.save()
+            result = general_message(200, "success", u"修改成功")
+            return Response(result, status=result["code"])
+        return Response(general_message(405, "success", u"修改失败"), status=405)
+            # except Exception as e:
+            #     logger.exception(e)
+            #     result = error_message(e.message)
+            #     return Response(result, status=500)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
+        #     return Response(result, status=500)

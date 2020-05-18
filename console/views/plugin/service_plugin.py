@@ -22,7 +22,7 @@ logger = logging.getLogger("default")
 
 
 class ServicePluginsView(AppBaseView):
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件可用的插件列表
@@ -57,7 +57,7 @@ class ServicePluginsView(AppBaseView):
 
 
 class ServicePluginInstallView(AppBaseView):
-    @perm_required('manage_service_plugin')
+    # @perm_required('manage_service_plugin')
     def post(self, request, plugin_id, *args, **kwargs):
         """
         组件安装插件
@@ -94,7 +94,7 @@ class ServicePluginInstallView(AppBaseView):
         result = general_message(200, "success", "安装成功")
         return Response(result, status=result["code"])
 
-    @perm_required('manage_service_plugin')
+    # @perm_required('manage_service_plugin')
     def delete(self, request, plugin_id, *args, **kwargs):
         """
         组件卸载插件
@@ -116,20 +116,20 @@ class ServicePluginInstallView(AppBaseView):
               type: string
               paramType: path
         """
-        try:
-            region_api.uninstall_service_plugin(self.response_region, self.tenant.tenant_name, plugin_id,
-                                                self.service.service_alias)
-            app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
-            app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
-            return Response(general_message(200, "success", "卸载成功"))
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=200)
+        # try:
+        region_api.uninstall_service_plugin(self.response_region, self.tenant.tenant_name, plugin_id,
+                                            self.service.service_alias)
+        app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
+        app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
+        return Response(general_message(200, "success", "卸载成功"))
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
+        #     return Response(result, status=200)
 
 
 class ServicePluginOperationView(AppBaseView):
-    @perm_required('manage_service_plugin')
+    # @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         启停用组件插件
@@ -161,40 +161,40 @@ class ServicePluginOperationView(AppBaseView):
               type: boolean
               paramType: form
         """
-        try:
-            if not plugin_id:
-                return Response(general_message(400, "not found plugin_id", "参数异常"), status=400)
-            is_active = request.data.get("is_switch", True)
-            service_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
-            if not service_plugin_relation:
-                return Response(general_message(404, "not found plugin relation", "未找到组件使用的插件"), status=404)
-            else:
-                build_version = service_plugin_relation.build_version
-            pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
-            # 更新内存和cpu
-            memory = request.data.get("min_memory", pbv.min_memory)
-            cpu = common_services.calculate_cpu(self.service.service_region, memory)
+        # try:
+        if not plugin_id:
+            return Response(general_message(400, "not found plugin_id", "参数异常"), status=400)
+        is_active = request.data.get("is_switch", True)
+        service_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
+        if not service_plugin_relation:
+            return Response(general_message(404, "not found plugin relation", "未找到组件使用的插件"), status=404)
+        else:
+            build_version = service_plugin_relation.build_version
+        pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
+        # 更新内存和cpu
+        memory = request.data.get("min_memory", pbv.min_memory)
+        cpu = common_services.calculate_cpu(self.service.service_region, memory)
 
-            data = dict()
-            data["plugin_id"] = plugin_id
-            data["switch"] = is_active
-            data["version_id"] = build_version
-            data["plugin_memory"] = memory
-            data["plugin_cpu"] = cpu
-            # 更新数据中心数据参数
-            region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
-                                                      data)
-            # 更新本地数据
-            app_plugin_service.start_stop_service_plugin(self.service.service_id, plugin_id, is_active, cpu, memory)
-            result = general_message(200, "success", "操作成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        data = dict()
+        data["plugin_id"] = plugin_id
+        data["switch"] = is_active
+        data["version_id"] = build_version
+        data["plugin_memory"] = memory
+        data["plugin_cpu"] = cpu
+        # 更新数据中心数据参数
+        region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
+                                                  data)
+        # 更新本地数据
+        app_plugin_service.start_stop_service_plugin(self.service.service_id, plugin_id, is_active, cpu, memory)
+        result = general_message(200, "success", "操作成功")
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class ServicePluginConfigView(AppBaseView):
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, plugin_id, *args, **kwargs):
         """
         组件插件查看配置
@@ -225,20 +225,20 @@ class ServicePluginConfigView(AppBaseView):
         if not plugin_id or not build_version:
             logger.error("plugin.relation", u'参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "请指定插件版本"), status=400)
-        try:
-            result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
-            svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
-            pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
-            if pbv:
-                result_bean["build_info"] = pbv.update_info
-                result_bean["memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
-            result = general_message(200, "success", "查询成功", bean=result_bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # try:
+        result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
+        svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
+        pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
+        if pbv:
+            result_bean["build_info"] = pbv.update_info
+            result_bean["memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
+        result = general_message(200, "success", "查询成功", bean=result_bean)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, result["code"])
 
-    @perm_required('manage_service_plugin')
+    # @perm_required('manage_service_plugin')
     @transaction.atomic
     def put(self, request, plugin_id, *args, **kwargs):
         """

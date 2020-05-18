@@ -38,28 +38,28 @@ class DockerContainerView(View):
 
         context = dict()
         response = redirect(get_redirect_url("/#/app/{0}/overview".format(self.service.service_alias), request))
-        try:
-            docker_c_id = request.COOKIES.get('docker_c_id', '')
-            docker_h_id = request.COOKIES.get('docker_h_id', '')
-            docker_s_id = request.COOKIES.get('docker_s_id', '')
-            if docker_c_id != "" and docker_h_id != "" and docker_s_id != "" and docker_s_id == self.service.service_id:
-                t_docker_h_id = docker_h_id.lower()
-                context["tenant_id"] = self.service.tenant_id
-                context["service_id"] = docker_s_id
-                context["ctn_id"] = docker_c_id
-                context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
+        # try:
+        docker_c_id = request.COOKIES.get('docker_c_id', '')
+        docker_h_id = request.COOKIES.get('docker_h_id', '')
+        docker_s_id = request.COOKIES.get('docker_s_id', '')
+        if docker_c_id != "" and docker_h_id != "" and docker_s_id != "" and docker_s_id == self.service.service_id:
+            t_docker_h_id = docker_h_id.lower()
+            context["tenant_id"] = self.service.tenant_id
+            context["service_id"] = docker_s_id
+            context["ctn_id"] = docker_c_id
+            context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
 
-                main_url = region_services.get_region_wsurl(self.service.service_region)
-                if main_url == "auto":
-                    context["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-                        settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
-                else:
-                    context["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
+            main_url = region_services.get_region_wsurl(self.service.service_region)
+            if main_url == "auto":
+                context["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
+                    settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
+            else:
+                context["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
 
-                response = TemplateResponse(self.request, "www/console.html", context)
-            response.delete_cookie('docker_c_id')
-            response.delete_cookie('docker_h_id')
-            response.delete_cookie('docker_s_id')
-        except Exception as e:
-            logger.exception(e)
+            response = TemplateResponse(self.request, "www/console.html", context)
+        response.delete_cookie('docker_c_id')
+        response.delete_cookie('docker_h_id')
+        response.delete_cookie('docker_s_id')
+        # except Exception as e:
+        #     logger.exception(e)
         return response

@@ -15,7 +15,7 @@ region_api = RegionInvokeApi()
 
 
 class AppPodsView(AppBaseView):
-    @perm_required('manage_service_container')
+    # @perm_required('manage_service_container')
     def get(self, req, pod_name, *args, **kwargs):
         try:
             data = region_api.pod_detail(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,

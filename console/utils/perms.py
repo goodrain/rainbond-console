@@ -17,6 +17,7 @@ from collections import Counter
 ENTERPRISE = {
     "perms": []
 }
+
 TEAM = {
     "perms": [
         ["describe", u"获取", 200001],
@@ -112,6 +113,27 @@ TEAM = {
     }
 }
 
+DEFAULT_ENTERPRISE_ROLE_PERMS = {
+    "admin": [],
+    "developer": [],
+    "viewer": [],
+}
+
+DEFAULT_TEAM_ROLE_PERMS = {
+    "admin": [200001, 200002, 200003, 200004, 200005, 200006, 200007, 200008, 200009, 200010,
+              200011, 200012, 200013, 300001, 300002, 300003, 300004, 300005, 300006, 300007,
+              300008, 300009, 300010, 300011, 300012, 300013, 300014, 400001, 400002, 400003,
+              400004, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013,
+              400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 500001, 500002,
+              500003, 500004, 600001, 600002, 600003, 600004, 700001, 700002, 700003, 700004],
+    "developer": [200001, 200002, 200005, 200009, 200010, 300001, 300002, 300003, 300005, 300006,
+                  300007, 300008, 300009, 300010, 300011, 300012, 300013, 300014, 400001, 400002,
+                  400003, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013,
+                  400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 500001, 500002,
+                  500003, 600001, 600002, 600003, 700001, 700002, 700003],
+    "viewer": [200001, 200002, 200005, 200009, 200010, 300001, 400001, 500001, 600001, 700001],
+}
+
 
 def get_structure(kind, kind_name):
     structure = {kind_name: {"sub_models": [], "perms": map(lambda x: {"name": x[0], "desc": x[1], "code": x[2]}, kind["perms"])}}
@@ -123,6 +145,7 @@ def get_structure(kind, kind_name):
             structure[kind_name]["sub_models"].append(sub_structure)
     return structure
 
+
 def get_model(kind, kind_name):
     structure = {kind_name:{"sub_models": [], "perms": map(lambda x: {x[0]: False, "code": x[2]}, kind["perms"])}}
     subs = kind.keys()
@@ -133,11 +156,14 @@ def get_model(kind, kind_name):
             structure[kind_name]["sub_models"].append(sub_structure)
     return structure
 
+
 def get_team_perms_model():
     return get_model(copy.deepcopy(TEAM), "team")
 
+
 def get_enterprise_perms_model():
     return get_model(copy.deepcopy(ENTERPRISE), "enterprise")
+
 
 def get_perms_model():
     perms_model = {}
@@ -147,6 +173,7 @@ def get_perms_model():
     perms_model.update(enterprise)
     return perms_model
 
+
 def get_perms_structure():
     perms_structure = {}
     team = get_structure(copy.deepcopy(TEAM), "team")
@@ -154,6 +181,7 @@ def get_perms_structure():
     perms_structure.update(team)
     perms_structure.update(enterprise)
     return perms_structure
+
 
 def assemble_perms(perm, group, kind_name):
     perm[0] = '_'.join([group, perm[0]])
@@ -209,6 +237,7 @@ def check_perms_metadata():
         print "初始化权限列表失败，权限列表存在重复编码: {}".format(', '.join(code))
     return perms
 
+
 def get_perms_name_code(perms_model, kind_name):
     perms = {}
     sub_models = perms_model.keys()
@@ -220,11 +249,13 @@ def get_perms_name_code(perms_model, kind_name):
             perms.update(get_perms_name_code(perms_model[sub_model], sub_model))
     return perms
 
+
 def get_perms_name_code_kv():
     perms = {}
     perms.update(get_perms_name_code(copy.deepcopy(TEAM), "team"))
     perms.update(get_perms_name_code(copy.deepcopy(ENTERPRISE), "enterprise"))
     return perms
+
 
 if __name__ == '__main__':
     # 检测权限命名和权限编码是否重复

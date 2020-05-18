@@ -276,6 +276,9 @@ class RoleKindRepo(object):
             return RoleInfo.objects.filter(Q(kind_id=kind_id)| Q(kind_id="default")).filter(kind=kind, name=name).first()
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id, name=name).first()
 
+    def get_roles_by_names(self, kind, kind_id, names):
+        return RoleInfo.objects.filter(kind=kind, kind_id=kind_id, name__in=names)
+
     def create_role(self, kind, kind_id, name):
         return RoleInfo.objects.create(kind=kind, kind_id=kind_id, name=name)
 

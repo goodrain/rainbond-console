@@ -28,7 +28,7 @@ BUILD_KIND_MAP = {
 
 class AppVersionsView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的构建版本
@@ -131,7 +131,7 @@ class AppVersionsView(AppBaseView):
 
 class AppVersionManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_config')
+    # @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除组件的某次构建版本
@@ -164,7 +164,7 @@ class AppVersionManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('view_service')
+    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的某个具体版本
