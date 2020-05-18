@@ -7,11 +7,14 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.repositories.label_repo import label_repo
+from console.repositories.label_repo import node_label_repo
+from console.repositories.label_repo import service_label_repo
 from console.services.app_config import label_service
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.repositories.label_repo import label_repo, node_label_repo, service_label_repo
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 

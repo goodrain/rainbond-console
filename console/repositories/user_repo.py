@@ -3,8 +3,8 @@ from django.db.models import Q
 
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.exception.exceptions import UserNotExistError
-from console.repositories.base import BaseConnection
 from console.models.main import UserFavorite
+from console.repositories.base import BaseConnection
 from www.models.main import Users
 
 
