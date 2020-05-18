@@ -47,7 +47,8 @@ class PluginBaseView(RegionTenantHeaderView):
 
         build_version = kwargs.get("build_version", None)
         if build_version:
-            plugin_build_version = PluginBuildVersion.objects.filter(plugin_id=plugin_id, build_version=build_version)
+            plugin_build_version = PluginBuildVersion.objects.filter(
+                tenant_id=self.tenant.tenant_id, plugin_id=plugin_id, build_version=build_version)
             if plugin_build_version:
                 self.plugin_version = plugin_build_version[0]
             else:

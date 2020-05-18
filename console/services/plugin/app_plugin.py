@@ -72,11 +72,12 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
+    def create_service_plugin_relation(
+            self, tenant_id, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
-        plugin_version_info = plugin_version_repo.get_by_id_and_version(plugin_id, build_version)
+        plugin_version_info = plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, build_version)
         min_memory = plugin_version_info.min_memory
         min_cpu = plugin_version_info.min_cpu
         params = {
@@ -164,7 +165,7 @@ class AppPluginService(object):
     @transaction.atomic
     def install_new_plugin(self, region, tenant, service, plugin_id, plugin_version=None):
         if not plugin_version:
-            plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+            plugin_version = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin_id)
             plugin_version = plugin_version.build_version
         logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
         # 1.生成console数据，存储
@@ -177,7 +178,7 @@ class AppPluginService(object):
         data["switch"] = True
         data["version_id"] = plugin_version
         data.update(region_config)
-        self.create_service_plugin_relation(service.service_id, plugin_id, plugin_version)
+        self.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id, plugin_version)
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
@@ -516,13 +517,13 @@ class AppPluginService(object):
             self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"], data["version_id"],
                                               service_plugin_config_vars)
 
-            self.create_service_plugin_relation(service.service_id, data["plugin_id"], data["version_id"])
+            self.create_service_plugin_relation(tenant.tenant_id, service.service_id, data["plugin_id"], data["version_id"])
 
     def build_plugin_data_4marketsvc(self, tenant, service, plugin):
         plugin_key = plugin["plugin_key"]
         p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
         plugin_id = p[0].plugin_id
-        plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
+        plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
         build_version = plugin_version.build_version
 
         region_config = self.get_region_config_from_db(service, plugin_id, build_version)
@@ -590,7 +591,7 @@ class AppPluginService(object):
         for plugin in plugins:
             if PluginCategoryConstants.OUTPUT_NET == plugin.category or \
                PluginCategoryConstants.OUTPUT_INPUT_NET == plugin.category:
-                pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
+                pbv = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
                     self.update_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version, configs,
@@ -601,7 +602,7 @@ class AppPluginService(object):
         plugins = self.get_service_abled_plugin(service)
         for plugin in plugins:
             if PluginCategoryConstants.INPUT_NET == plugin.category:
-                pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
+                pbv = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
                     self.update_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version, configs,
@@ -643,8 +644,8 @@ class PluginService(object):
         logger.debug("plugin.create", "create region plugin {0}".format(body))
         return 200, "success"
 
-    def delete_console_tenant_plugin(self, plugin_id):
-        plugin_repo.delete_by_plugin_id(plugin_id)
+    def delete_console_tenant_plugin(self, tenant_id, plugin_id):
+        plugin_repo.delete_by_plugin_id(tenant_id, plugin_id)
 
     def get_plugin_event_log(self, region, tenant, event_id, level):
         data = {"event_id": event_id, "level": level}
@@ -788,8 +789,8 @@ class PluginService(object):
                 raise e
         app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(plugin_id)
         app_plugin_attr_repo.delete_attr_by_plugin_id(plugin_id)
-        plugin_version_repo.delete_build_version_by_plugin_id(plugin_id)
-        plugin_repo.delete_by_plugin_id(plugin_id)
+        plugin_version_repo.delete_build_version_by_plugin_id(team.tenant_id, plugin_id)
+        plugin_repo.delete_by_plugin_id(team.tenant_id, plugin_id)
         config_item_repo.delete_config_items_by_plugin_id(plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(plugin_id)
         return 200, "删除成功"

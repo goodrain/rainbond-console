@@ -76,8 +76,8 @@ class TenantPluginRepository(object):
     def create_plugin(self, **plugin_args):
         return TenantPlugin.objects.create(**plugin_args)
 
-    def delete_by_plugin_id(self, plugin_id):
-        TenantPlugin.objects.filter(plugin_id=plugin_id).delete()
+    def delete_by_plugin_id(self, tenant_id, plugin_id):
+        TenantPlugin.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id).delete()
 
     def get_tenant_plugins(self, tenant_id, region):
         return TenantPlugin.objects.filter(tenant_id=tenant_id, region=region)
