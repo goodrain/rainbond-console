@@ -2,14 +2,14 @@
 """
   Created on 18/3/5.
 """
+import base64
 import datetime
 import json
 import logging
 import socket
-import base64
-from addict import Dict
 
 import httplib2
+from addict import Dict
 from django.db import transaction
 from django.db.models import Q
 from market_client.rest import ApiException
@@ -23,13 +23,13 @@ from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
+from console.repositories.app import app_tag_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.app import app_tag_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -49,6 +49,7 @@ from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.services.upgrade_services import upgrade_service
+from console.services.user_services import user_services
 from console.utils import slug_util
 from console.utils.restful_client import get_default_market_client
 from console.utils.restful_client import get_market_client
@@ -64,7 +65,6 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -87,7 +87,8 @@ class MarketAppService(object):
         }
         return market_api_v2.create_market_app_by_enterprise_id(enterprise_id, body)
 
-    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy, install_from_cloud):
+    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy,
+                        install_from_cloud):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -98,8 +99,8 @@ class MarketAppService(object):
         try:
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.app_id,
-                                                                      market_app_version.version, market_app.app_name)
+            tenant_service_group = self.__create_tenant_service_group(
+                region, tenant.tenant_id, group_id, market_app.app_id, market_app_version.version, market_app.app_name)
             plugins = app_templates.get("plugins", [])
             if plugins:
                 status, msg = self.__create_plugin_for_tenant(region, user, tenant, plugins)
@@ -125,7 +126,9 @@ class MarketAppService(object):
                 old_new_id_map[app["service_id"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
-                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
+                code, msg = self.__save_env(
+                    tenant, ts, app["service_env_map_list"],
+                    app["service_connect_info_map_list"])
                 if code != 200:
                     raise Exception(msg)
                 code, msg = self.__save_port(tenant, ts, app["port_map_list"])
@@ -227,8 +230,8 @@ class MarketAppService(object):
         try:
             app_templates = json.loads(market_app.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.app_id,
-                                                                      market_app.version, market_app.app_name)
+            tenant_service_group = self.__create_tenant_service_group(
+                region, tenant.tenant_id, group_id, market_app.app_id, market_app.version, market_app.app_name)
 
             status, msg = self.__create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
             if status != 200:
@@ -251,7 +254,9 @@ class MarketAppService(object):
                 old_new_id_map[app["service_id"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
-                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
+                code, msg = self.__save_env(
+                    tenant, ts, app["service_env_map_list"],
+                    app["service_connect_info_map_list"])
                 if code != 200:
                     raise Exception(msg)
                 code, msg = self.__save_port(tenant, ts, app["port_map_list"])
@@ -323,7 +328,8 @@ class MarketAppService(object):
                 for item in dep_mnts:
                     dep_service = key_service_map.get(item["service_share_uuid"])
                     if not dep_service:
-                        logger.info("Service share uuid: {}; dependent service not found".format(item["service_share_uuid"]))
+                        logger.info("Service share uuid: {}; dependent service not found".format(
+                            item["service_share_uuid"]))
                         continue
                     dep_app = app_map.get(item["service_share_uuid"])
                     if not dep_app:
@@ -334,7 +340,8 @@ class MarketAppService(object):
                         for volume in volume_list:
                             if volume["volume_name"] == item["mnt_name"]:
                                 dep_volume = volume_repo.get_by_sid_name(dep_service.service_id, item["mnt_name"])
-                                code, msg = mnt_service.add_service_mnt_relation(tenant, service, item["mnt_dir"], dep_volume)
+                                code, msg = mnt_service.add_service_mnt_relation(
+                                    tenant, service, item["mnt_dir"], dep_volume)
                                 if code != 200:
                                     logger.info("fail to mount relative volume: {}".format(msg))
 
@@ -366,8 +373,8 @@ class MarketAppService(object):
                         data.update(region_config)
                         app_plugin_service.create_service_plugin_relation(service.service_id, plugin_id, build_version)
 
-                        region_api.install_service_plugin(service.service_region, tenant.tenant_name, service.service_alias,
-                                                          data)
+                        region_api.install_service_plugin(
+                            service.service_region, tenant.tenant_name, service.service_alias, data)
 
         except Exception as e:
             logger.exception(e)
@@ -378,7 +385,8 @@ class MarketAppService(object):
         except ServiceHandleException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
 
-    def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars, old_new_id_map):
+    def __save_service_config_values(
+            self, service, plugin_id, build_version, service_plugin_config_vars, old_new_id_map):
         config_list = []
 
         for config in service_plugin_config_vars:
@@ -582,9 +590,12 @@ class MarketAppService(object):
             if container_port == 0:
                 if env["attr_value"] == "**None**":
                     env["attr_value"] = service.service_id[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
-                                                                          env["attr_name"], env["attr_value"], env["is_change"],
-                                                                          "outer")
+                code, msg, env_data = env_var_service.add_service_env_var(
+                    tenant, service, container_port, env["name"],
+                    env["attr_name"],
+                    env["attr_value"],
+                    env["is_change"],
+                    "outer")
                 if code != 200:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg
@@ -594,11 +605,14 @@ class MarketAppService(object):
         if not ports:
             return 200, "success"
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
-                                                                 port["port_alias"], port["is_inner_service"],
-                                                                 port["is_outer_service"])
+            code, msg, port_data = port_service.add_service_port(
+                tenant, service, int(port["container_port"]),
+                port["protocol"],
+                port["port_alias"],
+                port["is_inner_service"],
+                port["is_outer_service"])
             if code != 200:
-                logger.error("save market app port error".format(msg))
+                logger.error("save market app port error: {}".format(msg))
                 return code, msg
         return 200, "success"
 
@@ -616,7 +630,8 @@ class MarketAppService(object):
                                                                             volume.get("backup_policy"), None,
                                                                             volume.get("volume_provider_name"))
                 if settings["changed"]:
-                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
+                    logger.debug('volume type changed from {0} to {1}'.format(
+                        volume["volume_type"], settings["volume_type"]))
                     volume["volume_type"] = settings["volume_type"]
                     if volume["volume_type"] == "share-file":
                         volume["volume_capacity"] = 0
@@ -750,7 +765,8 @@ class MarketAppService(object):
                 teams = team_repo.get_tenants_by_user_id(user.user_id)
             if teams:
                 teams = [team.tenant_name for team in teams]
-            apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, teams, app_name, tag_names, page, page_size)
+            apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(
+                eid, teams, app_name, tag_names, page, page_size)
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, "team", teams, app_name, tag_names)
         else:
             # default scope is enterprise
@@ -871,7 +887,8 @@ class MarketAppService(object):
         tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
         tenant_names = [t.tenant_name for t in tenants]
         # 获取企业分享的应用，并且排除返回在团队内的
-        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team__in=tenant_names).exclude(
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(
+            share_team__in=tenant_names).exclude(
             scope="team")
 
     def get_public_market_shared_apps(self, enterprise_id):
@@ -884,8 +901,9 @@ class MarketAppService(object):
         enterprise_apps = Q(share_team__in=tenant_names, scope="enterprise")
         team_apps = Q(share_team=tenant.tenant_name, scope="team")
 
-        return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(public_apps | enterprise_apps
-                                                                                             | team_apps)
+        return rainbond_app_repo.get_current_enter_visable_apps(
+            tenant.enterprise_id).filter(
+            public_apps | enterprise_apps | team_apps)
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)
@@ -955,7 +973,8 @@ class MarketAppService(object):
     # can not save in local db
     def get_app_from_cloud(self, tenant, group_key, group_version, install=False):
         try:
-            app_template = market_api.get_remote_app_templates(tenant.enterprise_id, group_key, group_version, install=install)
+            app_template = market_api.get_remote_app_templates(
+                tenant.enterprise_id, group_key, group_version, install=install)
             if app_template:
                 rainbond_app = RainbondCenterApp(
                     app_id=app_template["group_key"],
@@ -982,11 +1001,13 @@ class MarketAppService(object):
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def conversion_cloud_version_to_app(self, cloud_version):
-        app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", share_user=0, source="cloud", scope="market")
+        app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="",
+                                share_user=0, source="cloud", scope="market")
         app_version = RainbondCenterAppVersion(
             app_id=cloud_version.app_key_id,
             app_name="",
@@ -1157,7 +1178,8 @@ class MarketAppService(object):
             return apps.app_versions
         except ApiException as e:
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             if e.status == 404:
                 return None
             logger.exception(e)
@@ -1176,11 +1198,13 @@ class MarketAppService(object):
             return version
         except ApiException as e:
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
                 if e.status == 404:
                     return None
                 logger.exception(e)
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误",
+                                             status_code=500, error_code=500)
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
@@ -1213,7 +1237,8 @@ class MarketAppService(object):
                         apps_plugins_templates[group_key][app_version] = None
                         app_template = MarketOpenAPI().get_app_template(tenant.tenant_id, group_key, app_version)
                         if app_template:
-                            apps_versions_templates[group_key][app_version] = app_template["data"]["bean"]["template_content"]
+                            apps_versions_templates[group_key][app_version] = app_template["data"]["bean"][
+                                "template_content"]
                         plugins = MarketOpenAPI().get_plugin_templates(tenant.tenant_id, group_key, app_version)
                         if plugins:
                             apps_plugins_templates[group_key][app_version] = plugins["data"]["bean"]["template_content"]
@@ -1586,7 +1611,8 @@ class AppMarketSynchronizeService(object):
         if rainbond_app and rainbond_app_version and rainbond_app_version.is_complete:
             return rainbond_app, rainbond_app_version
         try:
-            rainbond_app, rainbond_app_version = self.down_market_group_app_detail(user, tenant, app_id, app_version, "v2")
+            rainbond_app, rainbond_app_version = self.down_market_group_app_detail(
+                user, tenant, app_id, app_version, "v2")
             return rainbond_app, rainbond_app_version
         except Exception as e:
             logger.exception(e)
@@ -1709,7 +1735,8 @@ class AppMarketSynchronizeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1737,7 +1764,8 @@ class AppMarketSynchronizeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1758,7 +1786,8 @@ class AppMarketSynchronizeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1779,7 +1808,8 @@ class AppMarketSynchronizeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1800,7 +1830,8 @@ class AppMarketSynchronizeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1821,7 +1852,8 @@ class AppMarketSynchronizeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1843,7 +1875,8 @@ class AppMarketSynchronizeService(object):
         except ApiException as e:
             logger.exception(e)
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过",
+                                             status_code=403, error_code=10407)
             if e.status == 404:
                 return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)

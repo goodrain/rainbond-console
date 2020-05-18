@@ -67,7 +67,7 @@ class AppStoreInfoView(BaseOpenAPIView):
         try:
             res = enterprise_services.update_appstore_info(eid, req.data)
         except TenantEnterpriseToken:
-            raise exceptions.NotFound({"msg": "应用市场信息不存在".format(eid)})
+            raise exceptions.NotFound({"msg": "应用市场信息不存在 {}".format(eid)})
 
         serializer = AppStoreInfoSerializer(res)
         return Response(serializer.data, status=status.HTTP_200_OK)

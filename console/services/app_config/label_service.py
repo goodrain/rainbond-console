@@ -42,11 +42,12 @@ class LabelService(object):
         labels = label_repo.get_labels_by_label_ids(label_ids)
         labels_list = list()
         body = dict()
-        label_map = [l.label_name for l in labels]
+        label_map = [label.label_name for label in labels]
         service_labels = list()
         for label_id in label_ids:
             service_label = ServiceLabels(
-                tenant_id=tenant.tenant_id, service_id=service.service_id, label_id=label_id, region=service.service_region)
+                tenant_id=tenant.tenant_id, service_id=service.service_id, label_id=label_id,
+                region=service.service_region)
             service_labels.append(service_label)
 
         if service.create_status == "complete":
@@ -107,7 +108,8 @@ class LabelService(object):
         label_list = list()
         label_list.append(body)
         label_dict["labels"] = label_list
-        region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, label_dict)
+        region_api.update_service_state_label(
+            service.service_region, tenant.tenant_name, service.service_alias, label_dict)
         return 200, u"success"
 
     def set_service_os_label(self, tenant, service, os):
