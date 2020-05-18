@@ -382,7 +382,7 @@ class AppService(object):
                     where = """
                     WHERE
                         s.tenant_id = "{tenant_id}"
-                        AND sp.user_id = {user_id}
+                        AND sp.user_id = "{user_id}"
                         AND sp.service_id = s.ID
                         AND s.service_cname LIKE "%{query}%"
                         AND s.service_region = "{region}" {add_sql}""".format(

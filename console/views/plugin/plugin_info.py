@@ -44,7 +44,8 @@ class PluginBaseInfoView(PluginBaseView):
         try:
             base_info = self.plugin
             data = base_info.to_dict()
-            newest_build_version = plugin_version_service.get_newest_plugin_version(self.plugin.plugin_id)
+            newest_build_version = plugin_version_service.get_newest_plugin_version(self.tenant.tenant_id,
+                                                                                    self.plugin.plugin_id)
             if newest_build_version:
                 data.update(newest_build_version.to_dict())
             result = general_message(200, "success", "查询成功", bean=data)
@@ -154,7 +155,7 @@ class AllPluginVersionInfoView(PluginBaseView):
         try:
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 8)
-            pbvs = plugin_version_service.get_plugin_versions(self.plugin.plugin_id)
+            pbvs = plugin_version_service.get_plugin_versions(self.tenant.tenant_id, self.plugin.plugin_id)
             paginator = JuncheePaginator(pbvs, int(page_size))
             show_pbvs = paginator.page(int(page))
 
@@ -336,13 +337,15 @@ class PluginVersionInfoView(PluginBaseView):
                 self.plugin_version.plugin_id, self.plugin_version.build_version)
             if app_plugin_relations:
                 return Response(general_message(409, "plugin is being using", "插件已被使用，无法删除"), status=409)
-            count_of_version = plugin_version_repo.get_plugin_versions(self.plugin_version.plugin_id).count()
+            count_of_version = plugin_version_repo.get_plugin_versions(self.tenant.tenant_id,
+                                                                       self.plugin_version.plugin_id).count()
             if count_of_version == 1:
                 return Response(general_message(409, "at least keep one version", "至少保留一个插件版本"), status=409)
             # 数据中心端删除
             region_api.delete_plugin_version(self.response_region, self.tenant.tenant_name, self.plugin_version.plugin_id,
                                              self.plugin_version.build_version)
-            plugin_version_service.delete_build_version_by_id_and_version(self.plugin_version.plugin_id,
+            # delete console
+            plugin_version_service.delete_build_version_by_id_and_version(self.tenant.tenant_id, self.plugin_version.plugin_id,
                                                                           self.plugin_version.build_version)
 
             plugin_config_service.delete_plugin_version_config(self.plugin_version.plugin_id, self.plugin_version.build_version)
