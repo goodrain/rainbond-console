@@ -364,8 +364,8 @@ class MarketAppService(object):
                         data["switch"] = True
                         data["version_id"] = build_version
                         data.update(region_config)
-                        app_plugin_service.create_service_plugin_relation(
-                            tenant.tenant_id, service.service_id, plugin_id, build_version)
+                        app_plugin_service.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id,
+                                                                          build_version)
 
                         region_api.install_service_plugin(service.service_region, tenant.tenant_name, service.service_alias,
                                                           data)
