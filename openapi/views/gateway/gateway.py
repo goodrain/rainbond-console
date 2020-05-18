@@ -100,9 +100,12 @@ class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):
     )
     def get(self, req, *args, **kwargs):
         auto_ssl = req.GET.get("auto_ssl", None)
-        is_auto_ssl = False
-        if auto_ssl and auto_ssl.lower() == "true":
-            is_auto_ssl = True
+        is_auto_ssl = None
+        if auto_ssl is not None:
+            if auto_ssl.lower() == "true":
+                is_auto_ssl = True
+            else:
+                is_auto_ssl = False
         rules = domain_service.get_http_rules_by_enterprise_id(self.enterprise.enterprise_id, is_auto_ssl)
         re = EnterpriseHTTPGatewayRuleSerializer(data=rules, many=True)
         re.is_valid()
