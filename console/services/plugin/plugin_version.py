@@ -61,28 +61,28 @@ class PluginBuildVersionService(object):
         }
         return plugin_version_repo.create_plugin_build_version(**build_version_params)
 
-    def delete_build_version_by_id_and_version(self, plugin_id, build_version, force=False):
-        plugin_build_version = plugin_version_repo.get_by_id_and_version(plugin_id, build_version)
+    def delete_build_version_by_id_and_version(self, tenant_id, plugin_id, build_version, force=False):
+        plugin_build_version = plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, build_version)
         if not plugin_build_version:
             return 404, "插件不存在"
         if not force:
-            count_of_version = plugin_version_repo.get_plugin_versions(plugin_id).count()
+            count_of_version = plugin_version_repo.get_plugin_versions(tenant_id, plugin_id).count()
             if count_of_version == 1:
                 return 409, "至少保留插件的一个版本"
-        plugin_version_repo.delete_build_version(plugin_id, build_version)
+        plugin_version_repo.delete_build_version(tenant_id, plugin_id, build_version)
         return 200, "删除成功"
 
-    def get_plugin_versions(self, plugin_id):
-        return plugin_version_repo.get_plugin_versions(plugin_id)
+    def get_plugin_versions(self, tenant_id, plugin_id):
+        return plugin_version_repo.get_plugin_versions(tenant_id, plugin_id)
 
-    def get_newest_plugin_version(self, plugin_id):
-        pbvs = plugin_version_repo.get_plugin_versions(plugin_id)
+    def get_newest_plugin_version(self, tenant_id, plugin_id):
+        pbvs = plugin_version_repo.get_plugin_versions(tenant_id, plugin_id)
         if pbvs:
             return pbvs[0]
         return None
 
-    def get_newest_usable_plugin_version(self, plugin_id):
-        pbvs = plugin_version_repo.get_plugin_versions(plugin_id).filter(build_status="build_success")
+    def get_newest_usable_plugin_version(self, tenant_id, plugin_id):
+        pbvs = plugin_version_repo.get_plugin_versions(tenant_id, plugin_id).filter(build_status="build_success")
         if pbvs:
             return pbvs[0]
         return None
@@ -109,8 +109,8 @@ class PluginBuildVersionService(object):
                 rt_status = "unknown"
         return rt_status
 
-    def copy_build_version_info(self, plugin_id, old_version, new_version):
-        old_build_version = plugin_version_repo.get_by_id_and_version(plugin_id, old_version)
+    def copy_build_version_info(self, tenant_id, plugin_id, old_version, new_version):
+        old_build_version = plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, old_version)
         old_dict = model_to_dict(old_build_version)
         old_dict["build_status"] = "unbuild"
         old_dict["event_id"] = ""
@@ -121,7 +121,7 @@ class PluginBuildVersionService(object):
         return plugin_version_repo.create_plugin_build_version(**old_dict)
 
     def get_plugin_build_status(self, region, tenant, plugin_id, build_version):
-        pbv = plugin_version_repo.get_by_id_and_version(plugin_id, build_version)
+        pbv = plugin_version_repo.get_by_id_and_version(tenant.tenant_id, plugin_id, build_version)
 
         if pbv.build_status == "building":
             status = self.get_region_plugin_build_status(region, tenant.tenant_name, pbv.plugin_id, pbv.build_version)
@@ -129,5 +129,5 @@ class PluginBuildVersionService(object):
             pbv.save()
         return pbv
 
-    def get_by_id_and_version(self, plugin_id, plugin_version):
-        return plugin_version_repo.get_by_id_and_version(plugin_id, plugin_version)
+    def get_by_id_and_version(self, tenant_id, plugin_id, plugin_version):
+        return plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, plugin_version)

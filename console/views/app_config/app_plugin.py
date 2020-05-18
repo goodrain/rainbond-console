@@ -121,7 +121,7 @@ class APPPluginInstallView(AppBaseView):
             if not plugin_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
             if not build_version:
-                plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+                plugin_version = plugin_version_service.get_newest_usable_plugin_version(self.tenant.tenant_id, plugin_id)
                 build_version = plugin_version.build_version
 
             # 1. 建立关联关系

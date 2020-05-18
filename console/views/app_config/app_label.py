@@ -168,9 +168,9 @@ class AppLabelAvailableView(AppBaseView):
             # 去除该组件已绑定的标签
             service_labels = service_label_repo.get_service_labels(self.service.service_id)
             if service_labels:
-                service_labels_id_list = [l.label_id for l in service_labels]
+                service_labels_id_list = [label.label_id for label in service_labels]
                 label_obj_list = label_repo.get_labels_by_label_ids(service_labels_id_list)
-                service_labels_name_list = [l.label_name for l in label_obj_list]
+                service_labels_name_list = [label.label_name for label in label_obj_list]
                 for service_labels_name in service_labels_name_list:
                     if service_labels_name in labels_name_list:
                         labels_name_list.remove(service_labels_name)

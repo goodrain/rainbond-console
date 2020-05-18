@@ -350,7 +350,7 @@ class MarketAppService(object):
                         p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
                         plugin_id = p[0].plugin_id
                         service_plugin_config_vars = plugin_config["attr"]
-                        plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
+                        plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
                         build_version = plugin_version.build_version
 
                         self.__save_service_config_values(service, plugin_id, build_version, service_plugin_config_vars,
@@ -364,7 +364,8 @@ class MarketAppService(object):
                         data["switch"] = True
                         data["version_id"] = build_version
                         data.update(region_config)
-                        app_plugin_service.create_service_plugin_relation(service.service_id, plugin_id, build_version)
+                        app_plugin_service.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id,
+                                                                          build_version)
 
                         region_api.install_service_plugin(service.service_region, tenant.tenant_name, service.service_alias,
                                                           data)
@@ -598,7 +599,7 @@ class MarketAppService(object):
                                                                  port["port_alias"], port["is_inner_service"],
                                                                  port["is_outer_service"])
             if code != 200:
-                logger.error("save market app port error".format(msg))
+                logger.error("save market app port error{}".format(msg))
                 return code, msg
         return 200, "success"
 

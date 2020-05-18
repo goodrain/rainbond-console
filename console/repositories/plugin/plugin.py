@@ -30,8 +30,11 @@ class TenantPluginRepository(object):
         else:
             return None
 
-    def get_by_plugin_id(self, plugin_id):
-        return TenantPlugin.objects.get(plugin_id=plugin_id)
+    def get_by_plugin_id(self, tenant_id, plugin_id):
+        plugins = TenantPlugin.objects.filter(plugin_id=plugin_id, tenant_id=tenant_id)
+        if not plugins:
+            return None
+        return plugins[0]
 
     def get_plugin_by_plugin_ids(self, plugin_ids):
         return TenantPlugin.objects.filter(plugin_id__in=plugin_ids)
@@ -73,8 +76,8 @@ class TenantPluginRepository(object):
     def create_plugin(self, **plugin_args):
         return TenantPlugin.objects.create(**plugin_args)
 
-    def delete_by_plugin_id(self, plugin_id):
-        TenantPlugin.objects.filter(plugin_id=plugin_id).delete()
+    def delete_by_plugin_id(self, tenant_id, plugin_id):
+        TenantPlugin.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id).delete()
 
     def get_tenant_plugins(self, tenant_id, region):
         return TenantPlugin.objects.filter(tenant_id=tenant_id, region=region)

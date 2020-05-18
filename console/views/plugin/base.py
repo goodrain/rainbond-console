@@ -25,7 +25,7 @@ class PluginBaseView(RegionTenantHeaderView):
         if not plugin_id:
             raise ImportError("You url not contains args - plugin_id -")
         try:
-            tenant_plugin = plugin_repo.get_by_plugin_id(plugin_id)
+            tenant_plugin = plugin_repo.get_by_plugin_id(self.tenant.tenant_id, plugin_id)
         except TenantPlugin.DoesNotExist:
             raise BusinessException(Response(general_message(404, "plugin not found", "插件不存在"), status=404))
 
@@ -47,7 +47,8 @@ class PluginBaseView(RegionTenantHeaderView):
 
         build_version = kwargs.get("build_version", None)
         if build_version:
-            plugin_build_version = PluginBuildVersion.objects.filter(plugin_id=plugin_id, build_version=build_version)
+            plugin_build_version = PluginBuildVersion.objects.filter(
+                tenant_id=self.tenant.tenant_id, plugin_id=plugin_id, build_version=build_version)
             if plugin_build_version:
                 self.plugin_version = plugin_build_version[0]
             else:

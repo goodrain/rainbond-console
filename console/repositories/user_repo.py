@@ -141,7 +141,7 @@ class UserRepo(object):
                 tenant_info c
             {where}
             {limit}""".format(
-            tenant_id=tenant_id, where=where, limit=limit)
+            where=where, limit=limit)
         result = conn.query(sql)
         return result
 
