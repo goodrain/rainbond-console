@@ -3,8 +3,8 @@ from django.db.models import Q
 
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.exception.exceptions import UserNotExistError
-from console.repositories.base import BaseConnection
 from console.models.main import UserFavorite
+from console.repositories.base import BaseConnection
 from www.models.main import Users
 
 
@@ -147,7 +147,7 @@ class UserRepo(object):
                 tenant_info c
             {where}
             {limit}""".format(
-            tenant_id=tenant_id, where=where, limit=limit)
+            where=where, limit=limit)
         result = conn.query(sql)
         return result
 

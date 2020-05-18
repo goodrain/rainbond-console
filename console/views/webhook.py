@@ -4,25 +4,21 @@ import logging
 import os
 import pickle
 import re
-# from urlparse import urlparse
 
 from docker_image import reference
 from rest_framework.response import Response
 
 from console.constants import AppConstants
 from console.models.main import DeployRelation
-from console.repositories.app import service_repo
-from console.repositories.app import service_webhooks_repo
+from console.repositories.app import service_repo, service_webhooks_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView
 from www.decorator import perm_required
-from www.models.main import Tenants
-from www.models.main import TenantServiceInfo
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.models.main import Tenants, TenantServiceInfo
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 
@@ -62,30 +58,26 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 commits_info = request.data.get("head_commit")
                 if not commits_info:
-                    logger.debug("提交信息获取失败")
-                    result = general_message(400, "failed", "提交信息获取失败")
+                    result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
-                    logger.debug("提交信息无效")
-                    result = general_message(200, "failed", "提交信息无效")
+                    result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
+                                             "提交信息无效")
                     return Response(result, status=200)
                 ref = request.data.get("ref")
                 if not ref:
-                    logger.debug("获取分支信息失败")
-                    result = general_message(200, "failed", "获取分支信息失败")
+                    result = general_message(200, "can not read branch info", "获取分支信息失败")
                     return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
-                    logger.debug("当前分支与部署分支不同")
-                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    result = general_message(200, "current branch is different event branch", "提交分支与部署分支不同")
                     return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
-                    logger.debug("却少repository信息")
-                    result = general_message(200, "failed", "却少repository信息")
+                    result = general_message(200, "can not read repository info", "却少repository信息")
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
@@ -103,8 +95,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("组件状态异常")
-                    result = general_message(400, "failed", "组件状态不支持")
+                    result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=400)
             # gitlab
             elif request.META.get("HTTP_X_GITLAB_EVENT", None):
@@ -113,14 +104,13 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 commits_info = request.data.get("commits")
                 if not commits_info:
-                    logger.debug("提交信息获取失败")
-                    result = general_message(400, "failed", "提交信息获取失败")
+                    result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[-1].get("message")
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
-                    logger.debug("提交信息无效")
-                    result = general_message(200, "failed", "提交信息无效")
+                    result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
+                                             "提交信息无效")
                     return Response(result, status=200)
 
                 event_name = request.data.get("object_kind", None)
@@ -132,25 +122,21 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=200)
 
                 if event_name != "push" and event_name != "ping":
-                    logger.debug("不支持此事件类型")
-                    result = general_message(200, "failed", "不支持此事件类型")
+                    result = general_message(200, "event type not support", "不支持此事件类型")
                     return Response(result, status=200)
 
                 ref = request.data.get("ref")
                 if not ref:
-                    logger.debug("获取分支信息失败")
-                    result = general_message(200, "failed", "获取分支信息失败")
+                    result = general_message(200, "can not read branch info", "获取分支信息失败")
                     return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
-                    logger.debug("当前分支与部署分支不同")
-                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    result = general_message(200, "current branch is different event branch", "提交分支与部署分支不同")
                     return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
-                    logger.debug("却少repository信息")
-                    result = general_message(200, "failed", "却少repository信息")
+                    result = general_message(200, "can not read repository info", "却少repository信息")
                     return Response(result, status=200)
 
                 git_http_url = repository.get("git_http_url")
@@ -170,8 +156,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user, committer_name=committer_name)
                 else:
-                    logger.debug("组件状态异常")
-                    result = general_message(200, "failed", "组件状态不支持")
+                    result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=200)
             # gitee
             elif request.META.get("HTTP_X_GITEE_EVENT", None) or \
@@ -180,30 +165,26 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 commits_info = request.data.get("head_commit")
                 if not commits_info:
-                    logger.debug("提交信息获取失败")
-                    result = general_message(400, "failed", "提交信息获取失败")
+                    result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
-                    logger.debug("提交信息无效")
-                    result = general_message(200, "failed", "提交信息无效")
+                    result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
+                                             "提交信息无效")
                     return Response(result, status=200)
                 ref = request.data.get("ref")
                 if not ref:
-                    logger.debug("获取分支信息失败")
-                    result = general_message(200, "failed", "获取分支信息失败")
+                    result = general_message(200, "can not read branch info", "获取分支信息失败")
                     return Response(result, status=200)
                 ref = ref.split("/")[-1]
                 if not service_obj.code_version == ref:
-                    logger.debug("当前分支与部署分支不同")
-                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    result = general_message(200, "current branch is different event branch", "提交分支与部署分支不同")
                     return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
-                    logger.debug("却少repository信息")
-                    result = general_message(200, "failed", "却少repository信息")
+                    result = general_message(200, "can not read repository info", "却少repository信息")
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
@@ -223,8 +204,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("组件状态异常")
-                    result = general_message(200, "failed", "组件状态不支持")
+                    result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=200)
             # gogs
             elif request.META.get("HTTP_X_GOGS_EVENT", None):
@@ -232,30 +212,26 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 commits_info = request.data.get("commits")
                 if not commits_info:
-                    logger.debug("提交信息获取失败")
-                    result = general_message(400, "failed", "提交信息获取失败")
+                    result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info[0].get("message")
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
-                    logger.debug("提交信息无效")
-                    result = general_message(200, "failed", "提交信息无效")
+                    result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
+                                             "提交信息无效")
                     return Response(result, status=200)
                 ref = request.data.get("ref")
                 if not ref:
-                    logger.debug("获取分支信息失败")
-                    result = general_message(200, "failed", "获取分支信息失败")
+                    result = general_message(200, "can not read branch info", "获取分支信息失败")
                     return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
-                    logger.debug("当前分支与部署分支不同")
-                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    result = general_message(200, "current branch is different event branch", "提交分支与部署分支不同")
                     return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
-                    logger.debug("却少repository信息")
-                    result = general_message(200, "failed", "却少repository信息")
+                    result = general_message(200, "can not read repository info", "却少repository信息")
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
@@ -274,8 +250,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("组件状态异常")
-                    result = general_message(200, "failed", "组件状态不支持")
+                    result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=200)
             # coding
             elif request.META.get("HTTP_X_CODING_EVENT", None):
@@ -292,31 +267,27 @@ class WebHooksDeploy(AlowAnyApiView):
 
                 commits_info = request.data.get("head_commit")
                 if not commits_info:
-                    logger.debug("提交信息获取失败")
-                    result = general_message(400, "failed", "提交信息获取失败")
+                    result = general_message(400, "can not get commit info", "提交信息获取失败")
                     return Response(result, status=400)
                 message = commits_info.get("message")
                 keyword = "@" + service_webhook.deploy_keyword
                 if keyword not in message:
-                    logger.debug("提交信息无效")
-                    result = general_message(200, "failed", "提交信息无效")
+                    result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
+                                             "提交信息无效")
                     return Response(result, status=200)
 
                 ref = request.data.get("ref")
                 if not ref:
-                    logger.debug("获取分支信息失败")
-                    result = general_message(200, "failed", "获取分支信息失败")
+                    result = general_message(200, "can not read branch info", "获取分支信息失败")
                     return Response(result, status=200)
                 ref = ref.split("/")[2]
                 if not service_obj.code_version == ref:
-                    logger.debug("当前分支与部署分支不同")
-                    result = general_message(200, "failed", "提交分支与部署分支不同")
+                    result = general_message(200, "current branch is different event branch", "提交分支与部署分支不同")
                     return Response(result, status=200)
 
                 repository = request.data.get("repository")
                 if not repository:
-                    logger.debug("却少repository信息")
-                    result = general_message(200, "failed", "却少repository信息")
+                    result = general_message(200, "can not read repository info", "却少repository信息")
                     return Response(result, status=200)
                 clone_url = repository.get("clone_url")
                 ssh_url = repository.get("ssh_url")
@@ -334,8 +305,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return user_services.deploy_service(
                         tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
                 else:
-                    logger.debug("组件状态异常")
-                    result = general_message(400, "failed", "组件状态不支持")
+                    result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=400)
             else:
                 logger.debug("暂时仅支持github与gitlab")
@@ -561,8 +531,7 @@ class CustomWebHooksDeploy(AlowAnyApiView):
             return user_services.deploy_service(
                 tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=user_name)
         else:
-            logger.debug("组件状态异常")
-            result = general_message(400, "failed", "组件状态不支持")
+            result = general_message(200, "component is closed, not support", "组件状态不支持")
             return Response(result, status=400)
 
 

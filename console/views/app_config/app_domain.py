@@ -17,9 +17,9 @@ from console.repositories.app_config import (configuration_repo, domain_repo, tc
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import domain_service, port_service
+from console.services.config_service import EnterpriseConfigService
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.services.config_service import EnterpriseConfigService
 from console.utils.reqparse import parse_item
 from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
