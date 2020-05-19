@@ -39,7 +39,7 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
         ]
 
     # component status
-    status = serializers.CharField(max_length=32, help_text=u"组件状态")
+    status = serializers.CharField(allow_blank=True, allow_null=True, max_length=32, help_text=u"组件状态")
 
 
 class AppInfoSerializer(AppBaseInfoSerializer):

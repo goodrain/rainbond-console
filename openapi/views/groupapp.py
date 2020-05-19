@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.services.groupcopy_service import groupapp_copy_service
+from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 from openapi.serializer.groupapp_serializer import (AppCopyCResSerializer, AppCopyCSerializer, AppCopyLSerializer)
 from openapi.views.base import TeamAPIView
 
@@ -67,6 +68,8 @@ class GroupAppsCopyView(TeamAPIView):
                                                                              tar_app_id)
         services = groupapp_copy_service.copy_group_services(request.user, self.team, tar_team, tar_region_name, tar_group,
                                                              app_id, services)
-        serializers = AppCopyCResSerializer(data={"services": services})
-        serializers.is_valid(raise_exception=True)
+        services = ServiceBaseInfoSerializer(data=services, many=True)
+        services.is_valid()
+        serializers = AppCopyCResSerializer(data={"services": services.data})
+        serializers.is_valid()
         return Response(serializers.data, status=200)
