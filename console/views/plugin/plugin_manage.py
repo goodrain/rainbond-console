@@ -99,7 +99,7 @@ class CreatePluginVersionView(PluginBaseView):
               paramType: path
         """
         try:
-            plugin_versions = plugin_version_service.get_plugin_versions(self.plugin.plugin_id)
+            plugin_versions = plugin_version_service.get_plugin_versions(self.tenant.tenant_id, self.plugin.plugin_id)
 
             if not plugin_versions:
                 return Response(general_message(412, "current version not exist", "插件不存在任何版本，无法创建"), status=412)
@@ -110,7 +110,7 @@ class CreatePluginVersionView(PluginBaseView):
                 return Response(general_message(412, "no useable plugin version", "您的插件构建未成功，无法创建新版本"), status=412)
 
             new_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            plugin_version_service.copy_build_version_info(pbv.plugin_id, pbv.build_version, new_version)
+            plugin_version_service.copy_build_version_info(self.tenant.tenant_id, pbv.plugin_id, pbv.build_version, new_version)
             plugin_config_service.copy_config_group(pbv.plugin_id, pbv.build_version, new_version)
             plugin_config_service.copy_group_items(pbv.plugin_id, pbv.build_version, new_version)
 

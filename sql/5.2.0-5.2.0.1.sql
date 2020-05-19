@@ -34,3 +34,4 @@ alter table service_group add order_index int(16) DEFAULT 0;
 
 alter table service_domain add auto_ssl TINYINT(1) DEFAULT 0;
 alter table service_domain add auto_ssl_config varchar(32) DEFAULT NULL;
+alter table console.tenant_service_delete modify version varchar(255); 
