@@ -56,8 +56,12 @@ class RoleKindService(object):
     def update_role(self, kind, kind_id, id, name):
         if not name:
             raise ServiceHandleException(msg="role name exit", msg_show=u"角色名称不能为空")
-        if self.get_role_by_name(kind, kind_id, name, with_default=True):
-            raise ServiceHandleException(msg="role name exit", msg_show=u"角色名称已存在")
+        exit_role = self.get_role_by_name(kind, kind_id, name, with_default=True)
+        if exit_role:
+            if int(exit_role.ID) != int(id):
+                raise ServiceHandleException(msg="role name exit", msg_show=u"角色名称已存在")
+            else:
+                return exit_role
         role = self.get_role_by_id(kind, kind_id, id)
         if not role:
             raise ServiceHandleException(msg="role no found", msg_show=u"角色不存在或为默认角色", status_code=404)
@@ -141,7 +145,7 @@ class RolePermService(object):
     def get_role_perms(self, role, kind=None):
         if not role:
             return None
-        roles_perms = {str(role): []}
+        roles_perms = {str(role.ID): []}
         role_perm_relation_mode = role_perm_relation_repo.get_role_perm_relation(role.ID)
         if role_perm_relation_mode:
             roles_perm_relations = role_perm_relation_mode.values("role_id", "perm_code")

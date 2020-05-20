@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 from django.conf.urls import url
 
+import console.utils.perms_route_config as perms
 from console.views.perms import PermsInfoLView
 from console.views.perms import TeamRolesLCView
 from console.views.perms import TeamRolesRUDView
@@ -315,9 +316,9 @@ urlpatterns = [
     # 获取权限列表
     url(r'^perms$', PermsInfoLView.as_view()),
     # OAuth
-    url(r"^oauth/oauth-config$", OauthConfig.as_view()),
-    url(r"^oauth/oauth-services$", OauthService.as_view()),
-    url(r"^oauth/oauth-services/(?P<service_id>[\w\-]+)$", OauthServiceInfo.as_view()),
+    url(r"^oauth/oauth-config$", OauthConfig.as_view(), perms.OauthConfigPerms),
+    url(r"^oauth/oauth-services$", OauthService.as_view(), perms.OauthServicePerms),
+    url(r"^oauth/oauth-services/(?P<service_id>[\w\-]+)$", OauthServiceInfo.as_view(), perms.OauthServiceInfoPerms),
     url(r"^oauth/redirect$", OAuthServiceRedirect.as_view()),
     url(r"^oauth/authorize$", OAuthServerAuthorize.as_view()),
     url(r"^oauth/type$", OauthType.as_view()),
@@ -356,18 +357,18 @@ urlpatterns = [
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
     # 团队角色权限管理
-    url(r'^teams/(?P<team_name>[\w\-]+)/roles/perms$', TeamRolesPermsLView.as_view()),
-    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)/perms$', TeamRolePermsRUDView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/perms$', TeamRolesPermsLView.as_view(), perms.TeamRolesPermsLViewPerms),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)/perms$', TeamRolePermsRUDView.as_view(), perms.TeamRolePermsRUDViewPerms),
     # 团队角色管理
-    url(r'^teams/(?P<team_name>[\w\-]+)/roles$', TeamRolesLCView.as_view()),
-    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)$', TeamRolesRUDView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles$', TeamRolesLCView.as_view(), perms.TeamRolesLCViewPerms),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)$', TeamRolesRUDView.as_view(), perms.TeamRolesRUDViewPerms),
     # 团队成员角色管理
-    url(r'^teams/(?P<team_name>[\w\-]+)/users/roles', TeamUsersRolesLView.as_view()),
-    url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/roles', TeamUserRolesRUDView.as_view()),
-    url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/perms', TeamUserPermsLView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/roles', TeamUsersRolesLView.as_view(), perms.TeamUsersRolesLViewPerms),
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/roles', TeamUserRolesRUDView.as_view(), perms.TeamUserRolesRUDViewPerms),
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/perms', TeamUserPermsLView.as_view(), perms.TeamUserPermsLViewPerms),
 
     # 移交团队管理权
-    url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view(), perms.UserPemTraViewPerms),
     # 可选权限展示
     # url(r'^teams/user/identity$', UserPemView.as_view()),
     # 修改成员权限

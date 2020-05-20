@@ -20,24 +20,32 @@ ENTERPRISE = {
 
 TEAM = {
     "perms": [
-        ["describe", u"获取", 200001],
-        ["region_describe", u"获取集群", 200002],
-        ["region_install", u"挂载集群", 200003],
-        ["region_uninstall", u"卸载集群", 200004],
-
-        ["member_describe", u"获取成员", 200005],
-        ["member_create", u"创建成员", 200006],
-        ["member_edit", u"编辑成员", 200007],
-        ["member_delete", u"删除成员", 200008],
-
-        ["dynamic_describe", u"获取动态", 200009],
-
-        ["rule_describe", u"获取角色", 200010],
-        ["rule_create", u"创建角色", 200011],
-        ["rule_edit", u"编辑角色", 200012],
-        ["rule_delete", u"删除角色", 200013],
-
+        ["describe", u"查看团队信息", 200001],
+        ["dynamic_describe", u"查看团队动态", 200009],
     ],
+    "teamRegion": {
+        "perms":[
+            ["describe", u"获取", 200002],
+            ["install", u"开通", 200003],
+            ["uninstall", u"关闭", 200004]
+        ]
+    },
+    "teamMember": {
+        "perms": [
+            ["describe", u"获取", 200005],
+            ["create", u"创建", 200006],
+            ["edit", u"编辑", 200007],
+            ["delete", u"删除", 200008],
+        ]
+    },
+    "teamRole": {
+        "perms": [
+            ["describe", u"获取角色", 200010],
+            ["create", u"创建角色", 200011],
+            ["edit", u"编辑角色", 200012],
+            ["delete", u"删除角色", 200013],
+        ]
+    },
     "app": {
         "perms": [
             ["describe", u"获取", 300001],
