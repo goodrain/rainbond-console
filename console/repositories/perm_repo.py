@@ -351,6 +351,7 @@ class UserKindRoleRepo(object):
         for user in users:
             data.append({
                 "nick_name": user.nick_name,
+                "email": user.email,
                 "user_id": user.user_id,
                 "roles": user_roles_kv.get(str(user.user_id), [])
             })
