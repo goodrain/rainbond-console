@@ -236,23 +236,14 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
                     if service_obj.service_source == "third_party":
                         service_ids.remove(service_id)
 
-            # 校验权限
-            # identitys = team_services.get_user_perm_identitys_in_permtenant(
-            #     user_id=self.user.user_id, tenant_name=self.tenant_name)
-            # perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-            # common_perm = "owner" not in identitys and "admin" not in identitys and "developer" not in identitys
-            # if action == "stop":
-            #     if "stop_service" not in perm_tuple and common_perm:
-            #         return Response(general_message(400, "Permission denied", "没有关闭组件权限"), status=400)
-            # if action == "start":
-            #     if "start_service" not in perm_tuple and common_perm:
-            #         return Response(general_message(400, "Permission denied", "没有启动组件权限"), status=400)
-            # if action == "upgrade":
-            #     if "restart_service" not in perm_tuple and common_perm:
-            #         return Response(general_message(400, "Permission denied", "没有更新组件权限"), status=400)
-            # if action == "deploy":
-            #     if "deploy_service" not in perm_tuple and common_perm:
-            #         return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
+            if action == "stop":
+                self.has_perms([300006, 400008])
+            if action == "start":
+                self.has_perms([300005, 400006])
+            if action == "upgrade":
+                self.has_perms([300007, 400009])
+            if action == "deploy":
+                self.has_perms([300008, 400010])
                 # 批量操作
             code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids)
             if code != 200:

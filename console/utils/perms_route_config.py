@@ -134,7 +134,7 @@ DEFAULT_TEAM_ROLE_PERMS = {
     "viewer": [200001, 200002, 200005, 200009, 200010, 300001, 400001, 500001, 600001, 700001],
 }
 
-OauthConfigPerms = {
+OauthConfig = {
     "__message":{
         "get": {"perms": []},
         "post": {"perms": []},
@@ -143,7 +143,7 @@ OauthConfigPerms = {
     }
 }
 
-OauthServicePerms = {
+OauthService = {
     "__message":{
         "get": {"perms": [100000]},
         "post": {"perms": [100000]},
@@ -152,7 +152,7 @@ OauthServicePerms = {
     }
 }
 
-OauthServiceInfoPerms = {
+OauthServiceInfo = {
     "__message":{
         "get": {"perms": []},
         "post": {"perms": []},
@@ -161,7 +161,7 @@ OauthServiceInfoPerms = {
     }
 }
 
-TeamRolesPermsLViewPerms = {
+TeamRolesPermsLView = {
     "__message":{
         "get": {"perms": [200001, 200010]},
         "post": {"perms": []},
@@ -170,7 +170,7 @@ TeamRolesPermsLViewPerms = {
     }
 }
 
-TeamRolePermsRUDViewPerms = {
+TeamRolePermsRUDView = {
     "__message":{
         "get": {"perms": [200001, 200010]},
         "post": {"perms": []},
@@ -179,7 +179,7 @@ TeamRolePermsRUDViewPerms = {
     }
 }
 
-TeamRolesLCViewPerms = {
+TeamRolesLCView = {
     "__message":{
         "get": {"perms": [200001, 200010]},
         "post": {"perms": [200010, 200011]},
@@ -188,7 +188,7 @@ TeamRolesLCViewPerms = {
     }
 }
 
-TeamRolesRUDViewPerms = {
+TeamRolesRUDView = {
     "__message":{
         "get": {"perms": [200001, 200010]},
         "post": {"perms": []},
@@ -197,7 +197,7 @@ TeamRolesRUDViewPerms = {
     }
 }
 
-TeamUsersRolesLViewPerms = {
+TeamUsersRolesLView = {
     "__message":{
         "get": {"perms": [200001, 200005, 200010]},
         "post": {"perms": []},
@@ -206,7 +206,7 @@ TeamUsersRolesLViewPerms = {
     }
 }
 
-TeamUserRolesRUDViewPerms = {
+TeamUserRolesRUDView = {
     "__message":{
         "get": {"perms": [200001, 200005, 200010]},
         "post": {"perms": []},
@@ -215,7 +215,7 @@ TeamUserRolesRUDViewPerms = {
     }
 }
 
-TeamUserPermsLViewPerms = {
+TeamUserPermsLView = {
     "__message":{
         "get": {"perms": [200001, 200010]},
         "post": {"perms": [200011]},
@@ -224,7 +224,7 @@ TeamUserPermsLViewPerms = {
     }
 }
 
-UserPemTraViewPerms = {
+UserPemTraView = {
     "__message":{
         "get": {"perms": []},
         "post": {"perms": [200000]},
@@ -233,7 +233,7 @@ UserPemTraViewPerms = {
     }
 }
 
-AddTeamViewPerms = {
+AddTeamView = {
     "__message":{
         "get": {"perms": []},
         "post": {"perms": [100000]},
@@ -242,11 +242,506 @@ AddTeamViewPerms = {
     }
 }
 
-TeamUserViewPerms = {
+TeamUserView = {
     "__message":{
-        "get": {"perms": []},
-        "post": {"perms": [100000]},
+        "get": {"perms": [200001]},
+        "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
 }
+
+NotJoinTeamUserView = {
+    "__message":{
+        "get": {"perms": [200001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+UserDelView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": [200008]}
+    }
+}
+
+TeamNameModView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [200000]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TeamDelView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": [100000]}
+    }
+}
+
+AppGroupVisitView = {
+    "__message":{
+        "get": {"perms": [400001, 300001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TeamSortDomainQueryView = {
+    "__message":{
+        "get": {"perms": [200001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TeamSortServiceQueryView = {
+    "__message":{
+        "get": {"perms": [200001, 400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+RegQuyView = {
+    "__message":{
+        "get": {"perms": [200001, 200002]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+RegUnopenView = {
+    "__message":{
+        "get": {"perms": [200001, 200002]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+OpenRegionView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [200003]},
+        "put": {"perms": []},
+        "patch": {"perms": [200003]},
+        "delete": {"perms": [200004]}
+    }
+}
+
+TeamOverView = {
+    "__message":{
+        "get": {"perms": [200001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+AllServiceInfo = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [200001, 300001, 400001]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TeamAppSortViewView = {
+    "__message":{
+        "get": {"perms": [200001, 300001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TeamServiceOverViewView = {
+    "__message":{
+        "get": {"perms": [200001, 300001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+ServiceEventsView = {
+    "__message":{
+        "get": {"perms": [200009]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TenantServiceEnvsView = {
+    "__message":{
+        "get": {"perms": [400013]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+ServiceGroupView = {
+    "__message":{
+        "get": {"perms": [300001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+GroupServiceView = {
+    "__message":{
+        "get": {"perms": [300001, 400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TopologicalGraphView = {
+    "__message":{
+        "get": {"perms": [400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+GroupServiceDetView = {
+    "__message":{
+        "get": {"perms": [400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TopologicalInternetView = {
+    "__message":{
+        "get": {"perms": [300001, 400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+ServiceShareRecordView = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServiceShareRecordInfoView = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ShareRecordView = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServiceGroupSharedApps = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ShareRecordHistoryView = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServiceShareInfoView = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServiceShareDeleteView = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServiceShareEventList = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServiceShareEventPost = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServicePluginShareEventPost = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+ServiceShareCompleteView = {
+    "__message":{
+        "get": {"perms": [300012]},
+        "post": {"perms": [300012]},
+        "put": {"perms": [300012]},
+        "delete": {"perms": [300012]}
+    }
+}
+
+TenantGroupView = {
+    "__message":{
+        "get": {"perms": [300001]},
+        "post": {"perms": [300002]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+TenantGroupOperationView = {
+    "__message":{
+        "get": {"perms": [300001]},
+        "post": {"perms": []},
+        "put": {"perms": [300003]},
+        "delete": {"perms": [300004]}
+    }
+}
+
+GroupStatusView = {
+    "__message":{
+        "get": {"perms": [300001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+# 权限在内部验证
+TenantGroupCommonOperationView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+SourceCodeCreateView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+ThirdPartyServiceCreateView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [300001, 300002, 400001, 400002]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+ThirdPartyServiceApiView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [300001, 300002, 400001, 400002]},
+        "put": {"perms": [300001, 300002, 400001, 400002]},
+        "delete": {"perms": [300001, 300002, 400001, 400002]}
+    }
+}
+
+ThirdPartyUpdateSecretKeyView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": [400001, 400003]},
+        "delete": {"perms": []}
+    }
+}
+
+ThirdPartyHealthzView = {
+    "__message":{
+        "get": {"perms": [400001]},
+        "post": {"perms": []},
+        "put": {"perms": [400001, 400021]},
+        "delete": {"perms": []}
+    }
+}
+
+DockerRunCreateView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+DockerComposeCreateView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+AppCheck = {
+    "__message":{
+        "get": {"perms": [300001, 400001]},
+        "post": {"perms": [300001, 400001]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+GetCheckUUID = {
+    "__message":{
+        "get": {"perms": [300001, 400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+MultiAppCheckView = {
+    "__message":{
+        "get": {"perms": [300001, 300002, 400001, 400002]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+MultiAppCreateView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+AppCheckUpdate = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": [300001, 300002, 400001, 400002]},
+        "delete": {"perms": []}
+    }
+}
+
+ComposeCheckUpdate = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": [300001, 300002, 400001, 400002]},
+        "delete": {"perms": []}
+    }
+}
+
+ComposeCheckView = {
+    "__message":{
+        "get": {"perms": [300001, 300002, 400001, 400002]},
+        "post": {"perms": [300001, 300002, 400001, 400002]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+GetComposeCheckUUID = {
+    "__message":{
+        "get": {"perms": [300001, 300002, 400001, 400002]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+ComposeBuildView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": [300001, 300002, 300008, 400001, 400002, 400010]},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+ComposeDeleteView = {
+    "__message":{
+        "get": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": [300001, 300002, 300004, 400001, 400002, 400004]}
+    }
+}
+
+ComposeServicesView = {
+    "__message":{
+        "get": {"perms": [300001, 400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
+
+
+
+
+
+
+

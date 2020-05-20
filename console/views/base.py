@@ -202,6 +202,11 @@ class JWTAuthApiView(APIView):
                 if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
                     raise NoPermissionsError
 
+    def has_perms(self, request_perms):
+        if request_perms:
+            if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
+                raise NoPermissionsError
+
     def initial(self, request, *args, **kwargs):
         self.user = request.user
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
