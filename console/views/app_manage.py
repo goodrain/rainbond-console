@@ -330,19 +330,23 @@ class BatchActionView(RegionTenantHeaderView):
         # identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
         # perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
 
-        # if action == "stop":
+        if action == "stop":
+            self.has_perms([400008])
         #     if "stop_service" not in perm_tuple and "owner" not in identitys \
         #             and "admin" not in identitys and "developer" not in identitys:
         #         return Response(general_message(400, "Permission denied", "没有关闭组件权限"), status=400)
-        # if action == "start":
+        if action == "start":
+            self.has_perms([400006])
         #     if "start_service" not in perm_tuple and "owner" not in identitys and "admin" \
         #             not in identitys and "developer" not in identitys:
         #         return Response(general_message(400, "Permission denied", "没有启动组件权限"), status=400)
-        # if action == "restart":
+        if action == "restart":
+            self.has_perms([400007])
         #     if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" \
         #             not in identitys and "developer" not in identitys:
         #         return Response(general_message(400, "Permission denied", "没有重启组件权限"), status=400)
-        # if action == "move":
+        if action == "move":
+            self.has_perms([400003])
         #     if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" \
         #             not in identitys and "developer" not in identitys:
         #         return Response(general_message(400, "Permission denied", "没有变更组件分组权限"), status=400)
