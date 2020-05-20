@@ -474,7 +474,7 @@ class TeamService(object):
 
         tenant_region.delete()
 
-    def get_enterprise_teams(self, enterprise_id, query=None, page=None, page_size=None):
+    def get_enterprise_teams(self, enterprise_id, query=None, page=None, page_size=None, user=None):
         tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)
         total = tall.count()
         if page is not None and page_size is not None:
@@ -484,7 +484,7 @@ class TeamService(object):
             raw_tenants = tall
         tenants = []
         for tenant in raw_tenants:
-            tenants.append(self.__team_with_region_info(tenant))
+            tenants.append(self.__team_with_region_info(tenant, user))
         return tenants, total
 
     def list_teams_v2(self, eid, query=None, page=None, page_size=None):
@@ -526,19 +526,17 @@ class TeamService(object):
             tenant["role_infos"] = role_infos
         return tenants, total
 
-    def __team_with_region_info(self, tenant, user_id=None):
-        role = ""
-        owner_name = ""
+    def __team_with_region_info(self, tenant, request_user=None):
         try:
             user = user_repo.get_user_by_user_id(tenant.creater)
             owner_name = user.get_name()
-            if user_id:
-                role = user_role_repo.get_role_names(user_id, tenant.tenant_id)
         except UserNotExistError:
-            pass
-        except UserRoleNotFoundException:
-            if tenant.creater == user_id:
-                role = "owner"
+            owner_name = None
+
+        user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
+        roles = map(lambda x: x["role_name"], user_role_list["roles"])
+        if tenant.creater == request_user.user_id:
+            roles.append("owner")
         region_info_map = []
         region_list = team_repo.get_team_regions(tenant.tenant_id)
         if region_list:
@@ -558,16 +556,16 @@ class TeamService(object):
             "owner": tenant.creater,
             "owner_name": owner_name,
         }
-        if user_id:
-            info["role"] = role
+        if request_user:
+            info["roles"] = roles
         return info
 
-    def get_teams_region_by_user_id(self, enterprise_id, user_id, name=None):
+    def get_teams_region_by_user_id(self, enterprise_id, user, name=None):
         teams_list = list()
-        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user_id, name)
+        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
         if tenants:
             for tenant in tenants:
-                teams_list.append(self.__team_with_region_info(tenant, user_id))
+                teams_list.append(self.__team_with_region_info(tenant, user))
         return teams_list
 
     def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
