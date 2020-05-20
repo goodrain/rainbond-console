@@ -1253,6 +1253,15 @@ AppEventView = {
     }
 }
 
+AppLogView = {
+    "__message":{
+        "get": {"perms": [400001]},
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
+    }
+}
+
 AppEventLogView = {
     "__message":{
         "get": {"perms": [400001]},
