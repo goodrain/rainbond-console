@@ -5,7 +5,7 @@ django-crispy-forms==1.6.0
 addict==0.4.0
 gunicorn==19.0.0
 wsgiref==0.1.2
-httplib2==0.9.1
+httplib2==0.18.0
 simplejson==3.8.0
 urllib3==1.24.3
 certifi

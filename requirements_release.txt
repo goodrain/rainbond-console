@@ -3,7 +3,7 @@ django-crispy-forms==1.4.0
 addict==0.4.0
 gunicorn==19.0.0
 wsgiref==0.1.2
-httplib2==0.9.1
+httplib2==0.18.0
 simplejson==3.8.0
 urllib3==1.12
 whitenoise==2.0.3
