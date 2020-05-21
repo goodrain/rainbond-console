@@ -35,4 +35,5 @@ class OpenAPIManageAuthentication(authentication.TokenAuthentication):
         if not manage_token or manage_token != token:
             raise exceptions.AuthenticationFailed('token is invalid')
         user = Users(nick_name="ManageOpenAPI")
+        user.is_administrator = True
         return (user, None)

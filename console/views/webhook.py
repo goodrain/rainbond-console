@@ -20,8 +20,6 @@ from www.decorator import perm_required
 from www.models.main import Tenants, TenantServiceInfo
 from www.utils.return_message import error_message, general_message
 
-# from urlparse import urlparse
-
 logger = logging.getLogger("default")
 
 

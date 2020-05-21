@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 
-class EnterpriseInfoSerializer(serializers.Serializer):
+class EnterpriseListInfoSerializer(serializers.Serializer):
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
     enterprise_name = serializers.CharField(max_length=64, help_text=u"企业名称")
     enterprise_alias = serializers.CharField(max_length=64, help_text=u"企业别名")
@@ -16,7 +16,7 @@ class EnterpriseInfoSerializer(serializers.Serializer):
 
 class ListEntsRespSerializer(serializers.Serializer):
     total = serializers.IntegerField(help_text=u"总数")
-    data = EnterpriseInfoSerializer(many=True)
+    data = EnterpriseListInfoSerializer(many=True)
 
 
 class UpdEntReqSerializer(serializers.Serializer):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+
 from django.db import connection
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -10,18 +11,15 @@ from rest_framework.response import Response
 from console.exception.main import ServiceHandleException
 from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
+from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
-from console.services.config_service import EnterpriseConfigService
-from www.apiclient.regionapi import RegionInvokeApi
 from console.utils.timeutil import time_to_str
-from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
-from openapi.serializer.ent_serializers import ListEntsRespSerializer
-from openapi.serializer.ent_serializers import UpdEntReqSerializer
-from openapi.serializer.ent_serializers import EnterpriseSourceSerializer
 from openapi.serializer.config_serializers import EnterpriseConfigSeralizer
-from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
+from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer, ListEntsRespSerializer,
+                                                UpdEntReqSerializer)
+from openapi.views.base import BaseOpenAPIView, ListAPIView
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -168,28 +166,3 @@ class EnterpriseConfigView(BaseOpenAPIView):
                 status_code=404, msg="no found config key {}".format(key), msg_show=u"企业没有 {} 配置".format(key))
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        operation_description="更新企业配置信息",
-        request_body=EnterpriseConfigSeralizer,
-        responses={200: EnterpriseConfigSeralizer},
-        tags=['openapi-entreprise'],
-    )
-    def put(self, req, eid, *args, **kwargs):
-        key = req.GET.get("key")
-        if not key:
-            raise ServiceHandleException(status_code=404, msg="no found config key {0}".format(key), msg_show=u"更新失败")
-        serializer = EnterpriseConfigSeralizer(data=req.data)
-        serializer.is_valid(raise_exception=True)
-        if not serializer.data:
-            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")
-        value = serializer.data[key]
-        ent_config_servier = EnterpriseConfigService(eid)
-        key = key.upper()
-        if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
-            data = ent_config_servier.update_config(key, value)
-            serializer = EnterpriseConfigSeralizer(data=data)
-            serializer.is_valid(raise_exception=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            raise ServiceHandleException(status_code=404, msg="no found config value", msg_show=u"更新失败")

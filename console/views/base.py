@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
-import logging
 import json
+import logging
 import os
 
 import jwt
@@ -12,33 +12,24 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
-from rest_framework import exceptions
-from rest_framework import status
-from rest_framework.authentication import (get_authorization_header)
-from rest_framework.exceptions import NotFound
-from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import exceptions, status
+from rest_framework.authentication import get_authorization_header
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.views import set_rollback
+from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
-from entsrv_client.rest import ApiException as EnterPriseCenterApiException
-
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.exception.main import BusinessException
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ServiceHandleException
+from console.exception.main import (BusinessException, ResourceNotEnoughException, ServiceHandleException)
+from console.models.main import OAuthServices, UserOAuthServices
 from console.repositories.enterprise_repo import enterprise_repo
+from console.utils.oauth.oauth_types import get_oauth_instance
+from entsrv_client.rest import ApiException as EnterPriseCenterApiException
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import Tenants
-from www.models.main import Users
-from console.models.main import OAuthServices
-from console.models.main import UserOAuthServices
+from www.models.main import Tenants, Users
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER

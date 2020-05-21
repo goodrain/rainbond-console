@@ -13,14 +13,11 @@ from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
-from www.apiclient.regionapi import RegionInvokeApi
 from console.utils.timeutil import time_to_str
-from openapi.v2.serializer.ent_serializers import EnterpriseInfoSerializer
-from openapi.v2.serializer.ent_serializers import ListEntsRespSerializer
-from openapi.v2.serializer.ent_serializers import UpdEntReqSerializer
-from openapi.v2.serializer.ent_serializers import EnterpriseSourceSerializer
-from openapi.v2.views.base import BaseOpenAPIView
-from openapi.v2.views.base import ListAPIView
+from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
+from openapi.v2.serializer.ent_serializers import (EnterpriseSourceSerializer, ListEntsRespSerializer, UpdEntReqSerializer)
+from openapi.v2.views.base import BaseOpenAPIView, ListAPIView
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -77,7 +74,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class EnterpriseSourceView(BaseOpenAPIView):
+class EnterpriseSourceView(ListAPIView):
     @swagger_auto_schema(
         operation_description="获取企业使用资源信息",
         responses={200: EnterpriseSourceSerializer},
@@ -93,7 +90,11 @@ class EnterpriseSourceView(BaseOpenAPIView):
         regions = region_services.get_regions_by_enterprise_id(eid)
         for region in regions:
             try:
-                res, body = region_api.get_region_resources(eid, region.region_name)
+                # Exclude development clusters
+                if "development" in region.region_type:
+                    logger.debug("{0} region type is development in enterprise {1}".format(region.region_name, eid))
+                    continue
+                res, body = region_api.get_region_resources(eid, region=region.region_name)
                 rst = body.get("bean")
                 if res.get("status") == 200 and rst:
                     data["used_cpu"] += rst.get("req_cpu", 0)

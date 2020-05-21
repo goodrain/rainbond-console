@@ -4,8 +4,7 @@ from rest_framework import serializers
 
 from console.enum.region_enum import RegionStatusEnum
 from console.models.main import RegionConfig
-from openapi.serializer.utils import ipregex
-from openapi.serializer.utils import urlregex
+from openapi.serializer.utils import ipregex, urlregex
 
 
 class RegionReqValidate(object):
@@ -57,7 +56,7 @@ class RegionTypesField(serializers.ListField):
     child = serializers.CharField(max_length=32)
 
 
-class RegionInfoRespSerializer(serializers.Serializer):
+class RegionInfoAndStatusRespSerializer(serializers.Serializer):
     region_id = serializers.CharField(max_length=36, help_text=u"region id")
     enterprise_id = serializers.CharField(max_length=36, help_text=u"企业ID")
     enterprise_alias = serializers.CharField(max_length=256, help_text=u"企业别名")
@@ -84,7 +83,7 @@ class RegionInfoRespSerializer(serializers.Serializer):
 
 class ListRegionsRespSerializer(serializers.Serializer):
     total = serializers.IntegerField(help_text=u"总数")
-    data = RegionInfoRespSerializer(many=True)
+    data = RegionInfoAndStatusRespSerializer(many=True)
 
 
 class UpdateRegionStatusReqSerializer(serializers.Serializer):

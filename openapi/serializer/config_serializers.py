@@ -88,7 +88,7 @@ class CloudMarketBaseRespSerializer(ConfigBaseSerializer):
 
 
 class AutoSSLSerializer(ConfigBaseSerializer):
-    value = serializers.DictField(required=False, allow_null=True)
+    value = serializers.JSONField()
 
 
 class OauthServicesBaseRespSerializer(ConfigBaseSerializer):

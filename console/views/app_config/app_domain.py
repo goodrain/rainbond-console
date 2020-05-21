@@ -17,9 +17,9 @@ from console.repositories.app_config import (configuration_repo, domain_repo, tc
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import domain_service, port_service
+from console.services.config_service import EnterpriseConfigService
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.services.config_service import EnterpriseConfigService
 from console.utils.reqparse import parse_item
 from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
@@ -563,9 +563,20 @@ class HttpStrategyView(RegionTenantHeaderView):
         if len(rule_id_list) == 1 and add_httptohttps and http_rule_id != rule_id_list[0]:
             result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
-        domain_service.update_httpdomain(self.tenant, self.user, service, domain_name, container_port, certificate_id,
-                                         DomainType.WWW, domain_path, domain_cookie, domain_heander, http_rule_id, the_weight,
-                                         rule_extensions, auto_ssl=auto_ssl, auto_ssl_config=auto_ssl_config)
+        update_data = {
+            "domain_name": domain_name,
+            "container_port": container_port,
+            "certificate_id": certificate_id,
+            "domain_type": DomainType.WWW,
+            "domain_path": domain_path,
+            "domain_cookie": domain_cookie,
+            "domain_heander": domain_heander,
+            "the_weight": the_weight,
+            "rule_extensions": rule_extensions,
+            "auto_ssl": auto_ssl,
+            "auto_ssl_config": auto_ssl_config,
+        }
+        domain_service.update_httpdomain(self.tenant, service, http_rule_id, update_data)
         result = general_message(200, "success", "策略编辑成功")
         return Response(result, status=200)
 
