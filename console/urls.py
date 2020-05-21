@@ -593,7 +593,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/certificates/(?P<certificate_id>[\w\-]+)$', TenantCertificateManageView.as_view(), perms.TenantCertificateManageView),
 
     # 组件域名操作
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view(), perms.ServiceDomainView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view(), perms.SecondLevelDomainView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain$', DomainView.as_view(), perms.DomainView),
     # 查询策略（含模糊搜索）

@@ -204,8 +204,8 @@ class GroupServiceView(RegionTenantHeaderView):
 
             query = request.GET.get("query", "")
 
-            tenant_actions = list(self.user.actions.tenant_actions)
-            service_actions = list(self.user.actions.service_actions)
+            # tenant_actions = list(self.user.actions.tenant_actions)
+            # service_actions = list(self.user.actions.service_actions)
 
             if group_id == "-1":
                 # query service which not belong to any app

@@ -135,7 +135,7 @@ DEFAULT_TEAM_ROLE_PERMS = {
 }
 
 OauthConfig = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [100000]},
@@ -144,7 +144,7 @@ OauthConfig = {
 }
 
 OauthService = {
-    "__message":{
+    "__message": {
         "get": {"perms": [100000]},
         "post": {"perms": [100000]},
         "put": {"perms": []},
@@ -153,7 +153,7 @@ OauthService = {
 }
 
 OauthServiceInfo = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -162,7 +162,7 @@ OauthServiceInfo = {
 }
 
 TeamRolesPermsLView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200010]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -171,7 +171,7 @@ TeamRolesPermsLView = {
 }
 
 TeamRolePermsRUDView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200010]},
         "post": {"perms": []},
         "put": {"perms": [200012]},
@@ -180,7 +180,7 @@ TeamRolePermsRUDView = {
 }
 
 TeamRolesLCView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200010]},
         "post": {"perms": [200011]},
         "put": {"perms": []},
@@ -189,7 +189,7 @@ TeamRolesLCView = {
 }
 
 TeamRolesRUDView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200010]},
         "post": {"perms": []},
         "put": {"perms": [200012]},
@@ -198,7 +198,7 @@ TeamRolesRUDView = {
 }
 
 TeamUsersRolesLView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200005, 200010]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -207,7 +207,7 @@ TeamUsersRolesLView = {
 }
 
 TeamUserRolesRUDView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [200007, 200010]},
@@ -840,7 +840,7 @@ AppGroupView = {
 ListAppPodsView = {
     "__message":{
         "get": {"perms": [400001]},
-        "post": {"perms": [400001, 400005]},
+        "post": {"perms": [400005]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -884,7 +884,7 @@ AppVisitView = {
 
 AppEnvView = {
     "__message":{
-        "get": {"perms": [400001, 400013]},
+        "get": {"perms": [400013]},
         "post": {"perms": [400013]},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -893,7 +893,7 @@ AppEnvView = {
 
 AppEnvManageView = {
     "__message":{
-        "get": {"perms": [400001, 400013]},
+        "get": {"perms": [400013]},
         "post": {"perms": [400013]},
         "put": {"perms": [400013]},
         "patch": {"perms": [400013]},
@@ -903,7 +903,7 @@ AppEnvManageView = {
 
 AppBuildEnvView = {
     "__message":{
-        "get": {"perms": [400001, 400013]},
+        "get": {"perms": [400013]},
         "post": {"perms": []},
         "put": {"perms": [400013]},
         "delete": {"perms": []}
@@ -912,7 +912,7 @@ AppBuildEnvView = {
 
 AppPortView = {
     "__message":{
-        "get": {"perms": [400001, 400016]},
+        "get": {"perms": [400016]},
         "post": {"perms": [400016]},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -921,7 +921,7 @@ AppPortView = {
 
 AppPortManageView = {
     "__message":{
-        "get": {"perms": [400001, 400016]},
+        "get": {"perms": [400016]},
         "post": {"perms": [400016]},
         "put": {"perms": [400016]},
         "delete": {"perms": [400016]}
@@ -939,7 +939,7 @@ TopologicalPortView = {
 
 AppTcpOuterManageView = {
     "__message":{
-        "get": {"perms": [400001, 400016]},
+        "get": {"perms": [400016]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -948,7 +948,7 @@ AppTcpOuterManageView = {
 
 AppVolumeOptionsView = {
     "__message":{
-        "get": {"perms": [400001, 400015]},
+        "get": {"perms": [400015]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -957,7 +957,7 @@ AppVolumeOptionsView = {
 
 AppVolumeView = {
     "__message":{
-        "get": {"perms": [400001, 400015]},
+        "get": {"perms": [400015]},
         "post": {"perms": [400015]},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -975,7 +975,7 @@ AppVolumeManageView = {
 
 AppDependencyView = {
     "__message":{
-        "get": {"perms": [400001, 400014]},
+        "get": {"perms": [400014]},
         "post": {"perms": [400014]},
         "put": {"perms": []},
         "patch": {"perms": [400014]},
@@ -1003,7 +1003,7 @@ AppNotDependencyView = {
 
 AppMntView = {
     "__message":{
-        "get": {"perms": [400001, 400014]},
+        "get": {"perms": [400014]},
         "post": {"perms": [400014]},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1021,8 +1021,8 @@ AppMntManageView = {
 
 TenantCertificateView = {
     "__message":{
-        "get": {"perms": [400001, 600001]},
-        "post": {"perms": [400001, 400003, 600001, 600002]},
+        "get": {"perms": [600001]},
+        "post": {"perms": [600002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -1030,34 +1030,34 @@ TenantCertificateView = {
 
 TenantCertificateManageView = {
     "__message":{
-        "get": {"perms": [400001, 600001]},
+        "get": {"perms": [600001]},
         "post": {"perms": []},
-        "put": {"perms": [400001, 400003, 600003]},
-        "delete": {"perms": [400001, 400003, 600004]}
+        "put": {"perms": [600003]},
+        "delete": {"perms": [600004]}
     }
 }
 
 ServiceDomainView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 600001]},
-        "post": {"perms": [400001, 400003, 400016, 600001]},
+        "get": {"perms": [400016]},
+        "post": {"perms": [400016]},
         "put": {"perms": []},
-        "delete": {"perms": [400001, 400003, 400016, 600004]}
+        "delete": {"perms": [400016]}
     }
 }
 
 SecondLevelDomainView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 600001]},
+        "get": {"perms": [400016]},
         "post": {"perms": []},
-        "put": {"perms": [400001, 400003, 400016, 600001, 600003]},
+        "put": {"perms": [400016]},
         "delete": {"perms": []}
     }
 }
 
 DomainView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 600001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1066,7 +1066,7 @@ DomainView = {
 
 DomainQueryView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 600001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1075,16 +1075,16 @@ DomainQueryView = {
 
 HttpStrategyView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
-        "post": {"perms": [400001, 400003, 400016, 500002]},
-        "put": {"perms": [400001, 400003, 400016, 500003]},
-        "delete": {"perms": [400001, 400003, 400016, 500004]}
+        "get": {"perms": [500001]},
+        "post": {"perms": [500002]},
+        "put": {"perms": [500003]},
+        "delete": {"perms": [500004]}
     }
 }
 
 GetSeniorUrlView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1093,7 +1093,7 @@ GetSeniorUrlView = {
 
 ServiceTcpDomainQueryView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1102,7 +1102,7 @@ ServiceTcpDomainQueryView = {
 
 GetPortView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1111,16 +1111,16 @@ GetPortView = {
 
 ServiceTcpDomainView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
-        "post": {"perms": [400016, 500002]},
-        "put": {"perms": [400016, 500003]},
-        "delete": {"perms": [400016, 500004]}
+        "get": {"perms": [500001]},
+        "post": {"perms": [500002]},
+        "put": {"perms": [500003]},
+        "delete": {"perms": [500004]}
     }
 }
 
 AppServiceTcpDomainQueryView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1129,7 +1129,7 @@ AppServiceTcpDomainQueryView = {
 
 AppServiceDomainQueryView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -1138,9 +1138,9 @@ AppServiceDomainQueryView = {
 
 GatewayCustomConfigurationView = {
     "__message":{
-        "get": {"perms": [400001, 400016, 500001]},
+        "get": {"perms": [500001]},
         "post": {"perms": []},
-        "put": {"perms": [400016, 500003]},
+        "put": {"perms": [500003]},
         "delete": {"perms": []}
     }
 }

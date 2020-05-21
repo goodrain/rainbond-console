@@ -81,10 +81,10 @@ class AppDetailView(AppBaseView):
         service_model["group_name"] = group_name
         service_model["group_id"] = group_id
         bean.update({"service": service_model})
-        tenant_actions = self.user.actions.tenant_actions
-        bean.update({"tenant_actions": tenant_actions})
-        service_actions = self.user.actions.service_actions
-        bean.update({"service_actions": service_actions})
+        # tenant_actions = self.user.actions.tenant_actions
+        # bean.update({"tenant_actions": tenant_actions})
+        # service_actions = self.user.actions.service_actions
+        # bean.update({"service_actions": service_actions})
         event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
         bean.update({"event_websocket_url": event_websocket_url})
         if self.service.service_source == "market":
