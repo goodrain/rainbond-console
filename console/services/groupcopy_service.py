@@ -211,8 +211,8 @@ class GroupAppCopyService(object):
                                 "mode": probe.mode,
                             }
                             try:
-                                res, body = region_api.add_service_probe(
-                                    service.service_region, tenant.tenant_name, service.service_alias, prob_data)
+                                res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name,
+                                                                         service.service_alias, prob_data)
                                 if res.get("status") != 200:
                                     logger.debug(body)
                                     probe.delete()
