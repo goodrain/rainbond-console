@@ -128,7 +128,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         username = jwt_get_username_from_payload(payload)
         if not username:
             msg = _('认证信息不合法.')
-            logger.debug('==========================>'.format(msg))
+            # raise exceptions.AuthenticationFailed(msg)
+            logger.debug('==========================>{}'.format(msg))
             raise AuthenticationInfoHasExpiredError(msg)
 
         try:

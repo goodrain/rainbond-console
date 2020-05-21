@@ -7,11 +7,14 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.repositories.label_repo import label_repo
+from console.repositories.label_repo import node_label_repo
+from console.repositories.label_repo import service_label_repo
 from console.services.app_config import label_service
 from console.views.app_config.base import AppBaseView
 from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.repositories.label_repo import label_repo, node_label_repo, service_label_repo
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -168,9 +171,9 @@ class AppLabelAvailableView(AppBaseView):
             # 去除该组件已绑定的标签
             service_labels = service_label_repo.get_service_labels(self.service.service_id)
             if service_labels:
-                service_labels_id_list = [l.label_id for l in service_labels]
+                service_labels_id_list = [label.label_id for label in service_labels]
                 label_obj_list = label_repo.get_labels_by_label_ids(service_labels_id_list)
-                service_labels_name_list = [l.label_name for l in label_obj_list]
+                service_labels_name_list = [label.label_name for label in label_obj_list]
                 for service_labels_name in service_labels_name_list:
                     if service_labels_name in labels_name_list:
                         labels_name_list.remove(service_labels_name)

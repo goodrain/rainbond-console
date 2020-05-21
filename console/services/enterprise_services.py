@@ -110,7 +110,10 @@ class EnterpriseServices(object):
         enterprise.enterprise_name = enter_name
 
         # 根据企业英文名确认UUID
-        enterprise.enterprise_id = os.environ.get('ENTERPRISE_ID', make_uuid(enter_name))
+        eid = os.environ.get('ENTERPRISE_ID')
+        if not eid:
+            eid = make_uuid(enter_name)
+        enterprise.enterprise_id = eid
 
         # 处理企业别名
         if not enterprise_alias:

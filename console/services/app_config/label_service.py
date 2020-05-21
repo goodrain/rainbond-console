@@ -42,7 +42,7 @@ class LabelService(object):
         labels = label_repo.get_labels_by_label_ids(label_ids)
         labels_list = list()
         body = dict()
-        label_map = [l.label_name for l in labels]
+        label_map = [label.label_name for label in labels]
         service_labels = list()
         for label_id in label_ids:
             service_label = ServiceLabels(

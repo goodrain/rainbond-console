@@ -19,8 +19,6 @@ CREATE TABLE `user_access_key` (
 
 alter table service_share_record add share_version_alias varchar(32) DEFAULT NULL;
 
-alter table tenant_service_delete modify version varchar(32) DEFAULT NULL;
-
 CREATE TABLE IF NOT EXISTS `errlog` (
   `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `msg` varchar(2047) NOT NULL DEFAULT '',
@@ -34,3 +32,4 @@ alter table service_group add order_index int(16) DEFAULT 0;
 
 alter table service_domain add auto_ssl TINYINT(1) DEFAULT 0;
 alter table service_domain add auto_ssl_config varchar(32) DEFAULT NULL;
+alter table console.tenant_service_delete modify version varchar(255); 
