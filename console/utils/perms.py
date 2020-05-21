@@ -25,14 +25,14 @@ TEAM = {
     ],
     "teamRegion": {
         "perms":[
-            ["describe", u"获取", 200002],
+            ["describe", u"查看", 200002],
             ["install", u"开通", 200003],
             ["uninstall", u"关闭", 200004]
         ]
     },
     "teamMember": {
         "perms": [
-            ["describe", u"获取", 200005],
+            ["describe", u"查看", 200005],
             ["create", u"创建", 200006],
             ["edit", u"编辑", 200007],
             ["delete", u"删除", 200008],
@@ -40,7 +40,7 @@ TEAM = {
     },
     "teamRole": {
         "perms": [
-            ["describe", u"获取", 200010],
+            ["describe", u"查看", 200010],
             ["create", u"创建", 200011],
             ["edit", u"编辑", 200012],
             ["delete", u"删除", 200013],
@@ -48,7 +48,7 @@ TEAM = {
     },
     "app": {
         "perms": [
-            ["describe", u"获取", 300001],
+            ["describe", u"查看", 300001],
             ["create", u"创建", 300002],
             ["edit", u"编辑", 300003],
             ["delete", u"删除", 300004],
@@ -70,7 +70,7 @@ TEAM = {
     },
     "component": {
         "perms": [
-            ["describe", u"获取", 400001],
+            ["describe", u"查看", 400001],
             ["create", u"创建", 400002],
             ["edit", u"编辑", 400003],
             ["delete", u"删除", 400004],
@@ -97,7 +97,7 @@ TEAM = {
     },
     "gatewayRule": {
         "perms": [
-            ["describe", u"获取", 500001],
+            ["describe", u"查看", 500001],
             ["create", u"创建", 500002],
             ["edit", u"编辑", 500003],
             ["delete", u"删除", 500004],
@@ -106,7 +106,7 @@ TEAM = {
     },
     "certificate": {
         "perms": [
-            ["describe", u"获取", 600001],
+            ["describe", u"查看", 600001],
             ["create", u"创建", 600002],
             ["edit", u"编辑", 600003],
             ["delete", u"删除", 600004],
@@ -114,7 +114,7 @@ TEAM = {
     },
     "plugin": {
         "perms": [
-            ["get", u"获取", 700001],
+            ["describe", u"查看", 700001],
             ["create", u"创建", 700002],
             ["edit", u"编辑", 700003],
             ["delete", u"删除", 700004],
