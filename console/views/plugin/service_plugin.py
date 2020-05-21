@@ -170,7 +170,7 @@ class ServicePluginOperationView(AppBaseView):
             return Response(general_message(404, "not found plugin relation", "未找到组件使用的插件"), status=404)
         else:
             build_version = service_plugin_relation.build_version
-        pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
+        pbv = plugin_version_service.get_by_id_and_version(self.tenant.tenant_id, plugin_id, build_version)
         # 更新内存和cpu
         memory = request.data.get("min_memory", pbv.min_memory)
         cpu = common_services.calculate_cpu(self.service.service_region, memory)
@@ -228,7 +228,7 @@ class ServicePluginConfigView(AppBaseView):
         # try:
         result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
         svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)
-        pbv = plugin_version_service.get_by_id_and_version(plugin_id, build_version)
+        pbv = plugin_version_service.get_by_id_and_version(self.tenant.tenant_id, plugin_id, build_version)
         if pbv:
             result_bean["build_info"] = pbv.update_info
             result_bean["memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
@@ -270,7 +270,7 @@ class ServicePluginConfigView(AppBaseView):
         config = json.loads(request.body)
         if not config:
             return Response(general_message(400, "params error", "参数配置不可为空"), status=400)
-        pbv = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+        pbv = plugin_version_service.get_newest_usable_plugin_version(self.tenant.tenant_id, plugin_id)
         if not pbv:
             return Response(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status=400)
         # update service plugin config

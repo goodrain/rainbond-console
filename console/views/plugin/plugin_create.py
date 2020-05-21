@@ -144,8 +144,8 @@ class PluginCreateView(RegionTenantHeaderView):
             # 数据中心创建插件
             code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin, image_tag)
             if code != 200:
-                plugin_service.delete_console_tenant_plugin(tenant_plugin.plugin_id)
-                plugin_version_service.delete_build_version_by_id_and_version(tenant_plugin.plugin_id,
+                plugin_service.delete_console_tenant_plugin(self.tenant.tenant_id, tenant_plugin.plugin_id)
+                plugin_version_service.delete_build_version_by_id_and_version(self.tenant.tenant_id, tenant_plugin.plugin_id,
                                                                               plugin_build_version.build_version, True)
                 return Response(general_message(code, "create plugin error", msg), status=code)
 
@@ -161,9 +161,9 @@ class PluginCreateView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             if tenant_plugin:
-                plugin_service.delete_console_tenant_plugin(tenant_plugin.plugin_id)
+                plugin_service.delete_console_tenant_plugin(self.tenant.tenant_id, tenant_plugin.plugin_id)
             if plugin_build_version:
-                plugin_version_service.delete_build_version_by_id_and_version(tenant_plugin.plugin_id,
+                plugin_version_service.delete_build_version_by_id_and_version(self.tenant.tenant_id, tenant_plugin.plugin_id,
                                                                               plugin_build_version.build_version, True)
         return Response(result, status=result["code"])
 

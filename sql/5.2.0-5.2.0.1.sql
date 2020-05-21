@@ -28,3 +28,5 @@ CREATE TABLE IF NOT EXISTS `errlog` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 alter table service_group add order_index int(16) DEFAULT 0;
+
+alter table console.tenant_service_delete modify version varchar(255); 

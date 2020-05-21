@@ -18,7 +18,7 @@
             "attr_default_value": "*",
             "is_change": true,
             "attr_alt_value": "",
-            "attr_info": "访问域名（仅支持一级域名）",
+            "attr_info": "访问域名",
             "protocol": "http"
           },
           {
@@ -159,7 +159,7 @@
       }
     ]
   },
-  "inandout_net_plugin":{
+  "inandout_net_plugin": {
     "plugin_alias": "服务综合网络治理插件",
     "desc": "该插件支持服务的出站和入站网络治理，包括服务动态路由、限流、熔断等功能",
     "category": "net-plugin:in-and-out",
@@ -248,7 +248,7 @@
             "attr_default_value": "*",
             "is_change": true,
             "attr_alt_value": "",
-            "attr_info": "访问域名（仅支持一级域名",
+            "attr_info": "访问域名",
             "protocol": "http"
           },
           {

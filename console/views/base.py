@@ -139,7 +139,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             # msg = _('Invalid payload.')
             msg = _('认证信息不合法.')
             # raise exceptions.AuthenticationFailed(msg)
-            logger.debug('==========================>'.format(msg))
+            logger.debug('==========================>{}'.format(msg))
             raise AuthenticationInfoHasExpiredError(msg)
 
         try:

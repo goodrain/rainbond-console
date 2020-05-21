@@ -2,14 +2,14 @@
 """
   Created on 18/3/5.
 """
+import base64
 import datetime
 import json
 import logging
 import socket
-import base64
-from addict import Dict
 
 import httplib2
+from addict import Dict
 from django.db import transaction
 from django.db.models import Q
 from market_client.rest import ApiException
@@ -23,13 +23,13 @@ from console.exception.main import RbdAppNotFound
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
+from console.repositories.app import app_tag_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.app import app_tag_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -49,6 +49,7 @@ from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.services.upgrade_services import upgrade_service
+from console.services.user_services import user_services
 from console.utils import slug_util
 from console.utils.restful_client import get_default_market_client
 from console.utils.restful_client import get_market_client
@@ -64,7 +65,6 @@ from www.models.main import TenantServiceInfo
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.services.user_services import user_services
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -350,7 +350,7 @@ class MarketAppService(object):
                         p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
                         plugin_id = p[0].plugin_id
                         service_plugin_config_vars = plugin_config["attr"]
-                        plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
+                        plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
                         build_version = plugin_version.build_version
 
                         self.__save_service_config_values(service, plugin_id, build_version, service_plugin_config_vars,
@@ -364,7 +364,8 @@ class MarketAppService(object):
                         data["switch"] = True
                         data["version_id"] = build_version
                         data.update(region_config)
-                        app_plugin_service.create_service_plugin_relation(service.service_id, plugin_id, build_version)
+                        app_plugin_service.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id,
+                                                                          build_version)
 
                         region_api.install_service_plugin(service.service_region, tenant.tenant_name, service.service_alias,
                                                           data)
@@ -598,7 +599,7 @@ class MarketAppService(object):
                                                                  port["port_alias"], port["is_inner_service"],
                                                                  port["is_outer_service"])
             if code != 200:
-                logger.error("save market app port error".format(msg))
+                logger.error("save market app port error: {}".format(msg))
                 return code, msg
         return 200, "success"
 
@@ -884,8 +885,8 @@ class MarketAppService(object):
         enterprise_apps = Q(share_team__in=tenant_names, scope="enterprise")
         team_apps = Q(share_team=tenant.tenant_name, scope="team")
 
-        return rainbond_app_repo.get_current_enter_visable_apps(tenant.enterprise_id).filter(public_apps | enterprise_apps
-                                                                                             | team_apps)
+        return rainbond_app_repo.get_current_enter_visable_apps(
+            tenant.enterprise_id).filter(public_apps | enterprise_apps | team_apps)
 
     def get_rain_bond_app_by_pk(self, pk):
         app = rainbond_app_repo.get_rainbond_app_by_id(pk)
