@@ -7,6 +7,7 @@ from console.exception.main import ServiceHandleException
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.deploy_repo import deploy_repo
+from console.repositories.probe_repo import probe_repo
 from console.services.groupapp_recovery.groupapps_migrate import migrate_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
@@ -17,7 +18,9 @@ from console.services.app_config import label_service
 from console.services.app_config import port_service
 
 from www.utils.crypt import make_uuid
+from www.apiclient.regionapi import RegionInvokeApi
 
+region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
@@ -187,6 +190,35 @@ class GroupAppCopyService(object):
                 if self.is_need_to_add_default_probe(service):
                     code, msg, probe = app_service.add_service_default_porbe(tenant, service)
                     logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
+                else:
+                    probes = probe_repo.get_service_probe(service.service_id)
+                    if probes:
+                        for probe in probes:
+                            prob_data = {
+                                "service_id": service.service_id,
+                                "scheme": probe.scheme,
+                                "path": probe.path,
+                                "port": probe.port,
+                                "cmd": probe.cmd,
+                                "http_header": probe.http_header,
+                                "initial_delay_second": probe.initial_delay_second,
+                                "period_second": probe.period_second,
+                                "timeout_second": probe.timeout_second,
+                                "failure_threshold": probe.failure_threshold,
+                                "success_threshold": probe.success_threshold,
+                                "is_used": (1 if probe.is_used else 0),
+                                "probe_id": probe.probe_id,
+                                "mode": probe.mode,
+                            }
+                            try:
+                                res, body = region_api.add_service_probe(
+                                    service.service_region, tenant.tenant_name, service.service_alias, prob_data)
+                                if res.get("status") != 200:
+                                    logger.debug(body)
+                                    probe.delete()
+                            except Exception as e:
+                                logger.debug("error", e)
+                                probe.delete()
                 # 添加组件有无状态标签
                 label_service.update_service_state_label(tenant, service)
                 # 部署组件
