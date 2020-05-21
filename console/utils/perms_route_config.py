@@ -217,7 +217,7 @@ TeamUserRolesRUDView = {
 
 TeamUserPermsLView = {
     "__message":{
-        "get": {"perms": [200001, 200010]},
+        "get": {"perms": []},
         "post": {"perms": [200011]},
         "put": {"perms": [200012]},
         "delete": {"perms": [200013]}

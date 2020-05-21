@@ -17,6 +17,7 @@ from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.perm_services import user_kind_role_service
 from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
 from console.views.base import JWTAuthApiView
@@ -366,6 +367,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         password = request.data.get("password", None)
         re_password = request.data.get("re_password", None)
         role_ids = request.data.get("role_ids", None)
+        tenant = team_services.get_tenant_by_tenant_name(tenant_name)
         if len(password) < 8:
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
@@ -380,21 +382,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
         result = general_message(200, "success", "添加用户成功")
         if role_ids:
-            try:
-                role_id_list = [int(id) for id in role_ids.split(",")]
-            except Exception as e:
-                logger.exception(e)
-                code = 400
-                result = general_message(code, "params is empty", "参数格式不正确")
-                return Response(result, status=code)
-            for id in role_id_list:
-                if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
-                    code = 400
-                    result = general_message(code, "The role does not exist", "该角色在团队中不存在")
-                    return Response(result, status=code)
-            # 创建用户团队关系表
-            if tenant_name:
-                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
+            user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
             user.is_active = True
             user.save()
             result = general_message(200, "success", "添加用户成功")
