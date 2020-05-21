@@ -552,7 +552,7 @@ class TeamInvView(JWTAuthApiView):
             return Response(result, status=500)
 
 
-class TeamExitView(JWTAuthApiView):
+class TeamExitView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         退出当前团队
@@ -586,12 +586,14 @@ class TeamExitView(JWTAuthApiView):
         # try:
             # if request.user.nick_name == "rainbond-demo" and team_name == "a5qw69mz":
             #     return Response(general_message(403, "permission denied!", "您无法退出此团队"), status=403)
-
+        if self.is_team_owner:
+            return Response(general_message(409, "not allow exit.", "您是当前团队创建者，不能退出此团队"), status=409)
         code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
         if code == 200:
             result = general_message(code=code, msg="success", msg_show=msg_show)
         else:
             result = general_message(code=code, msg="failed", msg_show=msg_show)
+        return Response(result, status=result.get("code", 200))
 
 
 class TeamDetailView(JWTAuthApiView):

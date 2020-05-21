@@ -163,7 +163,7 @@ OauthServiceInfo = {
 
 TeamRolesPermsLView = {
     "__message":{
-        "get": {"perms": [200001, 200010]},
+        "get": {"perms": [200010]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -172,17 +172,17 @@ TeamRolesPermsLView = {
 
 TeamRolePermsRUDView = {
     "__message":{
-        "get": {"perms": [200001, 200010]},
+        "get": {"perms": [200010]},
         "post": {"perms": []},
-        "put": {"perms": [200010, 200012]},
+        "put": {"perms": [200012]},
         "delete": {"perms": []}
     }
 }
 
 TeamRolesLCView = {
     "__message":{
-        "get": {"perms": [200001, 200010]},
-        "post": {"perms": [200010, 200011]},
+        "get": {"perms": [200010]},
+        "post": {"perms": [200011]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -190,16 +190,16 @@ TeamRolesLCView = {
 
 TeamRolesRUDView = {
     "__message":{
-        "get": {"perms": [200001, 200010]},
+        "get": {"perms": [200010]},
         "post": {"perms": []},
-        "put": {"perms": [200010, 200012]},
+        "put": {"perms": [200012]},
         "delete": {"perms": [200013]}
     }
 }
 
 TeamUsersRolesLView = {
     "__message":{
-        "get": {"perms": [200001, 200005, 200010]},
+        "get": {"perms": [200005, 200010]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -211,16 +211,16 @@ TeamUserRolesRUDView = {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [200007, 200010]},
-        "delete": {"perms": [200008]}
+        "delete": {"perms": [200007, 200010]}
     }
 }
 
 TeamUserPermsLView = {
     "__message":{
         "get": {"perms": []},
-        "post": {"perms": [200011]},
-        "put": {"perms": [200012]},
-        "delete": {"perms": [200013]}
+        "post": {"perms": []},
+        "put": {"perms": []},
+        "delete": {"perms": []}
     }
 }
 
@@ -244,7 +244,7 @@ AddTeamView = {
 
 TeamUserView = {
     "__message":{
-        "get": {"perms": [200001]},
+        "get": {"perms": [200005]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -253,7 +253,7 @@ TeamUserView = {
 
 NotJoinTeamUserView = {
     "__message":{
-        "get": {"perms": [200001]},
+        "get": {"perms": [200005]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -316,7 +316,7 @@ TeamSortServiceQueryView = {
 
 RegQuyView = {
     "__message":{
-        "get": {"perms": [200001, 200002]},
+        "get": {"perms": [200002]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -325,7 +325,7 @@ RegQuyView = {
 
 RegUnopenView = {
     "__message":{
-        "get": {"perms": [200001, 200002]},
+        "get": {"perms": [200002]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -362,7 +362,7 @@ AllServiceInfo = {
 
 TeamAppSortViewView = {
     "__message":{
-        "get": {"perms": [200001, 300001]},
+        "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -371,7 +371,7 @@ TeamAppSortViewView = {
 
 TeamServiceOverViewView = {
     "__message":{
-        "get": {"perms": [200001, 300001]},
+        "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -380,7 +380,7 @@ TeamServiceOverViewView = {
 
 ServiceEventsView = {
     "__message":{
-        "get": {"perms": [200009]},
+        "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
