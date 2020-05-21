@@ -18,6 +18,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import JWTAuthApiView
+from console.views.base import RegionTenantHeaderView
 from www.decorator import perm_required
 from www.models.main import Tenants
 from www.utils.return_message import error_message
@@ -468,7 +469,7 @@ class ThreeServicePermOptionsView(JWTAuthApiView):
 #         return Response(result, status=code)
 
 
-class TeamAddUserView(JWTAuthApiView):
+class TeamAddUserView(RegionTenantHeaderView):
     # @perm_required('manage_team_member_permissions')
     def post(self, request, team_name, *args, **kwargs):
         """

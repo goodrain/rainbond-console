@@ -88,7 +88,7 @@ class TeamUsersRolesLView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         team_users = team_services.get_team_users(self.tenant)
         data = user_kind_role_service.get_users_roles(kind="team", kind_id=self.tenant.tenant_id, users=team_users)
-        result = general_message(200, "success", None, bean=data)
+        result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
 
