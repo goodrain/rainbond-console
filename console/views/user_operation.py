@@ -368,7 +368,7 @@ class UserDetailsView(JWTAuthApiView):
             role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
             tenant_info["role_name_list"] = role_list["roles"]
             perms = user_kind_perm_service.get_user_perms(
-                kind="team", kind_id=tenant.ID, user=user, is_owner=is_team_owner)
+                kind="team", kind_id=tenant.tenant_id, user=user, is_owner=is_team_owner)
             tenant_info["tenant_actions"] = perms["permissions"]
             tenant_info["is_team_owner"] = is_team_owner
             # perms_role_id_list = team_services.get_user_perm_role_id_in_permtenant(

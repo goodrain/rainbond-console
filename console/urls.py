@@ -774,9 +774,11 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export/down$', ExportFileDownLoadView.as_view(), perms.ExportFileDownLoadView),
 
     # 获取自定义角色时可给角色绑定的权限选项
-    url(r'^teams/operate_options$', PermOptionsView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/operate_options$', PermOptionsView.as_view()),
     # 获取第三方组件自定义角色时可给角色绑定的权限选项
-    url(r'^teams/three_service/operate_options$', ThreeServicePermOptionsView.as_view()),
+    # TODO 废弃
+    # url(r'^teams/three_service/operate_options$', ThreeServicePermOptionsView.as_view()),
 
 
     # 在一个团队中创建一个角色
