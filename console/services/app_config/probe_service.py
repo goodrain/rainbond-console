@@ -155,9 +155,14 @@ class ProbeService(object):
         console_probe = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
         if service.create_status == "complete":
-            res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name, service.service_alias,
-                                                         prob_data)
-            logger.debug("update probe action status {0}".format(res.status))
+            try:
+                res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name, service.service_alias,
+                                                             prob_data)
+                logger.debug("update probe action status {0}".format(res.status))
+            except region_api.CallApiError as e:
+                logger.debug(e)
+                if e.message.get("httpcode") == 404:
+                    return 404, "success", probe
         console_probe.pop("probe_id")
         console_probe.pop("service_id")
         probe_repo.update_service_probeb(service_id=service.service_id, probe_id=probe.probe_id, **console_probe)

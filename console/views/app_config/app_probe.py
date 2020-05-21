@@ -110,6 +110,10 @@ class AppProbeView(AppBaseView):
             logger.exception(e)
             raise AbortRequest(msg=e.message, status_code=e.status)
         if code != 200:
+            if code == 404:
+                probe.delete()
+                result = general_message(200, u"success", "探针未构建成功，已恢复默认数据，请重新设置")
+                return Response(result, status=result["code"])
             return Response(general_message(code, "update probe error", msg), status=code)
         result = general_message(200, u"success", "修改成功", bean=probe.to_dict())
         return Response(result, status=result["code"])
