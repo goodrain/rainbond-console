@@ -174,7 +174,7 @@ TeamSortDomainQueryView = {
 
 TeamSortServiceQueryView = {
     "__message": {
-        "get": {"perms": [200001, 400001]},
+        "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
         "delete": {"perms": []}
@@ -221,7 +221,7 @@ TeamOverView = {
 AllServiceInfo = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [200001, 300001, 400001]},
+        "post": {"perms": [400001]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
