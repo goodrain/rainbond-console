@@ -1,138 +1,5 @@
 # -*- coding: utf-8 -*-
-import copy
-from collections import Counter
-"""
-- enterprise 100
-    sub1 -- 101
-    sub2 -- 102
-    ...
-- team 200
-- app 300
-- component 400
-- accessStrategy 500
-- certificate 600
-- plugin 700
-"""
 
-ENTERPRISE = {
-    "perms": []
-}
-
-TEAM = {
-    "perms": [
-        ["describe", u"获取", 200001],
-        ["region_describe", u"获取集群", 200002],
-        ["region_install", u"挂载集群", 200003],
-        ["region_uninstall", u"卸载集群", 200004],
-
-        ["member_describe", u"获取成员", 200005],
-        ["member_create", u"创建成员", 200006],
-        ["member_edit", u"编辑成员", 200007],
-        ["member_delete", u"删除成员", 200008],
-
-        ["dynamic_describe", u"获取动态", 200009],
-
-        ["rule_describe", u"获取角色", 200010],
-        ["rule_create", u"创建角色", 200011],
-        ["rule_edit", u"编辑角色", 200012],
-        ["rule_delete", u"删除角色", 200013],
-
-    ],
-    "app": {
-        "perms": [
-            ["describe", u"获取", 300001],
-            ["create", u"创建", 300002],
-            ["edit", u"编辑", 300003],
-            ["delete", u"删除", 300004],
-
-            ["start", u"启动", 300005],
-            ["stop", u"停用", 300006],
-            ["update", u"更新", 300007],
-            ["construct", u"构建", 300008],
-
-
-            ["backup", u"备份", 300009],
-            ["migrate",  u"迁移", 300010],
-            ["restore",  u"恢复", 300011],
-            ["share",  u"发布", 300012],
-            ["upgrade",  u"升级", 300013],
-            ["copy", u"复制", 300014],
-        ]
-    },
-    "component": {
-        "perms": [
-            ["describe", u"获取", 400001],
-            ["create", u"创建", 400002],
-            ["edit", u"编辑", 400003],
-            ["delete", u"删除", 400004],
-            ["visit_web_terminal", u"访问web终端", 400005],
-
-            ["start", u"启动", 400006],
-            ["restart", u"重启", 400007],
-            ["stop", u"关闭", 400008],
-            ["update", u"更新", 400009],
-            ["construct", u"构建", 400010],
-            ["rollback", u"回滚", 400011],
-
-            ["telescopic", u"伸缩管理", 400012],
-            ["env", u"环境管理", 400013],
-            ["rely", u"依赖管理", 400014],
-            ["storage", u"存储管理", 400015],
-            ["port", u"端口管理", 400016],
-            ["plugin", u"插件管理", 400017],
-            ["source", u"构建源管理", 400018],
-            ["deploy_type", u"部署类型", 400019],
-            ["characteristic", u"特性", 400020],
-            ["health", u"健康检测", 400021],
-        ]
-    },
-    "gatewayRule": {
-        "perms": [
-            ["describe", u"获取", 500001],
-            ["create", u"创建", 500002],
-            ["edit", u"编辑", 500003],
-            ["delete", u"删除", 500004],
-        ]
-
-    },
-    "certificate": {
-        "perms": [
-            ["describe", u"获取", 600001],
-            ["create", u"创建", 600002],
-            ["edit", u"编辑", 600003],
-            ["delete", u"删除", 600004],
-        ]
-    },
-    "plugin": {
-        "perms": [
-            ["get", u"获取", 700001],
-            ["create", u"创建", 700002],
-            ["edit", u"编辑", 700003],
-            ["delete", u"删除", 700004],
-        ]
-    }
-}
-
-DEFAULT_ENTERPRISE_ROLE_PERMS = {
-    "admin": [],
-    "developer": [],
-    "viewer": [],
-}
-
-DEFAULT_TEAM_ROLE_PERMS = {
-    "admin": [200001, 200002, 200003, 200004, 200005, 200006, 200007, 200008, 200009, 200010,
-              200011, 200012, 200013, 300001, 300002, 300003, 300004, 300005, 300006, 300007,
-              300008, 300009, 300010, 300011, 300012, 300013, 300014, 400001, 400002, 400003,
-              400004, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013,
-              400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 500001, 500002,
-              500003, 500004, 600001, 600002, 600003, 600004, 700001, 700002, 700003, 700004],
-    "developer": [200001, 200002, 200005, 200009, 200010, 300001, 300002, 300003, 300005, 300006,
-                  300007, 300008, 300009, 300010, 300011, 300012, 300013, 300014, 400001, 400002,
-                  400003, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013,
-                  400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 500001, 500002,
-                  500003, 600001, 600002, 600003, 700001, 700002, 700003],
-    "viewer": [200001, 200002, 200005, 200009, 200010, 300001, 400001, 500001, 600001, 700001],
-}
 
 OauthConfig = {
     "__message": {
@@ -216,7 +83,7 @@ TeamUserRolesRUDView = {
 }
 
 TeamUserPermsLView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -225,7 +92,7 @@ TeamUserPermsLView = {
 }
 
 UserPemTraView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [200000]},
         "put": {"perms": []},
@@ -234,7 +101,7 @@ UserPemTraView = {
 }
 
 AddTeamView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [100000]},
         "put": {"perms": []},
@@ -243,7 +110,7 @@ AddTeamView = {
 }
 
 TeamUserView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200005]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -252,7 +119,7 @@ TeamUserView = {
 }
 
 NotJoinTeamUserView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200005]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -261,7 +128,7 @@ NotJoinTeamUserView = {
 }
 
 UserDelView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -270,7 +137,7 @@ UserDelView = {
 }
 
 TeamNameModView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [200000]},
         "put": {"perms": []},
@@ -279,7 +146,7 @@ TeamNameModView = {
 }
 
 TeamDelView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -288,7 +155,7 @@ TeamDelView = {
 }
 
 AppGroupVisitView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -297,7 +164,7 @@ AppGroupVisitView = {
 }
 
 TeamSortDomainQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -306,7 +173,7 @@ TeamSortDomainQueryView = {
 }
 
 TeamSortServiceQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -315,7 +182,7 @@ TeamSortServiceQueryView = {
 }
 
 RegQuyView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200002]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -324,7 +191,7 @@ RegQuyView = {
 }
 
 RegUnopenView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200002]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -333,7 +200,7 @@ RegUnopenView = {
 }
 
 OpenRegionView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [200003]},
         "put": {"perms": []},
@@ -343,7 +210,7 @@ OpenRegionView = {
 }
 
 TeamOverView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -352,7 +219,7 @@ TeamOverView = {
 }
 
 AllServiceInfo = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [200001, 300001, 400001]},
         "put": {"perms": []},
@@ -361,7 +228,7 @@ AllServiceInfo = {
 }
 
 TeamAppSortViewView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -370,7 +237,7 @@ TeamAppSortViewView = {
 }
 
 TeamServiceOverViewView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -379,7 +246,7 @@ TeamServiceOverViewView = {
 }
 
 ServiceEventsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -388,7 +255,7 @@ ServiceEventsView = {
 }
 
 TenantServiceEnvsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400013]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -397,7 +264,7 @@ TenantServiceEnvsView = {
 }
 
 ServiceGroupView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -406,7 +273,7 @@ ServiceGroupView = {
 }
 
 GroupServiceView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -415,7 +282,7 @@ GroupServiceView = {
 }
 
 TopologicalGraphView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -424,7 +291,7 @@ TopologicalGraphView = {
 }
 
 GroupServiceDetView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -433,7 +300,7 @@ GroupServiceDetView = {
 }
 
 TopologicalInternetView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -442,7 +309,7 @@ TopologicalInternetView = {
 }
 
 ServiceShareRecordView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -451,7 +318,7 @@ ServiceShareRecordView = {
 }
 
 ServiceShareRecordInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -460,7 +327,7 @@ ServiceShareRecordInfoView = {
 }
 
 ShareRecordView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -469,7 +336,7 @@ ShareRecordView = {
 }
 
 ServiceGroupSharedApps = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -478,7 +345,7 @@ ServiceGroupSharedApps = {
 }
 
 ShareRecordHistoryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -487,7 +354,7 @@ ShareRecordHistoryView = {
 }
 
 ServiceShareInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -496,7 +363,7 @@ ServiceShareInfoView = {
 }
 
 ServiceShareDeleteView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -505,7 +372,7 @@ ServiceShareDeleteView = {
 }
 
 ServiceShareEventList = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -514,7 +381,7 @@ ServiceShareEventList = {
 }
 
 ServiceShareEventPost = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -523,7 +390,7 @@ ServiceShareEventPost = {
 }
 
 ServicePluginShareEventPost = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -532,7 +399,7 @@ ServicePluginShareEventPost = {
 }
 
 ServiceShareCompleteView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300012]},
         "post": {"perms": [300012]},
         "put": {"perms": [300012]},
@@ -541,7 +408,7 @@ ServiceShareCompleteView = {
 }
 
 TenantGroupView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": [300002]},
         "put": {"perms": []},
@@ -550,7 +417,7 @@ TenantGroupView = {
 }
 
 TenantGroupOperationView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": [300003]},
@@ -559,7 +426,7 @@ TenantGroupOperationView = {
 }
 
 GroupStatusView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -568,7 +435,7 @@ GroupStatusView = {
 }
 # 权限在内部验证
 TenantGroupCommonOperationView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -577,7 +444,7 @@ TenantGroupCommonOperationView = {
 }
 
 SourceCodeCreateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
         "put": {"perms": []},
@@ -586,7 +453,7 @@ SourceCodeCreateView = {
 }
 
 ThirdPartyServiceCreateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 400001, 400002]},
         "put": {"perms": []},
@@ -595,7 +462,7 @@ ThirdPartyServiceCreateView = {
 }
 
 ThirdPartyServiceApiView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 400001, 400002]},
         "put": {"perms": [300001, 300002, 400001, 400002]},
@@ -604,7 +471,7 @@ ThirdPartyServiceApiView = {
 }
 
 ThirdPartyUpdateSecretKeyView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400001, 400003]},
@@ -613,7 +480,7 @@ ThirdPartyUpdateSecretKeyView = {
 }
 
 ThirdPartyHealthzView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": [400001, 400021]},
@@ -622,7 +489,7 @@ ThirdPartyHealthzView = {
 }
 
 DockerRunCreateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
         "put": {"perms": []},
@@ -631,7 +498,7 @@ DockerRunCreateView = {
 }
 
 DockerComposeCreateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
         "put": {"perms": []},
@@ -640,7 +507,7 @@ DockerComposeCreateView = {
 }
 
 AppCheck = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": [300001, 400001]},
         "put": {"perms": []},
@@ -649,7 +516,7 @@ AppCheck = {
 }
 
 GetCheckUUID = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -658,7 +525,7 @@ GetCheckUUID = {
 }
 
 MultiAppCheckView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300002, 400001, 400002]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -667,7 +534,7 @@ MultiAppCheckView = {
 }
 
 MultiAppCreateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
         "put": {"perms": []},
@@ -676,7 +543,7 @@ MultiAppCreateView = {
 }
 
 AppCheckUpdate = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [300001, 300002, 400001, 400002]},
@@ -685,7 +552,7 @@ AppCheckUpdate = {
 }
 
 ComposeCheckUpdate = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [300001, 300002, 400001, 400002]},
@@ -694,7 +561,7 @@ ComposeCheckUpdate = {
 }
 
 ComposeCheckView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300002, 400001, 400002]},
         "post": {"perms": [300001, 300002, 400001, 400002]},
         "put": {"perms": []},
@@ -703,7 +570,7 @@ ComposeCheckView = {
 }
 
 GetComposeCheckUUID = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300002, 400001, 400002]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -712,7 +579,7 @@ GetComposeCheckUUID = {
 }
 
 ComposeBuildView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 300008, 400001, 400002, 400009, 400010]},
         "put": {"perms": []},
@@ -721,7 +588,7 @@ ComposeBuildView = {
 }
 
 ComposeDeleteView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -730,7 +597,7 @@ ComposeDeleteView = {
 }
 
 ComposeServicesView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -739,7 +606,7 @@ ComposeServicesView = {
 }
 
 ComposeContentView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -748,7 +615,7 @@ ComposeContentView = {
 }
 
 AppBuild = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400001, 400009, 400010]},
         "put": {"perms": []},
@@ -757,16 +624,17 @@ AppBuild = {
 }
 
 AppCompileEnvView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
-        "put": {"perms": [300001, 300002, 300003, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "put": {
+            "perms": [300001, 300002, 300003, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
         "delete": {"perms": []}
     }
 }
 
 DeleteAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -775,7 +643,7 @@ DeleteAppView = {
 }
 
 AppDetailView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -784,7 +652,7 @@ AppDetailView = {
 }
 
 AppAnalyzePluginView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 400017, 700001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -793,7 +661,7 @@ AppAnalyzePluginView = {
 }
 
 AppBriefView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": [300001, 300003, 400001]},
@@ -802,7 +670,7 @@ AppBriefView = {
 }
 
 AppKeywordView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [300001, 400001, 400003, 400018]},
@@ -811,7 +679,7 @@ AppKeywordView = {
 }
 
 AppStatusView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -820,7 +688,7 @@ AppStatusView = {
 }
 
 AppPluginsBriefView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -829,7 +697,7 @@ AppPluginsBriefView = {
 }
 
 AppGroupView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [300001, 300003, 400001, 400003]},
@@ -838,7 +706,7 @@ AppGroupView = {
 }
 
 ListAppPodsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": [400005]},
         "put": {"perms": []},
@@ -847,7 +715,7 @@ ListAppPodsView = {
 }
 
 AppPodsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -856,7 +724,7 @@ AppPodsView = {
 }
 
 ThirdPartyAppPodsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": [400003]},
         "put": {"perms": [400003]},
@@ -865,7 +733,7 @@ ThirdPartyAppPodsView = {
 }
 
 DockerContainerView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -874,7 +742,7 @@ DockerContainerView = {
 }
 
 AppVisitView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -883,7 +751,7 @@ AppVisitView = {
 }
 
 AppEnvView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400013]},
         "post": {"perms": [400013]},
         "put": {"perms": []},
@@ -892,7 +760,7 @@ AppEnvView = {
 }
 
 AppEnvManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400013]},
         "post": {"perms": [400013]},
         "put": {"perms": [400013]},
@@ -902,7 +770,7 @@ AppEnvManageView = {
 }
 
 AppBuildEnvView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400013]},
         "post": {"perms": []},
         "put": {"perms": [400013]},
@@ -911,7 +779,7 @@ AppBuildEnvView = {
 }
 
 AppPortView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400016]},
         "post": {"perms": [400016]},
         "put": {"perms": []},
@@ -920,7 +788,7 @@ AppPortView = {
 }
 
 AppPortManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400016]},
         "post": {"perms": [400016]},
         "put": {"perms": [400016]},
@@ -929,7 +797,7 @@ AppPortManageView = {
 }
 
 TopologicalPortView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400001, 400016]},
@@ -938,7 +806,7 @@ TopologicalPortView = {
 }
 
 AppTcpOuterManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400016]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -947,7 +815,7 @@ AppTcpOuterManageView = {
 }
 
 AppVolumeOptionsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400015]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -956,7 +824,7 @@ AppVolumeOptionsView = {
 }
 
 AppVolumeView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400015]},
         "post": {"perms": [400015]},
         "put": {"perms": []},
@@ -965,7 +833,7 @@ AppVolumeView = {
 }
 
 AppVolumeManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400015]},
@@ -974,7 +842,7 @@ AppVolumeManageView = {
 }
 
 AppDependencyView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400014]},
         "post": {"perms": [400014]},
         "put": {"perms": []},
@@ -984,7 +852,7 @@ AppDependencyView = {
 }
 
 AppDependencyManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -993,7 +861,7 @@ AppDependencyManageView = {
 }
 
 AppNotDependencyView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400014]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1002,7 +870,7 @@ AppNotDependencyView = {
 }
 
 AppMntView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400014]},
         "post": {"perms": [400014]},
         "put": {"perms": []},
@@ -1011,7 +879,7 @@ AppMntView = {
 }
 
 AppMntManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1020,7 +888,7 @@ AppMntManageView = {
 }
 
 TenantCertificateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [600001]},
         "post": {"perms": [600002]},
         "put": {"perms": []},
@@ -1029,7 +897,7 @@ TenantCertificateView = {
 }
 
 TenantCertificateManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [600001]},
         "post": {"perms": []},
         "put": {"perms": [600003]},
@@ -1038,7 +906,7 @@ TenantCertificateManageView = {
 }
 
 ServiceDomainView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400016]},
         "post": {"perms": [400016]},
         "put": {"perms": []},
@@ -1047,7 +915,7 @@ ServiceDomainView = {
 }
 
 SecondLevelDomainView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400016]},
         "post": {"perms": []},
         "put": {"perms": [400016]},
@@ -1056,7 +924,7 @@ SecondLevelDomainView = {
 }
 
 DomainView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1065,7 +933,7 @@ DomainView = {
 }
 
 DomainQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1074,7 +942,7 @@ DomainQueryView = {
 }
 
 HttpStrategyView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": [500002]},
         "put": {"perms": [500003]},
@@ -1083,7 +951,7 @@ HttpStrategyView = {
 }
 
 GetSeniorUrlView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1092,7 +960,7 @@ GetSeniorUrlView = {
 }
 
 ServiceTcpDomainQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1101,7 +969,7 @@ ServiceTcpDomainQueryView = {
 }
 
 GetPortView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1110,7 +978,7 @@ GetPortView = {
 }
 
 ServiceTcpDomainView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": [500002]},
         "put": {"perms": [500003]},
@@ -1119,7 +987,7 @@ ServiceTcpDomainView = {
 }
 
 AppServiceTcpDomainQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1128,7 +996,7 @@ AppServiceTcpDomainQueryView = {
 }
 
 AppServiceDomainQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1137,7 +1005,7 @@ AppServiceDomainQueryView = {
 }
 
 GatewayCustomConfigurationView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [500001]},
         "post": {"perms": []},
         "put": {"perms": [500003]},
@@ -1146,7 +1014,7 @@ GatewayCustomConfigurationView = {
 }
 
 StartAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400006]},
         "put": {"perms": []},
@@ -1155,7 +1023,7 @@ StartAppView = {
 }
 
 StopAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400008]},
         "put": {"perms": []},
@@ -1164,7 +1032,7 @@ StopAppView = {
 }
 
 ReStartAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400007]},
         "put": {"perms": []},
@@ -1173,7 +1041,7 @@ ReStartAppView = {
 }
 
 DeployAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400010, 400009]},
         "put": {"perms": []},
@@ -1182,7 +1050,7 @@ DeployAppView = {
 }
 
 RollBackAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400011]},
         "put": {"perms": []},
@@ -1191,7 +1059,7 @@ RollBackAppView = {
 }
 
 UpgradeAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400009]},
         "put": {"perms": []},
@@ -1200,7 +1068,7 @@ UpgradeAppView = {
 }
 
 ChangeServiceUpgradeView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400010, 400009]},
@@ -1209,7 +1077,7 @@ ChangeServiceUpgradeView = {
 }
 
 MarketServiceUpgradeView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400009]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1218,7 +1086,7 @@ MarketServiceUpgradeView = {
 }
 
 BatchActionView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1227,7 +1095,7 @@ BatchActionView = {
 }
 
 BatchDelete = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1236,7 +1104,7 @@ BatchDelete = {
 }
 
 AgainDelete = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1245,7 +1113,7 @@ AgainDelete = {
 }
 
 AppEventView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1254,7 +1122,7 @@ AppEventView = {
 }
 
 AppLogView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1263,7 +1131,7 @@ AppLogView = {
 }
 
 AppEventLogView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1272,7 +1140,7 @@ AppEventLogView = {
 }
 
 AppLogInstanceView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1281,7 +1149,7 @@ AppLogInstanceView = {
 }
 
 AppHistoryLogView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1290,7 +1158,7 @@ AppHistoryLogView = {
 }
 
 AppProbeView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": [400003]},
         "put": {"perms": [400003]},
@@ -1299,7 +1167,7 @@ AppProbeView = {
 }
 
 HorizontalExtendAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400003, 400012]},
         "put": {"perms": []},
@@ -1308,7 +1176,7 @@ HorizontalExtendAppView = {
 }
 
 VerticalExtendAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [400003, 400012]},
         "put": {"perms": []},
@@ -1317,7 +1185,7 @@ VerticalExtendAppView = {
 }
 
 AppExtendView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400012]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1326,7 +1194,7 @@ AppExtendView = {
 }
 
 ListAppAutoscalerView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400012]},
         "post": {"perms": [400003, 400012]},
         "put": {"perms": []},
@@ -1335,7 +1203,7 @@ ListAppAutoscalerView = {
 }
 
 AppAutoscalerView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400012]},
         "post": {"perms": []},
         "put": {"perms": [400003, 400012]},
@@ -1344,7 +1212,7 @@ AppAutoscalerView = {
 }
 
 AppScalingRecords = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400012]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1353,7 +1221,7 @@ AppScalingRecords = {
 }
 
 ChangeServiceTypeView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400019]},
@@ -1362,7 +1230,7 @@ ChangeServiceTypeView = {
 }
 
 ChangeServiceNameView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400003]},
@@ -1371,7 +1239,7 @@ ChangeServiceNameView = {
 }
 
 ServiceCodeBranch = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400018]},
         "post": {"perms": []},
         "put": {"perms": [400018]},
@@ -1380,7 +1248,7 @@ ServiceCodeBranch = {
 }
 
 AppMonitorQueryRangeView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1389,7 +1257,7 @@ AppMonitorQueryRangeView = {
 }
 
 AppMonitorQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1398,7 +1266,7 @@ AppMonitorQueryView = {
 }
 
 BatchAppMonitorQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1407,7 +1275,7 @@ BatchAppMonitorQueryView = {
 }
 
 AppLabelView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400020]},
         "post": {"perms": [400020]},
         "put": {"perms": []},
@@ -1416,7 +1284,7 @@ AppLabelView = {
 }
 
 AppLabelAvailableView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400020]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1425,7 +1293,7 @@ AppLabelAvailableView = {
 }
 
 AppResourceQueryView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1434,7 +1302,7 @@ AppResourceQueryView = {
 }
 
 GetRegionPublicKeyView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200001, 200002]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1443,7 +1311,7 @@ GetRegionPublicKeyView = {
 }
 
 PluginCreateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1452,7 +1320,7 @@ PluginCreateView = {
 }
 
 DefaultPluginCreateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1461,7 +1329,7 @@ DefaultPluginCreateView = {
 }
 
 AllPluginBaseInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1470,7 +1338,7 @@ AllPluginBaseInfoView = {
 }
 
 PluginBaseInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1479,7 +1347,7 @@ PluginBaseInfoView = {
 }
 
 PluginUsedServiceView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400017, 700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1488,7 +1356,7 @@ PluginUsedServiceView = {
 }
 
 AllPluginVersionInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1497,7 +1365,7 @@ AllPluginVersionInfoView = {
 }
 
 CreatePluginVersionView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1506,7 +1374,7 @@ CreatePluginVersionView = {
 }
 
 PluginEventLogView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1515,7 +1383,7 @@ PluginEventLogView = {
 }
 
 PluginVersionInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1524,7 +1392,7 @@ PluginVersionInfoView = {
 }
 
 ConfigPluginManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1533,7 +1401,7 @@ ConfigPluginManageView = {
 }
 
 ConfigPreviewView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1542,7 +1410,7 @@ ConfigPreviewView = {
 }
 
 PluginBuildView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1551,7 +1419,7 @@ PluginBuildView = {
 }
 
 PluginBuildStatusView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700002]},
         "put": {"perms": [700003]},
@@ -1560,7 +1428,7 @@ PluginBuildStatusView = {
 }
 
 ServicePluginsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400017, 700001]},
         "post": {"perms": [400017, 700001]},
         "put": {"perms": [400017, 700001]},
@@ -1569,7 +1437,7 @@ ServicePluginsView = {
 }
 
 ServicePluginInstallView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400017, 700001]},
         "post": {"perms": [400017, 700001]},
         "put": {"perms": [400017, 700001]},
@@ -1578,7 +1446,7 @@ ServicePluginInstallView = {
 }
 
 ServicePluginOperationView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400017, 700001]},
         "post": {"perms": [400017, 700001]},
         "put": {"perms": [400017, 700001]},
@@ -1587,7 +1455,7 @@ ServicePluginOperationView = {
 }
 
 ServicePluginConfigView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400017, 700001]},
         "post": {"perms": [400017, 700001]},
         "put": {"perms": [400017, 700001]},
@@ -1596,7 +1464,7 @@ ServicePluginConfigView = {
 }
 
 PluginShareRecordView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1605,7 +1473,7 @@ PluginShareRecordView = {
 }
 
 PluginShareInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1614,7 +1482,7 @@ PluginShareInfoView = {
 }
 
 PluginShareEventsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1623,7 +1491,7 @@ PluginShareEventsView = {
 }
 
 PluginShareEventView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1632,7 +1500,7 @@ PluginShareEventView = {
 }
 
 PluginShareCompletionView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1641,7 +1509,7 @@ PluginShareCompletionView = {
 }
 
 MarketPluginsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1650,7 +1518,7 @@ MarketPluginsView = {
 }
 
 SyncMarketPluginsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1659,7 +1527,7 @@ SyncMarketPluginsView = {
 }
 
 SyncMarketPluginTemplatesView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1668,7 +1536,7 @@ SyncMarketPluginTemplatesView = {
 }
 
 UninstallPluginTemplateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1677,7 +1545,7 @@ UninstallPluginTemplateView = {
 }
 
 InstallMarketPlugin = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1686,7 +1554,7 @@ InstallMarketPlugin = {
 }
 
 InternalMarketPluginsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1695,7 +1563,7 @@ InternalMarketPluginsView = {
 }
 
 InstallableInteralPluginsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [700001]},
         "post": {"perms": [700003]},
         "put": {"perms": [700003]},
@@ -1704,7 +1572,7 @@ InstallableInteralPluginsView = {
 }
 
 CenterAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400006, 400009, 400010]},
         "put": {"perms": []},
@@ -1713,7 +1581,7 @@ CenterAppView = {
 }
 
 RegionProtocolView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [200001, 200002]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1722,7 +1590,7 @@ RegionProtocolView = {
 }
 
 CenterAppUploadView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300015]},
         "put": {"perms": []},
@@ -1731,7 +1599,7 @@ CenterAppUploadView = {
 }
 
 ImportingRecordView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [300015]},
         "put": {"perms": []},
@@ -1740,7 +1608,7 @@ ImportingRecordView = {
 }
 
 CenterAppImportingAppsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300015]},
         "post": {"perms": [300015]},
         "put": {"perms": []},
@@ -1749,7 +1617,7 @@ CenterAppImportingAppsView = {
 }
 
 CenterAppImportView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300015]},
         "post": {"perms": [300015]},
         "put": {"perms": []},
@@ -1758,7 +1626,7 @@ CenterAppImportView = {
 }
 
 ExportFileDownLoadView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300016]},
         "post": {"perms": [300016]},
         "put": {"perms": []},
@@ -1767,7 +1635,7 @@ ExportFileDownLoadView = {
 }
 
 TeamAddUserView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [200006, 200010]},
         "put": {"perms": []},
@@ -1776,7 +1644,7 @@ TeamAddUserView = {
 }
 
 GroupAppsBackupView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300009]},
         "post": {"perms": [300009]},
         "put": {"perms": [300009]},
@@ -1785,7 +1653,7 @@ GroupAppsBackupView = {
 }
 
 GroupAppsBackupStatusView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300009]},
         "post": {"perms": [300009]},
         "put": {"perms": [300009]},
@@ -1794,7 +1662,7 @@ GroupAppsBackupStatusView = {
 }
 
 GroupAppsBackupExportView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300009]},
         "post": {"perms": [300009]},
         "put": {"perms": [300009]},
@@ -1803,7 +1671,7 @@ GroupAppsBackupExportView = {
 }
 
 GroupAppsBackupImportView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300009]},
         "post": {"perms": [300009]},
         "put": {"perms": [300009]},
@@ -1812,7 +1680,7 @@ GroupAppsBackupImportView = {
 }
 
 TeamGroupAppsBackupView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300009]},
         "post": {"perms": [300009]},
         "put": {"perms": [300009]},
@@ -1821,7 +1689,7 @@ TeamGroupAppsBackupView = {
 }
 
 GroupAppsCopyView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300014]},
         "post": {"perms": [300014]},
         "put": {"perms": []},
@@ -1830,7 +1698,7 @@ GroupAppsCopyView = {
 }
 
 AllTeamGroupAppsBackupView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300009]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1839,7 +1707,7 @@ AllTeamGroupAppsBackupView = {
 }
 
 GroupAppsMigrateView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300010]},
         "post": {"perms": [300010]},
         "put": {"perms": []},
@@ -1848,7 +1716,7 @@ GroupAppsMigrateView = {
 }
 
 MigrateRecordView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 300009, 300010]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1857,7 +1725,7 @@ MigrateRecordView = {
 }
 
 GroupAppsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1866,7 +1734,7 @@ GroupAppsView = {
 }
 
 AppVersionsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1875,7 +1743,7 @@ AppVersionsView = {
 }
 
 AppVersionManageView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1884,7 +1752,7 @@ AppVersionManageView = {
 }
 
 ApplicantsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 200009]},
         "post": {"perms": [200006, 200010]},
         "put": {"perms": []},
@@ -1893,7 +1761,7 @@ ApplicantsView = {
 }
 
 AdminAddUserView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": [100000]},
         "put": {"perms": []},
@@ -1902,7 +1770,7 @@ AdminAddUserView = {
 }
 
 UpdateSecretKey = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400003]},
@@ -1911,7 +1779,7 @@ UpdateSecretKey = {
 }
 
 ImageAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": [400018]},
@@ -1920,7 +1788,7 @@ ImageAppView = {
 }
 
 BuildSourceinfo = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001, 400018]},
         "post": {"perms": []},
         "put": {"perms": [400018]},
@@ -1929,7 +1797,7 @@ BuildSourceinfo = {
 }
 
 AppEventsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1938,7 +1806,7 @@ AppEventsView = {
 }
 
 AppEventsLogView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [400001]},
         "post": {"perms": []},
         "put": {"perms": []},
@@ -1947,7 +1815,7 @@ AppEventsLogView = {
 }
 
 GroupAppView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 300013]},
         "post": {"perms": [300013]},
         "put": {"perms": [300013]},
@@ -1956,7 +1824,7 @@ GroupAppView = {
 }
 
 AppUpgradeVersion = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 300013]},
         "post": {"perms": [300013]},
         "put": {"perms": [300013]},
@@ -1965,7 +1833,7 @@ AppUpgradeVersion = {
 }
 
 AppUpgradeRecordsView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 300013]},
         "post": {"perms": [300013]},
         "put": {"perms": [300013]},
@@ -1974,7 +1842,7 @@ AppUpgradeRecordsView = {
 }
 
 AppUpgradeRecordView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 300013]},
         "post": {"perms": [300013]},
         "put": {"perms": [300013]},
@@ -1983,7 +1851,7 @@ AppUpgradeRecordView = {
 }
 
 AppUpgradeInfoView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 300013]},
         "post": {"perms": [300013]},
         "put": {"perms": [300013]},
@@ -1992,7 +1860,7 @@ AppUpgradeInfoView = {
 }
 
 AppUpgradeTaskView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 300013]},
         "post": {"perms": [300013]},
         "put": {"perms": [300013]},
@@ -2001,20 +1869,10 @@ AppUpgradeTaskView = {
 }
 
 AppUpgradeRollbackView = {
-    "__message":{
+    "__message": {
         "get": {"perms": [300001, 400001, 300013]},
         "post": {"perms": [300013]},
         "put": {"perms": [300013]},
         "delete": {"perms": [300013]}
     }
 }
-
-
-
-
-
-
-
-
-
-
