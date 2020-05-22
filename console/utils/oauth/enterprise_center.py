@@ -95,7 +95,8 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                 try:
                     data = rst.json()
                 except ValueError:
-                    raise ServiceHandleException(msg="return value error", msg_show="enterprise center 服务不正常")
+                    raise ServiceHandleException(msg="return value error", msg_show="enterprise center 服务不正常",
+                                                 error_code=10405, status_code=401)
                 self.access_token = data.get("access_token")
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:
@@ -119,11 +120,11 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                             return self.access_token, self.refresh_token
                         except Exception:
                             self.oauth_user.delete()
-                            raise ServiceHandleException(msg="can not get access key", error_code=10405, status_code=401)
+                            raise ServiceHandleException(msg="refresh key expired", error_code=10405, status_code=401)
                     else:
                         self.oauth_user.delete()
-                        raise ServiceHandleException(msg="can not get access key", error_code=10405, status_code=401)
-            raise ServiceHandleException(msg="can not get access key", error_code=10405, status_code=401)
+                        raise ServiceHandleException(msg="access key expired", error_code=10405, status_code=401)
+            raise ServiceHandleException(msg="no found oauth user record in db", error_code=10405, status_code=401)
 
     def refresh_access_token(self):
         headers = {"Accept": "application/json", "Content-Type": "application/json"}
