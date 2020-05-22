@@ -12,7 +12,13 @@ from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.team_services import team_services
 from console.services.topological_services import topological_service
-from console.views.base import JWTAuthApiView
+from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from www.models.main import TenantEnterprise
+from console.models.main import EnterpriseUserPerm
+from console.models.main import PermsInfo
+from console.models.main import UserRole
+from console.models.main import RoleInfo
+from console.models.main import RolePerms
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -24,7 +30,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger('default')
 
 
-class ToplogicalBaseView(JWTAuthApiView):
+class ToplogicalBaseView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(ToplogicalBaseView, self).__init__(*args, **kwargs)
         self.response_region = None
@@ -61,6 +67,45 @@ class ToplogicalBaseView(JWTAuthApiView):
 
         if service_alias:
             self.service = service_repo.get_service_by_tenant_and_alias(self.tenant.tenant_id, service_alias)
+
+        if self.user.user_id == self.tenant.creater:
+            self.is_team_owner = True
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()
+        self.is_enterprise_admin = False
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.tenant.enterprise_id, user_id=self.user.user_id).first()
+        if enterprise_user_perms:
+            self.is_enterprise_admin = True
+        self.user_perms = []
+        if self.is_enterprise_admin:
+            self.user_perms = list(set(PermsInfo.objects.filter(kind="enterprise").values_list("code", flat=True)))
+            self.user_perms.append(100000)
+        else:
+            ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
+            if ent_roles:
+                ent_role_ids = ent_roles.values_list("ID", flat=True)
+                ent_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=ent_role_ids)
+                if ent_user_roles:
+                    ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
+                    ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
+                    if ent_role_perms:
+                        self.user_perms=list(set(ent_role_perms.values_list("perm_code", flat=True)))
+
+        if self.is_team_owner:
+            team_perms = list(set(PermsInfo.objects.filter(kind="team").values_list("code", flat=True)))
+            self.user_perms.extend(team_perms)
+            self.user_perms.append(200000)
+        else:
+            team_roles = RoleInfo.objects.filter(kind="team", kind_id=self.tenant.tenant_id)
+            if team_roles:
+                role_ids = team_roles.values_list("ID", flat=True)
+                team_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
+                if team_user_roles:
+                    team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
+                    team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
+                    if team_role_perms:
+                        self.user_perms.extend(list(set(team_role_perms.values_list("perm_code", flat=True))))
+        self.check_perms(request, *args, **kwargs)
 
         self.initial_header_info(request)
 
