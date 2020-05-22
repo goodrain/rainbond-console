@@ -390,11 +390,11 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 "enterprise_id": enterprise.ID,
             }
             team_repo.create_team_perms(**create_perm_param)
-        if role_ids:
-            user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
-            user.is_active = True
-            user.save()
-            result = general_message(200, "success", "添加用户成功")
+            if role_ids:
+                user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
+                user.is_active = True
+                user.save()
+                result = general_message(200, "success", "添加用户成功")
         return Response(result)
 
 
