@@ -53,23 +53,6 @@ class AppVolumeService(object):
 
     default_volume_type = "share-file"
     simple_volume_type = [default_volume_type, "config-file", "memoryfs", "local"]
-    stateless_volume_types = [{
-        "volume_type": "share-file",
-        "name_show": "共享存储（文件）"
-    }, {
-        "volume_type": "memoryfs",
-        "name_show": "内存文件存储"
-    }]
-    state_volume_types = [{
-        "volume_type": "share-file",
-        "name_show": "共享存储（文件）"
-    }, {
-        "volume_type": "memoryfs",
-        "name_show": "内存文件存储"
-    }, {
-        "volume_type": "local",
-        "name_show": "本地存储"
-    }]
 
     def is_simple_volume_type(self, volume_type):
         if volume_type in self.simple_volume_type:
@@ -87,7 +70,7 @@ class AppVolumeService(object):
         return True
 
     def get_service_support_volume_options(self, tenant, service):
-        base_opts = [{"volume_type": "share-file", "name_show": "共享存储（文件）"}, {"volume_type": "memoryfs", "name_show": "内存文件存储"}]
+        base_opts = [{"volume_type": "share-file", "name_show": "共享存储（文件）"}, {"volume_type": "memoryfs", "name_show": "临时存储"}]
         state = False
         # state service
         if is_state(service.extend_method):
