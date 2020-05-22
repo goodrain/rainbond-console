@@ -447,7 +447,7 @@ class UserDelView(RegionTenantHeaderView):
         return Response(result, status=code)
 
 
-class TeamNameModView(JWTAuthApiView):
+class TeamNameModView(RegionTenantHeaderView):
     def post(self, request, team_name, *args, **kwargs):
         """
         修改团队名
@@ -787,7 +787,7 @@ class ApplicantsView(RegionTenantHeaderView):
         if action is True:
             join.update(is_pass=1)
             team = team_repo.get_team_by_team_name(team_name=team_name)
-            team_services.add_user_to_team_by_viewer(tenant=team, user_id=user_id)
+            # team_services.add_user_to_team_by_viewer(tenant=team, user_id=user_id)
             # 发送通知
             info = "同意"
             self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)

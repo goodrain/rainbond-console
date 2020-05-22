@@ -1754,8 +1754,8 @@ AppVersionManageView = {
 ApplicantsView = {
     "__message": {
         "get": {"perms": [200001]},
-        "post": {"perms": [200006]},
-        "put": {"perms": []},
+        "post": {"perms": []},
+        "put": {"perms": [200006]},
         "delete": {"perms": []}
     }
 }
