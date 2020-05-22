@@ -213,14 +213,14 @@ class AddTeamView(JWTAuthApiView):
                 # role_obj = role_repo.get_default_role_by_role_name(role_name="owner", is_default=True)
 
                 # 创建用户在团队的权限
-                perm_info = {
-                    "user_id": user.user_id,
-                    "tenant_id": team.ID,
-                    "enterprise_id": enterprise.pk,
-                    # 创建团队时给创建用户添加owner的角色
-                    "role_id": None
-                }
-                perm_services.add_user_tenant_perm(perm_info)
+                # perm_info = {
+                #     "user_id": user.user_id,
+                #     "tenant_id": team.ID,
+                #     "enterprise_id": enterprise.pk,
+                #     # 创建团队时给创建用户添加owner的角色
+                #     "role_id": None
+                # }
+                # perm_services.add_user_tenant_perm(perm_info)
                 for r in regions:
                     code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
                     if code != 200:
@@ -700,13 +700,13 @@ class TeamRegionInitView(JWTAuthApiView):
             if not code:
                 return Response(general_message(code, "create team error", msg), status=code)
             # 初始化默认角色
-            perm_info = {
-                "user_id": self.user.user_id,
-                "tenant_id": team.ID,
-                "identity": "owner",
-                "enterprise_id": enterprise.pk
-            }
-            perm_services.add_user_tenant_perm(perm_info)
+            # perm_info = {
+            #     "user_id": self.user.user_id,
+            #     "tenant_id": team.ID,
+            #     "identity": "owner",
+            #     "enterprise_id": enterprise.pk
+            # }
+            # perm_services.add_user_tenant_perm(perm_info)
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
             admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
             user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])

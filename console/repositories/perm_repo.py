@@ -34,19 +34,19 @@ class PermsRepo(object):
         perms = PermsInfo.objects.all()
         return perms
 
-    # def add_user_tenant_perm(self, perm_info):
-    #     perm_re_tenant = PermRelTenant(**perm_info)
-    #     perm_re_tenant.save()
-    #     return perm_re_tenant
-    #
-    # def get_user_tenant_perm(self, tenant_pk, user_pk):
-    #     """
-    #     获取用户在某个团队下的权限
-    #     """
-    #     prts = PermRelTenant.objects.filter(tenant_id=tenant_pk, user_id=user_pk)
-    #     if prts:
-    #         return prts[0]
-    #     return None
+    def add_user_tenant_perm(self, perm_info):
+        perm_re_tenant = PermRelTenant(**perm_info)
+        perm_re_tenant.save()
+        return perm_re_tenant
+
+    def get_user_tenant_perm(self, tenant_pk, user_pk):
+        """
+        获取用户在某个团队下的权限
+        """
+        prts = PermRelTenant.objects.filter(tenant_id=tenant_pk, user_id=user_pk)
+        if prts:
+            return prts[0]
+        return None
 
 
 class ServicePermRepo(object):
