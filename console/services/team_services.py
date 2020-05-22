@@ -19,6 +19,7 @@ from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
+from console.services.exception import ServiceHandleException
 from console.services.exception import ErrAllTenantDeletionFailed
 from console.services.exception import ErrStillHasServices
 from console.services.exception import ErrTenantRegionNotFound
@@ -345,7 +346,15 @@ class TeamService(object):
                 # There is no guarantee that the deletion of each tenant can be successful.
                 region_api.delete_tenant(tenant_region["region_name"], tenant_region["tenant_name"])
                 success_count = success_count + 1
-            except Exception as e:
+            except region_api.CallApiError as e:
+                if e.message.get('body'):
+                    msg_show = ""
+                    msg = e.message["body"].get("msg")
+                    if "services" in msg:
+                        msg_show=u"团队中含有组件，不可删除"
+                    elif "plugins" in msg:
+                        msg_show=u"团队中含有插件，不可删除"
+                    raise ServiceHandleException(msg=msg, msg_show=msg_show)
                 logger.error("tenantid: {}; region name: {}; delete tenant: {}".format(tenant_id, tenant_region["tenant_name"],
                                                                                        e))
         # The current strategy is that if a tenant is deleted successfully, it is considered successful.
