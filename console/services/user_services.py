@@ -98,6 +98,10 @@ class UserService(object):
             PermRelTenant.objects.filter(user_id=user.pk).delete()
         except PermRelTenant.DoesNotExist:
             pass
+        try:
+            UserRole.objects.filter(user_id=user.user_id).delete()
+        except UserRole.DoesNotExist:
+            pass
         user.delete()
 
     def update_user_password(self, user_id, new_password):

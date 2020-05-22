@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from console.exception.exceptions import SameIdentityError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.user_repo import user_repo
+from console.repositories.team_repo import team_repo
 from console.services.auth import login
 from console.services.auth import logout
 from console.services.enterprise_services import enterprise_services
@@ -381,6 +382,14 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         # 创建用户
         user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
         result = general_message(200, "success", "添加用户成功")
+        if tenant:
+            create_perm_param = {
+                "user_id": user.user_id,
+                "tenant_id": tenant.ID,
+                "identity": "",
+                "enterprise_id": enterprise.ID,
+            }
+            team_repo.create_team_perms(**create_perm_param)
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
             user.is_active = True
