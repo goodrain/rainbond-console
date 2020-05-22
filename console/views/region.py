@@ -17,7 +17,7 @@ logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
 
 
-class RegSimQuyView(JWTAuthApiView):
+class RegSimQuyView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         获取团队数据中心(简表)
@@ -40,7 +40,7 @@ class RegSimQuyView(JWTAuthApiView):
         return Response(result, status=code)
 
 
-class RegQuyView(JWTAuthApiView):
+class RegQuyView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         获取团队数据中心(详细)
@@ -63,7 +63,7 @@ class RegQuyView(JWTAuthApiView):
         return Response(result, status=code)
 
 
-class RegUnopenView(JWTAuthApiView):
+class RegUnopenView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         获取团队未开通的数据中心
@@ -81,7 +81,7 @@ class RegUnopenView(JWTAuthApiView):
         return Response(result, status=code)
 
 
-class OpenRegionView(JWTAuthApiView):
+class OpenRegionView(RegionTenantHeaderView):
     # @perm_required('tenant_open_region')
     def post(self, request, team_name, *args, **kwargs):
         """
