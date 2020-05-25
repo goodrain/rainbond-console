@@ -710,11 +710,16 @@ class PluginService(object):
             needed_plugin_config = all_default_config[plugin_type]
             image = needed_plugin_config.get("image", "")
             build_source = needed_plugin_config.get("build_source", "")
+            image_tag = "latest"
             if image and build_source and build_source == "image":
+                ref = reference.Reference.parse(image)
+                if ref["tag"]:
+                    image_tag = ref["tag"]
                 if "goodrain.me" in image:
-                    ref = reference.Reference.parse(image)
                     _, name = ref.split_hostname()
                     image = settings.IMAGE_REPO + "/" + name
+                else:
+                    image = image.split(":")[0]
             plugin_params = {
                 "tenant_id": tenant.tenant_id,
                 "region": region,
@@ -734,7 +739,7 @@ class PluginService(object):
             plugin_base_info.save()
 
             plugin_build_version = plugin_version_service.create_build_version(
-                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64)
+                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64, image_tag=image_tag)
 
             plugin_config_meta_list = []
             config_items_list = []

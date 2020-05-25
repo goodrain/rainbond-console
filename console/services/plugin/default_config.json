@@ -378,7 +378,7 @@
     "category": "general-plugin",
     "code_repo": "",
     "build_source": "image",
-    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugin-log-filebeat",
+    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugin-log-filebeat:latest",
     "config_group": [
       {
         "service_meta_type": "un_define",
@@ -476,7 +476,7 @@
     "category": "general-plugin",
     "code_repo": "",
     "build_source": "image",
-    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugin-log-logtail",
+    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugin-log-logtail:latest",
     "config_group": [
       {
         "service_meta_type": "un_define",
