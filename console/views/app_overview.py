@@ -9,11 +9,8 @@ import logging
 import os
 import pickle
 
-from django.conf import settings
 from django.db import transaction
-from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
-from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from console.constants import AppConstants, PluginCategoryConstants
@@ -30,16 +27,12 @@ from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
-from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
-from console.views.base import JWTAuthApiView
+from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
-from www.utils.md5Util import md5fun
 from www.utils.return_message import error_message, general_message
-from www.utils.url import get_redirect_url
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -411,7 +404,7 @@ class AppVisitView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class AppGroupVisitView(JWTAuthApiView):
+class AppGroupVisitView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         获取组件访问信息

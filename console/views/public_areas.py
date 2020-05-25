@@ -222,7 +222,6 @@ class GroupServiceView(RegionTenantHeaderView):
                 except EmptyPage:
                     no_group_service_list = paginator.page(paginator.num_pages).object_list
                 result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=paginator.count)
-                result["data"]["bean"] = {"tenant_actions": tenant_actions, "service_actions": service_actions}
                 return Response(result, status=code)
 
             team_id = self.team.tenant_id
@@ -245,7 +244,6 @@ class GroupServiceView(RegionTenantHeaderView):
             except EmptyPage:
                 group_service_list = paginator.page(paginator.num_pages).object_list
             result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
-            result["data"]["bean"] = {"tenant_actions": tenant_actions, "service_actions": service_actions}
             return Response(result, status=code)
         except GroupNotExistError as e:
             logger.exception(e)
