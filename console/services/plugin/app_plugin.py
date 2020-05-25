@@ -711,9 +711,10 @@ class PluginService(object):
             image = needed_plugin_config.get("image", "")
             build_source = needed_plugin_config.get("build_source", "")
             if image and build_source and build_source == "image":
-                ref = reference.Reference.parse(image)
-                _, name = ref.split_hostname()
-                image = settings.IMAGE_REPO + "/" + name
+                if "goodrain.me" in image:
+                    ref = reference.Reference.parse(image)
+                    _, name = ref.split_hostname()
+                    image = settings.IMAGE_REPO + "/" + name
             plugin_params = {
                 "tenant_id": tenant.tenant_id,
                 "region": region,
