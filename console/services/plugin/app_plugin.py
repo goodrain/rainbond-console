@@ -12,7 +12,7 @@ from django.db import transaction
 from django.db.models import Q
 from docker_image import reference
 
-from console.constants import (PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
+from console.constants import (PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType, DefaultPluginConstants)
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo
@@ -43,6 +43,12 @@ has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_sh
 allow_plugins = [
     PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
     PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE
+]
+
+default_plugins = [
+    DefaultPluginConstants.DOWNSTREAM_NET_PLUGIN, DefaultPluginConstants.PERF_ANALYZE_PLUGIN,
+    DefaultPluginConstants.INANDOUT_NET_PLUGIN, DefaultPluginConstants.FILEBEAT_LOG_PLUGIN,
+    DefaultPluginConstants.LOGTAIL_LOG_PLUGIN
 ]
 
 
@@ -702,9 +708,12 @@ class PluginService(object):
                 raise Exception("no config was found")
 
             needed_plugin_config = all_default_config[plugin_type]
-            ref = reference.Reference.parse(needed_plugin_config["image"])
-            _, name = ref.split_hostname()
-            image = settings.IMAGE_REPO + "/" + name
+            image = needed_plugin_config.get("image", "")
+            build_source = needed_plugin_config.get("build_source", "")
+            if image and build_source and build_source == "image":
+                ref = reference.Reference.parse(image)
+                _, name = ref.split_hostname()
+                image = settings.IMAGE_REPO + "/" + name
             plugin_params = {
                 "tenant_id": tenant.tenant_id,
                 "region": region,
@@ -712,7 +721,7 @@ class PluginService(object):
                 "desc": needed_plugin_config["desc"],
                 "plugin_alias": needed_plugin_config["plugin_alias"],
                 "category": needed_plugin_config["category"],
-                "build_source": needed_plugin_config["build_source"],
+                "build_source": build_source,
                 "image": image,
                 "code_repo": needed_plugin_config["code_repo"],
                 "username": "",
@@ -802,9 +811,8 @@ class PluginService(object):
 
     def get_default_plugin(self, region, tenant):
         # 兼容3.5版本升级
-        plugins = plugin_repo.get_tenant_plugins(
-            tenant.tenant_id,
-            region).filter(origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin", "inandout_net_plugin"])
+        plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id,
+                                                 region).filter(origin_share_id__in=[plugin for plugin in default_plugins])
         if plugins:
             return plugins
         else:
