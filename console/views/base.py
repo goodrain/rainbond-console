@@ -28,7 +28,6 @@ from console.exception.main import BusinessException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
 from console.exception.main import NoPermissionsError
-from console.services.perm_services import user_kind_perm_service
 from console.models.main import EnterpriseUserPerm
 from console.models.main import PermsInfo
 from console.models.main import UserRole
@@ -312,7 +311,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
                     ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
                     ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
                     if ent_role_perms:
-                        self.user_perms=list(set(ent_role_perms.values_list("perm_code", flat=True)))
+                        self.user_perms = list(set(ent_role_perms.values_list("perm_code", flat=True)))
 
         if self.is_team_owner:
             team_perms = list(set(PermsInfo.objects.filter(kind="team").values_list("code", flat=True)))

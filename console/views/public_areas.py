@@ -23,8 +23,6 @@ from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
 
@@ -52,7 +50,6 @@ class AllServiceInfo(RegionTenantHeaderView):
               type: string
               paramType: form
         """
-        # try:
         code = 200
         service_ids = request.data["service_ids"]
         status_list = []
@@ -64,11 +61,6 @@ class AllServiceInfo(RegionTenantHeaderView):
                 enterprise_id=self.team.enterprise_id)
         result = general_message(code, "success", "批量获取状态成功", list=status_list)
         return Response(result, status=code)
-        # except Exception as e:
-        #     code = 500
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=code)
 
 
 class TeamOverView(RegionTenantHeaderView):
@@ -152,20 +144,14 @@ class ServiceGroupView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        # try:
         code = 200
         query = request.GET.get("query", "")
         groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
         return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class GroupServiceView(RegionTenantHeaderView):
-    # @never_cache
-    # @perm_required("view_service")
+    @never_cache
     def get(self, request, *args, **kwargs):
         """
         应用组件列表、状态展示
@@ -249,10 +235,6 @@ class GroupServiceView(RegionTenantHeaderView):
             logger.exception(e)
             result = general_message(400, "query success", "该应用不存在")
             return Response(result, status=400)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class ServiceEventsView(RegionTenantHeaderView):
@@ -289,7 +271,6 @@ class ServiceEventsView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        # try:
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 3)
         total = 0
@@ -329,12 +310,6 @@ class ServiceEventsView(RegionTenantHeaderView):
         event_list = [event for event in event_page_list]
         result = general_message(200, 'success', "查询成功", list=event_list, total=total)
         return Response(result, status=result["code"])
-        #
-        # except Exception as e:
-        #     code = 500
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=code)
 
 
 class TeamServiceOverViewView(RegionTenantHeaderView):
@@ -379,7 +354,6 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        # try:
         code = 200
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
@@ -444,10 +418,6 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
         else:
             result = general_message(200, "success", "当前团队没有创建应用")
             return Response(result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class TeamAppSortViewView(RegionTenantHeaderView):
@@ -455,7 +425,6 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         """
         总览 团队应用信息
         """
-        # try:
         query = request.GET.get("query", "")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
@@ -471,10 +440,6 @@ class TeamAppSortViewView(RegionTenantHeaderView):
                                                          self.team.enterprise_id)
             apps = apps[start:end]
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 # 团队下应用环境变量模糊查询
@@ -488,7 +453,6 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
         if attr_name and attr_value:
             result = general_message(400, "faild", "变量名和值不能同时存在")
             return Response(result)
-        # try:
         # 查询变量名
         if attr_name:
             attr_name_list = []
@@ -522,7 +486,3 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
                         attr_value_list.append(service_env[0])
             result = general_message(200, "success", "查询成功", list=attr_value_list)
             return Response(result)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = general_message(500, e.message, "系统异常")
-        #     return Response(result)

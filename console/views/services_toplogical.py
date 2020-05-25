@@ -7,20 +7,19 @@ import logging
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from console.models.main import EnterpriseUserPerm
+from console.models.main import PermsInfo
+from console.models.main import RoleInfo
+from console.models.main import RolePerms
+from console.models.main import UserRole
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.team_services import team_services
 from console.services.topological_services import topological_service
-from console.views.base import JWTAuthApiView, RegionTenantHeaderView
-from www.models.main import TenantEnterprise
-from console.models.main import EnterpriseUserPerm
-from console.models.main import PermsInfo
-from console.models.main import UserRole
-from console.models.main import RoleInfo
-from console.models.main import RolePerms
+from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import error_message
+from www.models.main import TenantEnterprise
 from www.utils.return_message import general_message
 
 event_service = AppEventService()
@@ -89,7 +88,7 @@ class ToplogicalBaseView(RegionTenantHeaderView):
                     ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
                     ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
                     if ent_role_perms:
-                        self.user_perms=list(set(ent_role_perms.values_list("perm_code", flat=True)))
+                        self.user_perms = list(set(ent_role_perms.values_list("perm_code", flat=True)))
 
         if self.is_team_owner:
             team_perms = list(set(PermsInfo.objects.filter(kind="team").values_list("code", flat=True)))
@@ -130,7 +129,6 @@ class TopologicalGraphView(ToplogicalBaseView):
               type: string
               paramType: query
         """
-        # try:
         group_id = request.GET.get("group_id", None)
         code = 200
         if group_id == "-1":
@@ -156,10 +154,6 @@ class TopologicalGraphView(ToplogicalBaseView):
                 enterprise_id=self.team.enterprise_id)
             result = general_message(code, "Obtain topology success.", "获取拓扑图成功", bean=topological_info)
         return Response(result, status=code)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class GroupServiceDetView(ToplogicalBaseView):
@@ -179,7 +173,6 @@ class GroupServiceDetView(ToplogicalBaseView):
               type: string
               paramType: path
         """
-        # try:
         if not self.service:
             return Response(general_message(400, "service not found", "参数错误"), status=400)
         result = topological_service.get_group_topological_graph_details(
@@ -190,10 +183,6 @@ class GroupServiceDetView(ToplogicalBaseView):
             region_name=self.service.service_region)
         result = general_message(200, "success", "成功", bean=result)
         return Response(result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class TopologicalInternetView(ToplogicalBaseView):
@@ -214,7 +203,6 @@ class TopologicalInternetView(ToplogicalBaseView):
               paramType: path
         """
         # logger.debug("query topological graph from:{0}".format(group_id))
-        # try:
         if group_id == "-1":
             code = 200
             no_service_list = service_repo.get_no_group_service_status_by_group_id(
@@ -240,7 +228,3 @@ class TopologicalInternetView(ToplogicalBaseView):
                 data = topological_service.get_internet_topological_graph(group_id=group_id, team_name=team_name)
                 result = general_message(code, "Obtain topology internet success.", "获取拓扑图Internet成功", bean=data)
         return Response(result, status=code)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)

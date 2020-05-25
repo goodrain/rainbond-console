@@ -28,7 +28,6 @@ from console.utils.response import MessageResponse
 from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
 from www.apiclient.baseclient import HttpClient
-from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
@@ -102,7 +101,6 @@ class CenterAppListView(JWTAuthApiView):
 
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required("create_service")
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
@@ -165,9 +163,6 @@ class CenterAppView(RegionTenantHeaderView):
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
         except ServiceHandleException as e:
             raise e
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 

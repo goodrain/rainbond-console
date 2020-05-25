@@ -9,8 +9,7 @@ from rest_framework.response import Response
 
 from console.services.plugin import plugin_config_service
 from console.views.plugin.base import PluginBaseView
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 from console.services.region_services import region_services
 from console.constants import PluginMetaType
 
@@ -19,7 +18,6 @@ logger = logging.getLogger("default")
 
 class ConfigPluginManageView(PluginBaseView):
     @never_cache
-    # @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取某个插件的配置信息
@@ -41,7 +39,6 @@ class ConfigPluginManageView(PluginBaseView):
               type: string
               paramType: path
         """
-        # try:
         config_groups = plugin_config_service.get_config_details(self.plugin_version.plugin_id,
                                                                  self.plugin_version.build_version)
         data = self.plugin_version.to_dict()
@@ -49,13 +46,9 @@ class ConfigPluginManageView(PluginBaseView):
         data["web_socket_url"] = "{0}/event_log".format(main_url)
 
         result = general_message(200, "success", "查询成功", bean=data, list=config_groups)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_plugin')
     def put(self, request, *args, **kwargs):
         """
         修改插件配置信息
@@ -82,7 +75,6 @@ class ConfigPluginManageView(PluginBaseView):
               type: string
               paramType: body
         """
-        # try:
         config = request.data
 
         injection = config.get("injection")
@@ -108,13 +100,9 @@ class ConfigPluginManageView(PluginBaseView):
                                                   service_meta_type, *options)
 
         result = general_message(200, "success", "修改成功")
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         添加插件配置信息
@@ -141,7 +129,6 @@ class ConfigPluginManageView(PluginBaseView):
               type: string
               paramType: body
         """
-        # try:
         config = request.data
 
         injection = config.get("injection")
@@ -158,13 +145,9 @@ class ConfigPluginManageView(PluginBaseView):
 
         result = general_message(200, "success", "添加成功")
 
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_plugin')
     def delete(self, request, *args, **kwargs):
         """
         删除插件配置信息
@@ -191,7 +174,6 @@ class ConfigPluginManageView(PluginBaseView):
               type: string
               paramType: form
         """
-        # try:
         config_group_id = request.data.get("config_group_id")
         if not config_group_id:
             return Response(general_message(400, "param error", "参数错误"), status=400)
@@ -203,16 +185,11 @@ class ConfigPluginManageView(PluginBaseView):
                                                                config_group.service_meta_type)
 
         result = general_message(200, "success", "删除成功")
-        #
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class ConfigPreviewView(PluginBaseView):
     @never_cache
-    # @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取某个插件某个版本的预览信息
@@ -234,7 +211,6 @@ class ConfigPreviewView(PluginBaseView):
               type: string
               paramType: path
         """
-        # try:
         wordpress_alias = "wordpress_alias"
         mysql_alias = "mysql_alias"
         wp_ports = [80, 8081]
@@ -283,7 +259,4 @@ class ConfigPreviewView(PluginBaseView):
         bean = {"base_ports": base_ports, "base_services": base_services, "base_normal": base_normal.get("options", None)}
 
         result = general_message(200, "success", "查询成功", bean=bean, list=all_config_group)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

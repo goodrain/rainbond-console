@@ -13,8 +13,6 @@ from console.services.app_config import volume_service
 from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
@@ -23,7 +21,6 @@ logger = logging.getLogger("default")
 
 class AppVolumeOptionsView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件可用的存储列表
@@ -37,7 +34,6 @@ class AppVolumeOptionsView(AppBaseView):
 
 class AppVolumeView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的持久化路径
@@ -79,7 +75,6 @@ class AppVolumeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为组件添加持久化目录
@@ -141,7 +136,6 @@ class AppVolumeView(AppBaseView):
 
 class AppVolumeManageView(AppBaseView):
     @never_cache
-    # @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除组件的某个持久化路径
@@ -174,7 +168,6 @@ class AppVolumeManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改存储设置
@@ -201,7 +194,6 @@ class AppVolumeManageView(AppBaseView):
         else:
             if new_volume_path == volume.volume_path:
                 return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
-        # try:
         data = {
             "volume_name": volume.volume_name,
             "volume_path": new_volume_path,
@@ -219,11 +211,3 @@ class AppVolumeManageView(AppBaseView):
             result = general_message(200, "success", u"修改成功")
             return Response(result, status=result["code"])
         return Response(general_message(405, "success", u"修改失败"), status=405)
-            # except Exception as e:
-            #     logger.exception(e)
-            #     result = error_message(e.message)
-            #     return Response(result, status=500)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)

@@ -12,8 +12,7 @@ from console.services.git_service import GitCodeService
 from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView
-from www.decorator import perm_required
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
 from www.utils.url import get_redirect_url
 
 logger = logging.getLogger("default")
@@ -175,7 +174,6 @@ class CodeBranchView(RegionTenantHeaderView):
 
 
 class ServiceCodeBranch(AppBaseView):
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件代码仓库分支
@@ -192,17 +190,11 @@ class ServiceCodeBranch(AppBaseView):
               type: string
               paramType: path
         """
-        result = dict()
-        # try:
         branches = git_service.get_service_code_branch(self.user, self.service)
         bean = {"current_version": self.service.code_version}
         result = general_message(200, "success", "查询成功", bean=bean, list=branches)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    # @perm_required('deploy_service')
     def put(self, request, *args, **kwargs):
         """
         修改组件代码仓库分支
@@ -224,16 +216,12 @@ class ServiceCodeBranch(AppBaseView):
               type: string
               paramType: form
         """
-        # try:
         branch = request.data.get('branch', None)
         if not branch:
             return Response(general_message(400, "params error", "请指定具体分支"), status=400)
         self.service.code_version = branch
         self.service.save(update_fields=['code_version'])
         result = general_message(200, "success", "代码仓库分支修改成功")
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 

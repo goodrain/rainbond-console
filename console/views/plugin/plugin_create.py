@@ -11,7 +11,6 @@ from console.services.plugin.app_plugin import allow_plugins
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
@@ -20,7 +19,6 @@ logger = logging.getLogger("default")
 
 class PluginCreateView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         插件创建
@@ -170,7 +168,6 @@ class PluginCreateView(RegionTenantHeaderView):
 
 class DefaultPluginCreateView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         插件创建
@@ -207,7 +204,6 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        # try:
         default_plugins = plugin_service.get_default_plugin(self.response_region, self.tenant)
         bean = {"downstream_net_plugin": False, "perf_analyze_plugin": False, "inandout_net_plugin": False}
         for p in default_plugins:
@@ -215,7 +211,3 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
 
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)

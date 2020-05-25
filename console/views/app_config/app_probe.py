@@ -10,8 +10,6 @@ from rest_framework.response import Response
 from console.serializer import ProbeSerilizer
 from console.services.app_config import probe_service
 from console.views.app_config.base import AppBaseView
-from www.decorator import perm_required
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -40,7 +38,6 @@ class AppProbeView(AppBaseView):
               type: string
               paramType: query
         """
-        # try:
         if self.service.service_source == "third_party":
             code, msg, probe = probe_service.get_service_probe(self.service)
             if code != 200:
@@ -62,20 +59,14 @@ class AppProbeView(AppBaseView):
                 else:
                     result = general_message(200, "success", "查询成功", bean=probe.to_dict())
         return Response(result, status=result["code"])
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         添加组件探针
         ---
         serializer: ProbeSerilizer
         """
-        # try:
         data = request.data
 
         serializer = ProbeSerilizer(data=data)
@@ -87,13 +78,9 @@ class AppProbeView(AppBaseView):
         if code != 200:
             return Response(general_message(code, "add probe error", msg))
         result = general_message(200, u"success", "添加成功", bean=probe.to_dict())
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改组件探针,包括启用停用 mode参数必填

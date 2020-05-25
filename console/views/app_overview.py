@@ -40,7 +40,6 @@ region_api = RegionInvokeApi()
 
 class AppDetailView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         组件详情信息
@@ -58,15 +57,6 @@ class AppDetailView(AppBaseView):
               paramType: path
         """
         bean = dict()
-        # try:
-        # status_map = app_service.get_service_status(self.tenant, self.service)
-        # used_resource = app_service.get_service_resource_with_plugin(self.tenant, self.service,
-        #                                                              status_map["status"])
-        # service_abled_plugins = app_plugin_service.get_service_abled_plugin(self.service)
-        # plugin_list = [p.to_dict() for p in service_abled_plugins]
-        # bean.update(status_map)
-        # bean.update(used_resource)
-        # bean.update({"plugin_list": plugin_list})
         service_model = self.service.to_dict()
         group_map = group_service.get_services_group_name([self.service.service_id])
         group_name = group_map.get(self.service.service_id)["group_name"]
@@ -74,10 +64,6 @@ class AppDetailView(AppBaseView):
         service_model["group_name"] = group_name
         service_model["group_id"] = group_id
         bean.update({"service": service_model})
-        # tenant_actions = self.user.actions.tenant_actions
-        # bean.update({"tenant_actions": tenant_actions})
-        # service_actions = self.user.actions.service_actions
-        # bean.update({"service_actions": service_actions})
         event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
         bean.update({"event_websocket_url": event_websocket_url})
         if self.service.service_source == "market":
@@ -156,15 +142,11 @@ class AppDetailView(AppBaseView):
                     bean["discovery_key"] = endpoints_info_dict["key"]
 
         result = general_message(200, "success", "查询成功", bean=bean)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class AppBriefView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         组件详情信息
@@ -181,7 +163,6 @@ class AppBriefView(AppBaseView):
               type: string
               paramType: path
         """
-        # try:
         msg = "查询成功"
         if self.service.service_source == "market":
             try:
@@ -191,13 +172,9 @@ class AppBriefView(AppBaseView):
             except RbdAppNotFound as e:
                 msg = e.msg
         result = general_message(200, "success", msg, bean=self.service.to_dict())
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改组件名称
@@ -219,8 +196,6 @@ class AppBriefView(AppBaseView):
               type: string
               paramType: form
         """
-
-        # try:
         service_cname = request.data.get("service_cname", None)
         is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.service.service_region)
         if not is_pass:
@@ -228,15 +203,11 @@ class AppBriefView(AppBaseView):
         self.service.service_cname = service_cname
         self.service.save()
         result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class AppStatusView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件状态
@@ -254,20 +225,15 @@ class AppStatusView(AppBaseView):
               paramType: path
         """
         bean = dict()
-        # try:
         bean["check_uuid"] = self.service.check_uuid
         status_map = app_service.get_service_status(self.tenant, self.service)
         bean.update(status_map)
         result = general_message(200, "success", "查询成功", bean=bean)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class ListAppPodsView(AppBaseView):
     @never_cache
-    # @perm_required('manage_service_container')
     def get(self, request, *args, **kwargs):
         """
         获取组件实例
@@ -327,7 +293,6 @@ class ListAppPodsView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_container')
     def post(self, request, *args, **kwargs):
         """
         进入组件实例
@@ -356,7 +321,6 @@ class ListAppPodsView(AppBaseView):
 
         """
         bean = dict()
-        # try:
         c_id = request.data.get("c_id", "")
         h_id = request.data.get("h_id", "")
         logger.info("c_id = {0} h_id = {1}".format(c_id, h_id))
@@ -367,15 +331,10 @@ class ListAppPodsView(AppBaseView):
             response.set_cookie('docker_c_id', c_id)
             response.set_cookie('docker_s_id', self.service.service_id)
         return response
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        # return Response(result, status=result["code"])
 
 
 class AppVisitView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件访问信息
@@ -393,14 +352,10 @@ class AppVisitView(AppBaseView):
               paramType: path
         """
         bean = dict()
-        # try:
         access_type, data = port_service.get_access_info(self.tenant, self.service)
         bean["access_type"] = access_type
         bean["access_info"] = data
         result = general_message(200, "success", "操作成功", bean=bean)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
@@ -449,7 +404,6 @@ class AppGroupVisitView(RegionTenantHeaderView):
 
 class AppPluginsBriefView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件安装的插件的简要信息
@@ -467,66 +421,14 @@ class AppPluginsBriefView(AppBaseView):
               paramType: path
         """
         bean = dict()
-        # try:
         service_abled_plugins = app_plugin_service.get_service_abled_plugin(self.service)
         plugin_list = [p.to_dict() for p in service_abled_plugins]
         result = general_message(200, "success", "操作成功", bean=bean, list=plugin_list)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
-
-
-# class AppDockerView(AppBaseView):
-#     # 指明为模板render
-#     renderer_classes = (TemplateHTMLRenderer, )
-#
-#     @never_cache
-#     @perm_required('view_service')
-#     def get(self, request, *args, **kwargs):
-#         """
-#         获取console TTY页面
-#         ---
-#         parameters:
-#             - name: tenantName
-#               description: 租户名
-#               required: true
-#               type: string
-#               paramType: path
-#             - name: serviceAlias
-#               description: 组件别名
-#               required: true
-#               type: string
-#               paramType: path
-#         """
-#         response = redirect(get_redirect_url("/index#/index", request))
-#         try:
-#             docker_c_id = request.COOKIES.get('docker_c_id', '')
-#             docker_h_id = request.COOKIES.get('docker_h_id', '')
-#             docker_s_id = request.COOKIES.get('docker_s_id', '')
-#             bean = dict()
-#             if docker_c_id != "" and docker_h_id != "" and docker_s_id != "" and docker_s_id == self.service.service_id:
-#                 t_docker_h_id = docker_h_id.lower()
-#                 bean["tenant_id"] = self.service.tenant_id
-#                 bean["service_id"] = docker_s_id
-#                 bean["ctn_id"] = docker_c_id
-#                 bean["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-#                 main_url = region_services.get_region_wsurl(self.service.service_region)
-#                 if main_url == "auto":
-#                     bean["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-#                         settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
-#                 else:
-#                     bean["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
-#                 response = Response(general_message(200, "success", "信息获取成功"), status=200, template_name="www/console.html")
-#         except Exception as e:
-#             logger.exception(e)
-#
-#         return response
 
 
 class AppGroupView(AppBaseView):
     @never_cache
-    # @perm_required('manage_group')
     def put(self, request, *args, **kwargs):
         """
         修改组件所在组
@@ -568,7 +470,6 @@ class AppGroupView(AppBaseView):
 
 class AppAnalyzePluginView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         查询组件的性能分析插件
@@ -585,7 +486,6 @@ class AppAnalyzePluginView(AppBaseView):
               type: string
               paramType: path
         """
-        # try:
         service_abled_plugins = app_plugin_service.get_service_abled_plugin(self.service)
         analyze_plugins = []
         for plugin in service_abled_plugins:
@@ -593,15 +493,11 @@ class AppAnalyzePluginView(AppBaseView):
                 analyze_plugins.append(plugin)
 
         result = general_message(200, "success", "查询成功", list=[p.to_dict() for p in analyze_plugins])
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class ImageAppView(AppBaseView):
     @never_cache
-    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改镜像源地址
@@ -632,7 +528,6 @@ class ImageAppView(AppBaseView):
 
 class BuildSourceinfo(AppBaseView):
     @never_cache
-    # @perm_required('manage_service_config')
     def get(self, request, *args, **kwargs):
         """
         查询构建源信息
@@ -644,7 +539,6 @@ class BuildSourceinfo(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     @transaction.atomic
     def put(self, request, *args, **kwargs):
         """
@@ -693,7 +587,8 @@ class BuildSourceinfo(AppBaseView):
                     if is_oauth:
                         try:
                             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
+                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id,
+                                                                                   user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
                             rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
@@ -738,13 +633,11 @@ class BuildSourceinfo(AppBaseView):
 
 class AppKeywordView(AppBaseView):
     @never_cache
-    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改组件触发自动部署关键字
         """
 
-        # try:
         keyword = request.data.get("keyword", None)
         if not keyword:
             return Response(general_message(400, "param error", "参数错误"), status=400)
@@ -759,7 +652,4 @@ class AppKeywordView(AppBaseView):
         service_webhook.deploy_keyword = keyword
         service_webhook.save()
         result = general_message(200, "success", "修改成功", bean=service_webhook.to_dict())
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

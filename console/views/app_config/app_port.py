@@ -13,8 +13,6 @@ from console.services.app_config import domain_service
 from console.services.app_config import port_service
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -23,7 +21,6 @@ region_api = RegionInvokeApi()
 
 class AppPortView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的端口信息
@@ -40,7 +37,6 @@ class AppPortView(AppBaseView):
               type: string
               paramType: path
         """
-        # try:
         tenant_service_ports = port_service.get_service_ports(self.service)
         port_list = []
         for port in tenant_service_ports:
@@ -84,13 +80,9 @@ class AppPortView(AppBaseView):
                 port_info["bind_tcp_domains"] = []
             port_list.append(port_info)
         result = general_message(200, "success", "查询成功", list=port_list)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为组件添加端口
@@ -138,7 +130,6 @@ class AppPortView(AppBaseView):
         port_alias = request.data.get("port_alias", None)
         is_inner_service = request.data.get('is_inner_service', False)
         is_outer_service = request.data.get('is_outer_service', False)
-        # try:
         if not port:
             return Response(general_message(400, "params error", u"缺少端口参数"), status=400)
         if not protocol:
@@ -151,15 +142,11 @@ class AppPortView(AppBaseView):
             return Response(general_message(code, "add port error", msg), status=code)
 
         result = general_message(200, "success", "端口添加成功", bean=model_to_dict(port_info))
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class AppPortManageView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         查看组件的某个端口的详情
@@ -195,7 +182,6 @@ class AppPortManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除组件的某个端口
@@ -228,7 +214,6 @@ class AppPortManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         修改组件的某个端口（打开|关闭|修改协议|修改环境变量）
@@ -289,7 +274,6 @@ class AppPortManageView(AppBaseView):
 
 class AppTcpOuterManageView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取当前可修改的tcp端口信息
@@ -311,22 +295,17 @@ class AppTcpOuterManageView(AppBaseView):
               type: string
               paramType: path
         """
-        # try:
         tcp_outer_ports = port_service.get_team_region_usable_tcp_ports(self.tenant, self.service)
 
         port_list = []
         for p in tcp_outer_ports:
             port_list.append({"service_id": p.service_id, "lb_mpping_port": p.lb_mapping_port})
         result = general_message(200, "success", "查询成功", list=port_list)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class TopologicalPortView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def put(self, request, *args, **kwargs):
         """
         组件拓扑图打开(关闭)对外端口
@@ -335,7 +314,6 @@ class TopologicalPortView(AppBaseView):
         :param kwargs:
         :return:
         """
-        # try:
         open_outer = request.data.get("open_outer", False)
         close_outer = request.data.get("close_outer", False)
         container_port = request.data.get("container_port", None)
@@ -390,7 +368,3 @@ class TopologicalPortView(AppBaseView):
                     status=201)
         else:
             return Response(general_message(202, "the service has an external port open", u"该组件已开启对外端口"), status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=result["code"])

@@ -3,19 +3,18 @@ import logging
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from console.services.user_services import user_services
 from console.models.main import RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.services.market_plugin_service import market_plugin_service
 from console.views.base import RegionTenantHeaderView
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
 
 class MarketPluginsView(RegionTenantHeaderView):
-    # @never_cache
+    @never_cache
     def get(self, request, *args, **kwargs):
         """
         获取云市插件分页列表
@@ -24,7 +23,6 @@ class MarketPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         plugin_name = request.GET.get('plugin_name')
         page = request.GET.get('page', 1)
         limit = request.GET.get('limit', 10)
@@ -41,10 +39,6 @@ class MarketPluginsView(RegionTenantHeaderView):
             tenant=self.tenant)
         result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
         return Response(data=result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class SyncMarketPluginsView(RegionTenantHeaderView):
@@ -56,7 +50,6 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         if not self.user.is_sys_admin:
             if not self.is_enterprise_admin:
                 return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
@@ -73,10 +66,6 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         plugins, total = market_plugin_service.sync_market_plugins(self.tenant, self.user, page, limit, plugin_name)
         result = general_message(200, "success", "同步成功", list=plugins, total=total)
         return Response(result, 200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, 500)
 
 
 class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
@@ -88,7 +77,6 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         if not self.user.is_sys_admin:
             if not self.is_enterprise_admin:
                 return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
@@ -104,10 +92,6 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         market_plugin_service.sync_market_plugin_templates(self.user, self.tenant, data)
         result = general_message(200, "success", "同步成功")
         return Response(result, 200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, 500)
 
 
 class InstallMarketPlugin(RegionTenantHeaderView):
@@ -140,7 +124,6 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         plugin_name = request.GET.get('plugin_name')
         page = request.GET.get('page', 1)
         limit = request.GET.get('limit', 10)
@@ -150,10 +133,6 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
             plugin_name, is_complete=True, scope=scope, tenant=self.tenant, page=page, limit=limit)
         result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
         return Response(data=result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class InstallableInteralPluginsView(RegionTenantHeaderView):
@@ -165,7 +144,6 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         plugin_name = request.GET.get('plugin_name')
         page = request.GET.get('page', 1)
         limit = request.GET.get('limit', 10)
@@ -185,10 +163,6 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
 
         result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
         return Response(data=result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class UninstallPluginTemplateView(RegionTenantHeaderView):

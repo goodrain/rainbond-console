@@ -14,13 +14,11 @@ from console.services.user_services import user_services
 from console.services.enterprise_services import enterprise_services
 from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
-from console.repositories.exceptions import UserRoleNotFoundException
 from console.exception.exceptions import TenantNotExistError
 from console.repositories.group import group_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.region_repo import region_repo
-from console.repositories.user_role_repo import user_role_repo
 from console.services.perm_services import user_kind_role_service
 from console.views.base import JWTAuthApiView
 from console.services.team_services import team_services
@@ -142,7 +140,8 @@ class EnterpriseTeams(JWTAuthApiView):
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
-        teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, page=page, page_size=page_size, user=self.user)
+        teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, page=page,
+                                                          page_size=page_size, user=self.user)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)

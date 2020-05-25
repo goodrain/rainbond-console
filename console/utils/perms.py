@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
+
 """
 - enterprise 100
     sub1 -- 101
@@ -24,7 +25,7 @@ TEAM = {
         ["dynamic_describe", u"查看团队动态", 200009],
     ],
     "teamRegion": {
-        "perms":[
+        "perms": [
             ["describe", u"查看", 200002],
             ["install", u"开通", 200003],
             ["uninstall", u"关闭", 200004]
@@ -58,11 +59,10 @@ TEAM = {
             ["update", u"更新", 300007],
             ["construct", u"构建", 300008],
 
-
             ["backup", u"备份", 300009],
-            ["migrate",  u"迁移", 300010],
-            ["share",  u"发布", 300012],
-            ["upgrade",  u"升级", 300013],
+            ["migrate", u"迁移", 300010],
+            ["share", u"发布", 300012],
+            ["upgrade", u"升级", 300013],
             ["copy", u"复制", 300014],
             ["import", u"导入", 300015],
             ["export", u"导出", 300016],
@@ -145,7 +145,8 @@ DEFAULT_TEAM_ROLE_PERMS = {
 
 
 def get_structure(kind, kind_name):
-    structure = {kind_name: {"sub_models": [], "perms": map(lambda x: {"name": x[0], "desc": x[1], "code": x[2]}, kind["perms"])}}
+    structure = {kind_name: {"sub_models": [],
+                             "perms": map(lambda x: {"name": x[0], "desc": x[1], "code": x[2]}, kind["perms"])}}
     subs = kind.keys()
     subs.remove("perms")
     if subs:
@@ -156,7 +157,7 @@ def get_structure(kind, kind_name):
 
 
 def get_model(kind, kind_name):
-    structure = {kind_name:{"sub_models": [], "perms": map(lambda x: {x[0]: False, "code": x[2]}, kind["perms"])}}
+    structure = {kind_name: {"sub_models": [], "perms": map(lambda x: {x[0]: False, "code": x[2]}, kind["perms"])}}
     subs = kind.keys()
     subs.remove("perms")
     if subs:
@@ -201,7 +202,8 @@ def assemble_perms(perm, group, kind_name):
 def get_perms(kind, group, kind_name):
     if isinstance(kind, dict) and kind:
         perms_list = []
-        perms_list.extend(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
+        perms_list.extend(
+            map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
         kind_elements = kind.keys()
         kind_elements.remove("perms")
         if kind_elements:

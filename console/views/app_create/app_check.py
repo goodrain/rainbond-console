@@ -10,8 +10,7 @@ from console.views.app_config.base import AppBaseView
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.services.app_check_service import app_check_service
 from console.services.app import app_service
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 import logging
 from console.serializer import TenantServiceUpdateSerilizer
 
@@ -20,7 +19,6 @@ logger = logging.getLogger("default")
 
 class AppCheck(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件检测信息
@@ -85,7 +83,6 @@ class AppCheck(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('view_service')
     def post(self, request, *args, **kwargs):
         """
         组件信息检测
@@ -103,7 +100,6 @@ class AppCheck(AppBaseView):
               paramType: path
 
         """
-        # try:
         user = request.user
         is_again = request.data.get("is_again", False)
         code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, user)
@@ -111,15 +107,11 @@ class AppCheck(AppBaseView):
             result = general_message(code, "check service error", msg)
         else:
             result = general_message(200, "success", "操作成功", bean=service_info)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class GetCheckUUID(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         result = general_message(200, u"success", "获取成功", bean={"check_uuid": self.service.check_uuid})
         return Response(result, status=200)
@@ -127,14 +119,12 @@ class GetCheckUUID(AppBaseView):
 
 class AppCheckUpdate(AppBaseView):
     @never_cache
-    # @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
         组件检测信息修改
         ---
         serializer: TenantServiceUpdateSerilizer
         """
-        # try:
         data = request.data
 
         serializer = TenantServiceUpdateSerilizer(data=data)
@@ -147,7 +137,4 @@ class AppCheckUpdate(AppBaseView):
         if code != 200:
             return Response(general_message(code, "update service info error", msg), status=code)
         result = general_message(200, u"success", "修改成功")
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

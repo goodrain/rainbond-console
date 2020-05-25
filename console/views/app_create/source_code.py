@@ -11,8 +11,7 @@ from rest_framework.response import Response
 
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 from console.services.app import app_service
 from console.services.app_config import compile_env_service
 from console.services.group_service import group_service
@@ -29,7 +28,6 @@ logger = logging.getLogger("default")
 
 class SourceCodeCreateView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         源码创建组件
@@ -175,15 +173,11 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class AppCompileEnvView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件运行环境信息
@@ -201,7 +195,6 @@ class AppCompileEnvView(AppBaseView):
               paramType: path
 
         """
-        # try:
         compile_env = compile_env_service.get_service_compile_env(self.service)
         bean = dict()
         selected_dependency = []
@@ -216,13 +209,9 @@ class AppCompileEnvView(AppBaseView):
             bean["service_id"] = compile_env.service_id
             bean["selected_dependency"] = selected_dependency
         result = general_message(200, "success", "查询编译环境成功", bean=bean)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('create_service')
     def put(self, request, *args, **kwargs):
         """
         修改组件运行环境信息
@@ -255,7 +244,6 @@ class AppCompileEnvView(AppBaseView):
               paramType: form
 
         """
-        # try:
         service_runtimes = request.data.get("service_runtimes", "")
         service_server = request.data.get("service_server", "")
         service_dependency = request.data.get("service_dependency", "")
@@ -285,7 +273,4 @@ class AppCompileEnvView(AppBaseView):
             bean["service_id"] = compile_env.service_id
 
         result = general_message(200, "success", "操作成功", bean=bean)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

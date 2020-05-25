@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from console.services.git_service import GitCodeService
 from console.views.base import JWTAuthApiView
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
 from console.services.file_upload_service import upload_service
 
 logger = logging.getLogger("default")
@@ -28,7 +28,6 @@ class ConsoleUploadFileView(JWTAuthApiView):
               paramType: form
 
         """
-        # try:
         if not request.FILES or not request.FILES.get('file'):
             return Response(general_message(400, "param error", "请指定需要上传的文件"), status=400)
         upload_file = request.FILES.get('file')
@@ -41,7 +40,4 @@ class ConsoleUploadFileView(JWTAuthApiView):
             result = general_message(400, "upload file error", "上传失败")
         else:
             result = general_message(200, "file upload success", "上传成功", bean={"file_url": file_url})
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

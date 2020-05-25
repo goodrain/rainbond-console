@@ -15,15 +15,13 @@ from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
 
 class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required("tenant.tenant_access")
     def post(self, request, *args, **kwargs):
         """
         云市绑定企业账号
@@ -51,7 +49,6 @@ class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
               paramType: form
 
         """
-        # try:
         logger.debug("bind market access token")
         enterprise_id = request.data.get('enterprise_id')
         market_client_id = request.data.get('market_client_id')
@@ -76,15 +73,11 @@ class BindMarketEnterpriseAccessTokenView(RegionTenantHeaderView):
 
         client_auth_service.save_market_access_token(enterprise_id, domain, market_client_id, market_client_token)
         result = general_message(200, "success", "绑定成功")
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class BindMarketEnterpriseOptimizAccessTokenView(JWTAuthApiView):
     @never_cache
-    # @perm_required("tenant.tenant_access")
     def post(self, request, enterprise_id, *args, **kwargs):
         """
         优化云市绑定企业账号
@@ -107,7 +100,6 @@ class BindMarketEnterpriseOptimizAccessTokenView(JWTAuthApiView):
               paramType: form
 
         """
-        # try:
         logger.debug("bind market access token")
         ret = request.data.get('market_info')
         market_info = eval(base64.decodestring(ret))
@@ -133,7 +125,4 @@ class BindMarketEnterpriseOptimizAccessTokenView(JWTAuthApiView):
 
         client_auth_service.save_market_access_token(enterprise_id, domain, market_client_id, market_client_token)
         result = general_message(200, "success", "绑定成功")
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

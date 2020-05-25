@@ -38,7 +38,6 @@ class DockerContainerView(View):
 
         context = dict()
         response = redirect(get_redirect_url("/#/app/{0}/overview".format(self.service.service_alias), request))
-        # try:
         docker_c_id = request.COOKIES.get('docker_c_id', '')
         docker_h_id = request.COOKIES.get('docker_h_id', '')
         docker_s_id = request.COOKIES.get('docker_s_id', '')
@@ -60,6 +59,4 @@ class DockerContainerView(View):
         response.delete_cookie('docker_c_id')
         response.delete_cookie('docker_h_id')
         response.delete_cookie('docker_s_id')
-        # except Exception as e:
-        #     logger.exception(e)
         return response

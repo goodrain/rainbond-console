@@ -12,7 +12,6 @@ from console.repositories.label_repo import node_label_repo
 from console.repositories.label_repo import service_label_repo
 from console.services.app_config import label_service
 from console.views.app_config.base import AppBaseView
-from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
@@ -21,7 +20,6 @@ logger = logging.getLogger("default")
 
 class AppLabelView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件已使用和未使用的标签
@@ -49,7 +47,6 @@ class AppLabelView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         添加组件标签
@@ -87,7 +84,6 @@ class AppLabelView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除组件标签
@@ -109,8 +105,6 @@ class AppLabelView(AppBaseView):
               type: string
               paramType: form
         """
-        result = {}
-        # try:
         label_id = request.data.get("label_id", None)
         if not label_id:
             return Response(general_message(400, "param error", "标签ID未指定"), status=400)
@@ -121,16 +115,12 @@ class AppLabelView(AppBaseView):
         if code != 200:
             return Response(general_message(code, "add labels error", msg), status=code)
         result = general_message(200, "success", "标签删除成功")
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 # 添加特性获取可用标签
 class AppLabelAvailableView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         添加特性获取可用标签
@@ -139,7 +129,6 @@ class AppLabelAvailableView(AppBaseView):
         :param kwargs:
         :return:
         """
-        # try:
         # 节点添加的标签和数据中心查询回来的标签才可被组件使用
         node_labels = node_label_repo.get_all_labels()
         labels_list = list()
@@ -185,7 +174,4 @@ class AppLabelAvailableView(AppBaseView):
                 labels_list.append(label_dict)
 
         result = general_message(200, "success", "查询成功", list=labels_list)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

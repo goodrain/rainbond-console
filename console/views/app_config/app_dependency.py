@@ -9,8 +9,7 @@ from rest_framework.response import Response
 
 from console.services.app_config import dependency_service
 from console.views.app_config.base import AppBaseView
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 from console.services.group_service import group_service
 from console.services.app_config import port_service
 
@@ -19,7 +18,6 @@ logger = logging.getLogger("default")
 
 class AppDependencyView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件依赖的组件
@@ -46,7 +44,6 @@ class AppDependencyView(AppBaseView):
               type: string
               paramType: query
         """
-        # try:
         page_num = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 25))
         dependencies = dependency_service.get_service_dependencies(self.tenant, self.service)
@@ -78,13 +75,9 @@ class AppDependencyView(AppBaseView):
                 port_list.append(port.container_port)
         bean = {"port_list": port_list}
         result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为组件添加依赖组件
@@ -113,7 +106,6 @@ class AppDependencyView(AppBaseView):
         container_port = request.data.get("container_port", None)
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
-        # try:
         code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
                                                                     container_port)
         if code == 201:
@@ -123,13 +115,9 @@ class AppDependencyView(AppBaseView):
             result = general_message(code, "add dependency error", msg, list=data)
             return Response(result, status=code)
         result = general_message(code, msg, u"依赖添加成功", bean=data.to_dict())
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required('manage_service_config')
     def patch(self, request, *args, **kwargs):
         """
         为组件添加依赖组件
@@ -155,22 +143,17 @@ class AppDependencyView(AppBaseView):
         dep_service_ids = request.data.get("dep_service_ids", None)
         if not dep_service_ids:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
-        # try:
         dep_service_list = dep_service_ids.split(",")
         code, msg = dependency_service.patch_add_dependency(self.tenant, self.service, dep_service_list)
         if code != 200:
             result = general_message(code, "add dependency error", msg)
             return Response(result, status=code)
         result = general_message(code, msg, u"依赖添加成功")
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class AppNotDependencyView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件可以依赖但未依赖的组件
@@ -207,7 +190,6 @@ class AppNotDependencyView(AppBaseView):
               type: string
               paramType: query
         """
-        # try:
         page_num = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 25))
         search_key = request.GET.get("search_key", None)
@@ -245,15 +227,11 @@ class AppNotDependencyView(AppBaseView):
 
         rt_list = un_dep_list[(page_num - 1) * page_size:page_num * page_size]
         result = general_message(200, "success", "查询成功", list=rt_list, total=len(un_dep_list))
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class AppDependencyManageView(AppBaseView):
     @never_cache
-    # @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         删除组件的某个依赖
@@ -279,13 +257,9 @@ class AppDependencyManageView(AppBaseView):
         dep_service_id = kwargs.get("dep_service_id", None)
         if not dep_service_id:
             return Response(general_message(400, "attr_name not specify", u"未指定需要删除的依赖组件"))
-        # try:
         code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id)
         if code != 200:
             return Response(general_message(code, "delete dependency error", msg))
 
         result = general_message(200, "success", u"删除成功", bean=dependency.to_dict())
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

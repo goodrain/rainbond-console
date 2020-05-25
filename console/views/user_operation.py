@@ -14,16 +14,12 @@ from console.exception.exceptions import UserFavoriteNotExistError
 from console.repositories.perm_repo import perms_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.perm_repo import role_perm_repo
-from console.repositories.perm_repo import role_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView
-from www import perms
 from www.models.main import Users, SuperAdminUser
-from www.perms import PermActions, UserActions
 from console.services.perm_services import user_kind_role_service
 from console.services.perm_services import user_kind_perm_service
 from www.utils.crypt import AuthCode
@@ -359,41 +355,14 @@ class UserDetailsView(JWTAuthApiView):
             tenant_info["creater"] = tenant.creater
             tenant_info["create_time"] = tenant.create_time
 
-            # perms_list = team_services.get_user_perm_identitys_in_permtenant(
-            #     user_id=user.user_id, tenant_name=tenant.tenant_name)
-
-
             if tenant.creater == user.user_id:
-                is_team_owner =True
+                is_team_owner = True
             role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
             tenant_info["role_name_list"] = role_list["roles"]
             perms = user_kind_perm_service.get_user_perms(
                 kind="team", kind_id=tenant.tenant_id, user=user, is_owner=is_team_owner)
             tenant_info["tenant_actions"] = perms["permissions"]
             tenant_info["is_team_owner"] = is_team_owner
-            # perms_role_id_list = team_services.get_user_perm_role_id_in_permtenant(
-            #     user_id=user.user_id, tenant_name=tenant.tenant_name)
-            #
-            # perms_tuple = ()
-            #
-            # if perms_list:
-            #     final_identity = perms.get_highest_identity(perms_list)
-            #     tenant_actions = p.keys('tenant_{0}_actions'.format(final_identity))
-            #     perms_tuple += tenant_actions
-            # else:
-            #     final_identity = []
-            #
-            # role_name_list = [role_repo.get_role_name_by_role_id(role_id=role_id) for role_id in perms_role_id_list]
-            #
-            # for role_id in perms_role_id_list:
-            #     tenant_actions = role_perm_repo.get_perm_by_role_id(role_id=role_id)
-            #     perms_tuple += tenant_actions
-            # if final_identity:
-            #     tenant_info["role_name_list"] = [final_identity] + role_name_list
-            # else:
-            #     tenant_info["role_name_list"] = role_name_list
-            # user.actions.set_actions('tenant', tuple(set(perms_tuple)))
-            # tenant_info["tenant_actions"] = user.actions.tenant_actions
             tenant_list.append(tenant_info)
         user_detail["teams"] = tenant_list
         oauth_services = oauth_user_repo.get_user_oauth_services_info(

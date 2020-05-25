@@ -2,17 +2,15 @@
 import logging
 
 from rest_framework.response import Response
-from www.utils.return_message import general_message
 
-
-from console.views.base import RegionTenantHeaderView, AlowAnyApiView
-from console.services.team_services import team_services
 from console.services.perm_services import perm_services
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import role_perm_service
-from console.services.perm_services import user_kind_role_service
 from console.services.perm_services import user_kind_perm_service
-
+from console.services.perm_services import user_kind_role_service
+from console.services.team_services import team_services
+from console.views.base import RegionTenantHeaderView, AlowAnyApiView
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -68,6 +66,7 @@ class TeamRolesPermsLView(RegionTenantHeaderView):
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
+
 class TeamRolePermsRUDView(RegionTenantHeaderView):
     def get(self, request, team_name, role_id, *args, **kwargs):
         role = role_kind_services.get_role_by_id("team", self.tenant.tenant_id, role_id, with_default=True)
@@ -122,6 +121,7 @@ class TeamUserPermsLView(RegionTenantHeaderView):
     def get(self, request, team_name, user_id, *args, **kwargs):
         team_users = team_services.get_team_users(self.tenant)
         user = team_users.filter(user_id=user_id).first()
-        data = user_kind_perm_service.get_user_perms(kind="team", kind_id=self.tenant.tenant_id, user=user, is_owner=self.is_team_owner)
+        data = user_kind_perm_service.get_user_perms(kind="team", kind_id=self.tenant.tenant_id, user=user,
+                                                     is_owner=self.is_team_owner)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)

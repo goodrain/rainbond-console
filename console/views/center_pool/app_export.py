@@ -13,14 +13,13 @@ from rest_framework.response import Response
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
 from console.views.base import AlowAnyApiView, JWTAuthApiView
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
 
 class CenterAppExportView(JWTAuthApiView):
     @never_cache
-    # @perm_required("tenant_access")
     def get(self, request, enterprise_id, *args, **kwargs):
         """
         获取应用导出状态
@@ -50,7 +49,6 @@ class CenterAppExportView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required("import_and_export_service")
     def post(self, request, enterprise_id, *args, **kwargs):
         """
         导出应用市场应用
@@ -107,7 +105,6 @@ class ExportFileDownLoadView(AlowAnyApiView):
               paramType: query
 
         """
-        # try:
         app_id = request.GET.get("app_id", None)
         export_format = request.GET.get("format", None)
         if not app_id:
@@ -134,10 +131,6 @@ class ExportFileDownLoadView(AlowAnyApiView):
         response['Content-Type'] = 'application/octet-stream'
         response['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
         return response
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=result["code"])
 
     def file_iterator(self, r, chunk_size=2048):
         with contextlib.closing(urllib2.urlopen(r)) as f:

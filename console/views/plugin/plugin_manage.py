@@ -13,9 +13,7 @@ from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.plugin.base import PluginBaseView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
 from www.utils.crypt import make_uuid
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -24,7 +22,6 @@ region_api = RegionInvokeApi()
 
 class PluginBuildView(PluginBaseView):
     @never_cache
-    # @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         构建插件
@@ -81,7 +78,6 @@ class PluginBuildView(PluginBaseView):
 
 class CreatePluginVersionView(PluginBaseView):
     @never_cache
-    # @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         创建插件新版本
@@ -98,7 +94,6 @@ class CreatePluginVersionView(PluginBaseView):
               type: string
               paramType: path
         """
-        # try:
         plugin_versions = plugin_version_service.get_plugin_versions(self.tenant.tenant_id, self.plugin.plugin_id)
 
         if not plugin_versions:
@@ -118,16 +113,11 @@ class CreatePluginVersionView(PluginBaseView):
         pbv.save()
         bean = {"plugin_id": self.plugin.plugin_id, "new_version": new_version}
         result = general_message(200, "success", "操作成功", bean=bean)
-        #
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class PluginBuildStatusView(PluginBaseView):
     @never_cache
-    # @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取插件构建状态
@@ -149,12 +139,7 @@ class PluginBuildStatusView(PluginBaseView):
               type: string
               paramType: path
         """
-        # try:
         pbv = plugin_version_service.get_plugin_build_status(
             self.response_region, self.tenant, self.plugin_version.plugin_id, self.plugin_version.build_version)
         result = general_message(200, "success", "查询成功", {"status": pbv.build_status, "event_id": pbv.event_id})
-        #
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])

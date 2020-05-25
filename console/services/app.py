@@ -24,8 +24,6 @@ from console.repositories.app_config import port_repo
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.base import BaseConnection
-from console.repositories.perm_repo import perms_repo
-from console.repositories.perm_repo import role_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
@@ -353,7 +351,6 @@ class AppService(object):
 
     def get_app_list(self, tenant_pk, user, tenant_id, region, query=""):
         user_pk = user.pk
-        services = []
 
         def list_services():
             q = Q(tenant_id=tenant_id, service_region=region)
@@ -364,40 +361,26 @@ class AppService(object):
         if user.is_sys_admin:
             services = list_services()
         else:
-            perm = perms_repo.get_user_tenant_perm(tenant_pk, user_pk)
-            if not perm:
-                if tenant_pk == 5073:
-                    services = list_services().order_by('service_alias')
-            else:
-                # if user is owner, perm.role_id is null when identity is owner, so use perm.identity(owner) first
-                role_name = perm.identity
-                if perm.role_id:
-                    # if perm.role_id is is not None, use role_id find user's role instead of perm.identity
-                    role_name = role_repo.get_role_name_by_role_id(perm.role_id)
-                if role_name in ('admin', 'developer', 'viewer', 'gray', 'owner'):
-                    services = list_services().order_by('service_alias')
-                else:
-                    dsn = BaseConnection()
-                    add_sql = ''
-                    where = """
-                    WHERE
-                        s.tenant_id = "{tenant_id}"
-                        AND sp.user_id = "{user_id}"
-                        AND sp.service_id = s.ID
-                        AND s.service_cname LIKE "%{query}%"
-                        AND s.service_region = "{region}" {add_sql}""".format(
-                        tenant_id=tenant_id, user_id=user_pk, region=region, query=query, add_sql=add_sql)
-                    query_sql = '''
-                        SELECT
-                            s.*
-                        FROM
-                            tenant_service s,
-                            service_perms sp
-                        {where}
-                        ORDER BY
-                            s.service_alias'''.format(where=where)
-                    services = dsn.query(query_sql)
-
+            dsn = BaseConnection()
+            add_sql = ''
+            where = """
+            WHERE
+                s.tenant_id = "{tenant_id}"
+                AND sp.user_id = "{user_id}"
+                AND sp.service_id = s.ID
+                AND s.service_cname LIKE "%{query}%"
+                AND s.service_region = "{region}" {add_sql}""".format(
+                tenant_id=tenant_id, user_id=user_pk, region=region, query=query, add_sql=add_sql)
+            query_sql = '''
+                SELECT
+                    s.*
+                FROM
+                    tenant_service s,
+                    service_perms sp
+                {where}
+                ORDER BY
+                    s.service_alias'''.format(where=where)
+            services = dsn.query(query_sql)
         return services
 
     def get_service_status(self, tenant, service):

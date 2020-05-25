@@ -1,9 +1,8 @@
 # -*- coding: utf8 -*-
 import logging
 
-from www.decorator import perm_required
 from rest_framework.response import Response
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
 from django.views.decorators.cache import never_cache
 from console.views.base import RegionTenantHeaderView
 from console.services.multi_app_service import multi_app_service
@@ -13,7 +12,6 @@ logger = logging.getLogger("default")
 
 class MultiAppCheckView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         multiple application check
@@ -25,7 +23,6 @@ class MultiAppCheckView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        # try:
         check_uuid = request.GET.get("check_uuid", None)
         if not check_uuid:
             return Response(general_message(400, "params error", "the field 'check_uuid' is required"), status=400)
@@ -36,15 +33,11 @@ class MultiAppCheckView(RegionTenantHeaderView):
         else:
             result = general_message(
                 code, "successfully entered the multi-service creation process", "成功进入多组件创建流程", list=services)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message("{0}".format(e))
         return Response(data=result, status=200)
 
 
 class MultiAppCreateView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         multiple-service application creation

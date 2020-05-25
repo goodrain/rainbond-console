@@ -21,7 +21,6 @@ from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-# from www.decorator import perm_required
 from www.models.main import Tenants
 from www.models.main import TenantServiceInfo
 from www.utils.return_message import error_message
@@ -33,7 +32,6 @@ region_api = RegionInvokeApi()
 
 class ThirdPartyServiceCreateView(RegionTenantHeaderView):
     @never_cache
-    # @perm_required('create_three_service')
     def post(self, request, *args, **kwargs):
         """
         创建第三方组件
@@ -257,9 +255,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
 # 第三方组件中api注册方式重置秘钥
 class ThirdPartyUpdateSecretKeyView(AppBaseView):
     @never_cache
-    # @perm_required('reset_secret_key')
     def put(self, request, *args, **kwargs):
-        # try:
         key_repo = deploy_repo.get_service_key_by_service_id(service_id=self.service.service_id)
         if not key_repo:
             return Response(general_message(412, "service_key is null", "秘钥不存在"), status=412)
@@ -269,16 +265,11 @@ class ThirdPartyUpdateSecretKeyView(AppBaseView):
         api_secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
         result = general_message(200, "success", "重置成功", bean={"api_service_key": api_secret_key})
         return Response(result)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 # 第三方组件pod信息
 class ThirdPartyAppPodsView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取第三方组件实例信息
@@ -308,7 +299,6 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
     @never_cache
-    # @perm_required('add_endpoint')
     def post(self, request, *args, **kwargs):
         """
         添加endpoint实例
@@ -327,7 +317,6 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
     @never_cache
-    # @perm_required('delete_endpoint')
     def delete(self, request, *args, **kwargs):
         """
         删除endpoint实例
@@ -359,7 +348,6 @@ class ThirdPartyAppPodsView(AppBaseView):
             return Response(result, status=500)
 
     @never_cache
-    # @perm_required('put_endpoint')
     def put(self, request, *args, **kwargs):
         """
         修改实例上下线
@@ -399,7 +387,6 @@ class ThirdPartyAppPodsView(AppBaseView):
 # 第三方组件健康检测
 class ThirdPartyHealthzView(AppBaseView):
     @never_cache
-    # @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取第三方组件健康检测结果
@@ -419,7 +406,6 @@ class ThirdPartyHealthzView(AppBaseView):
         return Response(result)
 
     @never_cache
-    # @perm_required('health_detection')
     def put(self, request, *args, **kwargs):
         """
         编辑第三方组件的健康检测

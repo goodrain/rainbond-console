@@ -7,11 +7,9 @@ from rest_framework.response import Response
 
 from console.repositories.group import group_service_relation_repo
 from console.views.base import RegionTenantHeaderView
-# from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 from console.services.group_service import group_service
 from console.services.compose_service import compose_service
-from console.services.team_services import team_services
 from console.services.app_actions import app_manage_service
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.app import service_repo
@@ -22,24 +20,18 @@ region_api = RegionInvokeApi()
 
 
 class TenantGroupView(RegionTenantHeaderView):
-    # @perm_required("view_service")
     def get(self, request, *args, **kwargs):
         """
         查询租户在指定数据中心下的应用
         ---
         """
-        # try:
         groups = group_service.get_tenant_groups_by_region(self.tenant, self.response_region)
         data = []
         for group in groups:
             data.append({"group_name": group.group_name, "group_id": group.ID, "group_note": group.note})
         result = general_message(200, "success", "查询成功", list=data)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
-    # @perm_required("manage_group")
     def post(self, request, *args, **kwargs):
         """
         添加应用信息
@@ -87,7 +79,6 @@ class TenantGroupView(RegionTenantHeaderView):
 
 
 class TenantGroupOperationView(RegionTenantHeaderView):
-    # @perm_required("manage_group")
     def put(self, request, *args, **kwargs):
         """
             修改组信息
@@ -119,7 +110,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
-    # @perm_required("manage_group")
     def delete(self, request, *args, **kwargs):
         """
             删除应用
@@ -137,7 +127,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                   paramType: path
 
         """
-        # try:
         group_id = int(kwargs.get("group_id", None))
         service = group_service_relation_repo.get_service_by_group(group_id)
         if not service:
@@ -151,9 +140,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
             result = general_message(code, "delete group error", msg)
         else:
             result = general_message(code, "success", msg)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     def get(self, request, *args, **kwargs):
@@ -194,10 +180,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
 class TenantGroupCommonOperationView(RegionTenantHeaderView):
-    # @perm_required('stop_service')
-    # @perm_required('start_service')
-    # @perm_required('restart_service')
-    # @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
         ---
@@ -252,9 +234,6 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
                 result = general_message(200, "success", "操作成功")
         except ResourceNotEnoughException as e:
             raise e
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 

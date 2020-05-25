@@ -10,10 +10,9 @@ from console.repositories.share_repo import share_repo
 from console.services.market_plugin_service import market_plugin_service
 from console.services.share_services import share_service
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.services import plugin_svc
 from www.utils.crypt import make_uuid
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
@@ -38,7 +37,6 @@ class PluginShareRecordView(RegionTenantHeaderView):
         result = general_message(200, "not found uncomplete share record", "无未完成分享流程")
         return Response(data=result, status=200)
 
-    # @perm_required('share_plugin')
     def post(self, request, team_name, plugin_id, *args, **kwargs):
         """
         创建分享插件记录
@@ -60,7 +58,6 @@ class PluginShareRecordView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        # try:
         team_id = self.team.tenant_id
 
         plugin = plugin_repo.get_plugin_by_plugin_id(team_id, plugin_id)
@@ -88,14 +85,9 @@ class PluginShareRecordView(RegionTenantHeaderView):
         service_share_record = share_service.create_service_share_record(**record)
         result = general_message(200, "create success", "创建成功", bean=service_share_record.to_dict())
         return Response(result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class PluginShareInfoView(RegionTenantHeaderView):
-    # @perm_required("view_plugin")
     def get(self, request, team_name, share_id, *args, **kwargs):
         """
         查询分享的插件信息
@@ -114,7 +106,6 @@ class PluginShareInfoView(RegionTenantHeaderView):
         """
         team_id = self.team.tenant_id
 
-        # try:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -173,12 +164,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
             share_plugin_info["config_groups"] = config_groups
 
         return Response(general_message(200, "", "", bean={'share_plugin_info': share_plugin_info}), 200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
-    # @perm_required("share_plugin")
     def post(self, request, team_name, share_id, *args, **kwargs):
         """
         创建插件分享
@@ -195,7 +181,6 @@ class PluginShareInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        # try:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -216,12 +201,7 @@ class PluginShareInfoView(RegionTenantHeaderView):
 
         result = general_message(status, "create share info", msg, bean=plugin)
         return Response(result, status=status)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
-    # @perm_required("share_plugin")
     def delete(self, request, team_name, share_id, *args, **kwargs):
         """
         放弃插件分享
@@ -238,7 +218,6 @@ class PluginShareInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        # try:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在")
@@ -259,14 +238,9 @@ class PluginShareInfoView(RegionTenantHeaderView):
         share_record.delete()
         result = general_message(200, "delete success", "放弃成功")
         return Response(result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class PluginShareEventsView(RegionTenantHeaderView):
-    # @perm_required("share_plugin")
     def get(self, request, team_name, share_id, *args, **kwargs):
         """
         获取插件分享事件
@@ -277,7 +251,6 @@ class PluginShareEventsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -301,14 +274,9 @@ class PluginShareEventsView(RegionTenantHeaderView):
 
         result = general_message(200, "query success", "获取成功", bean=data)
         return Response(result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class PluginShareEventView(RegionTenantHeaderView):
-    # @perm_required("share_plugin")
     def get(self, request, team_name, share_id, event_id, *args, **kwargs):
         """
         获取插件分享事件列表
@@ -320,7 +288,6 @@ class PluginShareEventView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -344,12 +311,7 @@ class PluginShareEventView(RegionTenantHeaderView):
         except PluginShareRecordEvent.DoesNotExist:
             result = general_message(404, "not exist", "分享事件不存在")
             return Response(result, status=404)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
-    # @perm_required("share_plugin")
     def post(self, request, team_name, share_id, event_id, *args, **kwargs):
         """
         创建分享事件
@@ -361,7 +323,6 @@ class PluginShareEventView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -387,15 +348,9 @@ class PluginShareEventView(RegionTenantHeaderView):
         except PluginShareRecordEvent.DoesNotExist:
             result = general_message(404, "not exist", "分享事件不存在")
             return Response(result, status=404)
-        #
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        #     return Response(result, status=500)
 
 
 class PluginShareCompletionView(RegionTenantHeaderView):
-    # @perm_required("share_plugin")
     def post(self, request, team_name, share_id, *args, **kwargs):
         """
         创建分享完成接口
@@ -406,7 +361,6 @@ class PluginShareCompletionView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        # try:
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -428,7 +382,3 @@ class PluginShareCompletionView(RegionTenantHeaderView):
         result = general_message(
             200, "share complete", "插件分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
         return Response(result, status=200)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     result = error_message(e.message)
-        # return Response(result, status=result["code"])
