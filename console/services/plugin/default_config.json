@@ -371,5 +371,156 @@
         ]
       }
     ]
+  },
+  "filebeat_log_plugin": {
+    "plugin_alias": "fileBeat日志收集插件",
+    "desc": "该插件支持通过fileBeat日志收集器收集日志信息到ELK集群中，完成日志的收集、分析功能",
+    "category": "general-plugin",
+    "code_repo": "",
+    "build_source": "image",
+    "image": "goodrain.me/plugin-log-filebeat",
+    "config_group": [
+      {
+        "service_meta_type": "un_define",
+        "injection": "env",
+        "config_name": "日志收集配置参数",
+        "options": [
+          {
+            "attr_name": "NGINX_ACCESS_PATH",
+            "attr_type": "string",
+            "attr_default_value": "/var/log/nginx/access.log",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "访问日志路径",
+            "protocol": ""
+          },
+          {
+            "attr_name": "NGINX_ERROR_PATH",
+            "attr_type": "string",
+            "attr_default_value": "/var/log/nginx/error.log",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "错误日志路径",
+            "protocol": ""
+          },
+          {
+            "attr_name": "INPUT_PATH",
+            "attr_type": "string",
+            "attr_default_value": "/var/log/nginx/*.log",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "fileBeat日志收集路径",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ES_HOST",
+            "attr_type": "string",
+            "attr_default_value": "127.0.0.1",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "elasticsearch地址",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ES_PORT",
+            "attr_type": "string",
+            "attr_default_value": "9200",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "elasticSearch地址",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ES_USERNAME",
+            "attr_type": "string",
+            "attr_default_value": "elastic",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "elasticSearch用户名",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ES_PASS",
+            "attr_type": "string",
+            "attr_default_value": "changeme",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "elasticSearch密码",
+            "protocol": ""
+          },
+          {
+            "attr_name": "KIBANA_HOST",
+            "attr_type": "string",
+            "attr_default_value": "127.0.0.1",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "kibana地址",
+            "protocol": ""
+          },
+          {
+            "attr_name": "KIBANA_PORT",
+            "attr_type": "string",
+            "attr_default_value": "5601",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "kibana端口",
+            "protocol": ""
+          }
+        ]
+      }
+    ]
+  },
+  "logtail_log_plugin": {
+    "plugin_alias": "阿里云日志服务收集插件",
+    "desc": "该插件支持通过logtail日志收集器收集日志信息到阿里云日志服务中，完成日志的收集、分析功能",
+    "category": "general-plugin",
+    "code_repo": "",
+    "build_source": "image",
+    "image": "goodrain.me/plugin-log-logtail:latest",
+    "config_group": [
+      {
+        "service_meta_type": "un_define",
+        "injection": "env",
+        "config_name": "日志收集配置参数",
+        "options": [
+          {
+            "attr_name": "ALIYUN_LOGTAIL_USER_ID",
+            "attr_type": "string",
+            "attr_default_value": "",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "阿里云用户ID标识",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ALIYUN_LOGTAIL_USER_DEFINED_ID",
+            "attr_type": "string",
+            "attr_default_value": "",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "用户自定义标识",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ALIYUN_LOGTAIL_CONFIG",
+            "attr_type": "string",
+            "attr_default_value": "/etc/ilogtail/conf/${cn-huhehaote}/ilogtail_config.json",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "logtail配置路径，请根据日志项目所在区域以及网络类型填写",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ALIYUN_LOG_ENV_TAGS",
+            "attr_type": "string",
+            "attr_default_value": "_pod_name_|_pod_ip_|_namespace_|_node_name_|_node_ip_",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "日志服务环境变量标签",
+            "protocol": ""
+          }
+        ]
+      }
+    ]
   }
 }
