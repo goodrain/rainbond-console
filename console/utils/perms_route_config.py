@@ -410,7 +410,7 @@ ServiceShareCompleteView = {
 TenantGroupView = {
     "__message": {
         "get": {"perms": [200001]},
-        "post": {"perms": [300002]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -446,7 +446,7 @@ TenantGroupCommonOperationView = {
 SourceCodeCreateView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -455,7 +455,7 @@ SourceCodeCreateView = {
 ThirdPartyServiceCreateView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 400001, 400002]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -464,9 +464,9 @@ ThirdPartyServiceCreateView = {
 ThirdPartyServiceApiView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 400001, 400002]},
-        "put": {"perms": [300001, 300002, 400001, 400002]},
-        "delete": {"perms": [300001, 300002, 400001, 400002]}
+        "post": {"perms": [300002, 400002]},
+        "put": {"perms": [300002, 400002]},
+        "delete": {"perms": [300002, 400002]}
     }
 }
 
@@ -491,7 +491,7 @@ ThirdPartyHealthzView = {
 DockerRunCreateView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -500,7 +500,7 @@ DockerRunCreateView = {
 DockerComposeCreateView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -536,7 +536,7 @@ MultiAppCheckView = {
 MultiAppCreateView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -546,7 +546,7 @@ AppCheckUpdate = {
     "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
-        "put": {"perms": [300001, 300002, 400001, 400002]},
+        "put": {"perms": [300002, 400002]},
         "delete": {"perms": []}
     }
 }
@@ -555,15 +555,15 @@ ComposeCheckUpdate = {
     "__message": {
         "get": {"perms": []},
         "post": {"perms": []},
-        "put": {"perms": [300001, 300002, 400001, 400002]},
+        "put": {"perms": [200001]},
         "delete": {"perms": []}
     }
 }
 
 ComposeCheckView = {
     "__message": {
-        "get": {"perms": [200001]},
-        "post": {"perms": [300001, 300002, 400001, 400002]},
+        "get": {"perms": []},
+        "post": {"perms": [200001]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -581,7 +581,7 @@ GetComposeCheckUUID = {
 ComposeBuildView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 300008, 400001, 400002, 400009, 400010]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
@@ -592,7 +592,7 @@ ComposeDeleteView = {
         "get": {"perms": []},
         "post": {"perms": []},
         "put": {"perms": []},
-        "delete": {"perms": [300001, 300002, 300004, 400001, 400002, 400004]}
+        "delete": {"perms": [300002, 400002]}
     }
 }
 
@@ -627,8 +627,7 @@ AppCompileEnvView = {
     "__message": {
         "get": {"perms": [200001]},
         "post": {"perms": []},
-        "put": {
-            "perms": [300001, 300002, 300003, 300005, 300007, 300008, 400001, 400002, 400003, 400006, 400009, 400010]},
+        "put": {"perms": [300002, 400002]},
         "delete": {"perms": []}
     }
 }
@@ -1574,7 +1573,7 @@ InstallableInteralPluginsView = {
 CenterAppView = {
     "__message": {
         "get": {"perms": []},
-        "post": {"perms": [300001, 300002, 300005, 300007, 300008, 400001, 400002, 400006, 400009, 400010]},
+        "post": {"perms": [300002, 400002]},
         "put": {"perms": []},
         "delete": {"perms": []}
     }
