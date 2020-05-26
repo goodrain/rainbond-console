@@ -83,7 +83,6 @@ class UserFuzSerView(JWTAuthApiView):
 
 
 class TeamUserDetaislView(JWTAuthApiView):
-
     def get(self, request, team_name, user_name, *args, **kwargs):
         """
         用户详情
@@ -161,8 +160,8 @@ class AddTeamView(JWTAuthApiView):
                 # 初始化默认角色
                 role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
                 admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
-                user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id,
-                                                         user=self.user, role_ids=[admin_role.ID])
+                user_kind_role_service.update_user_roles(
+                    kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
                 for r in regions:
                     code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
                     if code != 200:
@@ -209,8 +208,8 @@ class TeamUserView(RegionTenantHeaderView):
             users_list = list()
             for user in user_list:
                 # get role list
-                role_info_list = user_kind_role_service.get_user_roles(kind="team", kind_id=self.tenant.tenant_id,
-                                                                       user=self.user)
+                role_info_list = user_kind_role_service.get_user_roles(
+                    kind="team", kind_id=self.tenant.tenant_id, user=self.user)
                 users_list.append({
                     "user_id": user.user_id,
                     "user_name": user.get_name(),
@@ -423,8 +422,8 @@ class TeamRegionInitView(JWTAuthApiView):
                 return Response(general_message(code, "create team error", msg), status=code)
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
             admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
-            user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id,
-                                                     user=self.user, role_ids=[admin_role.ID])
+            user_kind_role_service.update_user_roles(
+                kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
 
             # 为团队开通默认数据中心并在数据中心创建租户
             code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, team.region)

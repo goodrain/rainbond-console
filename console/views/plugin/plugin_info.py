@@ -41,8 +41,7 @@ class PluginBaseInfoView(PluginBaseView):
         """
         base_info = self.plugin
         data = base_info.to_dict()
-        newest_build_version = plugin_version_service.get_newest_plugin_version(self.tenant.tenant_id,
-                                                                                self.plugin.plugin_id)
+        newest_build_version = plugin_version_service.get_newest_plugin_version(self.tenant.tenant_id, self.plugin.plugin_id)
         if newest_build_version:
             data.update(newest_build_version.to_dict())
         result = general_message(200, "success", "查询成功", bean=data)
@@ -379,8 +378,7 @@ class PluginUsedServiceView(PluginBaseView):
         """
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
-        data, total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page,
-                                                                  page_size)
+        data, total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page, page_size)
 
         result = general_message(200, "success", "查询成功", list=data, total=total)
         return Response(result, status=result["code"])

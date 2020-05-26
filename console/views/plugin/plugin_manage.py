@@ -139,7 +139,7 @@ class PluginBuildStatusView(PluginBaseView):
               type: string
               paramType: path
         """
-        pbv = plugin_version_service.get_plugin_build_status(
-            self.response_region, self.tenant, self.plugin_version.plugin_id, self.plugin_version.build_version)
+        pbv = plugin_version_service.get_plugin_build_status(self.response_region, self.tenant, self.plugin_version.plugin_id,
+                                                             self.plugin_version.build_version)
         result = general_message(200, "success", "查询成功", {"status": pbv.build_status, "event_id": pbv.event_id})
         return Response(result, status=result["code"])

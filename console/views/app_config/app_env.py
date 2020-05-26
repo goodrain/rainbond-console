@@ -116,8 +116,8 @@ class AppEnvView(AppBaseView):
 
                 cursor = connection.cursor()
                 cursor.execute("select count(*) from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
-                         and scope='outer' and attr_name like '%{2}%';".format(self.service.tenant_id,
-                                                                               self.service.service_id, env_name))
+                         and scope='outer' and attr_name like '%{2}%';".format(self.service.tenant_id, self.service.service_id,
+                                                                               env_name))
                 env_count = cursor.fetchall()
 
                 total = env_count[0][0]

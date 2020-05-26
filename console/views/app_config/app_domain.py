@@ -311,8 +311,8 @@ class ServiceDomainView(AppBaseView):
         # htt与https共存的协议需存储两条数据(创建完https数据再创建一条http数据)
         if protocol == "httpandhttps":
             certificate_id = 0
-            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                   protocol, certificate_id, DomainType.WWW, rule_extensions)
+            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol,
+                                                   certificate_id, DomainType.WWW, rule_extensions)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -434,8 +434,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         if certificate_id:
             protocol = "https"
         # 判断策略是否存在
-        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port,
-                                                                              domain_name, protocol, domain_path)
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name,
+                                                                              protocol, domain_path)
         if service_domain:
             result = general_message(400, "faild", "策略已存在")
             return Response(result, status=400)
@@ -482,13 +482,12 @@ class HttpStrategyView(RegionTenantHeaderView):
 
         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
         if not tenant_service_port.is_outer_service:
-            return Response(
-                general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
+            return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
 
         # 绑定端口(添加策略)
-        code, msg, data = domain_service.bind_httpdomain(self.tenant, self.user, service, domain_name, container_port,
-                                                         protocol, certificate_id, DomainType.WWW, domain_path,
-                                                         domain_cookie, domain_heander, the_weight, rule_extensions)
+        code, msg, data = domain_service.bind_httpdomain(self.tenant, self.user, service, domain_name, container_port, protocol,
+                                                         certificate_id, DomainType.WWW, domain_path, domain_cookie,
+                                                         domain_heander, the_weight, rule_extensions)
         if code != 200:
             return Response(general_message(code, "bind domain error", msg), status=code)
 
@@ -665,8 +664,8 @@ class SecondLevelDomainView(AppBaseView):
         sld_domains = domain_service.get_sld_domains(self.service, container_port)
         if not sld_domains:
 
-            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port,
-                                                   "http", None, DomainType.SLD_DOMAIN)
+            code, msg = domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http",
+                                                   None, DomainType.SLD_DOMAIN)
             if code != 200:
                 return Response(general_message(code, "bind domain error", msg), status=code)
         else:
@@ -749,8 +748,8 @@ class DomainQueryView(RegionTenantHeaderView):
                 cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                     service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
                     domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}'
-                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id,
-                                                                                    start, end))
+                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start,
+                                                                                    end))
                 tenant_tuples = cursor.fetchall()
 
         except Exception as e:
@@ -916,8 +915,8 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
         tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
         region = region_repo.get_region_by_region_name(self.response_region)
         try:
-            tenant_tuples, total = domain_service.get_app_service_domain_list(region, tenant, app_id, search_conditions,
-                                                                              page, page_size)
+            tenant_tuples, total = domain_service.get_app_service_domain_list(region, tenant, app_id, search_conditions, page,
+                                                                              page_size)
 
         except Exception as e:
             logger.exception(e)

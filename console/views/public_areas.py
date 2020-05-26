@@ -278,9 +278,8 @@ class ServiceEventsView(RegionTenantHeaderView):
         event_service_dynamic_list = []
         for region in regionsList:
             try:
-                events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id,
-                                                                                self.tenant, region.region_name, int(page),
-                                                                                int(page_size))
+                events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id, self.tenant,
+                                                                                region.region_name, int(page), int(page_size))
                 event_service_dynamic_list = event_service_dynamic_list + events
                 total = total + event_count
             except Exception as e:

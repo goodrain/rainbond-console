@@ -140,8 +140,8 @@ class EnterpriseTeams(JWTAuthApiView):
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
-        teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, page=page,
-                                                          page_size=page_size, user=self.user)
+        teams, total = team_services.get_enterprise_teams(
+            enterprise_id, query=name, page=page, page_size=page_size, user=self.user)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)

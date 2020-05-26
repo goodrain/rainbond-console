@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
-
 """
 - enterprise 100
     sub1 -- 101
@@ -15,9 +14,7 @@ from collections import Counter
 - plugin 700
 """
 
-ENTERPRISE = {
-    "perms": []
-}
+ENTERPRISE = {"perms": []}
 
 TEAM = {
     "perms": [
@@ -25,11 +22,7 @@ TEAM = {
         ["dynamic_describe", u"查看团队动态", 200009],
     ],
     "teamRegion": {
-        "perms": [
-            ["describe", u"查看", 200002],
-            ["install", u"开通", 200003],
-            ["uninstall", u"关闭", 200004]
-        ]
+        "perms": [["describe", u"查看", 200002], ["install", u"开通", 200003], ["uninstall", u"关闭", 200004]]
     },
     "teamMember": {
         "perms": [
@@ -53,12 +46,10 @@ TEAM = {
             ["create", u"创建", 300002],
             ["edit", u"编辑", 300003],
             ["delete", u"删除", 300004],
-
             ["start", u"启动", 300005],
             ["stop", u"停用", 300006],
             ["update", u"更新", 300007],
             ["construct", u"构建", 300008],
-
             ["backup", u"备份", 300009],
             ["migrate", u"迁移", 300010],
             ["share", u"发布", 300012],
@@ -75,14 +66,12 @@ TEAM = {
             ["edit", u"编辑", 400003],
             ["delete", u"删除", 400004],
             ["visit_web_terminal", u"访问web终端", 400005],
-
             ["start", u"启动", 400006],
             ["restart", u"重启", 400007],
             ["stop", u"关闭", 400008],
             ["update", u"更新", 400009],
             ["construct", u"构建", 400010],
             ["rollback", u"回滚", 400011],
-
             ["telescopic", u"伸缩管理", 400012],
             ["env", u"环境管理", 400013],
             ["rely", u"依赖管理", 400014],
@@ -102,7 +91,6 @@ TEAM = {
             ["edit", u"编辑", 500003],
             ["delete", u"删除", 500004],
         ]
-
     },
     "certificate": {
         "perms": [
@@ -129,24 +117,33 @@ DEFAULT_ENTERPRISE_ROLE_PERMS = {
 }
 
 DEFAULT_TEAM_ROLE_PERMS = {
-    "admin": [200001, 200002, 200003, 200004, 200005, 200006, 200007, 200008, 200009, 200010,
-              200011, 200012, 200013, 300001, 300002, 300003, 300004, 300005, 300006, 300007,
-              300008, 300009, 300010, 300011, 300012, 300013, 300014, 400001, 400002, 400003,
-              400004, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013,
-              400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 500001, 500002,
-              500003, 500004, 600001, 600002, 600003, 600004, 700001, 700002, 700003, 700004],
-    "developer": [200001, 200002, 200005, 200009, 200010, 300001, 300002, 300003, 300005, 300006,
-                  300007, 300008, 300009, 300010, 300011, 300012, 300013, 300014, 400001, 400002,
-                  400003, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013,
-                  400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 500001, 500002,
-                  500003, 600001, 600002, 600003, 700001, 700002, 700003],
+    "admin": [
+        200001, 200002, 200003, 200004, 200005, 200006, 200007, 200008, 200009, 200010, 200011, 200012, 200013, 300001, 300002,
+        300003, 300004, 300005, 300006, 300007, 300008, 300009, 300010, 300011, 300012, 300013, 300014, 400001, 400002, 400003,
+        400004, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013, 400014, 400015, 400016, 400017, 400018,
+        400019, 400020, 400021, 500001, 500002, 500003, 500004, 600001, 600002, 600003, 600004, 700001, 700002, 700003, 700004
+    ],
+    "developer": [
+        200001, 200002, 200005, 200009, 200010, 300001, 300002, 300003, 300005, 300006, 300007, 300008, 300009, 300010, 300011,
+        300012, 300013, 300014, 400001, 400002, 400003, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013,
+        400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 500001, 500002, 500003, 600001, 600002, 600003, 700001,
+        700002, 700003
+    ],
     "viewer": [200001, 200002, 200005, 200009, 200010, 300001, 400001, 500001, 600001, 700001],
 }
 
 
 def get_structure(kind, kind_name):
-    structure = {kind_name: {"sub_models": [],
-                             "perms": map(lambda x: {"name": x[0], "desc": x[1], "code": x[2]}, kind["perms"])}}
+    structure = {
+        kind_name: {
+            "sub_models": [],
+            "perms": map(lambda x: {
+                "name": x[0],
+                "desc": x[1],
+                "code": x[2]
+            }, kind["perms"])
+        }
+    }
     subs = kind.keys()
     subs.remove("perms")
     if subs:
@@ -202,8 +199,7 @@ def assemble_perms(perm, group, kind_name):
 def get_perms(kind, group, kind_name):
     if isinstance(kind, dict) and kind:
         perms_list = []
-        perms_list.extend(
-            map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
+        perms_list.extend(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
         kind_elements = kind.keys()
         kind_elements.remove("perms")
         if kind_elements:
@@ -225,11 +221,9 @@ def get_perms_metadata():
     name = map(lambda z: z[0], filter(lambda y: y[-1] > 1, Counter(map(lambda x: x[0], perms)).items()))
     code = map(lambda z: z[0], filter(lambda y: y[-1] > 1, Counter(map(lambda x: x[2], perms)).items()))
     if name:
-        raise ServiceHandleException(
-            msg="init perms error", msg_show="初始化权限列表失败，权限列表存在重复名称: {}".format(','.join(name)))
+        raise ServiceHandleException(msg="init perms error", msg_show="初始化权限列表失败，权限列表存在重复名称: {}".format(','.join(name)))
     if code:
-        raise ServiceHandleException(
-            msg="init perms error", msg_show="初始化权限列表失败，权限列表存在重复编码: {}".format(','.join(code)))
+        raise ServiceHandleException(msg="init perms error", msg_show="初始化权限列表失败，权限列表存在重复编码: {}".format(','.join(code)))
     return perms
 
 

@@ -252,8 +252,7 @@ class GitLabUserRegisterView(JWTAuthApiView):
             return Response(general_message(409, "alread register gitlab", "您已注册gitlab账户，请勿重复注册"), status=409)
         if self.user.email:
             if email != self.user.email:
-                return Response(
-                    general_message(409, "email conflict", "用户已存在邮箱{0},请使用该邮箱".format(self.user.email)), status=409)
+                return Response(general_message(409, "email conflict", "用户已存在邮箱{0},请使用该邮箱".format(self.user.email)), status=409)
         else:
             u = user_services.get_user_by_email(email)
             if u:

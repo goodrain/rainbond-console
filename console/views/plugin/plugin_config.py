@@ -82,8 +82,8 @@ class ConfigPluginManageView(PluginBaseView):
         config_name = config.get("config_name")
         config_group_pk = config.get("ID")
 
-        config_groups = plugin_config_service.get_config_group(
-            self.plugin_version.plugin_id, self.plugin_version.build_version).exclude(pk=config_group_pk)
+        config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id,
+                                                               self.plugin_version.build_version).exclude(pk=config_group_pk)
         is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
 
         if not is_pass:
@@ -133,8 +133,7 @@ class ConfigPluginManageView(PluginBaseView):
 
         injection = config.get("injection")
         service_meta_type = config.get("service_meta_type")
-        config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id,
-                                                               self.plugin_version.build_version)
+        config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id, self.plugin_version.build_version)
         is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
 
         if not is_pass:
@@ -218,8 +217,7 @@ class ConfigPreviewView(PluginBaseView):
         wp_id = "wp_service_id"
         mysql_id = "mysql_service_id"
 
-        config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id,
-                                                               self.plugin_version.build_version)
+        config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id, self.plugin_version.build_version)
         all_config_group = []
         base_ports = []
         base_services = []

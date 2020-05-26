@@ -587,8 +587,7 @@ class BuildSourceinfo(AppBaseView):
                     if is_oauth:
                         try:
                             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id,
-                                                                                   user_id=user_id)
+                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
                             rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}

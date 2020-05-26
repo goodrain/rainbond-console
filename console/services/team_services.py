@@ -190,10 +190,7 @@ class TeamService(object):
         if enterprise:
             for user_id in user_ids:
                 # for role_id in role_ids:
-                PermRelTenant.objects.update_or_create(
-                    user_id=user_id,
-                    tenant_id=tenant.pk,
-                    enterprise_id=enterprise.pk)
+                PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk)
                 user = user_repo.get_by_user_id(user_id)
                 user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
