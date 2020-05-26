@@ -31,4 +31,4 @@ class Command(BaseCommand):
                         user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin.ID])
                     else:
                         user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
-            print ("初始化平台默认权限分配成功")
+        print ("初始化平台默认权限分配成功")
