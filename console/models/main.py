@@ -441,9 +441,9 @@ class UserAccessKey(BaseModel):
         unique_together = (('note', 'user_id'), )
 
     note = models.CharField(max_length=32, help_text=u"凭证标识")
-    user_id = models.IntegerField(max_length=16, help_text=u"用户id")
+    user_id = models.IntegerField(help_text=u"用户id")
     access_key = models.CharField(max_length=64, unique=True, help_text=u"凭证")
-    expire_time = models.IntegerField(max_length=16, null=True, help_text=u"过期时间")
+    expire_time = models.IntegerField(null=True, help_text=u"过期时间")
 
 
 class TenantUserRole(BaseModel):

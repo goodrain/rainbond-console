@@ -20,7 +20,7 @@ class Command(BaseCommand):
         teams = Tenants.objects.all()
         for team in teams:
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-            users = team_repo.get_tenant_users_by_tenant_ID(team.tenant_id)
+            users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
             admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
             developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="developer")
             if not admin or not developer:
@@ -31,3 +31,4 @@ class Command(BaseCommand):
                         user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin.ID])
                     else:
                         user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
+            print ("初始化平台默认权限分配成功")
