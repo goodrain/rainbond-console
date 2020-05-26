@@ -23,7 +23,6 @@ class Command(BaseCommand):
                             default=None,
                             help=u"指定企业初始化权限")
 
-
     @transaction.atomic()
     def handle(self, *args, **options):
         tenant_id = options['tenant_id']
