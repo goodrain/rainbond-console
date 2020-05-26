@@ -264,7 +264,7 @@ class UserDelView(RegionTenantHeaderView):
               paramType: body
         """
         try:
-            user_ids = str(request.data.get("user_ids", None))
+            user_ids = request.data.get("user_ids", [])
             if not user_ids:
                 result = general_message(400, "failed", "删除成员不能为空")
                 return Response(result, status=400)

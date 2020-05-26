@@ -158,7 +158,7 @@ class UserService(object):
         except Tenants.DoesNotExist:
             tenant = Tenants.objects.get(tenant_id=tenant_name)
         PermRelTenant.objects.filter(user_id__in=user_id_list, tenant_id=tenant.ID).delete()
-        roles = role_kind_services.get_roles(kind="team", kind_id=tenant_name)
+        roles = role_kind_services.get_roles(kind="team", kind_id=tenant.tenant_id)
         if roles:
             role_ids = roles.values_list("ID", flat=True)
             UserRole.objects.filter(user_id__in=user_id_list, role_id__in=role_ids).delete()
