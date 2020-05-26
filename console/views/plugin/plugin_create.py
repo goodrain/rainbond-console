@@ -7,7 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.services.plugin.app_plugin import allow_plugins
+from console.services.plugin.app_plugin import allow_plugins, default_plugins
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.base import RegionTenantHeaderView
@@ -187,7 +187,7 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
         plugin_type = request.data.get("plugin_type", None)
         if not plugin_type:
             return Response(general_message(400, "plugin type is null", "请指明插件类型"), status=400)
-        if plugin_type not in ("perf_analyze_plugin", "downstream_net_plugin", "inandout_net_plugin"):
+        if plugin_type not in default_plugins:
             return Response(general_message(400, "plugin type not support", "插件类型不支持"), status=400)
         plugin_service.add_default_plugin(self.user, self.team, self.response_region, plugin_type)
         result = general_message(200, "success", "创建成功")
