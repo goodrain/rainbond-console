@@ -229,7 +229,7 @@ class TeamUserView(RegionTenantHeaderView):
         return Response(data=result, status=code)
 
 
-class NotJoinTeamUserView(JWTAuthApiView):
+class NotJoinTeamUserView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))

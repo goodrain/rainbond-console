@@ -396,11 +396,11 @@ class TeamService(object):
             owner_name = user.get_name()
         except UserNotExistError:
             owner_name = None
-
-        user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
-        roles = map(lambda x: x["role_name"], user_role_list["roles"])
-        if tenant.creater == request_user.user_id:
-            roles.append("owner")
+        if request_user:
+            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
+            roles = map(lambda x: x["role_name"], user_role_list["roles"])
+            if tenant.creater == request_user.user_id:
+                roles.append("owner")
         region_info_map = []
         region_list = team_repo.get_team_regions(tenant.tenant_id)
         if region_list:
