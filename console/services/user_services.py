@@ -161,7 +161,7 @@ class UserService(object):
         roles = role_kind_services.get_roles(kind="team", kind_id=tenant_name)
         if roles:
             role_ids = roles.values_list("ID", flat=True)
-            UserRole.objects.filter(user_id=user_id_list, role_id__in=role_ids).delete()
+            UserRole.objects.filter(user_id__in=user_id_list, role_id__in=role_ids).delete()
 
     def get_user_by_username(self, user_name):
         users = Users.objects.filter(nick_name=user_name)

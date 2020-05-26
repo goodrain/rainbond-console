@@ -15,9 +15,30 @@ from www.models.main import Tenants
 class Command(BaseCommand):
     help = u'初始化所有团队的角色和团队成员的角色分配'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--tenant_id',
+                            default=None,
+                            help=u"指定团队初始化权限")
+        parser.add_argument('--enterprise_id',
+                            default=None,
+                            help=u"指定企业初始化权限")
+
+
     @transaction.atomic()
     def handle(self, *args, **options):
-        teams = Tenants.objects.all()
+        tenant_id = options['tenant_id']
+        enterprise_id = options['enterprise_id']
+        if tenant_id and enterprise_id:
+            teams = Tenants.objects.filter(tenant_id=tenant_id, enterprise_id=enterprise_id)
+        elif tenant_id and not enterprise_id:
+            teams = Tenants.objects.filter(tenant_id=tenant_id)
+        elif not tenant_id and enterprise_id:
+            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        else:
+            teams = Tenants.objects.all()
+        if not teams:
+            print(u"未发现团队, 初始化结束")
+            return
         for team in teams:
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
             users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
@@ -33,4 +54,4 @@ class Command(BaseCommand):
                     else:
                         user_kind_role_service.update_user_roles(
                             kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
-        print("初始化平台默认权限分配成功")
+        print("初始化权限分配成功")
