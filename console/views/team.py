@@ -609,9 +609,9 @@ class JoinTeamView(JWTAuthApiView):
         team_name = request.data.get("team_name")
         tenant = Tenants.objects.filter(tenant_name=team_name).first()
         info = apply_service.create_applicants(user_id=user_id, team_name=team_name)
+        result = general_message(200, "apply success", "申请加入")
         if info:
-            result = general_message(200, "apply success", "申请加入")
-            admins = team_repo.get_tenant_admin_by_tenant_id(tenant_id=tenant.ID)
+            admins = team_repo.get_tenant_admin_by_tenant_id(tenant)
             self.send_user_message_to_tenantadmin(admins=admins, team_name=team_name, nick_name=self.user.get_name())
         return Response(result, status=result["code"])
 
