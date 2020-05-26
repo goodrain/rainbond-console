@@ -269,23 +269,16 @@ class UserDelView(RegionTenantHeaderView):
                 result = general_message(400, "failed", "删除成员不能为空")
                 return Response(result, status=400)
 
-            try:
-                user_id_list = [int(user_id) for user_id in user_ids.split(",")]
-            except Exception as e:
-                logger.exception(e)
-                result = general_message(200, "Incorrect parameter format", "参数格式不正确")
-                return Response(result, status=400)
-
-            if request.user.user_id in user_id_list:
+            if request.user.user_id in user_ids:
                 result = general_message(400, "failed", "不能删除自己")
                 return Response(result, status=400)
 
-            for user_id in user_id_list:
+            for user_id in user_ids:
                 if user_id == self.tenant.creater:
                     result = general_message(400, "failed", "不能删除团队创建者！")
                     return Response(result, status=400)
             try:
-                user_services.batch_delete_users(team_name, user_id_list)
+                user_services.batch_delete_users(team_name, user_ids)
                 result = general_message(200, "delete the success", "删除成功")
             except Tenants.DoesNotExist as e:
                 logger.exception(e)
