@@ -16,11 +16,8 @@ from console.services.app import app_service
 from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView
-from www.decorator import perm_required
 from www.models.main import Tenants, TenantServiceInfo
 from www.utils.return_message import error_message, general_message
-
-# from urlparse import urlparse
 
 logger = logging.getLogger("default")
 
@@ -461,7 +458,6 @@ class ImageWebHooksTrigger(AppBaseView):
 
 
 class WebHooksStatus(AppBaseView):
-    @perm_required("manage_service_config")
     def post(self, request, *args, **kwargs):
         """
         开启或关闭自动部署功能

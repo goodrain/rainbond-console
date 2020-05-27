@@ -306,23 +306,6 @@ class TenantService(object):
         tenant_region_res.save()
         logger.debug(tenant_region_res.to_dict())
 
-        # try:
-        #     # 更新租户的最大内存限制, 以及此限制下内存的有效期
-        #     tenant_region_res = TenantRegionResource.objects.filter(tenant_id=tenant.tenant_id)
-        #
-        #     total_limit_memory = 0
-        #     expire_time_list = list()
-        #     for region_res in tenant_region_res:
-        #         total_limit_memory += region_res.memory_limit
-        #         expire_time_list.append(region_res.memory_expire_date)
-        #     tenant.limit_memory = total_limit_memory
-        #     if expire_time_list:
-        #         tenant.expired_time = max(expire_time_list)
-        #     tenant.save()
-        # except Exception as e:
-        #     logger.exception(e)
-        #     logger.error('update tenant resource limit failed')
-
     def get_tenant_region_resource_usage(self, tenant, region):
         if tenant.pay_type == 'unpay':
             return 0, 0, 0

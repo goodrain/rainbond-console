@@ -11,7 +11,6 @@ from django.views.decorators.cache import never_cache
 
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
 from www.utils.return_message import general_message, error_message
 import logging
 from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service, app_plugin_service
@@ -24,7 +23,6 @@ region_api = RegionInvokeApi()
 
 class PluginBaseInfoView(PluginBaseView):
     @never_cache
-    @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取插件基础信息
@@ -41,17 +39,12 @@ class PluginBaseInfoView(PluginBaseView):
               type: string
               paramType: path
         """
-        try:
-            base_info = self.plugin
-            data = base_info.to_dict()
-            newest_build_version = plugin_version_service.get_newest_plugin_version(self.tenant.tenant_id,
-                                                                                    self.plugin.plugin_id)
-            if newest_build_version:
-                data.update(newest_build_version.to_dict())
-            result = general_message(200, "success", "查询成功", bean=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        base_info = self.plugin
+        data = base_info.to_dict()
+        newest_build_version = plugin_version_service.get_newest_plugin_version(self.tenant.tenant_id, self.plugin.plugin_id)
+        if newest_build_version:
+            data.update(newest_build_version.to_dict())
+        result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
     def delete(self, request, *args, **kwargs):
@@ -71,21 +64,16 @@ class PluginBaseInfoView(PluginBaseView):
               paramType: path
 
         """
-        try:
-            code, msg = plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id)
-            if code != 200:
-                return Response(general_message(code, "delete plugin fail", msg), status=code)
-            else:
-                result = general_message(code, "success", msg)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg = plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id)
+        if code != 200:
+            return Response(general_message(code, "delete plugin fail", msg), status=code)
+        else:
+            result = general_message(code, "success", msg)
         return Response(result, status=result["code"])
 
 
 class PluginEventLogView(PluginBaseView):
     @never_cache
-    @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取event事件
@@ -112,20 +100,15 @@ class PluginEventLogView(PluginBaseView):
               type: string
               paramType: query
         """
-        try:
-            level = request.GET.get("level", "info")
-            event_id = self.plugin_version.event_id
-            logs = plugin_service.get_plugin_event_log(self.response_region, self.tenant, event_id, level)
-            result = general_message(200, "success", "查询成功", list=logs)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        level = request.GET.get("level", "info")
+        event_id = self.plugin_version.event_id
+        logs = plugin_service.get_plugin_event_log(self.response_region, self.tenant, event_id, level)
+        result = general_message(200, "success", "查询成功", list=logs)
         return Response(result, status=result["code"])
 
 
 class AllPluginVersionInfoView(PluginBaseView):
     @never_cache
-    @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         插件构建历史信息展示
@@ -152,30 +135,25 @@ class AllPluginVersionInfoView(PluginBaseView):
               type: string
               paramType: query
         """
-        try:
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 8)
-            pbvs = plugin_version_service.get_plugin_versions(self.tenant.tenant_id, self.plugin.plugin_id)
-            paginator = JuncheePaginator(pbvs, int(page_size))
-            show_pbvs = paginator.page(int(page))
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 8)
+        pbvs = plugin_version_service.get_plugin_versions(self.tenant.tenant_id, self.plugin.plugin_id)
+        paginator = JuncheePaginator(pbvs, int(page_size))
+        show_pbvs = paginator.page(int(page))
 
-            update_status_thread = threading.Thread(
-                target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
-            update_status_thread.start()
+        update_status_thread = threading.Thread(
+            target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
+        update_status_thread.start()
 
-            data = [pbv.to_dict() for pbv in show_pbvs]
-            result = general_message(
-                200, "success", "查询成功", list=data, total=paginator.count, current_page=int(page), next_page=int(page) + 1)
+        data = [pbv.to_dict() for pbv in show_pbvs]
+        result = general_message(
+            200, "success", "查询成功", list=data, total=paginator.count, current_page=int(page), next_page=int(page) + 1)
 
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class PluginVersionInfoView(PluginBaseView):
     @never_cache
-    @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取插件某个版本的信息
@@ -197,23 +175,18 @@ class PluginVersionInfoView(PluginBaseView):
               type: string
               paramType: path
         """
-        try:
-            base_info = self.plugin
-            if base_info.image and base_info.build_source == "image":
-                base_info.image = base_info.image + ":" + self.plugin_version.image_tag
-            data = base_info.to_dict()
-            data.update(self.plugin_version.to_dict())
-            update_status_thread = threading.Thread(
-                target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
-            update_status_thread.start()
-            result = general_message(200, "success", "查询成功", bean=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        base_info = self.plugin
+        if base_info.image and base_info.build_source == "image":
+            base_info.image = base_info.image + ":" + self.plugin_version.image_tag
+        data = base_info.to_dict()
+        data.update(self.plugin_version.to_dict())
+        update_status_thread = threading.Thread(
+            target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
+        update_status_thread.start()
+        result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_plugin')
     def put(self, request, *args, **kwargs):
         """
         更新某个版本插件的信息
@@ -309,7 +282,6 @@ class PluginVersionInfoView(PluginBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_plugin')
     def delete(self, request, *args, **kwargs):
         """
         删除插件某个版本
@@ -359,7 +331,6 @@ class PluginVersionInfoView(PluginBaseView):
 
 class AllPluginBaseInfoView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取插件基础信息
@@ -371,19 +342,14 @@ class AllPluginBaseInfoView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        try:
-            plugin_list = plugin_service.get_tenant_plugins(self.response_region, self.tenant)
-            dict_list = [plugin.to_dict() for plugin in plugin_list]
-            result = general_message(200, "success", "查询成功", list=dict_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        plugin_list = plugin_service.get_tenant_plugins(self.response_region, self.tenant)
+        dict_list = [plugin.to_dict() for plugin in plugin_list]
+        result = general_message(200, "success", "查询成功", list=dict_list)
         return Response(result, status=result["code"])
 
 
 class PluginUsedServiceView(PluginBaseView):
     @never_cache
-    @perm_required('view_plugin')
     def get(self, request, *args, **kwargs):
         """
         获取插件被哪些当前团队哪些组件使用
@@ -410,14 +376,9 @@ class PluginUsedServiceView(PluginBaseView):
               type: string
               paramType: query
         """
-        try:
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
-            data, total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page,
-                                                                      page_size)
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+        data, total = app_plugin_service.get_plugin_used_services(self.plugin.plugin_id, self.tenant.tenant_id, page, page_size)
 
-            result = general_message(200, "success", "查询成功", list=data, total=total)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "查询成功", list=data, total=total)
         return Response(result, status=result["code"])

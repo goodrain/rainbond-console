@@ -14,16 +14,14 @@ from console.exception.exceptions import UserFavoriteNotExistError
 from console.repositories.perm_repo import perms_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.perm_repo import role_perm_repo
-from console.repositories.perm_repo import role_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import BaseApiView, JWTAuthApiView
-from www import perms
 from www.models.main import Users, SuperAdminUser
-from www.perms import PermActions, UserActions
+from console.services.perm_services import user_kind_role_service
+from console.services.perm_services import user_kind_perm_service
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.utils.return_message import general_message, error_message
@@ -326,71 +324,48 @@ class UserDetailsView(JWTAuthApiView):
         查询我的详情
         ---
         """
-        try:
-            p = PermActions()
-            code = 200
-            user = self.user
-            user.actions = UserActions()
-            tenants = team_services.get_current_user_tenants(user_id=user.user_id)
-            user_detail = dict()
-            user_detail["user_id"] = user.user_id
-            user_detail["user_name"] = user.nick_name
-            user_detail["email"] = user.email
-            user_detail["enterprise_id"] = user.enterprise_id
-            user_detail["phone"] = user.phone
-            user_detail["git_user_id"] = user.git_user_id
-            user_detail["is_sys_admin"] = user.is_sys_admin
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
-            user_detail["is_enterprise_active"] = enterprise.is_active
-            is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, user.enterprise_id)
-            user_detail["is_user_enter_amdin"] = is_user_enter_amdin
-            tenant_list = list()
-            for tenant in tenants:
-                tenant_info = dict()
-                team_region_list = region_services.get_region_list_by_team_name(team_name=tenant.tenant_name)
-                tenant_info["team_id"] = tenant.ID
-                tenant_info["team_name"] = tenant.tenant_name
-                tenant_info["team_alias"] = tenant.tenant_alias
-                tenant_info["limit_memory"] = tenant.limit_memory
-                tenant_info["pay_level"] = tenant.pay_level
-                tenant_info["region"] = team_region_list
-                tenant_info["creater"] = tenant.creater
-                tenant_info["create_time"] = tenant.create_time
-                perms_list = team_services.get_user_perm_identitys_in_permtenant(
-                    user_id=user.user_id, tenant_name=tenant.tenant_name)
-                perms_role_id_list = team_services.get_user_perm_role_id_in_permtenant(
-                    user_id=user.user_id, tenant_name=tenant.tenant_name)
+        code = 200
+        user = self.user
+        tenants = team_services.get_current_user_tenants(user_id=user.user_id)
+        user_detail = dict()
+        user_detail["user_id"] = user.user_id
+        user_detail["user_name"] = user.nick_name
+        user_detail["email"] = user.email
+        user_detail["enterprise_id"] = user.enterprise_id
+        user_detail["phone"] = user.phone
+        user_detail["git_user_id"] = user.git_user_id
+        user_detail["is_sys_admin"] = user.is_sys_admin
+        enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
+        user_detail["is_enterprise_active"] = enterprise.is_active
+        user_detail["is_enterprise_admin"] = self.is_enterprise_admin
+        tenant_list = list()
+        for tenant in tenants:
+            tenant_info = dict()
+            is_team_owner = False
+            team_region_list = region_services.get_region_list_by_team_name(team_name=tenant.tenant_name)
+            tenant_info["team_id"] = tenant.ID
+            tenant_info["team_name"] = tenant.tenant_name
+            tenant_info["team_alias"] = tenant.tenant_alias
+            tenant_info["limit_memory"] = tenant.limit_memory
+            tenant_info["pay_level"] = tenant.pay_level
+            tenant_info["region"] = team_region_list
+            tenant_info["creater"] = tenant.creater
+            tenant_info["create_time"] = tenant.create_time
 
-                perms_tuple = ()
-
-                if perms_list:
-                    final_identity = perms.get_highest_identity(perms_list)
-                    tenant_actions = p.keys('tenant_{0}_actions'.format(final_identity))
-                    perms_tuple += tenant_actions
-                else:
-                    final_identity = []
-
-                role_name_list = [role_repo.get_role_name_by_role_id(role_id=role_id) for role_id in perms_role_id_list]
-
-                for role_id in perms_role_id_list:
-                    tenant_actions = role_perm_repo.get_perm_by_role_id(role_id=role_id)
-                    perms_tuple += tenant_actions
-                if final_identity:
-                    tenant_info["role_name_list"] = [final_identity] + role_name_list
-                else:
-                    tenant_info["role_name_list"] = role_name_list
-                user.actions.set_actions('tenant', tuple(set(perms_tuple)))
-                tenant_info["tenant_actions"] = user.actions.tenant_actions
-                tenant_list.append(tenant_info)
-            user_detail["teams"] = tenant_list
-            oauth_services = oauth_user_repo.get_user_oauth_services_info(
-                eid=request.user.enterprise_id, user_id=request.user.user_id)
-            user_detail["oauth_services"] = oauth_services
-            result = general_message(code, "Obtain my details to be successful.", "获取我的详情成功", bean=user_detail)
-        except Exception as e:
-            code = 500
-            logger.exception(e)
-            result = error_message(e.message)
+            if tenant.creater == user.user_id:
+                is_team_owner = True
+            role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
+            tenant_info["role_name_list"] = role_list["roles"]
+            perms = user_kind_perm_service.get_user_perms(
+                kind="team", kind_id=tenant.tenant_id, user=user, is_owner=is_team_owner, is_ent_admin=self.is_enterprise_admin)
+            tenant_info["tenant_actions"] = perms["permissions"]
+            tenant_info["is_team_owner"] = is_team_owner
+            tenant_list.append(tenant_info)
+        user_detail["teams"] = tenant_list
+        oauth_services = oauth_user_repo.get_user_oauth_services_info(
+            eid=request.user.enterprise_id, user_id=request.user.user_id)
+        user_detail["oauth_services"] = oauth_services
+        result = general_message(code, "Obtain my details to be successful.", "获取我的详情成功", bean=user_detail)
         return Response(result, status=code)
 
 

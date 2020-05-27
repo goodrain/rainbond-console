@@ -24,7 +24,6 @@ from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
 from openapi.serializer.team_serializer import ListRegionTeamServicesSerializer
 from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
 from openapi.serializer.team_serializer import ListTeamRespSerializer
-from openapi.serializer.team_serializer import RoleInfoRespSerializer
 from openapi.serializer.team_serializer import TeamBaseInfoSerializer
 from openapi.serializer.team_serializer import TeamInfoSerializer
 from openapi.serializer.team_serializer import TeamRegionReqSerializer
@@ -285,6 +284,7 @@ class TeamUserInfoView(BaseOpenAPIView):
         },
         tags=['openapi-team'],
     )
+    # TODO 修改权限控制
     def put(self, req, team_id, user_id):
         if req.user.user_id == user_id:
             raise serializers.ValidationError("您不能修改自己的权限!", status=status.HTTP_400_BAD_REQUEST)
@@ -306,32 +306,6 @@ class TeamUserInfoView(BaseOpenAPIView):
         team_services.change_tenant_role(user_id=user_id, tenant_name=team_id, role_id_list=role_ids)
 
         return Response(None, status.HTTP_200_OK)
-
-
-class ListUserRolesView(ListAPIView):
-    @swagger_auto_schema(
-        operation_description="获取用户角色列表",
-        manual_parameters=[
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
-        ],
-        responses={200: RoleInfoRespSerializer(many=True)},
-        tags=['openapi-user-role'],
-    )
-    def get(self, req, team_id, *args, **kwargs):
-        try:
-            page = int(req.GET.get("page", 1))
-        except ValueError:
-            page = 1
-        try:
-            page_size = int(req.GET.get("page_size", 10))
-        except ValueError:
-            page_size = 10
-
-        role_list = team_services.get_tenant_roles(team_id, page, page_size)
-        serializer = RoleInfoRespSerializer(data=role_list, many=True)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data, status.HTTP_200_OK)
 
 
 class ListRegionsView(ListAPIView):

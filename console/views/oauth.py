@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 
 from console.services.config_service import EnterpriseConfigService
-from console.views.base import JWTAuthApiView, AlowAnyApiView
+from console.views.base import JWTAuthApiView, AlowAnyApiView, EnterpriseAdminView
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.user_repo import user_repo
@@ -40,7 +40,7 @@ class OauthType(JWTAuthApiView):
         return Response(rst, status=status.HTTP_200_OK)
 
 
-class OauthConfig(JWTAuthApiView):
+class OauthConfig(EnterpriseAdminView):
     def put(self, request, *args, **kwargs):
         data = request.data.get("oauth_services")
         enable = data.get("enable")
@@ -50,7 +50,7 @@ class OauthConfig(JWTAuthApiView):
         return Response(rst, status=status.HTTP_200_OK)
 
 
-class OauthService(JWTAuthApiView):
+class OauthService(EnterpriseAdminView):
     def get(self, request, *args, **kwargs):
         all_services_list = []
         eid = request.user.enterprise_id
@@ -115,7 +115,7 @@ class OauthService(JWTAuthApiView):
         return Response(rst, status=status.HTTP_200_OK)
 
 
-class EnterpriseOauthService(JWTAuthApiView):
+class EnterpriseOauthService(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         all_services_list = []
         service = oauth_repo.get_conosle_oauth_service(enterprise_id)
@@ -178,7 +178,7 @@ class EnterpriseOauthService(JWTAuthApiView):
         return Response(rst, status=status.HTTP_200_OK)
 
 
-class OauthServiceInfo(JWTAuthApiView):
+class OauthServiceInfo(EnterpriseAdminView):
     def delete(self, request, service_id):
         try:
             oauth_repo.delete_oauth_service(service_id)

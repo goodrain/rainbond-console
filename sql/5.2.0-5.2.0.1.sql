@@ -29,4 +29,38 @@ CREATE TABLE IF NOT EXISTS `errlog` (
 
 alter table service_group add order_index int(16) DEFAULT 0;
 
-alter table console.tenant_service_delete modify version varchar(255); 
+alter table console.tenant_service_delete modify version varchar(255);
+
+CREATE TABLE `user_role` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `role_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=91 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `perms_info` (
+  `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) NOT NULL DEFAULT '',
+  `desc` varchar(64) NOT NULL DEFAULT '',
+  `code` int(11) NOT NULL,
+  `group` varchar(32) NOT NULL DEFAULT '',
+  `kind` varchar(32) NOT NULL DEFAULT '',
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `unique_name` (`name`),
+  UNIQUE KEY `un_code` (`code`)
+) ENGINE=InnoDB AUTO_INCREMENT=1339 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `role_perms` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `role_id` int(11) NOT NULL,
+  `perm_code` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5632 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `role_info` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(32) NOT NULL DEFAULT '',
+  `kind_id` varchar(64) NOT NULL DEFAULT '',
+  `kind` varchar(32) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8;

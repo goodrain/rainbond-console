@@ -35,7 +35,6 @@ from openapi.views.team_view import TeamCertificatesLCView
 from openapi.views.team_view import TeamCertificatesRUDView
 from openapi.views.team_view import ListTeamInfo
 from openapi.views.team_view import ListTeamUsersInfo
-from openapi.views.team_view import ListUserRolesView
 from openapi.views.team_view import TeamInfo
 from openapi.views.team_view import TeamRegionView
 from openapi.views.team_view import TeamUserInfoView
@@ -72,13 +71,14 @@ urlpatterns = [
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
+    # TODO 修改权限控制
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$', ListRegionTeamServicesView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view()),
     url(r'^v1/users$', ListUsersView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+    # TODO 修改权限控制
     url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
     url(r'^v1/user/changepwd$', ChangePassword.as_view()),
     url(r'^v1/administrators$', ListAdminsView.as_view()),

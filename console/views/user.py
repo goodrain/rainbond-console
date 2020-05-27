@@ -7,9 +7,9 @@ from django.contrib.auth import authenticate
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.exceptions import SameIdentityError
 from console.exception.exceptions import UserNotExistError
 from console.repositories.user_repo import user_repo
+from console.repositories.team_repo import team_repo
 from console.services.auth import login
 from console.services.auth import logout
 from console.services.enterprise_services import enterprise_services
@@ -17,9 +17,11 @@ from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.perm_services import user_kind_role_service
 from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
 from console.views.base import JWTAuthApiView
+from console.views.base import TeamOwnerView
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser
 from www.services import user_svc
@@ -151,7 +153,7 @@ class UserLogoutView(JWTAuthApiView):
             return Response(result, status=500)
 
 
-class UserPemTraView(JWTAuthApiView):
+class UserPemTraView(TeamOwnerView):
     def post(self, request, team_name, *args, **kwargs):
         """
         移交团队管理权
@@ -168,119 +170,11 @@ class UserPemTraView(JWTAuthApiView):
               type: string
               paramType: body
         """
-        try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-            role_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-
-            no_auth = "owner" not in perm_list and "owner" not in role_list
-
-            if no_auth:
-                code = 400
-                result = general_message(code, "no identity", "你不是最高管理员")
-            else:
-                user_name = request.data.get("user_name", None)
-                other_user = user_services.get_user_by_username(user_name=user_name)
-                if other_user.nick_name != user_name:
-                    code = 400
-                    result = general_message(code, "identity modify failed", "{}不能修改自己的权限".format(user_name))
-                else:
-                    code, msg = team_services.change_tenant_admin(
-                        user_id=request.user.user_id, other_user_id=other_user.user_id, tenant_name=team_name)
-                    if code == 200:
-                        result = general_message(code, "identity modify success", msg)
-                    else:
-                        result = general_message(code, "Authorization failure", "授权失败")
-        except Exception as e:
-            code = 500
-            result = error_message(e.message)
-            logger.exception(e)
-        return Response(result, status=code)
-
-
-class UserPemView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
-        """
-        可选权限展示
-        ---
-
-        """
-        try:
-            perm_info = [{
-                "key": "admin",
-                "name": u"管理员"
-            }, {
-                "key": "developer",
-                "name": u"开发者"
-            }, {
-                "key": "viewer",
-                "name": u"观察者"
-            }, {
-                "key": "access",
-                "name": u"访问者"
-            }]
-            result = general_message(200, "get permissions success", "获取权限成功", list=perm_info)
-            return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
-
-
-class UserAddPemView(JWTAuthApiView):
-    def post(self, request, team_name, user_name, *args, **kwargs):
-        """
-        修改成员权限
-        ---
-        parameters:
-            - name: team_name
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: user_name
-              description: 被修改权限的团队成员
-              required: true
-              type: string
-              paramType: path
-            - name: identitys
-              description: 权限  格式 {"identitys": "viewer,access"}
-              required: true
-              type: string
-              paramType: body
-        """
-        try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-            no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
-            if no_auth:
-                code = 400
-                result = general_message(code, "no identity", "您不是管理员，没有权限做此操作")
-            else:
-                code = 200
-                new_identitys = request.data.get("identitys", None)
-                if new_identitys:
-                    new_identitys = new_identitys.split(',') if new_identitys else []
-                    other_user = user_services.get_user_by_username(user_name=user_name)
-                    if other_user.user_id == request.user.user_id:
-                        result = general_message(400, "failed", "您不能修改自己的权限！")
-                        return Response(result, status=400)
-                    team_services.change_tenant_identity(
-                        user_id=other_user.user_id, tenant_name=team_name, new_identitys=new_identitys)
-                    result = general_message(code, "identity modify success", "{}权限修改成功".format(user_name))
-                else:
-                    result = general_message(400, "identity failed", "修改权限时，权限不能为空")
-        except SameIdentityError as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "identity exist", "该用户已拥有此权限")
-        except UserNotExistError as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "users not exist", "该用户不存在")
-        except Exception as e:
-            logger.exception(e)
-            code = 500
-            result = error_message(e.message)
-        return Response(result, status=code)
+        user_id = request.data.get("user_id")
+        self.tenant.creater = user_id
+        self.tenant.save()
+        result = general_message(msg="success", msg_show="移交成功", code=200)
+        return Response(result, status=200)
 
 
 class AdminUserLCView(JWTAuthApiView):
@@ -361,6 +255,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         password = request.data.get("password", None)
         re_password = request.data.get("re_password", None)
         role_ids = request.data.get("role_ids", None)
+        tenant = team_services.get_tenant_by_tenant_name(tenant_name)
         if len(password) < 8:
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
@@ -374,25 +269,19 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         # 创建用户
         user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
         result = general_message(200, "success", "添加用户成功")
-        if role_ids:
-            try:
-                role_id_list = [int(id) for id in role_ids.split(",")]
-            except Exception as e:
-                logger.exception(e)
-                code = 400
-                result = general_message(code, "params is empty", "参数格式不正确")
-                return Response(result, status=code)
-            for id in role_id_list:
-                if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
-                    code = 400
-                    result = general_message(code, "The role does not exist", "该角色在团队中不存在")
-                    return Response(result, status=code)
-            # 创建用户团队关系表
-            if tenant_name:
-                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
-            user.is_active = True
-            user.save()
-            result = general_message(200, "success", "添加用户成功")
+        if tenant:
+            create_perm_param = {
+                "user_id": user.user_id,
+                "tenant_id": tenant.ID,
+                "identity": "",
+                "enterprise_id": enterprise.ID,
+            }
+            team_repo.create_team_perms(**create_perm_param)
+            if role_ids:
+                user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
+                user.is_active = True
+                user.save()
+                result = general_message(200, "success", "添加用户成功")
         return Response(result)
 
 

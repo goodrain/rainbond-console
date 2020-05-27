@@ -18,9 +18,9 @@ from console.exception.exceptions import TenantNotExistError
 from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
 from console.models.main import EnterpriseUserPerm
+from console.models.main import UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
-from console.repositories.perm_repo import role_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
@@ -28,6 +28,8 @@ from console.services.exception import ErrAdminUserDoesNotExist
 from console.services.exception import ErrCannotDelLastAdminUser
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
+from console.services.perm_services import role_kind_services
+from console.services.perm_services import user_kind_role_service
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -95,6 +97,10 @@ class UserService(object):
             PermRelTenant.objects.filter(user_id=user.pk).delete()
         except PermRelTenant.DoesNotExist:
             pass
+        try:
+            UserRole.objects.filter(user_id=user.user_id).delete()
+        except UserRole.DoesNotExist:
+            pass
         user.delete()
 
     def update_user_password(self, user_id, new_password):
@@ -152,6 +158,10 @@ class UserService(object):
         except Tenants.DoesNotExist:
             tenant = Tenants.objects.get(tenant_id=tenant_name)
         PermRelTenant.objects.filter(user_id__in=user_id_list, tenant_id=tenant.ID).delete()
+        roles = role_kind_services.get_roles(kind="team", kind_id=tenant.tenant_id)
+        if roles:
+            role_ids = roles.values_list("ID", flat=True)
+            UserRole.objects.filter(user_id__in=user_id_list, role_id__in=role_ids).delete()
 
     def get_user_by_username(self, user_name):
         users = Users.objects.filter(nick_name=user_name)
@@ -366,25 +376,8 @@ class UserService(object):
         result = user_repo.list_users_by_tenant_id(tenant_id, query=query, page=page, size=size)
         users = []
         for item in result:
-            # 获取一个用户在一个团队中的身份列表
-            perms_identitys = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=item.get("user_id"), tenant_name=tenant_id)
-            # 获取一个用户在一个团队中的角色ID列表
-            perms_role_list = team_services.get_user_perm_role_id_in_permtenant(
-                user_id=item.get("user_id"), tenant_name=tenant_id)
-
-            role_infos = []
-
-            for identity in perms_identitys:
-                if identity == "access":
-                    role_infos.append({"role_name": identity, "role_id": None})
-                else:
-                    role_id = role_repo.get_role_id_by_role_name(identity)
-                    role_infos.append({"role_name": identity, "role_id": role_id})
-            for role in perms_role_list:
-                role_name = role_repo.get_role_name_by_role_id(role)
-                role_infos.append({"role_name": role_name, "role_id": role})
-
+            user = user_repo.get_by_user_id(item.get("user_id"))
+            role_infos = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant_id, user=user)
             users.append({
                 "user_id": item.get("user_id"),
                 "nick_name": item.get("nick_name"),
@@ -392,7 +385,7 @@ class UserService(object):
                 "phone": item.get("phone"),
                 "is_active": item.get("is_active"),
                 "enterprise_id": item.get("enterprise_id"),
-                "role_infos": role_infos,
+                "role_infos": role_infos["roles"],
             })
 
         total = user_repo.count_users_by_tenant_id(tenant_id, query=query)

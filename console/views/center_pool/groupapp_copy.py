@@ -11,7 +11,6 @@ from www.apiclient.baseclient import HttpClient
 from console.exception.main import ServiceHandleException
 from console.services.groupcopy_service import groupapp_copy_service
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
@@ -25,7 +24,6 @@ class GroupAppsCopyView(RegionTenantHeaderView):
         return Response(result, status=200)
 
     @never_cache
-    @perm_required("import_and_export_service")
     def post(self, request, tenantName, group_id, *args, **kwargs):
         """
         应用复制

@@ -23,8 +23,6 @@ from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
 
@@ -52,23 +50,17 @@ class AllServiceInfo(RegionTenantHeaderView):
               type: string
               paramType: form
         """
-        try:
-            code = 200
-            service_ids = request.data["service_ids"]
-            print(service_ids)
-            if len(service_ids) > 0:
-                status_list = base_service.status_multi_service(
-                    region=self.response_region,
-                    tenant_name=self.team_name,
-                    service_ids=service_ids,
-                    enterprise_id=self.team.enterprise_id)
-                result = general_message(code, "success", "批量获取状态成功", list=status_list)
-                return Response(result, status=code)
-        except Exception as e:
-            code = 500
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=code)
+        code = 200
+        service_ids = request.data["service_ids"]
+        status_list = []
+        if len(service_ids) > 0:
+            status_list = base_service.status_multi_service(
+                region=self.response_region,
+                tenant_name=self.team_name,
+                service_ids=service_ids,
+                enterprise_id=self.team.enterprise_id)
+        result = general_message(code, "success", "批量获取状态成功", list=status_list)
+        return Response(result, status=code)
 
 
 class TeamOverView(RegionTenantHeaderView):
@@ -152,20 +144,14 @@ class ServiceGroupView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        try:
-            code = 200
-            query = request.GET.get("query", "")
-            groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
-            return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        code = 200
+        query = request.GET.get("query", "")
+        groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
+        return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
 
 
 class GroupServiceView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("view_service")
     def get(self, request, *args, **kwargs):
         """
         应用组件列表、状态展示
@@ -204,8 +190,8 @@ class GroupServiceView(RegionTenantHeaderView):
 
             query = request.GET.get("query", "")
 
-            tenant_actions = list(self.user.actions.tenant_actions)
-            service_actions = list(self.user.actions.service_actions)
+            # tenant_actions = list(self.user.actions.tenant_actions)
+            # service_actions = list(self.user.actions.service_actions)
 
             if group_id == "-1":
                 # query service which not belong to any app
@@ -222,7 +208,6 @@ class GroupServiceView(RegionTenantHeaderView):
                 except EmptyPage:
                     no_group_service_list = paginator.page(paginator.num_pages).object_list
                 result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=paginator.count)
-                result["data"]["bean"] = {"tenant_actions": tenant_actions, "service_actions": service_actions}
                 return Response(result, status=code)
 
             team_id = self.team.tenant_id
@@ -245,16 +230,11 @@ class GroupServiceView(RegionTenantHeaderView):
             except EmptyPage:
                 group_service_list = paginator.page(paginator.num_pages).object_list
             result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
-            result["data"]["bean"] = {"tenant_actions": tenant_actions, "service_actions": service_actions}
             return Response(result, status=code)
         except GroupNotExistError as e:
             logger.exception(e)
             result = general_message(400, "query success", "该应用不存在")
             return Response(result, status=400)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
 
 
 class ServiceEventsView(RegionTenantHeaderView):
@@ -291,52 +271,44 @@ class ServiceEventsView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        try:
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 3)
-            total = 0
-            regionsList = region_repo.get_team_opened_region(self.tenant)
-            event_service_dynamic_list = []
-            for region in regionsList:
-                try:
-                    events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id,
-                                                                                    self.tenant, region.region_name, int(page),
-                                                                                    int(page_size))
-                    event_service_dynamic_list = event_service_dynamic_list + events
-                    total = total + event_count
-                except Exception as e:
-                    logger.error("Region api return error {0}, ignore it".format(e))
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 3)
+        total = 0
+        regionsList = region_repo.get_team_opened_region(self.tenant)
+        event_service_dynamic_list = []
+        for region in regionsList:
+            try:
+                events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id, self.tenant,
+                                                                                region.region_name, int(page), int(page_size))
+                event_service_dynamic_list = event_service_dynamic_list + events
+                total = total + event_count
+            except Exception as e:
+                logger.error("Region api return error {0}, ignore it".format(e))
 
-            event_service_dynamic_list = sorted(event_service_dynamic_list, self.__sort_events)
+        event_service_dynamic_list = sorted(event_service_dynamic_list, self.__sort_events)
 
-            service_ids = []
-            for event in event_service_dynamic_list:
-                if event["Target"] == "service":
-                    service_ids.append(event["TargetID"])
+        service_ids = []
+        for event in event_service_dynamic_list:
+            if event["Target"] == "service":
+                service_ids.append(event["TargetID"])
 
-            services = service_repo.get_service_by_service_ids(service_ids)
+        services = service_repo.get_service_by_service_ids(service_ids)
 
-            event_service_list = []
-            for event in event_service_dynamic_list:
-                if event["Target"] == "service":
-                    for service in services:
-                        if service.service_id == event["TargetID"]:
-                            event["service_alias"] = service.service_alias
-                            event["service_name"] = service.service_cname
-                event_service_list.append(event)
+        event_service_list = []
+        for event in event_service_dynamic_list:
+            if event["Target"] == "service":
+                for service in services:
+                    if service.service_id == event["TargetID"]:
+                        event["service_alias"] = service.service_alias
+                        event["service_name"] = service.service_cname
+            event_service_list.append(event)
 
-            event_paginator = JuncheePaginator(event_service_list, int(page_size))
-            event_page_list = event_paginator.page(page)
-            total = event_paginator.count
-            event_list = [event for event in event_page_list]
-            result = general_message(200, 'success', "查询成功", list=event_list, total=total)
-            return Response(result, status=result["code"])
-
-        except Exception as e:
-            code = 500
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=code)
+        event_paginator = JuncheePaginator(event_service_list, int(page_size))
+        event_page_list = event_paginator.page(page)
+        total = event_paginator.count
+        event_list = [event for event in event_page_list]
+        result = general_message(200, 'success', "查询成功", list=event_list, total=total)
+        return Response(result, status=result["code"])
 
 
 class TeamServiceOverViewView(RegionTenantHeaderView):
@@ -381,75 +353,70 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
               type: string
               paramType: query
         """
-        try:
-            code = 200
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 10)
-            order = request.GET.get('order_type', 'desc')
-            fields = request.GET.get('fields', 'update_time')
-            query_key = request.GET.get("query_key", '')
-            service_status = request.GET.get("service_status", 'all')
-            if not self.team:
-                result = general_message(400, "failed", "该团队不存在")
-                return Response(result, status=400)
-            services_list = base_service.get_fuzzy_services_list(
-                team_id=self.team.tenant_id, region_name=self.response_region, query_key=query_key, fields=fields, order=order)
-            if services_list:
-                try:
-                    service_ids = [service["service_id"] for service in services_list]
-                    status_list = base_service.status_multi_service(
-                        region=self.response_region,
-                        tenant_name=self.team_name,
-                        service_ids=service_ids,
-                        enterprise_id=self.team.enterprise_id)
-                    status_cache = {}
-                    statuscn_cache = {}
-                    for status in status_list:
-                        status_cache[status["service_id"]] = status["status"]
-                        statuscn_cache[status["service_id"]] = status["status_cn"]
-                    result = []
-                    for service in services_list:
-                        if service["group_id"] is None:
-                            service["group_name"] = "未分组"
-                            service["group_id"] = "-1"
-                        if service_status == "all":
-                            service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
-                            status = status_cache.get(service["service_id"], "unknow")
-                            if status == "unknow" and service["create_status"] != "complete":
-                                service["status"] = "creating"
-                                service["status_cn"] = "创建中"
-                            else:
-                                service["status"] = status_cache.get(service["service_id"], "unknow")
-                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
+        code = 200
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+        order = request.GET.get('order_type', 'desc')
+        fields = request.GET.get('fields', 'update_time')
+        query_key = request.GET.get("query_key", '')
+        service_status = request.GET.get("service_status", 'all')
+        if not self.team:
+            result = general_message(400, "failed", "该团队不存在")
+            return Response(result, status=400)
+        services_list = base_service.get_fuzzy_services_list(
+            team_id=self.team.tenant_id, region_name=self.response_region, query_key=query_key, fields=fields, order=order)
+        if services_list:
+            try:
+                service_ids = [service["service_id"] for service in services_list]
+                status_list = base_service.status_multi_service(
+                    region=self.response_region,
+                    tenant_name=self.team_name,
+                    service_ids=service_ids,
+                    enterprise_id=self.team.enterprise_id)
+                status_cache = {}
+                statuscn_cache = {}
+                for status in status_list:
+                    status_cache[status["service_id"]] = status["status"]
+                    statuscn_cache[status["service_id"]] = status["status_cn"]
+                result = []
+                for service in services_list:
+                    if service["group_id"] is None:
+                        service["group_name"] = "未分组"
+                        service["group_id"] = "-1"
+                    if service_status == "all":
+                        service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
+                        status = status_cache.get(service["service_id"], "unknow")
+                        if status == "unknow" and service["create_status"] != "complete":
+                            service["status"] = "creating"
+                            service["status_cn"] = "创建中"
+                        else:
+                            service["status"] = status_cache.get(service["service_id"], "unknow")
+                            service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
+                        if service["status"] == "closed" or service["status"] == "undeploy":
+                            service["min_memory"] = 0
+                        result.append(service)
+                    else:
+                        if status_cache.get(service.service_id) == service_status:
+                            service["status"] = status_cache.get(service.service_id, "unknow")
+                            service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                             if service["status"] == "closed" or service["status"] == "undeploy":
                                 service["min_memory"] = 0
                             result.append(service)
-                        else:
-                            if status_cache.get(service.service_id) == service_status:
-                                service["status"] = status_cache.get(service.service_id, "unknow")
-                                service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
-                                if service["status"] == "closed" or service["status"] == "undeploy":
-                                    service["min_memory"] = 0
-                                result.append(service)
-                    paginator = Paginator(result, page_size)
-                    try:
-                        result = paginator.page(page).object_list
-                    except PageNotAnInteger:
-                        result = paginator.page(1).object_list
-                    except EmptyPage:
-                        result = paginator.page(paginator.num_pages).object_list
-                    result = general_message(200, "query user success", "查询用户成功", list=result, total=paginator.count)
-                except Exception as e:
-                    logger.exception(e)
-                    return Response(services_list, status=200)
-                return Response(result, status=code)
-            else:
-                result = general_message(200, "success", "当前团队没有创建应用")
-                return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+                paginator = Paginator(result, page_size)
+                try:
+                    result = paginator.page(page).object_list
+                except PageNotAnInteger:
+                    result = paginator.page(1).object_list
+                except EmptyPage:
+                    result = paginator.page(paginator.num_pages).object_list
+                result = general_message(200, "query user success", "查询用户成功", list=result, total=paginator.count)
+            except Exception as e:
+                logger.exception(e)
+                return Response(services_list, status=200)
+            return Response(result, status=code)
+        else:
+            result = general_message(200, "success", "当前团队没有创建应用")
+            return Response(result, status=200)
 
 
 class TeamAppSortViewView(RegionTenantHeaderView):
@@ -457,26 +424,21 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         """
         总览 团队应用信息
         """
-        try:
-            query = request.GET.get("query", "")
-            page = int(request.GET.get("page", 1))
-            page_size = int(request.GET.get("page_size", 10))
-            groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)
-            total = len(groups)
-            app_num_dict = {"total": total}
-            start = (page - 1) * page_size
-            end = page * page_size
-            apps = []
-            if groups:
-                group_ids = [group.ID for group in groups]
-                apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
-                                                             self.team.enterprise_id)
-                apps = apps[start:end]
-            return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        query = request.GET.get("query", "")
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)
+        total = len(groups)
+        app_num_dict = {"total": total}
+        start = (page - 1) * page_size
+        end = page * page_size
+        apps = []
+        if groups:
+            group_ids = [group.ID for group in groups]
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
+                                                         self.team.enterprise_id)
+            apps = apps[start:end]
+        return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 
 # 团队下应用环境变量模糊查询
@@ -490,41 +452,36 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
         if attr_name and attr_value:
             result = general_message(400, "faild", "变量名和值不能同时存在")
             return Response(result)
-        try:
-            # 查询变量名
-            if attr_name:
-                attr_name_list = []
-                cursor = connection.cursor()
-                cursor.execute("""
-                    select attr_name from tenant_service_env_var
-                    where tenant_id='{0}' and attr_name like '%{1}%'
-                    order by attr_name;
-                    """.format(self.team.tenant_id, attr_name))
-                service_envs = cursor.fetchall()
-                if len(service_envs) > 0:
-                    for service_env in service_envs:
-                        if service_env[0] not in attr_name_list:
-                            attr_name_list.append(service_env[0])
-                result = general_message(200, "success", "查询成功", list=attr_name_list)
-                return Response(result)
+        # 查询变量名
+        if attr_name:
+            attr_name_list = []
+            cursor = connection.cursor()
+            cursor.execute("""
+                select attr_name from tenant_service_env_var
+                where tenant_id='{0}' and attr_name like '%{1}%'
+                order by attr_name;
+                """.format(self.team.tenant_id, attr_name))
+            service_envs = cursor.fetchall()
+            if len(service_envs) > 0:
+                for service_env in service_envs:
+                    if service_env[0] not in attr_name_list:
+                        attr_name_list.append(service_env[0])
+            result = general_message(200, "success", "查询成功", list=attr_name_list)
+            return Response(result)
 
-            # 查询变量值
-            if attr_value:
-                attr_value_list = []
-                cursor = connection.cursor()
-                cursor.execute("""
-                    select attr_value from tenant_service_env_var
-                    where tenant_id='{0}' and attr_value like '%{1}%'
-                    order by attr_value;
-                    """.format(self.team.tenant_id, attr_value))
-                service_envs = cursor.fetchall()
-                if len(service_envs) > 0:
-                    for service_env in service_envs:
-                        if service_env[0] not in attr_value_list:
-                            attr_value_list.append(service_env[0])
-                result = general_message(200, "success", "查询成功", list=attr_value_list)
-                return Response(result)
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(500, e.message, "系统异常")
+        # 查询变量值
+        if attr_value:
+            attr_value_list = []
+            cursor = connection.cursor()
+            cursor.execute("""
+                select attr_value from tenant_service_env_var
+                where tenant_id='{0}' and attr_value like '%{1}%'
+                order by attr_value;
+                """.format(self.team.tenant_id, attr_value))
+            service_envs = cursor.fetchall()
+            if len(service_envs) > 0:
+                for service_env in service_envs:
+                    if service_env[0] not in attr_value_list:
+                        attr_value_list.append(service_env[0])
+            result = general_message(200, "success", "查询成功", list=attr_value_list)
             return Response(result)

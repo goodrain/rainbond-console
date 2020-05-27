@@ -22,7 +22,6 @@ from console.services.compose_service import compose_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.baseclient import HttpClient
-from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
@@ -31,7 +30,6 @@ logger = logging.getLogger("default")
 
 class AppBuild(AppBaseView):
     @never_cache
-    @perm_required('deploy_service')
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
@@ -121,7 +119,6 @@ class AppBuild(AppBaseView):
 
 class ComposeBuildView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         docker-compose组件检测
