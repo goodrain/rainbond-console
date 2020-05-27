@@ -968,7 +968,8 @@ class TenantServiceVolume(BaseModel):
     share_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text=u"共享模式")
     backup_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text=u"备份策略")
     reclaim_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text=u"回收策略")
-    allow_expansion = models.BooleanField(max_length=100, null=True, default=0, blank=True, help_text=u"只是支持控制扩展，0：不支持；1：支持")
+    allow_expansion = models.NullBooleanField(
+        max_length=100, null=True, default=0, blank=True, help_text=u"只是支持控制扩展，0：不支持；1：支持")
 
 
 class TenantServiceConfigurationFile(BaseModel):

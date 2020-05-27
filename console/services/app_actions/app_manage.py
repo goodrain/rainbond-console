@@ -25,7 +25,6 @@ from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.migration_repo import migrate_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
-from console.repositories.perm_repo import service_perm_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
@@ -901,7 +900,6 @@ class AppManageService(AppManageBase):
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
         service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
-        service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
@@ -1181,7 +1179,6 @@ class AppManageService(AppManageBase):
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
         service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
-        service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         # 删除组件和插件的关系

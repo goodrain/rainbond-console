@@ -2,7 +2,6 @@
 """
   Created on 18/3/5.
 """
-from www.decorator import perm_required
 from www.apiclient.regionapi import RegionInvokeApi
 from console.views.app_config.base import AppBaseView
 from console.services.app_config.plugin_service import app_plugin_service
@@ -19,7 +18,6 @@ logger = logging.getLogger("default")
 
 
 class APPPluginsView(AppBaseView):
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件可用的插件列表
@@ -87,7 +85,6 @@ class APPPluginInstallView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    @perm_required('manage_service_plugin')
     def post(self, request, plugin_id, *args, **kwargs):
         """
         组件安装插件
@@ -188,7 +185,6 @@ class APPPluginInstallView(AppBaseView):
             logger.exception(e)
             return Response(result, status=500)
 
-    @perm_required('manage_service_plugin')
     def delete(self, request, plugin_id, *args, **kwargs):
         """
         组件卸载插件
@@ -227,7 +223,6 @@ class APPPluginInstallView(AppBaseView):
 
 
 class APPPluginOpenView(AppBaseView):
-    @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         启停用组件插件
@@ -313,7 +308,6 @@ class APPPluginConfigView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    @perm_required('view_service')
     def get(self, request, plugin_id, *args, **kwargs):
         """
         组件插件查看配置
@@ -367,7 +361,6 @@ class APPPluginConfigView(AppBaseView):
             result = error_message(e.message)
             return Response(result, result["code"])
 
-    @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         组件插件更新

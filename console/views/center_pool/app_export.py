@@ -13,14 +13,13 @@ from rest_framework.response import Response
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
 from console.views.base import AlowAnyApiView, JWTAuthApiView
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
 
 class CenterAppExportView(JWTAuthApiView):
     @never_cache
-    # @perm_required("tenant_access")
     def get(self, request, enterprise_id, *args, **kwargs):
         """
         获取应用导出状态
@@ -50,7 +49,6 @@ class CenterAppExportView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
     @never_cache
-    # @perm_required("import_and_export_service")
     def post(self, request, enterprise_id, *args, **kwargs):
         """
         导出应用市场应用
@@ -107,37 +105,32 @@ class ExportFileDownLoadView(AlowAnyApiView):
               paramType: query
 
         """
-        try:
-            app_id = request.GET.get("app_id", None)
-            export_format = request.GET.get("format", None)
-            if not app_id:
-                return Response(general_message(400, "app id is null", "请指明需要下载的应用"), status=400)
-            if not export_format or export_format not in ("rainbond-app", "docker-compose"):
-                return Response(general_message(400, "export format is illegal", "请指明下载的格式"), status=400)
+        app_id = request.GET.get("app_id", None)
+        export_format = request.GET.get("format", None)
+        if not app_id:
+            return Response(general_message(400, "app id is null", "请指明需要下载的应用"), status=400)
+        if not export_format or export_format not in ("rainbond-app", "docker-compose"):
+            return Response(general_message(400, "export format is illegal", "请指明下载的格式"), status=400)
 
-            code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
-            if not app:
-                return Response(general_message(404, "not found", "云市应用不存在"), status=404)
+        code, app = market_app_service.get_rain_bond_app_by_pk(app_id)
+        if not app:
+            return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
-            export_record = export_service.get_export_record(export_format, app)
-            if not export_record:
-                return Response(general_message(400, "no export records", "该应用无导出记录，无法下载"), status=400)
-            if export_record.status != "success":
-                if export_record.status == "failed":
-                    return Response(general_message(400, "export failed", "应用导出失败，请重试"), status=400)
-                if export_record.status == "exporting":
-                    return Response(general_message(400, "exporting", "应用正在导出中，请稍后重试"), status=400)
+        export_record = export_service.get_export_record(export_format, app)
+        if not export_record:
+            return Response(general_message(400, "no export records", "该应用无导出记录，无法下载"), status=400)
+        if export_record.status != "success":
+            if export_record.status == "failed":
+                return Response(general_message(400, "export failed", "应用导出失败，请重试"), status=400)
+            if export_record.status == "exporting":
+                return Response(general_message(400, "exporting", "应用正在导出中，请稍后重试"), status=400)
 
-            req, file_name = export_service.get_file_down_req(export_format, tenantName, app)
+        req, file_name = export_service.get_file_down_req(export_format, tenantName, app)
 
-            response = StreamingHttpResponse(self.file_iterator(req))
-            response['Content-Type'] = 'application/octet-stream'
-            response['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
-            return response
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=result["code"])
+        response = StreamingHttpResponse(self.file_iterator(req))
+        response['Content-Type'] = 'application/octet-stream'
+        response['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
+        return response
 
     def file_iterator(self, r, chunk_size=2048):
         with contextlib.closing(urllib2.urlopen(r)) as f:

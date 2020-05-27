@@ -18,8 +18,8 @@ from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.oauth import OauthTypeView
 from openapi.views.region_view import (ListRegionInfo, RegionInfo, RegionStatusView)
 from openapi.views.team_view import (ListRegionsView, ListRegionTeamServicesView, ListTeamInfo, ListTeamUsersInfo,
-                                     ListUserRolesView, TeamCertificatesLCView, TeamCertificatesRUDView, TeamInfo,
-                                     TeamRegionView, TeamUserInfoView)
+                                     TeamCertificatesLCView, TeamCertificatesRUDView, TeamInfo, TeamRegionView,
+                                     TeamUserInfoView)
 from openapi.views.upload_view import UploadView
 from openapi.views.user_view import (ChangePassword, ListUsersView, UserInfoView, UserTeamInfoView)
 
@@ -63,13 +63,14 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
+        # TODO 修改权限控制
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
-        url(r'^v1/teams/(?P<team_id>[\w\-]+)/user-roles', ListUserRolesView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$', ListRegionTeamServicesView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view()),
         url(r'^v1/users$', ListUsersView.as_view()),
         url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+        # TODO 修改权限控制
         url(r'^v1/users/(?P<user_id>[\w\-]+)/teams$', UserTeamInfoView.as_view()),
         url(r'^v1/user/changepwd$', ChangePassword.as_view()),
         url(r'^v1/administrators$', ListAdminsView.as_view()),
@@ -82,6 +83,5 @@ if os.environ.get("OPENAPI_DEBUG") == "true":
         url(r'^v1/announcements$', ListAnnouncementView.as_view()),
         url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
         url(r'^v1/upload-file$', UploadView.as_view()),
-
         url(r'^v1/oauth/type$', OauthTypeView.as_view()),
     ]

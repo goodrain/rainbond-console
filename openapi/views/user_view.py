@@ -156,7 +156,7 @@ class UserTeamInfoView(ListAPIView):
             page_size = int(req.GET.get("page_size", 10))
         except ValueError:
             page_size = 10
-
+        # TODO 修改权限控制
         tenants, total = team_services.list_teams_by_user_id(
             eid=eid, user_id=user_id, query=query, page=page, page_size=page_size)
         result = {"tenants": tenants, "total": total}

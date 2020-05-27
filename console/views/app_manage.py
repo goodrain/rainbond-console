@@ -19,12 +19,10 @@ from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
-from console.services.team_services import team_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from console.views.base import CloudEnterpriseCenterView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
 from www.utils.return_message import general_message
 from console.enum.component_enum import is_support, is_state
 from www.apiclient.marketclient import MarketOpenAPI
@@ -40,7 +38,6 @@ region_api = RegionInvokeApi()
 
 class StartAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    @perm_required('start_service')
     def post(self, request, *args, **kwargs):
         """
         启动组件
@@ -74,7 +71,6 @@ class StartAppView(AppBaseView, CloudEnterpriseCenterView):
 
 class StopAppView(AppBaseView):
     @never_cache
-    @perm_required('stop_service')
     def post(self, request, *args, **kwargs):
         """
         停止组件
@@ -102,7 +98,6 @@ class StopAppView(AppBaseView):
 
 class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    @perm_required('restart_service')
     def post(self, request, *args, **kwargs):
         """
         重启组件
@@ -130,7 +125,6 @@ class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
 
 class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
         部署组件
@@ -169,7 +163,6 @@ class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
 
 class RollBackAppView(AppBaseView):
     @never_cache
-    @perm_required('rollback_service')
     def post(self, request, *args, **kwargs):
         """
         回滚组件
@@ -213,7 +206,6 @@ class RollBackAppView(AppBaseView):
 
 class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
         """
         垂直升级组件
@@ -256,7 +248,6 @@ class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
 
 class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    @perm_required('manage_service_extend')
     def post(self, request, *args, **kwargs):
         """
         水平升级组件
@@ -300,10 +291,7 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
 
 class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     @never_cache
-    @perm_required('stop_service')
-    @perm_required('start_service')
-    @perm_required('restart_service')
-    @perm_required('manage_group')
+    # TODO 修改权限验证
     def post(self, request, *args, **kwargs):
         """
         批量操作组件
@@ -331,25 +319,14 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         move_group_id = request.data.get("move_group_id", None)
         if action not in ("stop", "start", "restart", "move"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
-        identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-        perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-
         if action == "stop":
-            if "stop_service" not in perm_tuple and "owner" not in identitys \
-                    and "admin" not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有关闭组件权限"), status=400)
+            self.has_perms([400008])
         if action == "start":
-            if "start_service" not in perm_tuple and "owner" not in identitys and "admin" \
-                    not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有启动组件权限"), status=400)
+            self.has_perms([400006])
         if action == "restart":
-            if "restart_service" not in perm_tuple and "owner" not in identitys and "admin" \
-                    not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有重启组件权限"), status=400)
+            self.has_perms([400007])
         if action == "move":
-            if "manage_group" not in perm_tuple and "owner" not in identitys and "admin" \
-                    not in identitys and "developer" not in identitys:
-                return Response(general_message(400, "Permission denied", "没有变更组件分组权限"), status=400)
+            self.has_perms([400003])
         service_id_list = service_ids.split(",")
         code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id,
                                                     self.oauth_instance)
@@ -362,7 +339,6 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
 
 class DeleteAppView(AppBaseView):
     @never_cache
-    @perm_required('delete_service')
     def delete(self, request, *args, **kwargs):
         """
         删除组件
@@ -397,7 +373,6 @@ class DeleteAppView(AppBaseView):
 
 class BatchDelete(RegionTenantHeaderView):
     @never_cache
-    @perm_required('delete_service')
     def delete(self, request, *args, **kwargs):
         """
         批量删除组件
@@ -415,11 +390,6 @@ class BatchDelete(RegionTenantHeaderView):
               paramType: form
         """
         service_ids = request.data.get("service_ids", None)
-        identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-        perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-        if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
-                not in identitys and "developer" not in identitys:
-            return Response(general_message(400, "Permission denied", "没有删除组件权限"), status=400)
         service_id_list = service_ids.split(",")
         services = service_repo.get_services_by_service_ids(service_id_list)
         msg_list = []
@@ -438,7 +408,6 @@ class BatchDelete(RegionTenantHeaderView):
 
 class AgainDelete(RegionTenantHeaderView):
     @never_cache
-    @perm_required('delete_service')
     def delete(self, request, *args, **kwargs):
         """
         二次确认删除组件
@@ -456,11 +425,6 @@ class AgainDelete(RegionTenantHeaderView):
               paramType: form
         """
         service_id = request.data.get("service_id", None)
-        identitys = team_services.get_user_perm_identitys_in_permtenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-        perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-        if "delete_service" not in perm_tuple and "owner" not in identitys and "admin" \
-                not in identitys and "developer" not in identitys:
-            return Response(general_message(400, "Permission denied", "没有删除组件权限"), status=400)
         service = service_repo.get_service_by_service_id(service_id)
         code, msg = app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
         bean = {}
@@ -473,7 +437,6 @@ class AgainDelete(RegionTenantHeaderView):
 
 class ChangeServiceTypeView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_extend')
     def put(self, request, *args, **kwargs):
         """
         修改组件的组件类型标签
@@ -500,7 +463,6 @@ class ChangeServiceTypeView(AppBaseView):
 # 更新组件组件
 class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
-    @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
         更新
@@ -522,7 +484,6 @@ class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
 # 修改组件名称
 class ChangeServiceNameView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_extend')
     def put(self, request, *args, **kwargs):
         """
         :param request:
@@ -545,7 +506,6 @@ class ChangeServiceNameView(AppBaseView):
 # 修改组件名称
 class ChangeServiceUpgradeView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_extend')
     def put(self, request, *args, **kwargs):
         """
         :param request:
@@ -564,7 +524,6 @@ class ChangeServiceUpgradeView(AppBaseView):
 # 判断云市安装的组件是否有（小版本，大版本）更新
 class MarketServiceUpgradeView(AppBaseView):
     @never_cache
-    @perm_required('deploy_service')
     def get(self, request, *args, **kwargs):
         if self.service.service_source != "market":
             return Response(

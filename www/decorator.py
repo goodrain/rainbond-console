@@ -11,7 +11,6 @@ from django.utils.decorators import available_attrs
 from django.utils.six import Module_six_moves_urllib_parse
 
 from goodrain_web.errors import UrlParseError, PermissionDenied
-from www.perms import check_perm
 from www.utils.url import get_redirect_url
 
 logger = logging.getLogger('default')
@@ -58,19 +57,3 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
         return _wrapped_view
 
     return decorator
-
-
-def perm_required(perm, tenant_name=None):
-    # logger.debug("debug", "check perm {}".format(perm))
-    def perm_test(user, *args, **kwargs):
-        tenantName = kwargs.get('tenantName', None)
-        if not tenantName:
-            tenantName = kwargs.get('team_name', None)
-        serviceAlias = kwargs.get('serviceAlias', None)
-        if not serviceAlias:
-            serviceAlias = kwargs.get('service_alias', None)
-        if tenant_name:
-            tenantName = tenant_name
-        return check_perm(perm, user, tenantName, serviceAlias)
-
-    return user_passes_test(perm_test)

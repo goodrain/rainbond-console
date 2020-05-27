@@ -12,8 +12,7 @@ from console.services.git_service import GitCodeService
 from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView
-from www.decorator import perm_required
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
 from www.utils.url import get_redirect_url
 
 logger = logging.getLogger("default")
@@ -26,21 +25,21 @@ class GithubCodeRepoView(RegionTenantHeaderView):
         查询用户github代码仓库
         ---
         """
-        try:
-            code, msg, data = git_service.get_github_repo(self.user)
-            is_auth = False
-            if code == 200:
-                is_auth = True
-                result = general_message(code, msg, "获取数据成功", bean={"is_auth": is_auth}, list=data)
-            elif code == 403:
-                data.update({"is_auth": is_auth})
-                result = general_message(200, "operation suspend", msg, bean=data)
-            else:
-                data.update({"is_auth": is_auth})
-                result = general_message(code, "service error", msg, bean=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # try:
+        code, msg, data = git_service.get_github_repo(self.user)
+        is_auth = False
+        if code == 200:
+            is_auth = True
+            result = general_message(code, msg, "获取数据成功", bean={"is_auth": is_auth}, list=data)
+        elif code == 403:
+            data.update({"is_auth": is_auth})
+            result = general_message(200, "operation suspend", msg, bean=data)
+        else:
+            data.update({"is_auth": is_auth})
+            result = general_message(code, "service error", msg, bean=data)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
@@ -90,12 +89,12 @@ class GitlabCodeRepoView(RegionTenantHeaderView):
         查询用户gitlab代码仓库
         ---
         """
-        try:
-            code, msg, data = git_service.get_gitlab_repo(self.tenant)
-            result = general_message(code, msg, "获取数据成功", list=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        # try:
+        code, msg, data = git_service.get_gitlab_repo(self.tenant)
+        result = general_message(code, msg, "获取数据成功", list=data)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
     def post(self, request, *args, **kwargs):
@@ -114,18 +113,18 @@ class GitlabCodeRepoView(RegionTenantHeaderView):
               type: string
               paramType: form
         """
-        try:
-            project_name = request.data.get("project_name", None)
-            if not project_name:
-                return Response(general_message(400, "params error", "请填写项目名称"), status=400)
-            code, msg, rt_data = git_service.create_gitlab_project(self.tenant, self.user, project_name)
-            if code != 200:
-                return Response(general_message(code, "create gitlab code error", msg), status=code)
+        # try:
+        project_name = request.data.get("project_name", None)
+        if not project_name:
+            return Response(general_message(400, "params error", "请填写项目名称"), status=400)
+        code, msg, rt_data = git_service.create_gitlab_project(self.tenant, self.user, project_name)
+        if code != 200:
+            return Response(general_message(code, "create gitlab code error", msg), status=code)
 
-            result = general_message(200, "success", "创建成功", bean=rt_data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "创建成功", bean=rt_data)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
@@ -157,25 +156,24 @@ class CodeBranchView(RegionTenantHeaderView):
               paramType: query
 
         """
-        try:
-            code_type = request.data.get("type", None)
-            git_url = request.data.get("service_code_clone_url", None)
-            git_project_id = request.data.get("service_code_id", None)
-            if code_type not in ("gitlab", "github"):
-                return Response(general_message(400, "params error", "代码类型错误"))
+        # try:
+        code_type = request.data.get("type", None)
+        git_url = request.data.get("service_code_clone_url", None)
+        git_project_id = request.data.get("service_code_id", None)
+        if code_type not in ("gitlab", "github"):
+            return Response(general_message(400, "params error", "代码类型错误"))
 
-            code, msg, data = git_service.get_code_branch(self.user, code_type, git_url, git_project_id)
-            if code != 200:
-                return Response(general_message(code, "get branch error", msg), status=code)
-            result = general_message(code, msg, "获取数据成功", list=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg, data = git_service.get_code_branch(self.user, code_type, git_url, git_project_id)
+        if code != 200:
+            return Response(general_message(code, "get branch error", msg), status=code)
+        result = general_message(code, msg, "获取数据成功", list=data)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
 class ServiceCodeBranch(AppBaseView):
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件代码仓库分支
@@ -192,17 +190,11 @@ class ServiceCodeBranch(AppBaseView):
               type: string
               paramType: path
         """
-        result = dict()
-        try:
-            branches = git_service.get_service_code_branch(self.user, self.service)
-            bean = {"current_version": self.service.code_version}
-            result = general_message(200, "success", "查询成功", bean=bean, list=branches)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        branches = git_service.get_service_code_branch(self.user, self.service)
+        bean = {"current_version": self.service.code_version}
+        result = general_message(200, "success", "查询成功", bean=bean, list=branches)
         return Response(result, status=result["code"])
 
-    @perm_required('deploy_service')
     def put(self, request, *args, **kwargs):
         """
         修改组件代码仓库分支
@@ -224,16 +216,12 @@ class ServiceCodeBranch(AppBaseView):
               type: string
               paramType: form
         """
-        try:
-            branch = request.data.get('branch', None)
-            if not branch:
-                return Response(general_message(400, "params error", "请指定具体分支"), status=400)
-            self.service.code_version = branch
-            self.service.save(update_fields=['code_version'])
-            result = general_message(200, "success", "代码仓库分支修改成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        branch = request.data.get('branch', None)
+        if not branch:
+            return Response(general_message(400, "params error", "请指定具体分支"), status=400)
+        self.service.code_version = branch
+        self.service.save(update_fields=['code_version'])
+        result = general_message(200, "success", "代码仓库分支修改成功")
         return Response(result, status=result["code"])
 
 
@@ -255,30 +243,29 @@ class GitLabUserRegisterView(JWTAuthApiView):
               paramType: form
 
         """
-        try:
-            email = request.data.get("email", None)
-            password = request.data.get("password", None)
-            if not email or not password:
-                return Response(general_message(400, "params error", "请填写必要参数"), status=400)
-            if self.user.git_user_id > 0:
-                return Response(general_message(409, "alread register gitlab", "您已注册gitlab账户，请勿重复注册"), status=409)
-            if self.user.email:
-                if email != self.user.email:
-                    return Response(
-                        general_message(409, "email conflict", "用户已存在邮箱{0},请使用该邮箱".format(self.user.email)), status=409)
-            else:
-                u = user_services.get_user_by_email(email)
-                if u:
-                    return Response(general_message(409, "email conflict", "该邮箱已存在"), status=409)
-            if not self.user.check_password(password):
-                return Response(general_message(401, "password error", "密码错误"), status=401)
+        # try:
+        email = request.data.get("email", None)
+        password = request.data.get("password", None)
+        if not email or not password:
+            return Response(general_message(400, "params error", "请填写必要参数"), status=400)
+        if self.user.git_user_id > 0:
+            return Response(general_message(409, "alread register gitlab", "您已注册gitlab账户，请勿重复注册"), status=409)
+        if self.user.email:
+            if email != self.user.email:
+                return Response(general_message(409, "email conflict", "用户已存在邮箱{0},请使用该邮箱".format(self.user.email)), status=409)
+        else:
+            u = user_services.get_user_by_email(email)
+            if u:
+                return Response(general_message(409, "email conflict", "该邮箱已存在"), status=409)
+        if not self.user.check_password(password):
+            return Response(general_message(401, "password error", "密码错误"), status=401)
 
-            code, msg, git_info = git_service.create_git_lab_user(self.user, email, password)
-            if code != 200:
-                return Response(general_message(code, "create gitlab account error", msg), status=code)
+        code, msg, git_info = git_service.create_git_lab_user(self.user, email, password)
+        if code != 200:
+            return Response(general_message(code, "create gitlab account error", msg), status=code)
 
-            result = general_message(200, "success", "创建成功", bean=git_info)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "创建成功", bean=git_info)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     result = error_message(e.message)
         return Response(result, status=result["code"])

@@ -25,7 +25,6 @@ from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
 from www.models.main import ServiceDomain, TenantServiceInfo
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
@@ -57,7 +56,6 @@ def validate_domain(domain):
 
 class TenantCertificateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('certificate_operation')
     def get(self, request, *args, **kwargs):
         """
         获取团队下的证书
@@ -78,7 +76,6 @@ class TenantCertificateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('certificate_operation')
     def post(self, request, *args, **kwargs):
         """
         为团队添加证书
@@ -121,7 +118,6 @@ class TenantCertificateView(RegionTenantHeaderView):
 
 class TenantCertificateManageView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('certificate_management')
     def delete(self, request, *args, **kwargs):
         """
         删除证书
@@ -145,7 +141,6 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('certificate_management')
     def put(self, request, *args, **kwargs):
         """
         修改证书
@@ -193,7 +188,6 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("certificate_management")
     def get(self, request, *args, **kwargs):
         """
         查询某个证书详情
@@ -222,7 +216,6 @@ class TenantCertificateManageView(RegionTenantHeaderView):
 
 class ServiceDomainView(AppBaseView):
     @never_cache
-    @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         """
         获取组件下某个端口绑定的域名
@@ -252,7 +245,6 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         组件端口绑定域名
@@ -318,7 +310,6 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         组件端口解绑域名
@@ -363,7 +354,6 @@ class ServiceDomainView(AppBaseView):
 
 class HttpStrategyView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('access_control')
     def get(self, request, *args, **kwargs):
         """
         获取单个http策略
@@ -399,7 +389,6 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control_operation')
     def post(self, request, *args, **kwargs):
         """
         添加http策略
@@ -513,7 +502,6 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=status.HTTP_201_CREATED)
 
     @never_cache
-    @perm_required('control_operation')
     def put(self, request, *args, **kwargs):
         """
         编辑http策略
@@ -581,7 +569,6 @@ class HttpStrategyView(RegionTenantHeaderView):
         return Response(result, status=200)
 
     @never_cache
-    @perm_required('control_operation')
     def delete(self, request, *args, **kwargs):
         """
        删除策略
@@ -598,7 +585,6 @@ class HttpStrategyView(RegionTenantHeaderView):
 
 class DomainView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         """
         查询某个域名是否存在
@@ -627,7 +613,6 @@ class DomainView(RegionTenantHeaderView):
 
 class SecondLevelDomainView(AppBaseView):
     @never_cache
-    @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         """
         获取二级域名后缀
@@ -650,7 +635,6 @@ class SecondLevelDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
     def put(self, request, *args, **kwargs):
         """
         组件端口自定义二级域名
@@ -1021,7 +1005,6 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
 # tcp/ucp策略操作
 class ServiceTcpDomainView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('access_control')
     def get(self, request, *args, **kwargs):
         # 获取单个tcp/udp策略信息
         tcp_rule_id = request.GET.get("tcp_rule_id", None)
@@ -1052,7 +1035,6 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control_operation')
     # 添加
     def post(self, request, *args, **kwargs):
         container_port = request.data.get("container_port", None)
@@ -1103,7 +1085,6 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control_operation')
     # 修改
     def put(self, request, *args, **kwargs):
         container_port = request.data.get("container_port", None)
@@ -1148,7 +1129,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('control_operation')
+    # 删除
     def delete(self, request, *args, **kwargs):
         tcp_rule_id = request.data.get("tcp_rule_id", None)
 
@@ -1186,7 +1167,6 @@ class GetSeniorUrlView(RegionTenantHeaderView):
 class GatewayCustomConfigurationView(RegionTenantHeaderView):
     # 获取策略的网关自定义参数
     @never_cache
-    @perm_required('access_control')
     def get(self, request, rule_id, *args, **kwargs):
         if not rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
@@ -1200,7 +1180,6 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
 
     # 修改网关的自定义参数
     @never_cache
-    @perm_required('control_operation')
     def put(self, request, rule_id, *args, **kwargs):
         value = parse_item(request, 'value', required=True, error='value is a required parameter')
         try:

@@ -61,19 +61,18 @@ class RegionService(object):
         if regions:
             for region in regions:
                 region_desc = region_repo.get_region_desc_by_region_name(region_name=region.region_name)
-                if region_desc:
-                    region_name_list.append({
-                        "region_id": region.ID,
-                        "region_name": region.region_name,
-                        "service_status": region.service_status,
-                        "is_active": region.is_active,
-                        "is_init": region.is_init,
-                        "region_scope": region.region_scope,
-                        "region_alisa": team_repo.get_region_alias(region.region_name),
-                        "region.region_tenant_id": region.region_tenant_id,
-                        "create_time": region.create_time,
-                        "desc": region_desc
-                    })
+                region_name_list.append({
+                    "region_id": region.ID,
+                    "region_name": region.region_name,
+                    "service_status": region.service_status,
+                    "is_active": region.is_active,
+                    "is_init": region.is_init,
+                    "region_scope": region.region_scope,
+                    "region_alisa": team_repo.get_region_alias(region.region_name),
+                    "region.region_tenant_id": region.region_tenant_id,
+                    "create_time": region.create_time,
+                    "desc": region_desc
+                })
             return region_name_list
         else:
             return []

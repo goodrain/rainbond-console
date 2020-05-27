@@ -10,8 +10,7 @@ from rest_framework.response import Response
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app import app_service
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
 from console.services.group_service import group_service
 
 logger = logging.getLogger("default")
@@ -19,7 +18,6 @@ logger = logging.getLogger("default")
 
 class DockerRunCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         """
         image和docker-run创建组件
@@ -86,7 +84,4 @@ class DockerRunCreateView(RegionTenantHeaderView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message()
         return Response(result, status=result["code"])

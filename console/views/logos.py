@@ -5,7 +5,7 @@ import os
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
-from console.repositories.perm_repo import role_perm_repo
+from console.repositories.perm_repo import perms_repo
 from console.services.config_service import platform_config_service
 from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
@@ -23,7 +23,7 @@ class ConfigRUDView(AlowAnyApiView):
 
     def get(self, request, *args, **kwargs):
         code = 200
-        status = role_perm_repo.initialize_permission_settings()
+        status = perms_repo.initialize_permission_settings()
         data = platform_config_service.initialization_or_get_config
         if data.get("enterprise_id", None) is None:
             data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
