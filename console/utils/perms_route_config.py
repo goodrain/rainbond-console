@@ -1024,22 +1024,7 @@ ComposeContentView = {
     }
 }
 
-AppBuild = {
-    "__message": {
-        "get": {
-            "perms": []
-        },
-        "post": {
-            "perms": [400010]
-        },
-        "put": {
-            "perms": []
-        },
-        "delete": {
-            "perms": []
-        }
-    }
-}
+AppBuild = {"__message": {"get": {"perms": []}, "post": {"perms": [400010]}, "put": {"perms": []}, "delete": {"perms": []}}}
 
 AppCompileEnvView = {
     "__message": {
@@ -1745,7 +1730,7 @@ DeployAppView = {
             "perms": []
         },
         "post": {
-            "perms": [400010, 400009]
+            "perms": [400010]
         },
         "put": {
             "perms": []
@@ -1799,7 +1784,7 @@ ChangeServiceUpgradeView = {
             "perms": []
         },
         "put": {
-            "perms": [400010, 400009]
+            "perms": [400010]
         },
         "delete": {
             "perms": []
