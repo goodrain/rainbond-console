@@ -485,7 +485,7 @@ class ApplicantsView(RegionTenantHeaderView):
         if action is True:
             join.update(is_pass=1)
             team = team_repo.get_team_by_team_name(team_name=team_name)
-            # team_services.add_user_to_team_by_viewer(tenant=team, user_id=user_id)
+            team_services.add_user_to_team(tenant=team, user_id=user_id)
             # 发送通知
             info = "同意"
             self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
@@ -588,19 +588,15 @@ class UserApplyStatusView(JWTAuthApiView):
 class JoinTeamView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """查看指定用户加入的团队的状态"""
-        try:
-            user_id = request.GET.get("user_id", None)
-            if user_id:
-                apply_user = apply_repo.get_applicants_team(user_id=user_id)
-                team_list = [team.to_dict() for team in apply_user]
-                result = general_message(200, "success", "查询成功", list=team_list)
-            else:
-                apply_user = apply_repo.get_applicants_team(user_id=self.user.user_id)
-                team_list = [team.to_dict() for team in apply_user]
-                result = general_message(200, "success", "查询成功", list=team_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        user_id = request.GET.get("user_id", None)
+        if user_id:
+            apply_user = apply_repo.get_applicants_team(user_id=user_id)
+            team_list = [team.to_dict() for team in apply_user]
+            result = general_message(200, "success", "查询成功", list=team_list)
+        else:
+            apply_user = apply_repo.get_applicants_team(user_id=self.user.user_id)
+            team_list = [team.to_dict() for team in apply_user]
+            result = general_message(200, "success", "查询成功", list=team_list)
         return Response(result, status=result["code"])
 
     def post(self, request, *args, **kwargs):
@@ -641,25 +637,20 @@ class JoinTeamView(JWTAuthApiView):
         :param kwargs:
         :return:
         """
-        try:
-            logger.debug('-------3333------->{0}'.format(request.data))
-            user_id = request.data.get("user_id", None)
-            team_names = request.data.get("team_name", None)
-            is_pass = request.data.get("is_pass", 0)
-            if not team_names:
-                return Response(general_message(400, "team name is null", "参数错误"), status=400)
-            teams_name = team_names.split('-')
-            for team_name in teams_name:
-                if team_name:
-                    if user_id:
-                        apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
-                    else:
-                        user_id = self.user.user_id
-                        apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
-            result = general_message(200, "success", "删除成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        user_id = request.data.get("user_id", None)
+        team_names = request.data.get("team_name", None)
+        is_pass = request.data.get("is_pass", 0)
+        if not team_names:
+            return Response(general_message(400, "team name is null", "参数错误"), status=400)
+        teams_name = team_names.split('-')
+        for team_name in teams_name:
+            if team_name:
+                if user_id:
+                    apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+                else:
+                    user_id = self.user.user_id
+                    apply_repo.delete_applicants_record(user_id=user_id, team_name=team_name, is_pass=int(is_pass))
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
 

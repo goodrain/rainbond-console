@@ -8,6 +8,8 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
+
+from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.models.main import TenantUserRole
 from console.repositories.perm_repo import role_repo
@@ -58,31 +60,17 @@ class TeamService(object):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    def add_user_to_team(self, request, tenant, user_ids, identitys):
+    def add_user_to_team(self, tenant, user_id, role_ids=None):
+        user = user_repo.get_by_user_id(user_id)
+        if not user:
+            raise ServiceHandleException(msg="user not found", msg_show=u"用户不存在", status_code=404)
+        exist_team_user = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
-        if enterprise:
-            user = request.user
-            user_perms = self.get_user_perm_identitys_in_permtenant(user_id=user.user_id, tenant_name=tenant.tenant_name)
-            user_ids = [int(r) for r in list(set(user_ids))]
-            exist_team_user = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id__in=user_ids).all()
-            exist = []
-            for user in exist_team_user:
-                exist.append(user.user_id)
-            new_user_list = list()
-            if ('admin' in user_perms) or ('owner' in user_perms):
-                for user_id in user_ids:
-                    if user_id not in exist:
-                        for identity in identitys:
-                            new_user_list.append(
-                                PermRelTenant(
-                                    user_id=user_id, tenant_id=tenant.pk, identity=identity, enterprise_id=enterprise.ID))
-            if new_user_list:
-                try:
-                    PermRelTenant.objects.bulk_create(new_user_list)
-                except Exception as e:
-                    logging.exception(e)
-        else:
-            return None
+        if exist_team_user:
+            raise ServiceHandleException(msg="user exist", msg_show=u"用户已经加入此团队")
+        PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="", enterprise_id=enterprise.ID)
+        if role_ids:
+            user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
     def get_team_users(self, team):
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
