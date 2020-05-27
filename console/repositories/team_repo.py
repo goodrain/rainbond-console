@@ -122,7 +122,7 @@ class TeamRepo(object):
 
     # 返回该团队下的所有管理员
     def get_tenant_admin_by_tenant_id(self, tenant):
-        admins = Users.objects.filter(user_id = tenant.creater)
+        admins = Users.objects.filter(user_id=tenant.creater)
         return admins
 
     def get_user_perms_in_permtenant_list(self, user_id, tenant_id):
