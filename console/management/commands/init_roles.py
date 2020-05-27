@@ -16,12 +16,8 @@ class Command(BaseCommand):
     help = u'初始化所有团队的角色和团队成员的角色分配'
 
     def add_arguments(self, parser):
-        parser.add_argument('--tenant_id',
-                            default=None,
-                            help=u"指定团队初始化权限")
-        parser.add_argument('--enterprise_id',
-                            default=None,
-                            help=u"指定企业初始化权限")
+        parser.add_argument('--tenant_id', default=None, help=u"指定团队初始化权限")
+        parser.add_argument('--enterprise_id', default=None, help=u"指定企业初始化权限")
 
     @transaction.atomic()
     def handle(self, *args, **options):

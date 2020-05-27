@@ -209,7 +209,7 @@ class JWTAuthApiView(APIView):
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = PermsInfo.objects.all().values_list("code", flat=True)
+            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
             self.user_perms.extend([100000, 200000])
         roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
         if roles:
@@ -259,7 +259,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = PermsInfo.objects.all().values_list("code", flat=True)
+            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
             self.user_perms.extend([100000, 200000])
         else:
             ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
@@ -270,10 +270,10 @@ class RegionTenantHeaderView(JWTAuthApiView):
                     ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
                     ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
                     if ent_role_perms:
-                        self.user_perms = ent_role_perms.values_list("perm_code", flat=True)
+                        self.user_perms = list(ent_role_perms.values_list("perm_code", flat=True))
 
         if self.is_team_owner:
-            team_perms = PermsInfo.objects.filter(kind="team").values_list("code", flat=True)
+            team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             self.user_perms.extend(team_perms)
             self.user_perms.append(200000)
         else:
@@ -285,7 +285,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
                     team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
                     team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
                     if team_role_perms:
-                        self.user_perms.extend(team_role_perms.values_list("perm_code", flat=True))
+                        self.user_perms.extend(list(team_role_perms.values_list("perm_code", flat=True)))
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):

@@ -122,7 +122,10 @@ class TeamUserPermsLView(RegionTenantHeaderView):
         team_users = team_services.get_team_users(self.tenant)
         user = team_users.filter(user_id=user_id).first()
         data = user_kind_perm_service.get_user_perms(
-            kind="team", kind_id=self.tenant.tenant_id, user=user,
-            is_owner=self.is_team_owner, is_ent_admin=self.is_enterprise_admin)
+            kind="team",
+            kind_id=self.tenant.tenant_id,
+            user=user,
+            is_owner=self.is_team_owner,
+            is_ent_admin=self.is_enterprise_admin)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)
