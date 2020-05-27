@@ -1030,7 +1030,7 @@ AppBuild = {
             "perms": []
         },
         "post": {
-            "perms": [400001, 400009, 400010]
+            "perms": [400010]
         },
         "put": {
             "perms": []
