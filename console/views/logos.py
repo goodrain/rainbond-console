@@ -12,6 +12,15 @@ from console.views.base import BaseApiView
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
+from django.db import transaction
+
+from console.exception.main import ServiceHandleException
+from console.services.perm_services import role_kind_services
+from console.services.perm_services import user_kind_role_service
+from console.repositories.team_repo import team_repo
+
+from www.models.main import Tenants
+
 logger = logging.getLogger("default")
 
 
@@ -219,3 +228,38 @@ class PhpConfigView(AlowAnyApiView):
                    }]
         bean = {"versions": versions, "default_version": default_version, "extends": extends}
         return Response(general_message(200, "success", "查询成功", bean))
+
+
+class InitPerms(AlowAnyApiView):
+    @transaction.atomic()
+    def post(self, request, *args, **kwargs):
+        enterprise_id = request.data.get("enterprise_id")
+        tenant_id = request.data.get("tenant_id")
+        if tenant_id and enterprise_id:
+            teams = Tenants.objects.filter(tenant_id=tenant_id, enterprise_id=enterprise_id)
+        elif tenant_id and not enterprise_id:
+            teams = Tenants.objects.filter(tenant_id=tenant_id)
+        elif not tenant_id and enterprise_id:
+            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        else:
+            teams = Tenants.objects.all()
+        if not teams:
+            print(u"未发现团队, 初始化结束")
+            return
+        for team in teams:
+            role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
+            users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
+            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"开发者")
+            if not admin or not developer:
+                raise ServiceHandleException(msg="init failed", msg_show=u"初始化失败")
+            if users:
+                for user in users:
+                    if user.user_id == team.creater:
+                        user_kind_role_service.update_user_roles(
+                            kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin.ID])
+                    else:
+                        user_kind_role_service.update_user_roles(
+                            kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
+        result = general_message(msg="success", msg_show=u"初始化权限分配成功", code=200)
+        return Response(result, status=200)
