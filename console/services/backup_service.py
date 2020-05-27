@@ -27,7 +27,6 @@ from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.label_repo import service_label_repo
-from console.repositories.perm_repo import service_perm_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
 from console.repositories.plugin.plugin import plugin_repo
@@ -260,7 +259,6 @@ class GroupAppBackupService(object):
         service_labels = service_label_repo.get_service_labels(service.service_id)
         service_domains = domain_repo.get_service_domains(service.service_id)
         service_tcpdomains = tcp_domain.get_service_tcpdomains(service.service_id)
-        service_perms = service_perm_repo.get_service_perms_by_service_pk(service.ID)
         service_probes = probe_repo.get_service_probe(service.service_id)
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         service_auths = auth_repo.get_service_auth(service.service_id)
@@ -281,7 +279,6 @@ class GroupAppBackupService(object):
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],
             "service_tcpdomains": [tcpdomain.to_dict() for tcpdomain in service_tcpdomains],
-            "service_perms": [perm.to_dict() for perm in service_perms],
             "service_probes": [probe.to_dict() for probe in service_probes],
             "service_source": service_source.to_dict() if service_source else None,
             "service_auths": [auth.to_dict() for auth in service_auths],

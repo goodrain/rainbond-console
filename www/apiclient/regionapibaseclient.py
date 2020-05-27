@@ -151,12 +151,10 @@ class RegionApiBaseHttpClient(object):
             })
         except MaxRetryError as e:
             logger.error('client_error', e)
-            raise ServiceHandleException(
-                error_code=10411, msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
+            raise ServiceHandleException(error_code=10411, msg="region error: %s" % url, msg_show="超出访问数据中心最大重试次数，请检查网络和配置")
         except Exception as e:
             logger.error(e)
-            raise ServiceHandleException(
-                error_code=10411, msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
+            raise ServiceHandleException(error_code=10411, msg="region error: %s" % url, msg_show="访问数据中心失败，请检查网络或集群状态")
 
     def get_client(self, region_config):
         # get client from cache

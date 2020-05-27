@@ -25,9 +25,7 @@ class ListRegionInfo(BaseOpenAPIView):
     view_perms = ["regions"]
 
     @swagger_auto_schema(
-        responses={200: RegionInfoRespSerializer(many=True)},
-        tags=['openapi-region'],
-        operation_description="获取全部数据中心列表")
+        responses={200: RegionInfoRespSerializer(many=True)}, tags=['openapi-region'], operation_description="获取全部数据中心列表")
     def get(self, req):
         regions = region_services.get_enterprise_regions(self.enterprise.enterprise_id, level="")
         serializer = RegionInfoRespSerializer(data=regions, many=True)

@@ -31,8 +31,8 @@ class GroupAppCopyService(object):
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
-        services_metadata, change_services_map = self.get_modify_group_metadata(
-            old_team, tar_team, group_id, service_ids, changes)
+        services_metadata, change_services_map = self.get_modify_group_metadata(old_team, tar_team, group_id, service_ids,
+                                                                                changes)
         groupapp_copy_service.save_new_group_app(user, tar_team, tar_region_name, tar_group.ID, services_metadata,
                                                  change_services_map)
         return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
@@ -60,8 +60,7 @@ class GroupAppCopyService(object):
         if not group:
             raise ServiceHandleException(msg="no found group app", msg_show="目标应用不存在", status_code=404)
         if group.tenant_id != team.tenant_id:
-            raise ServiceHandleException(msg="group app and team relation no found",
-                                         msg_show="目标应用不属于目标团队", status_code=400)
+            raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标团队", status_code=400)
         return team, group
 
     def get_modify_group_metadata(self, old_team, tar_team, group_id, service_ids, changes):
@@ -70,8 +69,7 @@ class GroupAppCopyService(object):
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
-        services_metadata = self.pop_services_metadata(
-            old_team, tar_team, services_metadata, remove_service_ids, service_ids)
+        services_metadata = self.pop_services_metadata(old_team, tar_team, services_metadata, remove_service_ids, service_ids)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
         change_services_map = self.change_services_map(service_ids)
         return services_metadata, change_services_map
@@ -141,8 +139,7 @@ class GroupAppCopyService(object):
                         if service["service_base"]["service_source"] == "source_code":
                             service["service_base"]["code_version"] = version
                         elif service["service_base"]["service_source"] == "docker_image":
-                            service["service_base"]["image"] = service["service_base"]["image"].split(":")[
-                                0] + ":" + version
+                            service["service_base"]["image"] = service["service_base"]["image"].split(":")[0] + ":" + version
                             service["service_base"]["version"] = version
         return metadata
 

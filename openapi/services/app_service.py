@@ -3,7 +3,6 @@
 import copy
 import logging
 
-
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.app import service_repo

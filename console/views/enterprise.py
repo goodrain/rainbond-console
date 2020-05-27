@@ -5,18 +5,18 @@ import logging
 from rest_framework import status
 from rest_framework.response import Response
 
-from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
+from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
-from console.repositories.exceptions import UserRoleNotFoundException
+from console.exception.exceptions import TenantNotExistError
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.user_role_repo import user_role_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
+from console.services.perm_services import user_kind_role_service
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import JWTAuthApiView
@@ -139,7 +139,8 @@ class EnterpriseTeams(JWTAuthApiView):
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
-        teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, page=page, page_size=page_size)
+        teams, total = team_services.get_enterprise_teams(
+            enterprise_id, query=name, page=page, page_size=page_size, user=self.user)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
@@ -154,7 +155,7 @@ class EnterpriseUserTeams(JWTAuthApiView):
             result = general_message(400, "failed", "请求失败")
             return Response(result, status=code)
         try:
-            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user_id, name)
+            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
             result = general_message(200, "team query success", "查询成功", list=tenants)
         except Exception as e:
             logger.exception(e)
@@ -180,13 +181,11 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     region_list = team_repo.get_team_regions(tenant.tenant_id)
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
-                    try:
-                        role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
-                    except UserRoleNotFoundException:
-                        if tenant.creater == user.user_id:
-                            role = "owner"
-                        else:
-                            role = None
+                    user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
+                    roles = map(lambda x: x["role_name"], user_role_list["roles"])
+                    if tenant.creater == user.user_id:
+                        roles.append("owner")
+                    owner = user_repo.get_by_user_id(tenant.creater)
                     new_join_team.append({
                         "team_name": tenant.tenant_name,
                         "team_alias": tenant.tenant_alias,
@@ -196,8 +195,8 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "region_list": region_name_list,
                         "enterprise_id": tenant.enterprise_id,
                         "owner": tenant.creater,
-                        "owner_name": user.nick_name,
-                        "role": role,
+                        "owner_name": (owner.get_name() if owner else None),
+                        "roles": roles,
                         "is_pass": True,
                     })
             if join_tenants:

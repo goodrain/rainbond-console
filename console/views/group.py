@@ -3,44 +3,37 @@
   Created by leon on 18/1/5.
 """
 import logging
+
 from rest_framework.response import Response
 
-from console.repositories.group import group_service_relation_repo
-from console.views.base import RegionTenantHeaderView
-from console.views.base import CloudEnterpriseCenterView
-from www.decorator import perm_required
-from www.utils.return_message import general_message, error_message
-from console.services.group_service import group_service
-from console.services.compose_service import compose_service
-from console.services.team_services import team_services
-from console.services.app_actions import app_manage_service
-from www.apiclient.regionapi import RegionInvokeApi
-from console.repositories.app import service_repo
 from console.exception.main import ResourceNotEnoughException, ServiceHandleException
+from console.repositories.app import service_repo
+from console.repositories.group import group_service_relation_repo
+from console.services.app_actions import app_manage_service
+from console.services.compose_service import compose_service
+from console.services.group_service import group_service
+from console.views.base import CloudEnterpriseCenterView
+from console.views.base import RegionTenantHeaderView
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
 class TenantGroupView(RegionTenantHeaderView):
-    @perm_required("view_service")
     def get(self, request, *args, **kwargs):
         """
         查询租户在指定数据中心下的应用
         ---
         """
-        try:
-            groups = group_service.get_tenant_groups_by_region(self.tenant, self.response_region)
-            data = []
-            for group in groups:
-                data.append({"group_name": group.group_name, "group_id": group.ID, "group_note": group.note})
-            result = general_message(200, "success", "查询成功", list=data)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        groups = group_service.get_tenant_groups_by_region(self.tenant, self.response_region)
+        data = []
+        for group in groups:
+            data.append({"group_name": group.group_name, "group_id": group.ID, "group_note": group.note})
+        result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])
 
-    @perm_required("manage_group")
     def post(self, request, *args, **kwargs):
         """
         添加应用信息
@@ -88,7 +81,6 @@ class TenantGroupView(RegionTenantHeaderView):
 
 
 class TenantGroupOperationView(RegionTenantHeaderView):
-    @perm_required("manage_group")
     def put(self, request, *args, **kwargs):
         """
             修改组信息
@@ -120,7 +112,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
-    @perm_required("manage_group")
     def delete(self, request, *args, **kwargs):
         """
             删除应用
@@ -138,23 +129,19 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                   paramType: path
 
         """
-        try:
-            group_id = int(kwargs.get("group_id", None))
-            service = group_service_relation_repo.get_service_by_group(group_id)
-            if not service:
-                code, msg, data = group_service.delete_group_no_service(group_id)
-            else:
-                code = 400
-                msg = '当前应用内存在组件，无法删除'
-                result = general_message(code, msg, None)
-                return Response(result, status=result["code"])
-            if code != 200:
-                result = general_message(code, "delete group error", msg)
-            else:
-                result = general_message(code, "success", msg)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        group_id = int(kwargs.get("group_id", None))
+        service = group_service_relation_repo.get_service_by_group(group_id)
+        if not service:
+            code, msg, data = group_service.delete_group_no_service(group_id)
+        else:
+            code = 400
+            msg = '当前应用内存在组件，无法删除'
+            result = general_message(code, msg, None)
+            return Response(result, status=result["code"])
+        if code != 200:
+            result = general_message(code, "delete group error", msg)
+        else:
+            result = general_message(code, "success", msg)
         return Response(result, status=result["code"])
 
     def get(self, request, *args, **kwargs):
@@ -195,10 +182,6 @@ class TenantGroupOperationView(RegionTenantHeaderView):
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
 class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
-    @perm_required('stop_service')
-    @perm_required('start_service')
-    @perm_required('restart_service')
-    @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
         """
         ---
@@ -236,23 +219,15 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCent
                 if service_obj and service_obj.service_source == "third_party":
                     service_ids.remove(service_id)
 
-            # 校验权限
-            identitys = team_services.get_user_perm_identitys_in_permtenant(
-                user_id=self.user.user_id, tenant_name=self.tenant_name)
-            perm_tuple = team_services.get_user_perm_in_tenant(user_id=self.user.user_id, tenant_name=self.tenant_name)
-            common_perm = "owner" not in identitys and "admin" not in identitys and "developer" not in identitys
-            no_perm = False
-            if action == "stop" and "stop_service" not in perm_tuple and common_perm:
-                no_perm = True
-            if action == "start" and "start_service" not in perm_tuple and common_perm:
-                no_perm = True
-            if action == "upgrade" and "restart_service" not in perm_tuple and common_perm:
-                no_perm = True
-            if action == "deploy" and "deploy_service" not in perm_tuple and common_perm:
-                no_perm = True
-            if no_perm:
-                return Response(general_message(400, "Permission denied", "没有重新构建权限"), status=400)
-            # 批量操作
+            if action == "stop":
+                self.has_perms([300006, 400008])
+            if action == "start":
+                self.has_perms([300005, 400006])
+            if action == "upgrade":
+                self.has_perms([300007, 400009])
+            if action == "deploy":
+                self.has_perms([300008, 400010])
+                # 批量操作
             code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)

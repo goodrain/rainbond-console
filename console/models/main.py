@@ -442,9 +442,9 @@ class UserAccessKey(BaseModel):
         unique_together = (('note', 'user_id'), )
 
     note = models.CharField(max_length=32, help_text=u"凭证标识")
-    user_id = models.IntegerField(max_length=16, help_text=u"用户id")
+    user_id = models.IntegerField(help_text=u"用户id")
     access_key = models.CharField(max_length=64, unique=True, help_text=u"凭证")
-    expire_time = models.IntegerField(max_length=16, null=True, help_text=u"过期时间")
+    expire_time = models.IntegerField(null=True, help_text=u"过期时间")
 
 
 class TenantUserRole(BaseModel):
@@ -516,6 +516,42 @@ class ServiceRelPerms(BaseModel):
 
     def __unicode__(self):
         return self.to_dict()
+
+
+class UserRole(BaseModel):
+    class Meta:
+        db_table = 'user_role'
+
+    user_id = models.CharField(max_length=32, unique=True, help_text=u'用户id')
+    role_id = models.CharField(max_length=32, help_text=u'角色id')
+
+
+class PermsInfo(BaseModel):
+    class Meta:
+        db_table = 'perms_info'
+
+    name = models.CharField(max_length=32, unique=True, help_text=u'权限名称')
+    desc = models.CharField(max_length=32, help_text=u'权限描述')
+    code = models.IntegerField(unique=True, help_text=u'权限编码')
+    group = models.CharField(max_length=32, help_text=u'权限类型')
+    kind = models.CharField(max_length=32, help_text=u'权限所属')
+
+
+class RolePerms(BaseModel):
+    class Meta:
+        db_table = 'role_perms'
+
+    role_id = models.IntegerField(help_text=u"角色id")
+    perm_code = models.IntegerField(help_text=u'权限编码')
+
+
+class RoleInfo(BaseModel):
+    class Meta:
+        db_table = 'role_info'
+
+    name = models.CharField(max_length=32, help_text=u'角色名称')
+    kind_id = models.CharField(max_length=64, help_text=u'角色所属范围id')
+    kind = models.CharField(max_length=32, help_text=u'角色所属')
 
 
 class AppExportRecord(BaseModel):

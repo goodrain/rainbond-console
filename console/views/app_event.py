@@ -13,7 +13,6 @@ from console.services.app_actions import log_service
 from console.services.app_actions import ws_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.models.main import TenantServiceInfo
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -23,7 +22,6 @@ logger = logging.getLogger("default")
 
 class AppEventView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的event事件
@@ -55,22 +53,17 @@ class AppEventView(AppBaseView):
               type: string
               paramType: query
         """
-        try:
-            page = request.GET.get("page", 1)
-            page_size = request.GET.get("page_size", 6)
-            start_time = request.GET.get("start_time", None)
-            events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size), start_time)
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 6)
+        start_time = request.GET.get("start_time", None)
+        events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size), start_time)
 
-            result = general_message(200, "success", "查询成功", list=events, has_next=has_next)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        result = general_message(200, "success", "查询成功", list=events, has_next=has_next)
         return Response(result, status=result["code"])
 
 
 class AppEventLogView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的event的详细日志
@@ -97,23 +90,18 @@ class AppEventLogView(AppBaseView):
               type: string
               paramType: query
         """
-        try:
-            level = request.GET.get("level", LogConstants.INFO)
-            event_id = request.GET.get("event_id", None)
-            if not event_id:
-                return Response(general_message(400, "params error", "请指明具体操作事件"), status=400)
+        level = request.GET.get("level", LogConstants.INFO)
+        event_id = request.GET.get("event_id", None)
+        if not event_id:
+            return Response(general_message(400, "params error", "请指明具体操作事件"), status=400)
 
-            log_list = event_service.get_service_event_log(self.tenant, self.service, level, event_id)
-            result = general_message(200, "success", "查询成功", list=log_list)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        log_list = event_service.get_service_event_log(self.tenant, self.service, level, event_id)
+        result = general_message(200, "success", "查询成功", list=log_list)
         return Response(result, status=result["code"])
 
 
 class AppLogView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件的日志
@@ -153,7 +141,6 @@ class AppLogView(AppBaseView):
 
 class AppLogInstanceView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取日志websocket信息
@@ -170,25 +157,19 @@ class AppLogInstanceView(AppBaseView):
               type: string
               paramType: path
         """
-        try:
-
-            code, msg, host_id = log_service.get_docker_log_instance(self.tenant, self.service)
-            web_socket_url = ws_service.get_log_instance_ws(request, self.service.service_region)
-            bean = {"web_socket_url": web_socket_url}
-            if code == 200:
-                web_socket_url += "?host_id={0}".format(host_id)
-                bean["host_id"] = host_id
-                bean["web_socket_url"] = web_socket_url
-            result = general_message(200, "success", "查询成功", bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        code, msg, host_id = log_service.get_docker_log_instance(self.tenant, self.service)
+        web_socket_url = ws_service.get_log_instance_ws(request, self.service.service_region)
+        bean = {"web_socket_url": web_socket_url}
+        if code == 200:
+            web_socket_url += "?host_id={0}".format(host_id)
+            bean["host_id"] = host_id
+            bean["web_socket_url"] = web_socket_url
+        result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
 
 class AppHistoryLogView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件历史日志
@@ -219,7 +200,6 @@ class AppHistoryLogView(AppBaseView):
 
 class AppEventsView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取作用对象的event事件
@@ -279,7 +259,6 @@ class AppEventsView(RegionTenantHeaderView):
 
 class AppEventsLogView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取作用对象的event事件
