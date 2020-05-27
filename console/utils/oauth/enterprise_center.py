@@ -89,13 +89,14 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                 logger.debug(rst.content)
             except Exception as e:
                 logger.debug(e)
-                raise NoAccessKeyErr("can not get access key")
+                raise ServiceHandleException(msg="can not get access key", error_code=10405, status_code=401)
             if rst.status_code == 200:
                 logger.debug(rst.content)
                 try:
                     data = rst.json()
                 except ValueError:
-                    raise ServiceHandleException(msg="return value error", msg_show="enterprise center 服务不正常")
+                    raise ServiceHandleException(msg="return value error", msg_show="enterprise center 服务不正常",
+                                                 error_code=10405, status_code=401)
                 self.access_token = data.get("access_token")
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:
@@ -104,7 +105,7 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                 self.update_access_token(self.access_token, self.refresh_token)
                 return self.access_token, self.refresh_token
             else:
-                raise NoAccessKeyErr("can not get access key")
+                raise ServiceHandleException(msg="can not get access key", error_code=10405, status_code=401)
         else:
             if self.oauth_user:
                 self.set_api(self.oauth_service.home_url, self.oauth_user.access_token)
@@ -119,11 +120,11 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                             return self.access_token, self.refresh_token
                         except Exception:
                             self.oauth_user.delete()
-                            raise NoAccessKeyErr("access key is expired, please reauthorize")
+                            raise ServiceHandleException(msg="refresh key expired", error_code=10405, status_code=401)
                     else:
                         self.oauth_user.delete()
-                        raise NoAccessKeyErr("access key is expired, please reauthorize")
-            raise NoAccessKeyErr("can not get access key")
+                        raise ServiceHandleException(msg="access key expired", error_code=10405, status_code=401)
+            raise ServiceHandleException(msg="no found oauth user record in db", error_code=10405, status_code=401)
 
     def refresh_access_token(self):
         headers = {"Accept": "application/json", "Content-Type": "application/json"}
