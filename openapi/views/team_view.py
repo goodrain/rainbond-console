@@ -19,9 +19,8 @@ from console.services.user_services import user_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
     CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
-    ListTeamRespSerializer, RoleInfoRespSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
-    TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer,
-    UpdateTeamInfoReqSerializer)
+    ListTeamRespSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer, TeamCertificatesLSerializer,
+    TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer, UpdateTeamInfoReqSerializer)
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
 from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamNoRegionAPIView)

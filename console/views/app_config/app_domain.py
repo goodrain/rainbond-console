@@ -838,7 +838,7 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                             or std.service_alias like '%{2}%' \
                             or sg.group_name like '%{2}%') \
                     order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start,
-                                                                end))
+                                                              end))
                 tenant_tuples = cursor.fetchall()
             else:
                 # 获取总数

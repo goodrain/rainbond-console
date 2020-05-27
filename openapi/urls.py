@@ -12,8 +12,8 @@ from openapi.auth.views import TokenInfoView
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.announcement_view import (AnnouncementView, ListAnnouncementView)
 from openapi.views.appstore_view import AppStoreInfoView, ListAppStoresView
-from openapi.views.enterprise_view import (EnterpriseInfoView, EnterpriseSourceView,
-                                           ListEnterpriseInfoView, EnterpriseConfigView)
+from openapi.views.enterprise_view import (EnterpriseInfoView, EnterpriseSourceView, ListEnterpriseInfoView,
+                                           EnterpriseConfigView)
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.oauth import OauthTypeView
 from openapi.views.region_view import (ListRegionInfo, RegionInfo, RegionStatusView)

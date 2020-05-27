@@ -5,16 +5,14 @@ import logging
 from rest_framework import status
 from rest_framework.response import Response
 
-from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
+from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
-from console.repositories.exceptions import UserRoleNotFoundException
 from console.exception.exceptions import TenantNotExistError
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.user_role_repo import user_role_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
