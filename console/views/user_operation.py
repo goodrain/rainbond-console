@@ -324,10 +324,8 @@ class UserDetailsView(JWTAuthApiView):
         查询我的详情
         ---
         """
-        # p = PermActions()
         code = 200
         user = self.user
-        # user.actions = UserActions()
         tenants = team_services.get_current_user_tenants(user_id=user.user_id)
         user_detail = dict()
         user_detail["user_id"] = user.user_id
@@ -339,7 +337,6 @@ class UserDetailsView(JWTAuthApiView):
         user_detail["is_sys_admin"] = user.is_sys_admin
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
         user_detail["is_enterprise_active"] = enterprise.is_active
-        # is_user_enter_amdin = user_services.is_user_admin_in_current_enterprise(self.user, user.enterprise_id)
         user_detail["is_enterprise_admin"] = self.is_enterprise_admin
         tenant_list = list()
         for tenant in tenants:
@@ -360,7 +357,8 @@ class UserDetailsView(JWTAuthApiView):
             role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
             tenant_info["role_name_list"] = role_list["roles"]
             perms = user_kind_perm_service.get_user_perms(
-                kind="team", kind_id=tenant.tenant_id, user=user, is_owner=is_team_owner)
+                kind="team", kind_id=tenant.tenant_id, user=user,
+                is_owner=is_team_owner, is_ent_admin=self.is_enterprise_admin)
             tenant_info["tenant_actions"] = perms["permissions"]
             tenant_info["is_team_owner"] = is_team_owner
             tenant_list.append(tenant_info)

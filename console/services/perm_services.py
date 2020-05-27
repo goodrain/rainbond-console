@@ -238,7 +238,9 @@ class UserKindRoleService(object):
 
 
 class UserKindPermService(object):
-    def get_user_perms(self, kind, kind_id, user, is_owner=False):
+    def get_user_perms(self, kind, kind_id, user, is_owner=False, is_ent_admin=False):
+        if is_owner or is_ent_admin:
+            is_owner = True
         user_roles = user_kind_role_repo.get_user_roles_model(kind, kind_id, user)
         perms = role_perm_service.get_roles_union_perms(user_roles, kind, is_owner)
         data = {"user_id": user.user_id}

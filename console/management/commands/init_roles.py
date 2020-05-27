@@ -41,8 +41,8 @@ class Command(BaseCommand):
         for team in teams:
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
             users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
-            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
-            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="developer")
+            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
+            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"开发者")
             if not admin or not developer:
                 raise ServiceHandleException(msg="init failed", msg_show=u"初始化失败")
             if users:
