@@ -110,7 +110,7 @@ urlpatterns = [
     url(r'^errlog$', ErrLogView.as_view()),
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigRUDView.as_view()),
-    url(r'^init/perms$', InitPerms.as_view()),
+    # url(r'^init/perms$', InitPerms.as_view()),
     # 获取权限列表
     url(r'^perms$', PermsInfoLView.as_view()),
     # OAuth
