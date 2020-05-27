@@ -1024,22 +1024,7 @@ ComposeContentView = {
     }
 }
 
-AppBuild = {
-    "__message": {
-        "get": {
-            "perms": []
-        },
-        "post": {
-            "perms": [400010]
-        },
-        "put": {
-            "perms": []
-        },
-        "delete": {
-            "perms": []
-        }
-    }
-}
+AppBuild = {"__message": {"get": {"perms": []}, "post": {"perms": [400010]}, "put": {"perms": []}, "delete": {"perms": []}}}
 
 AppCompileEnvView = {
     "__message": {
