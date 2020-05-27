@@ -255,6 +255,8 @@ class TeamService(object):
         try:
             tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
             team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID).delete()
+            user = user_repo.get_by_user_id(user_id)
+            user_kind_role_service.delete_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
             transaction.savepoint_commit(s_id)
             return 200, u"退出团队成功"
         except Exception as e:
