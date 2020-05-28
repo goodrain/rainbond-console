@@ -12,12 +12,11 @@ from openapi.serializer.announcement_serializer import CreateAncmReqSerilizer
 from openapi.serializer.announcement_serializer import ListAnnouncementRespSerializer
 from openapi.serializer.announcement_serializer import UpdateAncmReqSerilizer
 from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
 
 logger = logging.getLogger("default")
 
 
-class ListAnnouncementView(ListAPIView):
+class ListAnnouncementView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取站内信列表",
         manual_parameters=[

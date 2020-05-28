@@ -12,12 +12,15 @@ from rest_framework.response import Response
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.app_config import domain_service
+from console.services.perm_services import role_kind_services
+from console.services.perm_services import user_kind_role_service
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import CreateTeamReqSerializer
 from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
@@ -33,9 +36,7 @@ from openapi.serializer.team_serializer import TeamCertificatesCSerializer
 from openapi.serializer.team_serializer import TeamCertificatesRSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
-from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import TeamAPIView
-from openapi.views.base import ListAPIView
 from openapi.views.exceptions import ErrTeamNotFound
 from www.utils.crypt import make_uuid
 from www.models.main import PermRelTenant
@@ -44,7 +45,7 @@ from www.models.main import Tenants
 logger = logging.getLogger("default")
 
 
-class ListTeamInfo(ListAPIView):
+class ListTeamInfo(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取团队列表",
         manual_parameters=[
@@ -118,7 +119,7 @@ class ListTeamInfo(ListAPIView):
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeamInfo(BaseOpenAPIView):
+class TeamInfo(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取团队",
         responses={
@@ -189,7 +190,7 @@ class TeamInfo(BaseOpenAPIView):
             return Response(None, status.HTTP_404_NOT_FOUND)
 
 
-class ListTeamUsersInfo(ListAPIView):
+class ListTeamUsersInfo(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取团队用户列表",
         manual_parameters=[
@@ -216,7 +217,7 @@ class ListTeamUsersInfo(ListAPIView):
         return Response(serializer.data, status.HTTP_200_OK)
 
 
-class TeamUserInfoView(BaseOpenAPIView):
+class TeamUserInfoView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="将用户从团队中移除",
         responses={
@@ -257,20 +258,8 @@ class TeamUserInfoView(BaseOpenAPIView):
             team = team_services.get_team_by_team_id(team_id)
         except Tenants.DoesNotExist:
             raise exceptions.NotFound()
-
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
-        roleids = team_services.get_all_team_role_id(tenant_name=team_id, allow_owner=True)
-        for role_id in role_ids:
-            if int(role_id) not in roleids:
-                raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
-
-        flag = team_services.user_is_exist_in_team(user_list=[user_id], tenant_name=team_id)
-        if flag:
-            user_obj = user_services.get_user_by_user_id(user_id=user_id)
-            raise serializers.ValidationError("用户{}已经存在".format(user_obj.nick_name), status.HTTP_400_BAD_REQUEST)
-
         team_services.add_user_role_to_team(tenant=team, user_ids=[user_id], role_ids=role_ids)
-
         return Response(None, status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
@@ -291,24 +280,13 @@ class TeamUserInfoView(BaseOpenAPIView):
 
         serializer = CreateTeamUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
-
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
-        roleids = team_services.get_all_team_role_id(tenant_name=team_id, allow_owner=True)
-        for role_id in role_ids:
-            if int(role_id) not in roleids:
-                raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
-
-        try:
-            user_services.get_user_by_tenant_id(team_id, user_id)
-        except UserNotExistError as e:
-            return Response({"msg": e.message}, status.HTTP_404_NOT_FOUND)
-
-        team_services.change_tenant_role(user_id=user_id, tenant_name=team_id, role_id_list=role_ids)
-
+        user = user_repo.get_by_user_id(user_id)
+        user_kind_role_service.update_user_roles(kind="team", kind_id=self.team.tenant_id, user=user, role_ids=role_ids)
         return Response(None, status.HTTP_200_OK)
 
 
-class ListRegionsView(ListAPIView):
+class ListRegionsView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取团队开通的数据中心列表",
         manual_parameters=[
@@ -369,7 +347,7 @@ class ListRegionsView(ListAPIView):
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeamRegionView(BaseOpenAPIView):
+class TeamRegionView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="关闭数据中心",
         responses={
@@ -395,7 +373,7 @@ class TeamRegionView(BaseOpenAPIView):
             return Response(None, status=status.HTTP_404_NOT_FOUND)
 
 
-class ListRegionTeamServicesView(ListAPIView):
+class ListRegionTeamServicesView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取团队下指定数据中心组件信息",
         manual_parameters=[

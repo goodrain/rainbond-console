@@ -4,6 +4,7 @@ from django.conf.urls import url
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 
+from console.utils import perms_route_config as perms
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
@@ -11,40 +12,36 @@ from openapi.views.admin_view import AdminInfoView
 from openapi.views.admin_view import ListAdminsView
 from openapi.views.announcement_view import AnnouncementView
 from openapi.views.announcement_view import ListAnnouncementView
+from openapi.views.apps.apps import APPHttpDomainView
+from openapi.views.apps.apps import APPOperationsView
 from openapi.views.apps.apps import AppInfoView
 from openapi.views.apps.apps import ListAppsView
-from openapi.views.apps.apps import APPOperationsView
-from openapi.views.apps.apps import APPHttpDomainView
 from openapi.views.apps.market import MarketAppInstallView
 from openapi.views.appstore_view import AppStoreInfoView
 from openapi.views.appstore_view import ListAppStoresView
-# from openapi.views.config_view import BaseConfigView
-# from openapi.views.config_view import FeatureConfigView
-# from openapi.views.config_view import ListFeatureConfigView
 from openapi.views.enterprise_view import EnterpriseInfoView
+from openapi.views.enterprise_view import EnterpriseSourceView
 from openapi.views.enterprise_view import ListEnterpriseInfoView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
+from openapi.views.groupapp import GroupAppsCopyView
+from openapi.views.oauth import OauthTypeView
 from openapi.views.region_view import ListRegionInfo
-from openapi.views.enterprise_view import EnterpriseSourceView
-
 from openapi.views.region_view import RegionInfo
 from openapi.views.region_view import RegionStatusView
-from openapi.views.team_view import ListRegionsView
 from openapi.views.team_view import ListRegionTeamServicesView
-from openapi.views.team_view import TeamCertificatesLCView
-from openapi.views.team_view import TeamCertificatesRUDView
+from openapi.views.team_view import ListRegionsView
 from openapi.views.team_view import ListTeamInfo
 from openapi.views.team_view import ListTeamUsersInfo
+from openapi.views.team_view import TeamCertificatesLCView
+from openapi.views.team_view import TeamCertificatesRUDView
 from openapi.views.team_view import TeamInfo
 from openapi.views.team_view import TeamRegionView
 from openapi.views.team_view import TeamUserInfoView
 from openapi.views.upload_view import UploadView
-from openapi.views.user_view import ListUsersView
 from openapi.views.user_view import ChangePassword
+from openapi.views.user_view import ListUsersView
 from openapi.views.user_view import UserInfoView
 from openapi.views.user_view import UserTeamInfoView
-from openapi.views.oauth import OauthTypeView
-from openapi.views.groupapp import GroupAppsCopyView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -69,13 +66,17 @@ urlpatterns = [
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view(), perms.TeamInfo),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view(), perms.ListTeamUsersInfo),
     # TODO 修改权限控制
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$', TeamUserInfoView.as_view(), name="team_user"),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$', ListRegionTeamServicesView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/users/(?P<user_id>[\w\-]+)$',
+        TeamUserInfoView.as_view(),
+        perms.TeamUserInfoView,
+        name="team_user"),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view(), perms.ListRegionsView),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/services$', ListRegionTeamServicesView.as_view(),
+        perms.ListRegionTeamServicesView),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)$', TeamRegionView.as_view(), perms.TeamRegionView),
     url(r'^v1/users$', ListUsersView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
     # TODO 修改权限控制
@@ -90,9 +91,6 @@ urlpatterns = [
     url(r'^v1/appstores/(?P<eid>[\w\-]+)$', AppStoreInfoView.as_view(), name="appstore_info"),
     url(r'^v1/announcements$', ListAnnouncementView.as_view()),
     url(r'^v1/announcements/(?P<aid>[\w\-]+)$', AnnouncementView.as_view()),
-    # url(r'^v1/configs/base$', BaseConfigView.as_view()),
-    # url(r'^v1/configs/feature$', ListFeatureConfigView.as_view()),
-    # url(r'^v1/configs/feature/(?P<key>[\w\-]+)$', FeatureConfigView.as_view()),
     url(r'^v1/upload-file$', UploadView.as_view()),
     url(r'^v1/apps/httpdomain$', APPHttpDomainView.as_view()),
     url(r'^v1/apps$', ListAppsView.as_view()),
@@ -101,8 +99,9 @@ urlpatterns = [
     url(r'^v1/market-install', MarketAppInstallView.as_view()),
     url(r'^v1/oauth/type$', OauthTypeView.as_view()),
     url(r'^v1/apps/(?P<app_id>[\w\-]+)/operations$', APPOperationsView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view(), perms.TeamCertificatesLCView),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view(),
+        perms.TeamCertificatesRUDView),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/groupapp/(?P<group_id>[\d\-]+)/copy$',
-        GroupAppsCopyView.as_view()),
+        GroupAppsCopyView.as_view(), perms.GroupAppsCopyView),
 ]
