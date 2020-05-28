@@ -357,23 +357,10 @@ class TeamService(object):
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)
         total = team_repo.count_by_user_id(eid, user_id, query)
+        user = user_repo.get_by_user_id(user_id)
         for tenant in tenants:
-            # 获取一个用户在一个团队中的身份列表
-            perms_identitys = self.get_user_perm_identitys_in_permtenant(user_id=user_id, tenant_name=tenant["tenant_id"])
-            # 获取一个用户在一个团队中的角色ID列表
-            perms_role_list = self.get_user_perm_role_id_in_permtenant(user_id=user_id, tenant_name=tenant["tenant_id"])
-
-            role_infos = []
-            for identity in perms_identitys:
-                if identity == "access":
-                    role_infos.append({"role_name": identity, "role_id": None})
-                else:
-                    role_id = role_repo.get_role_id_by_role_name(identity)
-                    role_infos.append({"role_name": identity, "role_id": role_id})
-            for role in perms_role_list:
-                role_name = role_repo.get_role_name_by_role_id(role)
-                role_infos.append({"role_name": role_name, "role_id": role})
-            tenant["role_infos"] = role_infos
+            roles = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant["tenant_id"], user=user)
+            tenant["role_infos"] = roles["roles"]
         return tenants, total
 
     def __team_with_region_info(self, tenant, request_user=None):
