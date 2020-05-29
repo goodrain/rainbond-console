@@ -4,7 +4,6 @@ import os
 
 from rest_framework.response import Response
 
-from console.exception.main import ServiceHandleException
 from console.repositories.perm_repo import perms_repo
 from console.services.config_service import platform_config_service
 from console.views.base import AlowAnyApiView

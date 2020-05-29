@@ -10,12 +10,14 @@ from rest_framework.response import Response
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from console.repositories.user_repo import user_repo
 from console.services.app_config import domain_service
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.services.perm_services import user_kind_role_service
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
     CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
@@ -23,7 +25,7 @@ from openapi.serializer.team_serializer import (
     TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer, UpdateTeamInfoReqSerializer)
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
-from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamNoRegionAPIView)
+from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamNoRegionAPIView, TeamAPIView)
 from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
 from www.models.main import PermRelTenant, Tenants
 from www.utils.crypt import make_uuid
@@ -99,7 +101,7 @@ class ListTeamInfo(BaseOpenAPIView):
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeamInfo(BaseOpenAPIView):
+class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="获取团队",
         responses={
@@ -109,7 +111,7 @@ class TeamInfo(BaseOpenAPIView):
         },
         tags=['openapi-team'],
     )
-    def get(self, request, team_id):
+    def get(self, request, team_id, *args, **kwargs):
         try:
             queryset = team_services.get_team_by_team_id(team_id.strip())
             serializer = TeamInfoSerializer(queryset)
@@ -197,7 +199,7 @@ class ListTeamUsersInfo(ListAPIView):
         return Response(serializer.data, status.HTTP_200_OK)
 
 
-class TeamUserInfoView(BaseOpenAPIView):
+class TeamUserInfoView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="将用户从团队中移除",
         responses={
@@ -233,25 +235,8 @@ class TeamUserInfoView(BaseOpenAPIView):
     def post(self, req, team_id, user_id):
         serializer = CreateTeamUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
-
-        try:
-            team = team_services.get_team_by_team_id(team_id)
-        except Tenants.DoesNotExist:
-            raise exceptions.NotFound()
-
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
-        roleids = team_services.get_all_team_role_id(tenant_name=team_id, allow_owner=True)
-        for role_id in role_ids:
-            if int(role_id) not in roleids:
-                raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
-
-        flag = team_services.user_is_exist_in_team(user_list=[user_id], tenant_name=team_id)
-        if flag:
-            user_obj = user_services.get_user_by_user_id(user_id=user_id)
-            raise serializers.ValidationError("用户{}已经存在".format(user_obj.nick_name), status.HTTP_400_BAD_REQUEST)
-
-        team_services.add_user_role_to_team(tenant=team, user_ids=[user_id], role_ids=role_ids)
-
+        team_services.add_user_role_to_team(tenant=self.team, user_ids=[user_id], role_ids=role_ids)
         return Response(None, status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
@@ -268,24 +253,14 @@ class TeamUserInfoView(BaseOpenAPIView):
     # TODO 修改权限控制
     def put(self, req, team_id, user_id):
         if req.user.user_id == user_id:
-            raise serializers.ValidationError("您不能修改自己的权限!", status=status.HTTP_400_BAD_REQUEST)
+            raise serializers.ValidationError("您不能修改自己的权限!", status.HTTP_400_BAD_REQUEST)
 
         serializer = CreateTeamUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
         role_ids = req.data["role_ids"].replace(" ", "").split(",")
-        roleids = team_services.get_all_team_role_id(tenant_name=team_id, allow_owner=True)
-        for role_id in role_ids:
-            if int(role_id) not in roleids:
-                raise serializers.ValidationError("角色{}不存在".format(role_id), status.HTTP_404_NOT_FOUND)
-
-        try:
-            user_services.get_user_by_tenant_id(team_id, user_id)
-        except UserNotExistError as e:
-            return Response({"msg": e.message}, status.HTTP_404_NOT_FOUND)
-
-        team_services.change_tenant_role(user_id=user_id, tenant_name=team_id, role_id_list=role_ids)
-
+        user = user_repo.get_by_user_id(user_id)
+        user_kind_role_service.update_user_roles(kind="team", kind_id=self.team.tenant_id, user=user, role_ids=role_ids)
         return Response(None, status.HTTP_200_OK)
 
 

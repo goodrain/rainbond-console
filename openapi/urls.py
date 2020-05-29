@@ -6,6 +6,7 @@ from django.conf.urls import include, url
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 
+from console.utils import perms_route_config as perms
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.auth.views import TokenInfoView
@@ -46,9 +47,10 @@ urlpatterns = [
     # get user teams
     url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view(), perms.TeamInfo),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view(), perms.TeamCertificatesLCView),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view(),
+        perms.TeamCertificatesRUDView),
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
     # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps', include('openapi.sub_urls.app_url')),

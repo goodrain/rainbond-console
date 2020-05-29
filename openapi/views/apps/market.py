@@ -3,7 +3,7 @@
 
 import logging
 from drf_yasg.utils import swagger_auto_schema
-from openapi.views.base import TeamAPIView
+from openapi.views.base import TeamAppAPIView
 from rest_framework import status
 from openapi.serializer.base_serializer import FailSerializer
 from rest_framework.response import Response
@@ -20,7 +20,7 @@ logger = logging.getLogger("default")
 
 # Install cloud city application, which is implemented by a simplified scheme.
 # Users provide cloud city application information and initiate to download application metadata to the application market.
-class AppInstallView(TeamAPIView):
+class AppInstallView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="安装云市应用",
         request_body=InstallSerializer(),

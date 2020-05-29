@@ -11,7 +11,7 @@ from console.utils.restful_client import get_order_server_ent_client
 from console.utils.restful_client import get_pay_server_ent_client
 from console.exception.main import ServiceHandleException
 
-from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
+from console.utils.oauth.base.exception import NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
 
 logger = logging.getLogger("default")
