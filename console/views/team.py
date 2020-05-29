@@ -159,7 +159,7 @@ class AddTeamView(JWTAuthApiView):
                 code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
                 # 初始化默认角色
                 role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-                admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
+                admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
                 user_kind_role_service.update_user_roles(
                     kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
                 for r in regions:
@@ -414,7 +414,7 @@ class TeamRegionInitView(JWTAuthApiView):
             if not code:
                 return Response(general_message(code, "create team error", msg), status=code)
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-            admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="admin")
+            admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
             user_kind_role_service.update_user_roles(
                 kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
 
