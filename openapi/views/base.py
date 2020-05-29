@@ -128,8 +128,6 @@ class TeamAPIView(BaseOpenAPIView):
             self.team = team_services.get_team_by_team_id(app.tenant_id)
         if not self.team:
             raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
-        if not self.region_name:
-            raise ServiceHandleException(msg_show=u"数据中心不存在", msg="no found region", status_code=404)
         self.team_regions = region_services.get_team_usable_regions(self.team.tenant_name)
         if self.user.user_id == self.team.creater:
             self.is_team_owner = True

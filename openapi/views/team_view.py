@@ -36,7 +36,7 @@ from openapi.serializer.team_serializer import TeamCertificatesCSerializer
 from openapi.serializer.team_serializer import TeamCertificatesRSerializer
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
-from openapi.views.base import TeamAPIView
+from openapi.views.base import BaseOpenAPIView, TeamAPIView
 from openapi.views.exceptions import ErrTeamNotFound
 from www.utils.crypt import make_uuid
 from www.models.main import PermRelTenant
@@ -45,7 +45,7 @@ from www.models.main import Tenants
 logger = logging.getLogger("default")
 
 
-class ListTeamInfo(TeamAPIView):
+class ListTeamInfo(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取团队列表",
         manual_parameters=[
@@ -129,7 +129,7 @@ class TeamInfo(TeamAPIView):
         },
         tags=['openapi-team'],
     )
-    def get(self, request, team_id):
+    def get(self, request, team_id, *args, **kwargs):
         try:
             queryset = team_services.get_team_by_team_id(team_id.strip())
             serializer = TeamInfoSerializer(queryset)
