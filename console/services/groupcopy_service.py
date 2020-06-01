@@ -26,15 +26,16 @@ logger = logging.getLogger("default")
 
 class GroupAppCopyService(object):
     @transaction.atomic()
-    def copy_group_services(self, user, old_team, tar_team, tar_region_name, tar_group, group_id, choose_services):
+    def copy_group_services(self, user, old_team, old_region_name, tar_team, tar_region_name, tar_group, group_id,
+                            choose_services):
         changes = {}
         service_ids = []
         if choose_services:
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
-        services_metadata, change_services_map = self.get_modify_group_metadata(old_team, tar_team, group_id, service_ids,
-                                                                                changes)
+        services_metadata, change_services_map = self.get_modify_group_metadata(old_team, old_region_name, tar_team,
+                                                                                tar_region_name, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(user, tar_team, tar_region_name, tar_group.ID, services_metadata,
                                                  change_services_map)
         groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
@@ -64,25 +65,27 @@ class GroupAppCopyService(object):
             raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标团队", status_code=400)
         return team, group
 
-    def get_modify_group_metadata(self, old_team, tar_team, group_id, service_ids, changes):
+    def get_modify_group_metadata(self, old_team, old_region_name, tar_team, tar_region_name, group_id, service_ids, changes):
         total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team)
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
-        services_metadata = self.pop_services_metadata(old_team, tar_team, services_metadata, remove_service_ids, service_ids)
+        services_metadata = self.pop_services_metadata(old_team, old_region_name, tar_team, tar_region_name, services_metadata,
+                                                       remove_service_ids, service_ids)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
         change_services_map = self.change_services_map(service_ids)
         return services_metadata, change_services_map
 
-    def pop_services_metadata(self, old_team, tar_team, metadata, remove_service_ids, service_ids):
+    def pop_services_metadata(self, old_team, old_region_name, tar_team, tar_region_name, metadata, remove_service_ids,
+                              service_ids):
         if not remove_service_ids:
             for service in metadata["apps"]:
                 # 处理组件存储依赖关系
                 if service["service_mnts"]:
                     new_service_mnts = []
                     for service_mnt in service["service_mnts"]:
-                        if old_team.tenant_id == tar_team.tenant_id:
+                        if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
                             if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
                                 new_service_mnts.append(service_mnt)
                     service["service_mnts"] = new_service_mnts
@@ -103,7 +106,7 @@ class GroupAppCopyService(object):
             if service["service_base"]["service_id"] not in remove_service_ids:
                 new_relation = []
                 for dep_service_info in service["service_relation"]:
-                    if old_team.tenant_id == tar_team.tenant_id:
+                    if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
                         new_relation.append(dep_service_info)
                     else:
                         if dep_service_info["dep_service_id"] in service_ids and \
@@ -115,7 +118,7 @@ class GroupAppCopyService(object):
             if service["service_mnts"]:
                 new_service_mnts = []
                 for service_mnt in service["service_mnts"]:
-                    if old_team.tenant_id == tar_team.tenant_id:
+                    if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
                         if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
                             new_service_mnts.append(service_mnt)
                 service["service_mnts"] = new_service_mnts
