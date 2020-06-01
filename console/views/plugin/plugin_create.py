@@ -204,10 +204,7 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        default_plugins = plugin_service.get_default_plugin(self.response_region, self.tenant)
-        bean = {"downstream_net_plugin": False, "perf_analyze_plugin": False, "inandout_net_plugin": False}
-        for p in default_plugins:
-            bean[p.origin_share_id] = True
+        default_plugin_dict = plugin_service.get_default_plugin_from_cache(self.response_region, self.tenant)
 
-        result = general_message(200, "success", "查询成功", bean=bean)
+        result = general_message(200, "success", "查询成功", list=default_plugin_dict)
         return Response(result, status=200)
