@@ -696,24 +696,31 @@ class PluginService(object):
         body = region_api.build_plugin(region, tenant.tenant_name, plugin.plugin_id, build_data)
         return body
 
+    all_default_config = None
+    module_dir = os.path.dirname(__file__)
+    file_path = os.path.join(module_dir, 'default_config.json')
+    with open(file_path) as f:
+        all_default_config = json.load(f)
+
     def add_default_plugin(self, user, tenant, region, plugin_type="perf_analyze_plugin"):
         plugin_base_info = None
         try:
-            all_default_config = None
-            module_dir = os.path.dirname(__file__)
-            file_path = os.path.join(module_dir, 'default_config.json')
-            with open(file_path) as f:
-                all_default_config = json.load(f)
-            if not all_default_config:
+            if not self.all_default_config:
                 raise Exception("no config was found")
 
-            needed_plugin_config = all_default_config[plugin_type]
+            needed_plugin_config = self.all_default_config[plugin_type]
             image = needed_plugin_config.get("image", "")
             build_source = needed_plugin_config.get("build_source", "")
+            image_tag = "latest"
             if image and build_source and build_source == "image":
                 ref = reference.Reference.parse(image)
-                _, name = ref.split_hostname()
-                image = settings.IMAGE_REPO + "/" + name
+                if ref["tag"]:
+                    image_tag = ref["tag"]
+                if "goodrain.me" in image:
+                    _, name = ref.split_hostname()
+                    image = settings.IMAGE_REPO + "/" + name
+                else:
+                    image = image.split(":")[0]
             plugin_params = {
                 "tenant_id": tenant.tenant_id,
                 "region": region,
@@ -733,7 +740,7 @@ class PluginService(object):
             plugin_base_info.save()
 
             plugin_build_version = plugin_version_service.create_build_version(
-                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64)
+                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64, image_tag=image_tag)
 
             plugin_config_meta_list = []
             config_items_list = []
@@ -819,3 +826,26 @@ class PluginService(object):
             q = Q(category="analyst-plugin:perf", image=PluginImage.RUNNER)
             q |= Q(category="analyst-plugin:perf", image=IMAGE_REPO)
             return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(q)
+
+    def get_default_plugin_from_cache(self, region, tenant):
+        if not self.all_default_config:
+            raise Exception("no config was found")
+
+        default_plugin_list = []
+        for plugin in self.all_default_config:
+            default_plugin_list.append({
+                "category": plugin,
+                "plugin_alias": self.all_default_config[plugin].get("plugin_alias"),
+                "desc": self.all_default_config[plugin].get("desc"),
+                "plugin_type": self.all_default_config[plugin].get("category"),
+            })
+
+        installed_default_plugins = self.get_default_plugin(region, tenant)
+        installed_default_plugin_alias_list = [plugin.plugin_alias for plugin in installed_default_plugins]
+
+        for plugin in default_plugin_list:
+            plugin["has_install"] = False
+            if plugin["plugin_alias"] in installed_default_plugin_alias_list:
+                plugin["has_install"] = True
+
+        return default_plugin_list

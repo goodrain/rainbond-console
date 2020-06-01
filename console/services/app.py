@@ -23,7 +23,6 @@ from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.app_config import volume_repo
-from console.repositories.base import BaseConnection
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
@@ -349,39 +348,11 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, u"创建成功", ts
 
-    def get_app_list(self, tenant_pk, user, tenant_id, region, query=""):
-        user_pk = user.pk
-
-        def list_services():
-            q = Q(tenant_id=tenant_id, service_region=region)
-            if query:
-                q &= Q(service_cname__contains=query)
-            return TenantServiceInfo.objects.filter(q)
-
-        if user.is_sys_admin:
-            services = list_services()
-        else:
-            dsn = BaseConnection()
-            add_sql = ''
-            where = """
-            WHERE
-                s.tenant_id = "{tenant_id}"
-                AND sp.user_id = "{user_id}"
-                AND sp.service_id = s.ID
-                AND s.service_cname LIKE "%{query}%"
-                AND s.service_region = "{region}" {add_sql}""".format(
-                tenant_id=tenant_id, user_id=user_pk, region=region, query=query, add_sql=add_sql)
-            query_sql = '''
-                SELECT
-                    s.*
-                FROM
-                    tenant_service s,
-                    service_perms sp
-                {where}
-                ORDER BY
-                    s.service_alias'''.format(where=where)
-            services = dsn.query(query_sql)
-        return services
+    def get_app_list(self, tenant_id, region, query=""):
+        q = Q(tenant_id=tenant_id, service_region=region)
+        if query:
+            q &= Q(service_cname__contains=query)
+        return TenantServiceInfo.objects.filter(q)
 
     def get_service_status(self, tenant, service):
         """获取组件状态"""
