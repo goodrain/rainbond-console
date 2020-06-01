@@ -94,28 +94,39 @@ class AppInfoView(TeamAppAPIView):
         msg_list = []
         service_ids = app_service.get_group_services_by_id(self.app.ID)
         services = service_repo.get_services_by_service_ids(service_ids)
-        code_status = 200
         if services:
-            for service in services:
-                code, msg = app_manage_service.batch_delete(self.user, self.team, service, is_force=True)
+            status_list = base_service.status_multi_service(
+                region=self.app.region_name, tenant_name=self.team.tenant_name,
+                service_ids=service_ids, enterprise_id=self.team.enterprise_id)
+            status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
+            if len(status_list) > 0:
                 msg_dict = dict()
-                msg_dict['status'] = code
-                msg_dict['msg'] = msg
-                msg_dict['service_id'] = service.service_id
-                msg_dict['service_cname'] = service.service_cname
-                msg_list.append(msg_dict)
-                if code != 200:
-                    code_status = code
-            if code_status != 200:
-                serializer = AppDeleteSerializer(data=msg_list, many=True)
+                msg_dict['status'] = 400
+                msg_dict['msg'] = u"当前应用下有运行态的组件，不可删除"
+                serializer = AppDeleteSerializer(data=msg_dict)
                 serializer.is_valid(raise_exception=True)
-                return Response(serializer.data, status=200)
+                return Response(serializer.data, status=400)
             else:
-                code, msg, data = group_service.delete_group_no_service(self.app.ID)
-                return Response({"msg": msg}, status=code)
-        else:
-            code, msg, data = group_service.delete_group_no_service(self.app.ID)
-            return Response({"msg": msg}, status=code)
+                code_status = 200
+                for service in services:
+                    code, msg = app_manage_service.batch_delete(self.user, self.team, service, is_force=True)
+                    msg_dict = dict()
+                    msg_dict['status'] = code
+                    msg_dict['msg'] = msg
+                    msg_dict['service_id'] = service.service_id
+                    msg_dict['service_cname'] = service.service_cname
+                    msg_list.append(msg_dict)
+                    if code != 200:
+                        code_status = code
+                if code_status != 200:
+                    serializer = AppDeleteSerializer(data=msg_list, many=True)
+                    serializer.is_valid(raise_exception=True)
+                    return Response(serializer.data, status=200)
+                else:
+                    code, msg, data = group_service.delete_group_no_service(self.app.ID)
+                    return Response({"msg": msg}, status=code)
+        code, msg, data = group_service.delete_group_no_service(self.app.ID)
+        return Response({"msg": msg, "code": code}, status=code)
 
 
 class APPOperationsView(TeamAppAPIView):
