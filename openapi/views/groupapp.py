@@ -66,8 +66,8 @@ class GroupAppsCopyView(TeamAPIView):
         tar_app_id = request.data.get("target_app_id")
         tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(request.user, tar_team_name, tar_region_name,
                                                                              tar_app_id)
-        services = groupapp_copy_service.copy_group_services(request.user, self.team, tar_team, tar_region_name, tar_group,
-                                                             app_id, services)
+        services = groupapp_copy_service.copy_group_services(request.user, self.team, self.region_name, tar_team,
+                                                             tar_region_name, tar_group, app_id, services)
         services = ServiceBaseInfoSerializer(data=services, many=True)
         services.is_valid()
         serializers = AppCopyCResSerializer(data={"services": services.data})
