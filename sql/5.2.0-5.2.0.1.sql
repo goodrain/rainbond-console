@@ -69,3 +69,5 @@ CREATE TABLE `role_info` (
   `kind` varchar(32) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8;
+
+alter table console.tenant_info modify region varchar(64);

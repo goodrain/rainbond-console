@@ -130,6 +130,9 @@ class TopologicalGraphView(ToplogicalBaseView):
               paramType: query
         """
         group_id = request.GET.get("group_id", None)
+        region_name = request.GET.get("region_name", None)
+        if region_name:
+            self.response_region = region_name
         code = 200
         if group_id == "-1":
             code = 200
