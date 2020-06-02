@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service, event_service
 from console.services.group_service import group_service
@@ -87,7 +88,7 @@ class AppInfoView(TeamAppAPIView):
 
     @swagger_auto_schema(
         operation_description="删除应用",
-        responses={200: AppDeleteSerializer()},
+        responses={200: None},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, *args, **kwargs):
@@ -100,12 +101,8 @@ class AppInfoView(TeamAppAPIView):
                 service_ids=service_ids, enterprise_id=self.team.enterprise_id)
             status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
             if len(status_list) > 0:
-                msg_dict = dict()
-                msg_dict['status'] = 400
-                msg_dict['msg'] = u"当前应用下有运行态的组件，不可删除"
-                serializer = AppDeleteSerializer(data=msg_dict)
-                serializer.is_valid(raise_exception=True)
-                return Response(serializer.data, status=400)
+                raise ServiceHandleException(msg="There are running components under the current application",
+                                             msg_show=u"当前应用下有运行态的组件，不可删除")
             else:
                 code_status = 200
                 for service in services:
@@ -119,14 +116,16 @@ class AppInfoView(TeamAppAPIView):
                     if code != 200:
                         code_status = code
                 if code_status != 200:
-                    serializer = AppDeleteSerializer(data=msg_list, many=True)
-                    serializer.is_valid(raise_exception=True)
-                    return Response(serializer.data, status=200)
+                    raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
                 else:
                     code, msg, data = group_service.delete_group_no_service(self.app.ID)
-                    return Response({"msg": msg}, status=code)
+                    if code != 200:
+                        raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
+                    return Response(None, status=code)
         code, msg, data = group_service.delete_group_no_service(self.app.ID)
-        return Response({"msg": msg, "code": code}, status=code)
+        if code != 200:
+            raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
+        return Response(None, status=code)
 
 
 class APPOperationsView(TeamAppAPIView):
