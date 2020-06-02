@@ -60,3 +60,22 @@ class InstallSerializer(serializers.Serializer):
 class ServiceGroupOperationsSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=ACTION_CHOICE, help_text=u"操作类型")
     service_ids = serializers.ListField(help_text=u"组件ID列表，不传值则操作应用下所有组件", required=False, default=None)
+
+
+class AppServiceEventsSerializer(serializers.Serializer):
+    EventID = serializers.CharField(max_length=64, help_text=u"事件id")
+    UserName = serializers.CharField(max_length=64, help_text=u"操作人")
+    EndTime = serializers.CharField(max_length=64, help_text=u"结束事件")
+    Target = serializers.CharField(max_length=64, help_text=u"操作目标类型")
+    OptType = serializers.CharField(max_length=64, help_text=u"事件类型")
+    TargetID = serializers.CharField(max_length=64, help_text=u"操作目标id")
+    ServiceID = serializers.CharField(max_length=64, help_text=u"服务id")
+    Status = serializers.CharField(max_length=64, help_text=u"状态")
+    RequestBody = serializers.CharField(max_length=64, help_text=u"请求参数")
+    create_time = serializers.CharField(max_length=64, help_text=u"创建时间")
+    FinalStatus = serializers.CharField(max_length=64, help_text=u"最终状态")
+    StartTime = serializers.CharField(max_length=64, help_text=u"开始时间")
+    SynType = serializers.CharField(max_length=64, help_text=u"同步状态")
+    Message = serializers.CharField(max_length=64, help_text=u"日志")
+    TenantID = serializers.CharField(max_length=64, help_text=u"团队id")
+    ID = serializers.CharField(max_length=64, help_text=u"记录id")

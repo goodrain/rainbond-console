@@ -19,13 +19,13 @@ from console.services.app_config.domain_service import ErrNotFoundDomain
 from console.services.group_service import group_service
 from openapi.serializer.gateway_serializer import (EnterpriseHTTPGatewayRuleSerializer, HTTPGatewayRuleSerializer,
                                                    PostHTTPGatewayRuleSerializer, UpdatePostHTTPGatewayRuleSerializer)
-from openapi.views.base import BaseOpenAPIView, TeamAPIView
+from openapi.views.base import BaseOpenAPIView, TeamAppAPIView
 from openapi.views.exceptions import ErrAppNotFound
 
 logger = logging.getLogger("default")
 
 
-class ListAppGatewayHTTPRuleView(TeamAPIView):
+class ListAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="获取应用http访问策略列表",
         manual_parameters=[],
@@ -112,7 +112,7 @@ class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):
         return Response(re.data, status=status.HTTP_200_OK)
 
 
-class UpdateAppGatewayHTTPRuleView(TeamAPIView):
+class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="更新HTTP访问策略",
         manual_parameters=[],

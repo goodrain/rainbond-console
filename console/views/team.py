@@ -597,6 +597,7 @@ class JoinTeamView(JWTAuthApiView):
             apply_user = apply_repo.get_applicants_team(user_id=self.user.user_id)
             team_list = [team.to_dict() for team in apply_user]
             result = general_message(200, "success", "查询成功", list=team_list)
+        return Response(result, status=result["code"])
 
     def post(self, request, *args, **kwargs):
         """指定用户加入指定团队"""
