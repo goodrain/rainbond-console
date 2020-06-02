@@ -16,7 +16,7 @@ from console.services.group_service import group_service
 from console.services.service_services import base_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
                                                ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
-                                               AppDeleteSerializer, AppServiceEventsSerializer)
+                                               AppServiceEventsSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.views.base import TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView
@@ -58,7 +58,7 @@ class ListAppsView(TeamAPIView):
 class AppInfoView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="应用详情",
-        responses={200: AppDeleteSerializer()},
+        responses={200: AppInfoSerializer()},
         tags=['openapi-apps'],
     )
     def get(self, req, app_id, *args, **kwargs):
@@ -201,7 +201,7 @@ class AppServicesView(TeamAppServiceAPIView):
 
     @swagger_auto_schema(
         operation_description="删除组件",
-        responses={200: AppDeleteSerializer()},
+        responses={200: None},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, service_id, *args, **kwargs):
@@ -211,9 +211,9 @@ class AppServicesView(TeamAppServiceAPIView):
         msg_dict['msg'] = msg
         msg_dict['service_id'] = self.service.service_id
         msg_dict['service_cname'] = self.service.service_cname
-        serializer = AppDeleteSerializer(data=msg_dict)
-        serializer.is_valid()
-        return Response(msg_dict, status=status.HTTP_200_OK)
+        if code != 200:
+            raise ServiceHandleException(msg="delete error", msg_show=msg, status_code=code)
+        return Response(None, status=status.HTTP_200_OK)
 
 
 class AppServiceEventsView(TeamAppServiceAPIView):

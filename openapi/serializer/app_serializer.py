@@ -62,13 +62,6 @@ class ServiceGroupOperationsSerializer(serializers.Serializer):
     service_ids = serializers.ListField(help_text=u"组件ID列表，不传值则操作应用下所有组件", required=False, default=None)
 
 
-class AppDeleteSerializer(serializers.Serializer):
-    msg = serializers.CharField(max_length=64, help_text=u"描述")
-    service_cname = serializers.CharField(max_length=64, required=False, help_text=u"组件名称")
-    service_id = serializers.CharField(max_length=64, required=False, help_text=u"组件id")
-    status = serializers.CharField(max_length=64, required=False, help_text=u"业务码")
-
-
 class AppServiceEventsSerializer(serializers.Serializer):
     EventID = serializers.CharField(max_length=64, help_text=u"事件id")
     UserName = serializers.CharField(max_length=64, help_text=u"操作人")
