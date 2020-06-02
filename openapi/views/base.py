@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from rest_framework.views import APIView
 from rest_framework import generics
+from rest_framework.views import APIView
 
-from openapi.views.exceptions import ErrEnterpriseNotFound, ErrRegionNotFound
-from console.exception.main import NoPermissionsError
-from console.exception.main import ServiceHandleException
-
-from openapi.auth.authentication import OpenAPIAuthentication, OpenAPIManageAuthentication
-from openapi.auth.permissions import OpenAPIPermissions
+from console.exception.main import NoPermissionsError, ServiceHandleException
+from console.models.main import (EnterpriseUserPerm, PermsInfo, RoleInfo, RolePerms, UserRole)
 from console.repositories.group import group_service_relation_repo
 from console.services.enterprise_services import enterprise_services
+from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.services.group_service import group_service
-from console.models.main import EnterpriseUserPerm, PermsInfo, UserRole, RoleInfo, RolePerms
+from openapi.auth.authentication import (OpenAPIAuthentication, OpenAPIManageAuthentication)
+from openapi.auth.permissions import OpenAPIPermissions
+from openapi.views.exceptions import ErrEnterpriseNotFound, ErrRegionNotFound
 from www.models.main import TenantEnterprise, TenantServiceInfo
 
 
@@ -127,7 +125,7 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
         self.is_team_owner = False
         team_id = kwargs.get("team_id")
         if team_id:
-            self.team = team_services.get_team_by_team_id(team_id)
+            self.team = team_services.get_team_by_team_id_and_eid(team_id, self.enterprise.enterprise_id)
         if not self.team:
             self.team = team_services.get_enterprise_tenant_by_tenant_name(self.enterprise.enterprise_id, team_id)
         if not self.team:
@@ -190,8 +188,7 @@ class TeamAppServiceAPIView(TeamAppAPIView):
             if gsr:
                 service_ids = gsr.values_list("service_id", flat=True)
                 if service_id in service_ids:
-                    self.service = TenantServiceInfo.objects.filter(tenant_id=self.team.tenant_id,
-                                                                    service_region=self.region_name,
-                                                                    service_id=service_id).first()
+                    self.service = TenantServiceInfo.objects.filter(
+                        tenant_id=self.team.tenant_id, service_region=self.region_name, service_id=service_id).first()
         if not self.service:
             raise ServiceHandleException(msg_show=u"组件不存在", msg="no found service", status_code=404)
