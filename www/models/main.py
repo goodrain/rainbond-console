@@ -2,23 +2,17 @@
 import logging
 import re
 from datetime import datetime
+from enum import Enum
 
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import AutoField
-from django.db.models.fields import BooleanField
-from django.db.models.fields import CharField
-from django.db.models.fields import DateTimeField
-from django.db.models.fields import DecimalField
-from django.db.models.fields import IntegerField
+from django.db.models.fields import (AutoField, BooleanField, CharField,
+                                     DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
-from enum import Enum
 
 from console.utils import runner_util
-from www.utils.crypt import encrypt_passwd
-from www.utils.crypt import make_tenant_id
-from www.utils.crypt import make_uuid
+from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
 
 logger = logging.getLogger("default")
 
@@ -340,7 +334,7 @@ class Tenants(BaseModel):
 
     tenant_id = models.CharField(max_length=33, unique=True, default=make_tenant_id, help_text=u"租户id")
     tenant_name = models.CharField(max_length=64, unique=True, help_text=u"租户名称")
-    region = models.CharField(max_length=30, default='', help_text=u"区域中心,弃用")
+    region = models.CharField(max_length=64, default='', help_text=u"区域中心,弃用")
     is_active = models.BooleanField(default=True, help_text=u"激活状态")
     pay_type = models.CharField(max_length=5, choices=tenant_type, help_text=u"付费状态")
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"账户余额")
