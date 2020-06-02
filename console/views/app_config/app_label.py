@@ -7,12 +7,9 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.repositories.label_repo import label_repo
-from console.repositories.label_repo import node_label_repo
-from console.repositories.label_repo import service_label_repo
+from console.repositories.label_repo import (label_repo, node_label_repo, service_label_repo)
 from console.services.app_config import label_service
 from console.views.app_config.base import AppBaseView
-from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -37,13 +34,8 @@ class AppLabelView(AppBaseView):
               paramType: path
 
         """
-        result = {}
-        try:
-            bean = label_service.get_service_labels(self.service)
-            result = general_message(200, "success", "查询成功", bean=bean)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        bean = label_service.get_service_labels(self.service)
+        result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -68,19 +60,13 @@ class AppLabelView(AppBaseView):
               type: string
               paramType: body
         """
-        result = {}
-        try:
-            label_ids = request.data.get("label_ids", None)
-            if not label_ids:
-                return Response(general_message(400, "param error", "标签ID未指定"), status=400)
-
-            code, msg, event = label_service.add_service_labels(self.tenant, self.service, label_ids)
-            if code != 200:
-                return Response(general_message(code, "add labels error", msg), status=code)
-            result = general_message(200, "success", "标签添加成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        label_ids = request.data.get("label_ids", None)
+        if not label_ids:
+            return Response(general_message(400, "param error", "标签ID未指定"), status=400)
+        code, msg, event = label_service.add_service_labels(self.tenant, self.service, label_ids)
+        if code != 200:
+            return Response(general_message(code, "add labels error", msg), status=code)
+        result = general_message(200, "success", "标签添加成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -141,37 +127,34 @@ class AppLabelAvailableView(AppBaseView):
         # 查询数据中心可使用的标签
         try:
             code, msg, data_list = label_service.get_region_labels(self.tenant, self.service)
-            if code == 200:
-                if data_list:
-                    label_name_list = []
-                    labels = label_repo.get_all_labels()
-                    if labels:
-                        for label in labels:
-                            label_name_list.append(label.label_name)
-                    for label_name in data_list:
-                        if label_name not in label_name_list:
-                            label_repo.create_label(label_name, label_name)
-                        labels_name_list.append(label_name)
-
+            if code == 200 and data_list:
+                label_name_list = []
+                labels = label_repo.get_all_labels()
+                if labels:
+                    for label in labels:
+                        label_name_list.append(label.label_name)
+                for label_name in data_list:
+                    if label_name not in label_name_list:
+                        label_repo.create_label(label_name, label_name)
+                    labels_name_list.append(label_name)
         except Exception as e:
             logger.exception(e)
-            pass
 
-            # 去除该组件已绑定的标签
-            service_labels = service_label_repo.get_service_labels(self.service.service_id)
-            if service_labels:
-                service_labels_id_list = [label.label_id for label in service_labels]
-                label_obj_list = label_repo.get_labels_by_label_ids(service_labels_id_list)
-                service_labels_name_list = [label.label_name for label in label_obj_list]
-                for service_labels_name in service_labels_name_list:
-                    if service_labels_name in labels_name_list:
-                        labels_name_list.remove(service_labels_name)
-            for labels_name in labels_name_list:
-                label_dict = dict()
-                label_oj = label_repo.get_labels_by_label_name(labels_name)
-                label_dict["label_id"] = label_oj.label_id
-                label_dict["label_alias"] = label_oj.label_alias
-                labels_list.append(label_dict)
+        # 去除该组件已绑定的标签
+        service_labels = service_label_repo.get_service_labels(self.service.service_id)
+        if service_labels:
+            service_labels_id_list = [label.label_id for label in service_labels]
+            label_obj_list = label_repo.get_labels_by_label_ids(service_labels_id_list)
+            service_labels_name_list = [label.label_name for label in label_obj_list]
+            for service_labels_name in service_labels_name_list:
+                if service_labels_name in labels_name_list:
+                    labels_name_list.remove(service_labels_name)
+        for labels_name in labels_name_list:
+            label_dict = dict()
+            label_oj = label_repo.get_labels_by_label_name(labels_name)
+            label_dict["label_id"] = label_oj.label_id
+            label_dict["label_alias"] = label_oj.label_alias
+            labels_list.append(label_dict)
 
         result = general_message(200, "success", "查询成功", list=labels_list)
         return Response(result, status=result["code"])
