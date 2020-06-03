@@ -401,7 +401,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/service/group$', GroupServiceView.as_view(), perms.GroupServiceView),
 
     # 应用拓扑图
-    url(r'^teams/(?P<team_name>[\w\-]+)/topological$', TopologicalGraphView.as_view(), perms.TopologicalGraphView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/topological$', TopologicalGraphView.as_view(),
+        perms.TopologicalGraphView),
     # 拓扑图中应用详情
     url(r'^teams/(?P<team_name>[\w\-]+)/topological/services/(?P<serviceAlias>[\w\-]+)$', GroupServiceDetView.as_view(),
         perms.GroupServiceDetView),
