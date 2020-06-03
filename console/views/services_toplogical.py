@@ -49,6 +49,9 @@ class ToplogicalBaseView(RegionTenantHeaderView):
         if kwargs.get("team_name", None):
             self.tenant_name = kwargs.get("team_name", None)
             self.team_name = self.tenant_name
+        self.response_region = kwargs.get('region_name', None)
+        if not self.response_region:
+            self.response_region = request.GET.get('region_name', None)
         if not self.response_region:
             self.response_region = request.GET.get('region', None)
 
@@ -130,9 +133,6 @@ class TopologicalGraphView(ToplogicalBaseView):
               paramType: query
         """
         group_id = request.GET.get("group_id", None)
-        region_name = request.GET.get("region_name", None)
-        if region_name:
-            self.response_region = region_name
         code = 200
         if group_id == "-1":
             code = 200
