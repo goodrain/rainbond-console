@@ -305,34 +305,36 @@ class RegionTenantHeaderView(JWTAuthApiView):
             enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
-        self.response_region = kwargs.get("region_name", None)
         self.tenant_name = kwargs.get("tenantName", None)
-        if kwargs.get("team_name", None):
+        self.response_region = kwargs.get("region_name", None)
+
+        if not self.tenant_name:
             self.tenant_name = kwargs.get("team_name", None)
-            self.team_name = self.tenant_name
-        else:
-            self.team_name = self.tenant_name
-        self.user = request.user
-        if not self.response_region:
-            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
         if not self.tenant_name:
             self.tenant_name = request.META.get('HTTP_X_TEAM_NAME', None)
-
-        if not self.response_region:
-            self.response_region = self.request.COOKIES.get('region_name', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team', None)
+        self.team_name = self.tenant_name
+
+        if not self.response_region:
+            self.response_region = request.GET.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region", None)
+        if not self.response_region:
+            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
+        if not self.response_region:
+            self.response_region = self.request.COOKIES.get('region_name', None)
+        self.region_name = self.response_region
+
         if not self.response_region:
             raise ImportError("region_name not found !")
-        self.region_name = self.response_region
         if not self.tenant_name:
             raise ImportError("team_name not found !")
-        if self.tenant_name:
-            try:
-                self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
-                self.team = self.tenant
-            except Tenants.DoesNotExist:
-                raise NotFound("tenant {0} not found".format(self.tenant_name))
+        try:
+            self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
+            self.team = self.tenant
+        except Tenants.DoesNotExist:
+            raise NotFound("tenant {0} not found".format(self.tenant_name))
 
         if self.user.user_id == self.tenant.creater:
             self.is_team_owner = True
