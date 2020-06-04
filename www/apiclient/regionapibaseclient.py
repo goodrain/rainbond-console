@@ -286,7 +286,7 @@ class RegionApiBaseHttpClient(object):
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
-        response = client.request(method=request.method, url="{}{}".format(region.region, url), **requests_args)
+        response = client.request(method=request.method, url="{}{}".format(region.url, url), **requests_args)
 
         proxy_response = HttpResponse(response.data, status=response.status)
 
