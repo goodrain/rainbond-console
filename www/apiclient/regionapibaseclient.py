@@ -13,6 +13,7 @@ import certifi
 import urllib3
 from addict import Dict
 from django.conf import settings
+from django.http import HttpResponse, QueryDict
 from urllib3.exceptions import MaxRetryError
 
 from console.exception.main import ServiceHandleException
@@ -247,6 +248,87 @@ class RegionApiBaseHttpClient(object):
             response, content = self._request(url, 'DELETE', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'DELETE', response, content)
         return res, body
+
+    def proxy(self, request, url, region_name, requests_args=None):
+        """
+        Forward as close to an exact copy of the request as possible along to the
+        given url.  Respond with as close to an exact copy of the resulting
+        response as possible.
+        If there are any additional arguments you wish to send to requests, put
+        them in the requests_args dictionary.
+        """
+        requests_args = (requests_args or {}).copy()
+        headers = self.get_headers(request.META)
+        params = request.GET.copy()
+
+        if 'headers' not in requests_args:
+            requests_args['headers'] = {}
+        if 'data' not in requests_args:
+            requests_args['data'] = request.body
+        if 'params' not in requests_args:
+            requests_args['params'] = QueryDict('', mutable=True)
+
+        # Overwrite any headers and params from the incoming request with explicitly
+        # specified values for the requests library.
+        headers.update(requests_args['headers'])
+        params.update(requests_args['params'])
+
+        # If there's a content-length header from Django, it's probably in all-caps
+        # and requests might not notice it, so just remove it.
+        for key in list(headers.keys()):
+            if key.lower() == 'content-length':
+                del headers[key]
+
+        requests_args['headers'] = headers
+        requests_args['params'] = params
+        if requests_args['headers'].get("AUTHORIZATION"):
+            requests_args['headers'].pop("AUTHORIZATION")
+
+        region = region_repo.get_region_by_region_name(region_name)
+        if not region:
+            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
+        client = self.get_client(region_config=region)
+
+        response = client.request(method=request.method, url=url, **requests_args)
+
+        proxy_response = HttpResponse(response.content, status=response.status_code)
+
+        excluded_headers = set([
+            # Hop-by-hop headers
+            # ------------------
+            # Certain response headers should NOT be just tunneled through.  These
+            # are they.  For more info, see:
+            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1
+            'connection',
+            'keep-alive',
+            'proxy-authenticate',
+            'proxy-authorization',
+            'te',
+            'trailers',
+            'transfer-encoding',
+            'upgrade',
+
+            # Although content-encoding is not listed among the hop-by-hop headers,
+            # it can cause trouble as well.  Just let the server set the value as
+            # it should be.
+            'content-encoding',
+
+            # Since the remote server may or may not have sent the content in the
+            # same encoding as Django will, let Django worry about what the length
+            # should be.
+            'content-length',
+        ])
+        for key, value in response.headers.items():
+            if key.lower() in excluded_headers:
+                continue
+            elif key.lower() == 'location':
+                # If the location is relative at all, we want it to be absolute to
+                # the upstream server.
+                proxy_response[key] = self.make_absolute_location(response.url, value)
+            else:
+                proxy_response[key] = value
+
+        return proxy_response
 
 
 def create_file(path, name, body):

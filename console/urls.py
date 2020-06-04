@@ -51,9 +51,9 @@ from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
 from console.views.enterprise import (EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView,
-                                      EnterpriseMonitor, EnterpriseOverview, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
-                                      EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams,
-                                      EnterpriseUserTeams)
+                                      EnterpriseMonitor, EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView,
+                                      EnterpriseRegionsRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
+                                      EnterpriseTeams, EnterpriseUserTeams)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
@@ -688,6 +688,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/dashboard/(?P<path>.*)',
+        EnterpriseRegionDashboard.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$', EnterpriseAppComponentsLView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
