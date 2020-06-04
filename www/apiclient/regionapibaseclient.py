@@ -263,15 +263,15 @@ class RegionApiBaseHttpClient(object):
 
         if 'headers' not in requests_args:
             requests_args['headers'] = {}
-        if 'data' not in requests_args:
-            requests_args['data'] = request.body
-        if 'params' not in requests_args:
-            requests_args['params'] = QueryDict('', mutable=True)
+        if 'body' not in requests_args:
+            requests_args['body'] = request.body
+        if 'fields' not in requests_args:
+            requests_args['fields'] = QueryDict('', mutable=True)
 
         # Overwrite any headers and params from the incoming request with explicitly
         # specified values for the requests library.
         headers.update(requests_args['headers'])
-        params.update(requests_args['params'])
+        params.update(requests_args['fields'])
 
         # If there's a content-length header from Django, it's probably in all-caps
         # and requests might not notice it, so just remove it.
@@ -280,18 +280,15 @@ class RegionApiBaseHttpClient(object):
                 del headers[key]
 
         requests_args['headers'] = headers
-        requests_args['params'] = params
-        if requests_args['headers'].get("AUTHORIZATION"):
-            requests_args['headers'].pop("AUTHORIZATION")
+        requests_args['fields'] = params
 
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
+        response = client.request(method=request.method, url="{}{}".format(region.region, url), **requests_args)
 
-        response = client.request(method=request.method, url=url, **requests_args)
-
-        proxy_response = HttpResponse(response.content, status=response.status_code)
+        proxy_response = HttpResponse(response.data, status=response.status)
 
         excluded_headers = set([
             # Hop-by-hop headers
@@ -329,6 +326,21 @@ class RegionApiBaseHttpClient(object):
                 proxy_response[key] = value
 
         return proxy_response
+
+    def get_headers(self, environ):
+        """
+        Retrieve the HTTP headers from a WSGI environment dictionary.  See
+        https://docs.djangoproject.com/en/dev/ref/request-response/#django.http.HttpRequest.META
+        """
+        headers = {}
+        for key, value in environ.items():
+            # Sometimes, things don't like when you send the requesting host through.
+            if key.startswith('HTTP_') and key != 'HTTP_HOST':
+                headers[key[5:].replace('_', '-')] = value
+            elif key in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
+                headers[key.replace('_', '-')] = value
+
+        return headers
 
 
 def create_file(path, name, body):
