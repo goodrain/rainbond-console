@@ -134,7 +134,7 @@ JWT_AUTH = {
     'JWT_ALLOW_REFRESH': False,
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=15),
     'JWT_AUTH_HEADER_PREFIX': 'GRJWT',
-    'JWT_AUTH_COOKIE': None,
+    'JWT_AUTH_COOKIE': "token",
 }
 
 # 以下参数待去除
