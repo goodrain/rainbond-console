@@ -5,21 +5,20 @@ import logging
 from rest_framework import status
 from rest_framework.response import Response
 
-from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
+from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
-from console.exception.exceptions import TenantNotExistError
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
-from console.services.region_services import region_services
 from console.services.perm_services import user_kind_role_service
+from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
-from console.views.base import JWTAuthApiView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -397,3 +396,22 @@ class EnterpriseAppComponentsLView(JWTAuthApiView):
                     })
         result = general_message(200, "success", "获取成功", list=data, total_count=count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseRegionDashboard(EnterpriseAdminView):
+    def dispatch(self, request, enterprise_id, region_id, path, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers
+        try:
+            self.initial(request, *args, **kwargs)
+            region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
+            if not region:
+                return Response({}, status=status.HTTP_404_NOTFOUND)
+            response = region_api.proxy(request, '/kubernetes/dashboard/' + path, region['region_name'])
+        except Exception as exc:
+            response = self.handle_exception(exc)
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
