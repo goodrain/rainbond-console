@@ -72,8 +72,8 @@ class OAuthUserService(object):
                 token = jwt_encode_handler(payload)
                 response = Response({"data": {"bean": {"token": token}}}, status=200)
                 if api_settings.JWT_AUTH_COOKIE:
-                    expiration = (datetime.datetime.now() + api_settings.JWT_EXPIRATION_DELTA)
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                    expiration = (datetime.datetime.now() + datetime.timedelta(days=30))
+                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
                 return response
 
             else:
