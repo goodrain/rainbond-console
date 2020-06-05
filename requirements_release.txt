@@ -1,4 +1,4 @@
-Django==1.8.0
+Django==1.11.29
 django-crispy-forms==1.4.0
 addict==0.4.0
 gunicorn==19.0.0
