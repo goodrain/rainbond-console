@@ -15,11 +15,11 @@ from console.services.app_actions import app_manage_service, event_service
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
-                                               ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
-                                               AppServiceEventsSerializer)
+                                               AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
+                                               ServiceGroupOperationsSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
-from openapi.views.base import TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView
+from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
 from openapi.views.exceptions import ErrAppNotFound
 
 logger = logging.getLogger("default")
@@ -97,12 +97,14 @@ class AppInfoView(TeamAppAPIView):
         services = service_repo.get_services_by_service_ids(service_ids)
         if services:
             status_list = base_service.status_multi_service(
-                region=self.app.region_name, tenant_name=self.team.tenant_name,
-                service_ids=service_ids, enterprise_id=self.team.enterprise_id)
+                region=self.app.region_name,
+                tenant_name=self.team.tenant_name,
+                service_ids=service_ids,
+                enterprise_id=self.team.enterprise_id)
             status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
             if len(status_list) > 0:
-                raise ServiceHandleException(msg="There are running components under the current application",
-                                             msg_show=u"当前应用下有运行态的组件，不可删除")
+                raise ServiceHandleException(
+                    msg="There are running components under the current application", msg_show=u"当前应用下有运行态的组件，不可删除")
             else:
                 code_status = 200
                 for service in services:
@@ -192,8 +194,10 @@ class AppServicesView(TeamAppServiceAPIView):
     )
     def get(self, req, app_id, service_id, *args, **kwargs):
         status_list = base_service.status_multi_service(
-            region=self.app.region_name, tenant_name=self.team.tenant_name,
-            service_ids=[self.service.service_id], enterprise_id=self.team.enterprise_id)
+            region=self.app.region_name,
+            tenant_name=self.team.tenant_name,
+            service_ids=[self.service.service_id],
+            enterprise_id=self.team.enterprise_id)
         self.service.status = status_list[0]["status"]
         serializer = ServiceBaseInfoSerializer(data=self.service.to_dict())
         serializer.is_valid()
@@ -223,7 +227,7 @@ class AppServiceEventsView(TeamAppServiceAPIView):
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
         ],
-        responses={200: AppServiceEventsSerializer()},
+        responses={200: ListServiceEventsResponse()},
         tags=['openapi-apps'],
     )
     def get(self, req, app_id, service_id, *args, **kwargs):
@@ -234,4 +238,6 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         serializer = AppServiceEventsSerializer(data=events, many=True)
         serializer.is_valid()
         result = {"events": serializer.data, "total": total, "page": page, "page_size": page_size}
-        return Response(result, status=status.HTTP_200_OK)
+        re = ListServiceEventsResponse(data=result)
+        re.is_valid()
+        return Response(re.data, status=status.HTTP_200_OK)

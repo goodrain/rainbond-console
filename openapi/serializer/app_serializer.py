@@ -79,3 +79,10 @@ class AppServiceEventsSerializer(serializers.Serializer):
     Message = serializers.CharField(max_length=64, help_text=u"日志")
     TenantID = serializers.CharField(max_length=64, help_text=u"团队id")
     ID = serializers.CharField(max_length=64, help_text=u"记录id")
+
+
+class ListServiceEventsResponse(serializers.Serializer):
+    page = serializers.IntegerField(help_text=u"当前页数")
+    page_size = serializers.IntegerField(help_text=u"每页数量")
+    total = serializers.IntegerField(help_text=u"数据总数")
+    events = AppServiceEventsSerializer(many=True)
