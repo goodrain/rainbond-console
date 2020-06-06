@@ -187,8 +187,12 @@ class TeamAppServiceAPIView(TeamAppAPIView):
             gsr = group_service_relation_repo.get_services_by_group(self.app.ID)
             if gsr:
                 service_ids = gsr.values_list("service_id", flat=True)
+                service_alias = gsr.values_list("service_alias", flat=True)
                 if service_id in service_ids:
                     self.service = TenantServiceInfo.objects.filter(
                         tenant_id=self.team.tenant_id, service_region=self.region_name, service_id=service_id).first()
+                if service_id in service_alias:
+                    self.service = TenantServiceInfo.objects.filter(
+                        tenant_id=self.team.tenant_id, service_region=self.region_name, service_alias=service_id).first()
         if not self.service:
             raise ServiceHandleException(msg_show=u"组件不存在", msg="no found service", status_code=404)
