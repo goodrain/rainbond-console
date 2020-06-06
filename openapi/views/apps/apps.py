@@ -224,8 +224,8 @@ class AppServiceEventsView(TeamAppServiceAPIView):
     @swagger_auto_schema(
         operation_description="查询组件事件信息",
         manual_parameters=[
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_INTEGER),
         ],
         responses={200: ListServiceEventsResponse()},
         tags=['openapi-apps'],
