@@ -3504,3 +3504,88 @@ AppServiceEventsView = {
         }
     }
 }
+
+ListAdminsView = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+ListUsersView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+UserInfoView = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+ChangeUserPassword = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+AdminInfoView = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}

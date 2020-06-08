@@ -55,3 +55,8 @@ class AppInstallView(TeamAppAPIView):
         else:
             return Response(
                 FailSerializer({"msg": "not support install from market, not bound"}), status=status.HTTP_400_BAD_REQUEST)
+
+
+# 应用升级
+class AppUpgradeView(TeamAppAPIView):
+    pass

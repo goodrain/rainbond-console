@@ -22,7 +22,7 @@ from openapi.views.team_view import (ListRegionsView, ListRegionTeamServicesView
                                      TeamCertificatesLCView, TeamCertificatesRUDView, TeamInfo, TeamRegionView,
                                      TeamUserInfoView)
 from openapi.views.upload_view import UploadView
-from openapi.views.user_view import (ChangePassword, ListUsersView, UserInfoView, UserTeamInfoView)
+from openapi.views.user_view import (ChangePassword, ListUsersView, UserInfoView, UserTeamInfoView, ChangeUserPassword)
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -46,8 +46,15 @@ urlpatterns = [
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
     # get user teams
     url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
+    url(r'^v1/administrators$', ListAdminsView.as_view(), perms.ListAdminsView),
+    url(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view(), perms.AdminInfoView),
+    url(r'^v1/changepwd$', ChangePassword.as_view()),
+    url(r'^v1/users$', ListUsersView.as_view(), perms.ListUsersView),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view(), perms.UserInfoView),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view(), perms.ChangeUserPassword),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view(), perms.TeamInfo),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view(), perms.ListRegionsView),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view(), perms.TeamCertificatesLCView),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view(),
         perms.TeamCertificatesRUDView),
