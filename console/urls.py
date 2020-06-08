@@ -10,6 +10,7 @@ from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
     ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView)
+from console.views.jwt_token_view import JWTTokenView
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
@@ -101,7 +102,7 @@ from console.views.user import (AdminUserDView, AdminUserLCView, CheckSourceView
                                 UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
 from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegin, SendResetEmail, UserDetailsView,
-                                          UserFavoriteLCView, UserFavoriteUDView)
+                                          UserFavoriteLCView, UserFavoriteUDView, TenantServiceView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
 
@@ -134,11 +135,11 @@ urlpatterns = [
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
     # 用户登录
-    # url(r'^users/login$', JWTTokenView.as_view()),
+    url(r'^users/login$', JWTTokenView.as_view()),
     # 用户登出
     url(r'^users/logout$', UserLogoutView.as_view()),
     # 用户注册
-    # url(r'^users/register$', TenantServiceView.as_view()),
+    url(r'^users/register$', TenantServiceView.as_view()),
     url(r'^captcha', CaptchaView.as_view()),
     # 忘记密码
     url(r'^users/send_reset_email$', SendResetEmail.as_view()),
