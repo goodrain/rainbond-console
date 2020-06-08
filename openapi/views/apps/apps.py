@@ -88,11 +88,18 @@ class AppInfoView(TeamAppAPIView):
 
     @swagger_auto_schema(
         operation_description="删除应用",
+        manual_parameters=[
+            openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+        ],
         responses={200: None},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, *args, **kwargs):
         msg_list = []
+        try:
+            force = int(req.GET.get("force", 0))
+        except ValueError:
+            raise ServiceHandleException(msg='force value error', msg_show=u"参数错误")
         service_ids = app_service.get_group_services_by_id(self.app.ID)
         services = service_repo.get_services_by_service_ids(service_ids)
         if services:
@@ -117,6 +124,11 @@ class AppInfoView(TeamAppAPIView):
                     msg_list.append(msg_dict)
                     if code != 200:
                         code_status = code
+                        if force:
+                            code_status = 200
+                            code, msg = app_manage_service.delete_again(self.user, self.team, service, is_force=True)
+                            if code != 200:
+                                code_status = code
                 if code_status != 200:
                     raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
                 else:
@@ -205,11 +217,21 @@ class AppServicesView(TeamAppServiceAPIView):
 
     @swagger_auto_schema(
         operation_description="删除组件",
+        manual_parameters=[
+            openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+        ],
         responses={200: None},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, service_id, *args, **kwargs):
+        try:
+            force = int(req.GET.get("force", 0))
+        except ValueError:
+            raise ServiceHandleException(msg='force value error', msg_show=u"参数错误")
         code, msg = app_manage_service.delete(self.user, self.team, self.service, True)
+        if code != 200:
+            if force:
+                code, msg = app_manage_service.delete_again(self.user, self.team, self.service, is_force=True)
         msg_dict = dict()
         msg_dict['status'] = code
         msg_dict['msg'] = msg
