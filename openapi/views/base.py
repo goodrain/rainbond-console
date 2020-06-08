@@ -4,13 +4,15 @@ from rest_framework import generics
 from rest_framework.views import APIView
 
 from console.exception.main import NoPermissionsError, ServiceHandleException
-from console.models.main import (EnterpriseUserPerm, PermsInfo, RoleInfo, RolePerms, UserRole)
+from console.models.main import (EnterpriseUserPerm, PermsInfo, RoleInfo,
+                                 RolePerms, UserRole)
 from console.repositories.group import group_service_relation_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from openapi.auth.authentication import (OpenAPIAuthentication, OpenAPIManageAuthentication)
+from openapi.auth.authentication import (OpenAPIAuthentication,
+                                         OpenAPIManageAuthentication)
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.exceptions import ErrEnterpriseNotFound, ErrRegionNotFound
 from www.models.main import TenantEnterprise, TenantServiceInfo
@@ -193,5 +195,5 @@ class TeamAppServiceAPIView(TeamAppAPIView):
         gsr = group_service_relation_repo.get_services_by_group(self.app.ID)
         if gsr:
             service_ids = gsr.values_list("service_id", flat=True)
-            if service_id not in service_ids:
+            if self.service.service_id not in service_ids:
                 raise ServiceHandleException(msg_show=u"组件不属于指定应用", msg="component not belong to this app", status_code=404)
