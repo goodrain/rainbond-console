@@ -8,14 +8,16 @@ from openapi.views.apps.apps import ListAppsView
 from openapi.views.apps.apps import APPOperationsView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 from openapi.views.gateway.gateway import UpdateAppGatewayHTTPRuleView
-from openapi.views.apps.apps import ListAppServicesView, AppServicesView, AppServiceEventsView
-from openapi.views.apps.market import AppInstallView
+from openapi.views.apps.apps import (ListAppServicesView, AppServicesView, AppServiceEventsView, AppServiceTelescopicVerticalView,
+                                     AppServiceTelescopicHorizontalView)
+from openapi.views.apps.market import AppInstallView, AppUpgradeView
 from openapi.views.groupapp import GroupAppsCopyView
 
 urlpatterns = [
     url(r'^$', ListAppsView.as_view()),
     url(r'^/(?P<app_id>[\w\-]+)$', AppInfoView.as_view(), perms.AppInfoView),
     url(r'^/(?P<app_id>[\w\-]+)/install$', AppInstallView.as_view(), perms.AppInstallView),
+    url(r'^/(?P<app_id>[\w\-]+)/upgrade$', AppUpgradeView.as_view(), perms.AppUpgradeView),
     url(r'^/(?P<app_id>[\d\-]+)/copy$', GroupAppsCopyView.as_view(), perms.GroupAppsCopyView),
     url(r'^/(?P<app_id>[\d\-]+)/operations$', APPOperationsView.as_view(), perms.APPOperationsView),
     url(r'^/(?P<app_id>[\d\-]+)/httpdomains$', ListAppGatewayHTTPRuleView.as_view(), perms.ListAppGatewayHTTPRuleView),
@@ -24,5 +26,9 @@ urlpatterns = [
     url(r'^/(?P<app_id>[\d\-]+)/services$', ListAppServicesView.as_view(), perms.ListAppServicesView),
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)$', AppServicesView.as_view(), perms.AppServicesView),
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/events$', AppServiceEventsView.as_view(),
-        perms.AppServiceEventsView)
+        perms.AppServiceEventsView),
+    url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/vertical$', AppServiceTelescopicVerticalView.as_view(),
+        perms.AppServiceTelescopicVerticalView),
+    url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/horizontal$', AppServiceTelescopicHorizontalView.as_view(),
+        perms.AppServiceTelescopicHorizontalView),
 ]

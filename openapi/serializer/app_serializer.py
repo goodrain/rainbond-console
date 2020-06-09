@@ -86,3 +86,27 @@ class ListServiceEventsResponse(serializers.Serializer):
     page_size = serializers.IntegerField(help_text=u"每页数量")
     total = serializers.IntegerField(help_text=u"数据总数")
     events = AppServiceEventsSerializer(many=True)
+
+
+def new_memory_validator(value):
+    if not isinstance(value, int):
+        raise serializers.ValidationError('请输入int类型数据')
+    if value % 64 == 1:
+        raise serializers.ValidationError('参数不正确，请输入64的倍数')
+    if value > 65536 or value < 64:
+        raise serializers.ValidationError('参数超出范围，请选择64~65536之间的整数值', value)
+
+
+def new_node_validator(value):
+    if not isinstance(value, int):
+        raise serializers.ValidationError('请输入int类型数据')
+    if value > 100 or value < 1:
+        raise serializers.ValidationError('参数超出范围，请选择1~100之间的整数值', value)
+
+
+class AppServiceTelescopicVerticalSerializer(serializers.Serializer):
+    new_memory = serializers.IntegerField(help_text=u"组件内存", allow_null=False, validators=[new_memory_validator])
+
+
+class AppServiceTelescopicHorizontalSerializer(serializers.Serializer):
+    new_node = serializers.IntegerField(help_text=u"组件节点", allow_null=False, validators=[new_node_validator])

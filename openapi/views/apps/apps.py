@@ -16,11 +16,15 @@ from console.services.group_service import group_service
 from console.services.service_services import base_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
                                                AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-                                               ServiceGroupOperationsSerializer)
+                                               ServiceGroupOperationsSerializer, AppServiceTelescopicVerticalSerializer,
+                                               AppServiceTelescopicHorizontalSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
-from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
+from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView, EnterpriseServiceOauthView)
 from openapi.views.exceptions import ErrAppNotFound
+from console.exception.main import ResourceNotEnoughException
+from console.exception.main import AccountOverdueException
+
 
 logger = logging.getLogger("default")
 
@@ -263,3 +267,41 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         re = ListServiceEventsResponse(data=result)
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)
+
+
+class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceOauthView):
+    @swagger_auto_schema(
+        operation_description="组件垂直伸缩",
+        request_body=AppServiceTelescopicVerticalSerializer,
+        responses={
+            status.HTTP_200_OK: None,
+        },
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = AppServiceTelescopicVerticalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_memory = serializer.data.get("new_memory")
+        code, msg = app_manage_service.vertical_upgrade(
+            self.team, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+        if code != 200:
+            raise ServiceHandleException(status_code=code, msg="vertical upgrade error", msg_show=msg)
+        return Response(None, status=code)
+
+
+class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServiceOauthView):
+    @swagger_auto_schema(
+        operation_description="组件水平伸缩",
+        request_body=AppServiceTelescopicHorizontalSerializer,
+        responses={
+            status.HTTP_200_OK: None,
+        },
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = AppServiceTelescopicHorizontalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_node = serializer.data.get("new_node")
+        app_manage_service.horizontal_upgrade(
+            self.team, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
+        return Response(None, status=200)

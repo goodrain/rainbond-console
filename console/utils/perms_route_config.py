@@ -3589,3 +3589,54 @@ AdminInfoView = {
         }
     }
 }
+
+AppServiceTelescopicVerticalView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [400012]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
+
+AppServiceTelescopicHorizontalView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [400012]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
+
+AppUpgradeView = {
+    "__message": {
+        "get": {
+            "perms": [300013]
+        },
+        "post": {
+            "perms": [300013]
+        },
+        "put": {
+            "perms": [300013]
+        },
+        "delete": {
+            "perms": [300013]
+        }
+    }
+}
