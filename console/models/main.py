@@ -288,7 +288,7 @@ class ComposeGroup(BaseModel):
 
     group_id = models.IntegerField(help_text=u"compose组关联的组id")
     team_id = models.CharField(max_length=32, help_text=u"团队 id")
-    region = models.CharField(max_length=15, help_text=u"服务所属数据中心")
+    region = models.CharField(max_length=64, help_text=u"服务所属数据中心")
     compose_content = models.TextField(null=True, blank=True, help_text=u"compose文件内容")
     compose_id = models.CharField(max_length=32, unique=True, help_text=u"compose id")
     create_status = models.CharField(
@@ -360,7 +360,7 @@ class ServiceRecycleBin(BaseModel):
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
     service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
-    service_region = models.CharField(max_length=15, help_text=u"服务所属区")
+    service_region = models.CharField(max_length=64, help_text=u"服务所属区")
     desc = models.CharField(max_length=200, null=True, blank=True, help_text=u"描述")
     category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
     service_port = models.IntegerField(help_text=u"服务端口", default=0)
