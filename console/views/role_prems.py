@@ -62,7 +62,6 @@ class TeamAddUserView(RegionTenantHeaderView):
 
             code = 200
             team = team_services.get_tenant(tenant_name=team_name)
-
             team_services.add_user_role_to_team(tenant=team, user_ids=user_ids, role_ids=role_ids)
             result = general_message(code, "success", "用户添加到{}成功".format(team_name))
 
