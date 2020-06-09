@@ -266,6 +266,7 @@ from console.views.user import EnterPriseUsersCLView
 from console.views.user import EnterPriseUsersUDView
 from console.views.user import UserLogoutView
 from console.views.user import UserPemTraView
+from console.views.user import AdministratorJoinTeamView
 from console.views.user_accesstoken import UserAccessTokenCLView
 from console.views.user_accesstoken import UserAccessTokenRUDView
 from console.views.user_operation import ChangeLoginPassword
@@ -846,6 +847,7 @@ urlpatterns = [
     url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view(), perms.AdminAddUserView),
+    url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),

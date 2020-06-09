@@ -74,8 +74,9 @@ class GroupRepository(object):
         return group
 
     def get_apps_list(self, team_id=None, region_name=None, query=None):
-        q = None
-        if query:
+        print team_id, region_name
+        q = Q()
+        if query is not None:
             q = q | Q(group_name__icontains=query)
         if region_name:
             q = q & Q(region_name=region_name)
