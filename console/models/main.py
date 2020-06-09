@@ -522,7 +522,7 @@ class UserRole(BaseModel):
     class Meta:
         db_table = 'user_role'
 
-    user_id = models.CharField(max_length=32, unique=True, help_text=u'用户id')
+    user_id = models.CharField(max_length=32, help_text=u'用户id')
     role_id = models.CharField(max_length=32, help_text=u'角色id')
 
 
