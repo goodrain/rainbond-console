@@ -98,7 +98,7 @@ from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, C
                                 TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView, UserDelView,
                                 UserFuzSerView)
 from console.views.user import (AdminUserDView, AdminUserLCView, CheckSourceView, EnterPriseUsersCLView, EnterPriseUsersUDView,
-                                UserLogoutView, UserPemTraView)
+                                UserLogoutView, UserPemTraView, AdministratorJoinTeamView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
 from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegin, SendResetEmail, UserDetailsView,
                                           UserFavoriteLCView, UserFavoriteUDView)
@@ -669,6 +669,7 @@ urlpatterns = [
     url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view(), perms.AdminAddUserView),
+    url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
