@@ -1160,8 +1160,10 @@ class MarketAppService(object):
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             if e.status == 404:
                 return None
-            logger.exception(e)
-            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+            # if e.status == 400:
+            return None
+            # logger.exception(e)
+            # raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def get_cloud_app_version(self, enterprise_id, app_id, app_version, market_id):
         token = self.get_enterprise_access_token(enterprise_id, "market")

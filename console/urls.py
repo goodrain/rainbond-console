@@ -59,7 +59,7 @@ from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
-from console.views.logos import ConfigRUDView, PhpConfigView
+from console.views.logos import ConfigRUDView, PhpConfigView, InitPerms
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
@@ -111,7 +111,7 @@ urlpatterns = [
     url(r'^errlog$', ErrLogView.as_view()),
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigRUDView.as_view()),
-    # url(r'^init/perms$', InitPerms.as_view()),
+    url(r'^init/perms$', InitPerms.as_view()),
     # 获取权限列表
     url(r'^perms$', PermsInfoLView.as_view()),
     # OAuth
