@@ -540,17 +540,9 @@ class MarketServiceUpgradeView(AppBaseView):
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
 
 
-class TeamAppsActionsView(RegionTenantHeaderView):
+class TeamAppsCloseView(RegionTenantHeaderView):
     def post(self, request, *args, **kwargs):
-        action = request.data.get("action", None)
         service_id_list = request.data.get("service_ids", None)
-        if action == "stop":
-            self.has_perms([400008])
-        if action == "start":
-            self.has_perms([400006])
-        if action == "restart":
-            self.has_perms([400007])
-
         services = service_repo.get_tenant_region_services(self.region_name, self.tenant.tenant_id)
         if not services:
             result = general_message(200, "success", "操作成功")
@@ -558,7 +550,7 @@ class TeamAppsActionsView(RegionTenantHeaderView):
         service_ids = services.values_list("service_id", flat=True)
         if service_id_list:
             service_ids = list(set(service_ids) & set(service_id_list))
-        code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_ids, None)
+        code, msg = app_manage_service.batch_action(self.tenant, self.user, "stop", service_ids, None)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:

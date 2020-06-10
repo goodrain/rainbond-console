@@ -85,7 +85,7 @@ from console.views.app_manage import StartAppView
 from console.views.app_manage import StopAppView
 from console.views.app_manage import UpgradeAppView
 from console.views.app_manage import VerticalExtendAppView
-from console.views.app_manage import TeamAppsActionsView
+from console.views.app_manage import TeamAppsCloseView
 from console.views.app_monitor import AppMonitorQueryRangeView
 from console.views.app_monitor import AppMonitorQueryView
 from console.views.app_monitor import AppResourceQueryView
@@ -770,7 +770,7 @@ urlpatterns = [
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view(), perms.RegionProtocolView),
     # 批量关闭应用下所有组件
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/batch_actions$', TeamAppsActionsView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
     # 应用导入
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view(), perms.CenterAppUploadView),
     # 应用包目录查询
