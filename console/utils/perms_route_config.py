@@ -3504,3 +3504,20 @@ AppServiceEventsView = {
         }
     }
 }
+
+TeamAppsCloseView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
