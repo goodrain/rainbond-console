@@ -984,6 +984,8 @@ class MarketAppService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            elif e.status == 400:
+                return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def conversion_cloud_version_to_app(self, cloud_version):
@@ -1179,10 +1181,12 @@ class MarketAppService(object):
         except ApiException as e:
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
-                if e.status == 404:
-                    return None
-                logger.exception(e)
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+            elif e.status == 404:
+                return None
+            elif e.status == 400:
+                return None
+            logger.exception(e)
+            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
@@ -1712,6 +1716,8 @@ class AppMarketSynchronizeService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            elif e.status == 400:
+                return None, 0, page
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1740,6 +1746,8 @@ class AppMarketSynchronizeService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            elif e.status == 400:
+                return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1761,6 +1769,8 @@ class AppMarketSynchronizeService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            elif e.status == 400:
+                return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1782,6 +1792,8 @@ class AppMarketSynchronizeService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            elif e.status == 400:
+                return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1803,6 +1815,8 @@ class AppMarketSynchronizeService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            elif e.status == 400:
+                return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1824,6 +1838,8 @@ class AppMarketSynchronizeService(object):
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+            elif e.status == 400:
+                return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
             logger.exception(e)
@@ -1847,6 +1863,8 @@ class AppMarketSynchronizeService(object):
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             if e.status == 404:
+                return None
+            elif e.status == 400:
                 return None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
         except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
