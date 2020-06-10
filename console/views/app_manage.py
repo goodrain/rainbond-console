@@ -543,4 +543,6 @@ class MarketServiceUpgradeView(AppBaseView):
             versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
         except RbdAppNotFound:
             versions = []
+        except Exception:
+            versions = []
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
