@@ -16,7 +16,7 @@ from console.services.group_service import group_service
 from console.services.service_services import base_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
                                                AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-                                               ServiceGroupOperationsSerializer)
+                                               ServiceGroupOperationsSerializer, TeamAppsCloseSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
@@ -263,3 +263,28 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         re = ListServiceEventsResponse(data=result)
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)
+
+
+class TeamAppsCloseView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="批量关闭应用",
+        request_body=TeamAppsCloseSerializers,
+        responses={
+            status.HTTP_200_OK: None,
+        },
+        tags=['openapi-apps'],
+    )
+    def post(self, request, team_id, region_name, *args, **kwargs):
+        serializers = TeamAppsCloseSerializers(data=request.data)
+        serializers.is_valid(raise_exception=True)
+        service_id_list = serializers.data.get("service_ids", None)
+        services = service_repo.get_tenant_region_services(self.region_name, self.team.tenant_id)
+        if not services:
+            return Response(None, status=200)
+        service_ids = services.values_list("service_id", flat=True)
+        if service_id_list:
+            service_ids = list(set(service_ids) & set(service_id_list))
+        code, msg = app_manage_service.batch_action(self.team, self.user, "stop", service_ids, None)
+        if code != 200:
+            raise ServiceHandleException(status_code=code, msg="batch manage error", msg_show=msg)
+        return Response(None, status=200)

@@ -8,12 +8,13 @@ from openapi.views.apps.apps import ListAppsView
 from openapi.views.apps.apps import APPOperationsView
 from openapi.views.gateway.gateway import ListAppGatewayHTTPRuleView
 from openapi.views.gateway.gateway import UpdateAppGatewayHTTPRuleView
-from openapi.views.apps.apps import ListAppServicesView, AppServicesView, AppServiceEventsView
+from openapi.views.apps.apps import ListAppServicesView, AppServicesView, AppServiceEventsView, TeamAppsCloseView
 from openapi.views.apps.market import AppInstallView
 from openapi.views.groupapp import GroupAppsCopyView
 
 urlpatterns = [
     url(r'^$', ListAppsView.as_view()),
+    url(r'^/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
     url(r'^/(?P<app_id>[\w\-]+)$', AppInfoView.as_view(), perms.AppInfoView),
     url(r'^/(?P<app_id>[\w\-]+)/install$', AppInstallView.as_view(), perms.AppInstallView),
     url(r'^/(?P<app_id>[\d\-]+)/copy$', GroupAppsCopyView.as_view(), perms.GroupAppsCopyView),

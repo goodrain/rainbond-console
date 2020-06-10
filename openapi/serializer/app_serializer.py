@@ -86,3 +86,7 @@ class ListServiceEventsResponse(serializers.Serializer):
     page_size = serializers.IntegerField(help_text=u"每页数量")
     total = serializers.IntegerField(help_text=u"数据总数")
     events = AppServiceEventsSerializer(many=True)
+
+
+class TeamAppsCloseSerializers(serializers.Serializer):
+    service_ids = serializers.ListField(required=False)
