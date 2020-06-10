@@ -64,10 +64,13 @@ class PropertiesChanges(object):
             app, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id,
                                                                               self.service_source.group_key, current_version)
         else:
-            app, app_version = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key,
-                                                                     current_version)
-            if app is not None:
-                self.market_id = app.market_id
+            try:
+                app, app_version = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key,
+                                                                         current_version)
+                if app is not None:
+                    self.market_id = app.market_id
+            except Exception:
+                app, app_version = None, None
         if app_version is not None:
             self.template = json.loads(app_version.app_template)
             self.current_app = app
