@@ -32,7 +32,7 @@ from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEvent
 from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
-                                      UpgradeAppView, VerticalExtendAppView)
+                                      UpgradeAppView, VerticalExtendAppView, TeamAppsCloseView)
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
                                        BatchAppMonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
@@ -590,6 +590,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view(), perms.RegionProtocolView),
+    # 批量关闭应用下所有组件
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
     # 应用导入
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view(), perms.CenterAppUploadView),
     # 应用包目录查询
