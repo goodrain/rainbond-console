@@ -989,6 +989,8 @@ class MarketAppService(object):
             elif e.status == 400:
                 return rainbond_app, None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+        except Exception:
+            return None, None
 
     def conversion_cloud_version_to_app(self, cloud_version):
         app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", source="cloud", scope="market")
@@ -1144,11 +1146,9 @@ class MarketAppService(object):
         return total, result_list
 
     def list_upgradeable_versions(self, tenant, service):
-        upgradeable_versions = []
-        try:
-            pc = PropertiesChanges(service, tenant)
-            upgradeable_versions = pc.get_upgradeable_versions
-        except Exception:
+        pc = PropertiesChanges(service, tenant)
+        upgradeable_versions = pc.get_upgradeable_versions
+        if not upgradeable_versions:
             upgradeable_versions = []
         return upgradeable_versions
 
