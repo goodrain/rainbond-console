@@ -955,6 +955,7 @@ class MarketAppService(object):
     # download app from cloud and return app model
     # can not save in local db
     def get_app_from_cloud(self, tenant, group_key, group_version, install=False):
+        rainbond_app = None
         try:
             app_template = market_api.get_remote_app_templates(tenant.enterprise_id, group_key, group_version, install=install)
             if app_template:
@@ -979,13 +980,15 @@ class MarketAppService(object):
                     update_time=datetime.strptime(app_template["update_time"][:19], '%Y-%m-%dT%H:%M:%S'),
                     is_official=app_template["is_official"])
                 return rainbond_app, rainbond_app_version
-            return None
+            return rainbond_app, None
         except HttpClient.CallApiError as e:
             logger.exception(e)
+            print e
             if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+                return rainbond_app, None
+                # raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             elif e.status == 400:
-                return None
+                return rainbond_app, None
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def conversion_cloud_version_to_app(self, cloud_version):
