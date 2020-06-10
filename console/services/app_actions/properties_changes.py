@@ -66,8 +66,9 @@ class PropertiesChanges(object):
         else:
             app, app_version = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key,
                                                                      current_version)
-            self.market_id = app.market_id
-        if app_version:
+            if app is not None:
+                self.market_id = app.market_id
+        if app_version is not None:
             self.template = json.loads(app_version.app_template)
             self.current_app = app
             self.current_version = app_version
