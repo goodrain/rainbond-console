@@ -239,7 +239,7 @@ class TeamService(object):
                 apps = group_service.get_apps_list(team_id=tenant.tenant_id, region_name=region["region_name"])
                 plugins = plugin_service.get_tenant_plugins(region["region_name"], tenant)
                 for app in apps:
-                    _, service_ids = app_service.get_group_services_by_id(app.ID)
+                    service_ids = app_service.get_group_services_by_id(app.ID)
                     services = service_repo.get_services_by_service_ids(service_ids)
                     if services:
                         status_list = base_service.status_multi_service(
