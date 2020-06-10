@@ -49,34 +49,34 @@ class PropertiesChanges(object):
         app_version object
         """
         from console.services.market_app_service import market_app_service
-        group_id = service_group_relation_repo.get_group_id_by_service(self.service)
-        service_ids = group_service_relation_repo.get_services_by_group(group_id).values_list("service_id", flat=True)
-        service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
-        versions = service_sources.exclude(version=None).values_list("version", flat=True)
-        if versions:
-            sorted_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
-            current_version = sorted_versions[-1]
-            current_version_source = service_sources.filter(version=current_version).first()
-        else:
-            current_version = None
-            current_version_source = None
-        if not self.install_from_cloud:
-            app, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id,
-                                                                              self.service_source.group_key, current_version)
-        else:
-            try:
+        try:
+            group_id = service_group_relation_repo.get_group_id_by_service(self.service)
+            service_ids = group_service_relation_repo.get_services_by_group(group_id).values_list("service_id", flat=True)
+            service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
+            versions = service_sources.exclude(version=None).values_list("version", flat=True)
+            if versions:
+                sorted_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
+                current_version = sorted_versions[-1]
+                current_version_source = service_sources.filter(version=current_version).first()
+            else:
+                current_version = None
+                current_version_source = None
+            if not self.install_from_cloud:
+                app, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id,
+                                                                                  self.service_source.group_key, current_version)
+            else:
                 app, app_version = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key,
                                                                          current_version)
-                if app is not None:
+                if app and app_version:
                     self.market_id = app.market_id
-            except Exception:
-                app, app_version = None, None
-        if app_version is not None:
-            self.template = json.loads(app_version.app_template)
-            self.current_app = app
-            self.current_version = app_version
-            if current_version_source:
-                self.service_source.create_time = current_version_source.create_time
+            if app_version and app:
+                self.template = json.loads(app_version.app_template)
+                self.current_app = app
+                self.current_version = app_version
+                if current_version_source:
+                    self.service_source.create_time = current_version_source.create_time
+        except Exception:
+            pass
 
     @property
     def get_upgradeable_versions(self):
