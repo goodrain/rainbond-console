@@ -983,7 +983,6 @@ class MarketAppService(object):
             return rainbond_app, None
         except HttpClient.CallApiError as e:
             logger.exception(e)
-            print e
             if e.status == 403:
                 return rainbond_app, None
                 # raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
@@ -1145,8 +1144,12 @@ class MarketAppService(object):
         return total, result_list
 
     def list_upgradeable_versions(self, tenant, service):
-        pc = PropertiesChanges(service, tenant)
-        upgradeable_versions = pc.get_upgradeable_versions
+        upgradeable_versions = []
+        try:
+            pc = PropertiesChanges(service, tenant)
+            upgradeable_versions = pc.get_upgradeable_versions
+        except Exception:
+            upgradeable_versions = []
         return upgradeable_versions
 
     def get_cloud_app_versions(self, enterprise_id, app_id, market_id):
