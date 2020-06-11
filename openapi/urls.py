@@ -20,7 +20,7 @@ from openapi.views.oauth import OauthTypeView
 from openapi.views.region_view import (ListRegionInfo, RegionInfo, RegionStatusView)
 from openapi.views.team_view import (ListRegionsView, ListRegionTeamServicesView, ListTeamInfo, ListTeamUsersInfo,
                                      TeamCertificatesLCView, TeamCertificatesRUDView, TeamInfo, TeamRegionView,
-                                     TeamUserInfoView)
+                                     TeamUserInfoView, TeamAppsResourceView)
 from openapi.views.upload_view import UploadView
 from openapi.views.user_view import (ChangePassword, ListUsersView, UserInfoView, UserTeamInfoView)
 
@@ -52,6 +52,7 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view(),
         perms.TeamCertificatesRUDView),
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
     # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps', include('openapi.sub_urls.app_url')),
 ]

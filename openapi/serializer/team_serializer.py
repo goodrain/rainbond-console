@@ -142,3 +142,15 @@ class TeamCertificatesRSerializer(serializers.Serializer):
     certificate = serializers.CharField(max_length=8192, help_text=u"证书key")
     certificate_type = serializers.CharField(max_length=32, help_text=u"证书类型")
     id = serializers.IntegerField(help_text=u"id")
+
+
+class TeamAppsResourceSerializer(serializers.Serializer):
+    total_cpu = serializers.IntegerField(help_text=u"cpu总额", default=None)
+    total_memory = serializers.IntegerField(help_text=u"内存总额", default=None)
+    used_cpu = serializers.IntegerField(help_text=u"占用cpu", default=None)
+    used_memory = serializers.IntegerField(help_text=u"占用内存", default=None)
+    used_cpu_percentage = serializers.FloatField(help_text=u"占用cpu百分比", default=None)
+    used_memory_percentage = serializers.FloatField(help_text=u"占用内存百分比", default=None)
+    team_id = serializers.CharField(max_length=64, help_text=u"团队ID")
+    team_name = serializers.CharField(max_length=64, help_text=u"团队名称")
+    team_alias = serializers.CharField(max_length=64, help_text=u"团队昵称")

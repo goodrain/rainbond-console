@@ -95,8 +95,8 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
                 try:
                     data = rst.json()
                 except ValueError:
-                    raise ServiceHandleException(msg="return value error", msg_show="enterprise center 服务不正常",
-                                                 error_code=10405, status_code=401)
+                    raise ServiceHandleException(
+                        msg="return value error", msg_show="enterprise center 服务不正常", error_code=10405, status_code=401)
                 self.access_token = data.get("access_token")
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:

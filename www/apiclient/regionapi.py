@@ -1136,7 +1136,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def __get_region_access_info_by_enterprise_id(self, enterprise_id, region):
         url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
+        logger.debug(region)
         region_info = self.get_region_info(region_name=region)
+        logger.debug(region_info)
         url = region_info.url
         if not token:
             token = region_info.token
