@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
 from console.repositories.oauth_repo import oauth_user_repo
+from console.exception.main import ServiceHandleException
 from console.repositories.user_repo import user_repo
 from console.repositories.team_repo import team_repo
 from console.services.auth import login, logout
@@ -18,7 +19,7 @@ from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLa
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.perm_services import user_kind_role_service
-from console.views.base import AlowAnyApiView, BaseApiView, JWTAuthApiView, TeamOwnerView
+from console.views.base import AlowAnyApiView, BaseApiView, JWTAuthApiView, TeamOwnerView, EnterpriseAdminView
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser
 from www.services import user_svc
@@ -320,4 +321,18 @@ class EnterPriseUsersUDView(JWTAuthApiView):
         all_oauth_user = oauth_user_repo.get_all_user_oauth(user_id)
         all_oauth_user.delete()
         result = general_message(200, "success", "删除用户成功")
+        return Response(result, status=200)
+
+
+class AdministratorJoinTeamView(EnterpriseAdminView):
+    def post(self, request, *args, **kwargs):
+        team_name = request.data.get("team_name")
+        team = team_services.get_enterprise_tenant_by_tenant_name(self.user.enterprise_id, team_name)
+        if not team:
+            raise ServiceHandleException(msg="no found team", msg_show=u"团队不存在", status_code=404)
+        users = team_services.get_team_users(team)
+        nojoin_user_ids = users.values_list("user_id", flat=True)
+        if self.user.user_id not in nojoin_user_ids:
+            team_services.add_user_role_to_team(tenant=team, user_ids=[self.user.user_id], role_ids=[])
+        result = general_message(200, "success", None)
         return Response(result, status=200)
