@@ -309,12 +309,14 @@ class EnterPriseUsersUDView(JWTAuthApiView):
 
 class AdministratorJoinTeamView(EnterpriseAdminView):
     def post(self, request, *args, **kwargs):
+        nojoin_user_ids = []
         team_name = request.data.get("team_name")
         team = team_services.get_enterprise_tenant_by_tenant_name(self.user.enterprise_id, team_name)
         if not team:
             raise ServiceHandleException(msg="no found team", msg_show=u"团队不存在", status_code=404)
         users = team_services.get_team_users(team)
-        nojoin_user_ids = users.values_list("user_id", flat=True)
+        if users:
+            nojoin_user_ids = users.values_list("user_id", flat=True)
         if self.user.user_id not in nojoin_user_ids:
             team_services.add_user_role_to_team(tenant=team, user_ids=[self.user.user_id], role_ids=[])
         result = general_message(200, "success", None)
