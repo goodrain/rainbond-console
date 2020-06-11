@@ -12,6 +12,8 @@ from console.exception.exceptions import EmailExistError
 from console.exception.exceptions import PhoneExistError
 from console.exception.exceptions import UserExistError
 from console.exception.exceptions import UserNotExistError
+from console.exception.main import ServiceHandleException
+from console.repositories.user_repo import user_repo
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from openapi.serializer.team_serializer import ListTeamRespSerializer
@@ -20,6 +22,7 @@ from openapi.serializer.user_serializer import ListUsersRespView
 from openapi.serializer.user_serializer import UpdateUserSerializer
 from openapi.serializer.user_serializer import UserInfoSerializer
 from openapi.serializer.user_serializer import ChangePassWdUserSerializer
+from openapi.serializer.user_serializer import ChangePassWdSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 from www.models.main import Users
@@ -27,7 +30,7 @@ from www.models.main import Users
 logger = logging.getLogger("default")
 
 
-class ListUsersView(ListAPIView):
+class ListUsersView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取用户列表",
         manual_parameters=[
@@ -169,6 +172,52 @@ class UserTeamInfoView(ListAPIView):
 
 class ChangePassword(BaseOpenAPIView):
     @swagger_auto_schema(
+        operation_description="修改自己账号密码",
+        request_body=ChangePassWdSerializer,
+        responses={
+            status.HTTP_200_OK: None,
+            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
+        },
+        tags=['openapi-user'],
+    )
+    def put(self, request, *args, **kwargs):
+        """
+        修改密码
+        ---
+        parameters:
+            - name: password
+              description: 新密码
+              required: true
+              type: string
+              paramType: form
+            - name: password1
+              description: 确认密码
+              required: true
+              type: string
+              paramType: form
+        """
+        serializer = ChangePassWdSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_password = serializer.data.get("password", None)
+        new_password1 = serializer.data.get("password1", None)
+        info = u"缺少参数"
+        if new_password and new_password == new_password1:
+            status, info = user_services.update_password(user_id=request.user.user_id, new_password=new_password)
+            oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+            if oauth_instance:
+                data = {
+                    "password": new_password,
+                    "real_name": request.user.real_name,
+                }
+                oauth_instance.update_user(request.user.enterprise_id, request.user.enterprise_center_user_id, data)
+            if status:
+                return Response(None, status=200)
+        logger.debug(info)
+        return Response(None, status=400)
+
+
+class ChangeUserPassword(BaseOpenAPIView):
+    @swagger_auto_schema(
         operation_description="修改用户密码",
         request_body=ChangePassWdUserSerializer,
         responses={
@@ -187,7 +236,7 @@ class ChangePassword(BaseOpenAPIView):
               required: true
               type: string
               paramType: form
-            - name: user_id
+            - name: password
               description: 新密码
               required: true
               type: string
@@ -198,12 +247,24 @@ class ChangePassword(BaseOpenAPIView):
               type: string
               paramType: form
         """
-        user_id = request.data.get("user_id", None)
-        new_password = request.data.get("password", None)
-        new_password1 = request.data.get("password1", None)
+        serializer = ChangePassWdUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user_id = serializer.data.get("user_id", None)
+        new_password = serializer.data.get("password", None)
+        new_password1 = serializer.data.get("password1", None)
         info = u"缺少参数"
+        user = user_repo.get_enterprise_user_by_id(request.user.enterprise_id, user_id)
+        if not user:
+            raise ServiceHandleException(msg="no found user", msg_show=u"用户不存在", status_code=404)
         if new_password and new_password == new_password1:
             status, info = user_services.update_password(user_id=user_id, new_password=new_password)
+            oauth_instance, _ = user_services.check_user_is_enterprise_center_user(user_id)
+            if oauth_instance:
+                data = {
+                    "password": new_password,
+                    "real_name": user.real_name,
+                }
+                oauth_instance.update_user(request.user.enterprise_id, user.enterprise_center_user_id, data)
             if status:
                 return Response(None, status=200)
         logger.debug(info)

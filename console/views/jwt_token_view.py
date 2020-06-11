@@ -1,6 +1,6 @@
 # coding:utf-8
 import logging
-from datetime import datetime
+import datetime
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -55,8 +55,8 @@ class JWTTokenView(JSONWebTokenAPIView):
                 result = general_message(200, "login success", "登录成功", bean=response_data)
                 response = Response(result)
                 if api_settings.JWT_AUTH_COOKIE:
-                    expiration = (datetime.utcnow() + api_settings.JWT_EXPIRATION_DELTA)
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                    expiration = (datetime.datetime.now() + datetime.timedelta(days=30))
+                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
                 return response
             result = general_message(400, "login failed", "{}".format(list(dict(serializer.errors).values())[0][0]))
             return Response(result, status=status.HTTP_400_BAD_REQUEST)

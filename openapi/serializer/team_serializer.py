@@ -84,9 +84,6 @@ class TeamRegionsRespSerializer(serializers.Serializer):
     status = serializers.CharField(max_length=2, help_text=u"数据中心状态 0：编辑中 1:启用 2：停用 3:维护中")
     desc = serializers.CharField(max_length=128, allow_blank=True, help_text=u"数据中心描述")
     scope = serializers.CharField(max_length=10, default="private", help_text=u"数据中心范围 private|public")
-    ssl_ca_cert = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"数据中心访问ca证书地址")
-    cert_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"验证文件")
-    key_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"验证的key")
 
 
 class ListTeamRegionsRespSerializer(serializers.Serializer):

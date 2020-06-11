@@ -3490,6 +3490,142 @@ AppServiceEventsView = {
     }
 }
 
+ListAdminsView = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+ListUsersView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+UserInfoView = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+ChangeUserPassword = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+AdminInfoView = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
+AppServiceTelescopicVerticalView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [400012]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
+
+AppServiceTelescopicHorizontalView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [400012]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
+
+AppUpgradeView = {
+    "__message": {
+        "get": {
+            "perms": [300013]
+        },
+        "post": {
+            "perms": [300013]
+        },
+        "put": {
+            "perms": [300013]
+        },
+        "delete": {
+            "perms": [300013]
+        }
+    }
+}
+
 TeamAppsCloseView = {
     "__message": {
         "get": {

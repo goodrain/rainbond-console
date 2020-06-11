@@ -266,7 +266,7 @@ class TeamUserInfoView(TeamAPIView):
         return Response(None, status.HTTP_200_OK)
 
 
-class ListRegionsView(ListAPIView):
+class ListRegionsView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="获取团队开通的数据中心列表",
         manual_parameters=[
@@ -288,7 +288,7 @@ class ListRegionsView(ListAPIView):
         except ValueError:
             page_size = 10
 
-        regions, total = region_services.list_by_tenant_id(team_id, query, page, page_size)
+        regions, total = region_services.list_by_tenant_id(self.team.tenant_id, query, page, page_size)
 
         data = {"regions": regions, "total": total}
 
@@ -327,7 +327,7 @@ class ListRegionsView(ListAPIView):
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeamRegionView(BaseOpenAPIView):
+class TeamRegionView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="关闭数据中心",
         responses={
@@ -345,7 +345,7 @@ class TeamRegionView(BaseOpenAPIView):
             region = region_services.get_region_by_region_name(region)
             if not region:
                 raise serializers.ValidationError("指定数据中心不存在")
-        code, msg, team = team_services.delete_team_region(team_id, region)
+        code, msg, team = team_services.delete_team_region(self.team.tenant_id, region)
         if code == 200:
             re = TeamBaseInfoSerializer(team)
             return Response(re.data, status=status.HTTP_200_OK)
