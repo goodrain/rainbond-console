@@ -110,3 +110,7 @@ class AppServiceTelescopicVerticalSerializer(serializers.Serializer):
 
 class AppServiceTelescopicHorizontalSerializer(serializers.Serializer):
     new_node = serializers.IntegerField(help_text=u"组件节点", allow_null=False, validators=[new_node_validator])
+
+
+class TeamAppsCloseSerializers(serializers.Serializer):
+    service_ids = serializers.ListField(required=False)

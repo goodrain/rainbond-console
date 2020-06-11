@@ -18,11 +18,13 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.perm_services import user_kind_role_service
+from console.services.common_services import common_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
     CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
     ListTeamRespSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer, TeamCertificatesLSerializer,
-    TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer, UpdateTeamInfoReqSerializer)
+    TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer, UpdateTeamInfoReqSerializer,
+    TeamAppsResourceSerializer)
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
 from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamNoRegionAPIView, TeamAPIView)
@@ -469,3 +471,40 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
     def delete(self, request, team_id, certificate_id, *args, **kwargs):
         domain_service.delete_certificate_by_pk(certificate_id)
         return Response(data=None, status=status.HTTP_200_OK)
+
+
+class TeamAppsResourceView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="获取团队资源统计",
+        responses={
+            status.HTTP_200_OK: TeamAppsResourceSerializer,
+        },
+        tags=['openapi-apps'],
+    )
+    def get(self, request, team_id, region_name, *args, **kwargs):
+        data = {
+            "team_id": self.team.tenant_id,
+            "team_name": self.team.tenant_name,
+            "team_alias": self.team.tenant_alias,
+        }
+        source = common_services.get_current_region_used_resource(self.team, self.region_name)
+        if source:
+            cpu_usage = 0
+            memory_usage = 0
+            if int(source["limit_cpu"]) != 0:
+                cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
+            if int(source["limit_memory"]) != 0:
+                memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
+            print source["memory"]
+            print source["limit_memory"]
+            data.update({
+                "used_cpu": int(source["cpu"]),
+                "used_memory": int(source["memory"]),
+                "total_cpu": int(source["limit_cpu"]),
+                "total_memory": int(source["limit_memory"]),
+                "used_cpu_percentage": round(cpu_usage, 2),
+                "used_memory_percentage": round(memory_usage, 2),
+            })
+        serializer = TeamAppsResourceSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=200)
