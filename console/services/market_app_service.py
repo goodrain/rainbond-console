@@ -87,7 +87,15 @@ class MarketAppService(object):
         }
         return market_api_v2.create_market_app_by_enterprise_id(enterprise_id, body)
 
-    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy, install_from_cloud,
+    def install_service(self,
+                        tenant,
+                        region,
+                        user,
+                        group_id,
+                        market_app,
+                        market_app_version,
+                        is_deploy,
+                        install_from_cloud,
                         market_name=None):
         service_list = []
         service_key_dep_key_map = {}
@@ -239,7 +247,12 @@ class MarketAppService(object):
 
             for app in apps:
                 ts = self.__init_market_app(
-                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud,
+                    tenant,
+                    region,
+                    user,
+                    app,
+                    tenant_service_group.ID,
+                    install_from_cloud=install_from_cloud,
                     market_name=market_name)
                 service_source_data = {
                     "group_key":
