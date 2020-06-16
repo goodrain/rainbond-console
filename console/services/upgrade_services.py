@@ -71,26 +71,27 @@ class UpgradeService(object):
             logger.warning("request cloud app list timeout", e)
             raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
-    def get_cloud_market_apps(self, enterprise_id, market_id):
-        try:
-            token = self.get_enterprise_access_token(enterprise_id, "market")
-            if token:
-                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
-            else:
-                market_client = get_default_market_client()
-            markets = market_client.get_apps_with_version(market_id, _request_timeout=10)
-            return markets.list
-        except ApiException as e:
-            logger.exception(e)
-            if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
-            raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
-        except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
-            logger.exception(e)
-            raise e
-        except socket.timeout as e:
-            logger.warning("request cloud app list timeout", e)
-            raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
+    # TODO 废弃
+    # def get_cloud_market_apps(self, enterprise_id, market_id):
+    #     try:
+    #         token = self.get_enterprise_access_token(enterprise_id, "market")
+    #         if token:
+    #             market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+    #         else:
+    #             market_client = get_default_market_client()
+    #         markets = market_client.get_apps_with_version(market_id, _request_timeout=10)
+    #         return markets.list
+    #     except ApiException as e:
+    #         logger.exception(e)
+    #         if e.status == 403:
+    #             raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
+    #         raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+    #     except (httplib2.ServerNotFoundError, MaxRetryError, ConnectTimeoutError) as e:
+    #         logger.exception(e)
+    #         raise e
+    #     except socket.timeout as e:
+    #         logger.warning("request cloud app list timeout", e)
+    #         raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
     def get_cloud_app(self, enterprise_id, market_id, app_id):
         try:
@@ -134,13 +135,15 @@ class UpgradeService(object):
             logger.warning("request cloud app list timeout", e)
             raise ServiceHandleException("connection timeout", msg_show="云市通信超时", status_code=500, error_code=10409)
 
-    def get_or_create_upgrade_record(self, tenant_id, group_id, group_key):
+    def get_or_create_upgrade_record(self, tenant_id, group_id, group_key, is_from_cloud, market_name):
         """获取或创建升级记录"""
         recode_kwargs = {
             "tenant_id": tenant_id,
             "group_id": group_id,
             "group_key": group_key,
             "create_time": datetime.now(),
+            "is_from_cloud": is_from_cloud,
+            "market_name": market_name,
         }
         try:
             app_record = upgrade_repo.get_app_not_upgrade_record(status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
@@ -149,10 +152,11 @@ class UpgradeService(object):
             tenant = Tenants.objects.get(tenant_id=tenant_id)
             service_group_keys = group_service.get_group_service_sources(group_id).values_list('group_key', flat=True)
             if group_key in set(service_group_keys or []):
-                app_name = None
-                app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key).first()
-                if app:
-                    app_name = app.app_name
+                if not is_from_cloud:
+                    app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key).first()
+                    if not app:
+                        raise ServiceHandleException(
+                            msg="the rainbond app is not in the group", msg_show="该应用中没有这个云市组件", status_code=404)
                 else:
                     is_cloud_app = False
                     markets = self.get_cloud_markets(enterprise_id=tenant.enterprise_id)

@@ -6,11 +6,13 @@ import logging
 from docker_image import reference
 from django.db import transaction
 
+from console.exception.main import ServiceHandleException
 from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
 from console.models.main import RainbondCenterAppTag
 from console.models.main import RainbondCenterAppTagsRelation
+from console.models.main import AppMarket
 from console.repositories.base import BaseConnection
 from www.models.main import ServiceWebhooks
 from www.models.main import TenantServiceInfo
@@ -336,6 +338,31 @@ class AppTagRepository(object):
         return apps
 
 
+class AppMarketRepository(object):
+    def get_app_markets(self, enterprise_id):
+        return AppMarket.objects.filter(enterprise_id=enterprise_id)
+
+    def get_app_market(self, enterprise_id, market_id, raise_exception=False):
+        market = AppMarket.objects.filter(enterprise_id=enterprise_id, ID=market_id).first()
+        if raise_exception:
+            if not market:
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+        return market
+
+    def get_app_market_by_name(self, enterprise_id, name, raise_exception=False):
+        market = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).first()
+        if raise_exception:
+            if not market:
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+        return market
+
+    def create_app_market(self, **kwargs):
+        return AppMarket.objects.create(**kwargs)
+
+    def update_app_market(self, app_market, data):
+        app_market.update(**data)
+
+
 service_repo = TenantServiceInfoRepository()
 service_source_repo = ServiceSourceRepository()
 recycle_bin_repo = ServiceRecycleBinRepository()
@@ -343,3 +370,4 @@ delete_service_repo = TenantServiceDeleteRepository()
 relation_recycle_bin_repo = ServiceRelationRecycleBinRepository()
 service_webhooks_repo = TenantServiceWebhooks()
 app_tag_repo = AppTagRepository()
+app_market_repo = AppMarketRepository()

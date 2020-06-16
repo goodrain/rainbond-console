@@ -111,13 +111,13 @@ from console.views.center_pool.app_import import CenterAppUploadView
 from console.views.center_pool.app_import import EnterpriseAppImportInitView
 from console.views.center_pool.app_import import ImportingRecordView
 from console.views.center_pool.apps import AppTagCDView
-from console.views.center_pool.apps import CenterAllMarketAppView
+# from console.views.center_pool.apps import CenterAllMarketAppView
 from console.views.center_pool.apps import CenterAppCLView
 from console.views.center_pool.apps import CenterAppUDView
 from console.views.center_pool.apps import CenterAppView
-from console.views.center_pool.apps import CenterVersionlMarversionketAppView
-from console.views.center_pool.apps import DownloadMarketAppTemplateView
-from console.views.center_pool.apps import GetCloudRecommendedAppList
+# from console.views.center_pool.apps import CenterVersionlMarversionketAppView
+# from console.views.center_pool.apps import DownloadMarketAppTemplateView
+# from console.views.center_pool.apps import GetCloudRecommendedAppList
 from console.views.center_pool.apps import TagCLView
 from console.views.center_pool.apps import TagUDView
 from console.views.center_pool.groupapp_backup import AllTeamGroupAppsBackupView
@@ -221,8 +221,8 @@ from console.views.region import RegQuyView
 from console.views.region import RegUnopenView
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import CloudAppModelMarketInfo
-from console.views.service_share import CloudAppModelMarkets
+# from console.views.service_share import CloudAppModelMarketInfo
+# from console.views.service_share import CloudAppModelMarkets
 from console.views.service_share import ServiceGroupSharedApps
 from console.views.service_share import ServicePluginShareEventPost
 from console.views.service_share import ServiceShareCompleteView
@@ -234,6 +234,11 @@ from console.views.service_share import ServiceShareRecordInfoView
 from console.views.service_share import ServiceShareRecordView
 from console.views.service_share import ShareRecordHistoryView
 from console.views.service_share import ShareRecordView
+from console.views.service_share import AppMarketCLView
+from console.views.service_share import AppMarketRUDView
+from console.views.service_share import AppMarketAppModelLView
+from console.views.service_share import AppMarketAppModelVersionsLView
+from console.views.service_share import AppMarketAppModelVersionsRView
 from console.views.service_version import AppVersionManageView
 from console.views.service_version import AppVersionsView
 from console.views.services_toplogical import GroupServiceDetView
@@ -873,20 +878,30 @@ urlpatterns = [
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models$', CenterAllMarketAppView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/recommend', GetCloudRecommendedAppList.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/version$', CenterVersionlMarversionketAppView.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models$', CenterAllMarketAppView.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/recommend', GetCloudRecommendedAppList.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/version$', CenterVersionlMarversionketAppView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag$', TagCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/tag$', AppTagCDView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', CloudAppModelMarkets.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/market/(?P<market_id>[\w\-]+)/app-models$',
-        CloudAppModelMarketInfo.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', CloudAppModelMarkets.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/market/(?P<market_id>[\w\-]+)/app-models$',
+    #    CloudAppModelMarketInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', AppMarketCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)$', AppMarketRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models$',
+        AppMarketAppModelLView.as_view()),
+    url(
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+) \
+        /versions$',
+        AppMarketAppModelVersionsLView.as_view()),
+    url(
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+) \
+        /versions/(?P<version>[\w\-]+)$',
+        AppMarketAppModelVersionsRView.as_view()),
 
     # 应用导出
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
-    # 同步某个应用回来
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/download$', DownloadMarketAppTemplateView.as_view()),
     # WIP
     # 创建应用导入记录
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import$', EnterpriseAppImportInitView.as_view()),

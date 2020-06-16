@@ -52,6 +52,7 @@ from console.services.app_config import AppMntService
 from console.services.app_config import AppPortService
 from console.services.app_config import AppServiceRelationService
 from console.services.app_config import AppVolumeService
+from console.services.app import app_market_service
 from console.services.exception import ErrChangeServiceType
 from console.utils import slug_util
 from console.utils.oauth.oauth_types import get_oauth_instance
@@ -644,9 +645,11 @@ class AppManageService(AppManageBase):
                         if old_extent_info.get("install_from_cloud", False):
                             install_from_cloud = True
                             # TODO:Skip the subcontract structure to avoid loop introduction
-                            from console.services.market_app_service import market_app_service
-                            _, app_version = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
-                                                                                   service_source.version)
+                            market_name = old_extent_info.get("market_name")
+                            market = app_market_service.get_app_market_by_name(
+                                tenant.enterprise_id, market_name, raise_exception=True)
+                            _, app_version = app_market_service.cloud_app_model_to_db_model(
+                                market, service_source.group_key, service_source.version)
                         # install from local cloud
                         else:
                             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
