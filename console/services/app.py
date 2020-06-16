@@ -882,7 +882,7 @@ class AppMarketService(object):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         results = app_store.get_app_versions(market, app_id)
-        data = self.app_model_versions_serializers(market, results["versions"], extend=extend)
+        data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
 
     def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False):
@@ -921,7 +921,7 @@ class AppMarketService(object):
         return rainbond_app, rainbond_app_version
 
     def create_market_app_model(self, market, body):
-        app_store.create_app(market, body)
+        return app_store.create_app(market, body)
 
     def create_market_app_model_version(self, market, app_id, body):
         app_store.create_app_version(market, app_id, body)

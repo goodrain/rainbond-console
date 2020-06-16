@@ -696,6 +696,7 @@ class AppManageService(AppManageBase):
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
+                                        new_extend_info["market_name"] = old_extent_info.get("market_name")
                                     service_source.extend_info = json.dumps(new_extend_info)
                                     service_source.save()
                                     code, msg = self.__save_env(tenant, service, app["service_env_map_list"],

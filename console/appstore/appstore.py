@@ -177,13 +177,13 @@ class AppStoreV1(object):
     @apiException
     def create_app(self, store, body):
         store_client = get_market_client(store.access_key, store.url)
+        body = openapi_client.V1AppCreateRequest(**body)
         data = store_client.create_app(body=body, market_domain=store.domain)
         return data
 
     @apiException
     def create_app_version(self, store, app_id, body):
         store_client = get_market_client(store.access_key, store.url)
-        print body
         body = openapi_client.V1CreateAppPaaSVersionRequest(**body)
         data = store_client.create_app_version(app_id=app_id, body=body, market_domain=store.domain)
         return data

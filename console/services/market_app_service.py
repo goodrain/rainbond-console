@@ -87,7 +87,8 @@ class MarketAppService(object):
         }
         return market_api_v2.create_market_app_by_enterprise_id(enterprise_id, body)
 
-    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy, install_from_cloud):
+    def install_service(self, tenant, region, user, group_id, market_app, market_app_version, is_deploy, install_from_cloud,
+                        market_name=None):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -109,7 +110,7 @@ class MarketAppService(object):
             app_map = {}
             for app in apps:
                 app_map[app.get("service_share_uuid")] = app
-                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID, install_from_cloud)
+                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID, install_from_cloud, market_name)
                 # Record the application's installation source information
                 service_source_data = {
                     "group_key":
@@ -207,7 +208,8 @@ class MarketAppService(object):
                                          old_app,
                                          services,
                                          is_deploy,
-                                         install_from_cloud=False):
+                                         install_from_cloud=False,
+                                         market_name=None):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -237,7 +239,7 @@ class MarketAppService(object):
 
             for app in apps:
                 ts = self.__init_market_app(
-                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud)
+                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud, market_name=market_name)
                 service_source_data = {
                     "group_key":
                     market_app.app_id,
@@ -643,7 +645,7 @@ class MarketAppService(object):
         }
         extend_repo.create_extend_method(**params)
 
-    def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False):
+    def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):
         """
         初始化应用市场创建的应用默认数据
         """
@@ -706,7 +708,7 @@ class MarketAppService(object):
         tenant_service.service_source = AppConstants.MARKET
         tenant_service.create_status = "creating"
         tenant_service.tenant_service_group_id = tenant_service_group_id
-        self.__init_service_source(tenant_service, app, install_from_cloud)
+        self.__init_service_source(tenant_service, app, install_from_cloud, market_name)
         # 存储并返回
         tenant_service.save()
         return tenant_service
@@ -719,7 +721,7 @@ class MarketAppService(object):
                     ex_me.max_node = app["extend_method_map"]["max_node"]
                     ex_me.save()
 
-    def __init_service_source(self, ts, app, install_from_cloud=False):
+    def __init_service_source(self, ts, app, install_from_cloud=False, market_name=None):
         slug = app.get("service_slug", None)
         extend_info = {}
         if slug:
@@ -733,6 +735,7 @@ class MarketAppService(object):
         if install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
+            extend_info["market_name"] = market_name
         service_source_params = {
             "team_id": ts.tenant_id,
             "service_id": ts.service_id,

@@ -892,12 +892,12 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models$',
         AppMarketAppModelLView.as_view()),
     url(
-        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+) \
-        /versions$',
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+)'
+        r'/versions$',
         AppMarketAppModelVersionsLView.as_view()),
     url(
-        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+) \
-        /versions/(?P<version>[\w\-]+)$',
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+)'
+        r'/versions/(?P<version>[\w\-.]+)$',
         AppMarketAppModelVersionsRView.as_view()),
 
     # 应用导出

@@ -235,7 +235,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             try:
                 install_info = market_app_service.install_service_when_upgrade_app(self.tenant, self.response_region, self.user,
                                                                                    group_id, new_app, old_app, services, True,
-                                                                                   pc.install_from_cloud)
+                                                                                   pc.install_from_cloud, pc.market_name)
 
             except ResourceNotEnoughException as re:
                 raise re

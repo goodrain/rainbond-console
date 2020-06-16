@@ -752,15 +752,26 @@ class AppMarketAppModelLView(JWTAuthApiView):
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, market_name, *args, **kwargs):
-        pass
-
+        dt = {
+            "app_classification_id": request.data.get("app_classification_id"),
+            "desc": request.data.get("desc"),
+            "logo": request.data.get("logo"),
+            "name": request.data.get("name"),
+            "publish_type": request.data.get("publish_type"),
+            "tags": request.data.get("tags"),
+            "introduction": request.data.get("introduction"),
+        }
+        market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        rst = app_market_service.create_market_app_model(market, body=dt)
+        result = general_message(200, msg="success", msg_show=None, bean=rst.to_dict())
+        return Response(result, status=200)
 
 
 class AppMarketAppModelVersionsLView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name, app_id, *args, **kwargs):
         market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         data = app_market_service.get_market_app_model_versions(market_model, app_id, extend=True)
-        result = general_message(200, "success", list=data)
+        result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
 
@@ -768,5 +779,5 @@ class AppMarketAppModelVersionsRView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name, app_id, version, *args, **kwargs):
         _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
         data = app_market_service.get_market_app_model_version(market_model, app_id, version, extend=True)
-        result = general_message(200, "success", bean=data)
+        result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)

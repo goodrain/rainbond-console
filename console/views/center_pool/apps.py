@@ -129,7 +129,7 @@ class CenterAppView(RegionTenantHeaderView):
             app_version = request.data.get("app_version", None)
             is_deploy = request.data.get("is_deploy", True)
             install_from_cloud = request.data.get("install_from_cloud", False)
-            market_name = request.data.get("market_name", False)
+            market_name = request.data.get("market_name", None)
             if not app_id or not app_version:
                 return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
             if int(group_id) != -1:
@@ -148,7 +148,7 @@ class CenterAppView(RegionTenantHeaderView):
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
             market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, app_version_info,
-                                               is_deploy, install_from_cloud)
+                                               is_deploy, install_from_cloud, market_name=market_name)
             if not install_from_cloud:
                 market_app_service.update_rainbond_app_install_num(self.user.enterprise_id, app_id, app_version)
             logger.debug("market app create success")
