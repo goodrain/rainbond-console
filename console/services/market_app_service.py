@@ -239,7 +239,8 @@ class MarketAppService(object):
 
             for app in apps:
                 ts = self.__init_market_app(
-                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud, market_name=market_name)
+                    tenant, region, user, app, tenant_service_group.ID, install_from_cloud=install_from_cloud,
+                    market_name=market_name)
                 service_source_data = {
                     "group_key":
                     market_app.app_id,

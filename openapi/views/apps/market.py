@@ -30,12 +30,7 @@ class MarketAppInstallView(BaseOpenAPIView):
     def post(self, request, *args, **kwargs):
         serializer = MarketInstallSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        market_domain = serializer.data.get("market_domain")
-        market_url = serializer.data.get("market_url")
-        market_type = serializer.data.get("market_type")
-        market_access_key = serializer.data.get("market_access_key")
-        app_model_id = serializer.data.get("app_model_id")
-        app_model_version = serializer.data.get("app_model_version")
+        data = serializer.data
         app_id = serializer.data.get("app_id")
         logger.info(request.data)
         app = group_service.get_app_by_id(app_id)

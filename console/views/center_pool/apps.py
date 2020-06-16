@@ -417,10 +417,3 @@ class AppStoreCLView(JWTAuthApiView):
 
     def post(self, request, enterprise_id, *args, **kwargs):
         pass
-
-
-class AppModelCLView(JWTAuthApiView):
-    @never_cache
-    def get(self, request, enterprise_id, *args, **kwargs):
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 10))
