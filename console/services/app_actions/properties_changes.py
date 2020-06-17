@@ -14,15 +14,14 @@ from console.repositories.app_config import volume_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
-from console.services.app import app_service
+from console.repositories.app import app_market_repo
+from console.services.app import app_service, app_market_service
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
-from www.apiclient.marketclient import MarketOpenAPI
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
-market_api = MarketOpenAPI()
 
 
 class PropertiesChanges(object):
@@ -35,11 +34,17 @@ class PropertiesChanges(object):
         self.template = None
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         self.install_from_cloud = False
+        self.market_name = None
+        self.market = None
         if self.service_source and self.service_source.extend_info:
             self.current_version_str = self.service_source.version
             extend_info = json.loads(self.service_source.extend_info)
             if extend_info and extend_info.get("install_from_cloud", False):
                 self.install_from_cloud = True
+            if self.install_from_cloud:
+                self.market_name = extend_info.get("market_name", None)
+                self.market = app_market_repo.get_app_market_by_name(
+                    tenant.enterprise_id, self.market_name, raise_exception=True)
             self.__get_current_app_and_version()
 
     def __get_current_app_and_version(self):
@@ -48,7 +53,6 @@ class PropertiesChanges(object):
         app object
         app_version object
         """
-        from console.services.market_app_service import market_app_service
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
         service_ids = group_service_relation_repo.get_services_by_group(group_id).values_list("service_id", flat=True)
         service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
@@ -64,9 +68,8 @@ class PropertiesChanges(object):
             app, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id,
                                                                               self.service_source.group_key, current_version)
         else:
-            app, app_version = market_app_service.get_app_from_cloud(self.tenant, self.service_source.group_key,
-                                                                     current_version)
-            self.market_id = app.market_id
+            app, app_version = app_market_service.cloud_app_model_to_db_model(self.market, self.service_source.group_key,
+                                                                              current_version)
         if app_version:
             self.template = json.loads(app_version.app_template)
             self.current_app = app
@@ -88,7 +91,6 @@ class PropertiesChanges(object):
         # not found current version
         if not self.current_version:
             return None
-        from console.services.market_app_service import market_app_service
         upgradeble_versions = []
         if not self.install_from_cloud:
             # 获取最新的时间列表, 判断版本号大小，TODO 确认版本号大小
@@ -109,51 +111,26 @@ class PropertiesChanges(object):
                         upgradeble_versions.append(version.version)
 
         else:
-            app_version_list = market_app_service.get_cloud_app_versions(self.tenant.enterprise_id,
-                                                                         self.service_source.group_key, self.market_id)
+            app_version_list = app_market_service.get_market_app_model_versions(self.market, self.service_source.group_key)
             if not app_version_list:
                 return None
             for version in app_version_list:
                 new_version_time = time.mktime(version.update_time.timetuple())
                 current_version_time = time.mktime(self.current_version.update_time.timetuple())
-                if new_version_time > current_version_time:
-                    same, max_version = self.checkVersionG2(self.current_version.version, version.app_version)
-                    if not same:
-                        upgradeble_versions.append(version.app_version)
-
+                same, max_version = self.checkVersionG2(self.current_version.version, version.version)
+                if same and new_version_time > current_version_time:
+                    upgradeble_versions.append(version.version)
+                elif not same:
+                    upgradeble_versions.append(version.version)
         return upgradeble_versions
 
     def checkVersionG2(self, currentversion, expectedversion):
-        max_version = "0.0.0"
         same = False
-
-        currentversionBITS = currentversion.split(".")
-        expectedversionBITS = expectedversion.split(".")
-
-        if len(currentversionBITS) >= len(expectedversionBITS):
-            minbitversion = expectedversionBITS
-            maxbitversion = currentversionBITS
-        else:
-            minbitversion = currentversionBITS
-            maxbitversion = expectedversionBITS
-
-        for index, bit in enumerate(minbitversion):
-            try:
-                if int(bit) > int(maxbitversion[index]):
-                    max_version = ".".join(minbitversion)
-                    break
-                elif int(bit) < int(maxbitversion[index]):
-                    max_version = ".".join(maxbitversion)
-                    break
-                else:
-                    max_version = ".".join(maxbitversion)
-            except (IndexError, ValueError):
-                # ignore error
-                pass
-
-        if max_version == currentversion:
+        versions = [currentversion, expectedversion]
+        sort_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
+        max_version = sort_versions.pop()
+        if currentversion == expectedversion:
             same = True
-
         return same, max_version
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
@@ -472,15 +449,8 @@ def has_changes(changes):
 
 def get_upgrade_app_version_template_app(tenant, version, pc):
     if pc.install_from_cloud:
-        rst = market_api.get_app_template(tenant.tenant_id, pc.current_app.app_id, version)
-        data = rst.get("data")
-        if not data:
-            return None, None
-        bean = data.get("bean")
-        if not bean:
-            return None, None
-        app_template = bean.get("template_content")
-        template = json.loads(app_template)
+        data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, for_install=True)
+        template = json.loads(data.template)
         apps = template.get("apps")
 
         def func(x):

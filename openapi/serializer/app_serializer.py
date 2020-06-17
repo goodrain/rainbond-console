@@ -54,7 +54,13 @@ class AppInfoSerializer(AppBaseInfoSerializer):
 
 
 class InstallSerializer(serializers.Serializer):
-    order_id = serializers.CharField(max_length=36, help_text=u"订单ID,通过订单ID去市场下载安装的应用元数据")
+    market_url = serializers.CharField(max_length=255, help_text=u"应用商店路由")
+    market_domain = serializers.CharField(max_length=64, help_text=u"应用商店domain")
+    market_type = serializers.CharField(max_length=64, help_text=u"应用商店类型")
+    market_access_key = serializers.CharField(max_length=64, help_text=u"应用商店令牌")
+    app_model_id = serializers.CharField(max_length=64, help_text=u"应用id")
+    app_model_version = serializers.CharField(max_length=64, help_text=u"应用版本")
+    app_id = serializers.CharField(max_length=64, help_text=u"应用组id")
 
 
 class ServiceGroupOperationsSerializer(serializers.Serializer):

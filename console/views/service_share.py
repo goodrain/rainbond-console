@@ -12,19 +12,17 @@ from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.app import app_market_service
 from console.services.share_services import share_service
-from console.services.market_app_service import market_sycn_service
 from console.utils.reqparse import parse_argument
 from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
-from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger('default')
-region_api = RegionInvokeApi()
 
 
 class ServiceShareRecordView(RegionTenantHeaderView):
@@ -39,29 +37,28 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 upgrade_time = None
                 # todo get store name
                 store_name = None
-                store_id = None
+                store_id = share_record.share_app_market_name
                 scope = share_record.scope
                 app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
                 if app:
                     app_model_id = share_record.app_id
                     app_model_name = app.app_name
-                    store_id = share_record.share_app_market_id
                     app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
                     if app_version:
                         version_alias = app_version.version_alias
                         upgrade_time = app_version.upgrade_time
                 else:
-                    if share_record.share_app_market_id:
-                        store_id = share_record.share_app_market_id
-                        try:
-                            if store_id and share_record.app_id:
-                                cloud_app = market_sycn_service.get_cloud_app(
-                                    self.tenant.enterprise_id, share_record.share_app_market_id, share_record.app_id)
-                                if cloud_app:
-                                    app_model_id = share_record.app_id
-                                    app_model_name = cloud_app.name
-                        except ServiceHandleException:
-                            app_model_id = share_record.app_id
+                    try:
+                        if store_id and share_record.app_id:
+
+                            market = app_market_service.get_app_market_by_name(
+                                self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+                            cloud_app = app_market_service.get_market_app_model(market, share_record.app_id)
+                            if cloud_app:
+                                app_model_id = share_record.app_id
+                                app_model_name = cloud_app.app_name
+                    except ServiceHandleException:
+                        app_model_id = share_record.app_id
                 data.append({
                     "app_model_id":
                     app_model_id,
@@ -109,11 +106,11 @@ class ServiceShareRecordView(RegionTenantHeaderView):
               paramType: path
         """
         scope = request.data.get("scope")
-        market_id = None
+        market_name = None
         if scope == "goodrain":
             target = request.data.get("target")
-            market_id = target.get("store_id")
-            if market_id is None:
+            market_name = target.get("store_id")
+            if market_name is None:
                 result = general_message(400, "fail", "参数不全")
                 return Response(result, status=result.get("code", 200))
         try:
@@ -138,7 +135,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 "team_name": team_name,
                 "is_success": False,
                 "step": 1,
-                "share_app_market_id": market_id,
+                "share_app_market_name": market_name,
                 "scope": scope,
                 "create_time": datetime.datetime.now(),
                 "update_time": datetime.datetime.now(),
@@ -165,12 +162,13 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             version_alias = None
             upgrade_time = None
             store_name = None
-            store_id = share_record.share_app_market_id
+            store_id = share_record.share_app_market_name
             scope = share_record.scope
             if store_id:
-                market = market_sycn_service.get_cloud_market_by_id(self.tenant.enterprise_id, store_id)
+                market = app_market_service.get_app_market(
+                    self.tenant.enterprise_id, share_record.share_app_market_name, extend=True, aise_exception=True)
                 if market:
-                    store_name = market.name
+                    store_name = market.alias
             app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
             if app:
                 app_model_id = share_record.app_id
@@ -622,6 +620,7 @@ class ServiceGroupAppCView(RegionTenantHeaderView):
         details = request.data.get("details")
         app_id = make_uuid()
         dev_status = request.data.get("dev_status")
+        market_name = request.data.get("market_name")
 
         data = {
             "name": name,
@@ -638,7 +637,7 @@ class ServiceGroupAppCView(RegionTenantHeaderView):
             result = general_message(400, "error params", None)
             return Response(result, status=200)
         if scope == "goodrain":
-            share_service.create_cloud_app(self.tenant.tenant_id, data)
+            share_service.create_cloud_app(self.tenant, market_name, data)
         else:
             share_repo.create_app(data)
         result = general_message(200, "success", None)
@@ -648,49 +647,137 @@ class ServiceGroupAppCView(RegionTenantHeaderView):
 class ServiceGroupSharedApps(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         scope = request.GET.get("scope", None)
-        market_id = request.GET.get("market_id", None)
+        market_name = request.GET.get("market_name", None)
         data = share_service.get_last_shared_app_and_app_list(self.tenant.enterprise_id, self.tenant, group_id, scope,
-                                                              market_id)
+                                                              market_name)
         result = general_message(
             200, "get shared apps list complete", None, bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)
 
 
-class CloudAppModelMarkets(JWTAuthApiView):
+# TODO 废弃
+# class CloudAppModelMarkets(JWTAuthApiView):
+#     def get(self, request, enterprise_id, *args, **kwargs):
+#         markets = market_sycn_service.get_cloud_markets(enterprise_id)
+#         data = []
+#         if markets:
+#             for market in markets:
+#                 data.append({
+#                     "market_id": market.market_id,
+#                     "name": market.name,
+#                     "eid": market.eid,
+#                 })
+#         result = general_message(200, "success", None, list=data)
+#         return Response(result, status=200)
+
+# 废弃
+# class CloudAppModelMarketInfo(JWTAuthApiView):
+#     def get(self, request, enterprise_id, market_id, *args, **kwargs):
+#         apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
+#         data = []
+#         if apps_versions:
+#             for app in apps_versions:
+#                 versions = []
+#                 app_versions = app.app_versions
+#                 if app_versions:
+#                     for version in app_versions:
+#                         versions.append(version.app_version)
+#                 versions.sort()
+#                 data.append({
+#                     "app_name": app.name,
+#                     "app_id": app.app_key_id,
+#                     "version": list(set(versions)),
+#                     "pic": (app.logo if app.logo else app.pic),
+#                     "app_describe": app.desc,
+#                     "dev_status": app.dev_status,
+#                     "scope": ("goodrain:" + app.publish_type).strip(":")
+#                 })
+#         result = general_message(200, "success", None, list=data)
+#         return Response(result, status=200)
+
+
+class AppMarketCLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        markets = market_sycn_service.get_cloud_markets(enterprise_id)
-        data = []
-        if markets:
-            for market in markets:
-                data.append({
-                    "market_id": market.market_id,
-                    "name": market.name,
-                    "eid": market.eid,
-                })
+        extend = request.GET.get("extend", "false")
+        app_markets = app_market_service.get_app_markets(enterprise_id, extend)
+        result = general_message(200, "success", None, list=app_markets)
+        return Response(result, status=200)
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        dt = {
+            "name": request.data.get("name"),
+            "url": request.data.get("url"),
+            "type": request.data.get("type"),
+            "enterprise_id": enterprise_id,
+            "access_key": request.data.get("access_key"),
+            "domain": request.data.get("domain"),
+        }
+
+        app_market = app_market_service.create_app_market(dt)
+        result = general_message(200, "success", None, bean=app_market.to_dict())
+        return Response(result, status=200)
+
+
+class AppMarketRUDView(JWTAuthApiView):
+    def get(self, request, enterprise_id, market_name, *args, **kwargs):
+        extend = request.GET.get("extend", "false")
+        market, _ = app_market_service.get_app_market(enterprise_id, market_name, extend, raise_exception=True)
+        result = general_message(200, "success", None, list=market)
+        return Response(result, status=200)
+
+    def put(self, request, enterprise_id, market_name, *args, **kwargs):
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        request.data["enterprise_id"] = enterprise_id
+        request.data["market_name"] = market_name
+        new_market = app_market_service.update_app_market(market_model, request.data)
+        result = general_message(200, "success", None, list=new_market.to_dict())
+        return Response(result, status=200)
+
+    def delete(self, request, enterprise_id, market_name, *args, **kwargs):
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        market_model.delete()
+        result = general_message(200, "success", None)
+        return Response(result, status=200)
+
+
+class AppMarketAppModelLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, market_name, *args, **kwargs):
+        query = request.GET.get("query", None)
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page", 10))
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        data, page, page_size, total = app_market_service.get_market_app_models(
+            market_model, page, page_size, query=query, extend=True)
+        result = general_message(200, msg="success", msg_show=None, list=data, page=page, page_size=page_size, total=total)
+        return Response(result, status=200)
+
+    def post(self, request, enterprise_id, market_name, *args, **kwargs):
+        dt = {
+            "app_classification_id": request.data.get("app_classification_id"),
+            "desc": request.data.get("desc"),
+            "logo": request.data.get("logo"),
+            "name": request.data.get("name"),
+            "publish_type": request.data.get("publish_type"),
+            "tags": request.data.get("tags"),
+            "introduction": request.data.get("introduction"),
+        }
+        market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        rst = app_market_service.create_market_app_model(market, body=dt)
+        result = general_message(200, msg="success", msg_show=None, bean=(rst.to_dict() if rst else None))
+        return Response(result, status=200)
+
+
+class AppMarketAppModelVersionsLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, market_name, app_id, *args, **kwargs):
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        data = app_market_service.get_market_app_model_versions(market_model, app_id, extend=True)
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
 
-class CloudAppModelMarketInfo(JWTAuthApiView):
-    def get(self, request, enterprise_id, market_id, *args, **kwargs):
-        apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
-        data = []
-        if apps_versions:
-            for app in apps_versions:
-                versions = []
-                app_versions = app.app_versions
-                if app_versions:
-                    for version in app_versions:
-                        versions.append(version.app_version)
-                versions.sort()
-                data.append({
-                    "app_name": app.name,
-                    "app_id": app.app_key_id,
-                    "version": list(set(versions)),
-                    "pic": (app.logo if app.logo else app.pic),
-                    "app_describe": app.desc,
-                    "dev_status": app.dev_status,
-                    "scope": ("goodrain:" + app.publish_type).strip(":")
-                })
-        result = general_message(200, "success", None, list=data)
+class AppMarketAppModelVersionsRView(JWTAuthApiView):
+    def get(self, request, enterprise_id, market_name, app_id, version, *args, **kwargs):
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        data = app_market_service.get_market_app_model_version(market_model, app_id, version, extend=True)
+        result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)

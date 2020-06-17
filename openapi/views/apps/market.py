@@ -31,7 +31,8 @@ class AppInstallView(TeamAppAPIView):
         serializer = InstallSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        app = group_service.get_app_by_id(self.team, self.region_name, app_id)
+        app_id = serializer.data.get("app_id")
+        app = group_service.get_app_by_id(app_id)
         if not app:
             return Response(FailSerializer({"msg": "install target app not found"}), status=status.HTTP_400_BAD_REQUEST)
         tenant = team_services.get_team_by_team_id(app.tenant_id)
