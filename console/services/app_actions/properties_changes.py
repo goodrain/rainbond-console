@@ -104,11 +104,10 @@ class PropertiesChanges(object):
                 new_version_time = time.mktime(version.update_time.timetuple())
                 current_version_time = time.mktime(self.service_source.create_time.timetuple())
                 same, max_version = self.checkVersionG2(self.current_version.version, version.version)
-                if not same:
+                if not same and max_version != self.current_version.version:
                     upgradeble_versions.append(version.version)
-                else:
-                    if new_version_time > current_version_time:
-                        upgradeble_versions.append(version.version)
+                elif same and new_version_time > current_version_time:
+                    upgradeble_versions.append(version.version)
 
         else:
             app_version_list = app_market_service.get_market_app_model_versions(self.market, self.service_source.group_key)
@@ -118,9 +117,9 @@ class PropertiesChanges(object):
                 new_version_time = time.mktime(version.update_time.timetuple())
                 current_version_time = time.mktime(self.current_version.update_time.timetuple())
                 same, max_version = self.checkVersionG2(self.current_version.version, version.version)
-                if same and new_version_time > current_version_time:
+                if not same and max_version != self.current_version.version:
                     upgradeble_versions.append(version.version)
-                elif not same:
+                elif same and new_version_time > current_version_time:
                     upgradeble_versions.append(version.version)
         return upgradeble_versions
 
