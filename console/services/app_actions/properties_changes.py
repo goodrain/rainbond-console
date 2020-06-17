@@ -42,7 +42,7 @@ class PropertiesChanges(object):
             if extend_info and extend_info.get("install_from_cloud", False):
                 self.install_from_cloud = True
             if self.install_from_cloud:
-                self.market_name = extend_info.get("market_name", False)
+                self.market_name = extend_info.get("market_name", None)
                 self.market = app_market_repo.get_app_market_by_name(
                     tenant.enterprise_id, self.market_name, raise_exception=True)
             self.__get_current_app_and_version()
@@ -111,51 +111,26 @@ class PropertiesChanges(object):
                         upgradeble_versions.append(version.version)
 
         else:
-            app_version_list = app_market_service.get_market_app_model_versions(self.tenant.enterprise_id,
-                                                                                self.service_source.group_key, self.market_name)
+            app_version_list = app_market_service.get_market_app_model_versions(self.market, self.service_source.group_key)
             if not app_version_list:
                 return None
             for version in app_version_list:
                 new_version_time = time.mktime(version.update_time.timetuple())
                 current_version_time = time.mktime(self.current_version.update_time.timetuple())
-                if new_version_time > current_version_time:
-                    same, max_version = self.checkVersionG2(self.current_version.version, version.version)
-                    if not same:
-                        upgradeble_versions.append(version.version)
-
+                same, max_version = self.checkVersionG2(self.current_version.version, version.version)
+                if same and new_version_time > current_version_time:
+                    upgradeble_versions.append(version.version)
+                elif not same:
+                    upgradeble_versions.append(version.version)
         return upgradeble_versions
 
     def checkVersionG2(self, currentversion, expectedversion):
-        max_version = "0.0.0"
         same = False
-
-        currentversionBITS = currentversion.split(".")
-        expectedversionBITS = expectedversion.split(".")
-
-        if len(currentversionBITS) >= len(expectedversionBITS):
-            minbitversion = expectedversionBITS
-            maxbitversion = currentversionBITS
-        else:
-            minbitversion = currentversionBITS
-            maxbitversion = expectedversionBITS
-
-        for index, bit in enumerate(minbitversion):
-            try:
-                if int(bit) > int(maxbitversion[index]):
-                    max_version = ".".join(minbitversion)
-                    break
-                elif int(bit) < int(maxbitversion[index]):
-                    max_version = ".".join(maxbitversion)
-                    break
-                else:
-                    max_version = ".".join(maxbitversion)
-            except (IndexError, ValueError):
-                # ignore error
-                pass
-
-        if max_version == currentversion:
+        versions = [currentversion, expectedversion]
+        sort_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
+        max_version = sort_versions.pop()
+        if currentversion == expectedversion:
             same = True
-
         return same, max_version
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database

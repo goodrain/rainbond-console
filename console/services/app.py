@@ -889,7 +889,6 @@ class AppMarketService(object):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         results = app_store.get_app_version(market, app_id, version, for_install=for_install)
-        print results
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
 

@@ -763,7 +763,7 @@ class AppMarketAppModelLView(JWTAuthApiView):
         }
         market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         rst = app_market_service.create_market_app_model(market, body=dt)
-        result = general_message(200, msg="success", msg_show=None, bean=rst.to_dict())
+        result = general_message(200, msg="success", msg_show=None, bean=(rst.to_dict() if rst else None))
         return Response(result, status=200)
 
 

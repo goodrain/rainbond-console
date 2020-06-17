@@ -150,6 +150,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
         group_key = parse_argument(
             request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
+        market_name = request.GET.get("market_name")
 
         # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
@@ -171,7 +172,8 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
                 'type': UpgradeType.ADD.value
             },
             'upgrade_info': service_info,
-        } for service_info in upgrade_service.get_add_services(services, group_key, version)]
+        } for service_info in upgrade_service.get_add_services(self.team.enterprise_id, services, group_key, version,
+                                                               market_name)]
 
         return MessageResponse(msg="success", list=upgrade_info + add_info)
 

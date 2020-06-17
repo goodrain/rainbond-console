@@ -930,7 +930,7 @@ class MarketAppService(object):
             # get from cloud
             try:
                 market = app_market_service.get_app_market_by_name(
-                    tenant.enterprise_id, extend_info.get("marget_name"), raise_exception=True)
+                    tenant.enterprise_id, extend_info.get("market_name"), raise_exception=True)
                 resp = app_market_service.get_market_app_model_version(market, service_source.group_key, service_source.version)
                 if not resp:
                     raise app_not_found
