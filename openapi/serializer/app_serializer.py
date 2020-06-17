@@ -52,12 +52,23 @@ class AppInfoSerializer(AppBaseInfoSerializer):
     team_name = serializers.CharField(max_length=32, help_text=u"团队名")
     status = serializers.ChoiceField(choices=APP_STATUS_CHOICE, help_text=u"应用状态")
 
+class MarketInstallSerializer(serializers.Serializer):
+    enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
+    team_id = serializers.CharField(max_length=32, help_text=u"团队id")
+    note = serializers.CharField(max_length=1024, help_text=u"备注")
+    ID = serializers.IntegerField(help_text=u"应用id")
+    region_name = serializers.CharField(max_length=64, help_text=u"数据中心名")
+    service_list = ServiceBaseInfoSerializer(many=True)
+
+    def to_internal_value(self, data):
+        return data
+
 
 class InstallSerializer(serializers.Serializer):
     market_url = serializers.CharField(max_length=255, help_text=u"应用商店路由")
     market_domain = serializers.CharField(max_length=64, help_text=u"应用商店domain")
     market_type = serializers.CharField(max_length=64, help_text=u"应用商店类型")
-    market_access_key = serializers.CharField(max_length=64, help_text=u"应用商店令牌")
+    market_access_key = serializers.CharField(max_length=64, allow_null=True, help_text=u"应用商店令牌")
     app_model_id = serializers.CharField(max_length=64, help_text=u"应用id")
     app_model_version = serializers.CharField(max_length=64, help_text=u"应用版本")
 
