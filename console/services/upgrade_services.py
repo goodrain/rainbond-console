@@ -2,6 +2,8 @@
 """存放组件升级细节"""
 import json
 import logging
+from enum import Enum
+from copy import deepcopy
 from datetime import datetime
 
 import httplib2
@@ -10,12 +12,14 @@ from django.db.models import Q
 from market_client.rest import ApiException
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
-from console.exception.main import (AbortRequest, RbdAppNotFound, RecordNotFound, ServiceHandleException)
+from console.exception.main import (AbortRequest, RbdAppNotFound, RecordNotFound, ServiceHandleException,
+                                    ResourceNotEnoughException, AccountOverdueException, )
 from console.models.main import (AppUpgradeRecord, RainbondCenterAppVersion, ServiceSourceInfo, ServiceUpgradeRecord,
                                  UpgradeStatus)
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
+from console.services.group_service import group_service
 from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app)
@@ -27,6 +31,11 @@ from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+
+
+class UpgradeType(Enum):
+    UPGRADE = 'upgrade'
+    ADD = 'add'
 
 
 class UpgradeService(object):
@@ -403,6 +412,93 @@ class UpgradeService(object):
                 "ID": service_record.ID
             } for service_record in app_record.service_upgrade_records.all()],
             **app_record.to_dict())
+
+    def get_upgrade_info(self, team, services, app_model_id, app_model_version, market_name):
+        # 查询某一个云市应用下的所有组件
+        upgrade_info = {
+            service.service_id: upgrade_service.get_service_changes(service, team, app_model_version)
+            for service in services
+        }
+
+        add_info = {
+            service_info['service_key']: service_info
+            for service_info in upgrade_service.get_add_services(
+                team.enterprise_id, services, app_model_id, app_model_version, market_name)
+        }
+        return upgrade_info, add_info
+
+    @transaction.atomic()
+    def openapi_upgrade_app_models(self, user, team, region_name, oauth_instance, app_id, data):
+        from console.services.market_app_service import market_app_service
+        update_versions = data["update_versions"]
+        for update_version in update_versions:
+            app_model_id = update_version["app_model_id"]
+            app_model_version = update_version["app_model_version"]
+            market_name = update_version["market_name"]
+            services = group_service.get_rainbond_services(int(app_id), app_model_id)
+            if not services:
+                continue
+            pc = PropertiesChanges(services.first(), team)
+            recode_kwargs = {
+                "tenant_id": team.tenant_id,
+                "group_id": int(app_id),
+                "group_key": app_model_id,
+                "is_from_cloud": bool(market_name),
+                "market_name": market_name,
+            }
+
+            # 获取升级信息
+            upgrade_info, add_info = self.get_upgrade_info(team, services, app_model_id, app_model_version, market_name)
+
+            # 生成升级记录
+            app_record = self.get_or_create_upgrade_record(**recode_kwargs)
+            self.synchronous_upgrade_status(team, app_record)
+            app_record = AppUpgradeRecord.objects.get(ID=app_record.ID)
+
+            # 处理新增的组件
+            install_info = {}
+            if add_info:
+                old_app = app_market_service.get_market_app_model_version(pc.market, app_model_id, app_model_version, for_install=True)
+                new_app = deepcopy(old_app)
+                # mock app信息
+                template = json.loads(new_app.template)
+                template['apps'] = add_info.values()
+                new_app.template = json.dumps(template)
+
+                # 查询某一个云市应用下的所有组件
+                try:
+                    install_info = market_app_service.install_service_when_upgrade_app(team, region_name, user, app_id,
+                                                                                       new_app, old_app, services, True,
+                                                                                       pc.install_from_cloud, pc.market_name)
+                except ResourceNotEnoughException as re:
+                    raise re
+                except AccountOverdueException as re:
+                    logger.exception(re)
+                    raise ServiceHandleException(msg="resource is not enough", msg_show=re.message, status_code=412,
+                                                 error_code=10406)
+                upgrade_service.create_add_service_record(app_record, install_info['events'], add_info)
+
+            app_record.version = app_model_version
+            app_record.old_version = pc.current_version.version
+            app_record.save()
+            # 处理升级组件
+            upgrade_services = service_repo.get_services_by_service_ids_and_group_key(app_model_id, upgrade_info.keys())
+            market_services = [
+                self.market_service_and_create_backup(team, service, app_record.version) for service in upgrade_services
+            ]
+            # 处理依赖关系
+            if add_info:
+                market_app_service.save_service_deps_when_upgrade_app(
+                    team,
+                    install_info['service_key_dep_key_map'],
+                    install_info['key_service_map'],
+                    install_info['apps'],
+                    install_info['app_map'],
+                )
+
+            upgrade_service.upgrade_database(market_services)
+            upgrade_service.send_upgrade_request(market_services, team, user, app_record, upgrade_info, oauth_instance)
+            upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
 
 
 upgrade_service = UpgradeService()

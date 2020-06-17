@@ -4,14 +4,15 @@
 import logging
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from openapi.views.base import TeamAppAPIView
+from openapi.views.base import TeamAppAPIView, EnterpriseServiceOauthView
 from rest_framework import status
 from openapi.serializer.base_serializer import FailSerializer
 from rest_framework.response import Response
 from django.forms.models import model_to_dict
 from console.exception.main import ServiceHandleException
-from openapi.serializer.app_serializer import InstallSerializer, ServiceBaseInfoSerializer, AppInfoSerializer, MarketInstallSerializer
+from openapi.serializer.app_serializer import InstallSerializer, ListUpgradeSerializer, UpgradeSerializer, MarketInstallSerializer
 from console.services.group_service import group_service
+from console.services.upgrade_services import upgrade_service
 from console.services.team_services import team_services
 from console.services.market_app_service import market_app_service
 from console.services.market_app_service import market_sycn_service
@@ -84,5 +85,36 @@ class AppInstallView(TeamAppAPIView):
         return Response(reapp.data, status=status.HTTP_200_OK)
 
 # 应用升级
-class AppUpgradeView(TeamAppAPIView):
-    pass
+class AppUpgradeView(TeamAppAPIView, EnterpriseServiceOauthView):
+    @swagger_auto_schema(
+        operation_description="升级应用",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        responses={200: ListUpgradeSerializer()},
+        tags=['openapi-apps'],
+    )
+    def get(self, request, *args, **kwargs):
+        app_models = market_app_service.get_market_apps_in_app(self.region_name, self.team, self.app)
+        serializer = ListUpgradeSerializer(data=app_models, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=200)
+
+    @swagger_auto_schema(
+        operation_description="升级应用",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=UpgradeSerializer(),
+        responses={200: ListUpgradeSerializer()},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = UpgradeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        upgrade_service.openapi_upgrade_app_models(self.user, self.team, self.region_name, self.oauth_instance,
+                                                   self.app.ID, serializer.data)
+        app_models = market_app_service.get_market_apps_in_app(self.region_name, self.team, self.app)
+        serializer = ListUpgradeSerializer(data=app_models, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=200)

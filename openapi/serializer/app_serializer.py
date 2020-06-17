@@ -73,6 +73,27 @@ class InstallSerializer(serializers.Serializer):
     app_model_version = serializers.CharField(max_length=64, help_text=u"应用版本")
 
 
+class ListUpgradeSerializer(serializers.Serializer):
+    market_name = serializers.CharField(max_length=64, help_text=u"应用商店名称")
+    app_model_id = serializers.CharField(max_length=32, help_text=u"应用模型id")
+    app_model_name = serializers.CharField(max_length=64, help_text=u"应用模型名称")
+    current_version = serializers.CharField(max_length=64, help_text=u"当前版本")
+    enterprise_id = serializers.CharField(max_length=64, help_text=u"企业id")
+    can_upgrade = serializers.BooleanField(help_text=u"可升级")
+    upgrade_versions = serializers.ListField(help_text=u"可升级的版本列表")
+    source = serializers.CharField(max_length=32, help_text=u"应用模型来源")
+
+
+class UpgradeBaseSerializer(serializers.Serializer):
+    market_name = serializers.CharField(max_length=64, allow_null=True, help_text=u"应用商店名称")
+    app_model_id = serializers.CharField(max_length=32, help_text=u"应用模型id")
+    app_model_version = serializers.CharField(max_length=64, help_text=u"当前版本")
+
+
+class UpgradeSerializer(serializers.Serializer):
+    update_versions = UpgradeBaseSerializer(many=True)
+
+
 class ServiceGroupOperationsSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=ACTION_CHOICE, help_text=u"操作类型")
     service_ids = serializers.ListField(help_text=u"组件ID列表，不传值则操作应用下所有组件", required=False, default=None)

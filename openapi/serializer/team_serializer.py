@@ -30,7 +30,7 @@ class TeamInfoSerializer(serializers.Serializer):
     tenant_alias = serializers.CharField(max_length=24, help_text=u"团队别名")
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID")
     is_active = serializers.BooleanField(help_text=u"是否激活", required=False)
-    create_time = serializers.DateTimeField(help_text=u"创建时间", required=False)
+    create_time = serializers.CharField(max_length=64, help_text=u"创建时间", required=False)
     creater = serializers.CharField(help_text=u"团队拥有者用户", required=False)
     service_num = serializers.IntegerField(help_text=u"团队的组件数量", required=False)
     region_num = serializers.IntegerField(help_text=u"团队开通的数据中心数量", required=False)
@@ -99,7 +99,7 @@ class ListTeamRegionsRespSerializer(serializers.Serializer):
 
 
 class TeamServicesRespSerializer(serializers.Serializer):
-    update_time = serializers.DateTimeField(help_text=u"更新日期")
+    update_time = serializers.CharField(max_length=64, help_text=u"更新日期")
     deploy_version = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组件版本")
     service_alias = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组件昵称")
     service_cname = serializers.CharField(max_length=255, allow_blank=True, allow_null=True, help_text=u"组件名称")
@@ -121,7 +121,7 @@ class CertificatesRSerializer(serializers.Serializer):
     issued_to = serializers.ListField(help_text=u"域名列表")
     alias = serializers.CharField(max_length=64, help_text=u"证书名称")
     certificate_type = serializers.CharField(max_length=32, help_text=u"证书类型")
-    end_data = serializers.DateTimeField(help_text=u"过期时间")
+    end_data = serializers.CharField(max_length=64, help_text=u"过期时间")
     id = serializers.IntegerField(help_text=u"id")
     issued_by = serializers.CharField(max_length=32, help_text=u"证书来源")
 

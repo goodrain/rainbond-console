@@ -1265,6 +1265,7 @@ class MarketAppService(object):
             tenant_service_group_id = None
             pic = None
             source = None
+            market_name = None
             describe = None
             enterprise_id = None
             is_official = None
@@ -1282,6 +1283,7 @@ class MarketAppService(object):
                     tenant_service_group_id = group.ID
                     pic = pc.current_app.pic
                     source = pc.current_app.source
+                    market_name = pc.market_name
                     describe = pc.current_app.describe
                     enterprise_id = pc.current_app.enterprise_id
                     is_official = pc.current_app.is_official
@@ -1293,11 +1295,14 @@ class MarketAppService(object):
             dat = {
                 'group_key': group_key,
                 'group_name': group_name,
+                'app_model_name': group_name,
+                'app_model_id': group_key,
                 'share_user': share_user,
                 'share_team': share_team,
                 'tenant_service_group_id': tenant_service_group_id,
                 'pic': pic,
                 'source': source,
+                'market_name': market_name,
                 'describe': describe,
                 'enterprise_id': enterprise_id,
                 'is_official': is_official,
