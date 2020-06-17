@@ -732,7 +732,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(url, self.default_headers, region=region, timeout=20)
         return res, body
 
     def get_events_log(self, tenant_name, region, event_id):
@@ -791,10 +791,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_region_tenants_resources(self, region, data, enterprise_id=""):
         """获取租户在数据中心下的资源使用情况"""
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
-        # url, token = self.__get_region_access_info(tenant_name, region)
         url += "/v2/resources/tenants"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(data), region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(data), region=region, timeout=20)
         return body
 
     def get_service_resources(self, tenant_name, region, data):
