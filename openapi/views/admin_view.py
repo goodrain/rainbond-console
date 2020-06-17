@@ -57,8 +57,6 @@ class ListAdminsView(BaseOpenAPIView):
         operation_description="添加企业用户",
         request_body=CreateAdminUserReqSerializer,
         responses={
-            status.HTTP_201_CREATED: None,
-            status.HTTP_404_NOT_FOUND: None,
         },
         tags=['openapi-user'],
     )
@@ -83,7 +81,6 @@ class AdminInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="删除企业管理员",
         responses={
-            status.HTTP_200_OK: None,
             status.HTTP_400_BAD_REQUEST: FailSerializer(),
             status.HTTP_404_NOT_FOUND: FailSerializer(),
         },

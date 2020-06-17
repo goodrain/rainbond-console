@@ -729,6 +729,9 @@ class AppMarketService(object):
     def get_app_market_by_name(self, enterprise_id, name, raise_exception=False):
         return app_market_repo.get_app_market_by_name(enterprise_id, name, raise_exception=raise_exception)
 
+    def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
+        return app_market_repo.get_app_market_by_domain_url(enterprise_id, domain, url, raise_exception=raise_exception)
+
     def create_app_market(self, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:

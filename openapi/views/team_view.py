@@ -68,8 +68,6 @@ class ListTeamInfo(BaseOpenAPIView):
         request_body=CreateTeamReqSerializer(),
         responses={
             status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )
@@ -78,7 +76,7 @@ class ListTeamInfo(BaseOpenAPIView):
         serializer.is_valid(raise_exception=True)
         team_data = serializer.data
 
-        en = enterprise_services.get_enterprise_by_enterprise_id(request.data.get("enterprise_id"))
+        en = self.enterprise
         if not en:
             raise serializers.ValidationError("指定企业不存在")
         region = None
@@ -108,8 +106,6 @@ class TeamInfo(TeamNoRegionAPIView):
         operation_description="获取团队",
         responses={
             status.HTTP_200_OK: TeamInfoSerializer(),
-            status.HTTP_404_NOT_FOUND: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None
         },
         tags=['openapi-team'],
     )
@@ -124,9 +120,6 @@ class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="删除团队",
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None
         },
         tags=['openapi-team'],
     )
@@ -148,8 +141,6 @@ class TeamInfo(TeamNoRegionAPIView):
         operation_description="更新团队信息",
         request_body=UpdateTeamInfoReqSerializer,
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
         },
         tags=['openapi-team'],
     )
@@ -205,9 +196,7 @@ class TeamUserInfoView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="将用户从团队中移除",
         responses={
-            status.HTTP_200_OK: None,
             status.HTTP_404_NOT_FOUND: FailSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None
         },
         tags=['openapi-team'],
     )
@@ -228,9 +217,6 @@ class TeamUserInfoView(TeamAPIView):
         operation_description="add team user",
         request_body=CreateTeamUserReqSerializer(),
         responses={
-            status.HTTP_201_CREATED: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )
@@ -245,9 +231,6 @@ class TeamUserInfoView(TeamAPIView):
         operation_description="update team user",
         request_body=CreateTeamUserReqSerializer(),
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
             status.HTTP_404_NOT_FOUND: FailSerializer(),
         },
         tags=['openapi-team'],
@@ -301,8 +284,6 @@ class ListRegionsView(TeamNoRegionAPIView):
         request_body=TeamRegionReqSerializer(),
         responses={
             status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team-region'],
     )
@@ -331,8 +312,6 @@ class TeamRegionView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="关闭数据中心",
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
         },
         tags=['openapi-team-region'],
     )
@@ -404,8 +383,6 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         request_body=TeamCertificatesCSerializer(),
         responses={
             status.HTTP_200_OK: TeamCertificatesRSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )
@@ -441,8 +418,6 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         request_body=TeamCertificatesCSerializer(),
         responses={
             status.HTTP_200_OK: TeamCertificatesRSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )
@@ -462,9 +437,6 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="删除证书",
         responses={
-            status.HTTP_201_CREATED: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )

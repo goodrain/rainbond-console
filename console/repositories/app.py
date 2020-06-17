@@ -358,6 +358,13 @@ class AppMarketRepository(object):
                 raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
         return market
 
+    def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
+        market = AppMarket.objects.filter(enterprise_id=enterprise_id, domain=domain, url=url).first()
+        if raise_exception:
+            if not market:
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+        return market
+
     def create_app_market(self, **kwargs):
         return AppMarket.objects.create(**kwargs)
 

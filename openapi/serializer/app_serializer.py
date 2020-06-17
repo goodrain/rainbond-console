@@ -60,7 +60,6 @@ class InstallSerializer(serializers.Serializer):
     market_access_key = serializers.CharField(max_length=64, help_text=u"应用商店令牌")
     app_model_id = serializers.CharField(max_length=64, help_text=u"应用id")
     app_model_version = serializers.CharField(max_length=64, help_text=u"应用版本")
-    app_id = serializers.CharField(max_length=64, help_text=u"应用组id")
 
 
 class ServiceGroupOperationsSerializer(serializers.Serializer):

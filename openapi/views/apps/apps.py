@@ -62,6 +62,9 @@ class ListAppsView(TeamAPIView):
 class AppInfoView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="应用详情",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: AppInfoSerializer()},
         tags=['openapi-apps'],
     )
@@ -94,8 +97,9 @@ class AppInfoView(TeamAppAPIView):
         operation_description="删除应用",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
-        responses={200: None},
+        responses={},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, *args, **kwargs):
@@ -150,6 +154,9 @@ class APPOperationsView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="操作应用",
         request_body=ServiceGroupOperationsSerializer(),
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={
             status.HTTP_200_OK: SuccessSerializer,
             status.HTTP_400_BAD_REQUEST: FailSerializer,
@@ -192,6 +199,9 @@ class APPOperationsView(TeamAppAPIView):
 class ListAppServicesView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="查询应用下组件列表",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: ServiceBaseInfoSerializer(many=True)},
         tags=['openapi-apps'],
     )
@@ -205,6 +215,9 @@ class ListAppServicesView(TeamAppAPIView):
 class AppServicesView(TeamAppServiceAPIView):
     @swagger_auto_schema(
         operation_description="查询组件信息",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: ServiceBaseInfoSerializer()},
         tags=['openapi-apps'],
     )
@@ -223,8 +236,9 @@ class AppServicesView(TeamAppServiceAPIView):
         operation_description="删除组件",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
-        responses={200: None},
+        responses={},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, service_id, *args, **kwargs):
@@ -252,6 +266,7 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         manual_parameters=[
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_INTEGER),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         responses={200: ListServiceEventsResponse()},
         tags=['openapi-apps'],
@@ -272,9 +287,11 @@ class AppServiceEventsView(TeamAppServiceAPIView):
 class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceOauthView):
     @swagger_auto_schema(
         operation_description="组件垂直伸缩",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         request_body=AppServiceTelescopicVerticalSerializer,
         responses={
-            status.HTTP_200_OK: None,
         },
         tags=['openapi-apps'],
     )
@@ -292,9 +309,11 @@ class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceO
 class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServiceOauthView):
     @swagger_auto_schema(
         operation_description="组件水平伸缩",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         request_body=AppServiceTelescopicHorizontalSerializer,
         responses={
-            status.HTTP_200_OK: None,
         },
         tags=['openapi-apps'],
     )
@@ -312,7 +331,6 @@ class TeamAppsCloseView(TeamAPIView):
         operation_description="批量关闭应用",
         request_body=TeamAppsCloseSerializers,
         responses={
-            status.HTTP_200_OK: None,
         },
         tags=['openapi-apps'],
     )

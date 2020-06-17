@@ -28,7 +28,9 @@ logger = logging.getLogger("default")
 class ListAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="获取应用http访问策略列表",
-        manual_parameters=[],
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: HTTPGatewayRuleSerializer(many=True)},
         tags=['openapi-gateway'],
     )
@@ -115,8 +117,9 @@ class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):
 class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="更新HTTP访问策略",
-        manual_parameters=[],
-        request_body=UpdatePostHTTPGatewayRuleSerializer(),
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],        request_body=UpdatePostHTTPGatewayRuleSerializer(),
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )

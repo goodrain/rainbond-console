@@ -3,7 +3,6 @@
 from rest_framework import serializers
 
 from openapi.serializer.role_serializer import RoleInfoSerializer
-from www.models.main import Tenants
 
 
 class TeamInfoPostSerializer(serializers.Serializer):
@@ -11,10 +10,18 @@ class TeamInfoPostSerializer(serializers.Serializer):
     team_owner = serializers.IntegerField(help_text=u"团队拥有者用户ID")
 
 
-class TeamBaseInfoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tenants
-        exclude = ["pay_type", "balance", "pay_level"]
+class TeamBaseInfoSerializer(serializers.Serializer):
+    tenant_id = serializers.CharField(max_length=64, help_text=u"租户id")
+    tenant_name = serializers.CharField(max_length=64, help_text=u"租户名称")
+    region = serializers.CharField(max_length=64, default='', help_text=u"区域中心,弃用")
+    is_active = serializers.BooleanField(default=True, help_text=u"激活状态")
+    create_time = serializers.CharField(max_length=64, help_text=u"创建时间")
+    creater = serializers.IntegerField(help_text=u"租户创建者", default=0)
+    limit_memory = serializers.IntegerField(help_text=u"内存大小单位（M）", default=1024)
+    update_time = serializers.CharField(max_length=64, help_text=u"更新时间")
+    expired_time = serializers.CharField(max_length=64, help_text=u"过期时间")
+    tenant_alias = serializers.CharField(max_length=64, allow_null=True, default='', help_text=u"团队别名")
+    enterprise_id = serializers.CharField(max_length=32, allow_null=True, default='', help_text=u"企业id")
 
 
 class TeamInfoSerializer(serializers.Serializer):
