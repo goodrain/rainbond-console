@@ -24,9 +24,6 @@ from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from console.enum.component_enum import is_support, is_state
-from www.apiclient.marketclient import MarketOpenAPI
-
-market_openapi = MarketOpenAPI()
 
 logger = logging.getLogger("default")
 

@@ -807,7 +807,7 @@ class ShareService(object):
                     for service in services:
                         # slug组件
                         if delivered_type_map[service['service_id']] == "slug":
-                            service['service_slug'] = app_store.get_slug_connection_info(scope, share_team.tenant_name)
+                            service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id)
                             service["share_type"] = "slug"
                             if not service['service_slug']:
                                 if sid:

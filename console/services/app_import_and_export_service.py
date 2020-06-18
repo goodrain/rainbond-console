@@ -15,7 +15,6 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import AppServiceRelationService
 from www.apiclient.baseclient import client_auth_service
-from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -27,7 +26,6 @@ from www.models.main import TenantRegionInfo
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
-market_api = MarketOpenAPI()
 region_api = RegionInvokeApi()
 
 
@@ -256,7 +254,7 @@ class AppImportService(object):
         if team_name:
             import_record.team_name = team_name
 
-        service_image = app_store.get_image_connection_info(scope, import_record.enterprise_id, team_name)
+        service_image = app_store.get_app_hub_info()
         data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
         if scope == "enterprise":
             region_api.import_app_2_enterprise(import_record.region, import_record.enterprise_id, data)
