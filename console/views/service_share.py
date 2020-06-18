@@ -611,39 +611,6 @@ class ShareServicesListView(RegionTenantHeaderView):
         return Response(rst, status=200)
 
 
-class ServiceGroupAppCView(RegionTenantHeaderView):
-    def post(self, request, team_name, *args, **kwargs):
-        name = request.data.get("name")
-        describe = request.data.get("describe", 'This is a default description.')
-        pic = request.data.get("pic")
-        scope = request.data.get("scope")
-        details = request.data.get("details")
-        app_id = make_uuid()
-        dev_status = request.data.get("dev_status")
-        market_name = request.data.get("market_name")
-
-        data = {
-            "name": name,
-            "describe": describe,
-            "pic": pic,
-            "app_id": app_id,
-            "dev_status": dev_status,
-            "share_team": team_name,
-            "source": "local",
-            "scope": scope,
-            "details": details,
-        }
-        if not (name and scope):
-            result = general_message(400, "error params", None)
-            return Response(result, status=200)
-        if scope == "goodrain":
-            share_service.create_cloud_app(self.tenant, market_name, data)
-        else:
-            share_repo.create_app(data)
-        result = general_message(200, "success", None)
-        return Response(result, status=200)
-
-
 class ServiceGroupSharedApps(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         scope = request.GET.get("scope", None)
