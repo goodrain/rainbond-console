@@ -56,8 +56,7 @@ class ListAdminsView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="添加企业用户",
         request_body=CreateAdminUserReqSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def post(self, req, *args, **kwargs):

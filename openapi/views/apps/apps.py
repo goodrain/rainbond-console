@@ -22,9 +22,6 @@ from openapi.serializer.base_serializer import (FailSerializer, SuccessSerialize
 from openapi.services.app_service import app_service
 from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView, EnterpriseServiceOauthView)
 from openapi.views.exceptions import ErrAppNotFound
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import AccountOverdueException
-
 
 logger = logging.getLogger("default")
 
@@ -291,8 +288,7 @@ class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceO
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         request_body=AppServiceTelescopicVerticalSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-apps'],
     )
     def post(self, request, *args, **kwargs):
@@ -313,8 +309,7 @@ class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServic
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         request_body=AppServiceTelescopicHorizontalSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-apps'],
     )
     def post(self, request, *args, **kwargs):
@@ -330,8 +325,7 @@ class TeamAppsCloseView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="批量关闭应用",
         request_body=TeamAppsCloseSerializers,
-        responses={
-        },
+        responses={},
         tags=['openapi-apps'],
     )
     def post(self, request, team_id, region_name, *args, **kwargs):

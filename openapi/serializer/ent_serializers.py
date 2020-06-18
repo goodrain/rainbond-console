@@ -2,12 +2,14 @@
 # creater by: abe
 from rest_framework import serializers
 
+from openapi.serializer.utils import DateCharField
+
 
 class EnterpriseInfoSerializer(serializers.Serializer):
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
     enterprise_name = serializers.CharField(max_length=64, help_text=u"企业名称")
     enterprise_alias = serializers.CharField(max_length=64, help_text=u"企业别名")
-    create_time = serializers.CharField(max_length=64, help_text=u"创建时间")
+    create_time = DateCharField(max_length=64, help_text=u"创建时间")
 
 
 class ListEntsRespSerializer(serializers.Serializer):

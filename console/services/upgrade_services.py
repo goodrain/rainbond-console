@@ -6,14 +6,17 @@ from enum import Enum
 from copy import deepcopy
 from datetime import datetime
 
-import httplib2
 from django.db import DatabaseError, transaction
 from django.db.models import Q
-from market_client.rest import ApiException
-from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
-from console.exception.main import (AbortRequest, RbdAppNotFound, RecordNotFound, ServiceHandleException,
-                                    ResourceNotEnoughException, AccountOverdueException, )
+from console.exception.main import (
+    AbortRequest,
+    RbdAppNotFound,
+    RecordNotFound,
+    ServiceHandleException,
+    ResourceNotEnoughException,
+    AccountOverdueException,
+)
 from console.models.main import (AppUpgradeRecord, RainbondCenterAppVersion, ServiceSourceInfo, ServiceUpgradeRecord,
                                  UpgradeStatus)
 from console.repositories.app import service_repo
@@ -23,8 +26,6 @@ from console.services.group_service import group_service
 from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app)
-from console.utils.restful_client import (get_default_market_client, get_market_client)
-from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
@@ -422,8 +423,8 @@ class UpgradeService(object):
 
         add_info = {
             service_info['service_key']: service_info
-            for service_info in upgrade_service.get_add_services(
-                team.enterprise_id, services, app_model_id, app_model_version, market_name)
+            for service_info in upgrade_service.get_add_services(team.enterprise_id, services, app_model_id, app_model_version,
+                                                                 market_name)
         }
         return upgrade_info, add_info
 
@@ -458,7 +459,8 @@ class UpgradeService(object):
             # 处理新增的组件
             install_info = {}
             if add_info:
-                old_app = app_market_service.get_market_app_model_version(pc.market, app_model_id, app_model_version, for_install=True)
+                old_app = app_market_service.get_market_app_model_version(
+                    pc.market, app_model_id, app_model_version, for_install=True)
                 new_app = deepcopy(old_app)
                 # mock app信息
                 template = json.loads(new_app.template)
@@ -467,15 +469,15 @@ class UpgradeService(object):
 
                 # 查询某一个云市应用下的所有组件
                 try:
-                    install_info = market_app_service.install_service_when_upgrade_app(team, region_name, user, app_id,
-                                                                                       new_app, old_app, services, True,
+                    install_info = market_app_service.install_service_when_upgrade_app(team, region_name, user, app_id, new_app,
+                                                                                       old_app, services, True,
                                                                                        pc.install_from_cloud, pc.market_name)
                 except ResourceNotEnoughException as re:
                     raise re
                 except AccountOverdueException as re:
                     logger.exception(re)
-                    raise ServiceHandleException(msg="resource is not enough", msg_show=re.message, status_code=412,
-                                                 error_code=10406)
+                    raise ServiceHandleException(
+                        msg="resource is not enough", msg_show=re.message, status_code=412, error_code=10406)
                 upgrade_service.create_add_service_record(app_record, install_info['events'], add_info)
 
             app_record.version = app_model_version

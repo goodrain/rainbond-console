@@ -3,6 +3,7 @@
 from rest_framework import serializers
 
 from openapi.serializer.role_serializer import RoleInfoSerializer
+from openapi.serializer.utils import DateCharField
 
 
 class UserInfoSerializer(serializers.Serializer):
@@ -12,7 +13,7 @@ class UserInfoSerializer(serializers.Serializer):
     phone = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=11, help_text=u"手机号码")
     is_active = serializers.BooleanField(required=False, help_text=u"激活状态")
     origion = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=12, help_text=u"用户来源")
-    create_time = serializers.CharField(max_length=64, required=False, help_text=u"创建时间")
+    create_time = DateCharField(max_length=64, required=False, help_text=u"创建时间")
     client_ip = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=20, help_text=u"注册ip")
     enterprise_id = serializers.CharField(required=False, max_length=32, help_text=u"enterprise_id")
 

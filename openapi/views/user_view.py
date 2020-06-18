@@ -62,8 +62,7 @@ class ListUsersView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="添加普通用户",
         request_body=CreateUserSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def post(self, req, *args, **kwargs):
@@ -100,8 +99,7 @@ class UserInfoView(BaseOpenAPIView):
 
     @swagger_auto_schema(
         operation_description="删除用户",
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def delete(self, req, user_id, *args, **kwargs):
@@ -114,8 +112,7 @@ class UserInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="更新用户信息",
         request_body=UpdateUserSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def put(self, req, user_id, *args, **kwargs):
@@ -168,8 +165,7 @@ class ChangePassword(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="修改自己账号密码",
         request_body=ChangePassWdSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def put(self, request, *args, **kwargs):
@@ -212,8 +208,7 @@ class ChangeUserPassword(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="修改用户密码",
         request_body=ChangePassWdUserSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def put(self, request, *args, **kwargs):

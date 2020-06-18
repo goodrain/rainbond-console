@@ -3,6 +3,7 @@
 from rest_framework import serializers
 
 from www.models.main import ServiceGroup, TenantServiceInfo
+from openapi.serializer.utils import DateCharField
 
 ACTION_CHOICE = (
     ("stop", ("stop")),
@@ -35,7 +36,7 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
         exclude = [
             "ID", "service_port", "is_web_service", "setting", "env", "inner_port", "volume_mount_path", "host_path",
             "deploy_version", "is_code_upload", "protocol", "namespace", "volume_type", "port_type", "service_name", "secret",
-            "git_full_name"
+            "git_full_name", "update_time", "create_time", "expired_time"
         ]
 
     # component status
@@ -51,6 +52,7 @@ class AppInfoSerializer(AppBaseInfoSerializer):
     app_id = serializers.IntegerField(help_text=u"应用id")
     team_name = serializers.CharField(max_length=32, help_text=u"团队名")
     status = serializers.ChoiceField(choices=APP_STATUS_CHOICE, help_text=u"应用状态")
+
 
 class MarketInstallSerializer(serializers.Serializer):
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
@@ -109,7 +111,7 @@ class AppServiceEventsSerializer(serializers.Serializer):
     ServiceID = serializers.CharField(max_length=64, help_text=u"服务id")
     Status = serializers.CharField(max_length=64, help_text=u"状态")
     RequestBody = serializers.CharField(max_length=64, help_text=u"请求参数")
-    create_time = serializers.CharField(max_length=64, help_text=u"创建时间")
+    create_time = DateCharField(max_length=64, help_text=u"创建时间")
     FinalStatus = serializers.CharField(max_length=64, help_text=u"最终状态")
     StartTime = serializers.CharField(max_length=64, help_text=u"开始时间")
     SynType = serializers.CharField(max_length=64, help_text=u"同步状态")

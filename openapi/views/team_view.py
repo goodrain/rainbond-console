@@ -75,6 +75,8 @@ class ListTeamInfo(BaseOpenAPIView):
         serializer = CreateTeamReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         team_data = serializer.data
+        team_data["creater"] = self.user.user_id
+        team_data["enterprise_id"] = self.enterprise.enterprise_id
 
         en = self.enterprise
         if not en:
@@ -119,13 +121,19 @@ class TeamInfo(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="删除团队",
-        responses={
-        },
+        manual_parameters=[
+            openapi.Parameter(
+                "force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true", "false"]),
+        ],
+        responses={},
         tags=['openapi-team'],
     )
     def delete(self, req, team_id, *args, **kwargs):
+        force = req.GET.get("force", False)
+        if force == "true":
+            force = True
         try:
-            res = team_services.delete_by_tenant_id(tenant_id=team_id)
+            res = team_services.delete_by_tenant_id(self.user, self.team, force=force)
             if res:
                 return Response(None, status.HTTP_200_OK)
             else:
@@ -140,8 +148,7 @@ class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="更新团队信息",
         request_body=UpdateTeamInfoReqSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-team'],
     )
     def put(self, req, team_id, *args, **kwargs):
@@ -216,8 +223,7 @@ class TeamUserInfoView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="add team user",
         request_body=CreateTeamUserReqSerializer(),
-        responses={
-        },
+        responses={},
         tags=['openapi-team'],
     )
     def post(self, req, team_id, user_id):
@@ -311,8 +317,7 @@ class ListRegionsView(TeamNoRegionAPIView):
 class TeamRegionView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="关闭数据中心",
-        responses={
-        },
+        responses={},
         tags=['openapi-team-region'],
     )
     def delete(self, request, team_id):
@@ -436,8 +441,7 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="删除证书",
-        responses={
-        },
+        responses={},
         tags=['openapi-team'],
     )
     def delete(self, request, team_id, certificate_id, *args, **kwargs):

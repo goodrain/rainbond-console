@@ -41,8 +41,7 @@ from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppD
 from console.views.center_pool.app_export import (CenterAppExportView, ExportFileDownLoadView)
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
                                                   CenterAppUploadView, EnterpriseAppImportInitView, ImportingRecordView)
-from console.views.center_pool.apps import (AppTagCDView, CenterAppCLView, CenterAppUDView, CenterAppView, TagCLView,
-                                            TagUDView)
+from console.views.center_pool.apps import (AppTagCDView, CenterAppCLView, CenterAppUDView, CenterAppView, TagCLView, TagUDView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -84,11 +83,11 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
 from console.views.region import (GetRegionPublicKeyView, OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import (
-    ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView, ServiceShareDeleteView,
-    ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
-    ServiceShareRecordView, ShareRecordHistoryView, ShareRecordView, AppMarketCLView, AppMarketRUDView,
-    AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView)
+from console.views.service_share import (ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
+                                         ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost,
+                                         ServiceShareInfoView, ServiceShareRecordInfoView, ServiceShareRecordView,
+                                         ShareRecordHistoryView, ShareRecordView, AppMarketCLView, AppMarketRUDView,
+                                         AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance

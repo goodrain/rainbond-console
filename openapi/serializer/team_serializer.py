@@ -2,6 +2,7 @@
 # creater by: barnett
 from rest_framework import serializers
 
+from openapi.serializer.utils import DateCharField
 from openapi.serializer.role_serializer import RoleInfoSerializer
 
 
@@ -15,11 +16,11 @@ class TeamBaseInfoSerializer(serializers.Serializer):
     tenant_name = serializers.CharField(max_length=64, help_text=u"租户名称")
     region = serializers.CharField(max_length=64, default='', help_text=u"区域中心,弃用")
     is_active = serializers.BooleanField(default=True, help_text=u"激活状态")
-    create_time = serializers.CharField(max_length=64, help_text=u"创建时间")
+    create_time = DateCharField(max_length=64, help_text=u"创建时间")
     creater = serializers.IntegerField(help_text=u"租户创建者", default=0)
     limit_memory = serializers.IntegerField(help_text=u"内存大小单位（M）", default=1024)
-    update_time = serializers.CharField(max_length=64, help_text=u"更新时间")
-    expired_time = serializers.CharField(max_length=64, help_text=u"过期时间")
+    update_time = DateCharField(max_length=64, help_text=u"更新时间")
+    expired_time = DateCharField(max_length=64, help_text=u"过期时间")
     tenant_alias = serializers.CharField(max_length=64, allow_null=True, default='', help_text=u"团队别名")
     enterprise_id = serializers.CharField(max_length=32, allow_null=True, default='', help_text=u"企业id")
 
@@ -30,7 +31,7 @@ class TeamInfoSerializer(serializers.Serializer):
     tenant_alias = serializers.CharField(max_length=24, help_text=u"团队别名")
     enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID")
     is_active = serializers.BooleanField(help_text=u"是否激活", required=False)
-    create_time = serializers.CharField(max_length=64, help_text=u"创建时间", required=False)
+    create_time = DateCharField(help_text=u"创建时间", required=False)
     creater = serializers.CharField(help_text=u"团队拥有者用户", required=False)
     service_num = serializers.IntegerField(help_text=u"团队的组件数量", required=False)
     region_num = serializers.IntegerField(help_text=u"团队开通的数据中心数量", required=False)
@@ -44,8 +45,6 @@ class ListTeamRespSerializer(serializers.Serializer):
 
 class CreateTeamReqSerializer(serializers.Serializer):
     tenant_name = serializers.CharField(max_length=24, help_text=u"团队名称")
-    enterprise_id = serializers.CharField(max_length=32, help_text=u"团队所属企业ID,未提供时默认使用请求用户企业ID")
-    creater = serializers.IntegerField(help_text=u"团队所属人，未提供时默认使用登录用户作为所属人", required=False)
     region = serializers.CharField(max_length=24, help_text=u"默认开通的数据中心，未指定则不开通", required=False)
 
 
@@ -99,7 +98,7 @@ class ListTeamRegionsRespSerializer(serializers.Serializer):
 
 
 class TeamServicesRespSerializer(serializers.Serializer):
-    update_time = serializers.CharField(max_length=64, help_text=u"更新日期")
+    update_time = DateCharField(max_length=64, help_text=u"更新日期")
     deploy_version = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组件版本")
     service_alias = serializers.CharField(max_length=32, allow_blank=True, allow_null=True, help_text=u"组件昵称")
     service_cname = serializers.CharField(max_length=255, allow_blank=True, allow_null=True, help_text=u"组件名称")
