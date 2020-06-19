@@ -166,7 +166,7 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             scope = share_record.scope
             if store_id:
                 market = app_market_service.get_app_market(
-                    self.tenant.enterprise_id, share_record.share_app_market_name, extend=True, aise_exception=True)
+                    self.tenant.enterprise_id, share_record.share_app_market_name, extend=True, raise_exception=True)
                 if market:
                     store_name = market.alias
             app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)

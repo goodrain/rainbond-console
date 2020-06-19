@@ -61,7 +61,6 @@ def get_pay_server_ent_client(home_url, token):
     configuration = enter_Configuration()
     configuration.host = home_url
     configuration.api_key['Authorization'] = token
-
     # create an instance of the API class
     return entsrv_client.PayApi(entsrv_client.ApiClient(configuration))
 
