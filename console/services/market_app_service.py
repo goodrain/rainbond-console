@@ -2,7 +2,6 @@
 """
   Created on 18/3/5.
 """
-import base64
 import datetime
 import json
 import logging
@@ -1078,13 +1077,6 @@ class MarketAppService(object):
     @transaction.atomic
     def create_rainbond_app(self, enterprise_id, app_info):
         app_id = make_uuid()
-        # create rainbond market app
-        if app_info.get("scope") == "goodrain":
-            market_id = app_info.get("scope_target").get("market_id")
-            self._create_rainbond_app_for_cloud(enterprise_id, app_id, market_id, app_info)
-            return
-
-        # default crete
         app = RainbondCenterApp(
             app_id=app_id,
             app_name=app_info.get("app_name"),
@@ -1102,30 +1094,6 @@ class MarketAppService(object):
         # save app and tag relation
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
-
-    def _create_rainbond_app_for_cloud(self, enterprise_id, app_id, market_id, app_info):
-        pic = app_info.get("pic")
-        data = {
-            "app_name": app_info.get("app_name"),
-            "describe": app_info.get("describe"),
-            "pic": pic,
-            "app_id": app_id,
-            "dev_status": app_info.get("dev_status"),
-            "create_team": app_info.get("create_team"),
-            "create_user": app_info.get("create_user"),
-            "source": "local",
-            "scope": app_info.get("source"),
-            "details": app_info.get("details"),
-            "enterprise_id": enterprise_id,
-        }
-        if pic:
-            try:
-                with open(pic, "rb") as f:
-                    data["logo"] = "data:image/{};base64,".format(pic.split(".")[-1]) + base64.b64encode(f.read())
-            except Exception as e:
-                logger.error("parse app logo error: ", e)
-
-        market_sycn_service.create_cloud_market_app(enterprise_id, market_id, data)
 
 
 class MarketTemplateTranslateService(object):

@@ -796,7 +796,7 @@ class AppMarketService(object):
                     "publish_type": dt.publish_type,
                     "start_count": dt.start_count,
                 }
-                app_models.append(market_info)
+                app_models.append(Dict(market_info))
         return app_models
 
     def app_model_serializers(self, market, data, extend=False):

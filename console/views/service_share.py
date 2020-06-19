@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import logging
+import base64
 
 from django.db.models import Q
 from rest_framework.response import Response
@@ -165,10 +166,10 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             store_id = share_record.share_app_market_name
             scope = share_record.scope
             if store_id:
-                market = app_market_service.get_app_market(
+                _, market = app_market_service.get_app_market(
                     self.tenant.enterprise_id, share_record.share_app_market_name, extend=True, raise_exception=True)
                 if market:
-                    store_name = market.alias
+                    store_name = market.name
             app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
             if app:
                 app_model_id = share_record.app_id
@@ -307,52 +308,44 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               paramType: path
         """
         use_force = parse_argument(request, 'use_force', default=False, value_type=bool)
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+        if not share_record:
+            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+            return Response(result, status=404)
+        if share_record.is_success or share_record.step >= 3:
+            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+            return Response(result, status=400)
 
-        try:
-            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-            if not share_record:
-                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-                return Response(result, status=404)
-            if share_record.is_success or share_record.step >= 3:
-                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-                return Response(result, status=400)
+        if not request.data:
+            result = general_message(400, "share info can not be empty", "分享信息不能为空")
+            return Response(result, status=400)
+        app_version_info = request.data.get("app_version_info", None)
+        share_app_info = request.data.get("share_service_list", None)
+        if not app_version_info or not share_app_info:
+            result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
+            return Response(result, status=400)
+        if not app_version_info.get("app_model_id", None):
+            result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
+            return Response(result, status=400)
 
-            if not request.data:
-                result = general_message(400, "share info can not be empty", "分享信息不能为空")
-                return Response(result, status=400)
-            app_version_info = request.data.get("app_version_info", None)
-            share_app_info = request.data.get("share_service_list", None)
-            if not app_version_info or not share_app_info:
-                result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
-                return Response(result, status=400)
-            if not app_version_info.get("app_model_id", None):
-                result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
-                return Response(result, status=400)
+        if share_app_info:
+            for app in share_app_info:
+                extend_method = app.get("extend_method", "")
+                if is_singleton(extend_method):
+                    extend_method_map = app.get("extend_method_map")
+                    if extend_method_map and extend_method_map.get("max_node", 1) > 1:
+                        result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
+                        return Response(result, status=400)
 
-            if share_app_info:
-                for app in share_app_info:
-                    extend_method = app.get("extend_method", "")
-                    if is_singleton(extend_method):
-                        extend_method_map = app.get("extend_method_map")
-                        if extend_method_map and extend_method_map.get("max_node", 1) > 1:
-                            result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
-                            return Response(result, status=400)
-
-            # 继续给app_template_incomplete赋值
-            code, msg, bean = share_service.create_share_info(
-                share_record=share_record,
-                share_team=self.team,
-                share_user=request.user,
-                share_info=request.data,
-                use_force=use_force)
-            result = general_message(code, "create share info", msg, bean=bean)
-            return Response(result, status=code)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        # 继续给app_template_incomplete赋值
+        code, msg, bean = share_service.create_share_info(
+            share_record=share_record,
+            share_team=self.team,
+            share_user=request.user,
+            share_info=request.data,
+            use_force=use_force)
+        result = general_message(code, "create share info", msg, bean=bean)
+        return Response(result, status=code)
 
 
 class ServiceShareEventList(RegionTenantHeaderView):
@@ -614,53 +607,12 @@ class ShareServicesListView(RegionTenantHeaderView):
 class ServiceGroupSharedApps(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         scope = request.GET.get("scope", None)
-        market_name = request.GET.get("market_name", None)
+        market_name = request.GET.get("market_id", None)
         data = share_service.get_last_shared_app_and_app_list(self.tenant.enterprise_id, self.tenant, group_id, scope,
                                                               market_name)
         result = general_message(
             200, "get shared apps list complete", None, bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)
-
-
-# TODO 废弃
-# class CloudAppModelMarkets(JWTAuthApiView):
-#     def get(self, request, enterprise_id, *args, **kwargs):
-#         markets = market_sycn_service.get_cloud_markets(enterprise_id)
-#         data = []
-#         if markets:
-#             for market in markets:
-#                 data.append({
-#                     "market_id": market.market_id,
-#                     "name": market.name,
-#                     "eid": market.eid,
-#                 })
-#         result = general_message(200, "success", None, list=data)
-#         return Response(result, status=200)
-
-# 废弃
-# class CloudAppModelMarketInfo(JWTAuthApiView):
-#     def get(self, request, enterprise_id, market_id, *args, **kwargs):
-#         apps_versions = market_sycn_service.get_cloud_market_apps(enterprise_id, market_id)
-#         data = []
-#         if apps_versions:
-#             for app in apps_versions:
-#                 versions = []
-#                 app_versions = app.app_versions
-#                 if app_versions:
-#                     for version in app_versions:
-#                         versions.append(version.app_version)
-#                 versions.sort()
-#                 data.append({
-#                     "app_name": app.name,
-#                     "app_id": app.app_key_id,
-#                     "version": list(set(versions)),
-#                     "pic": (app.logo if app.logo else app.pic),
-#                     "app_describe": app.desc,
-#                     "dev_status": app.dev_status,
-#                     "scope": ("goodrain:" + app.publish_type).strip(":")
-#                 })
-#         result = general_message(200, "success", None, list=data)
-#         return Response(result, status=200)
 
 
 class AppMarketCLView(JWTAuthApiView):
@@ -719,10 +671,19 @@ class AppMarketAppModelLView(JWTAuthApiView):
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, market_name, *args, **kwargs):
+        logo = request.data.get("logo")
+        base64_logo = ""
+        if logo:
+            try:
+                with open(logo, "rb") as f:
+                    base64_logo = "data:image/{};base64,".format(logo.split(".")[-1]) + base64.b64encode(f.read())
+            except Exception as e:
+                logger.error("parse app logo error: ", e)
+                base64_logo = ""
         dt = {
             "app_classification_id": request.data.get("app_classification_id"),
             "desc": request.data.get("desc"),
-            "logo": request.data.get("logo"),
+            "logo": base64_logo,
             "name": request.data.get("name"),
             "publish_type": request.data.get("publish_type"),
             "tags": request.data.get("tags"),
