@@ -226,8 +226,8 @@ class CenterAppCLView(JWTAuthApiView):
         if scope == "team" and not create_team:
             result = general_message(400, "please select team", "请选择团队")
             return Response(result, status=400)
-        if scope == "goodrain" and (not scope_target or not scope_target.get("market_id")):
-            result = general_message(400, "parameter market_id not found", None)
+        if scope not in ["team", "enterprise"]:
+            result = general_message(400, "parameter error", "scope 参数不正确")
             return Response(result, status=400)
         if not name:
             result = general_message(400, "error params", "请填写应用名称")

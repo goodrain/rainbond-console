@@ -11,7 +11,7 @@ logger = logging.getLogger('default')
 
 class AppStore(object):
     @apiException
-    def get_app_hub_info(self, store=None, app_id=None):
+    def get_app_hub_info(self, store=None, app_id=None, enterprise_id=None):
         image_config = {
             "hub_url": None,
             "hub_user": None,
@@ -27,9 +27,9 @@ class AppStore(object):
             image_config["hub_password"] = data.hub_password
             image_config["namespace"] = data.namespace
         if not data:
-            data = EnterpriseConfigService(store.enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
+            data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
             if data:
-                image_config_dict = eval(image_config[0].value)
+                image_config_dict = eval(data.value)
                 namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else store.enterprise_id)
                 image_config["hub_url"] = image_config_dict.get("hub_url", None)
                 image_config["hub_user"] = image_config_dict.get("hub_user", None)
@@ -38,7 +38,7 @@ class AppStore(object):
         return image_config
 
     @apiException
-    def get_slug_hub_info(self, store=None, app_id=None):
+    def get_slug_hub_info(self, store=None, app_id=None, enterprise_id=None):
         image_config = {"ftp_host": None, "ftp_port": None, "namespace": None, "ftp_username": None, "ftp_password": None}
         data = None
         if store:
@@ -49,9 +49,9 @@ class AppStore(object):
             image_config["ftp_password"] = data.hub_password
             image_config["namespace"] = data.namespace
         if not data:
-            data = EnterpriseConfigService(store.enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
+            data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
             if data:
-                image_config_dict = eval(image_config[0].value)
+                image_config_dict = eval(data.value)
                 namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else store.enterprise_id)
                 image_config["ftp_host"] = image_config_dict.get("hub_url", None)
                 image_config["ftp_username"] = image_config_dict.get("hub_user", None)

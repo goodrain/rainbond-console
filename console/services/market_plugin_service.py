@@ -212,7 +212,7 @@ class MarketPluginService(object):
 
             plugin_template["build_version"] = plugin_version.to_dict()
 
-            plugin_info["plugin_image"] = app_store.get_app_hub_info(plugin_info["scope"], tenant_name)
+            plugin_info["plugin_image"] = app_store.get_app_hub_info(plugin_info["scope"], tenant_name, tenant.enterprise_id)
             if not plugin_info["plugin_image"]:
                 if sid:
                     transaction.savepoint_rollback(sid)
