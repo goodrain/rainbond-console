@@ -276,7 +276,6 @@ class TeamService(object):
                     region_api.delete_tenant(region["region_name"], region["tenant_name"])
                     success_count += 1
                 except Exception as e:
-                    print e
                     logger.error("tenant id: {}; region name: {}; delete tenant: {}".format(
                         tenant.tenant_id, region["tenant_name"], e))
         if success_count == 0:

@@ -16,10 +16,11 @@ from console.services.group_service import group_service
 from console.services.service_services import base_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
                                                AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-                                               ServiceGroupOperationsSerializer)
+                                               ServiceGroupOperationsSerializer, AppServiceTelescopicVerticalSerializer,
+                                               AppServiceTelescopicHorizontalSerializer, TeamAppsCloseSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
-from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
+from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView, EnterpriseServiceOauthView)
 from openapi.views.exceptions import ErrAppNotFound
 
 logger = logging.getLogger("default")
@@ -58,6 +59,9 @@ class ListAppsView(TeamAPIView):
 class AppInfoView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="应用详情",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: AppInfoSerializer()},
         tags=['openapi-apps'],
     )
@@ -90,8 +94,9 @@ class AppInfoView(TeamAppAPIView):
         operation_description="删除应用",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
-        responses={200: None},
+        responses={},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, *args, **kwargs):
@@ -146,6 +151,9 @@ class APPOperationsView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="操作应用",
         request_body=ServiceGroupOperationsSerializer(),
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={
             status.HTTP_200_OK: SuccessSerializer,
             status.HTTP_400_BAD_REQUEST: FailSerializer,
@@ -188,6 +196,9 @@ class APPOperationsView(TeamAppAPIView):
 class ListAppServicesView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="查询应用下组件列表",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: ServiceBaseInfoSerializer(many=True)},
         tags=['openapi-apps'],
     )
@@ -201,6 +212,9 @@ class ListAppServicesView(TeamAppAPIView):
 class AppServicesView(TeamAppServiceAPIView):
     @swagger_auto_schema(
         operation_description="查询组件信息",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: ServiceBaseInfoSerializer()},
         tags=['openapi-apps'],
     )
@@ -219,8 +233,9 @@ class AppServicesView(TeamAppServiceAPIView):
         operation_description="删除组件",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
-        responses={200: None},
+        responses={},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, service_id, *args, **kwargs):
@@ -248,6 +263,7 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         manual_parameters=[
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_INTEGER),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         responses={200: ListServiceEventsResponse()},
         tags=['openapi-apps'],
@@ -263,3 +279,66 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         re = ListServiceEventsResponse(data=result)
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)
+
+
+class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceOauthView):
+    @swagger_auto_schema(
+        operation_description="组件垂直伸缩",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=AppServiceTelescopicVerticalSerializer,
+        responses={},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = AppServiceTelescopicVerticalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_memory = serializer.data.get("new_memory")
+        code, msg = app_manage_service.vertical_upgrade(
+            self.team, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+        if code != 200:
+            raise ServiceHandleException(status_code=code, msg="vertical upgrade error", msg_show=msg)
+        return Response(None, status=code)
+
+
+class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServiceOauthView):
+    @swagger_auto_schema(
+        operation_description="组件水平伸缩",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=AppServiceTelescopicHorizontalSerializer,
+        responses={},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = AppServiceTelescopicHorizontalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_node = serializer.data.get("new_node")
+        app_manage_service.horizontal_upgrade(
+            self.team, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
+        return Response(None, status=200)
+
+
+class TeamAppsCloseView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="批量关闭应用",
+        request_body=TeamAppsCloseSerializers,
+        responses={},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, team_id, region_name, *args, **kwargs):
+        serializers = TeamAppsCloseSerializers(data=request.data)
+        serializers.is_valid(raise_exception=True)
+        service_id_list = serializers.data.get("service_ids", None)
+        services = service_repo.get_tenant_region_services(self.region_name, self.team.tenant_id)
+        if not services:
+            return Response(None, status=200)
+        service_ids = services.values_list("service_id", flat=True)
+        if service_id_list:
+            service_ids = list(set(service_ids) & set(service_id_list))
+        code, msg = app_manage_service.batch_action(self.team, self.user, "stop", service_ids, None)
+        if code != 200:
+            raise ServiceHandleException(status_code=code, msg="batch manage error", msg_show=msg)
+        return Response(None, status=200)

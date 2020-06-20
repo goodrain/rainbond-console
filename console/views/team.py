@@ -340,7 +340,12 @@ class TeamDelView(JWTAuthApiView):
               paramType: path
         """
         code = 200
-        force = int(request.GET.get("force", 0))
+        force = request.GET.get("force", False)
+        if force == "true":
+            force = True
+        else:
+            force = False
+        print force
         tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
         if tenant is None:
             code = 404
