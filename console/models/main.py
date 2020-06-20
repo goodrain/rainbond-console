@@ -143,6 +143,7 @@ class RainbondCenterAppVersion(BaseModel):
     is_official = models.BooleanField(default=False, help_text=u'是否官方认证')
     is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
+    template_type = models.CharField(max_length=32, null=True, default=None, help_text=u"模板类型（ram、oam）")
 
 
 class RainbondCenterAppInherit(BaseModel):
@@ -229,7 +230,7 @@ class ServiceShareRecord(BaseModel):
     status = models.IntegerField(default=0, help_text=u"当前发布状态 0, 1, 2, 3")
     app_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"应用id")
     scope = models.CharField(max_length=64, null=True, blank=True, help_text=u"分享范围")
-    share_app_market_id = models.CharField(max_length=64, null=True, blank=True, help_text=u"分享应用商店id")
+    share_app_market_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"分享应用商店名称")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")
 
@@ -289,7 +290,7 @@ class ComposeGroup(BaseModel):
 
     group_id = models.IntegerField(help_text=u"compose组关联的组id")
     team_id = models.CharField(max_length=32, help_text=u"团队 id")
-    region = models.CharField(max_length=15, help_text=u"服务所属数据中心")
+    region = models.CharField(max_length=64, help_text=u"服务所属数据中心")
     compose_content = models.TextField(null=True, blank=True, help_text=u"compose文件内容")
     compose_id = models.CharField(max_length=32, unique=True, help_text=u"compose id")
     create_status = models.CharField(
@@ -361,7 +362,7 @@ class ServiceRecycleBin(BaseModel):
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
     service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
-    service_region = models.CharField(max_length=15, help_text=u"服务所属区")
+    service_region = models.CharField(max_length=64, help_text=u"服务所属区")
     desc = models.CharField(max_length=200, null=True, blank=True, help_text=u"描述")
     category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
     service_port = models.IntegerField(help_text=u"服务端口", default=0)
@@ -744,6 +745,8 @@ class AppUpgradeRecord(BaseModel):
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    market_name = models.CharField(max_length=64, help_text=u"商店标识")
+    is_from_cloud = models.BooleanField(default=False, help_text=u"应用来源")
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -915,3 +918,16 @@ class Errlog(BaseModel):
     username = models.CharField(max_length=255, null=True, blank=True, default="")
     enterprise_id = models.CharField(max_length=255, null=True, blank=True, default="")
     address = models.CharField(max_length=2047, null=True, blank=True, default="")
+
+
+class AppMarket(BaseModel):
+    class Meta:
+        db_table = "app_market"
+        unique_together = ('name', 'enterprise_id')
+
+    name = models.CharField(max_length=64, help_text="应用商店标识")
+    url = models.CharField(max_length=255, help_text="应用商店链接")
+    domain = models.CharField(max_length=64, help_text="应用商店域名")
+    access_key = models.CharField(max_length=255, null=True, blank=True, help_text="应用商店访问令牌")
+    enterprise_id = models.CharField(max_length=32, help_text="企业id")
+    type = models.CharField(max_length=32, help_text="类型")

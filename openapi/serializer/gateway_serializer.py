@@ -2,19 +2,30 @@
 # creater by: barnett
 from rest_framework import serializers
 
-from www.models.main import ServiceDomain
+from www.models.main import ServiceDomain, ServiceTcpDomain
 
 
 class HTTPGatewayRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceDomain
-        fields = "__all__"
+        exclude = ["create_time"]
+
+
+class TCPGatewayRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceTcpDomain
+        exclude = ["create_time"]
+
+
+class GatewayRuleSerializer(serializers.Serializer):
+    http = HTTPGatewayRuleSerializer(many=True, required=False)
+    tcp = TCPGatewayRuleSerializer(many=True, required=False)
 
 
 class EnterpriseHTTPGatewayRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceDomain
-        fields = "__all__"
+        exclude = ["create_time"]
 
     region_name = serializers.CharField(help_text=u"所属集群ID")
     team_name = serializers.CharField(help_text=u"所属团队唯一名称")
@@ -35,6 +46,26 @@ class PostHTTPGatewayRuleSerializer(serializers.Serializer):
     whether_open = serializers.BooleanField(help_text=u"是否开放", default=False)
     auto_ssl = serializers.BooleanField(help_text=u"是否自动匹配证书，升级为https，如果开启，由外部服务完成升级", default=False)
     auto_ssl_config = serializers.BooleanField(help_text=u"自动分发证书配置", required=False)
+
+
+class PostTCPGatewayRuleExtensionsSerializer(serializers.Serializer):
+    key = serializers.CharField(max_length=32)
+    value = serializers.CharField(max_length=32)
+
+
+class PostTCPGatewayRuleSerializer(serializers.Serializer):
+    container_port = serializers.IntegerField(help_text=u"组件端口")
+    service_id = serializers.CharField(max_length=32, help_text=u"组件id")
+    end_point = serializers.CharField(max_length=32, help_text=u"ip地址:端口")
+    rule_extensions = PostTCPGatewayRuleExtensionsSerializer(many=True, required=False, help_text=u"规则扩展")
+    default_port = serializers.IntegerField(help_text=u"映射端口")
+    default_ip = serializers.CharField(max_length=32, help_text=u"映射id地址")
+
+
+class PostGatewayRuleSerializer(serializers.Serializer):
+    protocol = serializers.CharField(max_length=32, help_text=u"协议")
+    tcp = PostTCPGatewayRuleSerializer(required=False)
+    http = PostHTTPGatewayRuleSerializer(required=False)
 
 
 class UpdatePostHTTPGatewayRuleSerializer(serializers.Serializer):

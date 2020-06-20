@@ -42,7 +42,7 @@ class ListAnnouncementView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="添加站内信",
         request_body=CreateAncmReqSerilizer(),
-        responses={status.HTTP_201_CREATED: None},
+        responses={},
         tags=['openapi-announcement'],
     )
     def post(self, request, **kwargs):
@@ -54,7 +54,7 @@ class AnnouncementView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="更新站内信",
         request_body=UpdateAncmReqSerilizer(),
-        responses={200: None},
+        responses={},
         tags=['openapi-announcement'],
     )
     def put(self, req, aid, *args, **kwargs):
@@ -65,7 +65,7 @@ class AnnouncementView(BaseOpenAPIView):
 
     @swagger_auto_schema(
         operation_description="删除站内信",
-        responses={200: None},
+        responses={},
         tags=['openapi-announcement'],
     )
     def delete(self, request, aid, *args, **kwargs):

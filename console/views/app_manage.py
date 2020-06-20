@@ -25,9 +25,6 @@ from console.views.base import CloudEnterpriseCenterView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from console.enum.component_enum import is_support, is_state
-from www.apiclient.marketclient import MarketOpenAPI
-
-market_openapi = MarketOpenAPI()
 
 logger = logging.getLogger("default")
 
@@ -546,3 +543,21 @@ class MarketServiceUpgradeView(AppBaseView):
             return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
         except Exception:
             return Response(status=200, data=general_message(200, "success", "查询成功", list=[]))
+
+
+class TeamAppsCloseView(RegionTenantHeaderView):
+    def post(self, request, *args, **kwargs):
+        service_id_list = request.data.get("service_ids", None)
+        services = service_repo.get_tenant_region_services(self.region_name, self.tenant.tenant_id)
+        if not services:
+            result = general_message(200, "success", "操作成功")
+            return Response(result, status=200)
+        service_ids = services.values_list("service_id", flat=True)
+        if service_id_list:
+            service_ids = list(set(service_ids) & set(service_id_list))
+        code, msg = app_manage_service.batch_action(self.tenant, self.user, "stop", service_ids, None)
+        if code != 200:
+            result = general_message(code, "batch manage error", msg)
+        else:
+            result = general_message(200, "success", "操作成功")
+        return Response(result, status=result["code"])

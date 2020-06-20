@@ -219,28 +219,68 @@ class TeamService(object):
     def delete_tenant(self, tenant_name):
         team_repo.delete_tenant(tenant_name=tenant_name)
 
-    def delete_by_tenant_id(self, tenant_id):
-        service_count = self.count_by_tenant_id(tenant_id=tenant_id)
-        if service_count >= 1:
-            raise ErrStillHasServices
-
-        # list all related regions
-        tenant_regions = region_repo.list_by_tenant_id(tenant_id)
+    @transaction.atomic()
+    def delete_by_tenant_id(self, user, tenant, force=False):
+        from openapi.services.app_service import app_service
+        from console.services.plugin import plugin_service
+        from console.services.group_service import group_service
+        from console.services.service_services import base_service
+        from console.services.app_actions import app_manage_service
+        from console.repositories.app import service_repo
+        msg_list = []
+        tenant_regions = region_repo.list_by_tenant_id(tenant.tenant_id)
+        if not force:
+            service_count = self.count_by_tenant_id(tenant_id=tenant.tenant_id)
+            if service_count >= 1:
+                raise ErrStillHasServices
         success_count = 0
-        for tenant_region in tenant_regions:
-            try:
-                # There is no guarantee that the deletion of each tenant can be successful.
-                region_api.delete_tenant(tenant_region["region_name"], tenant_region["tenant_name"])
-                success_count = success_count + 1
-            except Exception as e:
-                logger.error("tenantid: {}; region name: {}; delete tenant: {}".format(tenant_id, tenant_region["tenant_name"],
-                                                                                       e))
-        # The current strategy is that if a tenant is deleted successfully, it is considered successful.
-        # For tenants that have not been deleted successfully, other deletion paths need to be taken.
+        for region in tenant_regions:
+            if force:
+                apps = group_service.get_apps_list(team_id=tenant.tenant_id, region_name=region["region_name"])
+                plugins = plugin_service.get_tenant_plugins(region["region_name"], tenant)
+                for app in apps:
+                    service_ids = app_service.get_group_services_by_id(app.ID)
+                    services = service_repo.get_services_by_service_ids(service_ids)
+                    if services:
+                        status_list = base_service.status_multi_service(
+                            region=app.region_name,
+                            tenant_name=tenant.tenant_name,
+                            service_ids=service_ids,
+                            enterprise_id=tenant.enterprise_id)
+                        status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
+                        if len(status_list) > 0:
+                            raise ServiceHandleException(
+                                msg="There are running components under the current application", msg_show=u"当前团队下有运行态的组件，不可删除")
+                        code_status = 200
+                        for service in services:
+                            code, msg = app_manage_service.batch_delete(user, tenant, service, is_force=True)
+                            msg_dict = dict()
+                            msg_dict['status'] = code
+                            msg_dict['msg'] = msg
+                            msg_dict['service_id'] = service.service_id
+                            msg_dict['service_cname'] = service.service_cname
+                            msg_list.append(msg_dict)
+                            if code != 200:
+                                code, msg = app_manage_service.delete_again(user, tenant, service, is_force=True)
+                                if code != 200:
+                                    code_status = code
+                        if code_status != 200:
+                            raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
+                        code, msg, data = group_service.delete_group_no_service(app.ID)
+                        if code != 200:
+                            raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
+                for plugin in plugins:
+                    plugin_service.delete_plugin(region["region_name"], tenant, plugin.plugin_id)
+                try:
+                    # There is no guarantee that the deletion of each tenant can be successful.
+                    region_api.delete_tenant(region["region_name"], region["tenant_name"])
+                    success_count += 1
+                except Exception as e:
+                    logger.error("tenant id: {}; region name: {}; delete tenant: {}".format(
+                        tenant.tenant_id, region["tenant_name"], e))
         if success_count == 0:
             raise ErrAllTenantDeletionFailed
-
-        team_repo.delete_by_tenant_id(tenant_id=tenant_id)
+        team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
 
     def get_current_user_tenants(self, user_id):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)

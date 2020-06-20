@@ -71,3 +71,25 @@ CREATE TABLE `role_info` (
 ) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8;
 
 alter table console.tenant_info modify region varchar(64);
+
+alter table console.compose_group modify region varchar(64);
+alter table console.tenant_service_recycle_bin modify service_region varchar(64);
+alter table console.service_attach_info modify region varchar(64);
+alter table console.service_consume modify region varchar(64);
+alter table console.tenant_service_statics modify region varchar(64);
+alter table console.tenant_plugin modify region varchar(64);
+alter table console.plugin_build_version modify region varchar(64);
+
+CREATE TABLE `app_store` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) DEFAULT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `type` varchar(32) DEFAULT NULL,
+  `access_key` varchar(32) DEFAULT NULL,
+  `enterprise_id` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ent-name` (`name`,`enterprise_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+alter table console.service_share_record change share_app_market_id share_app_market_name varchar(64) NULL DEFAULT NULL;
+alter table console.rainbond_center_app_version add template_type varchar(32) DEFAULT 'RAM';

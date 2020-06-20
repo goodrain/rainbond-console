@@ -36,6 +36,7 @@ from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
 from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
                                          AppVolumeService)
+from console.services.app import app_market_service
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
@@ -658,9 +659,11 @@ class AppManageService(AppManageBase):
                         if old_extent_info.get("install_from_cloud", False):
                             install_from_cloud = True
                             # TODO:Skip the subcontract structure to avoid loop introduction
-                            from console.services.market_app_service import market_app_service
-                            _, app_version = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
-                                                                                   service_source.version)
+                            market_name = old_extent_info.get("market_name")
+                            market = app_market_service.get_app_market_by_name(
+                                tenant.enterprise_id, market_name, raise_exception=True)
+                            _, app_version = app_market_service.cloud_app_model_to_db_model(
+                                market, service_source.group_key, service_source.version)
                         # install from local cloud
                         else:
                             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
@@ -707,6 +710,7 @@ class AppManageService(AppManageBase):
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
+                                        new_extend_info["market_name"] = old_extent_info.get("market_name")
                                     service_source.extend_info = json.dumps(new_extend_info)
                                     service_source.save()
                                     code, msg = self.__save_env(tenant, service, app["service_env_map_list"],

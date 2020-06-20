@@ -158,7 +158,7 @@ class CenterAppImportView(JWTAuthApiView):
         if not event_id:
             raise AbortRequest(msg="event is not found", msg_show="参数错误，未提供事件ID")
         files = file_name.split(",")
-        import_service.start_import_apps(scope, event_id, files, team_name)
+        import_service.start_import_apps(scope, event_id, files, team_name, self.enterprise.enterprise_id)
         result = general_message(200, 'success', "操作成功，正在导入")
         return Response(result, status=result["code"])
 

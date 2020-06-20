@@ -340,14 +340,19 @@ class TeamDelView(JWTAuthApiView):
               paramType: path
         """
         code = 200
+        force = request.GET.get("force", False)
+        if force == "true":
+            force = True
+        else:
+            force = False
+        print force
         tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
         if tenant is None:
             code = 404
             result = general_message(code, "tenant not exist", "{}团队不存在".format(team_name))
-
-        team_services.delete_by_tenant_id(tenant.tenant_id)
-        result = general_message(code, "delete a tenant successfully", "删除团队成功")
-
+        else:
+            team_services.delete_by_tenant_id(self.user, tenant, force=force)
+            result = general_message(code, "delete a tenant successfully", "删除团队成功")
         return Response(result, status=code)
 
 

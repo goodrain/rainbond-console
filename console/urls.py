@@ -33,7 +33,7 @@ from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEvent
 from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
-                                      UpgradeAppView, VerticalExtendAppView)
+                                      UpgradeAppView, VerticalExtendAppView, TeamAppsCloseView)
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
                                        BatchAppMonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
@@ -42,9 +42,7 @@ from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppD
 from console.views.center_pool.app_export import (CenterAppExportView, ExportFileDownLoadView)
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
                                                   CenterAppUploadView, EnterpriseAppImportInitView, ImportingRecordView)
-from console.views.center_pool.apps import (AppTagCDView, CenterAllMarketAppView, CenterAppCLView, CenterAppUDView,
-                                            CenterAppView, CenterVersionlMarversionketAppView, DownloadMarketAppTemplateView,
-                                            GetCloudRecommendedAppList, TagCLView, TagUDView)
+from console.views.center_pool.apps import (AppTagCDView, CenterAppCLView, CenterAppUDView, CenterAppView, TagCLView, TagUDView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -86,10 +84,11 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
 from console.views.region import (GetRegionPublicKeyView, OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import (
-    CloudAppModelMarketInfo, CloudAppModelMarkets, ServiceGroupSharedApps, ServicePluginShareEventPost,
-    ServiceShareCompleteView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView,
-    ServiceShareRecordInfoView, ServiceShareRecordView, ShareRecordHistoryView, ShareRecordView)
+from console.views.service_share import (ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
+                                         ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost,
+                                         ServiceShareInfoView, ServiceShareRecordInfoView, ServiceShareRecordView,
+                                         ShareRecordHistoryView, ShareRecordView, AppMarketCLView, AppMarketRUDView,
+                                         AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
@@ -99,7 +98,7 @@ from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, C
                                 TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView, UserDelView,
                                 UserFuzSerView)
 from console.views.user import (AdminUserDView, AdminUserLCView, CheckSourceView, EnterPriseUsersCLView, EnterPriseUsersUDView,
-                                UserLogoutView, UserPemTraView)
+                                UserLogoutView, UserPemTraView, AdministratorJoinTeamView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
 from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegin, SendResetEmail, UserDetailsView,
                                           UserFavoriteLCView, UserFavoriteUDView, TenantServiceView)
@@ -591,6 +590,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view(), perms.RegionProtocolView),
+    # 批量关闭应用下所有组件
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
     # 应用导入
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view(), perms.CenterAppUploadView),
     # 应用包目录查询
@@ -670,6 +671,7 @@ urlpatterns = [
     url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view(), perms.AdminAddUserView),
+    url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
@@ -695,20 +697,28 @@ urlpatterns = [
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models$', CenterAllMarketAppView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/recommend', GetCloudRecommendedAppList.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/version$', CenterVersionlMarversionketAppView.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models$', CenterAllMarketAppView.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/recommend', GetCloudRecommendedAppList.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/version$', CenterVersionlMarversionketAppView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag$', TagCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/tag$', AppTagCDView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', CloudAppModelMarkets.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/market/(?P<market_id>[\w\-]+)/app-models$',
-        CloudAppModelMarketInfo.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', CloudAppModelMarkets.as_view()),
+    # url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/market/(?P<market_id>[\w\-]+)/app-models$',
+    #    CloudAppModelMarketInfo.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', AppMarketCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)$', AppMarketRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models$',
+        AppMarketAppModelLView.as_view()),
+    url(
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+)'
+        r'/versions$', AppMarketAppModelVersionsLView.as_view()),
+    url(
+        r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+)'
+        r'/versions/(?P<version>[\w\-.]+)$', AppMarketAppModelVersionsRView.as_view()),
 
     # 应用导出
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
-    # 同步某个应用回来
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/app-models/download$', DownloadMarketAppTemplateView.as_view()),
     # WIP
     # 创建应用导入记录
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import$', EnterpriseAppImportInitView.as_view()),

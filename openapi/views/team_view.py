@@ -18,11 +18,13 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.perm_services import user_kind_role_service
+from console.services.common_services import common_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
     CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
     ListTeamRespSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer, TeamCertificatesLSerializer,
-    TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer, UpdateTeamInfoReqSerializer)
+    TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer, UpdateTeamInfoReqSerializer,
+    TeamAppsResourceSerializer)
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
 from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamNoRegionAPIView, TeamAPIView)
@@ -66,8 +68,6 @@ class ListTeamInfo(BaseOpenAPIView):
         request_body=CreateTeamReqSerializer(),
         responses={
             status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )
@@ -75,8 +75,10 @@ class ListTeamInfo(BaseOpenAPIView):
         serializer = CreateTeamReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         team_data = serializer.data
+        team_data["creater"] = self.user.user_id
+        team_data["enterprise_id"] = self.enterprise.enterprise_id
 
-        en = enterprise_services.get_enterprise_by_enterprise_id(request.data.get("enterprise_id"))
+        en = self.enterprise
         if not en:
             raise serializers.ValidationError("指定企业不存在")
         region = None
@@ -106,8 +108,6 @@ class TeamInfo(TeamNoRegionAPIView):
         operation_description="获取团队",
         responses={
             status.HTTP_200_OK: TeamInfoSerializer(),
-            status.HTTP_404_NOT_FOUND: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None
         },
         tags=['openapi-team'],
     )
@@ -121,16 +121,19 @@ class TeamInfo(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="删除团队",
-        responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None
-        },
+        manual_parameters=[
+            openapi.Parameter(
+                "force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true", "false"]),
+        ],
+        responses={},
         tags=['openapi-team'],
     )
     def delete(self, req, team_id, *args, **kwargs):
+        force = req.GET.get("force", False)
+        if force == "true":
+            force = True
         try:
-            res = team_services.delete_by_tenant_id(tenant_id=team_id)
+            res = team_services.delete_by_tenant_id(self.user, self.team, force=force)
             if res:
                 return Response(None, status.HTTP_200_OK)
             else:
@@ -145,10 +148,7 @@ class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="更新团队信息",
         request_body=UpdateTeamInfoReqSerializer,
-        responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
-        },
+        responses={},
         tags=['openapi-team'],
     )
     def put(self, req, team_id, *args, **kwargs):
@@ -203,9 +203,7 @@ class TeamUserInfoView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="将用户从团队中移除",
         responses={
-            status.HTTP_200_OK: None,
             status.HTTP_404_NOT_FOUND: FailSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None
         },
         tags=['openapi-team'],
     )
@@ -225,11 +223,7 @@ class TeamUserInfoView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="add team user",
         request_body=CreateTeamUserReqSerializer(),
-        responses={
-            status.HTTP_201_CREATED: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
-        },
+        responses={},
         tags=['openapi-team'],
     )
     def post(self, req, team_id, user_id):
@@ -243,9 +237,6 @@ class TeamUserInfoView(TeamAPIView):
         operation_description="update team user",
         request_body=CreateTeamUserReqSerializer(),
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
             status.HTTP_404_NOT_FOUND: FailSerializer(),
         },
         tags=['openapi-team'],
@@ -264,7 +255,7 @@ class TeamUserInfoView(TeamAPIView):
         return Response(None, status.HTTP_200_OK)
 
 
-class ListRegionsView(ListAPIView):
+class ListRegionsView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="获取团队开通的数据中心列表",
         manual_parameters=[
@@ -286,7 +277,7 @@ class ListRegionsView(ListAPIView):
         except ValueError:
             page_size = 10
 
-        regions, total = region_services.list_by_tenant_id(team_id, query, page, page_size)
+        regions, total = region_services.list_by_tenant_id(self.team.tenant_id, query, page, page_size)
 
         data = {"regions": regions, "total": total}
 
@@ -299,8 +290,6 @@ class ListRegionsView(ListAPIView):
         request_body=TeamRegionReqSerializer(),
         responses={
             status.HTTP_201_CREATED: TeamBaseInfoSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team-region'],
     )
@@ -325,13 +314,10 @@ class ListRegionsView(ListAPIView):
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeamRegionView(BaseOpenAPIView):
+class TeamRegionView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="关闭数据中心",
-        responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
-        },
+        responses={},
         tags=['openapi-team-region'],
     )
     def delete(self, request, team_id):
@@ -343,7 +329,7 @@ class TeamRegionView(BaseOpenAPIView):
             region = region_services.get_region_by_region_name(region)
             if not region:
                 raise serializers.ValidationError("指定数据中心不存在")
-        code, msg, team = team_services.delete_team_region(team_id, region)
+        code, msg, team = team_services.delete_team_region(self.team.tenant_id, region)
         if code == 200:
             re = TeamBaseInfoSerializer(team)
             return Response(re.data, status=status.HTTP_200_OK)
@@ -402,8 +388,6 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         request_body=TeamCertificatesCSerializer(),
         responses={
             status.HTTP_200_OK: TeamCertificatesRSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )
@@ -439,8 +423,6 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         request_body=TeamCertificatesCSerializer(),
         responses={
             status.HTTP_200_OK: TeamCertificatesRSerializer(),
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )
@@ -459,13 +441,46 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="删除证书",
-        responses={
-            status.HTTP_201_CREATED: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
-        },
+        responses={},
         tags=['openapi-team'],
     )
     def delete(self, request, team_id, certificate_id, *args, **kwargs):
         domain_service.delete_certificate_by_pk(certificate_id)
         return Response(data=None, status=status.HTTP_200_OK)
+
+
+class TeamAppsResourceView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="获取团队资源统计",
+        responses={
+            status.HTTP_200_OK: TeamAppsResourceSerializer,
+        },
+        tags=['openapi-apps'],
+    )
+    def get(self, request, team_id, region_name, *args, **kwargs):
+        data = {
+            "team_id": self.team.tenant_id,
+            "team_name": self.team.tenant_name,
+            "team_alias": self.team.tenant_alias,
+        }
+        source = common_services.get_current_region_used_resource(self.team, self.region_name)
+        if source:
+            cpu_usage = 0
+            memory_usage = 0
+            if int(source["limit_cpu"]) != 0:
+                cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
+            if int(source["limit_memory"]) != 0:
+                memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
+            print source["memory"]
+            print source["limit_memory"]
+            data.update({
+                "used_cpu": int(source["cpu"]),
+                "used_memory": int(source["memory"]),
+                "total_cpu": int(source["limit_cpu"]),
+                "total_memory": int(source["limit_memory"]),
+                "used_cpu_percentage": round(cpu_usage, 2),
+                "used_memory_percentage": round(memory_usage, 2),
+            })
+        serializer = TeamAppsResourceSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=200)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+import os
 from rest_framework import generics
 from rest_framework.views import APIView
 
@@ -14,6 +15,8 @@ from openapi.auth.authentication import (OpenAPIAuthentication, OpenAPIManageAut
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.exceptions import ErrEnterpriseNotFound, ErrRegionNotFound
 from www.models.main import TenantEnterprise, TenantServiceInfo
+from console.utils.oauth.oauth_types import get_oauth_instance
+from console.models.main import OAuthServices, UserOAuthServices
 
 
 class ListAPIView(generics.ListAPIView):
@@ -183,12 +186,40 @@ class TeamAppServiceAPIView(TeamAppAPIView):
     def initial(self, request, *args, **kwargs):
         super(TeamAppServiceAPIView, self).initial(request, *args, **kwargs)
         service_id = kwargs.get("service_id")
-        if service_id:
-            gsr = group_service_relation_repo.get_services_by_group(self.app.ID)
-            if gsr:
-                service_ids = gsr.values_list("service_id", flat=True)
-                if service_id in service_ids:
-                    self.service = TenantServiceInfo.objects.filter(
-                        tenant_id=self.team.tenant_id, service_region=self.region_name, service_id=service_id).first()
+        self.service = TenantServiceInfo.objects.filter(
+            tenant_id=self.team.tenant_id, service_region=self.region_name, service_id=service_id).first()
         if not self.service:
-            raise ServiceHandleException(msg_show=u"组件不存在", msg="no found service", status_code=404)
+            self.service = TenantServiceInfo.objects.filter(
+                tenant_id=self.team.tenant_id, service_region=self.region_name, service_alias=service_id).first()
+        if not self.service:
+            raise ServiceHandleException(msg_show=u"组件不存在", msg="no found component", status_code=404)
+        gsr = group_service_relation_repo.get_services_by_group(self.app.ID)
+        if gsr:
+            service_ids = gsr.values_list("service_id", flat=True)
+            if self.service.service_id not in service_ids:
+                raise ServiceHandleException(msg_show=u"组件不属于指定应用", msg="component not belong to this app", status_code=404)
+
+
+class EnterpriseServiceOauthView(APIView):
+    def __init__(self, *args, **kwargs):
+        super(EnterpriseServiceOauthView, self).__init__(*args, **kwargs)
+        self.oauth_instance = None
+        self.oauth = None
+        self.oauth_user = None
+
+    def initial(self, request, *args, **kwargs):
+        super(EnterpriseServiceOauthView, self).initial(request, *args, **kwargs)
+        try:
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
+            oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=request.user.user_id)
+        except OAuthServices.DoesNotExist:
+            raise ServiceHandleException(
+                msg="not found enterprise center oauth server config", msg_show=u"未找到企业中心OAuth配置", status_code=404)
+        except UserOAuthServices.DoesNotExist:
+            raise ServiceHandleException(msg="user not authorize in enterprise center oauth", msg_show=u"用户身份未在企业中心认证")
+        self.oauth_instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+        if not self.oauth_instance:
+            raise ServiceHandleException(msg="no found enterprise service OAuth", msg_show=u"未找到企业中心OAuth服务类型", status_code=404)

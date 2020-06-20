@@ -4,6 +4,7 @@
 from rest_framework import serializers
 
 from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
+from openapi.serializer.utils import DateCharField
 
 
 class CompomentBuildSourceSerializer(serializers.Serializer):
@@ -36,7 +37,7 @@ class CompomentCodeBuildSourceSerializer(CompomentBuildSourceSerializer):
 
 class AppCopyLSerializer(serializers.Serializer):
     build_source = serializers.SerializerMethodField()
-    update_time = serializers.DateTimeField(help_text="更新日期", allow_null=True)
+    update_time = DateCharField(max_length=64, help_text="更新日期", allow_null=True)
     deploy_version = serializers.CharField(max_length=32, help_text="构建版本", allow_null=True)
     create_status = serializers.CharField(max_length=32, allow_null=True, help_text="创建状态")
     service_alias = serializers.CharField(max_length=64, allow_null=True, help_text="组件昵称")
