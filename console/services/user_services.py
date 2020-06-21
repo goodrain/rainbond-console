@@ -12,7 +12,7 @@ from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
-                                          TenantNotExistError, UserExistError, UserNotExistError)
+                                          TenantNotExistError, UserExistError, UserNotExistError, ServiceHandleException)
 from console.models.main import EnterpriseUserPerm
 from console.models.main import UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
@@ -493,10 +493,10 @@ class UserService(object):
     def check_params(self, user_name, email, password, re_password, eid=None):
         is_pass, msg = self.__check_user_name(user_name)
         if not is_pass:
-            return is_pass, msg
+            raise ServiceHandleException(error_code=3000, msg="user name is exist", msg_show=u"用户已存在")
         is_pass, msg = self.__check_email(email)
         if not is_pass:
-            return is_pass, msg
+            raise ServiceHandleException(error_code=3003, msg="email name is exist", msg_show=u"邮箱已存在")
         if password != re_password:
             return False, "两次输入的密码不一致"
         return True, "success"
