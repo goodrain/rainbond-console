@@ -3,10 +3,14 @@
 import logging
 from github import Github
 
+from console.exception.main import ServiceHandleException
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
+from urllib3.exceptions import SSLError, MaxRetryError, ReadTimeoutError
+
+logger = logging.getLogger("default")
 
 logger = logging.getLogger("default")
 
@@ -79,11 +83,13 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                             self.refresh_access_token()
                         except Exception:
                             self.oauth_user.delete()
-                            raise NoAccessKeyErr("access key is expired, please reauthorize")
+                            raise NoAccessKeyErr("refresh key is expired, please reauthorize")
+                    elif isinstance(e, (SSLError, MaxRetryError, ReadTimeoutError)):
+                        raise ServiceHandleException(msg=e.message, msg_show=u"连接github不稳定, 请刷新后重试")
                     else:
                         self.oauth_user.delete()
                         raise NoAccessKeyErr("access key is expired, please reauthorize")
-            raise NoAccessKeyErr("can not get access key")
+        raise NoAccessKeyErr("can not get access key")
 
     def refresh_access_token(self):
         pass
