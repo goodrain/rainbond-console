@@ -51,7 +51,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
-                rst = self._session.request(method='POST', url=url, headers=headers, params=params, verify=False)
+                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
