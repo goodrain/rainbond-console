@@ -12,8 +12,6 @@ from urllib3.exceptions import SSLError, MaxRetryError, ReadTimeoutError
 
 logger = logging.getLogger("default")
 
-logger = logging.getLogger("default")
-
 
 class GithubApiV3MiXin(object):
     def set_api(self, access_token):
