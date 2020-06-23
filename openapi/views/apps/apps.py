@@ -321,7 +321,7 @@ class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServic
         return Response(None, status=200)
 
 
-class TeamAppsCloseView(TeamAPIView):
+class TeamAppsCloseView(TeamAPIView, EnterpriseServiceOauthView):
     @swagger_auto_schema(
         operation_description="批量关闭应用",
         request_body=TeamAppsCloseSerializers,
@@ -338,7 +338,7 @@ class TeamAppsCloseView(TeamAPIView):
         service_ids = services.values_list("service_id", flat=True)
         if service_id_list:
             service_ids = list(set(service_ids) & set(service_id_list))
-        code, msg = app_manage_service.batch_action(self.team, self.user, "stop", service_ids, None)
+        code, msg = app_manage_service.batch_action(self.team, self.user, "stop", service_ids, None, self.oauth_instance)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="batch manage error", msg_show=msg)
         return Response(None, status=200)
