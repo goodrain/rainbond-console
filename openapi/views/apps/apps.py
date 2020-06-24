@@ -9,10 +9,12 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.constants import PluginCategoryConstants
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service, event_service
+from console.services.plugin import app_plugin_service
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
@@ -379,21 +381,27 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
         if service_ids:
             services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
             for service in services:
-                dt = {
-                    "service_id": service.service_id,
-                    "service_cname": service.service_cname,
-                    "service_alias": service.service_alias,
-                    "monitors": []
-                }
-                for k, v in monitor_query_items.items():
-                    res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
-                    monitor = {"monitor_item": k}
-                    monitor.update(body)
-                    dt["monitors"].append(monitor)
-                data.append(dt)
-        print data
+                has_plugin = False
+                service_abled_plugins = app_plugin_service.get_service_abled_plugin(service)
+                for plugin in service_abled_plugins:
+                    if plugin.category == PluginCategoryConstants.PERFORMANCE_ANALYSIS:
+                        has_plugin = True
+                if has_plugin:
+                    dt = {
+                        "service_id": service.service_id,
+                        "service_cname": service.service_cname,
+                        "service_alias": service.service_alias,
+                        "monitors": []
+                    }
+                    for k, v in monitor_query_items.items():
+                        res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
+                        monitor = {"monitor_item": k}
+                        monitor.update(body)
+                        dt["monitors"].append(monitor)
+                    data.append(dt)
+
         serializers = ComponentMonitorSerializers(data=data, many=True)
-        serializers.is_valid()
+        serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
 
 
@@ -410,20 +418,25 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
         if service_ids:
             services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
             for service in services:
-                dt = {
-                    "service_id": service.service_id,
-                    "service_cname": service.service_cname,
-                    "service_alias": service.service_alias,
-                    "monitors": []
-                }
-                for k, v in monitor_query_range_items.items():
-                    res, body = region_api.get_query_range_data(
-                        self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
-                    monitor = {"monitor_item": k}
-                    monitor.update(body)
-                    dt["monitors"].append(monitor)
-                data.append(dt)
-
+                has_plugin = False
+                service_abled_plugins = app_plugin_service.get_service_abled_plugin(service)
+                for plugin in service_abled_plugins:
+                    if plugin.category == PluginCategoryConstants.PERFORMANCE_ANALYSIS:
+                        has_plugin = True
+                if has_plugin:
+                    dt = {
+                        "service_id": service.service_id,
+                        "service_cname": service.service_cname,
+                        "service_alias": service.service_alias,
+                        "monitors": []
+                    }
+                    for k, v in monitor_query_range_items.items():
+                        res, body = region_api.get_query_range_data(
+                            self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
+                        monitor = {"monitor_item": k}
+                        monitor.update(body)
+                        dt["monitors"].append(monitor)
+                    data.append(dt)
         serializers = ComponentMonitorSerializers(data=data, many=True)
-        serializers.is_valid()
+        serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)

@@ -159,11 +159,17 @@ class MonitorDataSerializers(serializers.Serializer):
     metric = serializers.DictField()
     value = serializers.ListField()
 
+    def to_internal_value(self, data):
+        return data
+
 
 class ComponentMonitorBaseSerializers(serializers.Serializer):
     resultType = serializers.CharField(max_length=64, help_text=u"返回类型")
-    result = MonitorDataSerializers(many=True, required=False)
+    result = MonitorDataSerializers(many=True)
     getlist = serializers.DictField(required=False)
+
+    def to_internal_value(self, data):
+        return data
 
 
 class ComponentMonitorItemsSerializers(serializers.Serializer):
