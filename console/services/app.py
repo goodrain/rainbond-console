@@ -602,7 +602,7 @@ class AppService(object):
             data["ports_info"] = list(ports_info)
 
         # endpoints
-        endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+        endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
         if endpoints.endpoints_type == "static":
             eps = json.loads(endpoints.endpoints_info)
             for address in eps:

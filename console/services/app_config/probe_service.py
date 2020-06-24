@@ -122,7 +122,8 @@ class ProbeService(object):
         probes = probe_repo.get_service_probe(service.service_id)
         if not probes:
             if service.service_source == "third_party":
-                return self.add_service_probe(tenant, service, data)
+                code, msg, new_probe = self.add_service_probe(tenant, service, data)
+                return new_probe
             raise ServiceHandleException(status_code=404, msg="no found", msg_show=u"组件未设置探针，无法进行修改操作")
         probe = probes[0]
         # delete more probe without first, one service will have one probe

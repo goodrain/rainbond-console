@@ -21,6 +21,7 @@ from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.plugin.plugin_config import plugin_config_group_repo
 from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
+from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.app_config import volume_repo
@@ -29,6 +30,7 @@ from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
 from console.services.exception import ErrObjectStorageInfoNotFound
 from console.services.group_service import group_service
+from console.services.app import app_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
 from www.models.main import ImageServiceRelation
@@ -224,6 +226,7 @@ class GroupappsMigrateService(object):
         return migrate_record
 
     def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id):
+        from console.services.groupcopy_service import groupapp_copy_service
         group = group_repo.get_group_by_id(group_id)
         apps = metadata["apps"]
 
@@ -247,6 +250,43 @@ class GroupappsMigrateService(object):
             self.__save_service_probes(ts, app["service_probes"])
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
+            self.__save_third_party_service_endpoints(ts, app.get("third_party_service_endpoints", []))
+
+            if ts.service_source == "third_party":
+                app_service.create_third_party_service(migrate_tenant, ts, user.nick_name)
+                probes = probe_repo.get_service_probe(ts.service_id)
+                # 为组件添加默认探针
+                if not probes:
+                    if groupapp_copy_service.is_need_to_add_default_probe(ts):
+                        code, msg, probe = app_service.add_service_default_porbe(migrate_tenant, ts)
+                        logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
+                else:
+                    for probe in probes:
+                        prob_data = {
+                            "service_id": ts.service_id,
+                            "scheme": probe.scheme,
+                            "path": probe.path,
+                            "port": probe.port,
+                            "cmd": probe.cmd,
+                            "http_header": probe.http_header,
+                            "initial_delay_second": probe.initial_delay_second,
+                            "period_second": probe.period_second,
+                            "timeout_second": probe.timeout_second,
+                            "failure_threshold": probe.failure_threshold,
+                            "success_threshold": probe.success_threshold,
+                            "is_used": (1 if probe.is_used else 0),
+                            "probe_id": probe.probe_id,
+                            "mode": probe.mode,
+                        }
+                        try:
+                            res, body = region_api.add_service_probe(ts.service_region, migrate_tenant.tenant_name,
+                                                                     ts.service_alias, prob_data)
+                            if res.get("status") != 200:
+                                logger.debug(body)
+                                probe.delete()
+                        except Exception as e:
+                            logger.debug("error", e)
+                            probe.delete()
             service_relations = app["service_relation"]
             service_mnts = app["service_mnts"]
 
@@ -275,6 +315,9 @@ class GroupappsMigrateService(object):
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
         service_base_info.pop("ID")
         ts = TenantServiceInfo(**service_base_info)
+        if service_base_info["service_source"] == "third_party":
+            new_service_id = make_uuid(tenant.tenant_id)
+            new_servie_alias = app_service.create_service_alias(new_service_id)
         ts.service_id = new_service_id
         ts.service_alias = new_servie_alias
         ts.service_region = region
@@ -646,6 +689,19 @@ class GroupappsMigrateService(object):
             if plugin:
                 create_plugins.append(plugin)
         return create_plugins
+
+    def __save_third_party_service_endpoints(self, service, service_endpoints):
+        service_endpoint_list = []
+        for service_endpoint in service_endpoints:
+            endpoint = {
+                "tenant_id": service.tenant_id,
+                "service_id": service.service_id,
+                "service_cname": service.service_cname,
+                "endpoints_info": service_endpoint["endpoints_info"],
+                "endpoints_type": service_endpoint["endpoints_type"]
+            }
+            service_endpoint_list.append(ThirdPartyServiceEndpoints(**endpoint))
+        ThirdPartyServiceEndpoints.objects.bulk_create(service_endpoint_list)
 
 
 migrate_service = GroupappsMigrateService()
