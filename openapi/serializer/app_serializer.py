@@ -153,3 +153,27 @@ class AppServiceTelescopicHorizontalSerializer(serializers.Serializer):
 
 class TeamAppsCloseSerializers(serializers.Serializer):
     service_ids = serializers.ListField(required=False)
+
+
+class MonitorDataSerializers(serializers.Serializer):
+    metric = serializers.DictField()
+    value = serializers.ListField()
+
+
+class ComponentMonitorBaseSerializers(serializers.Serializer):
+    resultType = serializers.CharField(max_length=64, help_text=u"返回类型")
+    result = MonitorDataSerializers(many=True, required=False)
+    getlist = serializers.DictField(required=False)
+
+
+class ComponentMonitorItemsSerializers(serializers.Serializer):
+    data = ComponentMonitorBaseSerializers()
+    monitor_item = serializers.CharField(max_length=32, help_text=u"监控项")
+    status = serializers.CharField(max_length=32, help_text=u"监控状态")
+
+
+class ComponentMonitorSerializers(serializers.Serializer):
+    monitors = ComponentMonitorItemsSerializers(many=True, required=False)
+    service_id = serializers.CharField(max_length=32, help_text=u"组件id")
+    service_cname = serializers.CharField(max_length=64, help_text=u"组件名")
+    service_alias = serializers.CharField(max_length=64, help_text=u"组件昵称")

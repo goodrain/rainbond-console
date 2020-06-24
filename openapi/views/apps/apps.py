@@ -11,19 +11,36 @@ from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
+from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service, event_service
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
                                                AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
                                                ServiceGroupOperationsSerializer, AppServiceTelescopicVerticalSerializer,
-                                               AppServiceTelescopicHorizontalSerializer, TeamAppsCloseSerializers)
+                                               AppServiceTelescopicHorizontalSerializer, TeamAppsCloseSerializers,
+                                               ComponentMonitorSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView, EnterpriseServiceOauthView)
 from openapi.views.exceptions import ErrAppNotFound
 
+from www.apiclient.regionapi import RegionInvokeApi
+
+region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+
+monitor_query_items = {
+    "request_time": '?query=ceil(avg(app_requesttime{mode="avg",service_id="%s"}))',
+    "request": '?query=sum(ceil(increase(app_request{service_id="%s",method="total"}[1m])/12))',
+    "request_client": '?query=max(app_requestclient{service_id="%s"})',
+}
+
+monitor_query_range_items = {
+    "request_time": '?query=ceil(avg(app_requesttime{mode="avg",service_id="%s"}))&start=%s&end=%s&step=%s',
+    "request": '?query=sum(ceil(increase(app_request{service_id="%s",method="total"}[1m])/12))&start=%s&end=%s&step=%s',
+    "request_client": '?query=max(app_requestclient{service_id="%s"})&start=%s&end=%s&step=%s',
+}
 
 
 class ListAppsView(TeamAPIView):
@@ -342,3 +359,71 @@ class TeamAppsCloseView(TeamAPIView, EnterpriseServiceOauthView):
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="batch manage error", msg_show=msg)
         return Response(None, status=200)
+
+
+class TeamAppsMonitorQueryView(TeamAppAPIView):
+    @swagger_auto_schema(
+        operation_description="应用下组件实时监控",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        responses={
+            200: ComponentMonitorSerializers(many=True)
+        },
+        tags=['openapi-apps'],
+    )
+    def get(self, request, team_id, region_name, app_id, *args, **kwargs):
+        data = []
+        services_relation = group_service_relation_repo.get_services_by_group(self.app.ID)
+        service_ids = services_relation.values_list('service_id', flat=True)
+        if service_ids:
+            services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
+            for service in services:
+                dt = {
+                    "service_id": service.service_id,
+                    "service_cname": service.service_cname,
+                    "service_alias": service.service_alias,
+                    "monitors": []
+                }
+                for k, v in monitor_query_items.items():
+                    res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
+                    monitor = {"monitor_item": k}
+                    monitor.update(body)
+                    dt["monitors"].append(monitor)
+                data.append(dt)
+        print data
+        serializers = ComponentMonitorSerializers(data=data, many=True)
+        serializers.is_valid()
+        return Response(serializers.data, status=200)
+
+
+class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
+    def get(self, request, team_id, region_name, app_id, *args, **kwargs):
+        data = []
+        start = request.GET.get("start")
+        end = request.GET.get("end")
+        step = request.GET.get("step", 60)
+        if not start or not end:
+            raise ServiceHandleException(msg="params error", msg_show=u"缺少query参数")
+        services_relation = group_service_relation_repo.get_services_by_group(self.app.ID)
+        service_ids = services_relation.values_list('service_id', flat=True)
+        if service_ids:
+            services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
+            for service in services:
+                dt = {
+                    "service_id": service.service_id,
+                    "service_cname": service.service_cname,
+                    "service_alias": service.service_alias,
+                    "monitors": []
+                }
+                for k, v in monitor_query_range_items.items():
+                    res, body = region_api.get_query_range_data(
+                        self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
+                    monitor = {"monitor_item": k}
+                    monitor.update(body)
+                    dt["monitors"].append(monitor)
+                data.append(dt)
+
+        serializers = ComponentMonitorSerializers(data=data, many=True)
+        serializers.is_valid()
+        return Response(serializers.data, status=200)
