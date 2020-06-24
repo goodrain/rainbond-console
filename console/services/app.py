@@ -681,16 +681,19 @@ class AppMarketService(object):
                     market.alias = extend_info.name
                     market.status = extend_info.status
                     market.create_time = extend_info.create_time
+                    market.access_actions = extend_info.access_actions
                 except Exception as e:
                     logger.debug(e)
                     market.description = None
-                    market.alias = None
-                    market.status = 0,
+                    market.alias = market.name
+                    market.status = 0
                     market.create_time = None
+                    market.access_actions = []
                 dt.update({
                     "description": market.description,
                     "alias": market.alias,
                     "status": market.status,
+                    "access_actions": market.access_actions,
                 })
             market_list.append(dt)
         return market_list
@@ -711,11 +714,13 @@ class AppMarketService(object):
                 market.description = extend_info.description
                 market.alias = extend_info.name
                 market.status = extend_info.status
+                market.access_actions = extend_info.access_actions
             except Exception as e:
                 logger.debug(e)
                 market.description = None
                 market.alias = None
                 market.status = 0
+                market.access_actions = []
             if raise_exception:
                 if market.status == 0:
                     raise ServiceHandleException(msg="call market error", msg_show=u"应用商店状态异常")
@@ -723,6 +728,7 @@ class AppMarketService(object):
                 "description": market.description,
                 "alias": market.alias,
                 "status": market.status,
+                "access_actions": market.access_actions,
             })
         return dt, market
 
@@ -872,8 +878,8 @@ class AppMarketService(object):
             }
         return Dict(version)
 
-    def get_market_app_models(self, market, page=1, page_size=10, query=None, extend=False):
-        results = app_store.get_apps(market, page=page, page_size=page_size, query=query)
+    def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
@@ -881,10 +887,10 @@ class AppMarketService(object):
         results = app_store.get_app(market, app_id)
         return self.app_model_serializers(market, results, extend=extend)
 
-    def get_market_app_model_versions(self, market, app_id, extend=False):
+    def get_market_app_model_versions(self, market, app_id, query_all=False, extend=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
-        results = app_store.get_app_versions(market, app_id)
+        results = app_store.get_app_versions(market, app_id, query_all=query_all)
         data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
 
