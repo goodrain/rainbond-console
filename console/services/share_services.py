@@ -1067,7 +1067,7 @@ class ShareService(object):
         dt["scope"] = scope
         if scope == "goodrain":
             market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
-            apps_versions, _, _, _ = app_market_service.get_market_app_models(market, page_size=-1, query=None)
+            apps_versions, _, _, _ = app_market_service.get_market_app_models(market, page_size=-1, query=None, query_all=True)
             if apps_versions:
                 for app in apps_versions:
                     versions = []

@@ -662,11 +662,12 @@ class AppMarketRUDView(JWTAuthApiView):
 class AppMarketAppModelLView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name, *args, **kwargs):
         query = request.GET.get("query", None)
+        query_all = request.GET.get("query_all", False)
         page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page", 10))
+        page_size = int(request.GET.get("page_size", 10))
         market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         data, page, page_size, total = app_market_service.get_market_app_models(
-            market_model, page, page_size, query=query, extend=True)
+            market_model, page, page_size, query=query, query_all=query_all, extend=True)
         result = general_message(200, msg="success", msg_show=None, list=data, page=page, page_size=page_size, total=total)
         return Response(result, status=200)
 
@@ -697,8 +698,9 @@ class AppMarketAppModelLView(JWTAuthApiView):
 
 class AppMarketAppModelVersionsLView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name, app_id, *args, **kwargs):
+        query_all = request.GET.get("query_all", False)
         market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
-        data = app_market_service.get_market_app_model_versions(market_model, app_id, extend=True)
+        data = app_market_service.get_market_app_model_versions(market_model, app_id, query_all=query_all, extend=True)
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 

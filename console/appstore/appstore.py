@@ -66,9 +66,10 @@ class AppStore(object):
         return data
 
     @apiException
-    def get_apps(self, store, query, page=1, page_size=10):
+    def get_apps(self, store, query, query_all, page=1, page_size=10):
         store_client = get_market_client(store.access_key, store.url)
-        data = store_client.get_user_app_list(page=page, page_size=page_size, market_domain=store.domain, query=query)
+        data = store_client.get_user_app_list(page=page, page_size=page_size, market_domain=store.domain, query=query,
+                                              query_all=query_all)
         return data
 
     @apiException
@@ -78,9 +79,10 @@ class AppStore(object):
         return data
 
     @apiException
-    def get_app_versions(self, store, app_id):
+    def get_app_versions(self, store, app_id, query_all=False):
         store_client = get_market_client(store.access_key, store.url)
-        data = store_client.get_user_app_versions(app_id=app_id, market_domain=store.domain, _return_http_data_only=True)
+        data = store_client.get_user_app_versions(app_id=app_id, market_domain=store.domain, query_all=query_all,
+                                                  _return_http_data_only=True)
         return data
 
     @apiException
