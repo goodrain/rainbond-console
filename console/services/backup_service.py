@@ -21,6 +21,7 @@ from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import tcp_domain
 from console.repositories.app_config import volume_repo
+from console.repositories.app_config import service_endpoints_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.compose_repo import compose_repo
@@ -119,30 +120,29 @@ class GroupAppBackupService(object):
         # 向数据中心发起备份任务
         try:
             body = region_api.backup_group_apps(region, tenant.tenant_name, data)
+            bean = body["bean"]
+            record_data = {
+                "group_id": group_id,
+                "event_id": event_id,
+                "group_uuid": group_uuid,
+                "version": version,
+                "team_id": tenant.tenant_id,
+                "region": region,
+                "status": bean["status"],
+                "note": note,
+                "mode": mode,
+                "backup_id": bean.get("backup_id", ""),
+                "source_dir": bean.get("source_dir", ""),
+                "source_type": bean.get("source_type", ""),
+                "backup_size": bean.get("backup_size", 0),
+                "user": user.nick_name,
+                "total_memory": total_memory,
+            }
+            return backup_record_repo.create_backup_records(**record_data)
         except region_api.CallApiError as e:
             logger.exception(e)
             if e.status == 401:
                 raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
-
-        bean = body["bean"]
-        record_data = {
-            "group_id": group_id,
-            "event_id": event_id,
-            "group_uuid": group_uuid,
-            "version": version,
-            "team_id": tenant.tenant_id,
-            "region": region,
-            "status": bean["status"],
-            "note": note,
-            "mode": mode,
-            "backup_id": bean.get("backup_id", ""),
-            "source_dir": bean.get("source_dir", ""),
-            "source_type": bean.get("source_type", ""),
-            "backup_size": bean.get("backup_size", 0),
-            "user": user.nick_name,
-            "total_memory": total_memory,
-        }
-        return backup_record_repo.create_backup_records(**record_data)
 
     def get_backup_group_uuid(self, group_id):
         backup_record = backup_record_repo.get_record_by_group_id(group_id)
@@ -219,9 +219,10 @@ class GroupAppBackupService(object):
         total_memory = 0
         plugin_ids = []
         for service in services:
-            if service.service_source == "third_party" or service.create_status != "complete":
+            if service.create_status != "complete":
                 continue
-            total_memory += service.min_memory * service.min_node
+            if service.service_source != "third_party":
+                total_memory += service.min_memory * service.min_node
             app_info, pids = self.get_service_details(tenant, service)
             plugin_ids.extend(pids)
             apps.append(app_info)
@@ -273,7 +274,8 @@ class GroupAppBackupService(object):
         # plugin
         service_plugin_relation = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
-
+        # third_party_service
+        third_party_service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
         app_info = {
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
@@ -291,7 +293,8 @@ class GroupAppBackupService(object):
             "service_relation": [relation.to_dict() for relation in service_relation],
             "service_volumes": [volume.to_dict() for volume in service_volumes],
             "service_config_file": [config_file.to_dict() for config_file in service_config_file],
-            "service_ports": [port.to_dict() for port in service_ports]
+            "service_ports": [port.to_dict() for port in service_ports],
+            "third_party_service_endpoints": [endpoint.to_dict() for endpoint in third_party_service_endpoints]
         }
 
         plugin_ids = [pr.plugin_id for pr in service_plugin_relation]

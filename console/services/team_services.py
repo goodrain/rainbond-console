@@ -271,14 +271,13 @@ class TeamService(object):
                             raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
                 for plugin in plugins:
                     plugin_service.delete_plugin(region["region_name"], tenant, plugin.plugin_id)
-                try:
-                    # There is no guarantee that the deletion of each tenant can be successful.
-                    region_api.delete_tenant(region["region_name"], region["tenant_name"])
-                    success_count += 1
-                except Exception as e:
-                    print e
-                    logger.error("tenant id: {}; region name: {}; delete tenant: {}".format(
-                        tenant.tenant_id, region["tenant_name"], e))
+            try:
+                # There is no guarantee that the deletion of each tenant can be successful.
+                region_api.delete_tenant(region["region_name"], region["tenant_name"])
+                success_count += 1
+            except Exception as e:
+                logger.error("tenant id: {}; region name: {}; delete tenant: {}".format(tenant.tenant_id, region["tenant_name"],
+                                                                                        e))
         if success_count == 0:
             raise ErrAllTenantDeletionFailed
         team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
