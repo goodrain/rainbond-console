@@ -720,10 +720,7 @@ class TenantServiceEndpoints(object):
         return ThirdPartyServiceEndpoints.objects.create(**service_endpoints)
 
     def get_service_endpoints_by_service_id(self, service_id):
-        data = ThirdPartyServiceEndpoints.objects.filter(service_id=service_id).first()
-        if data:
-            return data
-        return None
+        return ThirdPartyServiceEndpoints.objects.filter(service_id=service_id)
 
 
 class GatewayCustom(object):
