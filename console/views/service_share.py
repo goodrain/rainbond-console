@@ -638,12 +638,17 @@ class AppMarketCLView(JWTAuthApiView):
         name = request.data.get("name")
         if not market_name_format(name):
             raise ServiceHandleException(msg="name format error", msg_show=u"标识必须以字母开头且为数字字母组合")
+        if len(name) > 64:
+            raise ServiceHandleException(msg="store note too lang", msg_show=u"应用市场标识字符串长度不能超过64")
+        access_key = request.data.get("access_key")
+        if len(access_key) > 255:
+            raise ServiceHandleException(msg="access key too long", msg_show=u"Access Key 字符串长度不能超过255")
         dt = {
             "name": name,
             "url": request.data.get("url"),
             "type": request.data.get("type"),
             "enterprise_id": enterprise_id,
-            "access_key": request.data.get("access_key"),
+            "access_key": access_key,
             "domain": request.data.get("domain"),
         }
 
