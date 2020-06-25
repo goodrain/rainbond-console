@@ -1156,10 +1156,14 @@ class ShareService(object):
         if not last_shared:
             return None, None
         if last_shared.scope == "goodrain":
-            market = app_market_service.get_app_market_by_name(
-                tenant.enterprise_id, last_shared.share_app_market_name, raise_exception=True)
-            app_version = app_market_service.get_market_app_model_version(
-                market, last_shared.app_id, last_shared.share_version, for_install=True)
+            try:
+                market = app_market_service.get_app_market_by_name(
+                    tenant.enterprise_id, last_shared.share_app_market_name, raise_exception=True)
+                app_version = app_market_service.get_market_app_model_version(
+                    market, last_shared.app_id, last_shared.share_version, for_install=True)
+            except ServiceHandleException as e:
+                logger.debug(e)
+                return None, None
             dt = (json.loads(app_version.template), app_version.app_version_info)
         else:
             app_version = share_repo.get_app_version(last_shared.app_id, last_shared.share_version)

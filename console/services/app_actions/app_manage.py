@@ -725,6 +725,9 @@ class AppManageService(AppManageBase):
                                     if code != 200:
                                         raise Exception(msg)
                                     self.__save_extend_info(service, app["extend_method_map"])
+                except ServiceHandleException as e:
+                    logger.debug(e)
+                    raise e
                 except Exception as e:
                     logger.exception(e)
                     if service_source:

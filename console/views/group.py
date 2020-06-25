@@ -235,6 +235,8 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCent
                 result = general_message(200, "success", "操作成功")
         except ResourceNotEnoughException as e:
             raise e
+        except ServiceHandleException as e:
+            raise e
         return Response(result, status=result["code"])
 
 

@@ -7,6 +7,7 @@ from re import split as re_split
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
 
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_source_repo
 from console.exception.main import RbdAppNotFound
 from console.utils.oauth.oauth_types import support_oauth_type
@@ -221,10 +222,19 @@ class BaseService(object):
                     extend_info = json.loads(service_source.extend_info)
                     if extend_info and extend_info.get("install_from_cloud", False):
                         market_name = extend_info.get("market_name")
-                        market = app_market_service.get_app_market_by_name(
-                            tenant.enterprise_id, market_name, raise_exception=True)
-                        app, app_version = app_market_service.cloud_app_model_to_db_model(
-                            market, service_source.group_key, service_source.version)
+                        bean["install_from_cloud"] = True
+                        try:
+                            market = app_market_service.get_app_market_by_name(
+                                tenant.enterprise_id, market_name, raise_exception=True)
+                            app, app_version = app_market_service.cloud_app_model_to_db_model(
+                                market, service_source.group_key, service_source.version)
+                            bean["market_error_code"] = 200
+                            bean["market_status"] = 1
+                        except ServiceHandleException as e:
+                            logger.debug(e)
+                            bean["market_status"] = 0
+                            bean["market_error_code"] = e.error_code
+                            return bean
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
                 if not app:

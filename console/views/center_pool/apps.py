@@ -161,13 +161,13 @@ class CenterAppView(RegionTenantHeaderView):
                 market_app_service.update_rainbond_app_install_num(self.user.enterprise_id, app_id, app_version)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
+        except ServiceHandleException as e:
+            raise e
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
-        except ServiceHandleException as e:
-            raise e
         return Response(result, status=result["code"])
 
 
