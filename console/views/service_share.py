@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import datetime
 import logging
 import base64
@@ -24,6 +25,17 @@ from www.utils.return_message import general_message
 from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger('default')
+# 数字和字母组合，不允许纯数字
+NUM_LETTER = re.compile("^(?!\d+$)[\da-zA-Z_]+$")
+# 只能以字母开头
+FIRST_LETTER = re.compile("^[a-zA-Z]")
+
+
+def market_name_format(name):
+    if NUM_LETTER.search(name):
+        if FIRST_LETTER.search(name):
+            return True
+    return False
 
 
 class ServiceShareRecordView(RegionTenantHeaderView):
@@ -623,8 +635,11 @@ class AppMarketCLView(JWTAuthApiView):
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, *args, **kwargs):
+        name = request.data.get("name")
+        if not market_name_format(name):
+            raise ServiceHandleException(msg="name format error", msg_show=u"标识必须以字母开头且为数字字母组合")
         dt = {
-            "name": request.data.get("name"),
+            "name": name,
             "url": request.data.get("url"),
             "type": request.data.get("type"),
             "enterprise_id": enterprise_id,

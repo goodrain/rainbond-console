@@ -80,6 +80,9 @@ def apiException(func):
             return func(*args, **kwargs)
         except ApiException as e:
             logger.debug(e)
+            if e.status == 401:
+                raise ServiceHandleException(msg="no store auth token", msg_show="缺少云应用市场token", status_code=401,
+                                             error_code=10421)
             if e.status == 403:
                 raise ServiceHandleException(msg="no store permission", msg_show="未进行授权", status_code=403,
                                              error_code=10407)
