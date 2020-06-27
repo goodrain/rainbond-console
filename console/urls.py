@@ -85,6 +85,7 @@ from console.views.app_manage import StartAppView
 from console.views.app_manage import StopAppView
 from console.views.app_manage import UpgradeAppView
 from console.views.app_manage import VerticalExtendAppView
+from console.views.app_manage import TeamAppsCloseView
 from console.views.app_monitor import AppMonitorQueryRangeView
 from console.views.app_monitor import AppMonitorQueryView
 from console.views.app_monitor import AppResourceQueryView
@@ -266,6 +267,7 @@ from console.views.user import EnterPriseUsersCLView
 from console.views.user import EnterPriseUsersUDView
 from console.views.user import UserLogoutView
 from console.views.user import UserPemTraView
+from console.views.user import AdministratorJoinTeamView
 from console.views.user_accesstoken import UserAccessTokenCLView
 from console.views.user_accesstoken import UserAccessTokenRUDView
 from console.views.user_operation import ChangeLoginPassword
@@ -401,7 +403,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/service/group$', GroupServiceView.as_view(), perms.GroupServiceView),
 
     # 应用拓扑图
-    url(r'^teams/(?P<team_name>[\w\-]+)/topological$', TopologicalGraphView.as_view(), perms.TopologicalGraphView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/topological$', TopologicalGraphView.as_view(),
+        perms.TopologicalGraphView),
     # 拓扑图中应用详情
     url(r'^teams/(?P<team_name>[\w\-]+)/topological/services/(?P<serviceAlias>[\w\-]+)$', GroupServiceDetView.as_view(),
         perms.GroupServiceDetView),
@@ -766,6 +769,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     # 获取数据中心协议
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view(), perms.RegionProtocolView),
+    # 批量关闭应用下所有组件
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
     # 应用导入
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view(), perms.CenterAppUploadView),
     # 应用包目录查询
@@ -845,6 +850,7 @@ urlpatterns = [
     url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
     url(r'^enterprise/admin/add-user$', AdminAddUserView.as_view(), perms.AdminAddUserView),
+    url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),

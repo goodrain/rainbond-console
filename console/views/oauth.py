@@ -30,7 +30,7 @@ jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 
 class OauthType(JWTAuthApiView):
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         try:
             data = support_oauth_type.keys()
         except Exception as e:
@@ -179,7 +179,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
 
 
 class OauthServiceInfo(EnterpriseAdminView):
-    def delete(self, request, service_id):
+    def delete(self, request, service_id, *args, **kwargs):
         try:
             oauth_repo.delete_oauth_service(service_id)
             oauth_user_repo.delete_users_by_services_id(service_id)
@@ -282,7 +282,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
 
 
 class OAuthUserInfo(AlowAnyApiView):
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         id = request.GET.get("id")
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
@@ -313,7 +313,7 @@ class OAuthUserInfo(AlowAnyApiView):
 
 
 class OAuthServerUserAuthorize(JWTAuthApiView):
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         login_user = request.user
         code = request.data.get("code")
         service_id = request.data.get("service_id")
@@ -537,7 +537,7 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
 
 
 class OAuthGitCodeDetection(JWTAuthApiView):
-    def post(self, request, service_id, **kwargs):
+    def post(self, request, service_id, *args, **kwargs):
         region = request.data.get("region_name")
         tenant_name = request.data.get("tenant_name", None)
         git_url = request.data.get("project_url")

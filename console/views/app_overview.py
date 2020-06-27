@@ -124,7 +124,7 @@ class AppDetailView(AppBaseView):
         bean["is_third"] = False
         if self.service.service_source == "third_party":
             bean["is_third"] = True
-            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id).first()
             if service_endpoints:
                 bean["register_way"] = service_endpoints.endpoints_type
                 if service_endpoints.endpoints_type == "api":

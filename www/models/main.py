@@ -800,7 +800,7 @@ class TenantServiceStatics(BaseModel):
     flow = models.IntegerField(help_text=u"网络下载量", default=0)
     time_stamp = models.IntegerField(help_text=u"时间戳", default=0)
     status = models.IntegerField(default=0, help_text=u"0:无效；1:有效；2:操作中")
-    region = models.CharField(max_length=15, help_text=u"组件所属区")
+    region = models.CharField(max_length=64, help_text=u"组件所属区")
     time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
@@ -1090,7 +1090,7 @@ class ServiceAttachInfo(BaseModel):
     buy_start_time = models.DateTimeField(help_text=u"购买开始时间")
     buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    region = models.CharField(max_length=32, help_text=u"数据中心")
+    region = models.CharField(max_length=64, help_text=u"数据中心")
 
     def toJSON(self):
         data = {}
@@ -1150,7 +1150,7 @@ class ServiceConsume(BaseModel):
     net_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"网络金额")
     pay_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"实际付费金额")
     pay_status = models.CharField(max_length=15, choices=pay_status, help_text=u"付费状态")
-    region = models.CharField(max_length=32, help_text=u"数据中心")
+    region = models.CharField(max_length=64, help_text=u"数据中心")
     status = models.IntegerField(default=0, help_text=u"0:无效；1:有效；2:操作中")
     time = models.DateTimeField(help_text=u"创建时间")
     real_memory_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"内存按需金额")

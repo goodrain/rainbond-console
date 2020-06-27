@@ -66,3 +66,11 @@ CREATE TABLE `role_info` (
 ) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8;
 
 alter table console.tenant_info modify region varchar(64);
+
+alter table console.compose_group modify region varchar(64);
+alter table console.tenant_service_recycle_bin modify service_region varchar(64);
+alter table console.service_attach_info modify region varchar(64);
+alter table console.service_consume modify region varchar(64);
+alter table console.tenant_service_statics modify region varchar(64);
+alter table console.tenant_plugin modify region varchar(64);
+alter table console.plugin_build_version modify region varchar(64);

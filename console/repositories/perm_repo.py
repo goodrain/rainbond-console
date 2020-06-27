@@ -170,12 +170,11 @@ class UserKindRoleRepo(object):
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
         has_role_ids = roles.values_list("ID", flat=True)
         update_role_ids = list(set(has_role_ids) & set(role_ids))
-        if update_role_ids:
-            for role_id in update_role_ids:
-                update_role_list.append(UserRole(user_id=user.user_id, role_id=role_id))
-            UserRole.objects.bulk_create(update_role_list)
-        else:
+        if not update_role_ids and len(role_ids):
             raise ServiceHandleException(msg="no found can update params", msg_show=u"传入角色不可被分配，请检查参数", status_code=404)
+        for role_id in update_role_ids:
+            update_role_list.append(UserRole(user_id=user.user_id, role_id=role_id))
+        UserRole.objects.bulk_create(update_role_list)
 
     def delete_user_roles(self, kind, kind_id, user, role_ids=None):
         if not user:

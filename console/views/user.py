@@ -8,6 +8,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
+from console.exception.main import ServiceHandleException
 from console.repositories.user_repo import user_repo
 from console.repositories.team_repo import team_repo
 from console.services.auth import login
@@ -22,6 +23,7 @@ from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
 from console.views.base import JWTAuthApiView
 from console.views.base import TeamOwnerView
+from console.views.base import EnterpriseAdminView
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser
 from www.services import user_svc
@@ -302,4 +304,20 @@ class EnterPriseUsersUDView(JWTAuthApiView):
             return Response(result, 403)
         user_services.delete_user(user_id)
         result = general_message(200, "success", "删除用户成功")
+        return Response(result, status=200)
+
+
+class AdministratorJoinTeamView(EnterpriseAdminView):
+    def post(self, request, *args, **kwargs):
+        nojoin_user_ids = []
+        team_name = request.data.get("team_name")
+        team = team_services.get_enterprise_tenant_by_tenant_name(self.user.enterprise_id, team_name)
+        if not team:
+            raise ServiceHandleException(msg="no found team", msg_show=u"团队不存在", status_code=404)
+        users = team_services.get_team_users(team)
+        if users:
+            nojoin_user_ids = users.values_list("user_id", flat=True)
+        if self.user.user_id not in nojoin_user_ids:
+            team_services.add_user_role_to_team(tenant=team, user_ids=[self.user.user_id], role_ids=[])
+        result = general_message(200, "success", None)
         return Response(result, status=200)
