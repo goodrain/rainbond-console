@@ -10,30 +10,20 @@ from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
-from console.exception.exceptions import AccountNotExistError
-from console.exception.exceptions import EmailExistError
-from console.exception.exceptions import PasswordTooShortError
-from console.exception.exceptions import PhoneExistError
-from console.exception.exceptions import TenantNotExistError
-from console.exception.exceptions import UserExistError
-from console.exception.exceptions import UserNotExistError
-from console.models.main import EnterpriseUserPerm
-from console.models.main import UserRole
+from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
+                                          TenantNotExistError, UserExistError, UserNotExistError)
+from console.models.main import EnterpriseUserPerm, UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
-from console.services.exception import ErrAdminUserDoesNotExist
-from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
+from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
-from console.services.perm_services import role_kind_services
-from console.services.perm_services import user_kind_role_service
 from www.gitlab_http import GitlabApi
-from www.models.main import PermRelTenant
-from www.models.main import Tenants
-from www.models.main import Users
+from www.models.main import PermRelTenant, Tenants, Users
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.crypt import encrypt_passwd
 from www.utils.return_message import general_message
@@ -490,13 +480,11 @@ class UserService(object):
     def __check_email(self, email):
         if not email:
             return False, "邮箱不能为空"
-        if self.get_user_by_phone(email):
+        if self.get_user_by_email(email):
             return False, "邮箱{0}已存在".format(email)
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
             return False, "邮箱地址不合法"
-        if self.get_user_by_email(email):
-            return False, "邮箱已存在"
         return True, "success"
 
     def init_webhook_user(self, service, hook_type, committer_name=None):
