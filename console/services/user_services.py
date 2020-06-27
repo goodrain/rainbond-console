@@ -12,20 +12,18 @@ from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
-                                          TenantNotExistError, UserExistError, UserNotExistError, ServiceHandleException)
-from console.models.main import EnterpriseUserPerm
-from console.models.main import UserRole
+                                          ServiceHandleException, TenantNotExistError, UserExistError, UserNotExistError)
+from console.models.main import EnterpriseUserPerm, UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
 from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
+from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.services.perm_services import role_kind_services
-from console.services.perm_services import user_kind_role_service
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant, Tenants, Users
 from www.tenantservice.baseservice import CodeRepositoriesService
@@ -491,12 +489,12 @@ class UserService(object):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
     def check_params(self, user_name, email, password, re_password, eid=None):
-        is_pass, msg = self.__check_user_name(user_name)
+        is_pass, msg = self.__check_user_name(user_name, eid)
         if not is_pass:
-            raise ServiceHandleException(error_code=3000, msg="user name is exist", msg_show=u"用户已存在")
+            raise ServiceHandleException(error_code=3000, msg="user name is exist", msg_show=msg)
         is_pass, msg = self.__check_email(email)
         if not is_pass:
-            raise ServiceHandleException(error_code=3003, msg="email name is exist", msg_show=u"邮箱已存在")
+            raise ServiceHandleException(error_code=3003, msg="email name is exist", msg_show=msg)
         if password != re_password:
             return False, "两次输入的密码不一致"
         return True, "success"
@@ -511,16 +509,14 @@ class UserService(object):
             return False, "用户名称只支持中英文下划线和中划线"
         return True, "success"
 
-    def __check_email(self, email, eid):
+    def __check_email(self, email):
         if not email:
             return False, "邮箱不能为空"
-        if self.get_user_by_phone(email, eid):
-            return False, "邮箱{0}已存在".format(email)
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
             return False, "邮箱地址不合法"
         if self.get_user_by_email(email):
-            return False, "邮箱已存在"
+            return False, "邮箱{0}已存在".format(email)
         return True, "success"
 
     def init_webhook_user(self, service, hook_type, committer_name=None):
