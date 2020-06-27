@@ -172,7 +172,7 @@ class UserService(object):
         try:
             self.get_enterprise_user_by_username(user_name, eid)
             return True
-        except UserNotExistError:
+        except Users.DoesNotExist:
             return False
 
     def create(self, data):
@@ -499,10 +499,10 @@ class UserService(object):
             return False, "两次输入的密码不一致"
         return True, "success"
 
-    def __check_user_name(self, user_name, eid):
+    def __check_user_name(self, user_name, eid=None):
         if not user_name:
             return False, "用户名不能为空"
-        if user_repo.get_enterprise_user_by_username(eid, user_name):
+        if self.is_user_exist(user_name, eid):
             return False, "用户{0}已存在".format(user_name)
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(user_name.decode("utf-8")):
