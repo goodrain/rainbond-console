@@ -13,19 +13,17 @@ from rest_framework.response import Response
 
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
                                           TenantNotExistError, UserExistError, UserNotExistError)
-from console.models.main import EnterpriseUserPerm
-from console.models.main import UserRole
+from console.models.main import EnterpriseUserPerm, UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import app_manage_service
 from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
+from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.services.perm_services import role_kind_services
-from console.services.perm_services import user_kind_role_service
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant, Tenants, Users
 from www.tenantservice.baseservice import CodeRepositoriesService
@@ -501,10 +499,10 @@ class UserService(object):
             return False, "两次输入的密码不一致"
         return True, "success"
 
-    def __check_user_name(self, user_name):
+    def __check_user_name(self, user_name, eid=None):
         if not user_name:
             return False, "用户名不能为空"
-        if user_repo.get_user_by_user_name(user_name):
+        if self.is_user_exist(user_name, eid):
             return False, "用户{0}已存在".format(user_name)
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(user_name.decode("utf-8")):
