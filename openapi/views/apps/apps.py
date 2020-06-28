@@ -93,7 +93,7 @@ class AppInfoView(TeamAppAPIView):
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
         ],
-        responses={200: None},
+        responses={},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, *args, **kwargs):
@@ -222,7 +222,7 @@ class AppServicesView(TeamAppServiceAPIView):
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
         ],
-        responses={200: None},
+        responses={},
         tags=['openapi-apps'],
     )
     def delete(self, req, app_id, service_id, *args, **kwargs):
@@ -273,7 +273,6 @@ class ComponentEnvsUView(TeamAppServiceAPIView):
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
             openapi.Parameter("service_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_STRING),
-            openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
             openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
             openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
         ],

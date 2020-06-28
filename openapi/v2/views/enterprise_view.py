@@ -53,7 +53,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="更新企业信息",
         query_serializer=UpdEntReqSerializer,
-        responses={200: None},
+        responses={},
         tags=['openapi-entreprise'],
     )
     def put(self, req, eid):
