@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.repositories.deploy_repo import deploy_repo
+from console.repositories.app_config import service_endpoints_repo
 from console.services.app import app_service
 from console.services.app_config import port_service
 from console.services.app_config import endpoint_service
@@ -333,6 +334,8 @@ class ThirdPartyAppPodsView(AppBaseView):
             endpoint_dict["ep_id"] = ep_id
             res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                                         self.service.service_alias, endpoint_dict)
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
+            service_endpoints.delete()
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 

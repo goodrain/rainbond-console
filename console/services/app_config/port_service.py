@@ -6,6 +6,7 @@ import datetime
 import logging
 import re
 import validators
+import json
 
 from django.db import transaction
 
@@ -15,6 +16,7 @@ from console.exception.main import ServiceHandleException
 
 from console.constants import ServicePortConstants
 from console.repositories.app import service_repo
+from console.repositories.app_config import service_endpoints_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import tcp_domain
@@ -742,6 +744,7 @@ class AppPortService(object):
 
 
 class EndpointService(object):
+    @transaction.atomic()
     def add_endpoint(self, tenant, service, address, is_online):
         try:
             _, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
@@ -769,6 +772,23 @@ class EndpointService(object):
         try:
             res, _ = region_api.post_third_party_service_endpoints(service.service_region, tenant.tenant_name,
                                                                    service.service_alias, data)
+            # 保存endpoints数据
+            old_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
+            if old_endpoints:
+                old_endpoints_info = json.loads(old_endpoints.endpoints_info)
+                if isinstance(old_endpoints_info, list):
+                    endpoints.extend(old_endpoints_info)
+                old_endpoints.endpoints_info = endpoints
+                old_endpoints.save()
+            else:
+                service_endpoints = {
+                    "tenant_id": tenant.tenant_id,
+                    "service_id": service.service_id,
+                    "service_cname": service.service_cname,
+                    "endpoints_info": json.dumps(endpoints),
+                    "endpoints_type": "static"
+                }
+                service_endpoints_repo.add_service_endpoints(service_endpoints)
         except region_api.CallApiError as e:
             logger.exception(e)
             raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")
