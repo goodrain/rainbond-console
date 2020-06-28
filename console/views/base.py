@@ -325,7 +325,6 @@ class RegionTenantHeaderView(JWTAuthApiView):
         if not self.response_region:
             self.response_region = self.request.COOKIES.get('region_name', None)
         self.region_name = self.response_region
-        self.response_region = "121"
         if not self.response_region:
             raise ImportError("region_name not found !")
         if not self.tenant_name:

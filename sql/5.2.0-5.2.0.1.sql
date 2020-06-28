@@ -80,7 +80,7 @@ alter table console.tenant_service_statics modify region varchar(64);
 alter table console.tenant_plugin modify region varchar(64);
 alter table console.plugin_build_version modify region varchar(64);
 
-CREATE TABLE `app_store` (
+CREATE TABLE `app_market` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(64) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
