@@ -121,11 +121,7 @@ class TeamInfo(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="删除团队",
-        responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None
-        },
+        responses={},
         tags=['openapi-team'],
     )
     def delete(self, req, team_id, *args, **kwargs):
@@ -146,8 +142,6 @@ class TeamInfo(TeamNoRegionAPIView):
         operation_description="更新团队信息",
         request_body=UpdateTeamInfoReqSerializer,
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
         },
         tags=['openapi-team'],
     )
@@ -460,9 +454,6 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="删除证书",
         responses={
-            status.HTTP_201_CREATED: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
-            status.HTTP_400_BAD_REQUEST: None,
         },
         tags=['openapi-team'],
     )

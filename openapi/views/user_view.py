@@ -100,8 +100,6 @@ class UserInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="删除用户",
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None
         },
         tags=['openapi-user'],
     )
@@ -172,8 +170,6 @@ class ChangePassword(BaseOpenAPIView):
         operation_description="修改用户密码",
         request_body=ChangePassWdUserSerializer,
         responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: None,
         },
         tags=['openapi-user'],
     )
