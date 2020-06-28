@@ -44,7 +44,7 @@ urlpatterns = [
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # get enterprise regions
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
-    # get user teams
+    url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
     url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
     url(r'^v1/administrators$', ListAdminsView.as_view(), perms.ListAdminsView),
     url(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view(), perms.AdminInfoView),
@@ -69,7 +69,6 @@ if os.environ.get("OPENAPI_V2") == "true":
 if os.environ.get("OPENAPI_DEBUG") == "true":
     urlpatterns += [
         url(r'^v1/auth-token$', TokenInfoView.as_view()),
-        url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
         url(r'^v1/regions/(?P<region_id>[\w\-]+)/status$', RegionStatusView.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
         url(r'^v1/teams/(?P<team_id>[\w\-]+)/users$', ListTeamUsersInfo.as_view()),

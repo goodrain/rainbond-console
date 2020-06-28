@@ -44,6 +44,28 @@ class RegionInfoSerializer(serializers.ModelSerializer, RegionReqValidate):
         ]
 
 
+class RegionInfoRSerializer(serializers.Serializer):
+    region_name = serializers.CharField(help_text=u"数据中心名")
+    region_alias = serializers.CharField(help_text=u"数据中心昵称")
+    url = serializers.CharField(allow_null=True)
+    wsurl = serializers.CharField(allow_null=True)
+    httpdomain = serializers.CharField(allow_null=True)
+    tcpdomain = serializers.CharField(allow_null=True)
+    scope = serializers.CharField(allow_null=True)
+    ssl_ca_cert = serializers.CharField(allow_null=True)
+    cert_file = serializers.CharField(allow_null=True)
+    key_file = serializers.CharField(allow_null=True)
+    desc = serializers.CharField(allow_null=True)
+    used_disk = serializers.FloatField(required=False, help_text=u"使用的存储")
+    total_disk = serializers.FloatField(required=False, help_text=u"全部存储")
+    used_memory = serializers.FloatField(required=False, help_text=u"使用内存")
+    total_memory = serializers.FloatField(required=False, help_text=u"全部内存")
+    used_cpu = serializers.FloatField(required=False, help_text=u"使用cpu")
+    total_cpu = serializers.FloatField(required=False, help_text=u"全部cpu")
+    health_status = serializers.CharField(required=False, help_text=u"集群状态")
+    status = serializers.CharField(required=False, help_text=u"状态")
+
+
 class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
     class Meta:
         model = RegionConfig
