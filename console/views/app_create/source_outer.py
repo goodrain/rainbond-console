@@ -9,6 +9,7 @@ import os
 import pickle
 
 from django.views.decorators.cache import never_cache
+from django.db.transaction import atomic
 from rest_framework.response import Response
 
 from console.repositories.deploy_repo import deploy_repo
@@ -318,6 +319,7 @@ class ThirdPartyAppPodsView(AppBaseView):
         return Response(result)
 
     @never_cache
+    @atomic
     def delete(self, request, *args, **kwargs):
         """
         删除endpoint实例
@@ -330,12 +332,29 @@ class ThirdPartyAppPodsView(AppBaseView):
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         try:
+            to_del_endpoint_ip = None
+            res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                                                self.service.service_alias)
+            if res.status != 200:
+                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
+            old_endpoint_list = body["list"]
+            for endpoint in old_endpoint_list:
+                if ep_id == endpoint["ep_id"]:
+                    to_del_endpoint_ip = endpoint["address"]
             endpoint_dict = dict()
             endpoint_dict["ep_id"] = ep_id
             res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                                         self.service.service_alias, endpoint_dict)
-            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id)
-            service_endpoints.delete()
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id).first()
+            if service_endpoints.endpoints_info and to_del_endpoint_ip:
+                old_endpoints_info = eval(service_endpoints.endpoints_info)
+                if isinstance(old_endpoints_info, list):
+                    new_endpoints_info = list(set(old_endpoints_info) ^ set([to_del_endpoint_ip]))
+                    if not new_endpoints_info:
+                        service_endpoints.delete()
+                    else:
+                        service_endpoints.endpoints_info = json.dumps(new_endpoints_info)
+                        service_endpoints.save()
             logger.debug('-------res------->{0}'.format(res))
             logger.debug('=======body=======>{0}'.format(body))
 

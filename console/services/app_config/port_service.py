@@ -775,10 +775,7 @@ class EndpointService(object):
             # 保存endpoints数据
             old_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
             if old_endpoints:
-                old_endpoints_info = json.loads(old_endpoints.endpoints_info)
-                if isinstance(old_endpoints_info, list):
-                    endpoints.extend(old_endpoints_info)
-                old_endpoints.endpoints_info = endpoints
+                old_endpoints.endpoints_info = json.dumps(endpoints)
                 old_endpoints.save()
             else:
                 service_endpoints = {
