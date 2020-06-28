@@ -14,15 +14,17 @@ from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service, event_service
 from console.services.group_service import group_service
 from console.services.service_services import base_service
+from console.services.app_config.env_service import AppEnvVarService
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
                                                AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-                                               ServiceGroupOperationsSerializer)
+                                               ServiceGroupOperationsSerializer, ComponentEnvsSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
 from openapi.views.exceptions import ErrAppNotFound
 
 logger = logging.getLogger("default")
+env_var_service = AppEnvVarService()
 
 
 class ListAppsView(TeamAPIView):
@@ -263,3 +265,29 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         re = ListServiceEventsResponse(data=result)
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)
+
+
+class ComponentEnvsUView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="批量关闭应用",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        request_body=ComponentEnvsSerializers,
+        responses={
+            status.HTTP_200_OK: ComponentEnvsSerializers,
+        },
+        tags=['openapi-apps'],
+    )
+    def put(self, request, *args, **kwargs):
+        serializers = ComponentEnvsSerializers(data=request.data)
+        serializers.is_valid(raise_exception=True)
+        envs = serializers.data.get("envs")
+        rst = env_var_service.update_or_create_envs(self.team, self.service, envs)
+        serializers = ComponentEnvsSerializers(data=rst)
+        serializers.is_valid(raise_exception=True)
+        return Response(serializers.data, status=200)
