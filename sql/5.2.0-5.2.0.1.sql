@@ -83,13 +83,14 @@ alter table console.plugin_build_version modify region varchar(64);
 CREATE TABLE `app_market` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(64) DEFAULT NULL,
-  `url` varchar(255) DEFAULT NULL,
+  `domain` varchar(64) DEFAULT NULL,
+  `url` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `type` varchar(32) DEFAULT NULL,
-  `access_key` varchar(32) DEFAULT NULL,
+  `access_key` varchar(255) DEFAULT NULL,
   `enterprise_id` varchar(32) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `ent-name` (`name`,`enterprise_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8;
 
 alter table console.service_share_record change share_app_market_id share_app_market_name varchar(64) NULL DEFAULT NULL;
 alter table console.rainbond_center_app_version add template_type varchar(32) DEFAULT 'RAM';
