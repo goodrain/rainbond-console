@@ -276,6 +276,9 @@ class GroupAppBackupService(object):
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
         # third_party_service
         third_party_service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+        if service.service_source == "third_party":
+            if not third_party_service_endpoints:
+                raise ServiceHandleException(msg="third party service endpoints can't be null", msg_show=u"第三方组件实例不可为空")
         app_info = {
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
