@@ -740,6 +740,7 @@ class TenantServiceEndpoints(object):
             endpoints = ThirdPartyServiceEndpoints.objects.create(**data)
         return endpoints
 
+
 class GatewayCustom(object):
     def get_configuration_by_rule_id(self, rule_id):
         return GatewayCustomConfiguration.objects.filter(rule_id=rule_id).first()
