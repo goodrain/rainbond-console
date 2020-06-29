@@ -213,6 +213,7 @@ class AppEnvVarService(object):
                 region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, data)
             except Exception as e:
                 logger.exception(e)
+
     @atomic
     def update_or_create_envs(self, team, service, envs):
         has_envs = env_var_repo.get_service_env(service.tenant_id, service.service_id)

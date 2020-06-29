@@ -14,7 +14,6 @@ from console.constants import AppConstants
 from console.constants import PluginImage
 from console.constants import SourceCodeType
 from console.enum.component_enum import ComponentType
-from console.exception.main import ErrDoNotSupportMultiDomain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import dep_relation_repo
@@ -28,7 +27,7 @@ from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.utils.oauth.oauth_types import support_oauth_type
-from console.utils.validation import validate_endpoint_address
+from console.utils.validation import validate_endpoints_info
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume
@@ -590,17 +589,7 @@ class AppService(object):
         if endpoints:
             if endpoints.endpoints_type == "static":
                 eps = json.loads(endpoints.endpoints_info)
-                for address in eps:
-                    if "https://" in address:
-                        address = address.partition("https://")[2]
-                    if "http://" in address:
-                        address = address.partition("http://")[2]
-                    if ":" in address:
-                        address = address.rpartition(":")[0]
-                    errs = validate_endpoint_address(address)
-                    if errs:
-                        if len(eps) > 1:
-                            raise ErrDoNotSupportMultiDomain("do not support multi domain address")
+                validate_endpoints_info(eps)
             endpoints_dict = dict()
             endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
             data["endpoints"] = endpoints_dict
