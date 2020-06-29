@@ -4,6 +4,7 @@
 """
 import datetime
 import logging
+import json
 
 from django.db.models import Q
 
@@ -716,12 +717,28 @@ class ServiceTcpDomainRepository(object):
 
 
 class TenantServiceEndpoints(object):
-    def add_service_endpoints(self, service_endpoints):
-        return ThirdPartyServiceEndpoints.objects.create(**service_endpoints)
 
     def get_service_endpoints_by_service_id(self, service_id):
         return ThirdPartyServiceEndpoints.objects.filter(service_id=service_id)
 
+    def update_or_create_endpoints(self, tenant, service, service_endpoints):
+        endpoints = self.get_service_endpoints_by_service_id(service.service_id)
+        if not service_endpoints:
+            endpoints.delete()
+        elif endpoints:
+            endpoints = endpoints.first()
+            endpoints.endpoints_info = json.dumps(service_endpoints)
+            endpoints.save()
+        else:
+            data = {
+                "tenant_id": tenant.tenant_id,
+                "service_id": service.service_id,
+                "service_cname": service.service_cname,
+                "endpoints_info": json.dumps(service_endpoints),
+                "endpoints_type": "static"
+            }
+            endpoints = ThirdPartyServiceEndpoints.objects.create(**data)
+        return endpoints
 
 class GatewayCustom(object):
     def get_configuration_by_rule_id(self, rule_id):

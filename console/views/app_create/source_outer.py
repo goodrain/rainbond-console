@@ -331,43 +331,23 @@ class ThirdPartyAppPodsView(AppBaseView):
         ep_id = request.data.get("ep_id", None)
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
-        try:
-            to_del_endpoint_ip = None
-            res, body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
-                                                                self.service.service_alias)
-            if res.status != 200:
-                return Response(general_message(412, "region error", "数据中心查询失败"), status=412)
-            old_endpoint_list = body["list"]
-            for endpoint in old_endpoint_list:
-                if ep_id == endpoint["ep_id"]:
-                    to_del_endpoint_ip = endpoint["address"]
-            endpoint_dict = dict()
-            endpoint_dict["ep_id"] = ep_id
-            res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
-                                                                        self.service.service_alias, endpoint_dict)
-            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id).first()
-            if service_endpoints.endpoints_info and to_del_endpoint_ip:
-                old_endpoints_info = eval(service_endpoints.endpoints_info)
-                if isinstance(old_endpoints_info, list):
-                    new_endpoints_info = list(set(old_endpoints_info) ^ set([to_del_endpoint_ip]))
-                    if not new_endpoints_info:
-                        service_endpoints.delete()
-                    else:
-                        service_endpoints.endpoints_info = json.dumps(new_endpoints_info)
-                        service_endpoints.save()
-            logger.debug('-------res------->{0}'.format(res))
-            logger.debug('=======body=======>{0}'.format(body))
+        endpoint_dict = dict()
+        endpoint_dict["ep_id"] = ep_id
+        res, body = region_api.delete_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
+                                                                    self.service.service_alias, endpoint_dict)
+        res, new_body = region_api.get_third_party_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                                            self.service.service_alias)
+        new_endpoint_list = new_body.get("list", [])
+        new_endpoints = [endpoint.address for endpoint in new_endpoint_list]
+        service_endpoints_repo.update_or_create_endpoints(self.tenant, self.service, new_endpoints)
+        logger.debug('-------res------->{0}'.format(res))
+        logger.debug('=======body=======>{0}'.format(body))
 
-            if res.status != 200:
-                return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
-            # service_endpoints_repo.delete_service_endpoints_by_service_id(self.service.service_id)
-            result = general_message(200, "success", "删除成功")
-            return Response(result)
-
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        if res.status != 200:
+            return Response(general_message(412, "region delete error", "数据中心删除失败"), status=412)
+        # service_endpoints_repo.delete_service_endpoints_by_service_id(self.service.service_id)
+        result = general_message(200, "success", "删除成功")
+        return Response(result)
 
     @never_cache
     def put(self, request, *args, **kwargs):
