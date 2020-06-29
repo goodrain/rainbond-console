@@ -517,6 +517,7 @@ class ChangeServiceUpgradeView(AppBaseView):
 class MarketServiceUpgradeView(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
+        versions = []
         try:
             versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
         except RbdAppNotFound:

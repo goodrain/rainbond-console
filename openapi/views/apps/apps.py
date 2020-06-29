@@ -406,6 +406,21 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
 
 
 class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
+    @swagger_auto_schema(
+        operation_description="应用下组件历史监控",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("start", openapi.IN_PATH, description="起始时间戳", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("end", openapi.IN_PATH, description="结束时间戳", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("step", openapi.IN_PATH, description="步长（默认60）", type=openapi.TYPE_NUMBER),
+        ],
+        responses={
+            200: ComponentMonitorSerializers(many=True)
+        },
+        tags=['openapi-apps'],
+    )
     def get(self, request, team_id, region_name, app_id, *args, **kwargs):
         data = []
         start = request.GET.get("start")
