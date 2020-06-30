@@ -1,14 +1,27 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+import json
 from rest_framework import serializers
+from drf_yasg.utils import swagger_serializer_method
 
 from www.models.main import ServiceDomain, ServiceTcpDomain
 
 
 class HTTPGatewayRuleSerializer(serializers.ModelSerializer):
+    rule_extensions = serializers.SerializerMethodField()
     class Meta:
         model = ServiceDomain
         exclude = ["create_time"]
+
+    @swagger_serializer_method(serializer_or_field=serializers.ListField)
+    def get_rule_extensions(self, instance):
+        try:
+            return json.loads(instance.rule_extensions)
+        except Exception:
+            try:
+                return eval(instance.rule_extensions)
+            except Exception:
+                return []
 
 
 class TCPGatewayRuleSerializer(serializers.ModelSerializer):
