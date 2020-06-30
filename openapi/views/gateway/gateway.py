@@ -121,7 +121,7 @@ class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
         operation_description="获取应用http访问策略详情",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
-            openapi.Parameter("app_id", openapi.IN_PATH, description="网关策略id", type=openapi.TYPE_STRING),
+            openapi.Parameter("rule_id", openapi.IN_PATH, description="网关策略id", type=openapi.TYPE_STRING),
         ],
         responses={200: HTTPGatewayRuleSerializer(many=True)},
         tags=['openapi-gateway'],
