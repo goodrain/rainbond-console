@@ -48,7 +48,7 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
         operation_description="创建HTTP网关策略",
         request_body=PostHTTPGatewayRuleSerializer(),
         responses={200: HTTPGatewayRuleSerializer()},
-        tags=['openapi-apps'],
+        tags=['openapi-gateway'],
     )
     def post(self, request, app_id, *args, **kwargs):
         ads = PostHTTPGatewayRuleSerializer(data=request.data)
