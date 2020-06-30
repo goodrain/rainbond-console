@@ -123,11 +123,11 @@ class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
             openapi.Parameter("rule_id", openapi.IN_PATH, description="网关策略id", type=openapi.TYPE_STRING),
         ],
-        responses={200: HTTPGatewayRuleSerializer(many=True)},
+        responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
     )
     def get(self, req, app_id, rule_id, *args, **kwargs):
-        rule = domain_service.get_http_rules_by_app_id(self.app.ID).filter(http_rule_id=rule_id)
+        rule = domain_service.get_http_rules_by_app_id(self.app.ID).filter(http_rule_id=rule_id).first()
         re = HTTPGatewayRuleSerializer(rule)
         return Response(re.data, status=status.HTTP_200_OK)
 
