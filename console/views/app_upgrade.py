@@ -228,10 +228,11 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         install_info = {}
         if add_service_infos:
             if pc.install_from_cloud:
-                _, old_app = app_market_service.cloud_app_model_to_db_model(pc.market, group_key, version)
+                old_app_model, old_app = app_market_service.cloud_app_model_to_db_model(pc.market, group_key, version)
             else:
-                _, old_app = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id, group_key, version)
+                old_app_model, old_app = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id, group_key, version)
             old_app.template = old_app.app_template
+            old_app.app_name = old_app_model.app_name
             new_app = deepcopy(old_app)
             # mock app信息
             template = json.loads(new_app.template)
