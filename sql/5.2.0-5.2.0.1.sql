@@ -94,3 +94,7 @@ CREATE TABLE `app_market` (
 
 alter table console.service_share_record change share_app_market_id share_app_market_name varchar(64) NULL DEFAULT NULL;
 alter table console.rainbond_center_app_version add template_type varchar(32) DEFAULT 'RAM';
+
+
+alter table console.app_upgrade_record add market_name varchar(32) DEFAULT NULL;
+alter table console.app_upgrade_record add is_from_cloud tinyint(2) DEFAULT NULL;

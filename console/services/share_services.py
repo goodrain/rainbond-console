@@ -349,9 +349,6 @@ class ShareService(object):
                                                                                   service_data["extend_method_map"])
                         data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
                                                                                      service_data["service_env_map_list"])
-                        data["service_connect_info_map_list"] = self.service_last_share_cache(
-                            data["service_connect_info_map_list"], service_data["service_connect_info_map_list"])
-
                 all_data_map[service.service_id] = data
 
             all_data = list()
@@ -380,14 +377,6 @@ class ShareService(object):
                             "mnt_dir":
                             dep_mnt.mnt_dir
                         })
-                if service_last_share_info:
-                    service_data = service_last_share_info.get(service_id)
-                    if service_data:
-                        # service["dep_service_map_list"] = self.service_last_share_cache(service["dep_service_map_list"],
-                        #                                                                 service_data["dep_service_map_list"])
-
-                        service["mnt_relation_list"] = self.service_last_share_cache(service["mnt_relation_list"],
-                                                                                     service_data["mnt_relation_list"])
                 all_data.append(service)
             return all_data
         else:

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from rest_framework import serializers
+import re
+from rest_framework import serializers, validators
 
 from www.models.main import ServiceGroup, TenantServiceInfo
 from openapi.serializer.utils import DateCharField
@@ -17,6 +18,9 @@ APP_STATUS_CHOICE = (
     ("part_running", ("part_running")),
     ("closed", ("closed")),
 )
+NAME_FORMAT = re.compile("^[a-zA-Z]")
+NAME_LETTER = re.compile("^(?!\d+$)[\da-zA-Z_]+$")
+FIRST_LETTER = re.compile("^[a-zA-Z]")
 
 
 class AppBaseInfoSerializer(serializers.ModelSerializer):
@@ -183,3 +187,20 @@ class ComponentMonitorSerializers(serializers.Serializer):
     service_id = serializers.CharField(max_length=32, help_text=u"组件id")
     service_cname = serializers.CharField(max_length=64, help_text=u"组件名")
     service_alias = serializers.CharField(max_length=64, help_text=u"组件昵称")
+
+
+def name_validator(value):
+    if not NAME_LETTER.search(value) or not FIRST_LETTER.search(value):
+        raise validators.ValidationError(code=400, detail=u"变量名不合法， 请输入以字母开头且为数字、大小写字母、'_'、'-'的组合")
+
+
+class ComponentEnvsBaseSerializers(serializers.Serializer):
+    note = serializers.CharField(max_length=100, required=False, help_text=u"备注")
+    name = serializers.CharField(max_length=100, validators=[name_validator], help_text=u"环境变量名")
+    value = serializers.CharField(max_length=1024, help_text=u"环境变量值")
+    is_change = serializers.BooleanField(default=True, help_text=u"是否可改变")
+    scope = serializers.CharField(max_length=32, default=u"inner", help_text=u"范围")
+
+
+class ComponentEnvsSerializers(serializers.Serializer):
+    envs = ComponentEnvsBaseSerializers(many=True)

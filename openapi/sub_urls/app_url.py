@@ -10,7 +10,7 @@ from openapi.views.gateway.gateway import ListAppGatewayRuleView
 from openapi.views.gateway.gateway import (UpdateAppGatewayRuleView, ListAppGatewayHTTPRuleView, UpdateAppGatewayHTTPRuleView)
 from openapi.views.apps.apps import (ListAppServicesView, AppServicesView, AppServiceEventsView, TeamAppsCloseView,
                                      AppServiceTelescopicVerticalView, AppServiceTelescopicHorizontalView,
-                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView)
+                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView, ComponentEnvsUView)
 from openapi.views.apps.market import AppInstallView, AppUpgradeView
 from openapi.views.groupapp import GroupAppsCopyView
 
@@ -37,5 +37,6 @@ urlpatterns = [
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/vertical$',
         AppServiceTelescopicVerticalView.as_view(), perms.AppServiceTelescopicVerticalView),
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/horizontal$',
-        AppServiceTelescopicHorizontalView.as_view(), perms.AppServiceTelescopicHorizontalView),
+        AppServiceTelescopicHorizontalView.as_view(), perms.AppServiceTelescopicHorizontalView, perms.AppServiceEventsView),
+    url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/envs$', ComponentEnvsUView.as_view()),
 ]

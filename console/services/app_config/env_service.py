@@ -5,7 +5,9 @@
 import logging
 import re
 
-from console.exception.main import EnvAlreadyExist
+from django.db.transaction import atomic
+
+from console.exception.main import EnvAlreadyExist, ServiceHandleException
 from console.exception.main import InvalidEnvName
 from console.repositories.app_config import compile_env_repo
 from console.repositories.app_config import env_var_repo
@@ -211,6 +213,33 @@ class AppEnvVarService(object):
                 region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, data)
             except Exception as e:
                 logger.exception(e)
+
+    @atomic
+    def update_or_create_envs(self, team, service, envs):
+        has_envs = env_var_repo.get_service_env(service.tenant_id, service.service_id)
+        env_attr_names = {env.attr_name: env for env in has_envs}
+        for env in envs:
+            if env["name"] in env_attr_names.keys():
+                code, msg, env = self.update_env_by_env_id(team, service, str(env_attr_names[env["name"]].ID), env["note"],
+                                                           env["value"])
+                if code != 200:
+                    raise ServiceHandleException(status_code=code, msg="update or create envs error", msg_show=msg)
+            else:
+                code, msg, env = self.add_service_env_var(team, service, 0, env["note"], env["name"], env["value"],
+                                                          env["is_change"], env["scope"])
+                if code != 200:
+                    raise ServiceHandleException(status_code=code, msg="update or create envs error", msg_show=msg)
+        total_envs = env_var_repo.get_service_env(service.tenant_id, service.service_id)
+        dt = []
+        for env in total_envs:
+            dt.append({
+                "note": env.name,
+                "name": env.attr_name,
+                "value": env.attr_value,
+                "is_change": env.is_change,
+                "scope": env.scope,
+            })
+        return {"envs": dt}
 
 
 class AppEnvService(object):

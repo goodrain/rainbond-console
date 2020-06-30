@@ -16,7 +16,6 @@ from console.constants import PluginImage
 from console.constants import SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.exception.main import ErrDoNotSupportMultiDomain
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.repositories.app import service_repo
@@ -33,8 +32,8 @@ from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.utils.oauth.oauth_types import support_oauth_type
-from console.utils.validation import validate_endpoint_address
 from console.appstore.appstore import app_store
+from console.utils.validation import validate_endpoints_info
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume
@@ -338,18 +337,8 @@ class AppService(object):
                             "is_inner_service": False,
                             "is_outer_service": False
                         }
-                        service_port = port_repo.add_service_port(**service_port)
-
-        # 保存endpoints数据
-        service_endpoints = {
-            "tenant_id": tenant.tenant_id,
-            "service_id": new_service.service_id,
-            "service_cname": new_service.service_cname,
-            "endpoints_info": json.dumps(endpoints),
-            "endpoints_type": endpoints_type
-        }
-        logger.debug('------service_endpoints------------->{0}'.format(service_endpoints))
-        service_endpoints_repo.add_service_endpoints(service_endpoints)
+                        port_repo.add_service_port(**service_port)
+                service_endpoints_repo.update_or_create_endpoints(tenant, new_service, endpoints)
 
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, u"创建成功", ts
@@ -603,21 +592,11 @@ class AppService(object):
 
         # endpoints
         endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
-        if endpoints.endpoints_type == "static":
-            eps = json.loads(endpoints.endpoints_info)
-            for address in eps:
-                if "https://" in address:
-                    address = address.partition("https://")[2]
-                if "http://" in address:
-                    address = address.partition("http://")[2]
-                if ":" in address:
-                    address = address.rpartition(":")[0]
-                errs = validate_endpoint_address(address)
-                if errs:
-                    if len(eps) > 1:
-                        raise ErrDoNotSupportMultiDomain("do not support multi domain address")
-        endpoints_dict = dict()
         if endpoints:
+            if endpoints.endpoints_type == "static":
+                eps = json.loads(endpoints.endpoints_info)
+                validate_endpoints_info(eps)
+            endpoints_dict = dict()
             endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
             data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
