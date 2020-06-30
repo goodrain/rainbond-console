@@ -118,9 +118,24 @@ class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):
 
 class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
+        operation_description="获取应用http访问策略详情",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="网关策略id", type=openapi.TYPE_STRING),
+        ],
+        responses={200: HTTPGatewayRuleSerializer(many=True)},
+        tags=['openapi-gateway'],
+    )
+    def get(self, req, app_id, rule_id, *args, **kwargs):
+        rule = domain_service.get_http_rules_by_app_id(self.app.ID).filter(http_rule_id=rule_id)
+        re = HTTPGatewayRuleSerializer(rule)
+        return Response(re.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
         operation_description="更新HTTP访问策略",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("rule_id", openapi.IN_PATH, description="网关策略id", type=openapi.TYPE_STRING),
         ],
         request_body=UpdatePostHTTPGatewayRuleSerializer(),
         responses={200: HTTPGatewayRuleSerializer()},

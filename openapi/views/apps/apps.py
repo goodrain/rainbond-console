@@ -18,6 +18,7 @@ from console.services.plugin import app_plugin_service
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.app_config import port_service
 from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
                                                AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
                                                ServiceGroupOperationsSerializer, AppServiceTelescopicVerticalSerializer,
@@ -370,6 +371,8 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
         operation_description="应用下组件实时监控",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING,
+                              enum=["false", "true"]),
         ],
         responses={
             200: ComponentMonitorSerializers(many=True)
@@ -377,18 +380,29 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
         tags=['openapi-apps'],
     )
     def get(self, request, team_id, region_name, app_id, *args, **kwargs):
+        is_outer = request.GET.get("is_outer", False)
+        if is_outer == "true":
+            is_outer = True
         data = []
         services_relation = group_service_relation_repo.get_services_by_group(self.app.ID)
         service_ids = services_relation.values_list('service_id', flat=True)
         if service_ids:
             services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
             for service in services:
+                is_outer_service = True
                 has_plugin = False
                 service_abled_plugins = app_plugin_service.get_service_abled_plugin(service)
                 for plugin in service_abled_plugins:
                     if plugin.category == PluginCategoryConstants.PERFORMANCE_ANALYSIS:
                         has_plugin = True
-                if has_plugin:
+                if is_outer:
+                    is_outer_service = False
+                    tenant_service_ports = port_service.get_service_ports(service)
+                    for service_port in tenant_service_ports:
+                        if service_port.is_outer_service:
+                            is_outer_service = True
+                            break
+                if has_plugin and is_outer_service:
                     dt = {
                         "service_id": service.service_id,
                         "service_cname": service.service_cname,
@@ -417,6 +431,8 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
             openapi.Parameter("start", openapi.IN_PATH, description="起始时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("end", openapi.IN_PATH, description="结束时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("step", openapi.IN_PATH, description="步长（默认60）", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING,
+                              enum=["false", "true"]),
         ],
         responses={
             200: ComponentMonitorSerializers(many=True)
@@ -424,6 +440,9 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
         tags=['openapi-apps'],
     )
     def get(self, request, team_id, region_name, app_id, *args, **kwargs):
+        is_outer = request.GET.get("is_outer", False)
+        if is_outer == "true":
+            is_outer = True
         data = []
         start = request.GET.get("start")
         end = request.GET.get("end")
@@ -435,12 +454,20 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
         if service_ids:
             services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
             for service in services:
+                is_outer_service = True
                 has_plugin = False
                 service_abled_plugins = app_plugin_service.get_service_abled_plugin(service)
                 for plugin in service_abled_plugins:
                     if plugin.category == PluginCategoryConstants.PERFORMANCE_ANALYSIS:
                         has_plugin = True
-                if has_plugin:
+                if is_outer:
+                    is_outer_service = False
+                    tenant_service_ports = port_service.get_service_ports(service)
+                    for service_port in tenant_service_ports:
+                        if service_port.is_outer_service:
+                            is_outer_service = True
+                            break
+                if has_plugin and is_outer_service:
                     dt = {
                         "service_id": service.service_id,
                         "service_cname": service.service_cname,
