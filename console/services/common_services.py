@@ -30,12 +30,14 @@ class CommonServices(object):
 
     def get_current_region_used_resource(self, tenant, region_name):
         data = {"tenant_name": [tenant.tenant_name]}
-        res = region_api.get_region_tenants_resources(region_name, data, tenant.enterprise_id)
-        d_list = res["list"]
-        if d_list:
-            resource = d_list[0]
-            return resource
-        return None
+        try:
+            res = region_api.get_region_tenants_resources(region_name, data, tenant.enterprise_id)
+            d_list = res["list"]
+            if d_list:
+                resource = d_list[0]
+                return resource
+        except Exception:
+            return None
 
     def calculate_cpu(self, region, memory):
         """根据内存和数据中心计算cpu"""
