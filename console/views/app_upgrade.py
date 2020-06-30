@@ -16,6 +16,7 @@ from console.models.main import ServiceUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.app import app_market_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
@@ -226,7 +227,11 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         }
         install_info = {}
         if add_service_infos:
-            old_app = app_market_service.get_market_app_model_version(pc.market, group_key, version, for_install=True)
+            if pc.install_from_cloud:
+                _, old_app = app_market_service.cloud_app_model_to_db_model(pc.market, group_key, version)
+            else:
+                _, old_app = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id, group_key, version)
+            old_app.template = old_app.app_template
             new_app = deepcopy(old_app)
             # mock app信息
             template = json.loads(new_app.template)
