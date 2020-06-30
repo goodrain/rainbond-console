@@ -96,12 +96,20 @@ class TeamOverView(RegionTenantHeaderView):
                     share_record = share_repo.get_service_share_record_by_groupid(group_id=group.ID)
                     if share_record and share_record.step == 3:
                         share_app_num += 1
+            team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
             overview_detail["share_app_num"] = share_app_num
+            overview_detail["team_app_num"] = team_app_num
+            overview_detail["team_service_num"] = team_service_num
+            overview_detail["eid"] = self.team.enterprise_id
 
+            overview_detail["team_service_memory_count"] = 0
+            overview_detail["team_service_total_disk"] = 0
+            overview_detail["team_service_total_cpu"] = 0
+            overview_detail["team_service_total_memory"] = 0
+            overview_detail["team_service_use_cpu"] = 0
+            overview_detail["cpu_usage"] = 0
+            overview_detail["memory_usage"] = 0
             if source:
-                team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
-                overview_detail["team_app_num"] = team_app_num
-                overview_detail["team_service_num"] = team_service_num
                 overview_detail["team_service_memory_count"] = int(source["memory"])
                 overview_detail["team_service_total_disk"] = int(source["disk"])
                 overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
@@ -115,7 +123,6 @@ class TeamOverView(RegionTenantHeaderView):
                     memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
                 overview_detail["cpu_usage"] = round(cpu_usage, 2)
                 overview_detail["memory_usage"] = round(memory_usage, 2)
-                overview_detail["eid"] = self.team.enterprise_id
 
             return Response(general_message(200, "success", "查询成功", bean=overview_detail))
         else:
