@@ -45,8 +45,12 @@ class AppMonitorQueryView(AppBaseView):
 
         """
         sufix = get_sufix_path(request.get_full_path())
-        res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
-        result = general_message(200, "success", "查询成功", bean=body["data"])
+        try:
+            res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
+            result = general_message(200, "success", "查询成功", bean=body["data"])
+        except Exception as e:
+            logger.debug(e)
+            result = general_message(200, "success", "查询成功", bean=[])
         return Response(result, status=result["code"])
 
 
@@ -74,7 +78,7 @@ class AppMonitorQueryRangeView(AppBaseView):
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(400, e.message, "查询失败")
+            result = general_message(200, "success", "查询成功", bean=[])
         return Response(result, status=result["code"])
 
 
