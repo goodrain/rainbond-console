@@ -282,7 +282,8 @@ class EnterpriseMonitor(JWTAuthApiView):
                     region_memory_used += body["bean"]["req_mem"]
                     region_cpu_total += body["bean"]["cap_cpu"]
                     region_cpu_used += body["bean"]["req_cpu"]
-            except ServiceHandleException:
+            except Exception as e:
+                logger.debug(e)
                 continue
         data = {
             "total_regions": region_num,
