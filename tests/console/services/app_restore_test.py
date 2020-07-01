@@ -46,7 +46,6 @@ def test_restore_env():
     service_env_vars = backup_data["service_env_vars"]
     raw_envs = [env["name"] for env in service_env_vars]
     app_restore = AppRestore(tn, svc)
-    service_env_vars = service_env_vars
     app_restore.envs(service_env_vars)
     envs = env_var_repo.get_service_env(tn.tenant_id, svc.service_id)
 
