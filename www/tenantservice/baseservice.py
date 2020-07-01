@@ -152,10 +152,7 @@ class BaseTenantService(object):
         if bool(service.volume_mount_path):
             volume_path = service.volume_mount_path
             logger.debug("region:{0} and service_type:{1}".format(region, service.service_type))
-            if region == "ali-sh":
-                host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
-            else:
-                host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
+            host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
         tenantServiceInfo["volume_mount_path"] = volume_path
         tenantServiceInfo["host_path"] = host_path
         if service.service_key == 'application':
@@ -709,10 +706,7 @@ class BaseTenantService(object):
             service_id = service.service_id
             volume = TenantServiceVolume(service_id=service_id, category=category)
             # 确定host_path
-            if region == "ali-sh":
-                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
-            else:
-                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
             volume.host_path = host_path
             volume.volume_path = volume_path
             volume.save()

@@ -5,14 +5,9 @@
 import datetime
 import json
 import logging
-import socket
 
-import httplib2
 from django.db import transaction
 from django.db.models import Q
-from market_client.rest import ApiException
-from urllib3.exceptions import ConnectTimeoutError
-from urllib3.exceptions import MaxRetryError
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -48,10 +43,6 @@ from console.services.plugin import plugin_version_service
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
 from console.utils import slug_util
-from console.utils.restful_client import get_default_market_client
-from console.utils.restful_client import get_market_client
-from console.utils.timeutil import current_time_str
-from goodrain_web import settings
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
