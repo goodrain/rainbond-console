@@ -6,7 +6,6 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
-from console.exception.main import RbdAppNotFound
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
@@ -417,9 +416,6 @@ class ServiceShareEventPost(RegionTenantHeaderView):
             return Response(result, status=200)
         except ServiceHandleException as e:
             raise e
-        except RbdAppNotFound as e:
-            result = general_message(404, "app not found", e.msg)
-            return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -473,9 +469,6 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
             return Response(result, status=200)
         except ServiceHandleException as e:
             raise e
-        except RbdAppNotFound as e:
-            result = general_message(404, "app not found", e.msg)
-            return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
