@@ -179,8 +179,6 @@ class ProxyView(CloudEnterpriseCenterView):
             # path relative
             return parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path.rsplit('/', 1)[0] + '/' + location
 
-        return location
-
     def get_headers(self, environ):
         """
         Retrieve the HTTP headers from a WSGI environment dictionary.  See
