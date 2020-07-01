@@ -75,7 +75,6 @@ class APPPluginInstallView(AppBaseView):
                 # TODO: 可选参数 alternative
                 config["attr_alt_value"] = attrItem.attr_alt_value
                 config["is_change"] = attrItem.is_change
-                config["attr_default_value"] = attrItem.attr_default_value
                 config["attr_value"] = attrItem.attr_default_value
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
@@ -298,7 +297,6 @@ class APPPluginConfigView(AppBaseView):
                 # TODO: 可选参数 alternative
                 config["attr_alt_value"] = attrItem.attr_alt_value
                 config["is_change"] = attrItem.is_change
-                config["attr_default_value"] = attrItem.attr_default_value
                 config["attr_value"] = attrItem.attr_default_value
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
