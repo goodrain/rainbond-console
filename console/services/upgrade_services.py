@@ -54,7 +54,7 @@ class UpgradeService(object):
         try:
             token = self.get_enterprise_access_token(enterprise_id, "market")
             if token:
-                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+                market_client = get_market_client(token.access_id, token.access_token, host=token.access_url)
             else:
                 market_client = get_default_market_client()
             markets = market_client.get_markets(_request_timeout=3)
@@ -75,7 +75,7 @@ class UpgradeService(object):
         try:
             token = self.get_enterprise_access_token(enterprise_id, "market")
             if token:
-                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+                market_client = get_market_client(token.access_id, token.access_token, host=token.access_url)
             else:
                 market_client = get_default_market_client()
             markets = market_client.get_apps_with_version(market_id, _request_timeout=10)
@@ -96,7 +96,7 @@ class UpgradeService(object):
         try:
             token = self.get_enterprise_access_token(enterprise_id, "market")
             if token:
-                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+                market_client = get_market_client(token.access_id, token.access_token, host=token.access_url)
             else:
                 market_client = get_default_market_client()
             market = market_client.get_app_versions(market_id=market_id, app_id=app_id, _request_timeout=10)
@@ -117,7 +117,7 @@ class UpgradeService(object):
         try:
             token = self.get_enterprise_access_token(enterprise_id, "market")
             if token:
-                market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+                market_client = get_market_client(token.access_id, token.access_token, host=token.access_url)
             else:
                 market_client = get_default_market_client()
             app = market_client.get_app_version(market_id=market_id, app_id=app_id, version_id=version, _request_timeout=10)

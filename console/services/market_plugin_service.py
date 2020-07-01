@@ -129,8 +129,8 @@ class MarketPluginService(object):
             user_name = market_plugin.get('share_user')
             if user_name:
                 try:
-                    user = user_repo.get_user_by_username(user_name)
-                    rcp.share_user = user.user_id
+                    new_user = user_repo.get_user_by_username(user_name)
+                    rcp.share_user = new_user.user_id
                 except Exception as e:
                     logger.exception(e)
 

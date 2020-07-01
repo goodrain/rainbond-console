@@ -8,6 +8,7 @@ import re
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.enum.component_enum import is_state
+from console.exception.main import ServiceHandleException
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import volume_repo
 from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
@@ -16,8 +17,6 @@ from console.utils import runner_util
 from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
-
-from console.exception.main import ServiceHandleException
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -119,8 +118,7 @@ class AppVolumeService(object):
             # get the same access_mode volume type
             # TODO fanyangyang more access_mode support, if no rwo, use rwx
             for opt in opts:
-                access_mode = opt.get("access_mode", "")
-                if access_mode == access_mode:
+                if access_mode == opt.get("access_mode", ""):
                     settings["volume_type"] = access_mode
                     settings["changed"] = True
                     return settings
