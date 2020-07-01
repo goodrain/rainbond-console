@@ -498,7 +498,7 @@ class TeamService(object):
                     "used_cpu_percentage": round(cpu_usage, 2),
                     "used_memory_percentage": round(memory_usage, 2),
                 })
-            return source
+            return data
         return None
 
 
