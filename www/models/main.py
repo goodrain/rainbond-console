@@ -464,39 +464,52 @@ class TenantServiceInfo(BaseModel):
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     image = models.CharField(max_length=200, help_text=u"镜像")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text=u"启动参数")
+    # deprecated
     setting = models.CharField(max_length=200, null=True, blank=True, help_text=u"设置项")
     extend_method = models.CharField(
         max_length=32, choices=extend_method, default='stateless_multiple', help_text=u"组件部署类型,stateless or state")
+    # deprecated
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
     min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
+    # deprecated
     inner_port = models.IntegerField(help_text=u"内部端口", default=0)
+    # deprecated
     volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text=u"mount目录")
+    # deprecated
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text=u"mount目录")
+    # deprecated
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"仅用于云市创建应用表示构建源的部署版版-小版本")
     code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
     git_url = models.CharField(max_length=2047, null=True, blank=True, help_text=u"code代码仓库")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
+    # deprecated
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
+    # deprecated
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"组件类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text=u"组件创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
+    # deprecated
     protocol = models.CharField(max_length=15, default='', help_text=u"服务协议：http,stream")
+    # deprecated
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
+    # deprecated
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner组件")
+    # deprecated
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
-
+    # deprecated
     volume_type = models.CharField(max_length=64, default='shared', help_text=u"共享类型shared、exclusive")
+    # deprecated
     port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"组件创建类型cloud云市组件,assistant云帮组件")
+    # deprecated
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text=u"组件归属的组件组id")
     open_webhooks = models.BooleanField(default=False, help_text=u'是否开启自动触发部署功能（兼容老版本组件）')
-
     service_source = models.CharField(
         max_length=15, default="", null=True, blank=True, help_text=u"组件来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text=u"组件创建状态 creating|complete")
@@ -1103,67 +1116,6 @@ class ServiceCreateStep(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"组件id")
     app_step = models.IntegerField(default=1, help_text=u"创建组件的步数")
-
-
-class ThirdAppInfo(BaseModel):
-    class Meta:
-        db_table = 'third_app_info'
-
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, help_text=u"组件id")
-    bucket_name = models.CharField(max_length=64, help_text=u"空间名")
-    app_type = models.CharField(max_length=32, help_text=u"第三方组件类型")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    name = models.CharField(max_length=64, help_text=u"组件名称")
-    bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
-    open = models.BooleanField(default=1, help_text=u"是否开启状态")
-    delete = models.BooleanField(default=0, help_text=u"是否删除状态")
-    create_user = models.IntegerField(help_text=u"创建的用户的user_id")
-
-
-class CDNTrafficHourRecord(BaseModel):
-    class Meta:
-        db_table = 'cdn_traffic_hour_record'
-
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, help_text=u"组件id")
-    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
-    start_time = models.DateTimeField(help_text=u"订单开始时间")
-    end_time = models.DateTimeField(help_text=u"订单结束时间")
-    traffic_number = models.IntegerField(help_text=u"流量消费数量")
-    balance = models.IntegerField(help_text=u"流量包余额")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    order_id = models.CharField(max_length=32, help_text=u"扣除流量的订单id")
-
-
-class ThirdAppOperator(BaseModel):
-    class Meta:
-        db_table = 'third_app_operator'
-
-    service_id = models.CharField(max_length=32, help_text=u"组件id")
-    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
-    operator_name = models.CharField(max_length=100, help_text=u"用户名")
-    real_name = models.CharField(max_length=100, help_text=u"真实姓名")
-    password = models.CharField(max_length=100, help_text=u"密码")
-
-
-class ThirdAppOrder(BaseModel):
-    class Meta:
-        db_table = 'third_app_order'
-
-    order_id = models.CharField(max_length=32, help_text=u"订单id")
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, help_text=u"组件id")
-    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
-    start_time = models.DateTimeField(help_text=u"订单开始时间")
-    end_time = models.DateTimeField(help_text=u"订单结束时间")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    traffic_size = models.IntegerField(default=0, help_text=u"流量使用大小")
-    oos_size = models.IntegerField(default=0, help_text=u"存储使用大小")
-    request_size = models.IntegerField(default=0, help_text=u"请求次数")
-    bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
-    total_cost = models.FloatField(default=0.00, help_text=u"费用总计")
-    total_traffic_cost = models.IntegerField(default=0, help_text=u"月度套餐外流量总计")
 
 
 pay_status = (
