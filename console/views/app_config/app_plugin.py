@@ -2,16 +2,19 @@
 """
   Created on 18/3/5.
 """
-from www.apiclient.regionapi import RegionInvokeApi
-from console.views.app_config.base import AppBaseView
+import json
+import logging
+
+from rest_framework.response import Response
+
 from console.services.app_config.plugin_service import app_plugin_service
 from console.services.plugin import plugin_version_service
-from www.utils.return_message import general_message, error_message
-import logging
-from rest_framework.response import Response
-from www.services import plugin_svc
+from console.views.app_config.base import AppBaseView
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import HasNoDownStreamService
-import json
+from www.services import plugin_svc
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -69,11 +72,9 @@ class APPPluginInstallView(AppBaseView):
                 config = {}
                 config["attr_name"] = attrItem.attr_name
                 config["attr_type"] = attrItem.attr_type
-                config["attr_default_value"] = attrItem.attr_default_value
                 # TODO: 可选参数 alternative
                 config["attr_alt_value"] = attrItem.attr_alt_value
                 config["is_change"] = attrItem.is_change
-                config["attr_default_value"] = attrItem.attr_default_value
                 config["attr_value"] = attrItem.attr_default_value
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
@@ -296,7 +297,6 @@ class APPPluginConfigView(AppBaseView):
                 # TODO: 可选参数 alternative
                 config["attr_alt_value"] = attrItem.attr_alt_value
                 config["is_change"] = attrItem.is_change
-                config["attr_default_value"] = attrItem.attr_default_value
                 config["attr_value"] = attrItem.attr_default_value
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
