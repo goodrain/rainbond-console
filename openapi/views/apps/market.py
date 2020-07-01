@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-
 import logging
-from drf_yasg.utils import swagger_auto_schema
-from openapi.views.base import BaseOpenAPIView
-from rest_framework import status
-from openapi.serializer.base_serializer import FailSerializer
-from rest_framework.response import Response
+
 from django.forms.models import model_to_dict
-from openapi.serializer.app_serializer import MarketInstallSerializer, ServiceBaseInfoSerializer, AppInfoSerializer
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
+from rest_framework.response import Response
+
 from console.services.group_service import group_service
-from console.services.team_services import team_services
 from console.services.market_app_service import market_app_service
 from console.services.market_app_service import market_sycn_service
+from console.services.team_services import team_services
 from console.utils.restful_client import get_market_client
+from openapi.serializer.app_serializer import AppInfoSerializer
+from openapi.serializer.app_serializer import MarketInstallSerializer
+from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
+from openapi.serializer.base_serializer import FailSerializer
+from openapi.views.base import BaseOpenAPIView
 
 logger = logging.getLogger("default")
 
@@ -39,7 +42,7 @@ class MarketAppInstallView(BaseOpenAPIView):
         # TODO: get app info by order id
         token = market_sycn_service.get_enterprise_access_token(tenant.enterprise_id, "market")
         if token:
-            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            market_client = get_market_client(token.access_id, token.access_token, host=token.access_url)
             app_version = market_client.download_app_by_order(order_id=data["order_id"])
             if not app_version:
                 return Response(FailSerializer({"msg": "download app metadata failure"}), status=status.HTTP_400_BAD_REQUEST)
