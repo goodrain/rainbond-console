@@ -512,11 +512,13 @@ class UserService(object):
     def __check_email(self, email):
         if not email:
             return False, "邮箱不能为空"
+        if self.get_user_by_email(email):
+            return False, "邮箱{0}已存在".format(email)
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
             return False, "邮箱地址不合法"
         if self.get_user_by_email(email):
-            return False, "邮箱{0}已存在".format(email)
+            return False, "邮箱已存在"
         return True, "success"
 
     def init_webhook_user(self, service, hook_type, committer_name=None):
