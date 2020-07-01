@@ -90,7 +90,9 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
         if not tenant_service_port.is_outer_service:
             return Response({"msg": "没有开启对外端口"}, status=status.HTTP_400_BAD_REQUEST)
         data = domain_service.bind_httpdomain(self.team, self.request.user, service, httpdomain, True)
-        return Response(model_to_dict(data), status=status.HTTP_201_CREATED)
+        serializer = HTTPGatewayRuleSerializer(data=data.to_dict())
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class ListEnterpriseAppGatewayHTTPRuleView(BaseOpenAPIView):

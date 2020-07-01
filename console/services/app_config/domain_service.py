@@ -293,7 +293,7 @@ class DomainService(object):
     def bind_httpdomain(self, tenant, user, service, httpdomain, return_model=False):
         domain_name = httpdomain["domain_name"]
         certificate_id = httpdomain["certificate_id"]
-        rule_extensions = httpdomain.get("rule_extensions", None)
+        rule_extensions = httpdomain.get("rule_extensions", [])
         domain_path = httpdomain.get("domain_path", None)
         domain_cookie = httpdomain.get("domain_cookie", None)
         domain_heander = httpdomain.get("domain_heander", None)
