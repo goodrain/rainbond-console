@@ -20,7 +20,7 @@ from openapi.views.oauth import OauthTypeView
 from openapi.views.region_view import (ListRegionInfo, RegionInfo, RegionStatusView)
 from openapi.views.team_view import (ListRegionsView, ListRegionTeamServicesView, ListTeamInfo, ListTeamUsersInfo,
                                      TeamCertificatesLCView, TeamCertificatesRUDView, TeamInfo, TeamRegionView,
-                                     TeamUserInfoView, TeamAppsResourceView)
+                                     TeamUserInfoView, TeamAppsResourceView, TeamsResourceView)
 from openapi.views.upload_view import UploadView
 from openapi.views.user_view import (ChangePassword, ListUsersView, UserInfoView, UserTeamInfoView, ChangeUserPassword)
 
@@ -53,6 +53,7 @@ urlpatterns = [
     url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view(), perms.UserInfoView),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view(), perms.ChangeUserPassword),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
+    url(r'^v1/teams/resource$', TeamsResourceView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view(), perms.TeamInfo),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view(), perms.ListRegionsView),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view(), perms.TeamCertificatesLCView),

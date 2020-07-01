@@ -23,6 +23,7 @@ from console.services.exception import ErrStillHasServices
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.region_services import region_services
 from console.services.perm_services import user_kind_role_service
+from console.services.common_services import common_services
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant
 from www.models.main import Tenants
@@ -473,6 +474,32 @@ class TeamService(object):
         if data.get("tenant_alias", ""):
             d["tenant_alias"] = data.get("tenant_alias")
         team_repo.update_by_tenant_id(tenant_id).update(**d)
+
+    def get_tenant_resource(self, team, region_name):
+        if team:
+            data = {
+                "team_id": team.tenant_id,
+                "team_name": team.tenant_name,
+                "team_alias": team.tenant_alias,
+            }
+            source = common_services.get_current_region_used_resource(team, region_name)
+            if source:
+                cpu_usage = 0
+                memory_usage = 0
+                if int(source["limit_cpu"]) != 0:
+                    cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
+                if int(source["limit_memory"]) != 0:
+                    memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
+                data.update({
+                    "used_cpu": int(source["cpu"]),
+                    "used_memory": int(source["memory"]),
+                    "total_cpu": int(source["limit_cpu"]),
+                    "total_memory": int(source["limit_memory"]),
+                    "used_cpu_percentage": round(cpu_usage, 2),
+                    "used_memory_percentage": round(memory_usage, 2),
+                })
+            return source
+        return None
 
 
 team_services = TeamService()

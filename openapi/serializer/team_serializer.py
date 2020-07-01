@@ -148,12 +148,17 @@ class TeamCertificatesRSerializer(serializers.Serializer):
 
 
 class TeamAppsResourceSerializer(serializers.Serializer):
-    total_cpu = serializers.IntegerField(help_text=u"cpu总额", default=None)
-    total_memory = serializers.IntegerField(help_text=u"内存总额", default=None)
-    used_cpu = serializers.IntegerField(help_text=u"占用cpu", default=None)
-    used_memory = serializers.IntegerField(help_text=u"占用内存", default=None)
-    used_cpu_percentage = serializers.FloatField(help_text=u"占用cpu百分比", default=None)
-    used_memory_percentage = serializers.FloatField(help_text=u"占用内存百分比", default=None)
+    total_cpu = serializers.IntegerField(help_text=u"cpu总额", default=0)
+    total_memory = serializers.IntegerField(help_text=u"内存总额", default=0)
+    used_cpu = serializers.IntegerField(help_text=u"占用cpu", default=0)
+    used_memory = serializers.IntegerField(help_text=u"占用内存", default=0)
+    used_cpu_percentage = serializers.FloatField(help_text=u"占用cpu百分比", default=0)
+    used_memory_percentage = serializers.FloatField(help_text=u"占用内存百分比", default=0)
     team_id = serializers.CharField(max_length=64, help_text=u"团队ID")
     team_name = serializers.CharField(max_length=64, help_text=u"团队名称")
     team_alias = serializers.CharField(max_length=64, help_text=u"团队昵称")
+
+
+class TenantRegionListSerializer(serializers.Serializer):
+    tenant_id = serializers.CharField(help_text=u"租户id")
+    region_name = serializers.CharField(help_text=u"数据中心名称")

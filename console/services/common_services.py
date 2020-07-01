@@ -36,7 +36,8 @@ class CommonServices(object):
             if d_list:
                 resource = d_list[0]
                 return resource
-        except Exception:
+        except Exception as e:
+            logger.debug(e)
             return None
 
     def calculate_cpu(self, region, memory):
