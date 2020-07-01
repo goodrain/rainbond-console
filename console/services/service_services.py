@@ -239,5 +239,20 @@ class BaseService(object):
                     bean["group_key"] = app.app_id
         return bean
 
+    def get_not_run_services_request_memory(self, tenant, services):
+        not_run_service_ids = []
+        memory = 0
+        service_ids = [service.service_id for service in services]
+        service_status_list = self.status_multi_service(tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
+        if service_status_list:
+            for status_map in service_status_list:
+                if status_map.get("status") in ["undeploy", "closed"]:
+                    not_run_service_ids.append(status_map.get("service_id"))
+            if not_run_service_ids:
+                for service in services:
+                    if service.service_id in not_run_service_ids:
+                        memory += int(service.min_memory) * int(service.min_node)
+        return memory
+
 
 base_service = BaseService()

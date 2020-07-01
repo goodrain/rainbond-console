@@ -15,6 +15,7 @@ from console.exception.main import ServiceHandleException
 
 from console.constants import ServicePortConstants
 from console.repositories.app import service_repo
+from console.repositories.app_config import service_endpoints_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import tcp_domain
@@ -715,34 +716,20 @@ class AppPortService(object):
         return res
 
     def check_domain_thirdpart(self, tenant, service):
-        try:
-            res, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name,
-                                                                service.service_alias)
-            if res.status != 200:
-                return "regin error", "数据中心查询失败", 412
-            endpoint_list = body["list"]
-            for endpoint in endpoint_list:
-                address = endpoint.address
-                if "https://" in address:
-                    address = address.partition("https://")[2]
-                if "http://" in address:
-                    address = address.partition("http://")[2]
-                if ":" in address:
-                    address = address.rpartition(":")[0]
-                from console.utils.validation import validate_endpoint_address
-                errs = validate_endpoint_address(address)
-                if len(errs) > 0:
-                    return "do not allow operate outer port for domain endpoints", "不允许开启域名服务实例对外端口", 400
-            return "", "", 200
-        except Exception as e:
-            logger.exception(e)
-            from www.utils.return_message import error_message
-            result = error_message(e.message)
-            return result, "检查第三方域名服务错误", 500
+        from console.utils.validation import validate_endpoints_info
+        res, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
+        if res.status != 200:
+            return "region error", "数据中心查询失败", 412
+        endpoint_list = body["list"]
+        endpoint_info = [endpoint.address for endpoint in endpoint_list]
+        validate_endpoints_info(endpoint_info)
+        return "", "", 200
 
 
 class EndpointService(object):
+    @transaction.atomic()
     def add_endpoint(self, tenant, service, address, is_online):
+
         try:
             _, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
         except region_api.CallApiError as e:
@@ -769,6 +756,8 @@ class EndpointService(object):
         try:
             res, _ = region_api.post_third_party_service_endpoints(service.service_region, tenant.tenant_name,
                                                                    service.service_alias, data)
+            # 保存endpoints数据
+            service_endpoints_repo.update_or_create_endpoints(tenant, service, endpoints)
         except region_api.CallApiError as e:
             logger.exception(e)
             raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")

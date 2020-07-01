@@ -6,36 +6,24 @@ import socket
 from datetime import datetime
 
 import httplib2
-from django.db import DatabaseError
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Q
 from market_client.rest import ApiException
-from urllib3.exceptions import ConnectTimeoutError
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
-from console.exception.main import AbortRequest
-from console.exception.main import RbdAppNotFound
-from console.exception.main import RecordNotFound
-from console.exception.main import ServiceHandleException
-from console.models.main import AppUpgradeRecord
-from console.models.main import RainbondCenterAppVersion
-from console.models.main import ServiceSourceInfo
-from console.models.main import ServiceUpgradeRecord
-from console.models.main import UpgradeStatus
+from console.exception.main import (AbortRequest, RbdAppNotFound, RecordNotFound, ServiceHandleException)
+from console.models.main import (AppUpgradeRecord, RainbondCenterAppVersion, ServiceSourceInfo, ServiceUpgradeRecord,
+                                 UpgradeStatus)
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import get_upgrade_app_version_template_app
-from console.services.app_actions.properties_changes import PropertiesChanges
-from console.utils.restful_client import get_default_market_client
-from console.utils.restful_client import get_market_client
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app)
+from console.utils.restful_client import (get_default_market_client, get_market_client)
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantEnterprise
-from www.models.main import TenantEnterpriseToken
-from www.models.main import Tenants
+from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
 
 region_api = RegionInvokeApi()
 market_api = MarketOpenAPI()

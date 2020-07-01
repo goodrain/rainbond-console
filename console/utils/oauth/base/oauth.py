@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 from abc import ABCMeta, abstractmethod
 import requests
+from requests.adapters import HTTPAdapter
 
 
 class OAuth2User(object):
@@ -15,6 +16,8 @@ class OAuth2Interface(object):
 
     def set_session(self):
         self._session = requests.Session()
+        self._session.mount('http://', HTTPAdapter(max_retries=3))
+        self._session.mount('https://', HTTPAdapter(max_retries=3))
 
     def set_oauth_user(self, oauth_user):
         '''

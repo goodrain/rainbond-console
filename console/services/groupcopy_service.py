@@ -4,19 +4,17 @@ import logging
 from django.db import transaction
 
 from console.exception.main import ServiceHandleException
+from console.repositories.deploy_repo import deploy_repo
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
-from console.repositories.deploy_repo import deploy_repo
 from console.repositories.probe_repo import probe_repo
+from console.services.app import app_service
+from console.services.app_actions import app_manage_service
+from console.services.app_config import label_service, port_service
+from console.services.backup_service import groupapp_backup_service
 from console.services.groupapp_recovery.groupapps_migrate import migrate_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
-from console.services.backup_service import groupapp_backup_service
-from console.services.app import app_service
-from console.services.app_actions import app_manage_service
-from console.services.app_config import label_service
-from console.services.app_config import port_service
-
 from www.utils.crypt import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -38,7 +36,7 @@ class GroupAppCopyService(object):
                                                                                 tar_region_name, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(user, tar_team, tar_region_name, tar_group.ID, services_metadata,
                                                  change_services_map)
-        groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
+        return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
     def get_group_services_with_build_source(self, tenant, region_name, group_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
@@ -47,6 +45,7 @@ class GroupAppCopyService(object):
         service_ids = [group_service.get("service_id") for group_service in group_services]
         services = service_repo.get_service_by_service_ids(service_ids=service_ids)
         for group_service in group_services:
+            group_service["app_name"] = group_service.get("group_name")
             for service in services:
                 if group_service["service_id"] == service.service_id:
                     group_service["build_source"] = base_service.get_build_info(tenant, service)
@@ -178,9 +177,9 @@ class GroupAppCopyService(object):
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
         services = service_repo.get_service_by_service_ids(service_ids=service_ids)
+        result = []
         for service in services:
             if service.service_id in change_service_ids:
-                # probe = None
                 if service.service_source == "third_party":
                     # 数据中心连接创建第三方组件
                     new_service = app_service.create_third_party_service(tenant, service, user.nick_name)
@@ -229,6 +228,8 @@ class GroupAppCopyService(object):
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
+                result.append(service)
+        return result
 
 
 groupapp_copy_service = GroupAppCopyService()

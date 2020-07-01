@@ -98,17 +98,15 @@ class ShareService(object):
         """
         relation_list = share_repo.get_relation_list_by_service_ids(service_ids=service_ids)
         if relation_list:
-            dep_service_map = {}
+            relation_list_service_ids = relation_list.values_list("service_id", flat=True)
+            dep_service_map = {service_id: [] for service_id in relation_list_service_ids}
+
             for dep_service in relation_list:
-                service_id = dep_service.service_id
-                tmp_list = []
-                if service_id in dep_service_map.keys():
-                    tmp_list = dep_service_map.get(service_id)
-                dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id).first()
+                dep_service_info = TenantServiceInfo.objects.filter(
+                    service_id=dep_service.dep_service_id, tenant_id=dep_service.tenant_id).first()
                 if dep_service_info is None:
                     continue
-                tmp_list.append(dep_service_info)
-                dep_service_map[service_id] = tmp_list
+                dep_service_map[dep_service.service_id].append(dep_service_info)
             return dep_service_map
         else:
             return {}
@@ -356,9 +354,6 @@ class ShareService(object):
                                                                                   service_data["extend_method_map"])
                         data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
                                                                                      service_data["service_env_map_list"])
-                        data["service_connect_info_map_list"] = self.service_last_share_cache(
-                            data["service_connect_info_map_list"], service_data["service_connect_info_map_list"])
-
                 all_data_map[service.service_id] = data
 
             all_data = list()
@@ -366,7 +361,7 @@ class ShareService(object):
                 service = all_data_map[service_id]
                 service['dep_service_map_list'] = list()
                 if dep_service_map.get(service['service_id']):
-                    for dep in dep_service_map.get(service['service_id']):
+                    for dep in dep_service_map[service['service_id']]:
                         d = dict()
                         if all_data_map.get(dep.service_id):
                             # 通过service_key和service_id来判断依赖关系
@@ -387,14 +382,6 @@ class ShareService(object):
                             "mnt_dir":
                             dep_mnt.mnt_dir
                         })
-                if service_last_share_info:
-                    service_data = service_last_share_info.get(service_id)
-                    if service_data:
-                        service["dep_service_map_list"] = self.service_last_share_cache(service["dep_service_map_list"],
-                                                                                        service_data["dep_service_map_list"])
-
-                        service["mnt_relation_list"] = self.service_last_share_cache(service["mnt_relation_list"],
-                                                                                     service_data["mnt_relation_list"])
                 all_data.append(service)
             return all_data
         else:

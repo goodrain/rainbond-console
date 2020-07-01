@@ -275,7 +275,8 @@ class HorizontalExtendAppView(AppBaseView):
             app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
             result = general_message(200, "success", "操作成功", bean={})
         except ServiceHandleException as e:
-            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
+            return Response(
+                general_message(e.status_code, e.msg, e.msg_show), status=(400 if e.status_code > 599 else e.status_code))
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -537,6 +538,9 @@ class MarketServiceUpgradeView(AppBaseView):
             versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
         except RbdAppNotFound:
             return Response(status=404, data=general_message(404, "service lost", "未找到该组件"))
+        except Exception as e:
+            logger.debug(e)
+            return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
 
 

@@ -14,6 +14,12 @@ class GitOAuth2Interface(OAuth2Interface):
         '''
         return True
 
+    def is_communication_oauth(self):
+        '''
+        :return:
+        '''
+        return False
+
     @abstractmethod
     def get_repos(self, *args, **kwargs):
         '''

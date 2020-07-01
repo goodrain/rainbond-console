@@ -3,17 +3,18 @@
   Created by leon on 18/1/5.
 """
 import logging
+
 from rest_framework.response import Response
 
-from console.repositories.group import group_service_relation_repo
-from console.views.base import RegionTenantHeaderView
-from www.utils.return_message import general_message, error_message
-from console.services.group_service import group_service
-from console.services.compose_service import compose_service
-from console.services.app_actions import app_manage_service
-from www.apiclient.regionapi import RegionInvokeApi
-from console.repositories.app import service_repo
 from console.exception.main import ResourceNotEnoughException, ServiceHandleException
+from console.repositories.app import service_repo
+from console.repositories.group import group_service_relation_repo
+from console.services.app_actions import app_manage_service
+from console.services.compose_service import compose_service
+from console.services.group_service import group_service
+from console.views.base import RegionTenantHeaderView
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.return_message import general_message, error_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -214,9 +215,8 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             # 去除掉第三方组件
             for service_id in service_ids:
                 service_obj = service_repo.get_service_by_service_id(service_id)
-                if service_obj:
-                    if service_obj.service_source == "third_party":
-                        service_ids.remove(service_id)
+                if service_obj and service_obj.service_source == "third_party":
+                    service_ids.remove(service_id)
 
             if action == "stop":
                 self.has_perms([300006, 400008])
@@ -227,7 +227,7 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             if action == "deploy":
                 self.has_perms([300008, 400010])
                 # 批量操作
-            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids)
+            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)
             else:
@@ -250,9 +250,13 @@ class GroupStatusView(RegionTenantHeaderView):
             result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
         service_id_list = [x.service_id for x in services]
-        service_status_list = region_api.service_status(self.response_region, self.tenant_name, {
-            "service_ids": service_id_list,
-            "enterprise_id": self.user.enterprise_id
-        })
-        result = general_message(200, "success", "查询成功", list=service_status_list)
-        return Response(result)
+        try:
+            service_status_list = region_api.service_status(self.response_region, self.tenant_name, {
+                "service_ids": service_id_list,
+                "enterprise_id": self.user.enterprise_id
+            })
+            result = general_message(200, "success", "查询成功", list=service_status_list)
+            return Response(result)
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            logger.debug(e)
+            raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")

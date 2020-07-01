@@ -10,23 +10,17 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
-from rest_framework import exceptions
-from rest_framework import status
-from rest_framework.authentication import (get_authorization_header)
-from rest_framework.exceptions import NotFound
-from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import exceptions, status
+from rest_framework.authentication import get_authorization_header
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.views import set_rollback
+from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import BusinessException
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ServiceHandleException
+from console.exception.main import (BusinessException, ResourceNotEnoughException, ServiceHandleException)
 from console.exception.main import NoPermissionsError
 from console.models.main import EnterpriseUserPerm
 from console.models.main import PermsInfo
@@ -36,9 +30,7 @@ from console.models.main import RolePerms
 from console.repositories.enterprise_repo import enterprise_repo
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import Tenants
-from www.models.main import Users
-from www.models.main import TenantEnterprise
+from www.models.main import Tenants, Users, TenantEnterprise
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -70,11 +62,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
         if len(auth) == 1:
             msg = _('请求头不合法，未提供认证信息')
-            # msg = _('Invalid Authorization header. No credentials provided.')
             raise exceptions.AuthenticationFailed(msg)
         elif len(auth) > 2:
-            # msg = _('Invalid Authorization header. Credentials string '
-            #         'should not contain spaces.')
             msg = _("请求头不合法")
             raise exceptions.AuthenticationFailed(msg)
         return auth[1]
@@ -112,17 +101,13 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             try:
                 payload = jwt_decode_handler(jwt_value)
             except jwt.ExpiredSignature:
-                # msg = _('Signature has expired.')
                 msg = _('认证信息已过期')
                 raise AuthenticationInfoHasExpiredError(msg)
             except jwt.DecodeError:
-                # msg = _('Error decoding signature.')
                 msg = _('认证信息错误')
-                # raise exceptions.AuthenticationFailed(msg)
                 raise AuthenticationInfoHasExpiredError(msg)
             except jwt.InvalidTokenError:
                 msg = _('认证信息错误,请求Token不合法')
-                # raise exceptions.AuthenticationFailed(msg)
                 raise AuthenticationInfoHasExpiredError(msg)
 
             user = self.authenticate_credentials(payload)
@@ -132,10 +117,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         """
         Returns an active user that matches the payload's user id and email.
         """
-        # User = get_user_model()
         username = jwt_get_username_from_payload(payload)
         if not username:
-            # msg = _('Invalid payload.')
             msg = _('认证信息不合法.')
             # raise exceptions.AuthenticationFailed(msg)
             logger.debug('==========================>{}'.format(msg))
@@ -144,15 +127,11 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         try:
             user = Users.objects.get(nick_name=username)
         except Users.DoesNotExist:
-            # msg = _('Invalid signature.')
             msg = _('签名不合法.')
-            # raise exceptions.AuthenticationFailed(msg)
             raise AuthenticationInfoHasExpiredError(msg)
 
         if not user.is_active:
-            # msg = _('User account is disabled.')
             msg = _('用户身份未激活.')
-            # raise exceptions.AuthenticationFailed(msg)
             raise AuthenticationInfoHasExpiredError(msg)
 
         return user
@@ -361,10 +340,6 @@ class EnterpriseHeaderView(JWTAuthApiView):
         self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
         if not self.enterprise:
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
-        self.initial_header_info(request)
-
-    def initial_header_info(self, request):
-        pass
 
 
 def custom_exception_handler(exc, context):

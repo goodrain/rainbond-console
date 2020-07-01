@@ -1,27 +1,26 @@
 # -*- coding: utf8 -*-
+import json
 import logging
 
 from rest_framework import status
 from rest_framework.response import Response
 
-from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import general_message
-
+from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
-from console.exception.exceptions import UserNotExistError
-from console.services.config_service import EnterpriseConfigService
-from console.services.user_services import user_services
-from console.services.enterprise_services import enterprise_services
-from console.exception.exceptions import ExterpriseNotExistError
 from console.repositories.enterprise_repo import enterprise_repo
-from console.exception.exceptions import TenantNotExistError
 from console.repositories.group import group_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.region_repo import region_repo
+from console.services.config_service import EnterpriseConfigService
+from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
-from console.views.base import JWTAuthApiView
+from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.services.user_services import user_services
+from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -61,7 +60,6 @@ class EnterpriseRUDView(JWTAuthApiView):
         if ent:
             ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
         result = general_message(200, "success", u"查询成功", bean=ent)
-
         return Response(result, status=result["code"])
 
     def put(self, request, enterprise_id, *args, **kwargs):
@@ -111,10 +109,10 @@ class EnterpriseRUDView(JWTAuthApiView):
 
 class EnterpriseAppOverView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        regions = region_repo.get_usable_regions()
+        regions = region_repo.get_usable_regions(enterprise_id)
         if not regions:
-            result = general_message(404, "no found regions", None)
-            return Response(result, status=result.get("code"))
+            result = general_message(404, "no found regions", "查询成功")
+            return Response(result, status=200)
         data = enterprise_services.get_enterprise_runing_service(enterprise_id, regions)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
@@ -267,7 +265,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
 
 class EnterpriseMonitor(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        regions = region_repo.get_usable_regions()
+        regions = region_repo.get_usable_regions(enterprise_id)
         region_memory_total = 0
         region_memory_used = 0
         region_cpu_total = 0
@@ -277,12 +275,16 @@ class EnterpriseMonitor(JWTAuthApiView):
             return Response(result, status=status.HTTP_200_OK)
         region_num = len(regions)
         for region in regions:
-            res, body = region_api.get_region_resources(enterprise_id, region.region_name)
-            if res.get("status") == 200:
-                region_memory_total += body["bean"]["cap_mem"]
-                region_memory_used += body["bean"]["req_mem"]
-                region_cpu_total += body["bean"]["cap_cpu"]
-                region_cpu_used += body["bean"]["req_cpu"]
+            try:
+                res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
+                if res.get("status") == 200:
+                    region_memory_total += body["bean"]["cap_mem"]
+                    region_memory_used += body["bean"]["req_mem"]
+                    region_cpu_total += body["bean"]["cap_cpu"]
+                    region_cpu_used += body["bean"]["req_cpu"]
+            except Exception as e:
+                logger.debug(e)
+                continue
         data = {
             "total_regions": region_num,
             "memory": {
@@ -322,6 +324,52 @@ class EnterpriseAppsLView(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
+class EnterpriseRegionsLCView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        region_status = request.GET.get("status", "")
+        check_status = request.GET.get("check_status", "")
+        data = region_services.get_enterprise_regions(
+            enterprise_id, level="safe", status=region_status, check_status=check_status)
+        result = general_message(200, "success", "获取成功", list=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        token = request.data.get("token")
+        region_name = request.data.get("region_name")
+        region_alias = request.data.get("region_alias")
+        desc = request.data.get("desc")
+        region_type = json.dumps(request.data.get("region_type", []))
+        region_data = region_services.parse_token(token, region_name, region_alias, region_type)
+        region_data["enterprise_id"] = enterprise_id
+        region_data["desc"] = desc
+        region_data["status"] = "1"
+        region = region_services.add_region(region_data)
+        if region:
+            data = region_services.get_enterprise_region(enterprise_id, region.region_id, check_status=False)
+            result = general_message(200, "success", "创建成功", bean=data)
+            return Response(result, status=status.HTTP_200_OK)
+        else:
+            result = general_message(500, "failed", "创建失败")
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EnterpriseRegionsRUDView(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        data = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
+        result = general_message(200, "success", "获取成功", bean=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def put(self, request, enterprise_id, region_id, *args, **kwargs):
+        region = region_services.update_enterprise_region(enterprise_id, region_id, request.data)
+        result = general_message(200, "success", "更新成功", bean=region)
+        return Response(result, status=result.get("code", 200))
+
+    def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+        region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result.get("code", 200))
+
+
 class EnterpriseAppComponentsLView(JWTAuthApiView):
     def get(self, request, enterprise_id, app_id, *args, **kwargs):
         page = int(request.GET.get("page", 1))
@@ -349,3 +397,22 @@ class EnterpriseAppComponentsLView(JWTAuthApiView):
                     })
         result = general_message(200, "success", "获取成功", list=data, total_count=count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseRegionDashboard(EnterpriseAdminView):
+    def dispatch(self, request, enterprise_id, region_id, path, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers
+        try:
+            self.initial(request, *args, **kwargs)
+            region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
+            if not region:
+                return Response({}, status=status.HTTP_404_NOTFOUND)
+            response = region_api.proxy(request, '/kubernetes/dashboard/' + path, region['region_name'])
+        except Exception as exc:
+            response = self.handle_exception(exc)
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response

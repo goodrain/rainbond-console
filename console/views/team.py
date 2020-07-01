@@ -642,6 +642,7 @@ class JoinTeamView(JWTAuthApiView):
         :param kwargs:
         :return:
         """
+        logger.debug('-------3333------->{0}'.format(request.data))
         user_id = request.data.get("user_id", None)
         team_names = request.data.get("team_name", None)
         is_pass = request.data.get("is_pass", 0)
@@ -698,7 +699,7 @@ class AllUserView(JWTAuthApiView):
                 enterprise_id = enter.enterprise_id
             enter = enterprise_services.get_enterprise_by_id(enterprise_id=enterprise_id)
             if user_name:
-                euser = user_services.get_user_by_user_name(user_name)
+                euser = user_services.get_user_by_user_name(enterprise_id, user_name)
                 list = []
                 if not euser:
                     result = general_message("0000", "success", "查询成功", list=list, total=0)
@@ -809,42 +810,38 @@ class AdminAddUserView(JWTAuthApiView):
               paramType: form
 
         """
-        try:
-            tenant_name = request.data.get("tenant_name", None)
-            user_name = request.data.get("user_name", None)
-            email = request.data.get("email", None)
-            password = request.data.get("password", None)
-            re_password = request.data.get("re_password", None)
-            role_ids = request.data.get("role_ids", None)
-            if len(password) < 8:
-                result = general_message(400, "len error", "密码长度最少为8位")
+        tenant_name = request.data.get("tenant_name", None)
+        user_name = request.data.get("user_name", None)
+        email = request.data.get("email", None)
+        password = request.data.get("password", None)
+        re_password = request.data.get("re_password", None)
+        role_ids = request.data.get("role_ids", None)
+        if len(password) < 8:
+            result = general_message(400, "len error", "密码长度最少为8位")
+            return Response(result)
+        if not tenant_name:
+            result = general_message(400, "not tenant", "团队不能为空")
+            return Response(result)
+        if role_ids and tenant_name:
+            team = team_services.get_tenant_by_tenant_name(tenant_name)
+            if not team:
+                raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
+            # 校验用户信息
+            is_pass, msg = user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
+            if not is_pass:
+                result = general_message(403, "user information is not passed", msg)
                 return Response(result)
-            if not tenant_name:
-                result = general_message(400, "not tenant", "团队不能为空")
-                return Response(result)
-            if role_ids and tenant_name:
-                team = team_services.get_tenant_by_tenant_name(tenant_name)
-                if not team:
-                    raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
-                # 校验用户信息
-                is_pass, msg = user_services.check_params(user_name, email, password, re_password)
-                if not is_pass:
-                    result = general_message(403, "user information is not passed", msg)
-                    return Response(result)
-                client_ip = user_services.get_client_ip(request)
-                enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
-                # 创建用户
-                user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
-                # 创建用户团队关系表
-                team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
-                user.is_active = True
-                user.save()
-                result = general_message(200, "success", "添加用户成功")
-            else:
-                result = general_message(400, "not role", "创建用户时角色不能为空")
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(500, e.message, "系统异常")
+            client_ip = user_services.get_client_ip(request)
+            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            # 创建用户
+            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
+            # 创建用户团队关系表
+            team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
+            user.is_active = True
+            user.save()
+            result = general_message(200, "success", "添加用户成功")
+        else:
+            result = general_message(400, "not role", "创建用户时角色不能为空")
         return Response(result)
 
 

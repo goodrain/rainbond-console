@@ -83,14 +83,13 @@ class AppBuild(AppBaseView):
                 status = e.status
             elif e.status == 400:
                 if "is exist" in e.message.get("body", ""):
-                    result = general_message(400, "the service is exist in region", "该组件名称在数据中心已存在")
+                    result = general_message(400, "the service is exist in region", "该组件在数据中心已存在，你可能重复创建？")
                 else:
                     result = general_message(400, "call cloud api failure", e.message)
                 status = e.status
             else:
-                result = general_message(500, "call cloud api failure", e.message)
-                status = 500
-
+                result = general_message(400, "call cloud api failure", e.message)
+                status = 400
         # 删除probe
         # 删除region端数据
         if probe:

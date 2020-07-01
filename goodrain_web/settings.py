@@ -49,20 +49,9 @@ AUTHENTICATION_BACKENDS = ('console.services.auth.backends.GoodRainSSOModelBacke
                            'console.services.auth.backends.WeChatModelBackend', 'django.contrib.auth.backends.ModelBackend')
 
 LOGIN_URL = '/login'
-INSTALLED_APPS = (
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'crispy_forms',
-    'rest_framework',
-    'rest_framework.authtoken',
-    'rest_framework_jwt',
-    'www',
-    'corsheaders',
-    'console',
-)
+INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
+                  'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
+                  'rest_framework_jwt', 'www', 'corsheaders', 'console', 'console.cloud')
 # Application definition
 if IS_OPEN_API:
     INSTALLED_APPS = (

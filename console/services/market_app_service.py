@@ -987,10 +987,9 @@ class MarketAppService(object):
             raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
 
     def conversion_cloud_version_to_app(self, cloud_version):
-        app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", share_user=0, source="cloud", scope="market")
+        app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", source="cloud", scope="market")
         app_version = RainbondCenterAppVersion(
             app_id=cloud_version.app_key_id,
-            app_name="",
             version=cloud_version.app_version,
             share_user=0,
             record_id=0,
@@ -1023,7 +1022,7 @@ class MarketAppService(object):
             return 0, []
         remote_apps = data.get("list", None)
         total = data.get('total', 0)
-        # 创造数据格式app_list = [{group_key:xxx, "group_version_list":[]}, {}]
+        # app_list = [{group_key:xxx, "group_version_list":[]}, {}]
         app_list = []
         result_list = []
         group_key_list = []
@@ -1067,7 +1066,7 @@ class MarketAppService(object):
                 if rbc.is_complete:
                     is_complete = True
             if rbc and rbc.source != "local" and rbc.upgrade_time:
-                # 判断云市应用是否有小版本更新
+                # Determine whether there is a small version of the app in cloud store update
                 try:
                     old_version = int(rbc.upgrade_time)
                     new_version = int(app["update_version"])
@@ -1114,7 +1113,7 @@ class MarketAppService(object):
                     if rbc.is_complete:
                         is_complete = True
                 if rbc and rbc.source != "local" and rbc.upgrade_time:
-                    # 判断云市应用是否有小版本更新
+                    # Determine whether there is a small version of the app in cloud store update
                     try:
                         old_version = int(rbc.upgrade_time)
                         new_version = int(app["update_version"])
@@ -1666,7 +1665,7 @@ class AppMarketSynchronizeService(object):
             user_id = 0
             if user_name:
                 try:
-                    user = user_repo.get_user_by_username(user_name)
+                    user = user_repo.get_enterprise_user_by_username(enterprise_id, user_name)
                     user_id = user.user_id
                 except Exception as e:
                     logger.exception(e)

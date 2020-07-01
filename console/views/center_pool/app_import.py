@@ -71,7 +71,7 @@ class CenterAppUploadView(JWTAuthApiView):
             code, msg, import_record = upload_service.upload_file_to_region_center_by_enterprise_id(
                 enterprise_id, self.user.nick_name, upload_file)
             if code != 200:
-                return Response(general_message(code, "upload file faild", msg), status=code)
+                return Response(general_message(code, "upload file failed", msg), status=code)
             bean = import_record.to_dict()
             bean["file_name"] = file_name
             result = general_message(200, 'success', "上传成功", bean=bean)

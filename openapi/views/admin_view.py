@@ -19,12 +19,11 @@ from openapi.serializer.user_serializer import CreateAdminUserReqSerializer
 from openapi.serializer.user_serializer import ListUsersRespView
 from openapi.serializer.user_serializer import UserInfoSerializer
 from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
 
 logger = logging.getLogger("default")
 
 
-class ListAdminsView(ListAPIView):
+class ListAdminsView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取企业管理员列表",
         manual_parameters=[

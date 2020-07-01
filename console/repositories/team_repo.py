@@ -178,7 +178,7 @@ class TeamRepo(object):
     def get_team_by_team_id(self, team_id):
         try:
             return Tenants.objects.get(tenant_id=team_id)
-        except Exception:
+        except Tenants.DoesNotExist:
             raise TenantNotExistError
 
     def get_teams_by_enterprise_id(self, enterprise_id, user_id=None, query=None):

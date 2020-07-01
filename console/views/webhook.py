@@ -65,7 +65,6 @@ class WebHooksDeploy(AlowAnyApiView):
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)
-
                 ref = request.data.get("ref")
                 if not ref:
                     result = general_message(200, "can not read branch info", "获取分支信息失败")
@@ -244,7 +243,6 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-
                 committer_name = commits_info[0].get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status != "closed":
@@ -300,7 +298,6 @@ class WebHooksDeploy(AlowAnyApiView):
                 status_map = app_service.get_service_status(tenant_obj, service_obj)
                 status = status_map.get("status", None)
                 logger.debug(status)
-
                 committer_name = commits_info.get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status != "closed":

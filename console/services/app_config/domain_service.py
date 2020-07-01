@@ -7,31 +7,34 @@ import datetime
 import logging
 import re
 
-from django.db import transaction
-from django.db import connection
+from django.db import connection, transaction
+from django.forms.models import model_to_dict
 
 from console.constants import DomainType
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import tcp_domain
+from console.exception.main import ServiceHandleException
+from console.repositories.app_config import domain_repo, port_repo, tcp_domain
 from console.repositories.region_repo import region_repo
-from console.services.app_config.exceptoin import err_cert_name_exists
-from console.services.app_config.exceptoin import err_cert_not_found
-from console.services.app_config.exceptoin import err_still_has_http_rules
+from console.repositories.team_repo import team_repo
+from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
 from console.services.group_service import group_service
-from console.services.team_services import team_services
 from console.services.region_services import region_services
-from console.utils.certutil import analyze_cert
-from console.utils.certutil import cert_is_effective
+from console.utils.certutil import analyze_cert, cert_is_effective
+from www.models.main import ServiceDomain
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
+ErrNotFoundDomain = ServiceHandleException(status_code=404, error_code=1404, msg="domain not found", msg_show="域名不存在")
+ErrNotFoundStreamDomain = ServiceHandleException(status_code=404, error_code=2404, msg="domain not found", msg_show="策略不存在")
+
 
 class DomainService(object):
     HTTP = "http"
+
+    def get_time_now(self):
+        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     def get_certificate(self, tenant, page, page_size):
         end = page_size * page - 1  # 一页数据的开始索引
@@ -49,9 +52,6 @@ class DomainService(object):
         return c_list, nums
 
     def __check_certificate_alias(self, tenant, alias):
-        # r = re.compile("^[A-Za-z0-9]+$")
-        # if not r.match(alias):
-        #     return 400, u"证书别名只能是数字和字母的组合"
         if domain_repo.get_certificate_by_alias(tenant.tenant_id, alias):
             raise err_cert_name_exists
 
@@ -121,7 +121,7 @@ class DomainService(object):
             "certificate": base64.b64decode(cert.certificate),
             "private_key": cert.private_key,
         }
-        team_regions = region_services.get_team_usable_regions(tenant.tenant_name)
+        team_regions = region_services.get_team_usable_regions(tenant.tenant_name, tenant.enterprise_id)
         for team_region in team_regions:
             try:
                 region_api.update_ingresses_by_certificate(team_region.region_name, tenant.tenant_name, body)
@@ -130,25 +130,22 @@ class DomainService(object):
                 continue
         return cert
 
-    def __check_domain_name(self, team_name, domain_name, domain_type, certificate_id):
+    def __check_domain_name(self, team_id, domain_name, domain_type, certificate_id):
         if not domain_name:
-            return 400, u"域名不能为空"
-        zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
-        match = zhPattern.search(domain_name.decode('utf-8'))
+            raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty", msg_show="域名不能为空")
+        zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
+        match = zh_pattern.search(domain_name.decode('utf-8'))
         if match:
-            return 400, u"域名不能包含中文"
+            raise ServiceHandleException(
+                status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         s_domain = domain_repo.get_domain_by_domain_name(domain_name)
-        if s_domain:
-            team = team_services.get_tenant_by_tenant_name(team_name)
-            if team:
-                if s_domain.tenant_id != team.tenant_id:
-                    return 400, u"该域名已被其他团队使用"
-        # re_exp = "^(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+$"
-        # if not re.match(re_exp, domain_name):
-        #     return 400, u"域名不规范（示例：www.example.com 域名不应包含协议头）"
+        if s_domain and s_domain.tenant_id != team_id:
+            raise ServiceHandleException(
+                status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:
-            return 400, u"域名过长"
+            raise ServiceHandleException(
+                status_code=400, error_code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate)
@@ -159,13 +156,10 @@ class DomainService(object):
                     domain_suffix = certificat_domain_name[2:]
                 else:
                     domain_suffix = certificat_domain_name
-                logger.debug('---------domain_suffix-------->{0}'.format(domain_suffix))
                 domain_str = domain_name.encode('utf-8')
                 if domain_str.endswith(domain_suffix):
-                    return 200, u"success"
-            return 400, u"域名和证书不匹配"
-
-        return 200, u"success"
+                    return
+            raise ServiceHandleException(status_code=400, error_code=400, msg="domain", msg_show="域名与选择的证书不匹配")
 
     def __is_domain_conflict(self, domain_name, team_name):
         regions = region_repo.get_usable_regions()
@@ -191,10 +185,7 @@ class DomainService(object):
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     rule_extensions):
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
-
-        if code != 200:
-            return code, msg
+        self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
         certificate_info = None
         http_rule_id = make_uuid(domain_name)
         if certificate_id:
@@ -218,7 +209,6 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
-
         domain_info = dict()
         region = region_repo.get_region_by_region_name(service.service_region)
         domain_info["service_id"] = service.service_id
@@ -226,7 +216,7 @@ class DomainService(object):
         domain_info["domain_name"] = domain_name
         domain_info["domain_type"] = domain_type
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
         domain_info["protocol"] = "http"
         if certificate_id:
@@ -239,15 +229,14 @@ class DomainService(object):
         domain_info["service_alias"] = service.service_cname
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["region_id"] = region.region_id
-        domain_repo.add_service_domain(**domain_info)
-        return 200, u"success"
+        return domain_repo.add_service_domain(**domain_info)
 
     def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False):
         if not is_tcp:
-            servicerDomain = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
-            if not servicerDomain:
-                return 404, u"域名不存在"
-            for servicer_domain in servicerDomain:
+            service_domains = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
+            if not service_domains:
+                raise ErrNotFoundDomain
+            for servicer_domain in service_domains:
                 data = dict()
                 data["service_id"] = servicer_domain.service_id
                 data["domain"] = servicer_domain.domain_name
@@ -256,22 +245,19 @@ class DomainService(object):
                 try:
                     region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
                     servicer_domain.delete()
-                    return 200, u"success"
                 except region_api.CallApiError as e:
                     if e.status != 404:
                         raise e
-
         else:
             servicer_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(
                 service.service_id, container_port, domain_name)
             if not servicer_tcp_domain:
-                return 404, u"域名不存在"
+                raise ErrNotFoundStreamDomain
             data = dict()
             data["tcp_rule_id"] = servicer_tcp_domain.tcp_rule_id
             try:
                 region_api.unbindTcpDomain(service.service_region, tenant.tenant_name, data)
                 servicer_tcp_domain.delete()
-                return 200, u"success"
             except region_api.CallApiError as e:
                 if e.status != 404:
                     raise e
@@ -295,20 +281,25 @@ class DomainService(object):
             return False, u"do not delete this domain id {0} service_id {1}".format(domain_id, service.service_id)
 
     def bind_siample_http_domain(self, tenant, user, service, domain_name, container_port):
+        self.bind_domain(tenant, user, service, domain_name, container_port, "http", None, DomainType.WWW, None)
+        return domain_repo.get_domain_by_domain_name(domain_name)
 
-        res, msg = self.bind_domain(tenant, user, service, domain_name, container_port, "http", None, DomainType.WWW, None)
-        if res == 200:
-            return domain_repo.get_domain_by_domain_name(domain_name)
-        return None
+    def bind_httpdomain(self, tenant, user, service, httpdomain, return_model=False):
+        domain_name = httpdomain["domain_name"]
+        certificate_id = httpdomain["certificate_id"]
+        rule_extensions = httpdomain.get("rule_extensions", None)
+        domain_path = httpdomain.get("domain_path", None)
+        domain_cookie = httpdomain.get("domain_cookie", None)
+        domain_heander = httpdomain.get("domain_heander", None)
+        protocol = httpdomain.get("protocol", None)
+        domain_type = httpdomain["domain_type"]
+        auto_ssl = httpdomain["auto_ssl"]
+        auto_ssl_config = httpdomain["auto_ssl_config"]
 
-    def bind_httpdomain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
-                        domain_path, domain_cookie, domain_heander, the_weight, rule_extensions):
         # 校验域名格式
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
+        self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
         http_rule_id = make_uuid(domain_name)
         domain_info = dict()
-        if code != 200:
-            return code, msg, domain_info
         certificate_info = None
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
@@ -319,19 +310,17 @@ class DomainService(object):
         data["tenant_id"] = tenant.tenant_id
         data["tenant_name"] = tenant.tenant_name
         data["protocol"] = protocol
-        data["container_port"] = int(container_port)
-        data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        data["container_port"] = int(httpdomain["container_port"])
+        data["add_time"] = self.get_time_now()
         data["add_user"] = user.nick_name if user else ""
         data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = http_rule_id
-        data["path"] = domain_path if domain_path else None
-        data["cookie"] = domain_cookie if domain_cookie else None
-        data["header"] = domain_heander if domain_heander else None
-        data["weight"] = int(the_weight)
+        data["path"] = domain_path
+        data["cookie"] = domain_cookie
+        data["header"] = domain_heander
+        data["weight"] = int(httpdomain.get("the_weight", 100))
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
-
-        # 证书信息
         data["certificate"] = ""
         data["private_key"] = ""
         data["certificate_name"] = ""
@@ -342,8 +331,6 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         try:
-            # 给数据中心传送数据绑定域名
-            logger.debug('---------------------------->{0}'.format(data))
             region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
             if e.status != 404:
@@ -363,14 +350,16 @@ class DomainService(object):
         domain_info["domain_name"] = domain_name
         domain_info["domain_type"] = domain_type
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        domain_info["container_port"] = int(container_port)
+        domain_info["create_time"] = self.get_time_now()
+        domain_info["container_port"] = int(httpdomain["container_port"])
         domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
         domain_info["domain_path"] = domain_path if domain_path else '/'
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else ""
         domain_info["domain_heander"] = domain_heander if domain_heander else ""
-        domain_info["the_weight"] = the_weight
+        domain_info["the_weight"] = int(httpdomain.get("the_weight", 100))
         domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["auto_ssl"] = auto_ssl
+        domain_info["auto_ssl_config"] = auto_ssl_config
 
         rule_extensions_str = ""
         if rule_extensions:
@@ -386,40 +375,49 @@ class DomainService(object):
         domain_info["region_id"] = region.region_id
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
-        if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(
-                region.httpdomain):
+        if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"], service.service_alias, tenant.tenant_name,
+                                                   region.httpdomain):
             domain_info["type"] = 1
         # 高级路由
-        domain_repo.add_service_domain(**domain_info)
+        model = domain_repo.add_service_domain(**domain_info)
+        if return_model:
+            return model
         domain_info.update({"rule_extensions": rule_extensions})
         if certificate_info:
             domain_info.update({"certificate_name": certificate_info.alias})
-        return 200, u"success", domain_info
+        return domain_info
 
-    def update_httpdomain(self, tenant, user, service, domain_name, container_port, certificate_id, domain_type, domain_path,
-                          domain_cookie, domain_heander, http_rule_id, the_weight, rule_extensions):
-        # 校验域名格式
-        code, msg = self.__check_domain_name(tenant.tenant_name, domain_name, domain_type, certificate_id)
-        domain_info = dict()
-        if code != 200:
-            return code, msg, domain_info
+    def update_httpdomain(self, tenant, service, http_rule_id, update_data, re_model=False):
+        service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
+        if not service_domain:
+            raise ServiceHandleException(msg="no found", status_code=404)
+        domain_info = service_domain.to_dict()
+        domain_info.update(update_data)
         certificate_info = None
-        if certificate_id:
-            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+        if domain_info["certificate_id"]:
+            certificate_info = domain_repo.get_certificate_by_pk(int(domain_info["certificate_id"]))
         data = dict()
-        data["domain"] = domain_name
+        data["domain"] = domain_info["domain_name"]
         data["service_id"] = service.service_id
         data["tenant_id"] = tenant.tenant_id
         data["tenant_name"] = tenant.tenant_name
-        data["container_port"] = int(container_port)
+        data["container_port"] = int(domain_info["container_port"])
         data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = http_rule_id
-        data["path"] = domain_path if domain_path else None
-        data["cookie"] = domain_cookie if domain_cookie else None
-        data["header"] = domain_heander if domain_heander else None
-        data["weight"] = int(the_weight)
-        if rule_extensions:
-            data["rule_extensions"] = rule_extensions
+        data["path"] = domain_info["domain_path"] if domain_info["domain_path"] else None
+        data["cookie"] = domain_info["domain_cookie"] if domain_info["domain_cookie"] else None
+        data["header"] = domain_info["domain_heander"] if domain_info["domain_heander"] else None
+        data["weight"] = int(domain_info["the_weight"])
+        if "rule_extensions" in update_data.keys():
+            if domain_info["rule_extensions"]:
+                data["rule_extensions"] = domain_info["rule_extensions"]
+        else:
+            try:
+                rule_extensions = eval(domain_info["rule_extensions"])
+            except Exception:
+                rule_extensions = []
+            if rule_extensions:
+                data["rule_extensions"] = rule_extensions
 
         # 证书信息
         data["certificate"] = ""
@@ -437,58 +435,39 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-        service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
-        service_domain.delete()
-        region = region_repo.get_region_by_region_name(service.service_region)
-        # 高级路由
-        if domain_path and domain_path != "/" or domain_cookie or domain_heander:
-            domain_info["is_senior"] = True
-        domain_info["protocol"] = "http"
-        if certificate_id:
-            domain_info["protocol"] = "https"
-        domain_info["http_rule_id"] = http_rule_id
-        domain_info["service_id"] = service.service_id
-        domain_info["service_name"] = service.service_alias
-        domain_info["domain_name"] = domain_name
-        domain_info["domain_type"] = domain_type
-        domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        domain_info["container_port"] = int(container_port)
-        domain_info["certificate_id"] = certificate_info.ID if certificate_info else 0
-        domain_info["domain_path"] = domain_path if domain_path else '/'
-        domain_info["domain_cookie"] = domain_cookie if domain_cookie else ""
-        domain_info["domain_heander"] = domain_heander if domain_heander else ""
-        domain_info["the_weight"] = the_weight
-        domain_info["tenant_id"] = tenant.tenant_id
-        rule_extensions_str = ""
-        if rule_extensions:
+        if "rule_extensions" in update_data.keys():
+            rule_extensions_str = ""
             # 拼接字符串，存入数据库
-            for rule in rule_extensions:
-                last_index = len(rule_extensions) - 1
-                if last_index == rule_extensions.index(rule):
+            for rule in update_data["rule_extensions"]:
+                last_index = len(update_data["rule_extensions"]) - 1
+                if last_index == update_data["rule_extensions"].index(rule):
                     rule_extensions_str += rule["key"] + ":" + rule["value"]
                     continue
                 rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
+        else:
+            rule_extensions_str = domain_info["rule_extensions"]
         domain_info["rule_extensions"] = rule_extensions_str
-        domain_info["region_id"] = region.region_id
-
-        region = region_repo.get_region_by_region_name(service.service_region)
-        # 判断类型（默认or自定义）
-        if domain_name != str(container_port) + "." + str(service.service_alias) + "." + str(tenant.tenant_name) + "." + str(
-                region.httpdomain):
-            domain_info["type"] = 1
-
-        domain_repo.add_service_domain(**domain_info)
-        domain_info.update({"rule_extensions": rule_extensions})
-        if certificate_info:
-            domain_info.update({"certificate_name": certificate_info.alias})
-        return 200, u"success", domain_info
+        if domain_info["domain_path"] and domain_info["domain_path"] != "/" or \
+                domain_info["domain_cookie"] or domain_info["domain_heander"]:
+            domain_info["is_senior"] = True
+        domain_info["protocol"] = "http"
+        if domain_info["certificate_id"]:
+            domain_info["protocol"] = "https"
+        domain_info["certificate_id"] = domain_info["certificate_id"] if domain_info["certificate_id"] else 0
+        domain_info["domain_path"] = domain_info["domain_path"] if domain_info["domain_path"] else '/'
+        domain_info["domain_cookie"] = domain_info["domain_cookie"] if domain_info["domain_cookie"] else ""
+        domain_info["domain_heander"] = domain_info["domain_heander"] if domain_info["domain_heander"] else ""
+        domain_info["container_port"] = int(domain_info["container_port"])
+        model_data = ServiceDomain(**domain_info)
+        model_data.save()
+        if re_model:
+            return model_data
+        return domain_info
 
     def unbind_httpdomain(self, tenant, region, http_rule_id):
         servicer_http_omain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
-
         if not servicer_http_omain:
-            return 404, u"域名不存在"
+            raise self.ErrNotFoundDomain
         data = dict()
         data["service_id"] = servicer_http_omain.service_id
         data["domain"] = servicer_http_omain.domain_name
@@ -499,7 +478,6 @@ class DomainService(object):
             if e.status != 404:
                 raise e
         servicer_http_omain.delete()
-        return 200, u"success"
 
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, default_port, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(tenant.tenant_name)
@@ -526,7 +504,7 @@ class DomainService(object):
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
         domain_info["tenant_id"] = tenant.tenant_id
         # 查询端口协议
@@ -541,7 +519,6 @@ class DomainService(object):
             domain_info["protocol"] = 'tcp'
         domain_info["end_point"] = end_point
         domain_info["region_id"] = region.region_id
-
         rule_extensions_str = ""
         if rule_extensions:
             # 拼接字符串，存入数据库
@@ -558,7 +535,7 @@ class DomainService(object):
             domain_info["type"] = 1
         tcp_domain.add_service_tcpdomain(**domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
-        return 200, u"success", domain_info
+        return domain_info
 
     def update_tcpdomain(self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
                          default_ip):
@@ -590,7 +567,7 @@ class DomainService(object):
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["service_alias"] = service.service_cname
-        domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
         domain_info["tenant_id"] = tenant.tenant_id
         domain_info["protocol"] = protocol
@@ -605,16 +582,15 @@ class DomainService(object):
                     rule_extensions_str += rule["key"] + ":" + rule["value"]
                     continue
                 rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
-
+        domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
-
         tcp_domain.add_service_tcpdomain(**domain_info)
         return 200, u"success"
 
     def unbind_tcpdomain(self, tenant, region, tcp_rule_id):
         service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
         if not service_tcp_domain:
-            return 404, u"策略不存在"
+            raise ErrNotFoundStreamDomain
         data = dict()
         data["tcp_rule_id"] = tcp_rule_id
         try:
@@ -624,13 +600,20 @@ class DomainService(object):
             if e.status != 404:
                 raise e
         service_tcp_domain.delete()
-        return 200, u"success"
 
     # get all http rules in define app
     def get_http_rules_by_app_id(self, app_id):
         services = group_service.get_group_services(app_id)
         service_ids = [s.service_id for s in services]
         return domain_repo.get_domains_by_service_ids(service_ids)
+
+    # get http rule by rule_id
+    # if not exist, return None
+    def get_http_rule_by_id(self, tenant_id, rule_id):
+        rule = domain_repo.get_service_domain_by_http_rule_id(rule_id)
+        if rule and rule.tenant_id != tenant_id:
+            return None
+        return rule
 
     # 获取应用下策略列表
     def get_app_service_domain_list(self, region, tenant, app_id, search_conditions, page, page_size):
@@ -684,12 +667,6 @@ class DomainService(object):
             domain_count = cursor.fetchall()
 
             total = domain_count[0][0]
-            start = (page - 1) * page_size
-            remaining_num = total - (page - 1) * page_size
-            end = page_size
-            if remaining_num < page_size:
-                end = remaining_num
-
             cursor = connection.cursor()
 
             cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
@@ -770,3 +747,65 @@ class DomainService(object):
                 order by type desc LIMIT {2},{3};".format(tenant.tenant_id, region.region_id, start, end, app_id))
             tenant_tuples = cursor.fetchall()
         return tenant_tuples, total
+
+    def check_domain_exist(self, service_id, container_port, domain_name, protocol, domain_path, rule_extensions):
+        rst = False
+        http_exist = False
+        add_httptohttps = False
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service_id, container_port, domain_name, protocol,
+                                                                              domain_path)
+        if service_domain:
+            rst = True
+        domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
+        for domain in domains:
+            if "http" == domain.protocol:
+                http_exist = True
+            if "httptohttps" in domain.rule_extensions:
+                rst = True
+        if rule_extensions:
+            for rule in rule_extensions:
+                if rule["key"] == "httptohttps":
+                    add_httptohttps = True
+        if http_exist and add_httptohttps:
+            rst = True
+        return rst
+
+    # Get http gateway rule list by enterprise id
+    # retun dict list
+    def get_http_rules_by_enterprise_id(self, enterprise_id, is_auto_ssl=None):
+        teams = team_repo.get_teams_by_enterprise_id(enterprise_id)
+        if not teams:
+            return []
+        team_ids = []
+        team_names = {}
+        for team in teams:
+            team_ids.append(team.tenant_id)
+            team_names[team.tenant_id] = team.tenant_name
+        domains = domain_repo.get_domains_by_tenant_ids(team_ids, is_auto_ssl)
+        rules = []
+        region_ids = []
+        service_ids = []
+        # append tenant name
+        for domain in domains:
+            rule = model_to_dict(domain)
+            rule["create_time"] = domain.create_time
+            rule["team_name"] = team_names[domain.tenant_id]
+            region_ids.append(domain.region_id)
+            service_ids.append(domain.service_id)
+            rules.append(rule)
+        # append region name
+        region_ids_new = list(set(region_ids))
+        regions = region_repo.get_regions_by_region_ids(enterprise_id, region_ids_new)
+        region_names = {}
+        for region in regions:
+            region_names[region.region_id] = region.region_name
+        # append app id
+        app_ids = group_service.get_app_id_by_service_ids(service_ids)
+        re_rules = []
+        for rule in rules:
+            rule["region_name"] = region_names.get(rule["region_id"])
+            rule["app_id"] = app_ids.get(rule["service_id"])
+            # ignore region name or app id not found rule
+            if rule["region_name"] and rule["app_id"]:
+                re_rules.append(rule)
+        return re_rules

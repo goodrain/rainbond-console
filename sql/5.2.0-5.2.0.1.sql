@@ -1,6 +1,9 @@
 alter table user_info add enterprise_center_user_id varchar(32) DEFAULT NULL;
 alter table user_info add real_name varchar(64) DEFAULT NULL;
 
+alter table region_info add region_type varchar(32) DEFAULT '[]';
+alter table region_info add enterprise_id varchar(32) DEFAULT NULL;
+
 alter table console_sys_config add enterprise_id varchar(32) DEFAULT NULL;
 alter table tenant_enterprise add logo varchar(128) DEFAULT NULL;
 
@@ -16,8 +19,6 @@ CREATE TABLE `user_access_key` (
 
 alter table service_share_record add share_version_alias varchar(32) DEFAULT NULL;
 
-alter table tenant_service_delete modify version varchar(32) DEFAULT NULL;
-
 CREATE TABLE IF NOT EXISTS `errlog` (
   `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `msg` varchar(2047) NOT NULL DEFAULT '',
@@ -28,6 +29,10 @@ CREATE TABLE IF NOT EXISTS `errlog` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 alter table service_group add order_index int(16) DEFAULT 0;
+
+alter table service_domain add auto_ssl TINYINT(1) DEFAULT 0;
+alter table service_domain add auto_ssl_config varchar(32) DEFAULT NULL;
+alter table console.tenant_service_delete modify version varchar(255);
 
 alter table console.tenant_service_delete modify version varchar(255);
 
@@ -74,3 +79,6 @@ alter table console.service_consume modify region varchar(64);
 alter table console.tenant_service_statics modify region varchar(64);
 alter table console.tenant_plugin modify region varchar(64);
 alter table console.plugin_build_version modify region varchar(64);
+
+alter table console.app_upgrade_record add market_name varchar(32) DEFAULT NULL;
+alter table console.app_upgrade_record add is_from_cloud tinyint(2) DEFAULT NULL;

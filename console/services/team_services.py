@@ -48,6 +48,9 @@ class TeamService(object):
     def get_team_by_team_alias_and_eid(self, team_alias, enterprise_id):
         return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
 
+    def get_team_by_team_id_and_eid(self, team_id, enterprise_id):
+        return Tenants.objects.filter(tenant_id=team_id, enterprise_id=enterprise_id).first()
+
     def random_tenant_name(self, enterprise=None, length=8):
         """
         生成随机的云帮租户（云帮的团队名），副需要符合k8s的规范(小写字母,_)
@@ -118,7 +121,6 @@ class TeamService(object):
             tenant = self.get_team_by_team_id(tenant_name)
             if tenant is None:
                 raise Tenants.DoesNotExist()
-        # user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
         user_roles = user_kind_role_service.get_user_roles(kind_id=tenant.ID, kind="team", user=user)
         if tenant.creater == user_id:
             user_roles["roles"].append("owner")
@@ -237,7 +239,7 @@ class TeamService(object):
                 apps = group_service.get_apps_list(team_id=tenant.tenant_id, region_name=region["region_name"])
                 plugins = plugin_service.get_tenant_plugins(region["region_name"], tenant)
                 for app in apps:
-                    _, service_ids = app_service.get_group_services_by_id(app.ID)
+                    service_ids = app_service.get_group_services_by_id(app.ID)
                     services = service_repo.get_services_by_service_ids(service_ids)
                     if services:
                         status_list = base_service.status_multi_service(
@@ -306,7 +308,7 @@ class TeamService(object):
         team = team_repo.get_team_by_team_id(team_id=team_id)
         if team:
             user = user_repo.get_by_user_id(team.creater)
-            team.creater = user.user_id
+            team.creater_name = user.get_name()
         return team
 
     def create_team(self, user, enterprise, region_list=None, team_alias=None):
@@ -323,7 +325,7 @@ class TeamService(object):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
         if not region_list:
-            region_list = [r.region_name for r in region_repo.get_usable_regions()]
+            region_list = [r.region_name for r in region_repo.get_usable_regions(enterprise.enterprise_id)]
             if not region_list:
                 return 404, "无可用数据中心", None
         default_region = region_list[0]
@@ -392,8 +394,6 @@ class TeamService(object):
         query_set = Tenants.objects.filter(tenant_name__in=tenant_names)
         return [qs.to_dict() for qs in query_set]
 
-    # used by open api before version 5.2
-    # TODO 修改权限控制
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)
         total = team_repo.count_by_user_id(eid, user_id, query)

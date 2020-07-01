@@ -105,7 +105,7 @@ class PropertiesChanges(object):
                 if not same:
                     upgradeble_versions.append(version.version)
                 else:
-                    if new_version_time > current_version_time:
+                    if new_version_time > current_version_time and max_version == version.version:
                         upgradeble_versions.append(version.version)
 
         else:
@@ -343,7 +343,7 @@ class PropertiesChanges(object):
         return result
 
     def volume_changes(self, new_volumes):
-        old_volumes = volume_repo.get_service_volumes(self.service.service_id)
+        old_volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
         add = []
         update = []

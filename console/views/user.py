@@ -4,6 +4,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -11,24 +12,17 @@ from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.repositories.user_repo import user_repo
 from console.repositories.team_repo import team_repo
-from console.services.auth import login
-from console.services.auth import logout
+from console.services.auth import login, logout
 from console.services.enterprise_services import enterprise_services
-from console.services.exception import ErrAdminUserDoesNotExist
-from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.perm_services import user_kind_role_service
-from console.views.base import AlowAnyApiView
-from console.views.base import BaseApiView
-from console.views.base import JWTAuthApiView
-from console.views.base import TeamOwnerView
-from console.views.base import EnterpriseAdminView
+from console.views.base import AlowAnyApiView, BaseApiView, JWTAuthApiView, TeamOwnerView, EnterpriseAdminView
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser
 from www.services import user_svc
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 
@@ -251,6 +245,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, *args, **kwargs):
+
         tenant_name = request.data.get("tenant_name", None)
         user_name = request.data.get("user_name", None)
         email = request.data.get("email", None)
@@ -262,7 +257,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
             # 校验用户信息
-        is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+        is_pass, msg = user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
         if not is_pass:
             result = general_message(403, "user information is not passed", msg)
             return Response(result)
@@ -288,6 +283,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
 
 
 class EnterPriseUsersUDView(JWTAuthApiView):
+    @transaction.atomic()
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
         user_name = request.data.get("user_name", None)
         email = request.data.get("email", None)

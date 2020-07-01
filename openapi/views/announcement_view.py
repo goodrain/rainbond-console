@@ -12,12 +12,11 @@ from openapi.serializer.announcement_serializer import CreateAncmReqSerilizer
 from openapi.serializer.announcement_serializer import ListAnnouncementRespSerializer
 from openapi.serializer.announcement_serializer import UpdateAncmReqSerilizer
 from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
 
 logger = logging.getLogger("default")
 
 
-class ListAnnouncementView(ListAPIView):
+class ListAnnouncementView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取站内信列表",
         manual_parameters=[
@@ -55,7 +54,7 @@ class AnnouncementView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="更新站内信",
         request_body=UpdateAncmReqSerilizer(),
-        responses={200: None},
+        responses={},
         tags=['openapi-announcement'],
     )
     def put(self, req, aid, *args, **kwargs):
@@ -66,7 +65,7 @@ class AnnouncementView(BaseOpenAPIView):
 
     @swagger_auto_schema(
         operation_description="删除站内信",
-        responses={200: None},
+        responses={},
         tags=['openapi-announcement'],
     )
     def delete(self, request, aid, *args, **kwargs):
