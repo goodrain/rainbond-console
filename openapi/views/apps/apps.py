@@ -482,8 +482,12 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                     }
                     for k, v in monitor_query_range_items.items():
                         monitor = {"monitor_item": k}
-                        res, body = region_api.get_query_range_data(
-                            self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
+                        body = {}
+                        try:
+                            res, body = region_api.get_query_range_data(
+                                self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
+                        except Exception as e:
+                            logger.debug(e)
                         if body.get("data"):
                             if body["data"]["result"]:
                                 result_list = []
