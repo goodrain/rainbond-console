@@ -472,14 +472,17 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                         "service_id": service.service_id,
                         "service_cname": service.service_cname,
                         "service_alias": service.service_alias,
-                        "monitors": []
+                        "monitors": None
                     }
                     for k, v in monitor_query_range_items.items():
                         res, body = region_api.get_query_range_data(
                             self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
-                        monitor = {"monitor_item": k}
-                        monitor.update(body)
-                        dt["monitors"].append(monitor)
+                        if body.get("data"):
+                            if body["data"]["result"]:
+                                dt["monitors"] = []
+                                monitor = {"monitor_item": k}
+                                monitor.update(body)
+                                dt["monitors"].append(monitor)
                     data.append(dt)
         serializers = ComponentMonitorSerializers(data=data, many=True)
         serializers.is_valid(raise_exception=True)

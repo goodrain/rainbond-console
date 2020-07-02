@@ -177,13 +177,13 @@ class ComponentMonitorBaseSerializers(serializers.Serializer):
 
 
 class ComponentMonitorItemsSerializers(serializers.Serializer):
-    data = ComponentMonitorBaseSerializers()
+    data = ComponentMonitorBaseSerializers(required=False)
     monitor_item = serializers.CharField(max_length=32, help_text=u"监控项")
-    status = serializers.CharField(max_length=32, help_text=u"监控状态")
+    status = serializers.CharField(max_length=32, required=False, help_text=u"监控状态")
 
 
 class ComponentMonitorSerializers(serializers.Serializer):
-    monitors = ComponentMonitorItemsSerializers(many=True, required=False)
+    monitors = ComponentMonitorItemsSerializers(many=True, required=False, allow_null=True)
     service_id = serializers.CharField(max_length=32, help_text=u"组件id")
     service_cname = serializers.CharField(max_length=64, help_text=u"组件名")
     service_alias = serializers.CharField(max_length=64, help_text=u"组件昵称")
