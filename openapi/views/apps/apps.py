@@ -413,13 +413,16 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
                         res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
                         if body.get("data"):
                             if body["data"]["result"]:
-                                body["data"]["result"] = [map(lambda x: str(x), result) for result in body["data"]["result"]]
+                                result_list = []
+                                for result in body["data"]["result"]:
+                                    result["value"] = [str(value) for value in result["value"]]
+                                    result_list.append(result)
+                                body["data"]["result"] = result_list
                                 dt["monitors"] = []
                                 monitor = {"monitor_item": k}
                                 monitor.update(body)
                                 dt["monitors"].append(monitor)
                     data.append(dt)
-
         serializers = ComponentMonitorSerializers(data=data, many=True)
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
@@ -483,7 +486,11 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                             self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
                         if body.get("data"):
                             if body["data"]["result"]:
-                                body["data"]["result"] = [map(lambda x: str(x), result) for result in body["data"]["result"]]
+                                result_list = []
+                                for result in body["data"]["result"]:
+                                    result["value"] = [str(value) for value in result["value"]]
+                                    result_list.append(result)
+                                body["data"]["result"] = result_list
                                 dt["monitors"] = []
                                 monitor = {"monitor_item": k}
                                 monitor.update(body)
