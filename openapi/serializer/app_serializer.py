@@ -160,7 +160,6 @@ class TeamAppsCloseSerializers(serializers.Serializer):
 
 
 class MonitorDataSerializers(serializers.Serializer):
-    metric = serializers.DictField()
     value = serializers.ListField()
 
     def to_internal_value(self, data):
@@ -169,8 +168,7 @@ class MonitorDataSerializers(serializers.Serializer):
 
 class ComponentMonitorBaseSerializers(serializers.Serializer):
     resultType = serializers.CharField(max_length=64, required=False, help_text=u"返回类型")
-    result = serializers.ListField(required=False)
-    getlist = serializers.DictField(required=False)
+    result = MonitorDataSerializers(many=True)
 
     def to_internal_value(self, data):
         return data

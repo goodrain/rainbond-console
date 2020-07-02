@@ -407,13 +407,17 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
                         "service_id": service.service_id,
                         "service_cname": service.service_cname,
                         "service_alias": service.service_alias,
-                        "monitors": []
+                        "monitors": None
                     }
                     for k, v in monitor_query_items.items():
                         res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
-                        monitor = {"monitor_item": k}
-                        monitor.update(body)
-                        dt["monitors"].append(monitor)
+                        if body.get("data"):
+                            if body["data"]["result"]:
+                                body["data"]["result"] = [map(lambda x: str(x), result) for result in body["data"]["result"]]
+                                dt["monitors"] = []
+                                monitor = {"monitor_item": k}
+                                monitor.update(body)
+                                dt["monitors"].append(monitor)
                     data.append(dt)
 
         serializers = ComponentMonitorSerializers(data=data, many=True)
@@ -479,6 +483,7 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                             self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
                         if body.get("data"):
                             if body["data"]["result"]:
+                                body["data"]["result"] = [map(lambda x: str(x), result) for result in body["data"]["result"]]
                                 dt["monitors"] = []
                                 monitor = {"monitor_item": k}
                                 monitor.update(body)
