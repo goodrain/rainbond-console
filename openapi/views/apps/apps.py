@@ -407,9 +407,10 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
                         "service_id": service.service_id,
                         "service_cname": service.service_cname,
                         "service_alias": service.service_alias,
-                        "monitors": None
+                        "monitors": []
                     }
                     for k, v in monitor_query_items.items():
+                        monitor = {"monitor_item": k}
                         res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
                         if body.get("data"):
                             if body["data"]["result"]:
@@ -418,8 +419,6 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
                                     result["value"] = [str(value) for value in result["value"]]
                                     result_list.append(result)
                                 body["data"]["result"] = result_list
-                                dt["monitors"] = []
-                                monitor = {"monitor_item": k}
                                 monitor.update(body)
                                 dt["monitors"].append(monitor)
                     data.append(dt)
@@ -479,9 +478,10 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                         "service_id": service.service_id,
                         "service_cname": service.service_cname,
                         "service_alias": service.service_alias,
-                        "monitors": None
+                        "monitors": []
                     }
                     for k, v in monitor_query_range_items.items():
+                        monitor = {"monitor_item": k}
                         res, body = region_api.get_query_range_data(
                             self.region_name, self.team.tenant_name, v % (service.service_id, start, end, step))
                         if body.get("data"):
@@ -491,8 +491,6 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                                     result["value"] = [str(value) for value in result["value"]]
                                     result_list.append(result)
                                 body["data"]["result"] = result_list
-                                dt["monitors"] = []
-                                monitor = {"monitor_item": k}
                                 monitor.update(body)
                                 dt["monitors"].append(monitor)
                     data.append(dt)
