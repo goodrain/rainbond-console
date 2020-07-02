@@ -64,8 +64,12 @@ class Gitee(object):
         }
         return self._api_get(url_suffix, params)
 
-    def search_repos(self, full_name, page=1):
-        url_suffix = 'search/repositories?q={full_name}&page={page}&per_page=10'.format(full_name=full_name, page=page)
+    def search_repos(self, full_name, page=1, **kwargs):
+        owner = kwargs.get("owner", None)
+        query = kwargs.get("query", None)
+        url_suffix = 'search/repositories?q={query}&page={page}&per_page=10&owner={owner}&fork=true'.format(
+            query=query, page=page, owner=owner)
+        print url_suffix
         return self._api_get(url_suffix)
 
     def get_repo(self, full_name):
@@ -222,7 +226,10 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         access_token, _ = self._get_access_token()
         page = int(kwargs.get("page", 1))
         repo_list = []
-        repos = self.api.search_repos(full_name=full_name, page=page)
+        search_name = full_name.split("/")
+        owner = search_name[0]
+        query = "/".join(search_name[1:])
+        repos = self.api.search_repos(full_name=full_name, page=page, owner=owner, query=query)
         for repo in repos:
             if repo is None:
                 pass
