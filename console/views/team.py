@@ -872,27 +872,36 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
         #     result = general_message(400, "team id null", "团队不存在")
         #     return Response(result, status=400)
         if repo == "1":
+            total_traffic = 0
+            total = 0
+            domain_list = []
             query = "?query=sort_desc(sum(%20ceil(increase("\
                 + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
             sufix = query.format(self.tenant.tenant_id)
-            res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
-            total = len(body["data"]["result"])
-            domains = body["data"]["result"]
-            total_traffic = 0
-            for domain in domains:
-                total_traffic += int(domain["value"][1])
             start = (page - 1) * page_size
             end = page * page_size
+            try:
+                res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
+                total = len(body["data"]["result"])
+                domains = body["data"]["result"]
+                for domain in domains:
+                    total_traffic += int(domain["value"][1])
+                    domain_list = body["data"]["result"][start:end]
+            except Exception as e:
+                logger.debug(e)
             bean = {"total": total, "total_traffic": total_traffic}
-            domain_list = body["data"]["result"][start:end]
             result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
             return Response(result, status=200)
         else:
             start = request.GET.get("start", None)
             end = request.GET.get("end", None)
+            body = {}
             sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
                 + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(self.tenant.tenant_id, start, end)
-            res, body = region_api.get_query_range_data(region_name, team_name, sufix)
+            try:
+                res, body = region_api.get_query_range_data(region_name, team_name, sufix)
+            except Exception as e:
+                logger.debug(e)
             result = general_message(200, "success", "查询成功", bean=body)
             return Response(result, status=200)
 
@@ -909,22 +918,25 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        # team = team_services.get_tenant_by_tenant_name(team_name)
-        # if not team:
-        #     result = general_message(400, "team id null", "团队不存在")
-        #     return Response(result, status=400)
         sufix_outer = "?query=sort_desc(sum(%20ceil(increase("\
             + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(self.tenant.tenant_id)
 
         sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7B"\
             + "tenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(self.tenant.tenant_id)
         # 对外组件访问量
-        res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
-        outer_service_list = body["data"]["result"][0:10]
-
+        try:
+            res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
+            outer_service_list = body["data"]["result"][0:10]
+        except Exception as e:
+            logger.debug(e)
+            outer_service_list = []
         # 对外组件访问量
-        res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
-        inner_service_list = body["data"]["result"][0:10]
+        try:
+            res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
+            inner_service_list = body["data"]["result"][0:10]
+        except Exception as e:
+            logger.debug(e)
+            inner_service_list = []
 
         # 合并
         service_id_list = []
