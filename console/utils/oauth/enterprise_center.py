@@ -135,7 +135,8 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             "client_id": self.oauth_service.client_id,
             "client_secret": self.oauth_service.client_secret,
         }
-        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url, headers=headers, params=params)
+        rst = self._session.request(method='POST', url=self.get_access_token_url(self.oauth_service.home_url),
+                                    headers=headers, params=params)
         data = rst.json()
         if rst.status_code == 200:
             self.oauth_user.refresh_token = data.get("refresh_token")
