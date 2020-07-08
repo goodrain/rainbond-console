@@ -723,13 +723,9 @@ class BaseTenantService(object):
     def add_volume_with_type(self, service, volume_path, volume_type, volume_name):
         try:
             category = service.category
-            region = service.service_region
             tenant_id = service.tenant_id
             service_id = service.service_id
-            if region == "ali-sh":
-                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
-            else:
-                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
             volume = TenantServiceVolume(service_id=service_id, category=category)
             volume.host_path = host_path
             volume.volume_path = volume_path

@@ -4,8 +4,8 @@ from goodrain_web.wsgi import application
 
 class GunicornWSGI(WSGIApplication):
     def init(self, parser, opts, args):
-        args = ['goodrain_web.wsgi']
-        super(GunicornWSGI, self).init(parser, opts, args)
+        new_args = ['goodrain_web.wsgi']
+        super(GunicornWSGI, self).init(parser, opts, new_args)
 
     def load_wsgiapp(self):
         self.chdir()
