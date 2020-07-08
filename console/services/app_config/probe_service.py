@@ -165,7 +165,6 @@ class ProbeService(object):
                 logger.debug(e)
                 if e.message.get("httpcode") == 404:
                     probe.delete()
-                    raise ServiceHandleException(status_code=404, msg="no found", msg_show=u"组件未设置探针，无法进行修改操作, 已重置")
         console_probe.pop("probe_id")
         console_probe.pop("service_id")
         probe_repo.update_service_probeb(service_id=service.service_id, probe_id=probe.probe_id, **console_probe)
