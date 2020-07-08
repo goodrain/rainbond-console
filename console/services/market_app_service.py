@@ -102,7 +102,7 @@ class MarketAppService(object):
                                                                       market_app_version.version, market_app.app_name)
             plugins = app_templates.get("plugins", [])
             if plugins:
-                status, msg = self.__create_plugin_for_tenant(region, user, tenant, plugins)
+                status, msg = self._create_plugin_for_tenant(region, user, tenant, plugins)
                 if status != 200:
                     raise Exception(msg)
 
@@ -230,7 +230,7 @@ class MarketAppService(object):
             tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.app_id,
                                                                       market_app.version, market_app.app_name)
 
-            status, msg = self.__create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
+            status, msg = self._create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
             if status != 200:
                 raise Exception(msg)
 
@@ -402,7 +402,7 @@ class MarketAppService(object):
                     protocol=config["protocol"]))
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
-    def __create_plugin_for_tenant(self, region_name, user, tenant, plugins):
+    def _create_plugin_for_tenant(self, region_name, user, tenant, plugins):
         for plugin in plugins:
             # 对需要安装的插件查看本地是否有安装
             tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin["plugin_key"])
