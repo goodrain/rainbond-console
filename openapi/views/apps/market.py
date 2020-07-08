@@ -83,7 +83,7 @@ class AppUpgradeView(TeamAppAPIView, EnterpriseServiceOauthView):
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
-        responses={200: ListUpgradeSerializer()},
+        responses={200: ListUpgradeSerializer(many=True)},
         tags=['openapi-apps'],
     )
     def get(self, request, *args, **kwargs):
@@ -98,7 +98,7 @@ class AppUpgradeView(TeamAppAPIView, EnterpriseServiceOauthView):
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         request_body=UpgradeSerializer(),
-        responses={200: ListUpgradeSerializer()},
+        responses={200: ListUpgradeSerializer(many=True)},
         tags=['openapi-apps'],
     )
     def post(self, request, *args, **kwargs):
