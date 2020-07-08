@@ -262,8 +262,8 @@ class GroupAppCopyService(object):
                         logger.debug(e)
                         build_error_plugin_ids.append(service_plugin.plugin_id)
                 if build_error_plugin_ids:
-                    app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id).filter(
-                        plugin_id__in=build_error_plugin_ids).delete()
+                    app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
+                        service.service_id).filter(plugin_id__in=build_error_plugin_ids).delete()
         return result
 
 
