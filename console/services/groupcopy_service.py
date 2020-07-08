@@ -8,15 +8,15 @@ from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.probe_repo import probe_repo
-from console.services.groupapp_recovery.groupapps_migrate import migrate_service
-from console.services.service_services import base_service
-from console.services.team_services import team_services
-from console.services.backup_service import groupapp_backup_service
+from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import label_service
-from console.services.app_config import port_service
-
+from console.services.app_config import label_service, port_service
+from console.services.backup_service import groupapp_backup_service
+from console.services.groupapp_recovery.groupapps_migrate import migrate_service
+from console.services.service_services import base_service
+from console.services.plugin import app_plugin_service, plugin_service
+from console.services.team_services import team_services
 from www.utils.crypt import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -178,6 +178,7 @@ class GroupAppCopyService(object):
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
         services = service_repo.get_service_by_service_ids(service_ids=service_ids)
+        result = []
         for service in services:
             if service.service_id in change_service_ids:
                 # probe = None
@@ -229,6 +230,36 @@ class GroupAppCopyService(object):
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
+                result.append(service)
+                # 为组件创建插件
+                service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
+                for service_plugin in service_plugins:
+                    plugin = plugin_repo.get_by_plugin_id(tenant.tenant_id, service_plugin.plugin_id)
+                    plugin_version = plugin_repo.get_plugin_buildversion(service_plugin.plugin_id, service_plugin.build_version)
+                    # 在数据中心创建插件
+                    try:
+                        event_id = make_uuid()
+                        plugin_version.event_id = event_id
+                        image_tag = (plugin_version.image_tag if plugin_version.image_tag else "latest")
+                        plugin_service.create_region_plugin(region_name, tenant, plugin, image_tag=image_tag)
+                        ret = plugin_service.build_plugin(region_name, plugin, plugin_version, user, tenant, event_id)
+                        plugin_version.build_status = ret.get('bean').get('status')
+                        plugin_version.save()
+                    except Exception as e:
+                        logger.debug(e)
+                    # 为组件开通插件
+                    try:
+                        region_config = app_plugin_service.get_region_config_from_db(service, service_plugin.plugin_id,
+                                                                                     service_plugin.build_version)
+                        data = dict()
+                        data["plugin_id"] = service_plugin.plugin_id
+                        data["switch"] = True
+                        data["version_id"] = service_plugin.build_version
+                        data.update(region_config)
+                        region_api.install_service_plugin(region_name, tenant.tenant_name, service.service_alias, data)
+                    except Exception as e:
+                        logger.debug(e)
+        return result
 
 
 groupapp_copy_service = GroupAppCopyService()

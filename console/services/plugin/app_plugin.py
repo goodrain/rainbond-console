@@ -799,7 +799,14 @@ class PluginService(object):
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
 
     def delete_plugin(self, region, team, plugin_id):
+        services = service_repo.get_tenant_region_services(region, team.tenant_id)
+        service_ids = services.values_list("service_id", flat=True)
         plugin_service_relations = app_plugin_relation_repo.get_service_plugin_relation_by_plugin_id(plugin_id)
+        if service_ids:
+            plugin_service_relations = plugin_service_relations.filter(service_id__in=service_ids)
+        else:
+            plugin_service_relations.delete()
+            plugin_service_relations = None
         if plugin_service_relations:
             return 412, "当前插件被组件使用中，请先卸载"
         # 删除数据中心数据
