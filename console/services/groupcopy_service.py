@@ -232,6 +232,7 @@ class GroupAppCopyService(object):
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)
                 result.append(service)
                 # 为组件创建插件
+                build_error_plugins = []
                 service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
                 for service_plugin in service_plugins:
                     plugin = plugin_repo.get_by_plugin_id(tenant.tenant_id, service_plugin.plugin_id)
@@ -257,8 +258,12 @@ class GroupAppCopyService(object):
                         data["version_id"] = service_plugin.build_version
                         data.update(region_config)
                         region_api.install_service_plugin(region_name, tenant.tenant_name, service.service_alias, data)
-                    except Exception as e:
+                    except region_api.CallApiError as e:
                         logger.debug(e)
+                        build_error_plugins.append(service_plugin)
+                if build_error_plugins:
+                    for plugin in build_error_plugins:
+                        plugin.delete()
         return result
 
 
