@@ -52,4 +52,3 @@ class AppBaseView(RegionTenantHeaderView):
         else:
             raise BusinessException(
                 Response(general_message(404, "service not found", "组件{0}不存在".format(service_alias)), status=404))
-        self.initial_header_info(request)
