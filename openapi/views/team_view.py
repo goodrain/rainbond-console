@@ -141,7 +141,8 @@ class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="更新团队信息",
         request_body=UpdateTeamInfoReqSerializer,
-        responses={},
+        responses={
+        },
         tags=['openapi-team'],
     )
     def put(self, req, team_id, *args, **kwargs):
@@ -452,7 +453,8 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="删除证书",
-        responses={},
+        responses={
+        },
         tags=['openapi-team'],
     )
     def delete(self, request, team_id, certificate_id, *args, **kwargs):

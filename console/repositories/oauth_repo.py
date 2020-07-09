@@ -170,6 +170,9 @@ class UserOAuthRepo(object):
         except UserOAuthServices.DoesNotExist:
             return None
 
+    def get_all_user_oauth(self, user_id):
+        return UserOAuthServices.objects.filter(user_id=user_id)
+
     def get_user_oauth_by_user_id(self, service_id, user_id):
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, user_id=user_id)

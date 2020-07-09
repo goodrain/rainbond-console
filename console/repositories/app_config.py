@@ -717,6 +717,7 @@ class ServiceTcpDomainRepository(object):
 
 
 class TenantServiceEndpoints(object):
+
     def get_service_endpoints_by_service_id(self, service_id):
         return ThirdPartyServiceEndpoints.objects.filter(service_id=service_id)
 

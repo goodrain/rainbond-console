@@ -3403,7 +3403,22 @@ AppInstallView = {
     }
 }
 
-APPOperationsView = {"__message": {"get": {"perms": []}, "post": {"perms": []}, "put": {"perms": []}, "delete": {"perms": []}}}
+APPOperationsView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": []
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
 
 ListAppGatewayHTTPRuleView = {
     "__message": {

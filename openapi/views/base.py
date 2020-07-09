@@ -4,13 +4,15 @@ from rest_framework import generics
 from rest_framework.views import APIView
 
 from console.exception.main import NoPermissionsError, ServiceHandleException
-from console.models.main import (EnterpriseUserPerm, PermsInfo, RoleInfo, RolePerms, UserRole)
+from console.models.main import (EnterpriseUserPerm, PermsInfo, RoleInfo,
+                                 RolePerms, UserRole)
 from console.repositories.group import group_service_relation_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from openapi.auth.authentication import (OpenAPIAuthentication, OpenAPIManageAuthentication)
+from openapi.auth.authentication import (OpenAPIAuthentication,
+                                         OpenAPIManageAuthentication)
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.exceptions import ErrEnterpriseNotFound, ErrRegionNotFound
 from www.models.main import TenantEnterprise, TenantServiceInfo

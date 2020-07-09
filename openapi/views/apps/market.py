@@ -38,7 +38,7 @@ class AppInstallView(TeamAppAPIView):
         # TODO: get app info by order id
         token = market_sycn_service.get_enterprise_access_token(tenant.enterprise_id, "market")
         if token:
-            market_client = get_market_client(token.access_id, token.access_token, token.access_url)
+            market_client = get_market_client(token.access_id, token.access_token, host=token.access_url)
             app_version = market_client.download_app_by_order(order_id=data["order_id"])
             if not app_version:
                 return Response(FailSerializer({"msg": "download app metadata failure"}), status=status.HTTP_400_BAD_REQUEST)
