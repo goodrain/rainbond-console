@@ -717,8 +717,7 @@ class AppPortService(object):
 
     def check_domain_thirdpart(self, tenant, service):
         from console.utils.validation import validate_endpoints_info
-        res, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name,
-                                                            service.service_alias)
+        res, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
         if res.status != 200:
             return "region error", "数据中心查询失败", 412
         endpoint_list = body["list"]

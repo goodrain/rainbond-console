@@ -99,8 +99,7 @@ class UserInfoView(BaseOpenAPIView):
 
     @swagger_auto_schema(
         operation_description="删除用户",
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def delete(self, req, user_id, *args, **kwargs):
@@ -169,8 +168,7 @@ class ChangePassword(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="修改用户密码",
         request_body=ChangePassWdUserSerializer,
-        responses={
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def put(self, request, *args, **kwargs):

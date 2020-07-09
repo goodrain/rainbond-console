@@ -1112,8 +1112,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_region_info(region_name)
         url = region_info.url + "/v2/event"
         self._set_headers(region_info.token)
-        res, body = self._get(url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}),
-                              timeout=10)
+        res, body = self._get(
+            url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}), timeout=10)
         return body
 
     def __get_region_access_info(self, tenant_name, region):
