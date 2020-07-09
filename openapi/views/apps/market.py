@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-
 import logging
 from drf_yasg.utils import swagger_auto_schema
 from openapi.views.base import TeamAppAPIView
 from rest_framework import status
-from openapi.serializer.base_serializer import FailSerializer
 from rest_framework.response import Response
 from django.forms.models import model_to_dict
-from openapi.serializer.app_serializer import InstallSerializer, ServiceBaseInfoSerializer, AppInfoSerializer
+from openapi.serializer.app_serializer import InstallSerializer
+
 from console.services.group_service import group_service
-from console.services.team_services import team_services
 from console.services.market_app_service import market_app_service
 from console.services.market_app_service import market_sycn_service
+from console.services.team_services import team_services
 from console.utils.restful_client import get_market_client
+from openapi.serializer.app_serializer import AppInfoSerializer
+from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
+from openapi.serializer.base_serializer import FailSerializer
 
 logger = logging.getLogger("default")
 
