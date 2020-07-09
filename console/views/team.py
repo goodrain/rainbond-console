@@ -918,10 +918,6 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        # team = team_services.get_tenant_by_tenant_name(team_name)
-        # if not team:
-        #     result = general_message(400, "team id null", "团队不存在")
-        #     return Response(result, status=400)
         sufix_outer = "?query=sort_desc(sum(%20ceil(increase("\
             + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(self.tenant.tenant_id)
 
@@ -934,7 +930,7 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
         except Exception as e:
             logger.debug(e)
             outer_service_list = []
-    # 对外组件访问量
+        # 对外组件访问量
         try:
             res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
             inner_service_list = body["data"]["result"][0:10]

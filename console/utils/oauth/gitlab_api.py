@@ -1,11 +1,13 @@
 # -*- coding: utf8 -*-
-
+import logging
 from gitlab import Gitlab
 
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
+
+logger = logging.getLogger("default")
 
 
 class GitlabApiV4MiXin(object):
@@ -125,13 +127,17 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         if per_page is None:
             per_page = 10
         for repo in self.api.projects.list(page=page, size=per_page):
+            if hasattr(repo, "default_branch"):
+                default_branch = repo.default_branch
+            else:
+                default_branch = "master"
             repo_list.append({
                 "project_id": repo.id,
                 "project_full_name": repo.path_with_namespace,
                 "project_name": repo.name,
                 "project_description": repo.description,
                 "project_url": repo.http_url_to_repo,
-                "project_default_branch": repo.default_branch,
+                "project_default_branch": default_branch,
                 "project_ssl_url": repo.ssh_url_to_repo,
                 "updated_at": repo.last_activity_at,
                 "created_at": repo.created_at
