@@ -37,3 +37,4 @@ PyGithub==1.44.1
 enum34==1.1.6
 validators==0.14.2
 -e git+https://github.com/goodrain/market-api-python.git#egg=rainbond_market_client
+-e git+http://pull-code:gr123465!!@git.goodrain.com/zhaoxs/appstore-sdk.git#egg=appstore_server
