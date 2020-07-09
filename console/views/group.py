@@ -227,12 +227,14 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView):
             if action == "deploy":
                 self.has_perms([300008, 400010])
                 # 批量操作
-            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
+            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids)
             if code != 200:
                 result = general_message(code, "batch manage error", msg)
             else:
                 result = general_message(200, "success", "操作成功")
         except ResourceNotEnoughException as e:
+            raise e
+        except ServiceHandleException as e:
             raise e
         return Response(result, status=result["code"])
 

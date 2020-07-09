@@ -705,6 +705,9 @@ class ServiceTcpDomainRepository(object):
     def get_service_tcpdomains(self, service_id):
         return ServiceTcpDomain.objects.filter(service_id=service_id).all()
 
+    def get_services_tcpdomains(self, service_ids):
+        return ServiceTcpDomain.objects.filter(service_id__in=service_ids)
+
     def get_service_tcpdomain_by_tcp_rule_id(self, tcp_rule_id):
         return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).first()
 

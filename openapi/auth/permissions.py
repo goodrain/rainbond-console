@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
-from www.models.main import AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
 from openapi.services.api_user_service import apiUserService
 logger = logging.getLogger("default")

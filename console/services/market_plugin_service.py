@@ -92,7 +92,7 @@ class MarketPluginService(object):
 
         return len(plugins), data
 
-    def sync_market_plugins(self, tenant, user, page, limit, plugin_name=''):
+    def sync_market_plugins(self, tenant, page, limit, plugin_name=''):
         market_plugins, total = market_api.get_plugins(tenant.tenant_id, page, limit, plugin_name)
 
         plugins = RainbondCenterPlugin.objects.filter(enterprise_id__in=["public", tenant.enterprise_id])
@@ -105,7 +105,7 @@ class MarketPluginService(object):
 
         return market_plugins, total
 
-    def sync_market_plugin_templates(self, user, tenant, plugin_data):
+    def sync_market_plugin_templates(self, tenant, plugin_data):
         plugin_template = market_api.get_plugin_templates(tenant.tenant_id, plugin_data.get('plugin_key'),
                                                           plugin_data.get('version'))
         market_plugin = plugin_template.get('plugin')
@@ -212,7 +212,7 @@ class MarketPluginService(object):
 
             plugin_template["build_version"] = plugin_version.to_dict()
 
-            plugin_info["plugin_image"] = app_store.get_image_connection_info(plugin_info["scope"], tenant_name)
+            plugin_info["plugin_image"] = app_store.get_app_hub_info(plugin_info["scope"], tenant_name, tenant.enterprise_id)
             if not plugin_info["plugin_image"]:
                 if sid:
                     transaction.savepoint_rollback(sid)

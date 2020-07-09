@@ -6,11 +6,13 @@ import logging
 from docker_image import reference
 from django.db import transaction
 
+from console.exception.main import ServiceHandleException
 from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
 from console.models.main import RainbondCenterAppTag
 from console.models.main import RainbondCenterAppTagsRelation
+from console.models.main import AppMarket
 from console.repositories.base import BaseConnection
 from www.models.main import ServiceWebhooks
 from www.models.main import TenantServiceInfo
@@ -135,7 +137,9 @@ class TenantServiceInfoRepository(object):
 
     def get_services_by_service_ids_and_group_key(self, group_key, service_ids):
         """使用service_ids 和 group_key 查找一组云市应用下的组件"""
-        return TenantServiceInfo.objects.filter(service_source_info__group_key=group_key, service_id__in=service_ids)
+        service_source = ServiceSourceInfo.objects.filter(group_key=group_key, service__in=service_ids)
+        service_ids = service_source.values_list("service", flat=True)
+        return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
     def del_by_sid(self, sid):
         TenantServiceInfo.objects.filter(service_id=sid).delete()
@@ -336,6 +340,38 @@ class AppTagRepository(object):
         return apps
 
 
+class AppMarketRepository(object):
+    def get_app_markets(self, enterprise_id):
+        return AppMarket.objects.filter(enterprise_id=enterprise_id)
+
+    def get_app_market(self, enterprise_id, market_id, raise_exception=False):
+        market = AppMarket.objects.filter(enterprise_id=enterprise_id, ID=market_id).first()
+        if raise_exception:
+            if not market:
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+        return market
+
+    def get_app_market_by_name(self, enterprise_id, name, raise_exception=False):
+        market = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).first()
+        if raise_exception:
+            if not market:
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+        return market
+
+    def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
+        market = AppMarket.objects.filter(enterprise_id=enterprise_id, domain=domain, url=url).first()
+        if raise_exception:
+            if not market:
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+        return market
+
+    def create_app_market(self, **kwargs):
+        return AppMarket.objects.create(**kwargs)
+
+    def update_app_market(self, app_market, data):
+        app_market.update(**data)
+
+
 service_repo = TenantServiceInfoRepository()
 service_source_repo = ServiceSourceRepository()
 recycle_bin_repo = ServiceRecycleBinRepository()
@@ -343,3 +379,4 @@ delete_service_repo = TenantServiceDeleteRepository()
 relation_recycle_bin_repo = ServiceRelationRecycleBinRepository()
 service_webhooks_repo = TenantServiceWebhooks()
 app_tag_repo = AppTagRepository()
+app_market_repo = AppMarketRepository()

@@ -190,5 +190,5 @@ class ComposeBuildView(RegionTenantHeaderView):
                     app_manage_service.delete_region_service(self.tenant, service)
                     service.create_status = "checked"
                     service.save()
-
+            raise e
         return Response(result, status=result["code"])

@@ -42,7 +42,7 @@ class ListAnnouncementView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="添加站内信",
         request_body=CreateAncmReqSerilizer(),
-        responses={status.HTTP_201_CREATED: None},
+        responses={},
         tags=['openapi-announcement'],
     )
     def post(self, request, **kwargs):

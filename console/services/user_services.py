@@ -167,7 +167,7 @@ class UserService(object):
         try:
             self.get_enterprise_user_by_username(user_name, eid)
             return True
-        except UserNotExistError:
+        except Users.DoesNotExist:
             return False
 
     def create(self, data):

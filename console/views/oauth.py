@@ -2,7 +2,8 @@
 import json
 import logging
 
-from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
@@ -190,7 +191,7 @@ class OAuthServiceRedirect(AlowAnyApiView):
         service_id = request.GET.get("service_id")
         service = oauth_repo.get_oauth_services_by_service_id(service_id)
         path = "/#/oauth/callback?service_id={}&code={}"
-        return redirect(to=path.format(service.ID, code))
+        return HttpResponseRedirect(path.format(service.ID, code))
 
 
 class OAuthServerAuthorize(AlowAnyApiView):

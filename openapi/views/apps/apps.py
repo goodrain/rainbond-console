@@ -9,22 +9,42 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.constants import PluginCategoryConstants
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
+from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service, event_service
+from console.services.plugin import app_plugin_service
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.app_config.env_service import AppEnvVarService
-from openapi.serializer.app_serializer import (AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer,
-                                               AppServiceEventsSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-                                               ServiceGroupOperationsSerializer, ComponentEnvsSerializers)
+from console.services.app_config import port_service
+from openapi.serializer.app_serializer import (
+    AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer, ListServiceEventsResponse,
+    ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer, AppServiceTelescopicVerticalSerializer,
+    AppServiceTelescopicHorizontalSerializer, TeamAppsCloseSerializers, ComponentMonitorSerializers, ComponentEnvsSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.views.base import (TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
 from openapi.views.exceptions import ErrAppNotFound
 
+from www.apiclient.regionapi import RegionInvokeApi
+
+region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 env_var_service = AppEnvVarService()
+
+monitor_query_items = {
+    "request_time": '?query=ceil(avg(app_requesttime{mode="avg",service_id="%s"}))',
+    "request": '?query=sum(ceil(increase(app_request{service_id="%s",method="total"}[1m])/12))',
+    "request_client": '?query=max(app_requestclient{service_id="%s"})',
+}
+
+monitor_query_range_items = {
+    "request_time": '?query=ceil(avg(app_requesttime{mode="avg",service_id="%s"}))&start=%s&end=%s&step=%s',
+    "request": '?query=sum(ceil(increase(app_request{service_id="%s",method="total"}[1m])/12))&start=%s&end=%s&step=%s',
+    "request_client": '?query=max(app_requestclient{service_id="%s"})&start=%s&end=%s&step=%s',
+}
 
 
 class ListAppsView(TeamAPIView):
@@ -60,6 +80,9 @@ class ListAppsView(TeamAPIView):
 class AppInfoView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="应用详情",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: AppInfoSerializer()},
         tags=['openapi-apps'],
     )
@@ -92,6 +115,7 @@ class AppInfoView(TeamAppAPIView):
         operation_description="删除应用",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         responses={},
         tags=['openapi-apps'],
@@ -148,6 +172,9 @@ class APPOperationsView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="操作应用",
         request_body=ServiceGroupOperationsSerializer(),
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={
             status.HTTP_200_OK: SuccessSerializer,
             status.HTTP_400_BAD_REQUEST: FailSerializer,
@@ -190,6 +217,9 @@ class APPOperationsView(TeamAppAPIView):
 class ListAppServicesView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="查询应用下组件列表",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: ServiceBaseInfoSerializer(many=True)},
         tags=['openapi-apps'],
     )
@@ -203,6 +233,9 @@ class ListAppServicesView(TeamAppAPIView):
 class AppServicesView(TeamAppServiceAPIView):
     @swagger_auto_schema(
         operation_description="查询组件信息",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: ServiceBaseInfoSerializer()},
         tags=['openapi-apps'],
     )
@@ -221,6 +254,7 @@ class AppServicesView(TeamAppServiceAPIView):
         operation_description="删除组件",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         responses={},
         tags=['openapi-apps'],
@@ -250,6 +284,7 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         manual_parameters=[
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_INTEGER),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
         responses={200: ListServiceEventsResponse()},
         tags=['openapi-apps'],
@@ -265,6 +300,200 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         re = ListServiceEventsResponse(data=result)
         re.is_valid()
         return Response(re.data, status=status.HTTP_200_OK)
+
+
+class AppServiceTelescopicVerticalView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="组件垂直伸缩",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=AppServiceTelescopicVerticalSerializer,
+        responses={},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = AppServiceTelescopicVerticalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_memory = serializer.data.get("new_memory")
+        code, msg = app_manage_service.vertical_upgrade(self.team, self.service, self.user, int(new_memory))
+        if code != 200:
+            raise ServiceHandleException(status_code=code, msg="vertical upgrade error", msg_show=msg)
+        return Response(None, status=code)
+
+
+class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="组件水平伸缩",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=AppServiceTelescopicHorizontalSerializer,
+        responses={},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = AppServiceTelescopicHorizontalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_node = serializer.data.get("new_node")
+        app_manage_service.horizontal_upgrade(self.team, self.service, self.user, int(new_node))
+        return Response(None, status=200)
+
+
+class TeamAppsCloseView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="批量关闭应用",
+        request_body=TeamAppsCloseSerializers,
+        responses={},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, team_id, region_name, *args, **kwargs):
+        serializers = TeamAppsCloseSerializers(data=request.data)
+        serializers.is_valid(raise_exception=True)
+        service_id_list = serializers.data.get("service_ids", None)
+        services = service_repo.get_tenant_region_services(self.region_name, self.team.tenant_id)
+        if not services:
+            return Response(None, status=200)
+        service_ids = services.values_list("service_id", flat=True)
+        if service_id_list:
+            service_ids = list(set(service_ids) & set(service_id_list))
+        code, msg = app_manage_service.batch_action(self.team, self.user, "stop", service_ids, None)
+        if code != 200:
+            raise ServiceHandleException(status_code=code, msg="batch manage error", msg_show=msg)
+        return Response(None, status=200)
+
+
+class TeamAppsMonitorQueryView(TeamAppAPIView):
+    @swagger_auto_schema(
+        operation_description="应用下组件实时监控",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(
+                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
+        ],
+        responses={200: ComponentMonitorSerializers(many=True)},
+        tags=['openapi-apps'],
+    )
+    def get(self, request, team_id, region_name, app_id, *args, **kwargs):
+        is_outer = request.GET.get("is_outer", False)
+        if is_outer == "true":
+            is_outer = True
+        data = []
+        services_relation = group_service_relation_repo.get_services_by_group(self.app.ID)
+        service_ids = services_relation.values_list('service_id', flat=True)
+        if service_ids:
+            services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
+            for service in services:
+                is_outer_service = True
+                has_plugin = False
+                service_abled_plugins = app_plugin_service.get_service_abled_plugin(service)
+                for plugin in service_abled_plugins:
+                    if plugin.category == PluginCategoryConstants.PERFORMANCE_ANALYSIS:
+                        has_plugin = True
+                if is_outer:
+                    is_outer_service = False
+                    tenant_service_ports = port_service.get_service_ports(service)
+                    for service_port in tenant_service_ports:
+                        if service_port.is_outer_service:
+                            is_outer_service = True
+                            break
+                if has_plugin and is_outer_service:
+                    dt = {
+                        "service_id": service.service_id,
+                        "service_cname": service.service_cname,
+                        "service_alias": service.service_alias,
+                        "monitors": []
+                    }
+                    for k, v in monitor_query_items.items():
+                        monitor = {"monitor_item": k}
+                        res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
+                        if body.get("data"):
+                            if body["data"]["result"]:
+                                result_list = []
+                                for result in body["data"]["result"]:
+                                    result["value"] = [str(value) for value in result["value"]]
+                                    result_list.append(result)
+                                body["data"]["result"] = result_list
+                                monitor.update(body)
+                                dt["monitors"].append(monitor)
+                    data.append(dt)
+        serializers = ComponentMonitorSerializers(data=data, many=True)
+        serializers.is_valid(raise_exception=True)
+        return Response(serializers.data, status=200)
+
+
+class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
+    @swagger_auto_schema(
+        operation_description="应用下组件历史监控",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("start", openapi.IN_PATH, description="起始时间戳", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("end", openapi.IN_PATH, description="结束时间戳", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("step", openapi.IN_PATH, description="步长（默认60）", type=openapi.TYPE_NUMBER),
+            openapi.Parameter(
+                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
+        ],
+        responses={200: ComponentMonitorSerializers(many=True)},
+        tags=['openapi-apps'],
+    )
+    def get(self, request, team_id, region_name, app_id, *args, **kwargs):
+        is_outer = request.GET.get("is_outer", False)
+        if is_outer == "true":
+            is_outer = True
+        data = []
+        start = request.GET.get("start")
+        end = request.GET.get("end")
+        step = request.GET.get("step", 60)
+        if not start or not end:
+            raise ServiceHandleException(msg="params error", msg_show=u"缺少query参数")
+        services_relation = group_service_relation_repo.get_services_by_group(self.app.ID)
+        service_ids = services_relation.values_list('service_id', flat=True)
+        if service_ids:
+            services = service_repo.get_services_by_service_ids(service_ids).exclude(service_source="third_party")
+            for service in services:
+                is_outer_service = True
+                has_plugin = False
+                service_abled_plugins = app_plugin_service.get_service_abled_plugin(service)
+                for plugin in service_abled_plugins:
+                    if plugin.category == PluginCategoryConstants.PERFORMANCE_ANALYSIS:
+                        has_plugin = True
+                if is_outer:
+                    is_outer_service = False
+                    tenant_service_ports = port_service.get_service_ports(service)
+                    for service_port in tenant_service_ports:
+                        if service_port.is_outer_service:
+                            is_outer_service = True
+                            break
+                if has_plugin and is_outer_service:
+                    dt = {
+                        "service_id": service.service_id,
+                        "service_cname": service.service_cname,
+                        "service_alias": service.service_alias,
+                        "monitors": []
+                    }
+                    for k, v in monitor_query_range_items.items():
+                        monitor = {"monitor_item": k}
+                        body = {}
+                        try:
+                            res, body = region_api.get_query_range_data(self.region_name, self.team.tenant_name,
+                                                                        v % (service.service_id, start, end, step))
+                        except Exception as e:
+                            logger.debug(e)
+                        if body.get("data"):
+                            if body["data"]["result"]:
+                                result_list = []
+                                for result in body["data"]["result"]:
+                                    result["value"] = [str(value) for value in result["value"]]
+                                    result_list.append(result)
+                                body["data"]["result"] = result_list
+                                monitor.update(body)
+                                dt["monitors"].append(monitor)
+                    data.append(dt)
+        serializers = ComponentMonitorSerializers(data=data, many=True)
+        serializers.is_valid(raise_exception=True)
+        return Response(serializers.data, status=200)
 
 
 class ComponentEnvsUView(TeamAppServiceAPIView):

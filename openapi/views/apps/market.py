@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+
 import logging
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.views.base import TeamAppAPIView
 from rest_framework import status
 from rest_framework.response import Response
 from django.forms.models import model_to_dict
-from openapi.serializer.app_serializer import InstallSerializer
-
+from console.exception.main import ServiceHandleException
+from openapi.serializer.app_serializer import (InstallSerializer, ListUpgradeSerializer, UpgradeSerializer,
+                                               MarketInstallSerializer)
 from console.services.group_service import group_service
+from console.services.upgrade_services import upgrade_service
 from console.services.market_app_service import market_app_service
-from console.services.market_app_service import market_sycn_service
-from console.services.team_services import team_services
-from console.utils.restful_client import get_market_client
-from openapi.serializer.app_serializer import AppInfoSerializer
-from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
-from openapi.serializer.base_serializer import FailSerializer
+from console.services.app import app_market_service
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 
@@ -25,35 +25,87 @@ logger = logging.getLogger("default")
 class AppInstallView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="安装云市应用",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(
+                "is_deploy", openapi.IN_QUERY, description="是否构建", type=openapi.TYPE_STRING, enum=["true", "false"]),
+        ],
         request_body=InstallSerializer(),
-        responses={200: AppInfoSerializer()},
+        responses={200: MarketInstallSerializer()},
         tags=['openapi-apps'],
     )
     def post(self, request, app_id, *args, **kwargs):
+        is_deploy = request.GET.get("is_deploy", False)
+        if is_deploy == "true":
+            is_deploy = True
         serializer = InstallSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.data
-        app = group_service.get_app_by_id(self.team, self.region_name, app_id)
+        market_url = serializer.data.get("market_url")
+        market_domain = serializer.data.get("market_domain")
+        market_type = serializer.data.get("market_type")
+        market_access_key = serializer.data.get("market_access_key")
+        app_model_id = serializer.data.get("app_model_id")
+        app_model_version = serializer.data.get("app_model_version")
+        market = app_market_service.get_app_market_by_domain_url(self.team.enterprise_id, market_domain, market_url)
+        if not market:
+            market_name = make_uuid()
+            dt = {
+                "name": market_name,
+                "url": market_url,
+                "type": market_type,
+                "enterprise_id": self.team.enterprise_id,
+                "access_key": market_access_key,
+                "domain": market_domain,
+            }
+            app_market_service.create_app_market(dt)
+            dt, market = app_market_service.get_app_market(self.team.enterprise_id, market_name, raise_exception=True)
+        market_name = market.name
+        app, app_version_info = app_market_service.cloud_app_model_to_db_model(market, app_model_id, app_model_version)
         if not app:
-            return Response(FailSerializer({"msg": "install target app not found"}), status=status.HTTP_400_BAD_REQUEST)
-        tenant = team_services.get_team_by_team_id(app.tenant_id)
-        # TODO: get app info by order id
-        token = market_sycn_service.get_enterprise_access_token(tenant.enterprise_id, "market")
-        if token:
-            market_client = get_market_client(token.access_id, token.access_token, host=token.access_url)
-            app_version = market_client.download_app_by_order(order_id=data["order_id"])
-            if not app_version:
-                return Response(FailSerializer({"msg": "download app metadata failure"}), status=status.HTTP_400_BAD_REQUEST)
-            rainbond_app, rainbond_app_version = market_app_service.conversion_cloud_version_to_app(app_version)
-            market_app_service.install_service(tenant, app.region_name, request.user, app.ID, rainbond_app,
-                                               rainbond_app_version, True, True)
-            services = group_service.get_group_services(app_id)
-            appInfo = model_to_dict(app)
-            appInfo["enterprise_id"] = tenant.enterprise_id
-            appInfo["service_list"] = ServiceBaseInfoSerializer(services, many=True)
-            reapp = AppInfoSerializer(data=appInfo)
-            reapp.is_valid()
-            return Response(reapp.data, status=status.HTTP_200_OK)
-        else:
-            return Response(
-                FailSerializer({"msg": "not support install from market, not bound"}), status=status.HTTP_400_BAD_REQUEST)
+            raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用不存在")
+        market_app_service.install_service(
+            self.team, self.region_name, self.user, app_id, app, app_version_info, is_deploy, True, market_name=market_name)
+        services = group_service.get_group_services(app_id)
+        appInfo = model_to_dict(self.app)
+        appInfo["app_name"] = appInfo["group_name"]
+        appInfo["team_id"] = appInfo["tenant_id"]
+        appInfo["enterprise_id"] = self.team.enterprise_id
+        appInfo["service_list"] = services
+        reapp = MarketInstallSerializer(data=appInfo)
+        reapp.is_valid()
+        return Response(reapp.data, status=status.HTTP_200_OK)
+
+
+# 应用升级
+class AppUpgradeView(TeamAppAPIView):
+    @swagger_auto_schema(
+        operation_description="升级应用",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        responses={200: ListUpgradeSerializer(many=True)},
+        tags=['openapi-apps'],
+    )
+    def get(self, request, *args, **kwargs):
+        app_models = market_app_service.get_market_apps_in_app(self.region_name, self.team, self.app)
+        serializer = ListUpgradeSerializer(data=app_models, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=200)
+
+    @swagger_auto_schema(
+        operation_description="升级应用",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=UpgradeSerializer(),
+        responses={200: ListUpgradeSerializer(many=True)},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = UpgradeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        upgrade_service.openapi_upgrade_app_models(self.user, self.team, self.region_name, self.app.ID, serializer.data)
+        app_models = market_app_service.get_market_apps_in_app(self.region_name, self.team, self.app)
+        serializer = ListUpgradeSerializer(data=app_models, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=200)

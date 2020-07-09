@@ -175,6 +175,12 @@ class DomainService(object):
     def get_tcp_port_bind_domains(self, service, container_port):
         return tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, container_port)
 
+        # get all http rules in define app
+    def get_tcp_rules_by_app_id(self, app_id):
+        services = group_service.get_group_services(app_id)
+        service_ids = [s.service_id for s in services]
+        return tcp_domain.get_services_tcpdomains(service_ids)
+
     def get_sld_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id,
                                                                 container_port).filter(domain_type=DomainType.SLD_DOMAIN)
@@ -287,7 +293,7 @@ class DomainService(object):
     def bind_httpdomain(self, tenant, user, service, httpdomain, return_model=False):
         domain_name = httpdomain["domain_name"]
         certificate_id = httpdomain["certificate_id"]
-        rule_extensions = httpdomain.get("rule_extensions", None)
+        rule_extensions = httpdomain.get("rule_extensions", [])
         domain_path = httpdomain.get("domain_path", None)
         domain_cookie = httpdomain.get("domain_cookie", None)
         domain_heander = httpdomain.get("domain_heander", None)

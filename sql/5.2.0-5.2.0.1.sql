@@ -1,7 +1,7 @@
 alter table user_info add enterprise_center_user_id varchar(32) DEFAULT NULL;
 alter table user_info add real_name varchar(64) DEFAULT NULL;
 
-alter table region_info add region_type varchar(32) DEFAULT '[]';
+alter table region_info add region_type varchar(32) NULL DEFAULT '[]';
 alter table region_info add enterprise_id varchar(32) DEFAULT NULL;
 
 alter table console_sys_config add enterprise_id varchar(32) DEFAULT NULL;
@@ -79,6 +79,22 @@ alter table console.service_consume modify region varchar(64);
 alter table console.tenant_service_statics modify region varchar(64);
 alter table console.tenant_plugin modify region varchar(64);
 alter table console.plugin_build_version modify region varchar(64);
+
+CREATE TABLE `app_market` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) DEFAULT NULL,
+  `domain` varchar(64) DEFAULT NULL,
+  `url` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `type` varchar(32) DEFAULT NULL,
+  `access_key` varchar(255) DEFAULT NULL,
+  `enterprise_id` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ent-name` (`name`,`enterprise_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8;
+
+alter table console.service_share_record change share_app_market_id share_app_market_name varchar(64) NULL DEFAULT NULL;
+alter table console.rainbond_center_app_version add template_type varchar(32) DEFAULT 'RAM';
+
 
 alter table console.app_upgrade_record add market_name varchar(32) DEFAULT NULL;
 alter table console.app_upgrade_record add is_from_cloud tinyint(2) DEFAULT NULL;

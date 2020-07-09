@@ -1,20 +1,45 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+import json
 from rest_framework import serializers
+from drf_yasg.utils import swagger_serializer_method
 
-from www.models.main import ServiceDomain
+from www.models.main import ServiceDomain, ServiceTcpDomain
 
 
 class HTTPGatewayRuleSerializer(serializers.ModelSerializer):
+    rule_extensions = serializers.SerializerMethodField()
+
     class Meta:
         model = ServiceDomain
-        fields = "__all__"
+        exclude = ["create_time"]
+
+    @swagger_serializer_method(serializer_or_field=serializers.ListField)
+    def get_rule_extensions(self, instance):
+        try:
+            return json.loads(instance.rule_extensions)
+        except Exception:
+            try:
+                return eval(instance.rule_extensions)
+            except Exception:
+                return []
+
+
+class TCPGatewayRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceTcpDomain
+        exclude = ["create_time"]
+
+
+class GatewayRuleSerializer(serializers.Serializer):
+    http = HTTPGatewayRuleSerializer(many=True, required=False)
+    tcp = TCPGatewayRuleSerializer(many=True, required=False)
 
 
 class EnterpriseHTTPGatewayRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceDomain
-        fields = "__all__"
+        exclude = ["create_time"]
 
     region_name = serializers.CharField(help_text=u"所属集群ID")
     team_name = serializers.CharField(help_text=u"所属团队唯一名称")
@@ -34,7 +59,27 @@ class PostHTTPGatewayRuleSerializer(serializers.Serializer):
     rule_extensions = serializers.ListField(help_text=u"规则扩展", default=[])
     whether_open = serializers.BooleanField(help_text=u"是否开放", default=False)
     auto_ssl = serializers.BooleanField(help_text=u"是否自动匹配证书，升级为https，如果开启，由外部服务完成升级", default=False)
-    auto_ssl_config = serializers.BooleanField(help_text=u"自动分发证书配置", required=False)
+    auto_ssl_config = serializers.CharField(help_text=u"自动分发证书配置", required=False, default=None)
+
+
+class PostTCPGatewayRuleExtensionsSerializer(serializers.Serializer):
+    key = serializers.CharField(max_length=32)
+    value = serializers.CharField(max_length=32)
+
+
+class PostTCPGatewayRuleSerializer(serializers.Serializer):
+    container_port = serializers.IntegerField(help_text=u"组件端口")
+    service_id = serializers.CharField(max_length=32, help_text=u"组件id")
+    end_point = serializers.CharField(max_length=32, help_text=u"ip地址:端口")
+    rule_extensions = PostTCPGatewayRuleExtensionsSerializer(many=True, required=False, help_text=u"规则扩展")
+    default_port = serializers.IntegerField(help_text=u"映射端口")
+    default_ip = serializers.CharField(max_length=32, help_text=u"映射id地址")
+
+
+class PostGatewayRuleSerializer(serializers.Serializer):
+    protocol = serializers.CharField(max_length=32, help_text=u"协议")
+    tcp = PostTCPGatewayRuleSerializer(required=False)
+    http = PostHTTPGatewayRuleSerializer(required=False)
 
 
 class UpdatePostHTTPGatewayRuleSerializer(serializers.Serializer):
@@ -49,4 +94,4 @@ class UpdatePostHTTPGatewayRuleSerializer(serializers.Serializer):
     rule_extensions = serializers.ListField(help_text=u"规则扩展", required=False)
     whether_open = serializers.BooleanField(help_text=u"是否开放", required=False)
     auto_ssl = serializers.BooleanField(help_text=u"是否自动匹配证书，升级为https，如果开启，由外部服务完成升级", required=False)
-    auto_ssl_config = serializers.BooleanField(help_text=u"自动分发证书配置", required=False)
+    auto_ssl_config = serializers.CharField(help_text=u"自动分发证书配置", required=False, default=None)

@@ -38,9 +38,6 @@ class GroupService(object):
 
     def add_group(self, tenant, region_name, group_name, group_note=""):
         self.check_group_name(tenant, region_name, group_name)
-        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
-        if group:
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(group_name))
         return group_repo.add_group(tenant.tenant_id, region_name, group_name, group_note)
 
     def update_group(self, tenant, region_name, group_id, group_name, group_note=""):

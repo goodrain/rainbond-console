@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from console.exception.main import NoPermissionsError, ServiceHandleException
 from console.models.main import (EnterpriseUserPerm, PermsInfo, RoleInfo, RolePerms, UserRole)
 from console.repositories.group import group_service_relation_repo
+from console.repositories.region_repo import region_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.region_services import region_services
@@ -28,6 +29,7 @@ class BaseOpenAPIView(APIView):
     def __init__(self):
         super(BaseOpenAPIView, self).__init__()
         self.enterprise = None
+        self.region_name = None
         self.regions = None
         self.user = None
         self.is_enterprise_admin = None
@@ -67,6 +69,14 @@ class BaseOpenAPIView(APIView):
             self.enterprise = enterprise_services.get_enterprise_by_id(request.user.enterprise_id)
         if not self.enterprise:
             raise ErrEnterpriseNotFound
+        self.region_name = kwargs.get("region_name")
+        if not self.region_name:
+            self.region_name = kwargs.get("region_id")
+        if self.region_name:
+            self.region = region_services.get_enterprise_region_by_region_name(
+                enterprise_id=self.enterprise.enterprise_id, region_name=self.region_name)
+            if not self.region:
+                self.region = region_repo.get_region_by_id(self.enterprise.enterprise_id, self.region_name)
         # Temporary logic
         if self.enterprise.ID == 1:
             request.user.is_administrator = True

@@ -5,6 +5,7 @@ import random
 import re
 import string
 from django.core.paginator import Paginator
+from django.db.transaction import atomic
 from console.exception.main import ServiceHandleException
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
@@ -84,6 +85,7 @@ class EnterpriseServices(object):
             enter_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return enter_name
 
+    @atomic
     def create_enterprise(self, enterprise_name='', enterprise_alias=''):
         """
         创建一个本地的企业信息, 并生成本地的企业ID
@@ -113,6 +115,9 @@ class EnterpriseServices(object):
         eid = os.environ.get('ENTERPRISE_ID')
         if not eid:
             eid = make_uuid(enter_name)
+        region = region_repo.get_all_regions().first()
+        region.enterprise_id = eid
+        region.save()
         enterprise.enterprise_id = eid
 
         # 处理企业别名

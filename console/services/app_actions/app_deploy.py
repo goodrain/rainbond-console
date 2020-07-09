@@ -126,10 +126,12 @@ class MarketService(object):
     def __init__(self, tenant, service, version):
         self.tenant = tenant
         self.service = service
+        self.market_name = None
         self.service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         if self.service_source.extend_info:
             extend_info = json.loads(self.service_source.extend_info)
             self.install_from_cloud = extend_info.get("install_from_cloud", False)
+            self.market_name = extend_info.get("market_name", None)
             if self.install_from_cloud:
                 logger.info("service {0} imstall from cloud".format(service.service_alias))
         else:
@@ -415,6 +417,7 @@ class MarketService(object):
         if self.install_from_cloud:
             new_extend_info["install_from_cloud"] = True
             new_extend_info["market"] = "default"
+            new_extend_info["market_name"] = self.market_name
         data = {
             "extend_info": json.dumps(new_extend_info),
             "version": version,

@@ -4,15 +4,12 @@
 """
 import logging
 
-from console.exception.main import RbdAppNotFound
-from console.exception.main import AbortRequest
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import AccountOverdueException
-from console.exception.main import CallRegionAPIException
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ServiceHandleException
+from console.enum.component_enum import is_state, is_support
+from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
+                                    ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
@@ -23,10 +20,6 @@ from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
-from console.enum.component_enum import is_support, is_state
-from www.apiclient.marketclient import MarketOpenAPI
-
-market_openapi = MarketOpenAPI()
 
 logger = logging.getLogger("default")
 
@@ -520,19 +513,6 @@ class ChangeServiceUpgradeView(AppBaseView):
 class MarketServiceUpgradeView(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
-        if self.service.service_source != "market":
-            return Response(
-                general_message(400, "non-cloud installed applications require no judgment", "非云市安装的组件无需判断"), status=400)
-
-        # 判断组件状态，未部署的组件不提供升级数据
-        body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                               self.tenant.enterprise_id)
-        status = body["bean"]["cur_status"]
-        if status == "undeploy" or status == "unknown":
-            result = general_message(200, "success", "查询成功", list=[])
-            return Response(result, status=result["code"])
-
-        # List the versions that can be upgraded
         versions = []
         try:
             versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)

@@ -20,6 +20,7 @@ from openapi.serializer.user_serializer import ListUsersRespView
 from openapi.serializer.user_serializer import UpdateUserSerializer
 from openapi.serializer.user_serializer import UserInfoSerializer
 from openapi.serializer.user_serializer import ChangePassWdUserSerializer
+from openapi.serializer.user_serializer import ChangePassWdSerializer
 from openapi.views.base import BaseOpenAPIView
 from openapi.views.base import ListAPIView
 from www.models.main import Users
@@ -27,7 +28,7 @@ from www.models.main import Users
 logger = logging.getLogger("default")
 
 
-class ListUsersView(ListAPIView):
+class ListUsersView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取用户列表",
         manual_parameters=[
@@ -59,10 +60,7 @@ class ListUsersView(ListAPIView):
     @swagger_auto_schema(
         operation_description="添加普通用户",
         request_body=CreateUserSerializer,
-        responses={
-            status.HTTP_201_CREATED: None,
-            status.HTTP_404_NOT_FOUND: None,
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def post(self, req, *args, **kwargs):
@@ -112,10 +110,7 @@ class UserInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="更新用户信息",
         request_body=UpdateUserSerializer,
-        responses={
-            status.HTTP_200_OK: None,
-            status.HTTP_404_NOT_FOUND: None,
-        },
+        responses={},
         tags=['openapi-user'],
     )
     def put(self, req, user_id, *args, **kwargs):
@@ -166,6 +161,42 @@ class UserTeamInfoView(ListAPIView):
 
 class ChangePassword(BaseOpenAPIView):
     @swagger_auto_schema(
+        operation_description="修改自己账号密码",
+        request_body=ChangePassWdSerializer,
+        responses={},
+        tags=['openapi-user'],
+    )
+    def put(self, request, *args, **kwargs):
+        """
+        修改密码
+        ---
+        parameters:
+            - name: password
+              description: 新密码
+              required: true
+              type: string
+              paramType: form
+            - name: password1
+              description: 确认密码
+              required: true
+              type: string
+              paramType: form
+        """
+        serializer = ChangePassWdSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_password = serializer.data.get("password", None)
+        new_password1 = serializer.data.get("password1", None)
+        info = u"缺少参数"
+        if new_password and new_password == new_password1:
+            status, info = user_services.update_password(user_id=request.user.user_id, new_password=new_password)
+            if status:
+                return Response(None, status=200)
+        logger.debug(info)
+        return Response(None, status=400)
+
+
+class ChangeUserPassword(BaseOpenAPIView):
+    @swagger_auto_schema(
         operation_description="修改用户密码",
         request_body=ChangePassWdUserSerializer,
         responses={},
@@ -181,7 +212,7 @@ class ChangePassword(BaseOpenAPIView):
               required: true
               type: string
               paramType: form
-            - name: user_id
+            - name: password
               description: 新密码
               required: true
               type: string
@@ -192,9 +223,11 @@ class ChangePassword(BaseOpenAPIView):
               type: string
               paramType: form
         """
-        user_id = request.data.get("user_id", None)
-        new_password = request.data.get("password", None)
-        new_password1 = request.data.get("password1", None)
+        serializer = ChangePassWdUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user_id = serializer.data.get("user_id", None)
+        new_password = serializer.data.get("password", None)
+        new_password1 = serializer.data.get("password1", None)
         info = u"缺少参数"
         if new_password and new_password == new_password1:
             status, info = user_services.update_password(user_id=user_id, new_password=new_password)
