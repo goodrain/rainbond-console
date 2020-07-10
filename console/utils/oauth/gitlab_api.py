@@ -184,20 +184,25 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
 
     def get_branches(self, full_name):
         access_token, _ = self._get_access_token()
-        name = full_name.split("/")[-1]
-        repo = self.api.projects.list(search=name)[0]
+        search_item = full_name.split("/")
+        name = search_item[-1]
+        repos = self.api.projects.list(search=name)
         rst_list = []
-        for branch in repo.protectedbranches.list():
-            rst_list.append(branch.name)
+        for repo in repos:
+            if repo.path_with_namespace == full_name:
+                for branch in repo.branches.list():
+                    rst_list.append(branch.name)
         return rst_list
 
     def get_tags(self, full_name):
         access_token, _ = self._get_access_token()
         name = full_name.split("/")[-1]
-        repo = self.api.projects.list(search=name)[0]
+        repos = self.api.projects.list(search=name)
         rst_list = []
-        for branch in repo.protectedtags.list():
-            rst_list.append(branch.name)
+        for repo in repos:
+            if repo.path_with_namespace == full_name:
+                for branch in repo.tags.list():
+                        rst_list.append(branch.name)
         return rst_list
 
     def get_branches_or_tags(self, type, full_name):
