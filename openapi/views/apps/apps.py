@@ -201,7 +201,7 @@ class APPOperationsView(TeamAppAPIView):
             self.has_perms([300007, 400009])
         if action == "deploy":
             self.has_perms([300008, 400010])
-        code, msg = app_manage_service.batch_operations(self.team, request.user, action, service_ids, None)
+        code, msg = app_manage_service.batch_operations(self.team, request.user, action, service_ids)
         if code != 200:
             result = {"msg": "batch operation error"}
             rst_serializer = FailSerializer(data=result)
