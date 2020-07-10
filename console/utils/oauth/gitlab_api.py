@@ -202,7 +202,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         for repo in repos:
             if repo.path_with_namespace == full_name:
                 for branch in repo.tags.list():
-                        rst_list.append(branch.name)
+                    rst_list.append(branch.name)
         return rst_list
 
     def get_branches_or_tags(self, type, full_name):
