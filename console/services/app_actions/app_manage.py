@@ -31,12 +31,11 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.repositories.share_repo import share_repo
-from console.services.app import app_service
+from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
 from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
                                          AppVolumeService)
-from console.services.app import app_market_service
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
@@ -633,19 +632,17 @@ class AppManageService(AppManageBase):
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
                 source_code["cmd"] = service.cmd
-                if service_source:
-                    if service_source.user_name or service_source.password:
-                        source_code["user"] = service_source.user_name
-                        source_code["password"] = service_source.password
+                if service_source and (service_source.user_name or service_source.password):
+                    source_code["user"] = service_source.user_name
+                    source_code["password"] = service_source.password
             # 镜像
             elif kind == "build_from_image":
                 source_image = dict()
                 source_image["image_url"] = service.image
                 source_image["cmd"] = service.cmd
-                if service_source:
-                    if service_source.user_name or service_source.password:
-                        source_image["user"] = service_source.user_name
-                        source_image["password"] = service_source.password
+                if service_source and (service_source.user_name or service_source.password):
+                    source_image["user"] = service_source.user_name
+                    source_image["password"] = service_source.password
                 service_dict["image_info"] = source_image
 
             # 云市
@@ -726,8 +723,9 @@ class AppManageService(AppManageBase):
                                         raise Exception(msg)
                                     self.__save_extend_info(service, app["extend_method_map"])
                 except ServiceHandleException as e:
-                    logger.debug(e)
-                    raise e
+                    if e.msg != "no found app market":
+                        logger.debug(e)
+                        raise e
                 except Exception as e:
                     logger.exception(e)
                     if service_source:
