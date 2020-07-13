@@ -402,7 +402,7 @@ class OAuthGitUserRepositories(JWTAuthApiView):
             }
             return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": u"Access Token 已过期"}
             return Response(rst, status=status.HTTP_200_OK)
 

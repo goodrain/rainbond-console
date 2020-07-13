@@ -210,7 +210,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         page = kwargs.get("page", 1)
         per_page = kwargs.get("per_page", 10)
         repo_list = []
-        repos = self.api.get_repos(page=page, per_page=per_page)
+        repos, total = self.api.get_repos(page=page, per_page=per_page)
         if repos:
             for repo in repos:
                 repo_list.append({
@@ -224,7 +224,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
                     "updated_at": repo["updated_at"],
                     "created_at": repo["created_at"]
                 })
-        return repo_list
+        return repo_list, total
 
     def search_repos(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
@@ -233,11 +233,9 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         search_name = full_name.split("/")
         owner = search_name[0]
         query = "/".join(search_name[1:])
-        repos = self.api.search_repos(full_name=full_name, page=page, owner=owner, query=query)
+        repos, total = self.api.search_repos(full_name=full_name, page=page, owner=owner, query=query)
         for repo in repos:
-            if repo is None:
-                pass
-            else:
+            if repo:
                 repo_list.append({
                     "project_id": repo["id"],
                     "project_full_name": repo["full_name"],
@@ -249,7 +247,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
                     "updated_at": repo["updated_at"],
                     "created_at": repo["created_at"]
                 })
-        return repo_list
+        return repo_list, total
 
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
