@@ -167,7 +167,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                 "created_at": repo.created_at
             })
         total = len(repo_list)
-        meta = self.api.projects.list(search=name)
+        meta = self.api.projects.list(search=name, as_list=False)
         if meta and meta.total:
             total = meta.total
         return repo_list, total
