@@ -1,1 +1,1 @@
-web: gunicorn goodrain_web.wsgi -k gevent --max-requests=5000 --debug ${AUTO_RELOAD+--reload} --workers=4 --log-file - --access-logfile ${ACCESS_LOGFILE:=-} --error-logfile ${ERROR_LOGFILE:=-}
+web: gunicorn goodrain_web.wsgi -k gevent --max-requests=5000 --debug ${AUTO_RELOAD+--reload} --workers=4 --log-file --timeout=75 - --access-logfile ${ACCESS_LOGFILE:=-} --error-logfile ${ERROR_LOGFILE:=-}
