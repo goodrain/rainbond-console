@@ -632,7 +632,24 @@ class AppManageService(AppManageBase):
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
                 source_code["cmd"] = service.cmd
-                if service_source and (service_source.user_name or service_source.password):
+                if service.oauth_service_id:
+                    try:
+                        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
+                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
+                            service_id=service.oauth_service_id, user_id=user.user_id)
+                    except Exception as e:
+                        logger.debug(e)
+                        continue
+                    try:
+                        instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                    except Exception as e:
+                        logger.debug(e)
+                        continue
+                    if not instance.is_git_oauth():
+                        continue
+                    git_url = instance.get_clone_url(service.git_url)
+                    source_code["repo_url"] = git_url
+                elif service_source and (service_source.user_name or service_source.password):
                     source_code["user"] = service_source.user_name
                     source_code["password"] = service_source.password
             # 镜像
