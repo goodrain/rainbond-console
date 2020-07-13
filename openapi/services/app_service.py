@@ -3,10 +3,11 @@
 import copy
 import logging
 
+from django.forms.models import model_to_dict
+
+from console.repositories.app import service_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.app import service_repo
-from django.forms.models import model_to_dict
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
@@ -22,8 +23,9 @@ class AppService(object):
         status_list = base_service.status_multi_service(
             region=app.region_name, tenant_name=team.tenant_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
         status_map = {}
-        for status in status_list:
-            status_map[status["service_id"]] = status["status"]
+        if status_list:
+            for status in status_list:
+                status_map[status["service_id"]] = status["status"]
         re_services = []
         for service in services:
             s = model_to_dict(service)
