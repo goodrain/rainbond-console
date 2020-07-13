@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 from abc import ABCMeta, abstractmethod
+
 from oauth import OAuth2Interface
 
 
@@ -24,14 +25,14 @@ class GitOAuth2Interface(OAuth2Interface):
     def get_repos(self, *args, **kwargs):
         '''
         get repository list by login user
-        :return:
+        :return: list, int
         '''
 
     @abstractmethod
     def search_repos(self, search_key):
         '''
         search repository list by login user
-        :return:
+        :return: list, int
         '''
 
     @abstractmethod

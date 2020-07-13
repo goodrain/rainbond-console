@@ -4,7 +4,6 @@ import logging
 from urlparse import urlsplit
 
 from django.http import HttpResponseRedirect
-
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
@@ -14,7 +13,7 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.oauth_service import oauth_sev_user_service
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
-from console.views.base import AlowAnyApiView, JWTAuthApiView, EnterpriseAdminView
+from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message
@@ -374,21 +373,21 @@ class OAuthGitUserRepositories(JWTAuthApiView):
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": {"repositories": []}}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
+            rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
         service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
         if not service.is_git_oauth():
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
+            rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             if len(search) > 0 and search is not None:
                 true_search = oauth_user.oauth_user_name + '/' + search.split("/")[-1]
-                data = service.search_repos(true_search, page=page)
+                data, total = service.search_repos(true_search, page=page)
             else:
-                data = service.get_repos(page=page)
+                data, total = service.get_repos(page=page)
             rst = {
                 "data": {
                     "bean": {
@@ -397,14 +396,14 @@ class OAuthGitUserRepositories(JWTAuthApiView):
                         "service_id": service_id,
                         "service_type": oauth_service.oauth_type,
                         "service_name": oauth_service.name,
-                        "total": 10
+                        "total": total
                     }
                 }
             }
             return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"Access Token 已过期"}
+            rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": u"Access Token 已过期"}
             return Response(rst, status=status.HTTP_200_OK)
 
 

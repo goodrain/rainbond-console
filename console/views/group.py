@@ -6,16 +6,15 @@ import logging
 
 from rest_framework.response import Response
 
-from console.exception.main import ResourceNotEnoughException, ServiceHandleException
+from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
-from console.views.base import CloudEnterpriseCenterView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -203,40 +202,35 @@ class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCent
               paramType: path
 
         """
-        try:
-            action = request.data.get("action", None)
-            group_id = int(kwargs.get("group_id", None))
-            services = group_service_relation_repo.get_services_obj_by_group(group_id)
-            if not services:
-                result = general_message(400, "not service", "当前组内无组件，无法操作")
-                return Response(result)
-            service_ids = [service.service_id for service in services]
-            if action not in ("stop", "start", "upgrade", "deploy"):
-                return Response(general_message(400, "param error", "操作类型错误"), status=400)
-            # 去除掉第三方组件
-            for service_id in service_ids:
-                service_obj = service_repo.get_service_by_service_id(service_id)
-                if service_obj and service_obj.service_source == "third_party":
-                    service_ids.remove(service_id)
+        action = request.data.get("action", None)
+        group_id = int(kwargs.get("group_id", None))
+        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        if not services:
+            result = general_message(400, "not service", "当前组内无组件，无法操作")
+            return Response(result)
+        service_ids = [service.service_id for service in services]
+        if action not in ("stop", "start", "upgrade", "deploy"):
+            return Response(general_message(400, "param error", "操作类型错误"), status=400)
+        # 去除掉第三方组件
+        for service_id in service_ids:
+            service_obj = service_repo.get_service_by_service_id(service_id)
+            if service_obj and service_obj.service_source == "third_party":
+                service_ids.remove(service_id)
 
-            if action == "stop":
-                self.has_perms([300006, 400008])
-            if action == "start":
-                self.has_perms([300005, 400006])
-            if action == "upgrade":
-                self.has_perms([300007, 400009])
-            if action == "deploy":
-                self.has_perms([300008, 400010])
-                # 批量操作
-            code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
-            if code != 200:
-                result = general_message(code, "batch manage error", msg)
-            else:
-                result = general_message(200, "success", "操作成功")
-        except ResourceNotEnoughException as e:
-            raise e
-        except ServiceHandleException as e:
-            raise e
+        if action == "stop":
+            self.has_perms([300006, 400008])
+        if action == "start":
+            self.has_perms([300005, 400006])
+        if action == "upgrade":
+            self.has_perms([300007, 400009])
+        if action == "deploy":
+            self.has_perms([300008, 400010])
+            # 批量操作
+        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
+        if code != 200:
+            result = general_message(code, "batch manage error", msg)
+        else:
+            result = general_message(200, "success", "操作成功")
         return Response(result, status=result["code"])
 
 

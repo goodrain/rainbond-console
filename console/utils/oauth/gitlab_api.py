@@ -1,10 +1,11 @@
 # -*- coding: utf8 -*-
 import logging
-from gitlab import Gitlab
 
+from gitlab import Gitlab, GitlabList
+
+from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
-from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
 
 logger = logging.getLogger("default")
@@ -57,7 +58,6 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
                 data = rst.json()
-                print data
                 self.access_token = data.get("access_token")
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:
@@ -126,7 +126,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         repo_list = []
         if per_page is None:
             per_page = 10
-        for repo in self.api.projects.list(page=page, size=per_page):
+        for repo in self.api.projects.list(page=page, per_page=per_page):
             if hasattr(repo, "default_branch"):
                 default_branch = repo.default_branch
             else:
@@ -142,14 +142,19 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                 "updated_at": repo.last_activity_at,
                 "created_at": repo.created_at
             })
-        return repo_list
+        total = len(repo_list)
+        meta = self.api.projects.list(as_list=False)
+        if meta and meta.total:
+            total = meta.total
+        return repo_list, total
 
     def search_repos(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
         page = int(kwargs.get("page", 1))
+        per_page = kwargs.get("per_page", 10)
         repo_list = []
         name = full_name.split("/")[-1]
-        for repo in self.api.projects.list(search=name, page=page):
+        for repo in self.api.projects.list(search=name, page=page, per_page=per_page):
             repo_list.append({
                 "project_id": repo.id,
                 "project_full_name": repo.path_with_namespace,
@@ -161,7 +166,11 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                 "updated_at": repo.last_activity_at,
                 "created_at": repo.created_at
             })
-        return repo_list
+        total = len(repo_list)
+        meta = self.api.projects.list(search=name)
+        if meta and meta.total:
+            total = meta.total
+        return repo_list, total
 
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
