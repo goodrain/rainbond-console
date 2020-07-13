@@ -1,10 +1,14 @@
 # -*- coding: utf8 -*-
+import logging
+
 import requests
 
 from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.urlutil import set_get_url
+
+logger = logging.getLogger("default")
 
 
 class Gitee(object):
@@ -60,6 +64,7 @@ class Gitee(object):
         params = {
             "page": page,
             "per_page": per_page,
+            "sort": "updated",
         }
         return self._api_get(url_suffix, params, get_tatol=True)
 
@@ -234,19 +239,20 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         owner = search_name[0]
         query = "/".join(search_name[1:])
         repos, total = self.api.search_repos(full_name=full_name, page=page, owner=owner, query=query)
-        for repo in repos:
-            if repo:
-                repo_list.append({
-                    "project_id": repo["id"],
-                    "project_full_name": repo["full_name"],
-                    "project_name": repo["name"],
-                    "project_description": repo["description"],
-                    "project_url": repo["html_url"],
-                    "project_default_branch": repo["default_branch"],
-                    "project_ssl_url": repo["ssh_url"],
-                    "updated_at": repo["updated_at"],
-                    "created_at": repo["created_at"]
-                })
+        if repos:
+            for repo in repos:
+                if repo:
+                    repo_list.append({
+                        "project_id": repo["id"],
+                        "project_full_name": repo["full_name"],
+                        "project_name": repo["name"],
+                        "project_description": repo["description"],
+                        "project_url": repo["html_url"],
+                        "project_default_branch": repo["default_branch"],
+                        "project_ssl_url": repo["ssh_url"],
+                        "updated_at": repo["updated_at"],
+                        "created_at": repo["created_at"]
+                    })
         return repo_list, total
 
     def get_repo_detail(self, full_name, *args, **kwargs):
