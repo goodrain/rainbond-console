@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
-import logging
 import json
+import logging
 from datetime import datetime
+from enum import Enum, IntEnum
 
 from django.db import models
-from django.db.models.fields import AutoField
-from django.db.models.fields import BooleanField
-from django.db.models.fields import CharField
-from django.db.models.fields import DateTimeField
-from django.db.models.fields import DecimalField
-from django.db.models.fields import IntegerField
+from django.db.models.fields import (AutoField, BooleanField, CharField,
+                                     DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
-from enum import Enum
-from enum import IntEnum
 
 from goodrain_web import settings
 from www.models.main import TenantServiceInfo
@@ -623,7 +618,7 @@ class GroupAppBackupRecord(BaseModel):
     note = models.CharField(max_length=255, null=True, blank=True, default="", help_text=u"备份说明")
     mode = models.CharField(max_length=15, null=True, blank=True, default="", help_text=u"备份类型")
     source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text=u"目录地址")
-    backup_size = models.IntegerField(help_text=u"备份文件大小")
+    backup_size = models.BigIntegerField(help_text=u"备份文件大小")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text=u"创建时间")
     total_memory = models.IntegerField(help_text=u"备份应用的总内存")
     backup_server_info = models.CharField(max_length=400, null=True, blank=True, default="", help_text=u"备份服务信息")

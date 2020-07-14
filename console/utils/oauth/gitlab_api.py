@@ -126,7 +126,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         repo_list = []
         if per_page is None:
             per_page = 10
-        for repo in self.api.projects.list(page=page, per_page=per_page, order_by="updated_at"):
+        for repo in self.api.projects.list(page=page, per_page=per_page, order_by="last_activity_at"):
             if hasattr(repo, "default_branch"):
                 default_branch = repo.default_branch
             else:
@@ -154,7 +154,7 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         per_page = kwargs.get("per_page", 10)
         repo_list = []
         name = full_name.split("/")[-1]
-        for repo in self.api.projects.list(search=name, page=page, per_page=per_page, order_by="updated_at"):
+        for repo in self.api.projects.list(search=name, page=page, per_page=per_page, order_by="last_activity_at"):
             repo_list.append({
                 "project_id": repo.id,
                 "project_full_name": repo.path_with_namespace,

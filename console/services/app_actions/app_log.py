@@ -7,13 +7,11 @@ import logging
 
 from django.conf import settings
 
-from console.constants import LogConstants
-from console.constants import ServiceEventConstants
+from console.constants import LogConstants, ServiceEventConstants
 from console.repositories.event_repo import event_repo
 from console.repositories.region_repo import region_repo
 from console.services.plugin.app_plugin import AppPluginService
-from console.utils.timeutil import str_to_time
-from console.utils.timeutil import time_to_str
+from console.utils.timeutil import str_to_time, time_to_str
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
@@ -287,10 +285,16 @@ class AppEventService(object):
 class AppLogService(object):
     def get_service_logs(self, tenant, service, action="service", lines=100):
         log_list = []
-        if action == LogConstants.SERVICE:
-            body = region_api.get_service_logs(service.service_region, tenant.tenant_name, service.service_alias, lines)
-            log_list = body["list"]
-        return 200, "success", log_list
+        try:
+            if action == LogConstants.SERVICE:
+                body = region_api.get_service_logs(service.service_region, tenant.tenant_name, service.service_alias, lines)
+                log_list = body["list"]
+            return 200, "success", log_list
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            if e.status != 404:
+                return 400, "获取日志异常", None
+            return 200, "success", []
 
     def get_docker_log_instance(self, tenant, service):
         try:
@@ -312,4 +316,6 @@ class AppLogService(object):
             return 200, "success", file_list
         except region_api.CallApiError as e:
             logger.exception(e)
-            return 400, "系统异常", None
+            if e.status != 404:
+                return 400, "获取日志异常", None
+            return 200, "success", []
