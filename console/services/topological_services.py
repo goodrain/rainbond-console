@@ -3,11 +3,7 @@ import logging
 
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceDomain
-from www.models.main import ServiceGroupRelation
-from www.models.main import TenantServiceInfo
-from www.models.main import TenantServiceRelation
-from www.models.main import TenantServicesPort
+from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort)
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -38,7 +34,8 @@ class TopologicalService(object):
                     "enterprise_id": enterprise_id
                 })
                 service_status_list = service_status_list["list"]
-                service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
+                if service_status_list:
+                    service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
             except Exception as e:
                 logger.error('batch query service status failed!')
                 logger.exception(e)

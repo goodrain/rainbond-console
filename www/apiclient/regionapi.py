@@ -670,7 +670,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services_status"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body), timeout=10)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body), timeout=20)
         return body
 
     def get_enterprise_running_services(self, enterprise_id, region, test=False):
@@ -1112,8 +1112,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_region_info(region_name)
         url = region_info.url + "/v2/event"
         self._set_headers(region_info.token)
-        res, body = self._get(url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}),
-                              timeout=10)
+        res, body = self._get(
+            url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}), timeout=10)
         return body
 
     def __get_region_access_info(self, tenant_name, region):
@@ -1631,6 +1631,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/cluster"
         self._set_headers(token)
         kwargs["retries"] = 1
+        kwargs["timeout"] = 3
         res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
