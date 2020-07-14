@@ -741,7 +741,7 @@ class AppManageService(AppManageBase):
                                     self.__save_extend_info(service, app["extend_method_map"])
                 except ServiceHandleException as e:
                     if e.msg != "no found app market":
-                        logger.debug(e)
+                        logger.exception(e)
                         raise e
                 except Exception as e:
                     logger.exception(e)
