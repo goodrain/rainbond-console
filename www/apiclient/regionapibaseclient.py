@@ -350,13 +350,14 @@ def create_file(path, name, body):
     file_path = path + "/" + name
     with open(file_path, 'w') as f:
         f.writelines(body)
-        f.close()
-    f = open(file_path, "r")
-    content = f.read()
-    if content == body:
-        return file_path
-    else:
+    f.close()
+    read = ""
+    with open(file_path, 'r') as f:
+        read = f.read()
+    f.close()
+    if read != body:
         return None
+    return file_path
 
 
 def check_file_path(path, name, body):

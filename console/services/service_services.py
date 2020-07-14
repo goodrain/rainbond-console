@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-import logging
 import json
-
+import logging
 from re import split as re_split
 
+from console.exception.main import RbdAppNotFound, ServiceHandleException
+from console.repositories.app import service_source_repo
+from console.utils.oauth.oauth_types import support_oauth_type
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
-
-from console.exception.main import ServiceHandleException
-from console.repositories.app import service_source_repo
-from console.exception.main import RbdAppNotFound
-from console.utils.oauth.oauth_types import support_oauth_type
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -148,7 +145,7 @@ class BaseService(object):
             return body["list"]
         except Exception as e:
             logger.exception(e)
-            return None
+            return []
 
     def get_apps_deploy_versions(self, region, tenant_name, service_ids):
         data = {"service_ids": service_ids}
@@ -157,7 +154,7 @@ class BaseService(object):
             return body["list"]
         except Exception as e:
             logger.exception(e)
-            return None
+            return []
 
     def get_app_deploy_version(self, region, tenant_name, service_alias):
         try:
