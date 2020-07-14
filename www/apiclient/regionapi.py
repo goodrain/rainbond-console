@@ -345,7 +345,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             + service_alias + "/pods?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, None, region=region)
+        res, body = self._get(url, self.default_headers, None, region=region, timeout=15)
         return body
 
     def get_dynamic_services_pods(self, region, tenant_name, services_ids):
@@ -353,7 +353,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods?service_ids={}".format(",".join(services_ids))
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, timeout=10)
+        res, body = self._get(url, self.default_headers, region=region, timeout=15)
         return body
 
     def pod_detail(self, region, tenant_name, service_alias, pod_name):
@@ -801,7 +801,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         url += "/v2/resources/services"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(data), region=region)
+        res, body = self._post(url, self.default_headers, json.dumps(data), region=region, timeout=10)
         return body
 
     # v3.5版本后弃用
