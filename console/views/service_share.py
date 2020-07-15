@@ -5,22 +5,22 @@ import logging
 from django.db.models import Q
 from rest_framework.response import Response
 
+from console.enum.component_enum import is_singleton
 from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
-from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.services.share_services import share_service
+from console.repositories.share_repo import share_repo
 from console.services.market_app_service import market_sycn_service
+from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
-from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
+from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -63,30 +63,31 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                             app_model_id = share_record.app_id
                 data.append({
                     "app_model_id":
-                    app_model_id,
+                        app_model_id,
                     "app_model_name":
-                    app_model_name,
+                        app_model_name,
                     "version":
-                    share_record.share_version,
-                    "version_alias": (share_record.share_version_alias if share_record.share_version_alias else version_alias),
+                        share_record.share_version,
+                    "version_alias": (
+                        share_record.share_version_alias if share_record.share_version_alias else version_alias),
                     "scope":
-                    scope,
+                        scope,
                     "create_time":
-                    share_record.create_time,
+                        share_record.create_time,
                     "upgrade_time":
-                    upgrade_time,
+                        upgrade_time,
                     "step":
-                    share_record.step,
+                        share_record.step,
                     "is_success":
-                    share_record.is_success,
+                        share_record.is_success,
                     "status":
-                    share_record.status,
+                        share_record.status,
                     "scope_target": {
                         "store_name": store_name,
                         "store_id": store_id,
                     },
                     "record_id":
-                    share_record.ID,
+                        share_record.ID,
                 })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
@@ -284,7 +285,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             return Response(result, status=400)
         if not scope:
             scope = share_record.scope
-        service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id, scope=scope)
+        service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id,
+                                                                   scope=scope)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
         data["share_plugin_list"] = plugins
@@ -308,52 +310,44 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               paramType: path
         """
         use_force = parse_argument(request, 'use_force', default=False, value_type=bool)
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+        if not share_record:
+            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+            return Response(result, status=404)
+        if share_record.is_success or share_record.step >= 3:
+            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+            return Response(result, status=400)
 
-        try:
-            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-            if not share_record:
-                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-                return Response(result, status=404)
-            if share_record.is_success or share_record.step >= 3:
-                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-                return Response(result, status=400)
+        if not request.data:
+            result = general_message(400, "share info can not be empty", "分享信息不能为空")
+            return Response(result, status=400)
+        app_version_info = request.data.get("app_version_info", None)
+        share_app_info = request.data.get("share_service_list", None)
+        if not app_version_info or not share_app_info:
+            result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
+            return Response(result, status=400)
+        if not app_version_info.get("app_model_id", None):
+            result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
+            return Response(result, status=400)
 
-            if not request.data:
-                result = general_message(400, "share info can not be empty", "分享信息不能为空")
-                return Response(result, status=400)
-            app_version_info = request.data.get("app_version_info", None)
-            share_app_info = request.data.get("share_service_list", None)
-            if not app_version_info or not share_app_info:
-                result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
-                return Response(result, status=400)
-            if not app_version_info.get("app_model_id", None):
-                result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
-                return Response(result, status=400)
+        if share_app_info:
+            for app in share_app_info:
+                extend_method = app.get("extend_method", "")
+                if is_singleton(extend_method):
+                    extend_method_map = app.get("extend_method_map")
+                    if extend_method_map and extend_method_map.get("max_node", 1) > 1:
+                        result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
+                        return Response(result, status=400)
 
-            if share_app_info:
-                for app in share_app_info:
-                    extend_method = app.get("extend_method", "")
-                    if is_singleton(extend_method):
-                        extend_method_map = app.get("extend_method_map")
-                        if extend_method_map and extend_method_map.get("max_node", 1) > 1:
-                            result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
-                            return Response(result, status=400)
-
-            # 继续给app_template_incomplete赋值
-            code, msg, bean = share_service.create_share_info(
-                share_record=share_record,
-                share_team=self.team,
-                share_user=request.user,
-                share_info=request.data,
-                use_force=use_force)
-            result = general_message(code, "create share info", msg, bean=bean)
-            return Response(result, status=code)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        # 继续给app_template_incomplete赋值
+        code, msg, bean = share_service.create_share_info(
+            share_record=share_record,
+            share_team=self.team,
+            share_user=request.user,
+            share_info=request.data,
+            use_force=use_force)
+        result = general_message(code, "create share info", msg, bean=bean)
+        return Response(result, status=code)
 
 
 class ServiceShareEventList(RegionTenantHeaderView):
@@ -463,7 +457,8 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
 
-            bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name, share_id,
+            bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name,
+                                                           share_id,
                                                            events[0])
             result = general_message(200, "sync share event", "分享成功", bean=bean.to_dict())
             return Response(result, status=200)
@@ -515,7 +510,8 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 return Response(result, status=400)
             # 验证是否所有同步事件已完成
             count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
+            plugin_count = PluginShareRecordEvent.objects.filter(
+                Q(record_id=share_id) & ~Q(event_status="success")).count()
             if count > 0 or plugin_count > 0:
                 result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
                 return Response(result, status=415)
