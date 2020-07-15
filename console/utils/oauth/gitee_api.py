@@ -68,17 +68,11 @@ class Gitee(object):
         }
         return self._api_get(url_suffix, params, get_tatol=True)
 
-    def search_repos(self, full_name, page=1, **kwargs):
-        owner = kwargs.get("owner", None)
-        query = kwargs.get("query", None)
-        url_suffix = 'search/repositories?q={query}&page={page}&per_page=10&owner={owner}&fork=true'.format(
-            query=query, page=page, owner=owner)
+    def search_repos(self, full_name, **kwargs):
+        url_suffix = 'user/repos'
         page = kwargs.get("page", 1)
         per_page = kwargs.get("per_page", 10)
-        params = {
-            "page": page,
-            "per_page": per_page,
-        }
+        params = {"page": page, "per_page": per_page, "sort": "pushed", "q": full_name.split("/")[-1]}
         return self._api_get(url_suffix, params, get_tatol=True)
 
     def get_repo(self, full_name):
