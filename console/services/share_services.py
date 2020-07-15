@@ -792,8 +792,8 @@ class ShareService(object):
                 if services:
                     new_services = list()
                     service_ids = [s["service_id"] for s in services]
-                    version_list = base_service.get_apps_deploy_versions(
-                        services[0]["service_region"], share_team.tenant_name, service_ids)
+                    version_list = base_service.get_apps_deploy_versions(services[0]["service_region"], share_team.tenant_name,
+                                                                         service_ids)
                     delivered_type_map = {v["service_id"]: v["delivered_type"] for v in version_list}
 
                     dep_service_keys = {service['service_share_uuid'] for service in services}

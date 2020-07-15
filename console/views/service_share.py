@@ -63,31 +63,30 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                             app_model_id = share_record.app_id
                 data.append({
                     "app_model_id":
-                        app_model_id,
+                    app_model_id,
                     "app_model_name":
-                        app_model_name,
+                    app_model_name,
                     "version":
-                        share_record.share_version,
-                    "version_alias": (
-                        share_record.share_version_alias if share_record.share_version_alias else version_alias),
+                    share_record.share_version,
+                    "version_alias": (share_record.share_version_alias if share_record.share_version_alias else version_alias),
                     "scope":
-                        scope,
+                    scope,
                     "create_time":
-                        share_record.create_time,
+                    share_record.create_time,
                     "upgrade_time":
-                        upgrade_time,
+                    upgrade_time,
                     "step":
-                        share_record.step,
+                    share_record.step,
                     "is_success":
-                        share_record.is_success,
+                    share_record.is_success,
                     "status":
-                        share_record.status,
+                    share_record.status,
                     "scope_target": {
                         "store_name": store_name,
                         "store_id": store_id,
                     },
                     "record_id":
-                        share_record.ID,
+                    share_record.ID,
                 })
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
@@ -285,8 +284,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             return Response(result, status=400)
         if not scope:
             scope = share_record.scope
-        service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id,
-                                                                   scope=scope)
+        service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id, scope=scope)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
         data["share_plugin_list"] = plugins
@@ -457,8 +455,7 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
                 result = general_message(404, "not exist", "分享事件不存在")
                 return Response(result, status=404)
 
-            bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name,
-                                                           share_id,
+            bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name, share_id,
                                                            events[0])
             result = general_message(200, "sync share event", "分享成功", bean=bean.to_dict())
             return Response(result, status=200)
@@ -510,8 +507,7 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 return Response(result, status=400)
             # 验证是否所有同步事件已完成
             count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            plugin_count = PluginShareRecordEvent.objects.filter(
-                Q(record_id=share_id) & ~Q(event_status="success")).count()
+            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
             if count > 0 or plugin_count > 0:
                 result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
                 return Response(result, status=415)
