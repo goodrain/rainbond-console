@@ -2,22 +2,22 @@
 """
   Created on 18/2/1.
 """
-import logging
-import httplib2
+import datetime
 import httplib
 import json
-import datetime
+import logging
 
+import httplib2
 from django.db import transaction
 from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
 
 from console.exception.main import AccountOverdueException
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
-from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.app import app_tag_repo
+from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
@@ -25,8 +25,8 @@ from console.services.market_app_service import market_app_service
 from console.services.market_app_service import market_sycn_service
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
-from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
+from console.views.base import RegionTenantHeaderView
 from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -440,9 +440,6 @@ class CenterAllMarketAppView(JWTAuthApiView):
                 return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
             else:
                 return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 

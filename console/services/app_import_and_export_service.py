@@ -8,7 +8,12 @@ import logging
 import urllib2
 
 from console.appstore.appstore import app_store
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.exception.main import ExportAppError
+from console.exception.main import RbdAppNotFound
+from console.exception.main import RecordNotFound
+from console.exception.main import RegionNotFound
+from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterAppVersion
 from console.repositories.market_app_repo import app_export_record_repo
 from console.repositories.market_app_repo import app_import_record_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -17,12 +22,9 @@ from console.services.app_config.app_relation_service import AppServiceRelationS
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantRegionInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.exception.main import RegionNotFound, RecordNotFound
-from console.exception.main import ExportAppError
-from console.exception.main import RbdAppNotFound
-from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -429,45 +431,52 @@ class AppImportService(object):
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
                 if app_version:
+                    # update version if exists
                     app_version.scope = import_record.scope
                     app_version.app_template = json.dumps(app_template)
                     app_version.template_version = app_template["template_version"]
                     app_version.save()
-                continue
-            image_base64_string = app_template.pop("image_base64_string", "")
-            pic_url = ""
-            if image_base64_string:
-                pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
-
-            key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
-            if key_and_version in key_and_version_list:
-                continue
-            key_and_version_list.append(key_and_version)
-            rainbond_app = RainbondCenterApp(
-                enterprise_id=import_record.enterprise_id,
-                app_id=app_template["group_key"],
-                app_name=app_template["group_name"],
-                source="import",
-                create_team=import_record.team_name,
-                scope=import_record.scope,
-                describe=app_template.pop("describe", ""),
-                pic=pic_url,
-            )
-            rainbond_apps.append(rainbond_app)
-            rainbond_app_version = RainbondCenterAppVersion(
-                scope=rainbond_app.scope,
-                enterprise_id=rainbond_app.enterprise_id,
-                app_id=rainbond_app.app_id,
-                app_template=json.dumps(app_template),
-                version=app_template["group_version"],
-                template_version=app_template["template_version"],
-                record_id=import_record.ID,
-                share_user=0,
-                is_complete=1,
-            )
-            rainbond_app_versions.append(rainbond_app_version)
+                else:
+                    # create a new version
+                    rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
+            else:
+                image_base64_string = app_template.pop("image_base64_string", "")
+                pic_url = ""
+                if image_base64_string:
+                    pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
+                key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
+                if key_and_version in key_and_version_list:
+                    continue
+                key_and_version_list.append(key_and_version)
+                rainbond_app = RainbondCenterApp(
+                    enterprise_id=import_record.enterprise_id,
+                    app_id=app_template["group_key"],
+                    app_name=app_template["group_name"],
+                    source="import",
+                    create_team=import_record.team_name,
+                    scope=import_record.scope,
+                    describe=app_template.pop("describe", ""),
+                    pic=pic_url,
+                )
+                rainbond_apps.append(rainbond_app)
+                # create a new app version
+                rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
         rainbond_app_repo.bulk_create_rainbond_app_versions(rainbond_app_versions)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
+
+    @staticmethod
+    def create_app_version(app, import_record, app_template):
+        return RainbondCenterAppVersion(
+            scope=import_record.scope,
+            enterprise_id=import_record.enterprise_id,
+            app_id=app.app_id,
+            app_template=json.dumps(app_template),
+            version=app_template["group_version"],
+            template_version=app_template["template_version"],
+            record_id=import_record.ID,
+            share_user=0,
+            is_complete=1,
+        )
 
     def __save_import_info(self, tenant, scope, metadata):
         rainbond_apps = []
