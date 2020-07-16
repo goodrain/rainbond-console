@@ -13,14 +13,20 @@ from console.constants import AppConstants
 from console.enum.component_enum import ComponentType, is_singleton, is_state
 from console.exception.main import ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
-from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
+from console.repositories.app import (delete_service_repo, recycle_bin_repo,
+                                      relation_recycle_bin_repo, service_repo,
                                       service_source_repo)
-from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
-                                             extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
-                                             tcp_domain, volume_repo)
+from console.repositories.app_config import (auth_repo, create_step_repo,
+                                             dep_relation_repo, domain_repo,
+                                             env_var_repo, extend_repo,
+                                             mnt_repo, port_repo,
+                                             service_attach_repo,
+                                             service_payment_repo, tcp_domain,
+                                             volume_repo)
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
-from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo)
+from console.repositories.group import (group_service_relation_repo,
+                                        tenant_service_group_repo)
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.migration_repo import migrate_repo
@@ -34,12 +40,16 @@ from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
-from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
+from console.services.app_config import (AppEnvVarService, AppMntService,
+                                         AppPortService,
+                                         AppServiceRelationService,
                                          AppVolumeService)
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
-from console.utils.oauth.oauth_types import get_oauth_instance
+from console.utils.oauth.base.exception import NoAccessKeyErr
+from console.utils.oauth.oauth_types import (NoSupportOAuthType,
+                                             get_oauth_instance)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
@@ -239,12 +249,15 @@ class AppManageService(AppManageBase):
                     return 507, "构建异常", ""
                 try:
                     instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-                except Exception as e:
+                except NoSupportOAuthType as e:
                     logger.debug(e)
-                    return 507, "构建异常", ""
+                    return 400, "该组件构建源代码仓库类型已不支持", ""
                 if not instance.is_git_oauth():
-                    return 507, "构建异常", ""
-                git_url = instance.get_clone_url(service.git_url)
+                    return 400, "该组件构建源代码仓库类型不正确", ""
+                try:
+                    git_url = instance.get_clone_url(service.git_url)
+                except NoAccessKeyErr as e:
+                    return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
                 body["code_info"] = {
                     "repo_url": git_url,
                     "branch": service.code_version,
@@ -456,12 +469,10 @@ class AppManageService(AppManageBase):
         """获取组件种类，兼容老的逻辑"""
         if service.service_source:
             if service.service_source == AppConstants.SOURCE_CODE:
-                # return "source"
                 return "build_from_source_code"
             elif service.service_source == AppConstants.DOCKER_RUN \
                     or service.service_source == AppConstants.DOCKER_COMPOSE \
                     or service.service_source == AppConstants.DOCKER_IMAGE:
-                # return "image"
                 return "build_from_image"
             elif service.service_source == AppConstants.MARKET:
                 if slug_util.is_slug(service.image, service.language):
@@ -647,7 +658,11 @@ class AppManageService(AppManageBase):
                         continue
                     if not instance.is_git_oauth():
                         continue
-                    git_url = instance.get_clone_url(service.git_url)
+                    try:
+                        git_url = instance.get_clone_url(service.git_url)
+                    except NoAccessKeyErr as e:
+                        logger.exception(e)
+                        git_url = service.git_url
                     source_code["repo_url"] = git_url
                 elif service_source and (service_source.user_name or service_source.password):
                     source_code["user"] = service_source.user_name
