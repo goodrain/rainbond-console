@@ -292,8 +292,6 @@ class AppLogService(object):
             return 200, "success", log_list
         except region_api.CallApiError as e:
             logger.exception(e)
-            if e.status != 404:
-                return 400, "获取日志异常", None
             return 200, "success", []
 
     def get_docker_log_instance(self, tenant, service):
@@ -316,6 +314,4 @@ class AppLogService(object):
             return 200, "success", file_list
         except region_api.CallApiError as e:
             logger.exception(e)
-            if e.status != 404:
-                return 400, "获取日志异常", None
             return 200, "success", []
