@@ -1899,7 +1899,7 @@ d3-zoom@1.1.4:
 
 d3@5.7.0:
   version "5.7.0"
-  resolved "http://r.cnpmjs.org/d3/download/d3-5.7.0.tgz#f189d338bdde62acf02f308918e0ec34dd7568f9"
+  resolved "https://r.cnpmjs.org/d3/download/d3-5.7.0.tgz#f189d338bdde62acf02f308918e0ec34dd7568f9"
   integrity sha1-8YnTOL3eYqzwLzCJGODsNN11aPk=
   dependencies:
     d3-array "1"
@@ -4045,9 +4045,10 @@ lodash.uniq@^4.3.0:
   version "4.5.0"
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
 
-lodash@4.17.4, lodash@^4.0.0, lodash@^4.14.0, lodash@^4.17.2, lodash@^4.17.3, lodash@^4.2.0, lodash@^4.2.1, lodash@^4.3.0:
-  version "4.17.4"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.4.tgz#78203a4d1c328ae1d86dca6460e369b57f4055ae"
+lodash@4.17.19, lodash@^4.0.0, lodash@^4.14.0, lodash@^4.17.2, lodash@^4.17.3, lodash@^4.2.0, lodash@^4.2.1, lodash@^4.3.0:
+  version "4.17.19"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.19.tgz#e48ddedbe30b3321783c5b4301fbd353bc1e4a4b"
+  integrity sha512-JNvd8XER9GQX0v2qJgsaN/mzFCNA5BRe/j8JN9d+tWyGLSodKQHKFicdwNYzWwI3wjRnaKPsGj1XkBjx/F96DQ==
 
 lodash@^3.10.0:
   version "3.10.1"
@@ -5110,7 +5111,7 @@ promise@^7.1.1:
 
 prop-types@15.5.8, prop-types@^15.0.0, prop-types@^15.5.4, prop-types@^15.5.6, prop-types@^15.5.7, prop-types@^15.5.8, prop-types@~15.5.7:
   version "15.5.8"
-  resolved "http://r.cnpmjs.org/prop-types/download/prop-types-15.5.8.tgz#6b7b2e141083be38c8595aa51fc55775c7199394"
+  resolved "https://r.cnpmjs.org/prop-types/download/prop-types-15.5.8.tgz#6b7b2e141083be38c8595aa51fc55775c7199394"
   integrity sha1-a3suFBCDvjjIWVqlH8VXdccZk5Q=
   dependencies:
     fbjs "^0.8.9"
@@ -5217,7 +5218,7 @@ rc-animate@2.x:
 
 rc-slider@7.0.2:
   version "7.0.2"
-  resolved "http://r.cnpmjs.org/rc-slider/download/rc-slider-7.0.2.tgz#119ea8343233ebf42445728784ec9c1899ae9ac0"
+  resolved "https://r.cnpmjs.org/rc-slider/download/rc-slider-7.0.2.tgz#119ea8343233ebf42445728784ec9c1899ae9ac0"
   integrity sha1-EZ6oNDIz6/QkRXKHhOycGJmumsA=
   dependencies:
     babel-runtime "6.x"
