@@ -5,22 +5,22 @@ import logging
 from django.db.models import Q
 from rest_framework.response import Response
 
+from console.enum.component_enum import is_singleton
 from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.group import group_repo
-from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.services.share_services import share_service
+from console.repositories.share_repo import share_repo
 from console.services.market_app_service import market_sycn_service
+from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
-from console.views.base import RegionTenantHeaderView
 from console.views.base import JWTAuthApiView
+from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
-from console.enum.component_enum import is_singleton
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
@@ -308,52 +308,44 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               paramType: path
         """
         use_force = parse_argument(request, 'use_force', default=False, value_type=bool)
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+        if not share_record:
+            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+            return Response(result, status=404)
+        if share_record.is_success or share_record.step >= 3:
+            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+            return Response(result, status=400)
 
-        try:
-            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-            if not share_record:
-                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-                return Response(result, status=404)
-            if share_record.is_success or share_record.step >= 3:
-                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-                return Response(result, status=400)
+        if not request.data:
+            result = general_message(400, "share info can not be empty", "分享信息不能为空")
+            return Response(result, status=400)
+        app_version_info = request.data.get("app_version_info", None)
+        share_app_info = request.data.get("share_service_list", None)
+        if not app_version_info or not share_app_info:
+            result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
+            return Response(result, status=400)
+        if not app_version_info.get("app_model_id", None):
+            result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
+            return Response(result, status=400)
 
-            if not request.data:
-                result = general_message(400, "share info can not be empty", "分享信息不能为空")
-                return Response(result, status=400)
-            app_version_info = request.data.get("app_version_info", None)
-            share_app_info = request.data.get("share_service_list", None)
-            if not app_version_info or not share_app_info:
-                result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
-                return Response(result, status=400)
-            if not app_version_info.get("app_model_id", None):
-                result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
-                return Response(result, status=400)
+        if share_app_info:
+            for app in share_app_info:
+                extend_method = app.get("extend_method", "")
+                if is_singleton(extend_method):
+                    extend_method_map = app.get("extend_method_map")
+                    if extend_method_map and extend_method_map.get("max_node", 1) > 1:
+                        result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
+                        return Response(result, status=400)
 
-            if share_app_info:
-                for app in share_app_info:
-                    extend_method = app.get("extend_method", "")
-                    if is_singleton(extend_method):
-                        extend_method_map = app.get("extend_method_map")
-                        if extend_method_map and extend_method_map.get("max_node", 1) > 1:
-                            result = general_message(400, "service type do not allow multiple node", "分享应用不支持多实例")
-                            return Response(result, status=400)
-
-            # 继续给app_template_incomplete赋值
-            code, msg, bean = share_service.create_share_info(
-                share_record=share_record,
-                share_team=self.team,
-                share_user=request.user,
-                share_info=request.data,
-                use_force=use_force)
-            result = general_message(code, "create share info", msg, bean=bean)
-            return Response(result, status=code)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        # 继续给app_template_incomplete赋值
+        code, msg, bean = share_service.create_share_info(
+            share_record=share_record,
+            share_team=self.team,
+            share_user=request.user,
+            share_info=request.data,
+            use_force=use_force)
+        result = general_message(code, "create share info", msg, bean=bean)
+        return Response(result, status=code)
 
 
 class ServiceShareEventList(RegionTenantHeaderView):

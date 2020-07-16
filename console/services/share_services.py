@@ -15,6 +15,7 @@ from console.models.main import PluginShareRecordEvent
 from console.models.main import RainbondCenterApp
 from console.models.main import RainbondCenterAppVersion
 from console.models.main import ServiceShareRecordEvent
+from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.market_app_repo import app_export_record_repo
@@ -35,7 +36,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
 from www.models.main import ServiceEvent
 from www.models.main import TenantServiceInfo
-from console.repositories.app import app_tag_repo
 
 logger = logging.getLogger("default")
 
@@ -387,14 +387,6 @@ class ShareService(object):
                             "mnt_dir":
                             dep_mnt.mnt_dir
                         })
-                if service_last_share_info:
-                    service_data = service_last_share_info.get(service_id)
-                    if service_data:
-                        service["dep_service_map_list"] = self.service_last_share_cache(service["dep_service_map_list"],
-                                                                                        service_data["dep_service_map_list"])
-
-                        service["mnt_relation_list"] = self.service_last_share_cache(service["mnt_relation_list"],
-                                                                                     service_data["mnt_relation_list"])
                 all_data.append(service)
             return all_data
         else:
@@ -726,7 +718,7 @@ class ShareService(object):
             version_alias = share_version_info.get("version_alias", "")
             version_describe = share_version_info.get("describe", "this is a default describe.")
             market_id = None
-            scope = None
+            app_model_name = None
             if target:
                 market_id = target.get("store_id")
             if not market_id:
@@ -793,6 +785,7 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 return 500, "插件处理发生错误", None
+
             # 处理组件相关
             try:
                 services = share_info["share_service_list"]
