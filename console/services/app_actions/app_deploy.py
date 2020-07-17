@@ -85,25 +85,26 @@ class AppDeployService(object):
     def get_async_action(self):
         return self.impl.get_async_action()
 
-    def execute(self, tenant, service, user, is_upgrade, version, committer_name=None):
+    def execute(self, tenant, service, user, is_upgrade, version, committer_name=None, oauth_instance=None):
         async_action = self.get_async_action()
         logger.info("service id: {}; async action is '{}'".format(service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
             code, msg, event_id = app_manage_service.deploy(
-                tenant, service, user, group_version=version, committer_name=committer_name)
+                tenant, service, user, group_version=version, oauth_instance=oauth_instance, committer_name=committer_name)
         elif async_action == AsyncAction.UPDATE.value:
-            code, msg, event_id = app_manage_service.upgrade(tenant, service, user, committer_name)
+            code, msg, event_id = app_manage_service.upgrade(
+                tenant, service, user, committer_name, oauth_instance=oauth_instance)
         else:
             return 200, "", ""
         return code, msg, event_id
 
-    def deploy(self, tenant, service, user, version, committer_name=None):
+    def deploy(self, tenant, service, user, version, committer_name=None, oauth_instance=None):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
         self.pre_deploy_action(tenant, service, version)
 
-        return self.execute(tenant, service, user, version, committer_name)
+        return self.execute(tenant, service, user, version, committer_name, oauth_instance=oauth_instance)
 
 
 class OtherService(object):
@@ -126,10 +127,12 @@ class MarketService(object):
     def __init__(self, tenant, service, version):
         self.tenant = tenant
         self.service = service
+        self.market_name = None
         self.service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         if self.service_source.extend_info:
             extend_info = json.loads(self.service_source.extend_info)
             self.install_from_cloud = extend_info.get("install_from_cloud", False)
+            self.market_name = extend_info.get("market_name", None)
             if self.install_from_cloud:
                 logger.info("service {0} imstall from cloud".format(service.service_alias))
         else:
@@ -415,6 +418,7 @@ class MarketService(object):
         if self.install_from_cloud:
             new_extend_info["install_from_cloud"] = True
             new_extend_info["market"] = "default"
+            new_extend_info["market_name"] = self.market_name
         data = {
             "extend_info": json.dumps(new_extend_info),
             "version": version,

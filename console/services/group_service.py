@@ -15,7 +15,7 @@ from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
-from www.models.main import ServiceGroup
+from www.models.main import ServiceGroup, ServiceGroupRelation
 from console.services.service_services import base_service
 from console.repositories.plugin import app_plugin_relation_repo
 from console.exception.main import ServiceHandleException
@@ -30,17 +30,14 @@ class GroupService(object):
     def check_group_name(self, tenant, region_name, group_name):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
-        if len(group_name) > 15:
-            raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称最多支持15个字符")
+        if len(group_name) > 128:
+            raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称最多支持128个字符")
         r = re.compile(u'^[a-zA-Z0-9_\\.\\-\u4e00-\u9fa5]+$')
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
     def add_group(self, tenant, region_name, group_name, group_note=""):
         self.check_group_name(tenant, region_name, group_name)
-        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
-        if group:
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(group_name))
         return group_repo.add_group(tenant.tenant_id, region_name, group_name, group_note)
 
     def update_group(self, tenant, region_name, group_id, group_name, group_note=""):
@@ -81,8 +78,8 @@ class GroupService(object):
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note}
 
-    def get_app_by_id(self, app_id):
-        return group_repo.get_app_by_pk(app_id)
+    def get_app_by_id(self, tenant, region, app_id):
+        return group_repo.get_group_by_pk(tenant.tenant_id, region, app_id)
 
     def get_group_or_404(self, tenant, response_region, group_id):
         """
@@ -164,6 +161,8 @@ class GroupService(object):
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
         service_status = dict()
+        if status_list is None:
+            raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
         for status in status_list:
             service_status[status["service_id"]] = status
 
@@ -284,6 +283,12 @@ class GroupService(object):
 
     def get_apps_list(self, team_id=None, region_name=None, query=None):
         return group_repo.get_apps_list(team_id, region_name, query)
+
+    # get apps by service ids
+    # return app id and service id maps
+    def get_app_id_by_service_ids(self, service_ids):
+        sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
+        return {s.service_id: s.group_id for s in sgr}
 
 
 group_service = GroupService()

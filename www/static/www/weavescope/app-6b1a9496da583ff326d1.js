@@ -174,25 +174,25 @@ var _actionTypes = __webpack_require__(178);
 
 var _actionTypes2 = _interopRequireDefault(_actionTypes);
 
-var _fileUtils = __webpack_require__(383);
-
-var _routerUtils = __webpack_require__(316);
-
-var _updateBufferUtils = __webpack_require__(318);
-
-var _webApiUtils = __webpack_require__(183);
-
-var _topologyUtils = __webpack_require__(57);
-
-var _storageUtils = __webpack_require__(182);
-
-var _contrastUtils = __webpack_require__(382);
+var _naming = __webpack_require__(43);
 
 var _nodeMetric = __webpack_require__(84);
 
 var _topology = __webpack_require__(32);
 
-var _naming = __webpack_require__(43);
+var _contrastUtils = __webpack_require__(382);
+
+var _fileUtils = __webpack_require__(383);
+
+var _routerUtils = __webpack_require__(316);
+
+var _storageUtils = __webpack_require__(182);
+
+var _topologyUtils = __webpack_require__(57);
+
+var _updateBufferUtils = __webpack_require__(318);
+
+var _webApiUtils = __webpack_require__(183);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -480,7 +480,7 @@ function setResourceView() {
 }
 
 function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
-
+  console.log('node click: ', nodeId, serviceAlias);
   return function (dispatch, getState) {
     dispatch({
       type: _actionTypes2.default.CLICK_NODE,
@@ -740,7 +740,6 @@ function receiveNodesDelta(delta) {
 }
 
 function receiveNodesMonitor(monitor) {
-
   return function (dispatch, getState) {
     //
     // allow css-animation to run smoothly by scheduling it to run on the
@@ -880,7 +879,7 @@ function route(urlState) {
     });
     // 用新的选项更新所有请求工人
     var state = getState();
-    //getTopologies(activeTopologyOptionsSelector(state), dispatch);
+    // getTopologies(activeTopologyOptionsSelector(state), dispatch);
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
 
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
@@ -2542,30 +2541,43 @@ function brightenColor(c) {
 }
 
 var statusColorMap = {
-  'running': 'rgb(0,215,119)', //运行
-  'closed': 'rgb(0,0,0)', //关闭
-  'undeploy': 'rgb(32, 18, 77)', //取消
-  'starting': 'rgb(246,157,53)', //开始
-  'checking': 'rgb(255,153,0)', //检查
-  'stoping': 'rgb(246,154,16)', //回采
-  'upgrade': 'rgb(0,255,0)', //升级中
-  'unusual': 'rgb(234,88,62)', //异常
-  'Owed': ' rgb(234,88,62)', //欠
-  'expired': 'rgb(255,0,0)', //过期
-  'Expired': 'rgb(255,0,0)',
-  'internet': 'rgb(91,178,250)',
-  'The Internet': 'rgb(91,178,250)',
-  'Unknow': 'rgb(217,16,16)',
-  'unknow': 'rgb(217,16,16)', //不知何时
-  'stopping': 'rgb(67,67,67)', //停止,
-  'abnormal': 'rgb(255,0,255)', //不正常,
-  'some_abnormal': 'rgb(255,0,255)', //一些不正常
-  'building': 'rgb(0,119,255)', //构建
-  'build_failure': 'rgb(204,204,204)' //构建失败
+  'running': 'rgb(0,215,119)', //运行中 绿色
+  'closed': 'rgb(0,0,33)', //已关闭 黑色
+
+  'third_party': "rgb(91,178,250)",
+
+  'undeploy': 'rgb(112,128,144)', //未部署 石板灰
+  'creating': 'rgb(119,136,153)', //部署中 浅石板灰 
+
+  'waitting': 'rgb(246,157,74)',
+
+  'starting': 'rgb(246,157,74)', //开启中 道奇蓝 
+  'startting': 'rgb(246,157,74)', //开启中 道奇蓝 
+  'checking': 'rgb(246,157,74)', //检测中 橙色
+
+  'stoping': 'rgb(32,18,74)', //关闭中 紫色
+  'stopping': 'rgb(32,18,74)', //关闭中 紫色
+
+  'upgrade': 'rgb(0,255,74)', //升级中 洋红 
+
+  'unusual': 'rgb(205,2,0)', //异常 纯红 
+  'expired': 'rgb(205,2,0)', //过期 猩红
+  'Expired': 'rgb(205,2,0)', //猩红
+
+  'internet': 'rgb(91,178,250)', //蓝色
+  'The Internet': 'rgb(91,178,250)', //蓝色
+
+  'Unknow': 'rgb(205,2,0)', //深粉色 
+  'unknow': 'rgb(205,2,0)', //深粉色 
+  'abnormal': 'rgb(205,2,0)', //不正常,纯红 
+  'some_abnormal': 'rgb(255,0,0)', //一些不正常 纯红 
+
+  'building': 'rgb(0,119,16)', //构建  纯蓝 
+  'build_failure': 'rgb(205,2,0)' //构建失败 纯红 
 };
 
 function getStatusColor(status) {
-  return statusColorMap[status] || statusColorMap['unknow'];
+  return statusColorMap[status] || statusColorMap['internet'];
 }
 
 /***/ }),
@@ -8791,25 +8803,26 @@ var _debug = __webpack_require__(29);
 
 var _debug2 = _interopRequireDefault(_debug);
 
-var _reqwest = __webpack_require__(670);
-
-var _reqwest2 = _interopRequireDefault(_reqwest);
+var _immutable = __webpack_require__(3);
 
 var _defaults = __webpack_require__(624);
 
 var _defaults2 = _interopRequireDefault(_defaults);
 
-var _immutable = __webpack_require__(3);
+var _reqwest = __webpack_require__(670);
+
+var _reqwest2 = _interopRequireDefault(_reqwest);
 
 var _appActions = __webpack_require__(9);
 
-var _layout = __webpack_require__(118);
-
 var _timer = __webpack_require__(179);
+
+var _layout = __webpack_require__(118);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var log = (0, _debug2.default)('scope:web-api-utils');
+var log = (0, _debug2.default)('scope:web-api-utils'); /* eslint-disable no-use-before-define */
+
 
 var reconnectTimerInterval = 5000;
 var updateFrequency = '5s';
@@ -8837,7 +8850,7 @@ var controlErrorTimer = 0;
 var createWebsocketAt = 0;
 var firstMessageOnWebsocketAt = 0;
 var continuePolling = true;
-var newData = "";
+var newData = null;
 var tiem = 0;
 function buildOptionsQuery(options) {
   if (options) {
@@ -8948,9 +8961,12 @@ function createWebsocket(topologyUrl, optionsQuery, dispatch) {
 
 var cookie = {
   get: function getCookie(name) {
-    var arr,
-        reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
-    if (arr = document.cookie.match(reg)) return unescape(arr[2]);else return null;
+    var arr = void 0,
+        reg = new RegExp('(^| )' + name + '=([^;]*)(;|$)');
+    if (arr = document.cookie.match(reg)) {
+      return unescape(arr[2]);
+    }
+    return null;
   },
   set: function set(name, value) {
     var option = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
@@ -8959,8 +8975,8 @@ var cookie = {
     var exp = new Date();
     exp.setTime(exp.getTime() + Days * 24 * 60 * 60 * 1000);
     var domain = option.domain ? ';domain=' + option.domain : '';
-    var path = option.path != void 0 ? ";path=" + option.path : ";path=/";
-    var cookie = name + "=" + escape(value) + ";expires=" + exp.toGMTString() + domain + path;
+    var path = option.path != void 0 ? ';path=' + option.path : ';path=/';
+    var cookie = name + '=' + escape(value) + ';expires=' + exp.toGMTString() + domain + path;
     document.cookie = cookie;
   },
   remove: function remove(name) {
@@ -8970,7 +8986,9 @@ var cookie = {
     exp.setTime(exp.getTime() - 1);
     var cval = this.get(name);
     var domain = option.domain ? ';domain=' + option.domain : '';
-    if (cval != null) document.cookie = name + "=" + cval + ";expires=" + exp.toGMTString() + domain;
+    if (cval != null) {
+      document.cookie = name + '=' + cval + ';expires=' + exp.toGMTString() + domain;
+    }
   }
 };
 
@@ -9035,9 +9053,7 @@ function getResourceViewNodesSnapshot(getState, dispatch) {
 }
 
 function getTopologies(options, dispatch, initialPoll) {
-
   dispatch(function () {
-
     return function (dispatch, getState) {
       var firstLoad = !getState().get('topologiesLoaded');
       // dispatch({
@@ -9046,6 +9062,7 @@ function getTopologies(options, dispatch, initialPoll) {
       // });
       var state = getState();
       getNodesDelta(getCurrentTopologyUrl(state), activeTopologyOptionsSelector(state), dispatch);
+      getNodeMonitorData(dispatch);
       getNodeDetails(state.get('topologyUrlsById'), state.get('currentTopologyId'), activeTopologyOptionsSelector(state), state.get('nodeDetails'), dispatch);
       // Populate search matches on first load
       if (firstLoad && state.get('searchQuery')) {
@@ -9056,34 +9073,6 @@ function getTopologies(options, dispatch, initialPoll) {
         getResourceViewNodesSnapshot(getState, dispatch);
       }
     };
-  });
-
-  return;
-  // Used to resume polling when navigating between pages in Weave Cloud.
-  continuePolling = initialPoll === true ? true : continuePolling;
-  clearTimeout(topologyTimer);
-  var optionsQuery = buildOptionsQuery(options);
-  var url = getApiPath() + '/api/topology?' + optionsQuery;
-  doRequest({
-    url: url,
-    success: function success(res) {
-      if (continuePolling) {
-        dispatch((0, _appActions.receiveTopologies)(res));
-        topologyTimer = setTimeout(function () {
-          getTopologies(options, dispatch);
-        }, _timer.TOPOLOGY_INTERVAL);
-      }
-    },
-    error: function error(req) {
-      log('Error in topology request: ' + req.responseText);
-      dispatch((0, _appActions.receiveError)(url));
-      // Only retry in stand-alone mode
-      if (continuePolling) {
-        topologyTimer = setTimeout(function () {
-          getTopologies(options, dispatch);
-        }, _timer.TOPOLOGY_INTERVAL);
-      }
-    }
   });
 }
 
@@ -9138,7 +9127,7 @@ function goodrainData2scopeData() {
       node.label = item.service_cname;
       node.lineTip = item.lineTip;
       node.labelMinor = '';
-      //根据状态改变颜色用
+      // 根据状态改变颜色用
       node.rank = node.cur_status;
       node.shape = 'hexagon';
       node.stack = true;
@@ -9154,36 +9143,36 @@ function goodrainData2scopeData() {
   if (add.length && cloud.adjacency.length) {
     add.unshift(cloud);
   }
-
   var scopeDataAdd = add;
   scopeData.add = null;
   scopeData.remove = null;
   scopeData.update = null;
-
-  if (newData === "") {
+  if (scopeDataAdd.length === 0) {
+    return scopeData;
+  }
+  if (newData === null) {
     scopeData.add = scopeDataAdd;
   }
 
-  if (newData != "" && newData !== scopeDataAdd) {
-    var newAdjacency = newData[0].adjacency;
-    var scopeAdjacency = scopeDataAdd[0].adjacency;
+  if (newData !== null && newData !== scopeDataAdd) {
+    var newAdjacency = newData[0] && newData[0].adjacency;
+    var scopeAdjacency = scopeDataAdd[0] && scopeDataAdd[0].adjacency;
     scopeData.remove = [];
     scopeData.update = [];
 
-    //remove
+    // remove
     for (var i = 0; i < newAdjacency.length; i++) {
       if (scopeAdjacency.indexOf(newAdjacency[i]) < 0) {
         scopeData.remove.push(newAdjacency[i]);
       }
     }
-
     for (var _i = 0; _i < newData.length; _i++) {
       for (var k = 0; k < scopeDataAdd.length; k++) {
-        //add
+        // add
         if (newData.length !== scopeDataAdd.length || scopeData.remove.length > 0) {
           scopeData.add = scopeDataAdd;
         }
-        //update
+        // update
         if (newData[_i].adjacency !== scopeDataAdd[k].adjacency || newData[_i].cur_status !== scopeDataAdd[k].cur_status) {
           scopeData.update = scopeDataAdd;
         }
@@ -9194,126 +9183,40 @@ function goodrainData2scopeData() {
   newData = scopeData.add == null ? newData : scopeData.add;
   scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : null;
   scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : null;
-
   return scopeData;
 }
 
 // TODO: topologyUrl and options are always used for the current topology so they as arguments
 // can be replaced by the `state` and then retrieved here internally from selectors.
 function getNodesDelta(topologyUrl, options, dispatch) {
-  if (location.href.indexOf('test-data') > -1) {
-    //调试数据
-    var data = {
-      json_data: {
-        "9abc393dbbb1901aff3df5b704d7f3bf": {
-          cur_status: "undeploy",
-          is_internet: true,
-          node_num: 1,
-          service_alias: "grd7f3bf",
-          service_cname: "测试22221",
-          service_id: "9abc393dbbb1901aff3df5b704d7f3bf",
-          status_cn: "未部署"
-        },
-        "630243aab337b9a879ec24f53a4f596c": {
-          cur_status: "running",
-          is_internet: true,
-          node_num: 1,
-          service_alias: "gr4f596c",
-          service_cname: "一飞",
-          service_id: "630243aab337b9a879ec24f53a4f596c",
-          status_cn: "运行中"
-        }
-      },
-      json_svg: {
-        "9abc393dbbb1901aff3df5b704d7f3bf": [],
-        "630243aab337b9a879ec24f53a4f596c": []
-      }
-    };
-    //调试用数据
-    var scopeData = goodrainData2scopeData(data);
-    dispatch((0, _appActions.receiveNodesDelta)(scopeData));
-    return;
-  }
-
-  //如果父级window有挂载获取节点的方法， 则优先调用它
+  // 如果父级window有挂载获取节点的方法， 则优先调用它
   if (window.parent && window.parent.weavescope) {
     var config = window.parent.weavescope || {};
     config.getNodes && dispatch((0, _appActions.receiveNodesDelta)(config.getNodes()));
     return false;
-  } else {
-    // tiem++
-    var windowParent = window.parent;
-    var url = windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl() || '';
-    // const url =  'http://dev.goodrain.org' + '/console/teams/a3ow4qts/topological?group_id=' + 473+'&region=private-center2';
-    doRequest({
-      url: url,
-      success: function success(res) {
-        if (res.code === 200) {
-          var _scopeData = goodrainData2scopeData(res.data.bean);
-          console.log("scopeData回来数据", _scopeData);
-          dispatch((0, _appActions.receiveNodesDelta)(_scopeData));
-        }
-      },
-      error: function error() {
-        // 调试数据
-        // var data = {
-        //   json_data: {
-        //     "9abc393dbbb1901aff3df5b704d7f3bf": {
-        //       cur_status: "undeploy",
-        //       is_internet: true,
-        //       node_num: 1,
-        //       service_alias: "grd7f3bf",
-        //       service_cname: "测试22221",
-        //       service_id: "9abc393dbbb1901aff3df5b704d7f3bf",
-        //       status_cn: "未部署",
-        //     },
-        //     "630243aab337b9a879ec24f53a4f596c": {
-        //       cur_status: "running",
-        //       is_internet: true,
-        //       node_num: 1,
-        //       service_alias: "gr4f596c",
-        //       service_cname: "一飞",
-        //       service_id: "630243aab337b9a879ec24f53a4f596c",
-        //       status_cn: "运行中"
-        //     }
-        //   },
-        //   json_svg:{
-        //     "9abc393dbbb1901aff3df5b704d7f3bf":[],
-        //     "630243aab337b9a879ec24f53a4f596c":[]
-        //   }
-        // }
-        // var datas = {
-        //   json_data: {
-        //     "9abc393dbbb1901aff3df5b704d7f3bf": {
-        //       cur_status: "undeploy",
-        //       is_internet: true,
-        //       node_num: 1,
-        //       service_alias: "grd7f3bf",
-        //       service_cname: "测试22221",
-        //       service_id: "9abc393dbbb1901aff3df5b704d7f3bf",
-        //       status_cn: "未部署",
-        //     },
-        //     "630243aab337b9a879ec24f53a4f596c": {
-        //       cur_status: "closed",
-        //       is_internet: true,
-        //       node_num: 1,
-        //       service_alias: "gr4f596c",
-        //       service_cname: "一飞",
-        //       service_id: "630243aab337b9a879ec24f53a4f596c",
-        //       status_cn: "已关闭"
-        //     }
-        //   },
-        //   json_svg:{
-        //     "9abc393dbbb1901aff3df5b704d7f3bf":[],
-        //     "630243aab337b9a879ec24f53a4f596c":[]
-        //   }
-        // }
-        //   const scopeData = goodrainData2scopeData(tiem%2==0?datas:data);
-        //   dispatch(receiveNodesDelta(scopeData));
-        dispatch((0, _appActions.receiveError)(url));
-      }
-    });
   }
+  // tiem++
+  var windowParent = window.parent;
+  var url = windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl() || '';
+  // const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
+  doRequest({
+    url: url,
+    success: function success(res) {
+      if (res.code === 200) {
+        var scopeData = goodrainData2scopeData(res.data.bean);
+        dispatch((0, _appActions.receiveNodesDelta)(scopeData));
+      }
+      setTimeout(function () {
+        getNodesDelta(topologyUrl, options, dispatch);
+      }, 5000);
+    },
+    error: function error() {
+      dispatch((0, _appActions.receiveError)(url));
+      setTimeout(function () {
+        getNodesDelta(topologyUrl, options, dispatch);
+      }, 5000);
+    }
+  });
 
   var optionsQuery = buildOptionsQuery(options);
   // Only recreate websocket if url changed or if forced (weave cloud instance reload);
@@ -9323,16 +9226,10 @@ function getNodesDelta(topologyUrl, options, dispatch) {
   // `topologyUrl` can be undefined initially, so only create a socket if it is truthy
   // and no socket exists, or if we get a new url.
   if (topologyUrl && !socket || topologyUrl && isNewUrl) {
-    //createWebsocket(topologyUrl, optionsQuery, dispatch);
+    // createWebsocket(topologyUrl, optionsQuery, dispatch);
     currentUrl = topologyUrl;
     currentOptions = optionsQuery;
   }
-
-  getNodeMonitorData(dispatch);
-
-  setTimeout(function () {
-    getNodesDelta(topologyUrl, options, dispatch);
-  }, 5000);
 }
 
 function getNodeMonitorData(dispatch) {
@@ -9341,6 +9238,9 @@ function getNodeMonitorData(dispatch) {
   if (getDataFn) {
     getDataFn(function (data) {
       dispatch((0, _appActions.receiveNodesMonitor)(data.list));
+      setTimeout(function () {
+        getNodeMonitorData(dispatch);
+      }, 10000);
     });
   }
 }
@@ -9369,7 +9269,7 @@ function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, d
       url = '/console/teams/' + tenantName + '/topological/services/' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
     }
 
-    //调试用数据
+    // 调试用数据
     // var res = {"service_cname": "dev-goodrain-app", "total_memory": 128, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "deploy_version": "20170704174434", "replicas": 1, "service_alias": "dev-goodrain-app", "cur_status": "running",
     // "port_list": {"5000": {"is_outer_service": true, "is_inner_service": false, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "port_alias": "APPLICATION", "container_port": 5000, "mapping_port": 0, "protocol": "http", "tenant_id": "b7584c080ad24fafaa812a7739174b50", "outer_url": "dev-goodrain-app.goodrain.ali-sh.goodrain.net:10080", "ID": 9436}},
     // "relation_list": {
@@ -15206,7 +15106,7 @@ function getUrlState(state) {
 
   var urlState = {
     controlPipe: cp ? cp.toJS() : null,
-    nodeDetails: nodeDetails.toJS(),
+    nodeDetails: nodeDetails ? nodeDetails.toJS() : null,
     topologyViewMode: state.get('topologyViewMode'),
     pinnedMetricType: state.get('pinnedMetricType'),
     pinnedSearches: state.get('pinnedSearches').toJS(),
@@ -50863,7 +50763,6 @@ var NodeDetails = function (_React$Component) {
 
       // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
       var nodeInfo = this.props.nodes.get(this.props.id).toJS();
-      console.log("nodeInfo", nodeInfo);
       var nodeDetails = details;
       //服务列表
       var portList = nodeDetails.port_list || {};
@@ -50906,7 +50805,23 @@ var NodeDetails = function (_React$Component) {
                 _react2.default.createElement('span', { style: { verticalAlign: 'middle' }, className: 'icon-angle-right' })
               )
             ),
-            nodeDetails.id == 'The Internet' ? null : _react2.default.createElement(
+            nodeDetails.id == 'The Internet' ? null : nodeDetails.cur_status == "third_party" ? _react2.default.createElement(
+              'div',
+              { className: 'node-details-header-relatives' },
+              _react2.default.createElement(
+                'table',
+                { style: { width: '100%' } },
+                _react2.default.createElement(
+                  'tr',
+                  null,
+                  _react2.default.createElement(
+                    'td',
+                    { style: { width: '100%', textAlign: 'center' } },
+                    '\u7B2C\u4E09\u65B9\u670D\u52A1'
+                  )
+                )
+              )
+            ) : _react2.default.createElement(
               'div',
               { className: 'node-details-header-relatives' },
               _react2.default.createElement(

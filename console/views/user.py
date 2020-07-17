@@ -4,31 +4,26 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.exceptions import UserNotExistError
+from console.repositories.oauth_repo import oauth_user_repo
 from console.exception.main import ServiceHandleException
 from console.repositories.user_repo import user_repo
 from console.repositories.team_repo import team_repo
-from console.services.auth import login
-from console.services.auth import logout
+from console.services.auth import login, logout
 from console.services.enterprise_services import enterprise_services
-from console.services.exception import ErrAdminUserDoesNotExist
-from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.services.perm_services import user_kind_role_service
-from console.views.base import AlowAnyApiView
-from console.views.base import BaseApiView
-from console.views.base import JWTAuthApiView
-from console.views.base import TeamOwnerView
-from console.views.base import EnterpriseAdminView
+from console.views.base import AlowAnyApiView, BaseApiView, JWTAuthApiView, TeamOwnerView, EnterpriseAdminView
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser
 from www.services import user_svc
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 
@@ -242,6 +237,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 data.append({
                     "email": user.email,
                     "nick_name": user.nick_name,
+                    "real_name": (user.nick_name if user.real_name is None else user.real_name),
                     "user_id": user.user_id,
                     "create_time": user.create_time,
                     "default_favorite_name": default_favorite_name,
@@ -251,25 +247,34 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, *args, **kwargs):
+
         tenant_name = request.data.get("tenant_name", None)
         user_name = request.data.get("user_name", None)
         email = request.data.get("email", None)
         password = request.data.get("password", None)
         re_password = request.data.get("re_password", None)
         role_ids = request.data.get("role_ids", None)
+        phone = request.data.get("phone", None)
+        real_name = request.data.get("real_name", None)
         tenant = team_services.get_tenant_by_tenant_name(tenant_name)
         if len(password) < 8:
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
             # 校验用户信息
-        is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+        is_pass, msg = user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
         if not is_pass:
             result = general_message(403, "user information is not passed", msg)
             return Response(result)
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         # 创建用户
-        user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
+        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+
+        if oauth_instance:
+            user = user_services.create_enterprise_center_user_set_password(user_name, email, password, "admin add", enterprise,
+                                                                            client_ip, phone, real_name, oauth_instance)
+        else:
+            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone)
         result = general_message(200, "success", "添加用户成功")
         if tenant:
             create_perm_param = {
@@ -288,12 +293,19 @@ class EnterPriseUsersCLView(JWTAuthApiView):
 
 
 class EnterPriseUsersUDView(JWTAuthApiView):
+    @transaction.atomic()
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
-        user_name = request.data.get("user_name", None)
-        email = request.data.get("email", None)
         password = request.data.get("password", None)
-        user = user_services.update_user_set_password(enterprise_id, user_id, user_name, email, password)
+        real_name = request.data.get("real_name", None)
+        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name)
         user.save()
+        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+        if oauth_instance:
+            data = {
+                "password": password,
+                "real_name": real_name,
+            }
+            oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
         result = general_message(200, "success", "更新用户成功")
         return Response(result, status=200)
 
@@ -303,6 +315,11 @@ class EnterPriseUsersUDView(JWTAuthApiView):
             result = general_message(400, "fail", "未找到该用户")
             return Response(result, 403)
         user_services.delete_user(user_id)
+        oauth_instance, oauth_user = user_services.check_user_is_enterprise_center_user(user_id)
+        if oauth_instance:
+            oauth_instance.delete_user(enterprise_id, user.enterprise_center_user_id)
+        all_oauth_user = oauth_user_repo.get_all_user_oauth(user_id)
+        all_oauth_user.delete()
         result = general_message(200, "success", "删除用户成功")
         return Response(result, status=200)
 

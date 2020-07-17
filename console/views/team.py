@@ -642,6 +642,7 @@ class JoinTeamView(JWTAuthApiView):
         :param kwargs:
         :return:
         """
+        logger.debug('-------3333------->{0}'.format(request.data))
         user_id = request.data.get("user_id", None)
         team_names = request.data.get("team_name", None)
         is_pass = request.data.get("is_pass", 0)
@@ -698,7 +699,7 @@ class AllUserView(JWTAuthApiView):
                 enterprise_id = enter.enterprise_id
             enter = enterprise_services.get_enterprise_by_id(enterprise_id=enterprise_id)
             if user_name:
-                euser = user_services.get_user_by_user_name(user_name)
+                euser = user_services.get_user_by_user_name(enterprise_id, user_name)
                 list = []
                 if not euser:
                     result = general_message("0000", "success", "查询成功", list=list, total=0)
@@ -809,42 +810,38 @@ class AdminAddUserView(JWTAuthApiView):
               paramType: form
 
         """
-        try:
-            tenant_name = request.data.get("tenant_name", None)
-            user_name = request.data.get("user_name", None)
-            email = request.data.get("email", None)
-            password = request.data.get("password", None)
-            re_password = request.data.get("re_password", None)
-            role_ids = request.data.get("role_ids", None)
-            if len(password) < 8:
-                result = general_message(400, "len error", "密码长度最少为8位")
+        tenant_name = request.data.get("tenant_name", None)
+        user_name = request.data.get("user_name", None)
+        email = request.data.get("email", None)
+        password = request.data.get("password", None)
+        re_password = request.data.get("re_password", None)
+        role_ids = request.data.get("role_ids", None)
+        if len(password) < 8:
+            result = general_message(400, "len error", "密码长度最少为8位")
+            return Response(result)
+        if not tenant_name:
+            result = general_message(400, "not tenant", "团队不能为空")
+            return Response(result)
+        if role_ids and tenant_name:
+            team = team_services.get_tenant_by_tenant_name(tenant_name)
+            if not team:
+                raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
+            # 校验用户信息
+            is_pass, msg = user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
+            if not is_pass:
+                result = general_message(403, "user information is not passed", msg)
                 return Response(result)
-            if not tenant_name:
-                result = general_message(400, "not tenant", "团队不能为空")
-                return Response(result)
-            if role_ids and tenant_name:
-                team = team_services.get_tenant_by_tenant_name(tenant_name)
-                if not team:
-                    raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
-                # 校验用户信息
-                is_pass, msg = user_services.check_params(user_name, email, password, re_password)
-                if not is_pass:
-                    result = general_message(403, "user information is not passed", msg)
-                    return Response(result)
-                client_ip = user_services.get_client_ip(request)
-                enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
-                # 创建用户
-                user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
-                # 创建用户团队关系表
-                team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
-                user.is_active = True
-                user.save()
-                result = general_message(200, "success", "添加用户成功")
-            else:
-                result = general_message(400, "not role", "创建用户时角色不能为空")
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(500, e.message, "系统异常")
+            client_ip = user_services.get_client_ip(request)
+            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            # 创建用户
+            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
+            # 创建用户团队关系表
+            team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
+            user.is_active = True
+            user.save()
+            result = general_message(200, "success", "添加用户成功")
+        else:
+            result = general_message(400, "not role", "创建用户时角色不能为空")
         return Response(result)
 
 
@@ -875,27 +872,36 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
         #     result = general_message(400, "team id null", "团队不存在")
         #     return Response(result, status=400)
         if repo == "1":
+            total_traffic = 0
+            total = 0
+            domain_list = []
             query = "?query=sort_desc(sum(%20ceil(increase("\
                 + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
             sufix = query.format(self.tenant.tenant_id)
-            res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
-            total = len(body["data"]["result"])
-            domains = body["data"]["result"]
-            total_traffic = 0
-            for domain in domains:
-                total_traffic += int(domain["value"][1])
             start = (page - 1) * page_size
             end = page * page_size
+            try:
+                res, body = region_api.get_query_domain_access(region_name, team_name, sufix)
+                total = len(body["data"]["result"])
+                domains = body["data"]["result"]
+                for domain in domains:
+                    total_traffic += int(domain["value"][1])
+                    domain_list = body["data"]["result"][start:end]
+            except Exception as e:
+                logger.debug(e)
             bean = {"total": total, "total_traffic": total_traffic}
-            domain_list = body["data"]["result"][start:end]
             result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
             return Response(result, status=200)
         else:
             start = request.GET.get("start", None)
             end = request.GET.get("end", None)
+            body = {}
             sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
                 + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(self.tenant.tenant_id, start, end)
-            res, body = region_api.get_query_range_data(region_name, team_name, sufix)
+            try:
+                res, body = region_api.get_query_range_data(region_name, team_name, sufix)
+            except Exception as e:
+                logger.debug(e)
             result = general_message(200, "success", "查询成功", bean=body)
             return Response(result, status=200)
 
@@ -912,22 +918,25 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        # team = team_services.get_tenant_by_tenant_name(team_name)
-        # if not team:
-        #     result = general_message(400, "team id null", "团队不存在")
-        #     return Response(result, status=400)
         sufix_outer = "?query=sort_desc(sum(%20ceil(increase("\
             + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(self.tenant.tenant_id)
 
         sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7B"\
             + "tenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(self.tenant.tenant_id)
         # 对外组件访问量
-        res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
-        outer_service_list = body["data"]["result"][0:10]
-
+        try:
+            res, body = region_api.get_query_service_access(region_name, team_name, sufix_outer)
+            outer_service_list = body["data"]["result"][0:10]
+        except Exception as e:
+            logger.debug(e)
+            outer_service_list = []
         # 对外组件访问量
-        res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
-        inner_service_list = body["data"]["result"][0:10]
+        try:
+            res, body = region_api.get_query_service_access(region_name, team_name, sufix_inner)
+            inner_service_list = body["data"]["result"][0:10]
+        except Exception as e:
+            logger.debug(e)
+            inner_service_list = []
 
         # 合并
         service_id_list = []

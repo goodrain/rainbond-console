@@ -16,6 +16,8 @@ from console.models.main import ServiceUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.repositories.app import service_repo
 from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.app import app_market_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.app_actions.properties_changes import PropertiesChanges
@@ -27,6 +29,7 @@ from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
 from console.views.base import RegionTenantHeaderView
+from console.views.base import CloudEnterpriseCenterView
 
 logger = logging.getLogger('default')
 
@@ -107,11 +110,14 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
     def post(self, request, group_id, *args, **kwargs):
         """新增升级订单"""
         group_key = parse_item(request, 'group_key', required=True, error='group_key is a required parameter')
-
+        is_from_cloud = request.data.get("is_from_cloud", False)
+        market_name = request.data.get("market_name", None)
         recode_kwargs = {
             "tenant_id": self.tenant.tenant_id,
             "group_id": int(group_id),
             "group_key": group_key,
+            "is_from_cloud": is_from_cloud,
+            "market_name": market_name,
         }
         # 查询或创建一条升级记录
         app_record = upgrade_service.get_or_create_upgrade_record(**recode_kwargs)
@@ -146,6 +152,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
         group_key = parse_argument(
             request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
+        market_name = request.GET.get("market_name")
 
         # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
@@ -167,12 +174,13 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
                 'type': UpgradeType.ADD.value
             },
             'upgrade_info': service_info,
-        } for service_info in upgrade_service.get_add_services(services, group_key, version)]
+        } for service_info in upgrade_service.get_add_services(self.team.enterprise_id, services, group_key, version,
+                                                               market_name)]
 
         return MessageResponse(msg="success", list=upgrade_info + add_info)
 
 
-class AppUpgradeTaskView(RegionTenantHeaderView):
+class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     def post(self, request, group_id, *args, **kwargs):
         """提交升级任务"""
         rq_args = (
@@ -219,19 +227,25 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
         }
         install_info = {}
         if add_service_infos:
-            old_app, install_from_cloud = market_app_service.get_app_version_by_app_model_id(self.tenant, group_key, version)
+            if pc.install_from_cloud:
+                old_app_model, old_app = app_market_service.cloud_app_model_to_db_model(pc.market, group_key, version)
+            else:
+                old_app_model, old_app = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id, group_key,
+                                                                                        version)
+            old_app.template = old_app.app_template
+            old_app.app_name = old_app_model.app_name
             new_app = deepcopy(old_app)
             # mock app信息
-            template = json.loads(new_app.app_template)
+            template = json.loads(new_app.template)
             template['apps'] = add_service_infos.values()
-            new_app.app_template = json.dumps(template)
+            new_app.template = json.dumps(template)
 
             # 查询某一个云市应用下的所有组件
             services = group_service.get_rainbond_services(int(group_id), group_key)
             try:
                 install_info = market_app_service.install_service_when_upgrade_app(self.tenant, self.response_region, self.user,
                                                                                    group_id, new_app, old_app, services, True,
-                                                                                   install_from_cloud)
+                                                                                   pc.install_from_cloud, pc.market_name)
 
             except ResourceNotEnoughException as re:
                 raise re
@@ -268,7 +282,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView):
             )
 
         upgrade_service.upgrade_database(market_services)
-        upgrade_service.send_upgrade_request(market_services, self.tenant, self.user, app_record, upgrade_service_infos)
+        upgrade_service.send_upgrade_request(market_services, self.tenant, self.user, app_record, upgrade_service_infos,
+                                             self.oauth_instance)
         upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
 
         return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(app_record))

@@ -1,6 +1,6 @@
 FROM rainbond/rainbond-ui:VERSION
 
-LABEL author="zhengys@goodrain.com" 
+LABEL author="zengqg@goodrain.com" 
 
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/
 
@@ -28,7 +28,7 @@ RUN apk update -y && apk add -y git mysql-client && cp /app/ui/hack/Shanghai /us
       && rm -rf /app/ui/www/static/www/weavescope
 
 ENV PORT 7070
-
+ENV IS_OPEN_API=true
 ENV RELEASE_DESC=__RELEASE_DESC__
 
 VOLUME /initdata
