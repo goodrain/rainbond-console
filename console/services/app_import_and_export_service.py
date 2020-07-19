@@ -8,20 +8,17 @@ import logging
 import urllib2
 
 from console.appstore.appstore import app_store
+from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
-from console.repositories.market_app_repo import app_export_record_repo
-from console.repositories.market_app_repo import app_import_record_repo
-from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.market_app_repo import (app_export_record_repo, app_import_record_repo, rainbond_app_repo)
 from console.repositories.region_repo import region_repo
-from console.services.app_config.app_relation_service import AppServiceRelationService
+from console.services.app_config.app_relation_service import \
+    AppServiceRelationService
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantRegionInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.exception.main import RegionNotFound, RecordNotFound
-from console.exception.main import ExportAppError
-from console.exception.main import RbdAppNotFound
-from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -125,13 +122,6 @@ class AppExportService(object):
         response.close()
         return image_base64_string
 
-    def get_app_share_region(self, app, app_version):
-        import_record_id = app_version.record_id
-        import_record = app_import_record_repo.get_import_record(import_record_id)
-        if not import_record:
-            return None
-        return import_record.region
-
     def get_export_status(self, enterprise_id, app, app_version):
         app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(
             enterprise_id, app.app_id, app_version.version)
@@ -196,12 +186,6 @@ class AppExportService(object):
             else:
                 return "http://" + splits_texts[1] + raw_url
 
-            # if len(splits_texts) > 2:
-            #     temp_url = splits_texts[0] + "://" + region.tcpdomain
-            #     return temp_url + ":6060" + raw_url
-            # else:
-            #     return "http://" + region.tcpdomain + ":6060" + raw_url
-
     def get_export_record(self, export_format, app):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
 
@@ -221,28 +205,6 @@ class AppExportService(object):
             return "failed"
         else:
             return "exporting"
-
-    def get_file_down_req(self, export_format, tenant_name, app):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
-        # TODO fix get region bugs, this func need app and version two parameters
-        region = self.get_app_share_region(app)
-
-        download_url = self.__get_down_url(region, export_record.file_path)
-        file_name = export_record.file_path.split("/")[-1]
-        url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
-        if not token:
-            region_info = region_repo.get_region_by_region_name(region)
-            if region_info:
-                token = region_info.token
-
-        req = urllib2.Request(download_url)
-        if token:
-            if token.startswith("Token"):
-                req.add_header("Authorization", "{}".format(token))
-            else:
-                req.add_header("Authorization", "Token {}".format(token))
-
-        return req, file_name
 
 
 class AppImportService(object):
