@@ -8,20 +8,16 @@ from django.db import transaction
 from django.db.models import Q
 
 from console.appstore.appstore import app_store
-from console.models.main import PluginShareRecordEvent
-from console.models.main import RainbondCenterPlugin
+from console.models.main import PluginShareRecordEvent, RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.services.plugin import plugin_service
-from console.services.plugin import plugin_version_service
+from console.services.plugin import plugin_service, plugin_version_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
-from www.models.plugin import PluginConfigGroup
-from www.models.plugin import PluginConfigItems
-from www.models.plugin import TenantPlugin
+from www.models.plugin import (PluginConfigGroup, PluginConfigItems, TenantPlugin)
 from www.services import plugin_svc
 
 market_api = MarketOpenAPI()
@@ -331,7 +327,7 @@ class MarketPluginService(object):
             "event_id": event_id,
             "share_user": nick_name,
             "share_scope": rcp.scope,
-            "image_info": share_plugin.get("plugin_image") if share_plugin else "",
+            "image_info": share_plugin.get("plugin_image") if share_plugin else {},
         }
         sid = transaction.savepoint()
         try:

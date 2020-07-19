@@ -2,39 +2,27 @@
 import datetime
 import json
 import logging
-import time
 import os
+import time
 
 from django.db import transaction
 
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
-from console.exception.main import AbortRequest
-from console.exception.main import RbdAppNotFound
-from console.exception.main import ServiceHandleException
-from console.models.main import PluginShareRecordEvent
-from console.models.main import RainbondCenterApp
-from console.models.main import RainbondCenterAppVersion
-from console.models.main import ServiceShareRecordEvent
+from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
+from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
 from console.repositories.app import app_tag_repo
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.market_app_repo import app_export_record_repo
-from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.plugin import app_plugin_relation_repo
-from console.repositories.plugin import plugin_repo
-from console.repositories.plugin import service_plugin_config_repo
+from console.repositories.app_config import mnt_repo, volume_repo
+from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
+from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.group_service import group_service
-from console.services.plugin import plugin_config_service
-from console.services.plugin import plugin_service
+from console.services.plugin import plugin_config_service, plugin_service
 from console.services.service_services import base_service
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import make_uuid
-from www.models.main import ServiceEvent
-from www.models.main import TenantServiceInfo
+from www.models.main import ServiceEvent, TenantServiceInfo, make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -95,7 +83,7 @@ class ShareService(object):
         relation_list = share_repo.get_relation_list_by_service_ids(service_ids=service_ids)
         if relation_list:
             relation_list_service_ids = relation_list.values_list("service_id", flat=True)
-            dep_service_map = {service_id: []for service_id in relation_list_service_ids}
+            dep_service_map = {service_id: [] for service_id in relation_list_service_ids}
             for dep_service in relation_list:
                 dep_service_info = TenantServiceInfo.objects.filter(
                     service_id=dep_service.dep_service_id, tenant_id=dep_service.tenant_id).first()
@@ -436,26 +424,6 @@ class ShareService(object):
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
-    # def get_service_plugins_config(self, service_id, shared_plugin_info):
-    #     id_key_map = {}
-    #     if shared_plugin_info:
-    #         id_key_map = {i["plugin_id"]: i["plugin_key"] for i in shared_plugin_info}
-    #
-    #     sprs = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service_id)
-    #     service_plugin_config_list = []
-    #     for spr in sprs:
-    #         service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(service_id,
-    #                                                                                              spr.plugin_id,
-    #                                                                                              spr.build_version)
-    #         plugin_service_config_map = dict()
-    #         for var in service_plugin_config_var:
-    #             config_var = var.to_dict()
-    #             config_var["plugin_key"] = id_key_map.get(spr.plugin_id)
-    #             plugin_service_config_map[spr.plugin_id] = config_var
-    #
-    #         service_plugin_config_list.append(plugin_service_config_map)
-    #     return service_plugin_config_list
-
     def wrapper_service_plugin_config(self, service_related_plugin_config, shared_plugin_info):
         """添加plugin key信息"""
         id_key_map = {}
@@ -572,7 +540,7 @@ class ShareService(object):
                     "event_id": event_id,
                     "share_user": user.nick_name,
                     "share_scope": apps_version.scope,
-                    "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else "",
+                    "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else {},
                 }
                 sid = transaction.savepoint()
                 try:
