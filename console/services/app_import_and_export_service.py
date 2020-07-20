@@ -460,7 +460,7 @@ class AppImportService(object):
                 )
                 rainbond_apps.append(rainbond_app)
                 # create a new app version
-                rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
+                rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template))
         rainbond_app_repo.bulk_create_rainbond_app_versions(rainbond_app_versions)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
