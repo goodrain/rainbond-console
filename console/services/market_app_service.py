@@ -11,7 +11,8 @@ from django.db.models import Q
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
-from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
+from console.exception.main import (MarketAppLost, RbdAppNotFound,
+                                    ServiceHandleException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
@@ -24,16 +25,20 @@ from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.properties_changes import PropertiesChanges
-from console.services.app_config import (AppMntService, env_var_service, port_service, probe_service, volume_service)
+from console.services.app_config import (AppMntService, env_var_service,
+                                         port_service, probe_service,
+                                         volume_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.group_service import group_service
-from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
+from console.services.plugin import (app_plugin_service, plugin_config_service,
+                                     plugin_service, plugin_version_service)
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
 from console.utils import slug_util
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo)
+from www.models.main import (TenantEnterprise, TenantEnterpriseToken,
+                             TenantServiceInfo)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -975,6 +980,7 @@ class MarketAppService(object):
             details = None
             min_memory = None
             services = group_service.get_rainbond_services(group.ID, group_key)
+            pc = None
             for service in services:
                 try:
                     pc = PropertiesChanges(service, tenant)
@@ -998,7 +1004,7 @@ class MarketAppService(object):
                     if e.msg != "no found app market":
                         logger.exception(e)
                         raise e
-            if not pc.current_app or not pc.current_version:
+            if not pc or not pc.current_app or not pc.current_version:
                 continue
             dat = {
                 'group_key': group_key,
