@@ -1,10 +1,14 @@
 # -*- coding: utf8 -*-
+import logging
+
 import requests
 
+from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
-from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
+
+logger = logging.getLogger("default")
 
 
 class Gitee(object):
@@ -19,15 +23,16 @@ class Gitee(object):
             "Authorization": self.oauth_token,
         }
 
-    def _api_get(self, url_suffix, params=None):
+    def _api_get(self, url_suffix, params=None, **kwargs):
         url = '/'.join([self._url, url_suffix])
-
         try:
             rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
             if rst.status_code == 200:
                 data = rst.json()
                 if not isinstance(data, (list, dict)):
                     data = None
+                if kwargs.get("get_tatol", False):
+                    return data, rst.headers.get('total_count', 0)
             else:
                 data = None
         except Exception:
@@ -56,17 +61,19 @@ class Gitee(object):
         url_suffix = 'user/repos'
         page = kwargs.get("page", 1)
         per_page = kwargs.get("per_page", 10)
-        if not page:
-            page = 1
         params = {
             "page": page,
             "per_page": per_page,
+            "sort": "updated",
         }
-        return self._api_get(url_suffix, params)
+        return self._api_get(url_suffix, params, get_tatol=True)
 
-    def search_repos(self, full_name, page=1):
-        url_suffix = 'search/repositories?q={full_name}&page={page}&per_page=10'.format(full_name=full_name, page=page)
-        return self._api_get(url_suffix)
+    def search_repos(self, full_name, **kwargs):
+        url_suffix = 'user/repos'
+        page = kwargs.get("page", 1)
+        per_page = kwargs.get("per_page", 10)
+        params = {"page": page, "per_page": per_page, "sort": "pushed", "q": full_name.split("/")[-1]}
+        return self._api_get(url_suffix, params, get_tatol=True)
 
     def get_repo(self, full_name):
         url_suffix = 'repos/{full_name}'.format(full_name=full_name)
@@ -202,7 +209,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         page = kwargs.get("page", 1)
         per_page = kwargs.get("per_page", 10)
         repo_list = []
-        repos = self.api.get_repos(page=page, per_page=per_page)
+        repos, total = self.api.get_repos(page=page, per_page=per_page)
         if repos:
             for repo in repos:
                 repo_list.append({
@@ -216,29 +223,31 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
                     "updated_at": repo["updated_at"],
                     "created_at": repo["created_at"]
                 })
-        return repo_list
+        return repo_list, total
 
     def search_repos(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
         page = int(kwargs.get("page", 1))
         repo_list = []
-        repos = self.api.search_repos(full_name=full_name, page=page)
-        for repo in repos:
-            if repo is None:
-                pass
-            else:
-                repo_list.append({
-                    "project_id": repo["id"],
-                    "project_full_name": repo["full_name"],
-                    "project_name": repo["name"],
-                    "project_description": repo["description"],
-                    "project_url": repo["html_url"],
-                    "project_default_branch": repo["default_branch"],
-                    "project_ssl_url": repo["ssh_url"],
-                    "updated_at": repo["updated_at"],
-                    "created_at": repo["created_at"]
-                })
-        return repo_list
+        search_name = full_name.split("/")
+        owner = search_name[0]
+        query = "/".join(search_name[1:])
+        repos, total = self.api.search_repos(full_name=full_name, page=page, owner=owner, query=query)
+        if repos:
+            for repo in repos:
+                if repo:
+                    repo_list.append({
+                        "project_id": repo["id"],
+                        "project_full_name": repo["full_name"],
+                        "project_name": repo["name"],
+                        "project_description": repo["description"],
+                        "project_url": repo["html_url"],
+                        "project_default_branch": repo["default_branch"],
+                        "project_ssl_url": repo["ssh_url"],
+                        "updated_at": repo["updated_at"],
+                        "created_at": repo["created_at"]
+                    })
+        return repo_list, total
 
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()

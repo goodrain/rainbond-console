@@ -57,7 +57,7 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         limit = request.GET.get('limit', 10)
         plugin_name = request.GET.get('plugin_name', '')
 
-        plugins, total = market_plugin_service.sync_market_plugins(self.tenant, self.user, page, limit, plugin_name)
+        plugins, total = market_plugin_service.sync_market_plugins(self.tenant, page, limit, plugin_name)
         result = general_message(200, "success", "同步成功", list=plugins, total=total)
         return Response(result, 200)
 
@@ -83,7 +83,7 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         plugin_data = request.data
         data = {'plugin_key': plugin_data["plugin_key"], 'version': plugin_data['version']}
 
-        market_plugin_service.sync_market_plugin_templates(self.user, self.tenant, data)
+        market_plugin_service.sync_market_plugin_templates(self.tenant, data)
         result = general_message(200, "success", "同步成功")
         return Response(result, 200)
 

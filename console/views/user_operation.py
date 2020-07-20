@@ -306,6 +306,13 @@ class ChangeLoginPassword(JWTAuthApiView):
                 result = general_message(400, "old and new password agree", "新旧密码一致")
             else:
                 status, info = user_services.update_password(user_id=u.user_id, new_password=new_password)
+                oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+                if oauth_instance:
+                    data = {
+                        "password": new_password,
+                        "real_name": request.user.real_name,
+                    }
+                    oauth_instance.update_user(request.user.enterprise_id, request.user.enterprise_center_user_id, data)
                 if status:
                     code = 200
                     result = general_message(200, "change password success", "密码修改成功")

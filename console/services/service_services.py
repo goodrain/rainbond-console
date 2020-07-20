@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
-import logging
 import json
-
+import logging
 from re import split as re_split
 
+from console.exception.main import RbdAppNotFound, ServiceHandleException
+from console.repositories.app import service_source_repo
+from console.utils.oauth.oauth_types import support_oauth_type
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
-
-from console.repositories.app import service_source_repo
-from console.exception.main import RbdAppNotFound
-from console.utils.oauth.oauth_types import support_oauth_type
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -147,7 +145,7 @@ class BaseService(object):
             return body["list"]
         except Exception as e:
             logger.exception(e)
-            return None
+            return []
 
     def get_apps_deploy_versions(self, region, tenant_name, service_ids):
         data = {"service_ids": service_ids}
@@ -156,7 +154,7 @@ class BaseService(object):
             return body["list"]
         except Exception as e:
             logger.exception(e)
-            return None
+            return []
 
     def get_app_deploy_version(self, region, tenant_name, service_alias):
         try:
@@ -212,6 +210,7 @@ class BaseService(object):
             bean["password"] = service_source.password
         if service.service_source == 'market':
             from console.services.market_app_service import market_app_service
+            from console.services.app import app_market_service
             if service_source:
                 # get from cloud
                 app = None
@@ -219,8 +218,20 @@ class BaseService(object):
                 if service_source.extend_info:
                     extend_info = json.loads(service_source.extend_info)
                     if extend_info and extend_info.get("install_from_cloud", False):
-                        app, app_version = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
-                                                                                 service_source.version)
+                        market_name = extend_info.get("market_name")
+                        bean["install_from_cloud"] = True
+                        try:
+                            market = app_market_service.get_app_market_by_name(
+                                tenant.enterprise_id, market_name, raise_exception=True)
+                            app, app_version = app_market_service.cloud_app_model_to_db_model(
+                                market, service_source.group_key, service_source.version)
+                            bean["market_error_code"] = 200
+                            bean["market_status"] = 1
+                        except ServiceHandleException as e:
+                            logger.debug(e)
+                            bean["market_status"] = 0
+                            bean["market_error_code"] = e.error_code
+                            return bean
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
                 if not app:
@@ -238,6 +249,21 @@ class BaseService(object):
                     bean["version"] = app_version.version
                     bean["group_key"] = app.app_id
         return bean
+
+    def get_not_run_services_request_memory(self, tenant, services):
+        not_run_service_ids = []
+        memory = 0
+        service_ids = [service.service_id for service in services]
+        service_status_list = self.status_multi_service(tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
+        if service_status_list:
+            for status_map in service_status_list:
+                if status_map.get("status") in ["undeploy", "closed"]:
+                    not_run_service_ids.append(status_map.get("service_id"))
+            if not_run_service_ids:
+                for service in services:
+                    if service.service_id in not_run_service_ids:
+                        memory += int(service.min_memory) * int(service.min_node)
+        return memory
 
 
 base_service = BaseService()

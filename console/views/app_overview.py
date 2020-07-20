@@ -13,6 +13,7 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.main import ServiceHandleException
 from console.constants import AppConstants, PluginCategoryConstants
 from console.exception.main import MarketAppLost, RbdAppNotFound
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
@@ -171,6 +172,8 @@ class AppBriefView(AppBaseView):
                 msg = e.msg
             except RbdAppNotFound as e:
                 msg = e.msg
+            except ServiceHandleException as e:
+                logger.debug(e)
         result = general_message(200, "success", msg, bean=self.service.to_dict())
         return Response(result, status=result["code"])
 

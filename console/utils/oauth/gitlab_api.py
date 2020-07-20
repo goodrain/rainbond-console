@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
+import logging
 
 from gitlab import Gitlab
 
+from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
-from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
+
+logger = logging.getLogger("default")
 
 
 class GitlabApiV4MiXin(object):
@@ -55,7 +58,6 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
                 data = rst.json()
-                print data
                 self.access_token = data.get("access_token")
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:
@@ -124,26 +126,35 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         repo_list = []
         if per_page is None:
             per_page = 10
-        for repo in self.api.projects.list(page=page, size=per_page):
+        for repo in self.api.projects.list(page=page, per_page=per_page, order_by="last_activity_at"):
+            if hasattr(repo, "default_branch"):
+                default_branch = repo.default_branch
+            else:
+                default_branch = "master"
             repo_list.append({
                 "project_id": repo.id,
                 "project_full_name": repo.path_with_namespace,
                 "project_name": repo.name,
                 "project_description": repo.description,
                 "project_url": repo.http_url_to_repo,
-                "project_default_branch": repo.default_branch,
+                "project_default_branch": default_branch,
                 "project_ssl_url": repo.ssh_url_to_repo,
                 "updated_at": repo.last_activity_at,
                 "created_at": repo.created_at
             })
-        return repo_list
+        total = len(repo_list)
+        meta = self.api.projects.list(as_list=False)
+        if meta and meta.total:
+            total = meta.total
+        return repo_list, total
 
     def search_repos(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
         page = int(kwargs.get("page", 1))
+        per_page = kwargs.get("per_page", 10)
         repo_list = []
         name = full_name.split("/")[-1]
-        for repo in self.api.projects.list(search=name, page=page):
+        for repo in self.api.projects.list(search=name, page=page, per_page=per_page, order_by="last_activity_at"):
             repo_list.append({
                 "project_id": repo.id,
                 "project_full_name": repo.path_with_namespace,
@@ -155,7 +166,11 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                 "updated_at": repo.last_activity_at,
                 "created_at": repo.created_at
             })
-        return repo_list
+        total = len(repo_list)
+        meta = self.api.projects.list(search=name, as_list=False)
+        if meta and meta.total:
+            total = meta.total
+        return repo_list, total
 
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
@@ -178,20 +193,25 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
 
     def get_branches(self, full_name):
         access_token, _ = self._get_access_token()
-        name = full_name.split("/")[-1]
-        repo = self.api.projects.list(search=name)[0]
+        search_item = full_name.split("/")
+        name = search_item[-1]
+        repos = self.api.projects.list(search=name)
         rst_list = []
-        for branch in repo.protectedbranches.list():
-            rst_list.append(branch.name)
+        for repo in repos:
+            if repo.path_with_namespace == full_name:
+                for branch in repo.branches.list():
+                    rst_list.append(branch.name)
         return rst_list
 
     def get_tags(self, full_name):
         access_token, _ = self._get_access_token()
         name = full_name.split("/")[-1]
-        repo = self.api.projects.list(search=name)[0]
+        repos = self.api.projects.list(search=name)
         rst_list = []
-        for branch in repo.protectedtags.list():
-            rst_list.append(branch.name)
+        for repo in repos:
+            if repo.path_with_namespace == full_name:
+                for branch in repo.tags.list():
+                    rst_list.append(branch.name)
         return rst_list
 
     def get_branches_or_tags(self, type, full_name):

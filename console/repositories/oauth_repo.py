@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 
 from console.models.main import OAuthServices
 from console.models.main import UserOAuthServices
@@ -22,7 +23,12 @@ class OAuthRepo(object):
     def get_oauth_services_by_type(self, oauth_type, eid):
         return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False)
 
-    def get_oauth_services_by_service_id(self, service_id):
+    def get_oauth_services_by_service_id(self, service_id=None):
+        if not service_id:
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                return OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
+            return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
     def open_get_oauth_services_by_service_id(self, service_id):
@@ -170,12 +176,27 @@ class UserOAuthRepo(object):
         except UserOAuthServices.DoesNotExist:
             return None
 
+    def get_all_user_oauth(self, user_id):
+        return UserOAuthServices.objects.filter(user_id=user_id)
+
     def get_user_oauth_by_user_id(self, service_id, user_id):
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, user_id=user_id)
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
+
+    def get_enterprise_center_user_by_user_id(self, user_id):
+        try:
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
+            logger.debug(oauth_service.ID, user_id)
+            oauth_user = UserOAuthServices.objects.filter(service_id=oauth_service.ID, user_id=user_id).first()
+            return oauth_user, oauth_service
+        except (OAuthServices.DoesNotExist, UserOAuthServices.DoesNotExist):
+            return None, None
 
     def get_user_oauth_by_id(self, service_id, id):
         try:

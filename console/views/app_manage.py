@@ -4,15 +4,12 @@
 """
 import logging
 
-from console.exception.main import RbdAppNotFound
-from console.exception.main import AbortRequest
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import AccountOverdueException
-from console.exception.main import CallRegionAPIException
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ServiceHandleException
+from console.enum.component_enum import is_state, is_support
+from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
+                                    ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
@@ -20,13 +17,9 @@ from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
 from console.views.app_config.base import AppBaseView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
-from console.enum.component_enum import is_support, is_state
-from www.apiclient.marketclient import MarketOpenAPI
-
-market_openapi = MarketOpenAPI()
 
 logger = logging.getLogger("default")
 
@@ -35,7 +28,7 @@ app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
 
 
-class StartAppView(AppBaseView):
+class StartAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -55,7 +48,7 @@ class StartAppView(AppBaseView):
 
         """
         try:
-            code, msg = app_manage_service.start(self.tenant, self.service, self.user)
+            code, msg = app_manage_service.start(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
@@ -95,7 +88,7 @@ class StopAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class ReStartAppView(AppBaseView):
+class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -114,7 +107,7 @@ class ReStartAppView(AppBaseView):
               paramType: path
 
         """
-        code, msg = app_manage_service.restart(self.tenant, self.service, self.user)
+        code, msg = app_manage_service.restart(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
         bean = {}
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
@@ -122,7 +115,7 @@ class ReStartAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class DeployAppView(AppBaseView):
+class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -143,7 +136,8 @@ class DeployAppView(AppBaseView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            code, msg, _ = app_deploy_service.deploy(self.tenant, self.service, self.user, version=group_version)
+            code, msg, _ = app_deploy_service.deploy(
+                self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
@@ -202,7 +196,7 @@ class RollBackAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class VerticalExtendAppView(AppBaseView):
+class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -230,7 +224,8 @@ class VerticalExtendAppView(AppBaseView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            code, msg = app_manage_service.vertical_upgrade(self.tenant, self.service, self.user, int(new_memory))
+            code, msg = app_manage_service.vertical_upgrade(
+                self.tenant, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
@@ -243,7 +238,7 @@ class VerticalExtendAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class HorizontalExtendAppView(AppBaseView):
+class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -272,10 +267,12 @@ class HorizontalExtendAppView(AppBaseView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            app_manage_service.horizontal_upgrade(self.tenant, self.service, self.user, int(new_node))
+            app_manage_service.horizontal_upgrade(
+                self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
         except ServiceHandleException as e:
-            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
+            return Response(
+                general_message(e.status_code, e.msg, e.msg_show), status=(400 if e.status_code > 599 else e.status_code))
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -284,7 +281,7 @@ class HorizontalExtendAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class BatchActionView(RegionTenantHeaderView):
+class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     @never_cache
     # TODO 修改权限验证
     def post(self, request, *args, **kwargs):
@@ -323,7 +320,8 @@ class BatchActionView(RegionTenantHeaderView):
         if action == "move":
             self.has_perms([400003])
         service_id_list = service_ids.split(",")
-        code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id)
+        code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id,
+                                                    self.oauth_instance)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
@@ -455,14 +453,14 @@ class ChangeServiceTypeView(AppBaseView):
 
 
 # 更新组件组件
-class UpgradeAppView(AppBaseView):
+class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
         更新
         """
         try:
-            code, msg, _ = app_manage_service.upgrade(self.tenant, self.service, self.user)
+            code, msg, _ = app_manage_service.upgrade(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
@@ -519,24 +517,14 @@ class ChangeServiceUpgradeView(AppBaseView):
 class MarketServiceUpgradeView(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
-        if self.service.service_source != "market":
-            return Response(
-                general_message(400, "non-cloud installed applications require no judgment", "非云市安装的组件无需判断"), status=400)
-
-        # 判断组件状态，未部署的组件不提供升级数据
-        body = region_api.check_service_status(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                               self.tenant.enterprise_id)
-        status = body["bean"]["cur_status"]
-        if status == "undeploy" or status == "unknown":
-            result = general_message(200, "success", "查询成功", list=[])
-            return Response(result, status=result["code"])
-
-        # List the versions that can be upgraded
         versions = []
         try:
             versions = market_app_service.list_upgradeable_versions(self.tenant, self.service)
         except RbdAppNotFound:
             return Response(status=404, data=general_message(404, "service lost", "未找到该组件"))
+        except Exception as e:
+            logger.debug(e)
+            return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
 
 
