@@ -3,7 +3,7 @@ import logging
 
 from django.db.models import Q
 
-from console.exception.exceptions import ExterpriseNotExistError
+from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
 from console.models.main import (Applicants, EnterpriseUserPerm, RainbondCenterApp)
 from console.repositories.base import BaseConnection
 from console.repositories.group import group_repo, group_service_relation_repo
@@ -98,16 +98,19 @@ class TenantEnterpriseRepo(object):
             return None
         active_tenants_list = []
         for tenant in tenants:
-            user = user_repo.get_user_by_user_id(tenant.creater)
+            user = None
+            try:
+                user = user_repo.get_user_by_user_id(tenant.creater)
+            except UserNotExistError:
+                pass
             try:
                 role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
             except UserRoleNotFoundException:
-                if tenant.creater == user.user_id:
+                if user and tenant.creater == user.user_id:
                     role = "owner"
                 else:
                     role = None
             region_name_list = []
-            user = user_repo.get_user_by_user_id(tenant.creater)
             region_list = team_repo.get_team_regions(tenant.tenant_id)
             if region_list:
                 region_name_list = region_list.values_list("region_name", flat=True)
@@ -115,7 +118,7 @@ class TenantEnterpriseRepo(object):
                 "tenant_id": tenant.tenant_id,
                 "team_alias": tenant.tenant_alias,
                 "owner": tenant.creater,
-                "owner_name": user.get_name(),
+                "owner_name": user.get_name() if user else "",
                 "enterprise_id": tenant.enterprise_id,
                 "create_time": tenant.create_time,
                 "team_name": tenant.tenant_name,

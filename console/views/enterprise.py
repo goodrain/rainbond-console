@@ -176,13 +176,17 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
-                    user = user_repo.get_user_by_user_id(tenant.creater)
+                    user = None
+                    try:
+                        user = user_repo.get_user_by_user_id(tenant.creater)
+                    except UserNotExistError:
+                        pass
                     region_list = team_repo.get_team_regions(tenant.tenant_id)
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
                     user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
                     roles = map(lambda x: x["role_name"], user_role_list["roles"])
-                    if tenant.creater == user.user_id:
+                    if user and tenant.creater == user.user_id:
                         roles.append("owner")
                     owner = user_repo.get_by_user_id(tenant.creater)
                     new_join_team.append({
