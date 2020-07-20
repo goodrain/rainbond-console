@@ -8,20 +8,16 @@ from django.db import transaction
 from django.db.models import Q
 
 from console.appstore.appstore import app_store
-from console.models.main import PluginShareRecordEvent
-from console.models.main import RainbondCenterPlugin
+from console.models.main import PluginShareRecordEvent, RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.services.plugin import plugin_service
-from console.services.plugin import plugin_version_service
+from console.services.plugin import plugin_service, plugin_version_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid
-from www.models.plugin import PluginConfigGroup
-from www.models.plugin import PluginConfigItems
-from www.models.plugin import TenantPlugin
+from www.models.plugin import (PluginConfigGroup, PluginConfigItems, TenantPlugin)
 from www.services import plugin_svc
 
 market_api = MarketOpenAPI()
@@ -92,7 +88,7 @@ class MarketPluginService(object):
 
         return len(plugins), data
 
-    def sync_market_plugins(self, tenant, user, page, limit, plugin_name=''):
+    def sync_market_plugins(self, tenant, page, limit, plugin_name=''):
         market_plugins, total = market_api.get_plugins(tenant.tenant_id, page, limit, plugin_name)
 
         plugins = RainbondCenterPlugin.objects.filter(enterprise_id__in=["public", tenant.enterprise_id])
@@ -105,7 +101,7 @@ class MarketPluginService(object):
 
         return market_plugins, total
 
-    def sync_market_plugin_templates(self, user, tenant, plugin_data):
+    def sync_market_plugin_templates(self, tenant, plugin_data):
         plugin_template = market_api.get_plugin_templates(tenant.tenant_id, plugin_data.get('plugin_key'),
                                                           plugin_data.get('version'))
         market_plugin = plugin_template.get('plugin')
@@ -129,8 +125,8 @@ class MarketPluginService(object):
             user_name = market_plugin.get('share_user')
             if user_name:
                 try:
-                    new_user = user_repo.get_user_by_username(user_name)
-                    rcp.share_user = new_user.user_id
+                    user = user_repo.get_enterprise_user_by_username(tenant.enterprise_id, user_name)
+                    rcp.share_user = user.user_id
                 except Exception as e:
                     logger.exception(e)
 
@@ -212,7 +208,7 @@ class MarketPluginService(object):
 
             plugin_template["build_version"] = plugin_version.to_dict()
 
-            plugin_info["plugin_image"] = app_store.get_image_connection_info(plugin_info["scope"], tenant_name)
+            plugin_info["plugin_image"] = app_store.get_app_hub_info(plugin_info["scope"], tenant_name, tenant.enterprise_id)
             if not plugin_info["plugin_image"]:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -331,7 +327,7 @@ class MarketPluginService(object):
             "event_id": event_id,
             "share_user": nick_name,
             "share_scope": rcp.scope,
-            "image_info": share_plugin.get("plugin_image") if share_plugin else "",
+            "image_info": share_plugin.get("plugin_image") if share_plugin else {},
         }
         sid = transaction.savepoint()
         try:

@@ -11,16 +11,15 @@ from rest_framework.response import Response
 from console.exception.main import ServiceHandleException
 from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
+from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.region_services import region_services
-from www.apiclient.regionapi import RegionInvokeApi
 from console.utils.timeutil import time_to_str
-from openapi.serializer.ent_serializers import EnterpriseInfoSerializer
-from openapi.serializer.ent_serializers import ListEntsRespSerializer
-from openapi.serializer.ent_serializers import UpdEntReqSerializer
-from openapi.serializer.ent_serializers import EnterpriseSourceSerializer
-from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
+from openapi.serializer.config_serializers import EnterpriseConfigSeralizer
+from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer, ListEntsRespSerializer,
+                                                UpdEntReqSerializer)
+from openapi.views.base import BaseOpenAPIView, ListAPIView
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -57,7 +56,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="更新企业信息",
         query_serializer=UpdEntReqSerializer,
-        responses={200: None},
+        responses={},
         tags=['openapi-entreprise'],
     )
     def put(self, req, eid):
@@ -94,7 +93,11 @@ class EnterpriseSourceView(BaseOpenAPIView):
         regions = region_services.get_regions_by_enterprise_id(eid)
         for region in regions:
             try:
-                res, body = region_api.get_region_resources(eid, region.region_name)
+                # Exclude development clusters
+                if "development" in region.region_type:
+                    logger.debug("{0} region type is development in enterprise {1}".format(region.region_name, eid))
+                    continue
+                res, body = region_api.get_region_resources(eid, region=region.region_name)
                 rst = body.get("bean")
                 if res.get("status") == 200 and rst:
                     data["used_cpu"] += rst.get("req_cpu", 0)
@@ -140,3 +143,26 @@ class EntUserInfoView(BaseOpenAPIView):
 
         result = {"list": admin_list, "total": admins_num}
         return Response(result, status.HTTP_200_OK)
+
+
+class EnterpriseConfigView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取企业配置信息",
+        responses={200: EnterpriseConfigSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        key = req.GET.get("key", None)
+        ent = enterprise_services.get_enterprise_by_id(self.enterprise.enterprise_id)
+        if ent is None:
+            return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
+        ent_config = EnterpriseConfigService(self.enterprise.enterprise_id).initialization_or_get_config
+        if key is None:
+            serializer = EnterpriseConfigSeralizer(data=ent_config)
+        elif key in ent_config.keys():
+            serializer = EnterpriseConfigSeralizer(data={key: ent_config[key]})
+        else:
+            raise ServiceHandleException(
+                status_code=404, msg="no found config key {}".format(key), msg_show=u"企业没有 {} 配置".format(key))
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

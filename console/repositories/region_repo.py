@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
 
+from console.exception.main import RegionNotFound
 from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
@@ -39,9 +40,9 @@ class RegionRepo(object):
         else:
             return None
 
-    def get_usable_regions(self):
+    def get_usable_regions(self, enterprise_id):
         """获取可使用的数据中心"""
-        usable_regions = RegionConfig.objects.filter(status="1")
+        usable_regions = RegionConfig.objects.filter(status="1", enterprise_id=enterprise_id)
         return usable_regions
 
     def get_team_opened_region(self, team_name):
@@ -51,6 +52,12 @@ class RegionRepo(object):
 
     def get_region_by_region_name(self, region_name):
         region_configs = RegionConfig.objects.filter(region_name=region_name)
+        if region_configs:
+            return region_configs[0]
+        return None
+
+    def get_enterprise_region_by_region_name(self, enterprise_id, region_name):
+        region_configs = RegionConfig.objects.filter(enterprise_id=enterprise_id, region_name=region_name)
         if region_configs:
             return region_configs[0]
         return None
@@ -83,6 +90,9 @@ class RegionRepo(object):
         if query:
             return RegionConfig.objects.filter(Q(region_name__constains=query) | Q(region_alias__constains=query)).all()
         return RegionConfig.objects.all()
+
+    def get_regions_by_region_ids(self, enterprise_id, region_ids):
+        return RegionConfig.objects.filter(region_id__in=region_ids, enterprise_id=enterprise_id)
 
     def get_regions_by_tenant_ids(self, tenant_ids):
         return TenantRegionInfo.objects.filter(tenant_id__in=tenant_ids, is_init=True).values_list("region_name", flat=True)
@@ -140,6 +150,11 @@ class RegionRepo(object):
         result = conn.query(sql)
         return result[0]["total"]
 
+    def del_by_enterprise_region_id(self, enterprise_id, region_id):
+        region = RegionConfig.objects.get(region_id=region_id, enterprise_id=enterprise_id)
+        region.delete()
+        return region
+
     def del_by_region_id(self, region_id):
         region = RegionConfig.objects.get(region_id=region_id)
         region.delete()
@@ -147,6 +162,32 @@ class RegionRepo(object):
 
     def get_region_by_enterprise_id(self, eid):
         return TenantRegionInfo.objects.filter(enterprise_id=eid).first()
+
+    def get_regions_by_enterprise_id(self, eid, status=None):
+        if status:
+            return RegionConfig.objects.filter(enterprise_id=eid, status=status)
+        return RegionConfig.objects.filter(enterprise_id=eid)
+
+    def get_region_by_id(self, eid, region_id):
+        return RegionConfig.objects.filter(enterprise_id=eid, region_id=region_id).first()
+
+    def update_enterprise_region(self, eid, region_id, data):
+        region = self.get_region_by_id(eid, region_id)
+        if not region:
+            raise RegionNotFound("region no found")
+        region.region_alias = data.get("region_alias")
+        region.url = data.get("url")
+        region.wsurl = data.get("wsurl")
+        region.httpdomain = data.get("httpdomain")
+        region.tcpdomain = data.get("tcpdomain")
+        if data.get("scope"):
+            region.scope = data.get("scope")
+        region.ssl_ca_cert = data.get("ssl_ca_cert")
+        region.cert_file = data.get("cert_file")
+        region.desc = data.get("desc")
+        region.key_file = data.get("key_file")
+        region.save()
+        return region
 
 
 region_repo = RegionRepo()

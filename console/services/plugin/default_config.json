@@ -374,7 +374,7 @@
   },
   "filebeat_log_plugin": {
     "plugin_alias": "fileBeat日志收集插件",
-    "desc": "该插件支持通过fileBeat日志收集器收集日志信息到ELK集群中，完成日志的收集、分析功能",
+    "desc": "该插件支持通过fileBeat日志收集器收集日志信息到ELK集群中，完成日志的收集、分析功能(需要访问公网安装)",
     "category": "general-plugin",
     "code_repo": "",
     "build_source": "image",
@@ -472,7 +472,7 @@
   },
   "logtail_log_plugin": {
     "plugin_alias": "阿里云日志服务收集插件",
-    "desc": "该插件支持通过logtail日志收集器收集日志信息到阿里云日志服务中，完成日志的收集、分析功能",
+    "desc": "该插件支持通过logtail日志收集器收集日志信息到阿里云日志服务中，完成日志的收集、分析功能(需要访问公网安装)",
     "category": "general-plugin",
     "code_repo": "",
     "build_source": "image",

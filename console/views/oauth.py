@@ -1,26 +1,22 @@
 # -*- coding: utf8 -*-
 import json
 import logging
-import datetime
+from urlparse import urlsplit
 
-from django.shortcuts import redirect
-
-from rest_framework.response import Response
+from django.http import HttpResponseRedirect
 from rest_framework import status
+from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
 
+from console.exception.main import ServiceHandleException
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
-from console.views.base import JWTAuthApiView, AlowAnyApiView, EnterpriseAdminView
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
-from console.repositories.user_repo import user_repo
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import NoSupportOAuthType
-from console.utils.oauth.oauth_types import support_oauth_type
-from www.utils.return_message import error_message
-
+from console.services.oauth_service import oauth_sev_user_service
+from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
+from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
+from www.utils.return_message import error_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -45,7 +41,6 @@ class OauthConfig(EnterpriseAdminView):
         data = request.data.get("oauth_services")
         enable = data.get("enable")
         EnterpriseConfigService(request.user.enterprise_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
-
         rst = {"data": {"bean": {"oauth_services": data}}}
         return Response(rst, status=status.HTTP_200_OK)
 
@@ -148,15 +143,14 @@ class EnterpriseOauthService(EnterpriseAdminView):
     def post(self, request, enterprise_id, *args, **kwargs):
         values = request.data.get("oauth_services")
         try:
-            services = oauth_repo.create_or_update_console_oauth_services(values, enterprise_id)
+            services = oauth_repo.create_or_update_oauth_services(values, enterprise_id)
         except Exception as e:
             logger.debug(e.message)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
-        service = oauth_repo.get_conosle_oauth_service(enterprise_id)
-        api = get_oauth_instance(service.oauth_type, service, None)
-        authorize_url = api.get_authorize_url()
         data = []
         for service in services:
+            api = get_oauth_instance(service.oauth_type, service, None)
+            authorize_url = api.get_authorize_url()
             data.append({
                 "service_id": service.ID,
                 "name": service.name,
@@ -195,16 +189,22 @@ class OAuthServiceRedirect(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
+        service = oauth_repo.get_oauth_services_by_service_id(service_id)
         path = "/#/oauth/callback?service_id={}&code={}"
-        return redirect(to=path.format(service_id, code))
+        return HttpResponseRedirect(path.format(service.ID, code))
 
 
 class OAuthServerAuthorize(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
+        domain = request.GET.get("domain")
+        home_split_url = None
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            if oauth_service.oauth_type == "enterprisecenter" and domain:
+                home_split_url = urlsplit(oauth_service.home_url)
+                oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
@@ -216,69 +216,22 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            user, access_token, refresh_token = api.get_user_info(code=code)
+            oauth_user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.debug(e.message)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
-        user_name = user.name
-        user_id = str(user.id)
-        user_email = user.email
-        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=user_id)
-
-        if authenticated_user is not None:
-            authenticated_user.oauth_user_id = user_id
-            authenticated_user.oauth_user_name = user_name
-            authenticated_user.oauth_user_email = user_email
-            authenticated_user.access_token = access_token
-            authenticated_user.refresh_token = refresh_token
-            authenticated_user.code = code
-            authenticated_user.save()
-            if authenticated_user.user_id is not None:
-                login_user = user_repo.get_by_user_id(authenticated_user.user_id)
-                payload = jwt_payload_handler(login_user)
-                token = jwt_encode_handler(payload)
-                response = Response({"data": {"bean": {"token": token}}}, status=status.HTTP_200_OK)
-                if api_settings.JWT_AUTH_COOKIE:
-                    expiration = (datetime.datetime.now() + api_settings.JWT_EXPIRATION_DELTA)
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
-                return response
-
-            else:
-                rst = {
-                    "oauth_user_name": user_name,
-                    "oauth_user_id": user_id,
-                    "oauth_user_email": user_email,
-                    "service_id": authenticated_user.service_id,
-                    "oauth_type": oauth_service.oauth_type,
-                    "is_authenticated": authenticated_user.is_authenticated,
-                    "code": code,
-                }
-                msg = "user is not authenticated"
-                return Response({"data": {"bean": {"result": rst, "msg": msg}}}, status=status.HTTP_200_OK)
-        else:
-            usr = oauth_user_repo.save_oauth(
-                oauth_user_id=user_id,
-                oauth_user_name=user_name,
-                oauth_user_email=user_email,
-                code=code,
-                service_id=service_id,
-                access_token=access_token,
-                refresh_token=refresh_token,
-                is_authenticated=True,
-                is_expired=False,
-            )
-            rst = {
-                "oauth_user_name": usr.oauth_user_name,
-                "oauth_user_id": usr.oauth_user_id,
-                "oauth_user_email": usr.oauth_user_email,
-                "service_id": usr.service_id,
-                "oauth_type": oauth_service.oauth_type,
-                "is_authenticated": usr.is_authenticated,
-                "code": code,
-            }
-            msg = "user is not authenticated"
-            return Response({"data": {"bean": {"result": rst, "msg": msg}}}, status=status.HTTP_200_OK)
+        if api.is_communication_oauth():
+            logger.debug(oauth_user.enterprise_domain)
+            logger.debug(domain.split(".")[0])
+            logger.debug(home_split_url.netloc.split("."))
+            if oauth_user.enterprise_domain != domain.split(".")[0] and \
+                    domain.split(".")[0] != home_split_url.netloc.split(".")[0]:
+                raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
+            client_ip = request.META.get("REMOTE_ADDR", None)
+            oauth_user.client_ip = client_ip
+            oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
+        return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)
 
 
 class OAuthUserInfo(AlowAnyApiView):
@@ -420,21 +373,21 @@ class OAuthGitUserRepositories(JWTAuthApiView):
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            rst = {"data": {"bean": {"repositories": []}}, "status": 404, "msg_show": u"未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
+            rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": u"未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
         service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
         if not service.is_git_oauth():
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
+            rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             if len(search) > 0 and search is not None:
                 true_search = oauth_user.oauth_user_name + '/' + search.split("/")[-1]
-                data = service.search_repos(true_search, page=page)
+                data, total = service.search_repos(true_search, page=page)
             else:
-                data = service.get_repos(page=page)
+                data, total = service.get_repos(page=page)
             rst = {
                 "data": {
                     "bean": {
@@ -443,14 +396,14 @@ class OAuthGitUserRepositories(JWTAuthApiView):
                         "service_id": service_id,
                         "service_type": oauth_service.oauth_type,
                         "service_name": oauth_service.name,
-                        "total": 10
+                        "total": total
                     }
                 }
             }
             return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": u"Access Token 已过期"}
+            logger.exception(e)
+            rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": u"Access Token 已过期"}
             return Response(rst, status=status.HTTP_200_OK)
 
 
@@ -585,12 +538,20 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         body["username"] = None
         body["password"] = None
         body["source_body"] = source_body
-        res, body = region_api.service_source_check(region, tenant, body)
-        return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
+        try:
+            res, body = region_api.service_source_check(region, tenant, body)
+            return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            logger.debug(e)
+            raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
 
     def get(self, request, service_id):
         region = request.GET.get("region")
         tenant_name = request.GET.get("tenant_name")
         check_uuid = request.GET.get("check_uuid")
-        res, body = region_api.get_service_check_info(region, tenant_name, check_uuid)
-        return Response({"data": body}, status=status.HTTP_200_OK)
+        try:
+            res, body = region_api.get_service_check_info(region, tenant_name, check_uuid)
+            return Response({"data": body}, status=status.HTTP_200_OK)
+        except (region_api.CallApiError, ServiceHandleException) as e:
+            logger.debug(e)
+            raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")

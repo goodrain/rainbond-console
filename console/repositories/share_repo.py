@@ -28,11 +28,7 @@ class ShareRepo(object):
             return []
 
     def get_relation_list_by_service_ids(self, service_ids):
-        relation_list = TenantServiceRelation.objects.filter(service_id__in=service_ids)
-        if relation_list:
-            return relation_list
-        else:
-            return []
+        return TenantServiceRelation.objects.filter(service_id__in=service_ids)
 
     def get_env_list_by_service_ids(self, service_ids):
         env_list = TenantServiceEnvVar.objects.filter(service_id__in=service_ids)

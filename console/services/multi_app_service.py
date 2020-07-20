@@ -66,7 +66,9 @@ class MultiAppService(object):
                                         service.clone_url,
                                         service.git_project_id,
                                         service.code_version,
-                                        service.server_type)
+                                        service.server_type,
+                                        oauth_service_id=service.oauth_service_id,
+                                        git_full_name=service.git_full_name)
             if code != 200:
                 logger.error("Multiple services; Service alias: {}; error creating service".format(service.service_alias))
                 transaction.savepoint_rollback(tx)

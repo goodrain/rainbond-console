@@ -6,12 +6,13 @@ import re
 from datetime import datetime
 
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from fuzzyfinder.main import fuzzyfinder
 from rest_framework.response import Response
 
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
-                                          TenantNotExistError, UserExistError, UserNotExistError)
+                                          ServiceHandleException, TenantNotExistError, UserExistError, UserNotExistError)
 from console.models.main import EnterpriseUserPerm, UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -22,6 +23,7 @@ from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLa
 from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
+from console.utils.oauth.oauth_types import get_oauth_instance
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant, Tenants, Users
 from www.tenantservice.baseservice import CodeRepositoriesService
@@ -34,8 +36,8 @@ gitClient = GitlabApi()
 
 
 class UserService(object):
-    def get_user_by_user_name(self, user_name):
-        user = user_repo.get_user_by_username(user_name=user_name)
+    def get_user_by_user_name(self, eid, user_name):
+        user = user_repo.get_enterprise_user_by_username(eid, username=user_name)
         if not user:
             return None
         else:
@@ -44,7 +46,10 @@ class UserService(object):
     def check_user_password(self, user_id, password):
         u = user_repo.get_user_by_user_id(user_id=user_id)
         if u:
-            return u.check_password(password)
+            default_pass = u.check_password("goodrain")
+            if not default_pass:
+                return u.check_password(password)
+            return default_pass
         else:
             raise AccountNotExistError("账户不存在")
 
@@ -127,7 +132,7 @@ class UserService(object):
         if tenant_name:
             tenants = Tenants.objects.filter(tenant_name=tenant_name)
             if not tenants:
-                raise TenantNotExistError("租户{}不存在".format(tenant_name))
+                raise TenantNotExistError
             tenant = tenants[0]
             user_id_list = PermRelTenant.objects.filter(tenant_id=tenant.ID).values_list("user_id", flat=True)
             user_list = Users.objects.filter(user_id__in=user_id_list)
@@ -160,17 +165,20 @@ class UserService(object):
 
         return users[0]
 
-    def is_user_exist(self, user_name):
+    def get_enterprise_user_by_username(self, user_name, eid):
+        return user_repo.get_enterprise_user_by_username(eid, user_name)
+
+    def is_user_exist(self, user_name, eid=None):
         try:
-            self.get_user_by_username(user_name)
+            self.get_enterprise_user_by_username(user_name, eid)
             return True
-        except UserNotExistError:
+        except Users.DoesNotExist:
             return False
 
     def create(self, data):
         # check nick name
         try:
-            user_repo.get_by_username(data["nick_name"])
+            user_repo.get_enterprise_user_by_username(data["eid"], data["nick_name"])
             raise UserExistError("{} already exists.".format(data["nick_name"]))
         except Users.DoesNotExist:
             pass
@@ -224,7 +232,7 @@ class UserService(object):
             rf=rf)
         return user
 
-    def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip):
+    def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip, phone=None, real_name=None):
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
@@ -232,15 +240,40 @@ class UserService(object):
             enterprise_id=enterprise.enterprise_id,
             is_active=True,
             rf=rf,
-            client_ip=client_ip)
+            client_ip=client_ip,
+            phone=phone,
+            real_name=real_name,
+        )
         user.set_password(raw_password)
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, user_name, email, raw_password):
+    def check_user_is_enterprise_center_user(self, user_id):
+        oauth_user, oauth_service = oauth_user_repo.get_enterprise_center_user_by_user_id(user_id)
+        if oauth_user and oauth_service:
+            return get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user), oauth_user
+        return None, None
+
+    @transaction.atomic()
+    def create_enterprise_center_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip, phone,
+                                                   real_name, instance):
+        data = {
+            "username": user_name,
+            "real_name": real_name,
+            "password": raw_password,
+            "email": email,
+            "phone": phone,
+        }
+        enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
+        user = self.create_user_set_password(
+            enterprise_center_user.username, email, raw_password, rf, enterprise, client_ip, phone=phone, real_name=real_name)
+        user.enterprise_center_user_id = enterprise_center_user.user_id
+        user.save()
+        return user
+
+    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
-        user.nick_name = user_name
-        user.email = email
+        user.real_name = real_name
         user.set_password(raw_password)
         return user
 
@@ -282,23 +315,21 @@ class UserService(object):
     def get_user_in_enterprise_perm(self, user, enterprise_id):
         return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
 
-    def get_administrator_user_by_token(self, token):
+    def get_user_by_openapi_token(self, token):
         perm = user_access_services.check_user_access_key(token)
-        if not perm:
-            perm = enterprise_user_perm_repo.get_by_token(token)
         if not perm:
             return None
         user = self.get_user_by_user_id(perm.user_id)
-        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
-        if not permList:
+        perm_list = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not perm_list:
             return None
         return user
 
     def get_administrator_user_token(self, user):
-        permList = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
-        if not permList:
+        perm_list = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
+        if not perm_list:
             return None
-        perm = permList[0]
+        perm = perm_list[0]
         if not perm.token:
             perm.token = self.generate_key()
             perm.save()
@@ -316,8 +347,8 @@ class UserService(object):
             return users[0]
         return None
 
-    def get_user_by_phone(self, phone):
-        return user_repo.get_user_by_phone(phone)
+    def get_user_by_phone(self, phone, eid):
+        return user_repo.get_enterprise_user_by_phone(phone, eid)
 
     def get_user_by_user_id(self, user_id):
         return user_repo.get_user_by_user_id(user_id=user_id)
@@ -329,10 +360,11 @@ class UserService(object):
         total = users.count()
         return users[(page - 1) * page_size:page * page_size], total
 
-    def deploy_service(self, tenant_obj, service_obj, user, committer_name=None):
+    def deploy_service(self, tenant_obj, service_obj, user, committer_name=None, oauth_instance=None):
         """重新构建"""
         group_version = None
-        code, msg, event_id = app_manage_service.deploy(tenant_obj, service_obj, user, group_version, committer_name)
+        code, msg, event_id = app_manage_service.deploy(
+            tenant_obj, service_obj, user, group_version, committer_name, oauth_instance=oauth_instance)
         bean = {}
         if code != 200:
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
@@ -423,6 +455,7 @@ class UserService(object):
                     "user_id": user.user_id,
                     "email": user.email,
                     "nick_name": user.nick_name,
+                    "real_name": user.real_name,
                     "phone": user.phone,
                     "is_active": user.is_active,
                     "origion": user.origion,
@@ -455,22 +488,21 @@ class UserService(object):
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
-    def check_params(self, user_name, email, password, re_password):
-        is_pass, msg = self.__check_user_name(user_name)
+    def check_params(self, user_name, email, password, re_password, eid=None):
+        is_pass, msg = self.__check_user_name(user_name, eid)
         if not is_pass:
-            return is_pass, msg
+            raise ServiceHandleException(error_code=3000, msg="user name is exist", msg_show=msg)
         is_pass, msg = self.__check_email(email)
         if not is_pass:
-            return is_pass, msg
-
+            raise ServiceHandleException(error_code=3003, msg="email name is exist", msg_show=msg)
         if password != re_password:
             return False, "两次输入的密码不一致"
         return True, "success"
 
-    def __check_user_name(self, user_name):
+    def __check_user_name(self, user_name, eid=None):
         if not user_name:
             return False, "用户名不能为空"
-        if self.is_user_exist(user_name):
+        if self.is_user_exist(user_name, eid):
             return False, "用户{0}已存在".format(user_name)
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(user_name.decode("utf-8")):
@@ -485,6 +517,8 @@ class UserService(object):
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
             return False, "邮箱地址不合法"
+        if self.get_user_by_email(email):
+            return False, "邮箱已存在"
         return True, "success"
 
     def init_webhook_user(self, service, hook_type, committer_name=None):

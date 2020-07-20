@@ -4,9 +4,9 @@ import logging
 from django.db import transaction
 
 from console.exception.main import ServiceHandleException
+from console.repositories.deploy_repo import deploy_repo
 from console.repositories.group import group_repo
 from console.repositories.service_repo import service_repo
-from console.repositories.deploy_repo import deploy_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
 from console.services.app import app_service
@@ -38,7 +38,7 @@ class GroupAppCopyService(object):
                                                                                 tar_region_name, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(user, tar_team, tar_region_name, tar_group.ID, services_metadata,
                                                  change_services_map)
-        groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
+        return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
     def get_group_services_with_build_source(self, tenant, region_name, group_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
@@ -47,6 +47,7 @@ class GroupAppCopyService(object):
         service_ids = [group_service.get("service_id") for group_service in group_services]
         services = service_repo.get_service_by_service_ids(service_ids=service_ids)
         for group_service in group_services:
+            group_service["app_name"] = group_service.get("group_name")
             for service in services:
                 if group_service["service_id"] == service.service_id:
                     group_service["build_source"] = base_service.get_build_info(tenant, service)
@@ -181,7 +182,6 @@ class GroupAppCopyService(object):
         result = []
         for service in services:
             if service.service_id in change_service_ids:
-                # probe = None
                 if service.service_source == "third_party":
                     # 数据中心连接创建第三方组件
                     new_service = app_service.create_third_party_service(tenant, service, user.nick_name)

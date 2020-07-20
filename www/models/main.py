@@ -193,7 +193,8 @@ class Users(models.Model):
 
     user_id = models.AutoField(primary_key=True, max_length=10)
     email = models.EmailField(max_length=35, help_text=u"邮件地址")
-    nick_name = models.CharField(max_length=64, unique=True, null=True, blank=True, help_text=u"用户昵称")
+    nick_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"用户昵称")
+    real_name = models.CharField(max_length=64, null=True, blank=True, help_text=u"用户名称")
     password = models.CharField(max_length=64, help_text=u"密码")
     phone = models.CharField(max_length=15, null=True, blank=True, help_text=u"手机号码")
     is_active = models.BooleanField(default=False, help_text=u"激活状态")
@@ -213,6 +214,7 @@ class Users(models.Model):
     sso_user_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
     sso_user_token = models.CharField(max_length=256, null=True, blank=True, default='', help_text=u"统一认证中心的user_id")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"统一认证中心的enterprise_id")
+    enterprise_center_user_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text=u"统一认证中心的user id")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
@@ -227,6 +229,8 @@ class Users(models.Model):
         return True
 
     def get_name(self):
+        if self.real_name:
+            return self.real_name
         return self.nick_name
 
     @property
@@ -707,6 +711,8 @@ class ServiceDomain(BaseModel):
     the_weight = models.IntegerField(default=100, help_text=u"权重")
     rule_extensions = models.TextField(blank=True, help_text=u"扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text=u"是否已开启对外端口")
+    auto_ssl = models.BooleanField(default=False, help_text=u"是否自动匹配证书，升级为https，如果开启，由外部服务完成升级")
+    auto_ssl_config = models.CharField(max_length=32, null=True, default=None, blank=True, help_text=u"自动分发证书配置")
 
     def __unicode__(self):
         return self.domain_name

@@ -1,44 +1,45 @@
 import debug from 'debug';
 import find from 'lodash/find';
-
 import ActionTypes from '../constants/action-types';
-import { saveGraph } from '../utils/file-utils';
-import { updateRoute } from '../utils/router-utils';
 import {
-  bufferDeltaUpdate,
-  resumeUpdate,
-  resetUpdateBuffer,
-} from '../utils/update-buffer-utils';
-import {
-  doControlRequest,
-  getAllNodes,
-  getResourceViewNodesSnapshot,
-  getNodesDelta,
-  getNodeDetails,
-  getTopologies,
-  deletePipe,
-  stopPolling,
-  teardownWebsockets,
-} from '../utils/web-api-utils';
-import { getCurrentTopologyUrl } from '../utils/topology-utils';
-import { storageSet } from '../utils/storage-utils';
-import { loadTheme } from '../utils/contrast-utils';
+  GRAPH_VIEW_MODE,
+
+  RESOURCE_VIEW_MODE, TABLE_VIEW_MODE
+} from '../constants/naming';
 import {
   availableMetricTypesSelector,
   nextPinnedMetricTypeSelector,
-  previousPinnedMetricTypeSelector,
-  pinnedMetricSelector,
+
+  pinnedMetricSelector, previousPinnedMetricTypeSelector
 } from '../selectors/node-metric';
 import {
   activeTopologyOptionsSelector,
   isResourceViewModeSelector,
-  resourceViewAvailableSelector,
+  resourceViewAvailableSelector
 } from '../selectors/topology';
+import { loadTheme } from '../utils/contrast-utils';
+import { saveGraph } from '../utils/file-utils';
+import { updateRoute } from '../utils/router-utils';
+import { storageSet } from '../utils/storage-utils';
+import { getCurrentTopologyUrl } from '../utils/topology-utils';
 import {
-  GRAPH_VIEW_MODE,
-  TABLE_VIEW_MODE,
-  RESOURCE_VIEW_MODE,
- } from '../constants/naming';
+  bufferDeltaUpdate,
+
+  resetUpdateBuffer, resumeUpdate
+} from '../utils/update-buffer-utils';
+import {
+  deletePipe, doControlRequest,
+  getAllNodes,
+
+
+  getNodeDetails, getNodesDelta, getResourceViewNodesSnapshot,
+
+
+  getTopologies,
+
+  stopPolling,
+  teardownWebsockets
+} from '../utils/web-api-utils';
 
 
 const log = debug('scope:app-actions');
@@ -341,8 +342,7 @@ export function setResourceView() {
 }
 
 export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
-
-
+  console.log('node click: ', nodeId, serviceAlias);
   return (dispatch, getState) => {
     dispatch({
       type: ActionTypes.CLICK_NODE,
@@ -587,7 +587,7 @@ export function receiveNodeDetails(details) {
   };
 }
 
-export function setMonitorData(data){
+export function setMonitorData(data) {
   return {
     type: ActionTypes.SET_MONITOR_DATA,
     data
@@ -618,7 +618,6 @@ export function receiveNodesDelta(delta) {
 }
 
 export function receiveNodesMonitor(monitor) {
-  
   return (dispatch, getState) => {
     //
     // allow css-animation to run smoothly by scheduling it to run on the
@@ -630,8 +629,7 @@ export function receiveNodesMonitor(monitor) {
       type: ActionTypes.RECEIVE_NODE_MONITOR,
       monitor
     });
-  }
-
+  };
 }
 
 export function receiveNodesForTopology(nodes, topologyId) {
@@ -770,7 +768,7 @@ export function route(urlState) {
     });
     // 用新的选项更新所有请求工人
     const state = getState();
-    //getTopologies(activeTopologyOptionsSelector(state), dispatch);
+    // getTopologies(activeTopologyOptionsSelector(state), dispatch);
     getNodesDelta(
       getCurrentTopologyUrl(state),
       activeTopologyOptionsSelector(state),
