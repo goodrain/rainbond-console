@@ -7,17 +7,16 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
-from console.exception.main import ServiceHandleException
 from console.exception.exceptions import RegionUnreachableError
+from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from console.services.region_services import region_services
 from console.services.region_services import RegionExistException
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.region_serializer import RegionInfoRespSerializer
-from openapi.serializer.region_serializer import RegionInfoSerializer
-from openapi.serializer.region_serializer import UpdateRegionReqSerializer
-from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
 from openapi.serializer.region_serializer import RegionInfoRSerializer
+from openapi.serializer.region_serializer import RegionInfoSerializer
+from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
 from openapi.views.base import BaseOpenAPIView
 from www.utils.crypt import make_uuid
 logger = logging.getLogger("default")
@@ -84,8 +83,8 @@ class RegionInfo(BaseOpenAPIView):
         operation_description="获取指定数据中心数据",
         manual_parameters=[
             openapi.Parameter("region_id", openapi.IN_QUERY, description="数据中心名称、id", type=openapi.TYPE_STRING),
-            openapi.Parameter("extend_info", openapi.IN_QUERY, description="是否需要额外数据", type=openapi.TYPE_STRING,
-                              enum=["true", "false"]),
+            openapi.Parameter(
+                "extend_info", openapi.IN_QUERY, description="是否需要额外数据", type=openapi.TYPE_STRING, enum=["true", "false"]),
         ],
         responses={
             status.HTTP_200_OK: RegionInfoRSerializer(),
@@ -103,8 +102,8 @@ class RegionInfo(BaseOpenAPIView):
         if not self.region:
             raise ServiceHandleException(msg="no found region", msg_show=u"数据中心不存在", status_code=404)
 
-        data = region_services.get_enterprise_region(self.enterprise.enterprise_id, self.region.region_id,
-                                                     check_status=extend_info)
+        data = region_services.get_enterprise_region(
+            self.enterprise.enterprise_id, self.region.region_id, check_status=extend_info)
         serializers = RegionInfoRSerializer(data=data)
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)

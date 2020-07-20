@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import json
-from rest_framework import serializers
-from drf_yasg.utils import swagger_serializer_method
 
-from www.models.main import ServiceDomain, ServiceTcpDomain
+from drf_yasg.utils import swagger_serializer_method
+from rest_framework import serializers
+
+from www.models.main import ServiceDomain
+from www.models.main import ServiceTcpDomain
 
 
 class HTTPGatewayRuleSerializer(serializers.ModelSerializer):
     rule_extensions = serializers.SerializerMethodField()
+
     class Meta:
         model = ServiceDomain
         exclude = ["create_time"]

@@ -5,19 +5,18 @@
 import datetime
 import logging
 import re
-import validators
 
+import validators
 from django.db import transaction
 
+from console.constants import ServicePortConstants
 from console.exception.main import AbortRequest
 from console.exception.main import CheckThirdpartEndpointFailed
 from console.exception.main import ServiceHandleException
-
-from console.constants import ServicePortConstants
 from console.repositories.app import service_repo
-from console.repositories.app_config import service_endpoints_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
+from console.repositories.app_config import service_endpoints_repo
 from console.repositories.app_config import tcp_domain
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
@@ -717,8 +716,7 @@ class AppPortService(object):
 
     def check_domain_thirdpart(self, tenant, service):
         from console.utils.validation import validate_endpoints_info
-        res, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name,
-                                                            service.service_alias)
+        res, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
         if res.status != 200:
             return "region error", "数据中心查询失败", 412
         endpoint_list = body["list"]
