@@ -345,7 +345,6 @@ class TeamDelView(JWTAuthApiView):
             force = True
         else:
             force = False
-        print force
         tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
         if tenant is None:
             code = 404

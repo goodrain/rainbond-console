@@ -98,15 +98,14 @@ class TenantEnterpriseRepo(object):
             return None
         active_tenants_list = []
         for tenant in tenants:
-            user = None
+            owner = None
             try:
-                user = user_repo.get_user_by_user_id(tenant.creater)
+                owner = user_repo.get_user_by_user_id(tenant.creater)
+                role = user_role_repo.get_role_names(user_id, tenant.tenant_id)
             except UserNotExistError:
                 pass
-            try:
-                role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
             except UserRoleNotFoundException:
-                if user and tenant.creater == user.user_id:
+                if tenant.creater == user_id:
                     role = "owner"
                 else:
                     role = None
@@ -118,7 +117,7 @@ class TenantEnterpriseRepo(object):
                 "tenant_id": tenant.tenant_id,
                 "team_alias": tenant.tenant_alias,
                 "owner": tenant.creater,
-                "owner_name": user.get_name() if user else "",
+                "owner_name": owner.get_name() if owner else "",
                 "enterprise_id": tenant.enterprise_id,
                 "create_time": tenant.create_time,
                 "team_name": tenant.tenant_name,
