@@ -423,15 +423,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def manage_outer_port(self, region, tenant_name, service_alias, port, body):
         """打开关闭对外端口"""
+        try:
+            url, token = self.__get_region_access_info(tenant_name, region)
+            tenant_region = self.__get_tenant_region_info(tenant_name, region)
+            url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/ports/" + str(
+                port) + "/outer"
 
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/ports/" + str(
-            port) + "/outer"
-
-        self._set_headers(token)
-        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
-        return body
+            self._set_headers(token)
+            res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+            return body
+        except RegionApiBaseHttpClient.CallApiError as e:
+            if e.body.get("message").find("do not allow operate outer port for thirdpart domain endpoints") >= 0:
+                raise ServiceHandleException(
+                    status_code=400,
+                    msg="do not allow operate outer port for thirdpart domain endpoints",
+                    msg_show=u"该第三方组件具有域名类实例，暂不支持开放网关访问")
+            else:
+                raise e
 
     def update_service_probec(self, region, tenant_name, service_alias, body):
         """更新组件探针信息"""
