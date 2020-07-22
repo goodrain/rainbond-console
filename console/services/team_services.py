@@ -24,6 +24,7 @@ from console.services.exception import (ErrAllTenantDeletionFailed, ErrStillHasS
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
 
 logger = logging.getLogger("default")
@@ -510,10 +511,11 @@ class TeamService(object):
             total = body.get("bean").get("total")
             if tenants:
                 for tenant in tenants:
-                    team_name = team_maps.get(tenant["UUID"]).tenant_name if team_maps.get(tenant["UUID"]) else ''
+                    tenant_alias = team_maps.get(tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''
                     tenant_list.append({
                         "tenant_id": tenant["UUID"],
-                        "team_name": team_name,
+                        "team_name": tenant_alias,
+                        "tenant_name": tenant["Name"],
                         "memory_request": tenant["memory_request"],
                         "cpu_request": tenant["cpu_request"],
                         "memory_limit": tenant["memory_limit"],
@@ -526,6 +528,13 @@ class TeamService(object):
         else:
             logger.error(body)
         return tenant_list, total
+
+    def set_tenant_memory_limit(self, eid, region_id, tenant_name, limit):
+        try:
+            region_api.set_tenant_limit_memory(eid, tenant_name, region_id, body=limit)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            logger.exception(e)
+            raise ServiceHandleException(status_code=500, msg="", msg_show=u"设置租户限额失败")
 
 
 team_services = TeamService()

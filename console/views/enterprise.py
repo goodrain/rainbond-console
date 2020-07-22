@@ -377,10 +377,16 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
         tenants, total = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
         result = general_message(
             200, "success", "获取成功", bean={
-                tenants: tenants,
-                total: total,
+                "tenants": tenants,
+                "total": total,
             })
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseRegionTenantLimitView(EnterpriseAdminView):
+    def post(self, request, enterprise_id, region_id, tenant_name, *args, **kwargs):
+        team_services.set_tenant_memory_limit(enterprise_id, region_id, tenant_name, request.data)
+        return Response({}, status=status.HTTP_200_OK)
 
 
 class EnterpriseAppComponentsLView(JWTAuthApiView):

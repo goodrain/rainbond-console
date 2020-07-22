@@ -1664,3 +1664,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
+
+    def set_tenant_limit_memory(self, enterprise_id, tenant_name, region, body, only_return_body=False):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/tenants/{0}/limit_memory".format(tenant_name)
+        res, body = self.api.POST(url, body=body)
+        return res, body
