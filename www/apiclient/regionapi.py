@@ -7,6 +7,7 @@ import httplib2
 from django import http
 from django.conf import settings
 
+from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
@@ -1145,13 +1146,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             token = "Token {}".format(token)
         return url, token
 
-    # new api can use this method
-    def __get_region_url(self, enterprise_id, region):
-        region_info = self.get_enterprise_region_info(enterprise_id, region)
-        if region_info:
-            return region_info.url
-        return ""
-
     def get_protocols(self, region, tenant_name):
         """
         @ 获取当前数据中心支持的协议
@@ -1660,10 +1654,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def list_tenants(self, region, enterprise_id, page=1, page_size=10):
         """list tenants"""
-        url = self.__get_region_url(enterprise_id, region)
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
         url += "/v2/tenants?page={0}&pageSize={1}".format(page, page_size)
         try:
-            res, body = self._get(url, self.default_headers, region=region)
+            res, body = self._get(url, self.default_headers, region=region_info.region_name)
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
