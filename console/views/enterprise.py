@@ -374,8 +374,12 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("pageSize", 10)
-        data = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
-        result = general_message(200, "success", "获取成功", list=data)
+        tenants, total = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
+        result = general_message(
+            200, "success", "获取成功", bean={
+                tenants: tenants,
+                total: total,
+            })
         return Response(result, status=status.HTTP_200_OK)
 
 

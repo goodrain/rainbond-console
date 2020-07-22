@@ -502,24 +502,30 @@ class TeamService(object):
         if teams:
             for team in teams:
                 team_maps[team.tenant_id] = team
-        res, _ = region_api.list_tenants(eid, region_id, page, page_size)
+        res, body = region_api.list_tenants(eid, region_id, page, page_size)
         tenant_list = []
-        if 'list' in res:
-            tenants = res["list"]
-            for tenant in tenants:
-                tenant_list.append({
-                    "tenant_id": tenant["UUID"],
-                    "team_name": team_maps[tenant["UUID"]].name if team_maps[tenant["UUID"]] else '',
-                    "memory_request": tenant["memory_request"],
-                    "cpu_request": tenant["cpu_request"],
-                    "memory_limit": tenant["memory_limit"],
-                    "cpu_limit": tenant["cpu_limit"],
-                    "running_app_num": tenant["running_app_num"],
-                    "running_app_internal_num": tenant["running_app_internal_num"],
-                    "running_app_third_num": tenant["running_app_third_num"],
-                    "set_limit_memory": tenant["LimitMemory"],
-                })
-        return tenant_list
+        total = 0
+        if body.get("bean"):
+            tenants = body.get("bean").get("list")
+            total = body.get("bean").get("total")
+            if tenants:
+                for tenant in tenants:
+                    team_name = team_maps.get(tenant["UUID"]).tenant_name if team_maps.get(tenant["UUID"]) else ''
+                    tenant_list.append({
+                        "tenant_id": tenant["UUID"],
+                        "team_name": team_name,
+                        "memory_request": tenant["memory_request"],
+                        "cpu_request": tenant["cpu_request"],
+                        "memory_limit": tenant["memory_limit"],
+                        "cpu_limit": tenant["cpu_limit"],
+                        "running_app_num": tenant["running_app_num"],
+                        "running_app_internal_num": tenant["running_app_internal_num"],
+                        "running_app_third_num": tenant["running_app_third_num"],
+                        "set_limit_memory": tenant["LimitMemory"],
+                    })
+        else:
+            logger.error(body)
+        return tenant_list, total
 
 
 team_services = TeamService()

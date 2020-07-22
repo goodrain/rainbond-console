@@ -1652,13 +1652,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region.url + "/v2/show"
         return self._get(url, self.default_headers, region=region, for_test=True, retries=1, timeout=1)
 
-    def list_tenants(self, region, enterprise_id, page=1, page_size=10):
+    def list_tenants(self, enterprise_id, region, page=1, page_size=10):
         """list tenants"""
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants?page={0}&pageSize={1}".format(page, page_size)
+        url += "/v2/tenants?page={0}&pageSize={1}&eid={2}".format(page, page_size, enterprise_id)
         try:
             res, body = self._get(url, self.default_headers, region=region_info.region_name)
             return res, body
