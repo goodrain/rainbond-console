@@ -433,7 +433,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
             return body
         except RegionApiBaseHttpClient.CallApiError as e:
-            if e.body.get("message").find("do not allow operate outer port for thirdpart domain endpoints") >= 0:
+            message = e.body.get("msg")
+            if message and message.find("do not allow operate outer port for thirdpart domain endpoints") >= 0:
                 raise ServiceHandleException(
                     status_code=400,
                     msg="do not allow operate outer port for thirdpart domain endpoints",
