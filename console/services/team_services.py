@@ -9,26 +9,22 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 
+from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
-from console.repositories.enterprise_repo import enterprise_repo
 from console.models.main import TenantUserRole
+from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
-from console.services.enterprise_services import enterprise_services
-from console.services.exception import ErrAllTenantDeletionFailed
-from console.services.exception import ErrStillHasServices
-from console.services.exception import ErrTenantRegionNotFound
-from console.services.region_services import region_services
-from console.services.perm_services import user_kind_role_service
 from console.services.common_services import common_services
+from console.services.enterprise_services import enterprise_services
+from console.services.exception import (ErrAllTenantDeletionFailed, ErrStillHasServices, ErrTenantRegionNotFound)
+from console.services.perm_services import user_kind_role_service
+from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import PermRelTenant
-from www.models.main import Tenants
-from www.models.main import TenantServiceInfo
-from console.exception.exceptions import UserNotExistError
+from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -198,8 +194,7 @@ class TeamService(object):
             obj = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk)
             if obj:
                 return obj[0].user_id
-        else:
-            return False
+        return False
 
     def get_team_service_count_by_team_name(self, team_name):
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
@@ -500,6 +495,31 @@ class TeamService(object):
                 })
             return data
         return None
+
+    def get_tenant_list_by_region(self, eid, region_id, page=1, page_size=10):
+        teams = team_repo.get_team_by_enterprise_id(eid)
+        team_maps = {}
+        if teams:
+            for team in teams:
+                team_maps[team.tenant_id] = team
+        res, _ = region_api.list_tenants(eid, region_id, page, page_size)
+        tenant_list = []
+        if 'list' in res:
+            tenants = res["list"]
+            for tenant in tenants:
+                tenant_list.append({
+                    "tenant_id": tenant["UUID"],
+                    "team_name": team_maps[tenant["UUID"]].name if team_maps[tenant["UUID"]] else '',
+                    "memory_request": tenant["memory_request"],
+                    "cpu_request": tenant["cpu_request"],
+                    "memory_limit": tenant["memory_limit"],
+                    "cpu_limit": tenant["cpu_limit"],
+                    "running_app_num": tenant["running_app_num"],
+                    "running_app_internal_num": tenant["running_app_internal_num"],
+                    "running_app_third_num": tenant["running_app_third_num"],
+                    "set_limit_memory": tenant["LimitMemory"],
+                })
+        return tenant_list
 
 
 team_services = TeamService()

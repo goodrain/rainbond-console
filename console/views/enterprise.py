@@ -324,7 +324,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseRegionsLCView(JWTAuthApiView):
+class EnterpriseRegionsLCView(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")
@@ -368,6 +368,15 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
+
+
+class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("pageSize", 10)
+        data = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
+        result = general_message(200, "success", "获取成功", list=data)
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class EnterpriseAppComponentsLView(JWTAuthApiView):
