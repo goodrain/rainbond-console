@@ -101,7 +101,6 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["team_app_num"] = team_app_num
             overview_detail["team_service_num"] = team_service_num
             overview_detail["eid"] = self.team.enterprise_id
-
             overview_detail["team_service_memory_count"] = 0
             overview_detail["team_service_total_disk"] = 0
             overview_detail["team_service_total_cpu"] = 0
@@ -110,20 +109,23 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["cpu_usage"] = 0
             overview_detail["memory_usage"] = 0
             if source:
-                overview_detail["team_service_memory_count"] = int(source["memory"])
-                overview_detail["team_service_total_disk"] = int(source["disk"])
-                overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
-                overview_detail["team_service_total_memory"] = int(source["limit_memory"])
-                overview_detail["team_service_use_cpu"] = int(source["cpu"])
-                cpu_usage = 0
-                memory_usage = 0
-                if int(source["limit_cpu"]) != 0:
-                    cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
-                if int(source["limit_memory"]) != 0:
-                    memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
-                overview_detail["cpu_usage"] = round(cpu_usage, 2)
-                overview_detail["memory_usage"] = round(memory_usage, 2)
-
+                try:
+                    overview_detail["team_service_memory_count"] = int(source["memory"])
+                    overview_detail["team_service_total_disk"] = int(source["disk"])
+                    overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
+                    overview_detail["team_service_total_memory"] = int(source["limit_memory"])
+                    overview_detail["team_service_use_cpu"] = int(source["cpu"])
+                    cpu_usage = 0
+                    memory_usage = 0
+                    if int(source["limit_cpu"]) != 0:
+                        cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
+                    if int(source["limit_memory"]) != 0:
+                        memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
+                    overview_detail["cpu_usage"] = round(cpu_usage, 2)
+                    overview_detail["memory_usage"] = round(memory_usage, 2)
+                except Exception as e:
+                    logger.debug(source)
+                    logger.exception(e)
             return Response(general_message(200, "success", "查询成功", bean=overview_detail))
         else:
             data = {"user_nums": 1, "team_service_num": 0, "total_memory": 0, "eid": self.team.enterprise_id}

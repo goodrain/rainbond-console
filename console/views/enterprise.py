@@ -176,13 +176,13 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
-                    user = user_repo.get_user_by_user_id(tenant.creater)
                     region_list = team_repo.get_team_regions(tenant.tenant_id)
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
-                    user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
+                    user_role_list = user_kind_role_service.get_user_roles(
+                        kind="team", kind_id=tenant.tenant_id, user=request.user)
                     roles = map(lambda x: x["role_name"], user_role_list["roles"])
-                    if tenant.creater == user.user_id:
+                    if tenant.creater == request.user.user_id:
                         roles.append("owner")
                     owner = user_repo.get_by_user_id(tenant.creater)
                     new_join_team.append({
@@ -324,7 +324,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseRegionsLCView(JWTAuthApiView):
+class EnterpriseRegionsLCView(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")
@@ -368,6 +368,25 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
+
+
+class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("pageSize", 10)
+        tenants, total = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
+        result = general_message(
+            200, "success", "获取成功", bean={
+                "tenants": tenants,
+                "total": total,
+            })
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseRegionTenantLimitView(EnterpriseAdminView):
+    def post(self, request, enterprise_id, region_id, tenant_name, *args, **kwargs):
+        team_services.set_tenant_memory_limit(enterprise_id, region_id, tenant_name, request.data)
+        return Response({}, status=status.HTTP_200_OK)
 
 
 class EnterpriseAppComponentsLView(JWTAuthApiView):

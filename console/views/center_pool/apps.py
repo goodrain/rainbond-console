@@ -413,3 +413,11 @@ class AppTagCDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(404, "fail", u"删除失败")
         return Response(result, status=result.get("code", 200))
+
+
+class AppStoreCLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        pass
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        pass
