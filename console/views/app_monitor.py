@@ -235,24 +235,25 @@ class AppTraceView(AppBaseView):
                 trace_status["collector_host"] = env.attr_value
             if env.attr_name == "COLLECTOR_TCP_PORT":
                 trace_status["collector_host"] = env.attr_value
-            if env.attr_name == "ENABLE_APM" and env.attr_value == "true":
+            if env.attr_name == "ES_ENABLE_APM" and env.attr_value == "true":
                 trace_status["enable_apm"] = True
         result = general_message(200, "success", "查询成功", bean=trace_status)
         return Response(result, status=result["code"])
 
     def post(self, request, *args, **kwargs):
-        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ENABLE_APM")
+        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
         if enable_env:
             enable_env.attr_value = "true"
             enable_env.save
         else:
-            env_var_service.add_service_env_var(self.tenant, self.service, 0, "ENABLE_APM", "ENABLE_APM", "true", True, "inner")
+            env_var_service.add_service_env_var(self.tenant, self.service, 0, "ES_ENABLE_APM", "ES_ENABLE_APM", "true", True,
+                                                "inner")
         result = general_message(200, "success", "设置成功")
         return Response(result, status=result["code"])
 
     def delete(self, request, *args, **kwargs):
-        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ENABLE_APM")
+        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
         if enable_env:
-            env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ENABLE_APM")
+            env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
         result = general_message(200, "success", "关闭成功")
         return Response(result, status=result["code"])
