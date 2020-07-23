@@ -7,10 +7,9 @@ import re
 
 from django.db.transaction import atomic
 
-from console.exception.main import EnvAlreadyExist, ServiceHandleException
-from console.exception.main import InvalidEnvName
-from console.repositories.app_config import compile_env_repo
-from console.repositories.app_config import env_var_repo
+from console.exception.main import (EnvAlreadyExist, InvalidEnvName, ServiceHandleException)
+from console.repositories.app_config import compile_env_repo, env_var_repo
+from console.service.app_config import dependency_service
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -240,6 +239,12 @@ class AppEnvVarService(object):
                 "scope": env.scope,
             })
         return {"envs": dt}
+
+    def get_all_envs_incloud_depend_env(self, service):
+        selfenv = self.get_env_var(service)
+        dep_service_ids = dependency_service.get_dep_service_ids(service)
+        envs = env_var_repo.get_depend_outer_envs_by_ids(dep_service_ids)
+        return selfenv.extend(envs)
 
 
 class AppEnvService(object):

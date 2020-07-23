@@ -228,7 +228,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
 class AppTraceView(AppBaseView):
     def get(self, request, *args, **kwargs):
-        envs = env_var_service.get_env_var(self.service)
+        envs = env_var_service.get_all_envs_incloud_depend_env(self.service)
         trace_status = {"collector_host": "", "collector_port": "", "enable_apm": False}
         for env in envs:
             if env.attr_name == "COLLECTOR_TCP_HOST":
@@ -248,6 +248,8 @@ class AppTraceView(AppBaseView):
         else:
             env_var_service.add_service_env_var(self.tenant, self.service, 0, "ES_ENABLE_APM", "ES_ENABLE_APM", "true", True,
                                                 "inner")
+            env_var_service.add_service_env_var(self.tenant, self.service, 0, "ES_TRACE_APP_NAME", "ES_TRACE_APP_NAME",
+                                                self.service.service_alias, True, "inner")
         result = general_message(200, "success", "设置成功")
         return Response(result, status=result["code"])
 
@@ -255,5 +257,8 @@ class AppTraceView(AppBaseView):
         enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
         if enable_env:
             env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
+        trace_name_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_TRACE_APP_NAME")
+        if trace_name_env:
+            env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ES_TRACE_APP_NAME")
         result = general_message(200, "success", "关闭成功")
         return Response(result, status=result["code"])
