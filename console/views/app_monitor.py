@@ -228,7 +228,7 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
 
 class AppTraceView(AppBaseView):
     def get(self, request, *args, **kwargs):
-        envs = env_var_service.get_all_envs_incloud_depend_env(self.service)
+        envs = env_var_service.get_all_envs_incloud_depend_env(self.tenant, self.service)
         trace_status = {"collector_host": "", "collector_port": "", "enable_apm": False}
         for env in envs:
             if env.attr_name == "COLLECTOR_TCP_HOST":
