@@ -19,8 +19,8 @@ from console.services.app_config.exceptoin import (err_cert_name_exists, err_cer
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
-from www.models.main import ServiceDomain
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceDomain
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
@@ -160,14 +160,6 @@ class DomainService(object):
                 if domain_str.endswith(domain_suffix):
                     return
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain", msg_show="域名与选择的证书不匹配")
-
-    def __is_domain_conflict(self, domain_name, team_name):
-        regions = region_repo.get_usable_regions()
-        conflict_domains = ["{0}.{1}".format(team_name, region.httpdomain) for region in regions]
-        for d in conflict_domains:
-            if d in domain_name:
-                return True, d
-        return False, None
 
     def get_port_bind_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
@@ -488,7 +480,7 @@ class DomainService(object):
     def bind_tcpdomain(self, tenant, user, service, end_point, container_port, default_port, rule_extensions, default_ip):
         tcp_rule_id = make_uuid(tenant.tenant_name)
         ip = str(end_point.split(":")[0])
-        ip.replace(' ', '')
+        ip = ip.replace(' ', '')
         port = end_point.split(":")[1]
         data = dict()
         data["service_id"] = service.service_id

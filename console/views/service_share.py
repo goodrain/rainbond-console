@@ -12,7 +12,6 @@ from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
 from console.repositories.group import group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument

@@ -65,6 +65,10 @@ class TenantServiceEnvVarRepository(object):
         envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, attr_name__in=attr_names)
         return envs
 
+    def get_depend_outer_envs_by_ids(self, tenant_id, service_ids):
+        envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, scope="outer")
+        return envs
+
     def get_env_by_ids_and_env_id(self, tenant_id, service_id, env_id):
         envs = TenantServiceEnvVar.objects.get(tenant_id=tenant_id, service_id=service_id, ID=env_id)
         return envs

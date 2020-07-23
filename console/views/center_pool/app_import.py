@@ -4,17 +4,16 @@
 """
 import logging
 
-from console.exception.main import AbortRequest
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.services.region_services import region_services
-from console.services.file_upload_service import upload_service
-from console.views.base import RegionTenantHeaderView
-from console.views.base import JWTAuthApiView
-from www.utils.return_message import general_message, error_message
+from console.exception.main import AbortRequest
 from console.services.app_import_and_export_service import import_service
+from console.services.file_upload_service import upload_service
+from console.services.region_services import region_services
+from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger('default')
 
@@ -42,46 +41,6 @@ class ImportingRecordView(RegionTenantHeaderView):
         data = {"status": r.status, "source_dir": r.source_dir, "event_id": r.event_id, "upload_url": upload_url}
 
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
-
-
-class CenterAppUploadView(JWTAuthApiView):
-    @never_cache
-    def post(self, request, enterprise_id, *args, **kwargs):
-        """
-        上传应用包
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名称
-              required: true
-              type: string
-              paramType: path
-            - name: file
-              description: 文件上传
-              required: true
-              type: file
-              paramType: form
-        """
-        upload_file = None
-        try:
-            upload_file = request.FILES.get("file")
-            if not request.FILES or not upload_file:
-                return Response(general_message(400, "param error", "请指定需要导入的应用包"), status=400)
-            file_name = upload_file.name
-            code, msg, import_record = upload_service.upload_file_to_region_center_by_enterprise_id(
-                enterprise_id, self.user.nick_name, upload_file)
-            if code != 200:
-                return Response(general_message(code, "upload file failed", msg), status=code)
-            bean = import_record.to_dict()
-            bean["file_name"] = file_name
-            result = general_message(200, 'success', "上传成功", bean=bean)
-            upload_file.close()
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            if upload_file:
-                upload_file.close()
-        return Response(result, status=result["code"])
 
 
 class EnterpriseAppImportInitView(JWTAuthApiView):

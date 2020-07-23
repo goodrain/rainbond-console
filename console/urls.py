@@ -10,7 +10,6 @@ from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
     ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView)
-from console.views.jwt_token_view import JWTTokenView
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
@@ -33,15 +32,15 @@ from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEvent
 from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
-                                      UpgradeAppView, VerticalExtendAppView, TeamAppsCloseView)
-from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
+                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView)
+from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
                                         ImageAppView, ListAppPodsView)
-from console.views.center_pool.app_export import (CenterAppExportView, ExportFileDownLoadView)
+from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
-                                                  CenterAppUploadView, EnterpriseAppImportInitView, ImportingRecordView)
+                                                  EnterpriseAppImportInitView, ImportingRecordView)
 from console.views.center_pool.apps import (AppTagCDView, CenterAppCLView, CenterAppUDView, CenterAppView, TagCLView, TagUDView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
@@ -49,15 +48,16 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.enterprise import (EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView,
-                                      EnterpriseMonitor, EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView,
-                                      EnterpriseRegionsRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
-                                      EnterpriseTeams, EnterpriseUserTeams)
+from console.views.enterprise import (
+    EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseOverview,
+    EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
+    EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams, EnterpriseUserTeams)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
-from console.views.logos import ConfigRUDView, PhpConfigView, InitPerms
+from console.views.jwt_token_view import JWTTokenView
+from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
@@ -84,11 +84,11 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
 from console.views.region import (GetRegionPublicKeyView, OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import (ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
-                                         ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost,
-                                         ServiceShareInfoView, ServiceShareRecordInfoView, ServiceShareRecordView,
-                                         ShareRecordHistoryView, ShareRecordView, AppMarketCLView, AppMarketRUDView,
-                                         AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView)
+from console.views.service_share import (AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView,
+                                         AppMarketCLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost,
+                                         ServiceShareCompleteView, ServiceShareDeleteView, ServiceShareEventList,
+                                         ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
+                                         ServiceShareRecordView, ShareRecordHistoryView, ShareRecordView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
@@ -97,11 +97,11 @@ from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, C
                                 TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView, TeamSortServiceQueryView,
                                 TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView, UserDelView,
                                 UserFuzSerView)
-from console.views.user import (AdminUserDView, AdminUserLCView, CheckSourceView, EnterPriseUsersCLView, EnterPriseUsersUDView,
-                                UserLogoutView, UserPemTraView, AdministratorJoinTeamView)
+from console.views.user import (AdministratorJoinTeamView, AdminUserDView, AdminUserLCView, CheckSourceView,
+                                EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
-from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegin, SendResetEmail, UserDetailsView,
-                                          UserFavoriteLCView, UserFavoriteUDView, TenantServiceView)
+from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegin, SendResetEmail, TenantServiceView,
+                                          UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
 
@@ -350,13 +350,10 @@ urlpatterns = [
     # 第三方应用pod信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/third_party/pods', ThirdPartyAppPodsView.as_view(),
         perms.ThirdPartyAppPodsView),
-    # 应用进入容器页面
-    # url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker', AppDockerView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker_console', DockerContainerView.as_view(),
         perms.DockerContainerView),
     # 应用访问
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/visit', AppVisitView.as_view(), perms.AppVisitView),
-    # 应用配置
     # 环境变量配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view(), perms.AppEnvView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<env_id>[\w\-]+)$', AppEnvManageView.as_view(),
@@ -494,6 +491,8 @@ urlpatterns = [
         perms.AppMonitorQueryView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/monitor/batch_query$', BatchAppMonitorQueryView.as_view(),
         perms.BatchAppMonitorQueryView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/trace$', AppTraceView.as_view(),
+        perms.AppMonitorQueryRangeView),
     # 组件标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view(), perms.AppLabelView),
     # 添加特性获取可用标签
@@ -576,10 +575,6 @@ urlpatterns = [
     url(r'^market/plugins/install$', InstallMarketPlugin.as_view(), perms.InstallMarketPlugin),
     url(r'^plugins$', InternalMarketPluginsView.as_view(), perms.InternalMarketPluginsView),
     url(r'^plugins/installable$', InstallableInteralPluginsView.as_view(), perms.InstallableInteralPluginsView),
-
-    # 内部云市应用相关
-    # 获取可安装应用
-    # url(r'^apps$', CenterAppListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view(), perms.CenterAppView),
 
     # 文件上传
@@ -592,8 +587,6 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view(), perms.RegionProtocolView),
     # 批量关闭应用下所有组件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
-    # 应用导入
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/upload$', CenterAppUploadView.as_view(), perms.CenterAppUploadView),
     # 应用包目录查询
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/dir$', CenterAppTarballDirView.as_view()),
     # 应用导入记录
@@ -604,9 +597,6 @@ urlpatterns = [
     # 应用导入状态查询
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/(?P<event_id>[\w\-]+)$', CenterAppImportView.as_view(),
         perms.CenterAppImportView),
-    # 应用下载
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/export/down$', ExportFileDownLoadView.as_view(), perms.ExportFileDownLoadView),
-
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view(), perms.TeamAddUserView),
 
@@ -691,6 +681,10 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants$',
+        EnterpriseRegionTenantRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)/limit$',
+        EnterpriseRegionTenantLimitView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/dashboard/(?P<path>.*)',
         EnterpriseRegionDashboard.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$', EnterpriseAppComponentsLView.as_view()),
@@ -721,8 +715,6 @@ urlpatterns = [
     # 应用包目录查询
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)/dir$',
         CenterAppTarballDirView.as_view()),
-    # 应用下载
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/down$', ExportFileDownLoadView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),

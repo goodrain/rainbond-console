@@ -7,6 +7,7 @@ import httplib2
 from django import http
 from django.conf import settings
 
+from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
@@ -422,15 +423,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def manage_outer_port(self, region, tenant_name, service_alias, port, body):
         """打开关闭对外端口"""
+        try:
+            url, token = self.__get_region_access_info(tenant_name, region)
+            tenant_region = self.__get_tenant_region_info(tenant_name, region)
+            url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/ports/" + str(
+                port) + "/outer"
 
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/ports/" + str(
-            port) + "/outer"
-
-        self._set_headers(token)
-        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
-        return body
+            self._set_headers(token)
+            res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+            return body
+        except RegionApiBaseHttpClient.CallApiError as e:
+            message = e.body.get("msg")
+            if message and message.find("do not allow operate outer port for thirdpart domain endpoints") >= 0:
+                raise ServiceHandleException(
+                    status_code=400,
+                    msg="do not allow operate outer port for thirdpart domain endpoints",
+                    msg_show=u"该第三方组件具有域名类实例，暂不支持开放网关访问")
+            else:
+                raise e
 
     def update_service_probec(self, region, tenant_name, service_alias, body):
         """更新组件探针信息"""
@@ -1119,7 +1129,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def __get_region_access_info(self, tenant_name, region):
         """获取一个团队在指定数据中心的身份认证信息"""
         # 根据团队名获取其归属的企业在指定数据中心的访问信息
-        url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
+        token = None
+        if tenant_name:
+            url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
         region_info = self.get_region_info(region_name=region)
@@ -1127,7 +1139,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise err_region_not_found
         url = region_info.url
         if not token:
-            # region_map = self.get_region_map(region)
             token = region_info.token
         else:
             token = "Token {}".format(token)
@@ -1160,6 +1171,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         configs = RegionConfig.objects.filter(region_name=region_name)
         if configs:
             return configs[0]
+        return None
+
+    def get_enterprise_region_info(self, eid, region):
+        configs = RegionConfig.objects.filter(enterprise_id=eid, region_name=region)
+        if configs:
+            return configs[0]
+        else:
+            configs = RegionConfig.objects.filter(enterprise_id=eid, region_id=region)
+            if configs:
+                return configs[0]
         return None
 
     def service_source_check(self, region, tenant_name, body):
@@ -1639,3 +1660,25 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region = RegionConfig(**region_data)
         url = region.url + "/v2/show"
         return self._get(url, self.default_headers, region=region, for_test=True, retries=1, timeout=1)
+
+    def list_tenants(self, enterprise_id, region, page=1, page_size=10):
+        """list tenants"""
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/tenants?page={0}&pageSize={1}&eid={2}".format(page, page_size, enterprise_id)
+        try:
+            res, body = self._get(url, self.default_headers, region=region_info.region_name)
+            return res, body
+        except RegionApiBaseHttpClient.CallApiError as e:
+            return {'status': e.message['httpcode']}, e.message['body']
+
+    def set_tenant_limit_memory(self, enterprise_id, tenant_name, region, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/tenants/{0}/limit_memory".format(tenant_name)
+        res, body = self._post(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        return res, body

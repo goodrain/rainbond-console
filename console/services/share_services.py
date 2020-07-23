@@ -9,12 +9,17 @@ from django.db import transaction
 
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
-from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
-from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
+from console.exception.main import (AbortRequest, RbdAppNotFound,
+                                    ServiceHandleException)
+from console.models.main import (PluginShareRecordEvent, RainbondCenterApp,
+                                 RainbondCenterAppVersion,
+                                 ServiceShareRecordEvent)
 from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo, volume_repo
-from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
-from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
+from console.repositories.market_app_repo import (app_export_record_repo,
+                                                  rainbond_app_repo)
+from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo,
+                                         service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.group_service import group_service
@@ -677,6 +682,7 @@ class ShareService(object):
             template_type = share_version_info.get("template_type", "")
             version_describe = share_version_info.get("describe", "this is a default describe.")
             market_id = None
+            market = None
             app_model_name = None
             if target:
                 market_id = target.get("store_id")
