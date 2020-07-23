@@ -249,7 +249,7 @@ class AppTraceView(AppBaseView):
             env_var_service.add_service_env_var(self.tenant, self.service, 0, "ES_ENABLE_APM", "ES_ENABLE_APM", "true", True,
                                                 "inner")
             env_var_service.add_service_env_var(self.tenant, self.service, 0, "ES_TRACE_APP_NAME", "ES_TRACE_APP_NAME",
-                                                self.service.service_alias, True, "inner")
+                                                self.service.service_cname, True, "inner")
         result = general_message(200, "success", "设置成功")
         return Response(result, status=result["code"])
 

@@ -4,6 +4,7 @@
 """
 import logging
 import re
+from itertools import chain
 
 from django.db.transaction import atomic
 
@@ -243,8 +244,8 @@ class AppEnvVarService(object):
         selfenv = self.get_env_var(service)
         dep_service_ids = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id).values_list(
             "dep_service_id", flat=True)
-        envs = env_var_repo.get_depend_outer_envs_by_ids(dep_service_ids)
-        return selfenv.extend(envs)
+        envs = env_var_repo.get_depend_outer_envs_by_ids(tenant.tenant_id, dep_service_ids)
+        return chain(selfenv, envs)
 
 
 class AppEnvService(object):
