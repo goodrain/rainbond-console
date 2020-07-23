@@ -7,6 +7,7 @@ from urllib import urlencode
 
 from rest_framework.response import Response
 
+from console.services.app_config import env_var_service
 from console.services.group_service import group_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
@@ -223,3 +224,35 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
             '",client=~"public|' + query_pod_ips + '"}[1m])/12)) by (service_id,client)'
         throughput_rate = urlencode({"1": throughput_rate})[2:]
         return response_time, throughput_rate
+
+
+class AppTraceView(AppBaseView):
+    def get(self, request, *args, **kwargs):
+        envs = env_var_service.get_env_var(self.service)
+        trace_status = {"collector_host": "", "collector_port": "", "enable_apm": False}
+        for env in envs:
+            if env.attr_name == "COLLECTOR_TCP_HOST":
+                trace_status["collector_host"] = env.attr_value
+            if env.attr_name == "COLLECTOR_TCP_PORT":
+                trace_status["collector_host"] = env.attr_value
+            if env.attr_name == "ENABLE_APM" and env.attr_value == "true":
+                trace_status["enable_apm"] = True
+        result = general_message(200, "success", "查询成功", bean=trace_status)
+        return Response(result, status=result["code"])
+
+    def post(self, request, *args, **kwargs):
+        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ENABLE_APM")
+        if enable_env:
+            enable_env.attr_value = "true"
+            enable_env.save
+        else:
+            env_var_service.add_service_env_var(self.tenant, self.service, 0, "ENABLE_APM", "ENABLE_APM", "true", True, "inner")
+        result = general_message(200, "success", "设置成功")
+        return Response(result, status=result["code"])
+
+    def delete(self, request, *args, **kwargs):
+        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ENABLE_APM")
+        if enable_env:
+            env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ENABLE_APM")
+        result = general_message(200, "success", "关闭成功")
+        return Response(result, status=result["code"])
