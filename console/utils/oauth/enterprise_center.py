@@ -1,17 +1,16 @@
 # -*- coding: utf8 -*-
+import functools
 import logging
 from urlparse import urlsplit
-import functools
 
-from console.utils.oauth.base.oauth import OAuth2User
+from console.exception.main import ServiceHandleException
 from console.utils.oauth.base.communication_oauth import CommunicationOAuth2Interface
+from console.utils.oauth.base.exception import NoOAuthServiceErr
+from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.restful_client import get_enterprise_server_auth_client
 from console.utils.restful_client import get_enterprise_server_ent_client
 from console.utils.restful_client import get_order_server_ent_client
 from console.utils.restful_client import get_pay_server_ent_client
-from console.exception.main import ServiceHandleException
-
-from console.utils.oauth.base.exception import NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
 
 logger = logging.getLogger("default")
@@ -135,8 +134,8 @@ class EnterpriseCenterV1(EnterpriseCenterV1MiXin, CommunicationOAuth2Interface):
             "client_id": self.oauth_service.client_id,
             "client_secret": self.oauth_service.client_secret,
         }
-        rst = self._session.request(method='POST', url=self.get_access_token_url(self.oauth_service.home_url),
-                                    headers=headers, params=params)
+        rst = self._session.request(
+            method='POST', url=self.get_access_token_url(self.oauth_service.home_url), headers=headers, params=params)
         data = rst.json()
         if rst.status_code == 200:
             self.oauth_user.refresh_token = data.get("refresh_token")
