@@ -324,7 +324,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseRegionsLCView(EnterpriseAdminView):
+class EnterpriseRegionsLCView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")

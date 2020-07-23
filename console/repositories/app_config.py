@@ -3,8 +3,8 @@
   Created on 18/1/12.
 """
 import datetime
-import logging
 import json
+import logging
 
 from django.db.models import Q
 
@@ -50,6 +50,10 @@ class TenantServiceEnvVarRepository(object):
 
     def get_env_by_ids_and_attr_names(self, tenant_id, service_ids, attr_names):
         envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, attr_name__in=attr_names)
+        return envs
+
+    def get_depend_outer_envs_by_ids(self, tenant_id, service_ids):
+        envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, scope="outer")
         return envs
 
     def get_env_by_ids_and_env_id(self, tenant_id, service_id, env_id):
@@ -720,7 +724,6 @@ class ServiceTcpDomainRepository(object):
 
 
 class TenantServiceEndpoints(object):
-
     def get_service_endpoints_by_service_id(self, service_id):
         return ThirdPartyServiceEndpoints.objects.filter(service_id=service_id)
 
