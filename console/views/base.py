@@ -22,20 +22,14 @@ from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, ResourceNotEnoughException, ServiceHandleException)
-from console.exception.main import NoPermissionsError
-from console.models.main import EnterpriseUserPerm
-from console.models.main import PermsInfo
-from console.models.main import UserRole
-from console.models.main import RoleInfo
-from console.models.main import RolePerms
-from console.models.main import OAuthServices, UserOAuthServices
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
+from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 from console.repositories.enterprise_repo import enterprise_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
 from entsrv_client.rest import ApiException as EnterPriseCenterApiException
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import Tenants, Users, TenantEnterprise
+from www.models.main import TenantEnterprise, Tenants, Users
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -397,8 +391,8 @@ def custom_exception_handler(exc, context):
         if exc.message.get("httpcode") == 404:
             data = {"code": 404, "msg": "region no found this resource", "msg_show": u"数据中心资源不存在"}
         else:
-            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作失败"}
-        return Response(data, status=404)
+            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作故障，请稍后重试"}
+        return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
