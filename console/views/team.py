@@ -345,7 +345,6 @@ class TeamDelView(JWTAuthApiView):
             force = True
         else:
             force = False
-        print force
         tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
         if tenant is None:
             code = 404
@@ -628,7 +627,6 @@ class JoinTeamView(JWTAuthApiView):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
         logger.debug('---------admin---------->{0}'.format(admins))
         for admin in admins:
-            # nick_name = user_repo.get_user_by_user_id(user.user_id)
             message_id = make_uuid()
             content = '{0}用户申请加入{1}团队'.format(nick_name, tenant.tenant_alias)
             UserMessage.objects.create(

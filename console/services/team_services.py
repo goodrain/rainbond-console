@@ -9,26 +9,23 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 
+from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
-from console.repositories.enterprise_repo import enterprise_repo
 from console.models.main import TenantUserRole
+from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
-from console.services.enterprise_services import enterprise_services
-from console.services.exception import ErrAllTenantDeletionFailed
-from console.services.exception import ErrStillHasServices
-from console.services.exception import ErrTenantRegionNotFound
-from console.services.region_services import region_services
-from console.services.perm_services import user_kind_role_service
 from console.services.common_services import common_services
+from console.services.enterprise_services import enterprise_services
+from console.services.exception import (ErrAllTenantDeletionFailed, ErrStillHasServices, ErrTenantRegionNotFound)
+from console.services.perm_services import user_kind_role_service
+from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import PermRelTenant
-from www.models.main import Tenants
-from www.models.main import TenantServiceInfo
-from console.exception.exceptions import UserNotExistError
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -198,8 +195,7 @@ class TeamService(object):
             obj = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk)
             if obj:
                 return obj[0].user_id
-        else:
-            return False
+        return False
 
     def get_team_service_count_by_team_name(self, team_name):
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
@@ -500,6 +496,45 @@ class TeamService(object):
                 })
             return data
         return None
+
+    def get_tenant_list_by_region(self, eid, region_id, page=1, page_size=10):
+        teams = team_repo.get_team_by_enterprise_id(eid)
+        team_maps = {}
+        if teams:
+            for team in teams:
+                team_maps[team.tenant_id] = team
+        res, body = region_api.list_tenants(eid, region_id, page, page_size)
+        tenant_list = []
+        total = 0
+        if body.get("bean"):
+            tenants = body.get("bean").get("list")
+            total = body.get("bean").get("total")
+            if tenants:
+                for tenant in tenants:
+                    tenant_alias = team_maps.get(tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''
+                    tenant_list.append({
+                        "tenant_id": tenant["UUID"],
+                        "team_name": tenant_alias,
+                        "tenant_name": tenant["Name"],
+                        "memory_request": tenant["memory_request"],
+                        "cpu_request": tenant["cpu_request"],
+                        "memory_limit": tenant["memory_limit"],
+                        "cpu_limit": tenant["cpu_limit"],
+                        "running_app_num": tenant["running_app_num"],
+                        "running_app_internal_num": tenant["running_app_internal_num"],
+                        "running_app_third_num": tenant["running_app_third_num"],
+                        "set_limit_memory": tenant["LimitMemory"],
+                    })
+        else:
+            logger.error(body)
+        return tenant_list, total
+
+    def set_tenant_memory_limit(self, eid, region_id, tenant_name, limit):
+        try:
+            region_api.set_tenant_limit_memory(eid, tenant_name, region_id, body=limit)
+        except RegionApiBaseHttpClient.CallApiError as e:
+            logger.exception(e)
+            raise ServiceHandleException(status_code=500, msg="", msg_show=u"设置租户限额失败")
 
 
 team_services = TeamService()

@@ -2686,23 +2686,6 @@ RegionProtocolView = {
     }
 }
 
-CenterAppUploadView = {
-    "__message": {
-        "get": {
-            "perms": []
-        },
-        "post": {
-            "perms": [300015]
-        },
-        "put": {
-            "perms": []
-        },
-        "delete": {
-            "perms": []
-        }
-    }
-}
-
 ImportingRecordView = {
     "__message": {
         "get": {
@@ -2744,23 +2727,6 @@ CenterAppImportView = {
         },
         "post": {
             "perms": [300015]
-        },
-        "put": {
-            "perms": []
-        },
-        "delete": {
-            "perms": []
-        }
-    }
-}
-
-ExportFileDownLoadView = {
-    "__message": {
-        "get": {
-            "perms": [200001]
-        },
-        "post": {
-            "perms": [300016]
         },
         "put": {
             "perms": []
