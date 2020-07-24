@@ -13,7 +13,6 @@ from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
 
-
 # def get_market_client(enterpriseID, enterpriseToken, host=None):
 #     configuration = Configuration()
 #     configuration.host = host if host else os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80')
@@ -49,8 +48,7 @@ def apiException(func):
                 raise ServiceHandleException(
                     msg="no store auth token", msg_show="缺少云应用市场token", status_code=401, error_code=10421)
             if e.status == 403:
-                raise ServiceHandleException(msg="no store permission", msg_show="未进行授权", status_code=403,
-                                             error_code=10407)
+                raise ServiceHandleException(msg="no store permission", msg_show="未进行授权", status_code=403, error_code=10407)
             if e.status == 404:
                 raise ServiceHandleException(msg=e.body, msg_show="资源不存在", status_code=404)
             if str(e.status)[0] == '4':
