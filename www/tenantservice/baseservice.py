@@ -701,7 +701,6 @@ class BaseTenantService(object):
     def add_volume_list(self, service, volume_path):
         try:
             category = service.category
-            region = service.service_region
             tenant_id = service.tenant_id
             service_id = service.service_id
             volume = TenantServiceVolume(service_id=service_id, category=category)
