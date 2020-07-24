@@ -3,7 +3,7 @@ MySQL-python==1.2.5
 pylibmc==1.5.0
 django-crispy-forms==1.6.0
 addict==0.4.0
-gunicorn==19.10.0
+gunicorn==19.0.0
 wsgiref==0.1.2
 httplib2==0.9.1
 simplejson==3.8.0
