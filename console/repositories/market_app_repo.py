@@ -3,12 +3,14 @@
   Created on 18/3/5.
 """
 import logging
+
 from django.db.models import Q
+
 from console.models.main import AppExportRecord
 from console.models.main import AppImportRecord
 from console.models.main import RainbondCenterApp
-from console.models.main import RainbondCenterAppVersion
 from console.models.main import RainbondCenterAppTagsRelation
+from console.models.main import RainbondCenterAppVersion
 from www.db.base import BaseConnection
 
 logger = logging.getLogger("default")
@@ -53,6 +55,7 @@ class RainbondCenterAppRepository(object):
             team_sql = " and app.create_team in ('')"
             if teams:
                 team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            team_sql += " and scope='" + scope + "'"
             extend_where += team_sql
         sql = """
             select
@@ -66,12 +69,11 @@ class RainbondCenterAppRepository(object):
                 apr.tag_id = tag.ID
                 and tag.enterprise_id = app.enterprise_id
             where
-                `scope` = '{scope}'
-                and app.enterprise_id = '{eid}'
+                app.enterprise_id = '{eid}'
                 {extend_where}
             limit {offset}, {rows}
             """.format(
-            eid=eid, scope=scope, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size)
+            eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size)
         return sql
 
     def get_rainbond_app_in_teams_by_querey(self, eid, teams, app_name, tag_names=None, page=1, page_size=10):

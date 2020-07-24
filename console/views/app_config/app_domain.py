@@ -13,11 +13,14 @@ from rest_framework.response import Response
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
-from console.repositories.app_config import (configuration_repo, domain_repo,
-                                             tcp_domain)
-from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.app_config import configuration_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
-from console.services.app_config import domain_service, port_service
+from console.services.app_config import domain_service
+from console.services.app_config import port_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -26,7 +29,8 @@ from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceDomain, TenantServiceInfo
+from www.models.main import ServiceDomain
+from www.models.main import TenantServiceInfo
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 

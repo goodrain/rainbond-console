@@ -2,12 +2,17 @@
 import json
 import logging
 from datetime import datetime
-from enum import Enum, IntEnum
 
 from django.db import models
-from django.db.models.fields import (AutoField, BooleanField, CharField,
-                                     DateTimeField, DecimalField, IntegerField)
+from django.db.models.fields import AutoField
+from django.db.models.fields import BooleanField
+from django.db.models.fields import CharField
+from django.db.models.fields import DateTimeField
+from django.db.models.fields import DecimalField
+from django.db.models.fields import IntegerField
 from django.db.models.fields.files import FileField
+from enum import Enum
+from enum import IntEnum
 
 from goodrain_web import settings
 from www.models.main import TenantServiceInfo

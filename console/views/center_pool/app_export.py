@@ -2,17 +2,14 @@
 """
   Created on 18/5/5.
 """
-import contextlib
 import logging
-import urllib2
 
-from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
-from console.views.base import AlowAnyApiView, JWTAuthApiView
+from console.views.base import JWTAuthApiView
 from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
