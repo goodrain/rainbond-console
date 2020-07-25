@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import os
+import sys
 
 import MySQLdb
 
@@ -101,11 +102,13 @@ def get_version():
     db.close()
     if data:
         return RainbondVersion(data[0])
-    return RainbondVersion("5.2.0")
+    default_version = os.environ.get('DEFAULT_VERSION', "5.2.0")
+    return RainbondVersion(default_version)
 
 
 def get_current_version():
-    return RainbondVersion("5.2.1")
+    new_version = os.environ.get('NEW_VERSION', "5.2.1")
+    return RainbondVersion(new_version)
 
 
 def should_upgrade(current_version, new_version):
@@ -122,7 +125,10 @@ if __name__ == '__main__':
     print "Initialize rainbond console"
     new_version = get_current_version()
     current_version = get_version()
-    if should_upgrade(current_version, new_version):
+    if not current_version:
+        print "Cannot upgrade because the current version cannot be read."
+        sys.exit(1)
+    if current_version and should_upgrade(current_version, new_version):
         print "Start upgrade console db from {0} to {1}".format(current_version, new_version)
         while True:
             if current_version.equal(new_version):
