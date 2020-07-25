@@ -13,6 +13,10 @@ services:
 git:
   depth: 1
 
-script:
-  - ./check_code.sh || travis_terminate 1;
-  - ./travis_build.sh || travis_terminate 1;
+jobs:
+  include:
+    - stage: check
+      script: ./check_code.sh || travis_terminate 1;
+    - stage: build
+      script:
+        - ./travis_build.sh || travis_terminate 1;
