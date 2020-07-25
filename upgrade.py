@@ -68,8 +68,14 @@ def upgrade(current_version, new_version):
             db = create_db_client()
             cursor = db.cursor()
             for sql_item in sql_list:
-                print "exec sql: {0}".format(sql_item)
-                cursor.execute(sql_item)
+                try:
+                    print "exec sql: {0}".format(sql_item)
+                    cursor.execute(sql_item)
+                except MySQLdb.Error as err:
+                    # 1060: Duplicate column name
+                    # 1054: Unknown column
+                    if err.args[0] not in [1060, 1054]:
+                        raise err
             cursor.close()
             db.commit()
             db.close()
@@ -95,11 +101,11 @@ def get_version():
     db.close()
     if data:
         return RainbondVersion(data[0])
-    return ""
+    return RainbondVersion("5.2.0")
 
 
 def get_current_version():
-    return RainbondVersion("5.2.0")
+    return RainbondVersion("5.2.1")
 
 
 def should_upgrade(current_version, new_version):

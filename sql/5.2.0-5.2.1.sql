@@ -8,7 +8,7 @@ UPDATE region_info a JOIN tenant_region b ON a.region_name = b.region_name SET a
 alter table console_sys_config add enterprise_id varchar(32) DEFAULT NULL;
 alter table tenant_enterprise add logo varchar(128) DEFAULT NULL;
 
-CREATE TABLE `user_access_key` (
+CREATE TABLE IF NOT EXISTS  `user_access_key` (
   `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `note` varchar(32) NOT NULL DEFAULT '',
   `access_key` varchar(64) NOT NULL DEFAULT '',
@@ -37,14 +37,14 @@ alter table console.tenant_service_delete modify version varchar(255);
 
 alter table console.tenant_service_delete modify version varchar(255);
 
-CREATE TABLE `user_role` (
+CREATE TABLE IF NOT EXISTS `user_role` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `role_id` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=91 DEFAULT CHARSET=utf8;
 
-CREATE TABLE `perms_info` (
+CREATE TABLE IF NOT EXISTS `perms_info` (
   `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(32) NOT NULL DEFAULT '',
   `desc` varchar(64) NOT NULL DEFAULT '',
@@ -56,14 +56,14 @@ CREATE TABLE `perms_info` (
   UNIQUE KEY `un_code` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1339 DEFAULT CHARSET=utf8;
 
-CREATE TABLE `role_perms` (
+CREATE TABLE IF NOT EXISTS `role_perms` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `role_id` int(11) NOT NULL,
   `perm_code` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5632 DEFAULT CHARSET=utf8;
 
-CREATE TABLE `role_info` (
+CREATE TABLE IF NOT EXISTS `role_info` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(32) NOT NULL DEFAULT '',
   `kind_id` varchar(64) NOT NULL DEFAULT '',
@@ -81,7 +81,7 @@ alter table console.tenant_service_statics modify region varchar(64);
 alter table console.tenant_plugin modify region varchar(64);
 alter table console.plugin_build_version modify region varchar(64);
 
-CREATE TABLE `app_market` (
+CREATE TABLE IF NOT EXISTS `app_market` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(64) DEFAULT NULL,
   `domain` varchar(64) DEFAULT NULL,
