@@ -21,7 +21,10 @@ from console.repositories.region_repo import region_repo
 
 logger = logging.getLogger('default')
 
-resource_not_enough_message = {"cluster_lack_of_memory": "集群资源不足，请联系集群管理员", "tenant_lack_of_memory": "团队可用资源不足，请联系企业管理员"}
+resource_not_enough_message = {
+    "cluster_lack_of_memory": "集群可用资源不足，请联系集群管理员",
+    "tenant_lack_of_memory": "团队使用内存已超过限额，请联系企业管理员增加限额"
+}
 
 
 class RegionApiBaseHttpClient(object):

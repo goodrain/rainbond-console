@@ -1,16 +1,16 @@
 # -*- coding: utf8 -*-
-from console.utils.oauth.github_api import GithubApiV3
-from console.utils.oauth.gitlab_api import GitlabApiV4
-from console.utils.oauth.gitee_api import GiteeApiV5
 from console.utils.oauth.aliyun_api import AliYunApiV1
 from console.utils.oauth.dingtalk_api import DingtalkApiV1
+from console.utils.oauth.gitee_api import GiteeApiV5
+from console.utils.oauth.github_api import GithubApiV3
+from console.utils.oauth.gitlab_api import GitlabApiV4
 
 support_oauth_type = {
     "github": GithubApiV3,
     "gitlab": GitlabApiV4,
     "gitee": GiteeApiV5,
     "aliyun": AliYunApiV1,
-    "dingtalk": DingtalkApiV1
+    "dingtalk": DingtalkApiV1,
 }
 
 

@@ -975,6 +975,7 @@ class MarketAppService(object):
             details = None
             min_memory = None
             services = group_service.get_rainbond_services(group.ID, group_key)
+            pc = None
             for service in services:
                 try:
                     pc = PropertiesChanges(service, tenant)
@@ -998,7 +999,7 @@ class MarketAppService(object):
                     if e.msg != "no found app market":
                         logger.exception(e)
                         raise e
-            if not pc.current_app or not pc.current_version:
+            if not pc or not pc.current_app or not pc.current_version:
                 continue
             dat = {
                 'group_key': group_key,

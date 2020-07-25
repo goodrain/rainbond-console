@@ -3,10 +3,8 @@ import logging
 import os
 from functools import wraps
 
-import entsrv_client
 import market_client
 import openapi_client as store_client
-from entsrv_client.configuration import Configuration as enter_Configuration
 from market_client.configuration import Configuration
 from openapi_client.configuration import Configuration as storeConfiguration
 from openapi_client.rest import ApiException
@@ -29,41 +27,6 @@ def get_default_market_client():
     configuration.host = os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80')
     # create an instance of the API class
     return market_client.AppsApi(market_client.ApiClient(configuration))
-
-
-def get_enterprise_server_auth_client(home_url, token):
-    configuration = enter_Configuration()
-    configuration.host = home_url
-    configuration.api_key['Authorization'] = token
-
-    # create an instance of the API class
-    return entsrv_client.AuthApi(entsrv_client.ApiClient(configuration))
-
-
-def get_enterprise_server_ent_client(home_url, token):
-    configuration = enter_Configuration()
-    configuration.host = home_url
-    configuration.api_key['Authorization'] = token
-
-    # create an instance of the API class
-    return entsrv_client.EnterpriseApi(entsrv_client.ApiClient(configuration))
-
-
-def get_order_server_ent_client(home_url, token):
-    configuration = enter_Configuration()
-    configuration.host = home_url
-    configuration.api_key['Authorization'] = token
-
-    # create an instance of the API class
-    return entsrv_client.OrderApi(entsrv_client.ApiClient(configuration))
-
-
-def get_pay_server_ent_client(home_url, token):
-    configuration = enter_Configuration()
-    configuration.host = home_url
-    configuration.api_key['Authorization'] = token
-    # create an instance of the API class
-    return entsrv_client.PayApi(entsrv_client.ApiClient(configuration))
 
 
 def get_market_client(access_key, host=None):

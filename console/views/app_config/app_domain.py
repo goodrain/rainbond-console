@@ -13,10 +13,14 @@ from rest_framework.response import Response
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
-from console.repositories.app_config import (configuration_repo, domain_repo, tcp_domain)
-from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.app_config import configuration_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.group import group_repo
+from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
-from console.services.app_config import domain_service, port_service
+from console.services.app_config import domain_service
+from console.services.app_config import port_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -25,7 +29,8 @@ from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceDomain, TenantServiceInfo
+from www.models.main import ServiceDomain
+from www.models.main import TenantServiceInfo
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 
@@ -719,22 +724,25 @@ class DomainQueryView(RegionTenantHeaderView):
             end = page_size
             if remaining_num < page_size:
                 end = remaining_num
-
-            cursor = connection.cursor()
-            cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
-                    sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
-                    sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                    sd.is_outer_service \
-                from service_domain sd \
-                    left join service_group_relation sgr on sd.service_id = sgr.service_id \
-                    left join service_group sg on sgr.group_id = sg.id \
-                where sd.tenant_id='{0}' \
-                    and sd.region_id='{1}' \
-                    and (sd.domain_name like '%{2}%' \
-                        or sd.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%') \
-                order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start, end))
-            tenant_tuples = cursor.fetchall()
+            if remaining_num <= 0:
+                tenant_tuples = []
+            else:
+                cursor = connection.cursor()
+                cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+                        sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
+                        sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
+                        sd.is_outer_service \
+                    from service_domain sd \
+                        left join service_group_relation sgr on sd.service_id = sgr.service_id \
+                        left join service_group sg on sgr.group_id = sg.id \
+                    where sd.tenant_id='{0}' \
+                        and sd.region_id='{1}' \
+                        and (sd.domain_name like '%{2}%' \
+                            or sd.service_alias like '%{2}%' \
+                            or sg.group_name like '%{2}%') \
+                    order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start,
+                                                              end))
+                tenant_tuples = cursor.fetchall()
         else:
             # 获取总数
             cursor = connection.cursor()
@@ -746,16 +754,19 @@ class DomainQueryView(RegionTenantHeaderView):
             start = (page - 1) * page_size
             remaining_num = total - (page - 1) * page_size
             end = page_size
-            if remaining_num < page_size:
+            if remaining_num <= page_size:
                 end = remaining_num
+            if remaining_num < 0:
+                tenant_tuples = []
+            else:
+                cursor = connection.cursor()
 
-            cursor = connection.cursor()
-
-            cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
-                service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
-                domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}'
-                and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start, end))
-            tenant_tuples = cursor.fetchall()
+                cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
+                    service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
+                    domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}'
+                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start,
+                                                                                    end))
+                tenant_tuples = cursor.fetchall()
         # 拼接展示数据
         domain_list = list()
         for tenant_tuple in tenant_tuples:

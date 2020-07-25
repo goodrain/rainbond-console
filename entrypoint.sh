@@ -27,19 +27,19 @@ elif [ "$1" = "init" ];then
     fi
 
     echo -e "${GREEN}Start initializing database${NC}"
-    if !(python manage.py makemigrations www > /dev/null); then
+    if !(python manage.py makemigrations www 2> /dev/null); then
         echo -e "${RED}failed to makemigrations www${NC}"
         exit 1
     fi
-    if !(python manage.py makemigrations console > /dev/null); then
+    if !(python manage.py makemigrations console 2> /dev/null); then
         echo -e "${RED}failed to makemigrations console${NC}"
         exit 1
     fi
-    if !(python manage.py migrate > /dev/null); then
+    if !(python manage.py migrate 2> /dev/null); then
         echo -e "${RED}failed to migrate${NC}"
         exit 1
     fi
-    if !(python default_region.py > /dev/null); then
+    if !(python default_region.py 2> /dev/null); then
         echo -e "${RED}failed to default_region${NC}"
         exit 1
     fi

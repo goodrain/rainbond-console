@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-import json
 import logging
 import os
 
@@ -12,30 +11,38 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
-from rest_framework import exceptions, status
+from rest_framework import exceptions
+from rest_framework import status
 from rest_framework.authentication import get_authorization_header
-from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView, set_rollback
+from rest_framework.views import APIView
+from rest_framework.views import set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, ResourceNotEnoughException, ServiceHandleException)
+from console.exception.main import BusinessException
 from console.exception.main import NoPermissionsError
+from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ServiceHandleException
 from console.models.main import EnterpriseUserPerm
+from console.models.main import OAuthServices
 from console.models.main import PermsInfo
-from console.models.main import UserRole
 from console.models.main import RoleInfo
 from console.models.main import RolePerms
-from console.models.main import OAuthServices, UserOAuthServices
+from console.models.main import UserOAuthServices
+from console.models.main import UserRole
 from console.repositories.enterprise_repo import enterprise_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
-from entsrv_client.rest import ApiException as EnterPriseCenterApiException
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import Tenants, Users, TenantEnterprise
+from www.models.main import TenantEnterprise
+from www.models.main import Tenants
+from www.models.main import Users
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -397,8 +404,8 @@ def custom_exception_handler(exc, context):
         if exc.message.get("httpcode") == 404:
             data = {"code": 404, "msg": "region no found this resource", "msg_show": u"数据中心资源不存在"}
         else:
-            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作失败"}
-        return Response(data, status=404)
+            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作故障，请稍后重试"}
+        return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
@@ -458,17 +465,6 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, ImportError):
         # 处理数据为标准返回格式
         data = {"code": status.HTTP_400_BAD_REQUEST, "msg": exc.message, "msg_show": "{0}".format("请求参数不全")}
-        return Response(data, status=status.HTTP_400_BAD_REQUEST)
-    elif isinstance(exc, EnterPriseCenterApiException):
-        # 处理数据为标准返回格式
-        try:
-            body = json.loads(exc.body)
-            code = body.get("code")
-            msg = body.get("msg")
-        except Exception:
-            code = 400
-            msg = exc.body
-        data = {"code": code, "msg": msg, "msg_show": "{0}".format("企业中心接口错误")}
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
