@@ -1,12 +1,12 @@
 # -*- coding: UTF-8 -*-
 import os
 import sys
+from datetime import datetime
 
 import MySQLdb
 
 
 class RainbondVersion(object):
-
     max_version = 5
 
     min_version = 1
@@ -36,8 +36,8 @@ class RainbondVersion(object):
 
     def equal(self, new_version):
         return self.max_version == new_version.max_version and \
-            self.median_version == new_version.median_version and \
-            self.min_version == new_version.min_version
+               self.median_version == new_version.median_version and \
+               self.min_version == new_version.min_version
 
 
 def create_db_client():
@@ -61,13 +61,13 @@ def get_upgrade_sql(current_version, new_version):
 
 
 def upgrade(current_version, new_version):
+    print("current console db version is {}".format(current_version))
+    print("update  console db version to {}".format(new_version))
+    db = create_db_client()
+    cursor = db.cursor()
     try:
-        print("current console db version is {}".format(current_version))
-        print("update  console db version to {}".format(new_version))
         sql_list = get_upgrade_sql(current_version, new_version)
         if sql_list:
-            db = create_db_client()
-            cursor = db.cursor()
             for sql_item in sql_list:
                 try:
                     print "exec sql: {0}".format(sql_item)
@@ -77,20 +77,26 @@ def upgrade(current_version, new_version):
                     # 1054: Unknown column
                     if err.args[0] not in [1060, 1054]:
                         raise err
-            cursor.close()
-            db.commit()
-            db.close()
-            print("update console db version to {} success".format(new_version))
-        else:
-            print("no sql file, do not update")
-            db = create_db_client()
-            cursor = db.cursor()
-            cursor.execute('update console_sys_config set `value`="{0}" where `key`="RAINBOND_VERSION";'.format(new_version))
-            cursor.close()
-            db.commit()
-            db.close()
+        update_or_create_rainbond_version(cursor, new_version)
+        db.commit()
+        print("update console db version to {} success".format(new_version))
     except Exception as e:
         print(e)
+    cursor.close()
+    db.close()
+
+
+def update_or_create_rainbond_version(cursor, new_version):
+    cursor.execute('select value from console_sys_config where `key`="RAINBOND_VERSION"')
+    data = cursor.fetchone()
+    if data:
+        # update
+        print("update rainbond version")
+        cursor.execute('update console_sys_config set `value`="{0}" where `key`="RAINBOND_VERSION";'.format(new_version))
+    else:
+        print("create rainbond version")
+        cursor.execute('''insert into console_sys_config(`key`, `type`, `value`, `enable`, `create_time`, `enterprise_id`)
+            values("RAINBOND_VERSION", "string", "{0}", 1, "{1}", "");'''.format(new_version, datetime.now()))
 
 
 def get_version():
