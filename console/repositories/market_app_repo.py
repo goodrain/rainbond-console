@@ -38,8 +38,8 @@ class RainbondCenterAppRepository(object):
             return rcapps[0]
         return None
 
-    def get_rainbond_app_in_enterprise_by_query(self, eid, app_name, tag_names=None, page=1, page_size=10):
-        sql = self._prepare_get_rainbond_app_by_query_sql(eid, "enterprise", app_name, None, tag_names, page, page_size)
+    def get_rainbond_app_in_enterprise_by_query(self, eid, scope, app_name, tag_names=None, page=1, page_size=10):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, None, tag_names, page, page_size)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
@@ -57,6 +57,8 @@ class RainbondCenterAppRepository(object):
                 team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
             team_sql += " and scope='" + scope + "'"
             extend_where += team_sql
+        if scope == "enterprise":
+            extend_where += " and scope='" + scope + "'"
         sql = """
             select
                 distinct app.*
@@ -93,7 +95,10 @@ class RainbondCenterAppRepository(object):
             team_sql = " and app.create_team in ('')"
             if teams:
                 team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            team_sql += " and scope='" + scope + "'"
             extend_where += team_sql
+        if scope == "enterprise":
+            extend_where += " and scope='" + scope + "'"
         sql = """
             select
                 count(distinct app.app_id) as total
@@ -108,11 +113,10 @@ class RainbondCenterAppRepository(object):
                 join console.rainbond_center_app_tag tag on
                     rcatr.tag_id = tag.iD) tag on app.app_id = tag.app_id
             where
-                `scope` = '{scope}'
-                and app.enterprise_id = '{eid}'
+                app.enterprise_id = '{eid}'
                 {extend_where}
             """.format(
-            eid=eid, scope=scope, extend_where=extend_where)
+            eid=eid, extend_where=extend_where)
         conn = BaseConnection()
         count = conn.query(sql)
         return count
