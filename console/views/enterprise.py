@@ -2,9 +2,6 @@
 import json
 import logging
 
-from rest_framework import status
-from rest_framework.response import Response
-
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
@@ -19,6 +16,8 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from rest_framework import status
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -419,7 +418,7 @@ class EnterpriseAppComponentsLView(JWTAuthApiView):
 
 
 class EnterpriseRegionDashboard(EnterpriseAdminView):
-    def dispatch(self, request, enterprise_id, region_id, path, *args, **kwargs):
+    def dispatch(self, request, enterprise_id, region_id, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
         request = self.initialize_request(request, *args, **kwargs)
@@ -430,6 +429,8 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
             region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
             if not region:
                 return Response({}, status=status.HTTP_404_NOTFOUND)
+            full_path = request.get_full_path()
+            path = full_path[full_path.index("/dashboard/") + 11:len(full_path)]
             response = region_api.proxy(request, '/kubernetes/dashboard/' + path, region['region_name'])
         except Exception as exc:
             response = self.handle_exception(exc)

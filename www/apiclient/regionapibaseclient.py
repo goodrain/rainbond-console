@@ -11,13 +11,13 @@ import ssl
 
 import certifi
 import urllib3
-from addict import Dict
-from django.conf import settings
-from django.http import HttpResponse, QueryDict
 from urllib3.exceptions import MaxRetryError
 
+from addict import Dict
 from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo
+from django.conf import settings
+from django.http import HttpResponse, QueryDict
 
 logger = logging.getLogger('default')
 
@@ -263,7 +263,6 @@ class RegionApiBaseHttpClient(object):
         """
         requests_args = (requests_args or {}).copy()
         headers = self.get_headers(request.META)
-        params = request.GET.copy()
 
         if 'headers' not in requests_args:
             requests_args['headers'] = {}
@@ -275,7 +274,6 @@ class RegionApiBaseHttpClient(object):
         # Overwrite any headers and params from the incoming request with explicitly
         # specified values for the requests library.
         headers.update(requests_args['headers'])
-        params.update(requests_args['fields'])
 
         # If there's a content-length header from Django, it's probably in all-caps
         # and requests might not notice it, so just remove it.
@@ -284,13 +282,12 @@ class RegionApiBaseHttpClient(object):
                 del headers[key]
 
         requests_args['headers'] = headers
-        requests_args['fields'] = params
 
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
-        response = client.request(method=request.method, url="{}{}".format(region.url, url), **requests_args)
+        response = client.request(method=request.method, timeout=20, url="{}{}".format(region.url, url), **requests_args)
 
         proxy_response = HttpResponse(response.data, status=response.status)
 
