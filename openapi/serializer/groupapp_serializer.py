@@ -1,28 +1,27 @@
 # -*- coding: utf-8 -*-
 # create by: panda-zxs
 
-from rest_framework import serializers
-
 from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 from openapi.serializer.utils import DateCharField
+from rest_framework import serializers
 
 
 class CompomentBuildSourceSerializer(serializers.Serializer):
     version = serializers.CharField(max_length=32, allow_null=True, help_text="版本")
     language = serializers.CharField(max_length=64, allow_null=True, help_text="语言")
-    code_from = serializers.CharField(max_length=32, allow_null=True, help_text="构建类型")
+    code_from = serializers.CharField(required=False, max_length=32, allow_null=True, help_text="构建类型")
     service_source = serializers.CharField(max_length=32, allow_null=True, help_text="应用来源")
 
 
 class CompomentDockerImageBuildSourceSerializer(CompomentBuildSourceSerializer):
-    docker_cmd = serializers.CharField(max_length=1024, allow_null=True, help_text="docker_cmd")
+    docker_cmd = serializers.CharField(required=False, max_length=1024, allow_null=True, help_text="docker_cmd")
     image = serializers.CharField(max_length=200, allow_null=True, help_text="镜像")
-    password = serializers.CharField(max_length=255, allow_null=True, help_text="密码")
-    user_name = serializers.CharField(max_length=255, allow_null=True, help_text="用户名")
+    password = serializers.CharField(required=False, max_length=255, allow_null=True, help_text="密码")
+    user_name = serializers.CharField(required=False, max_length=255, allow_null=True, help_text="用户名")
 
 
 class CompomentMarketBuildSourceSerializer(CompomentBuildSourceSerializer):
-    rain_app_name = serializers.CharField(max_length=64, allow_null=True, help_text="应用包名")
+    rain_app_name = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="应用包名")
 
 
 class CompomentCodeBuildSourceSerializer(CompomentBuildSourceSerializer):
@@ -30,9 +29,9 @@ class CompomentCodeBuildSourceSerializer(CompomentBuildSourceSerializer):
     git_url = serializers.CharField(max_length=2047, allow_null=True, help_text="git地址")
     full_name = serializers.CharField(max_length=64, allow_null=True, help_text="git仓库full_name")
     service_id = serializers.CharField(max_length=32, allow_null=True, help_text="id")
-    oauth_service_id = serializers.IntegerField(allow_null=True, help_text="OAuth服务id")
-    user_name = serializers.CharField(max_length=255, allow_null=True, help_text="用户名")
-    password = serializers.CharField(max_length=255, allow_null=True, help_text="密码")
+    oauth_service_id = serializers.IntegerField(required=False, allow_null=True, help_text="OAuth服务id")
+    user_name = serializers.CharField(required=False, max_length=255, allow_null=True, help_text="用户名")
+    password = serializers.CharField(required=False, max_length=255, allow_null=True, help_text="密码")
 
 
 class AppCopyLSerializer(serializers.Serializer):
