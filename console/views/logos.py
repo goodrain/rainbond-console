@@ -2,23 +2,21 @@
 import logging
 import os
 
+from django.db import transaction
 from rest_framework.response import Response
 
-from console.repositories.perm_repo import perms_repo
-from console.services.config_service import platform_config_service
-from console.views.base import AlowAnyApiView
-from console.views.base import BaseApiView
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
-
-from django.db import transaction
-
 from console.exception.main import ServiceHandleException
+from console.repositories.app import app_market_repo
+from console.repositories.perm_repo import perms_repo
+from console.repositories.team_repo import team_repo
+from console.services.config_service import platform_config_service
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import user_kind_role_service
-from console.repositories.team_repo import team_repo
-
+from console.views.base import AlowAnyApiView
+from console.views.base import BaseApiView
 from www.models.main import Tenants
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -35,6 +33,8 @@ class ConfigRUDView(AlowAnyApiView):
         data = platform_config_service.initialization_or_get_config
         if data.get("enterprise_id", None) is None:
             data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
+        if data["enterprise_id"]:
+            app_market_repo.create_default_app_market_if_not_exists(data["enterprise_id"])
         result = general_message(code, "query success", u"Logo获取成功", bean=data, initialize_info=status)
         return Response(result, status=code)
 
