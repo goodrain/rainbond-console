@@ -79,7 +79,7 @@ class RainbondCenterAppRepository(object):
         return sql
 
     def get_rainbond_app_in_teams_by_querey(self, eid, scope, teams, app_name, tag_names=None, page=1, page_size=10):
-        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, "team", app_name, teams, tag_names, page, page_size)
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, teams, tag_names, page, page_size)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
