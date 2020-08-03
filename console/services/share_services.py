@@ -730,7 +730,6 @@ class ShareService(object):
                 plugins = share_info.get("share_plugin_list", None)
                 shared_plugin_info = None
                 if plugins:
-
                     for plugin_info in plugins:
                         # one account for one plugin
                         share_image_info = app_store.get_app_hub_info(market, app_model_id, share_team.enterprise_id)
