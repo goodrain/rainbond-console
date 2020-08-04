@@ -725,7 +725,7 @@ class MarketAppService(object):
                 teams = [team.tenant_name for team in teams]
             apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, scope, teams, app_name, tag_names, page,
                                                                          page_size)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, "team", teams, app_name, tag_names)
+            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names)
         else:
             # default scope is enterprise
             apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size)

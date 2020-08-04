@@ -2,23 +2,20 @@
 import logging
 import os
 
+from django.db import transaction
 from rest_framework.response import Response
 
-from console.repositories.perm_repo import perms_repo
-from console.services.config_service import platform_config_service
-from console.views.base import AlowAnyApiView
-from console.views.base import BaseApiView
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
-
-from django.db import transaction
-
 from console.exception.main import ServiceHandleException
+from console.repositories.perm_repo import perms_repo
+from console.repositories.team_repo import team_repo
+from console.services.config_service import platform_config_service
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import user_kind_role_service
-from console.repositories.team_repo import team_repo
-
+from console.views.base import AlowAnyApiView
+from console.views.base import BaseApiView
 from www.models.main import Tenants
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
