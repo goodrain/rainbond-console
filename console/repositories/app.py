@@ -3,6 +3,7 @@
   Created on 18/1/16.
 """
 import logging
+import os
 
 from django.db import transaction
 from docker_image import reference
@@ -346,12 +347,15 @@ class AppMarketRepository(object):
         try:
             AppMarket.objects.get(domain="rainbond", enterprise_id=eid)
         except AppMarket.DoesNotExist:
+            access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY")
+            if not access_key:
+                access_key = "c8593c3049d7480db0d70680269973f2"
             AppMarket.objects.create(
                 name="RainbondMarket",
                 url="https://store.goodrain.com",
                 domain="rainbond",
                 type="rainstore",
-                access_key="28e512ffc98e4adcb0986734de8ad7b4",
+                access_key=access_key,
                 enterprise_id=eid,
             )
 
