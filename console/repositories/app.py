@@ -3,16 +3,18 @@
   Created on 18/1/16.
 """
 import logging
-from docker_image import reference
+import os
+
 from django.db import transaction
+from docker_image import reference
 
 from console.exception.main import ServiceHandleException
+from console.models.main import AppMarket
+from console.models.main import RainbondCenterAppTag
+from console.models.main import RainbondCenterAppTagsRelation
 from console.models.main import ServiceRecycleBin
 from console.models.main import ServiceRelationRecycleBin
 from console.models.main import ServiceSourceInfo
-from console.models.main import RainbondCenterAppTag
-from console.models.main import RainbondCenterAppTagsRelation
-from console.models.main import AppMarket
 from console.repositories.base import BaseConnection
 from www.models.main import ServiceWebhooks
 from www.models.main import TenantServiceInfo
@@ -341,6 +343,22 @@ class AppTagRepository(object):
 
 
 class AppMarketRepository(object):
+    def create_default_app_market_if_not_exists(self, eid):
+        try:
+            AppMarket.objects.get(domain="rainbond", enterprise_id=eid)
+        except AppMarket.DoesNotExist:
+            access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY")
+            if not access_key:
+                access_key = "c8593c3049d7480db0d70680269973f2"
+            AppMarket.objects.create(
+                name="RainbondMarket",
+                url="https://store.goodrain.com",
+                domain="rainbond",
+                type="rainstore",
+                access_key=access_key,
+                enterprise_id=eid,
+            )
+
     def get_app_markets(self, enterprise_id):
         return AppMarket.objects.filter(enterprise_id=enterprise_id)
 

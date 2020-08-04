@@ -723,11 +723,12 @@ class MarketAppService(object):
                 teams = team_repo.get_tenants_by_user_id(user.user_id)
             if teams:
                 teams = [team.tenant_name for team in teams]
-            apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, teams, app_name, tag_names, page, page_size)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, "team", teams, app_name, tag_names)
+            apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, scope, teams, app_name, tag_names, page,
+                                                                         page_size)
+            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names)
         else:
             # default scope is enterprise
-            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, app_name, tag_names, page, page_size)
+            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size)
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names)
         if not apps:
             return [], count[0].total
@@ -920,7 +921,7 @@ class MarketAppService(object):
 
             def func(x):
                 result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
-                    or x.get("service_key", None) == service_source.service_share_uuid
+                         or x.get("service_key", None) == service_source.service_share_uuid
                 return result
 
             app = next(iter(filter(lambda x: func(x), apps)), None)
