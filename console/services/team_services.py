@@ -73,9 +73,11 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if exist_team_user:
             raise ServiceHandleException(msg="user exist", msg_show=u"用户已经加入此团队")
-        PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="", enterprise_id=enterprise.ID)
+        PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="",
+                                     enterprise_id=enterprise.ID)
         if role_ids:
-            user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
+            user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user,
+                                                     role_ids=role_ids)
 
     def get_team_users(self, team):
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
@@ -159,7 +161,8 @@ class TeamService(object):
         if not allow_owner:
             filter &= ~Q(role_name="owner")
         default_role_id_list = TenantUserRole.objects.filter(filter).values_list("pk", flat=True)
-        team_role_id_list = TenantUserRole.objects.filter(tenant_id=team_obj.pk, is_default=False).values_list("pk", flat=True)
+        team_role_id_list = TenantUserRole.objects.filter(tenant_id=team_obj.pk, is_default=False).values_list("pk",
+                                                                                                               flat=True)
         return list(default_role_id_list) + list(team_role_id_list)
 
     # todo 废弃
@@ -182,9 +185,11 @@ class TeamService(object):
         if enterprise:
             for user_id in user_ids:
                 # for role_id in role_ids:
-                PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk)
+                PermRelTenant.objects.update_or_create(user_id=user_id, tenant_id=tenant.pk,
+                                                       enterprise_id=enterprise.pk)
                 user = user_repo.get_by_user_id(user_id)
-                user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
+                user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user,
+                                                         role_ids=role_ids)
 
     def user_is_exist_in_team(self, user_list, tenant_name):
         """判断一个用户是否存在于一个团队中"""
@@ -249,10 +254,12 @@ class TeamService(object):
                         tenant_name=tenant.tenant_name,
                         service_ids=service_ids,
                         enterprise_id=tenant.enterprise_id)
-                    status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
+                    status_list = filter(lambda x: x not in ["closed", "undeploy"],
+                                         map(lambda x: x["status"], status_list))
                     if len(status_list) > 0:
                         raise ServiceHandleException(
-                            msg="There are running components under the current application", msg_show=u"当前团队下有运行态的组件，不可删除")
+                            msg="There are running components under the current application",
+                            msg_show=u"当前团队下有运行态的组件，不可删除")
                     code_status = 200
                     for service in services:
                         code, msg = app_manage_service.batch_delete(user, tenant, service, is_force=True)
@@ -279,9 +286,10 @@ class TeamService(object):
                 region_api.delete_tenant(region["region_name"], region["tenant_name"], force)
                 success_count += 1
             except Exception as e:
-                logger.error("tenant id: {}; region name: {}; delete tenant: {}".format(tenant.tenant_id, region["tenant_name"],
-                                                                                        e))
-        if success_count == 0:
+                logger.error(
+                    "tenant id: {}; region name: {}; delete tenant: {}".format(tenant.tenant_id, region["tenant_name"],
+                                                                               e))
+        if len(tenant_regions) > 0 and success_count == 0:
             raise ErrAllTenantDeletionFailed
         team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
 
@@ -413,7 +421,8 @@ class TeamService(object):
         except UserNotExistError:
             owner_name = None
         if request_user:
-            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
+            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id,
+                                                                   user=request_user)
             roles = map(lambda x: x["role_name"], user_role_list["roles"])
             if tenant.creater == request_user.user_id:
                 roles.append("owner")
