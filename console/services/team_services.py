@@ -20,12 +20,16 @@ from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
 from console.services.common_services import common_services
 from console.services.enterprise_services import enterprise_services
-from console.services.exception import (ErrAllTenantDeletionFailed, ErrStillHasServices, ErrTenantRegionNotFound)
+from console.services.exception import ErrAllTenantDeletionFailed
+from console.services.exception import ErrStillHasServices
+from console.services.exception import ErrTenantRegionNotFound
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
+from www.models.main import PermRelTenant
+from www.models.main import Tenants
+from www.models.main import TenantServiceInfo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -238,39 +242,41 @@ class TeamService(object):
                 for app in apps:
                     service_ids = app_service.get_group_services_by_id(app.ID)
                     services = service_repo.get_services_by_service_ids(service_ids)
-                    if services:
-                        status_list = base_service.status_multi_service(
-                            region=app.region_name,
-                            tenant_name=tenant.tenant_name,
-                            service_ids=service_ids,
-                            enterprise_id=tenant.enterprise_id)
-                        status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
-                        if len(status_list) > 0:
-                            raise ServiceHandleException(
-                                msg="There are running components under the current application", msg_show=u"当前团队下有运行态的组件，不可删除")
-                        code_status = 200
-                        for service in services:
-                            code, msg = app_manage_service.batch_delete(user, tenant, service, is_force=True)
-                            msg_dict = dict()
-                            msg_dict['status'] = code
-                            msg_dict['msg'] = msg
-                            msg_dict['service_id'] = service.service_id
-                            msg_dict['service_cname'] = service.service_cname
-                            msg_list.append(msg_dict)
-                            if code != 200:
-                                code, msg = app_manage_service.delete_again(user, tenant, service, is_force=True)
-                                if code != 200:
-                                    code_status = code
-                        if code_status != 200:
-                            raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
-                        code, msg, data = group_service.delete_group_no_service(app.ID)
+                    if not services:
+                        continue
+                    status_list = base_service.status_multi_service(
+                        region=app.region_name,
+                        tenant_name=tenant.tenant_name,
+                        service_ids=service_ids,
+                        enterprise_id=tenant.enterprise_id)
+                    status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
+                    if len(status_list) > 0:
+                        raise ServiceHandleException(
+                            msg="There are running components under the current application", msg_show=u"当前团队下有运行态的组件，不可删除")
+                    code_status = 200
+                    for service in services:
+                        code, msg = app_manage_service.batch_delete(user, tenant, service, is_force=True)
+                        msg_dict = dict()
+                        msg_dict['status'] = code
+                        msg_dict['msg'] = msg
+                        msg_dict['service_id'] = service.service_id
+                        msg_dict['service_cname'] = service.service_cname
+                        msg_list.append(msg_dict)
                         if code != 200:
-                            raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
+                            code, msg = app_manage_service.delete_again(user, tenant, service, is_force=True)
+                            if code != 200:
+                                code_status = code
+                    if code_status != 200:
+                        raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
+                    code, msg, data = group_service.delete_group_no_service(app.ID)
+                    if code != 200:
+                        raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
                 for plugin in plugins:
                     plugin_service.delete_plugin(region["region_name"], tenant, plugin.plugin_id)
+
             try:
                 # There is no guarantee that the deletion of each tenant can be successful.
-                region_api.delete_tenant(region["region_name"], region["tenant_name"])
+                region_api.delete_tenant(region["region_name"], region["tenant_name"], force)
                 success_count += 1
             except Exception as e:
                 logger.error("tenant id: {}; region name: {}; delete tenant: {}".format(tenant.tenant_id, region["tenant_name"],

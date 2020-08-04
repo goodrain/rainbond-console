@@ -12,7 +12,8 @@ from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantRegionInfo, Tenants
+from www.models.main import TenantRegionInfo
+from www.models.main import Tenants
 
 logger = logging.getLogger('default')
 
@@ -93,7 +94,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except RegionApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
-    def delete_tenant(self, region, tenant_name):
+    def delete_tenant(self, region, tenant_name, force=False):
         """删除组件"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -101,7 +102,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        body = dict()
+        body["force"] = force
+        res, body = self._delete(url, self.default_headers, body=json.dumps(body), region=region)
         return body
 
     def create_service(self, region, tenant_name, body):
