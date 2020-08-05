@@ -745,7 +745,7 @@ class AppUpgradeRecord(BaseModel):
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text=u"升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    market_name = models.CharField(max_length=64, help_text=u"商店标识")
+    market_name = models.CharField(max_length=64, null=True, help_text=u"商店标识")
     is_from_cloud = models.BooleanField(default=False, help_text=u"应用来源")
 
 
