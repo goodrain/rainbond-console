@@ -31,7 +31,7 @@ class AppStore(object):
             data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
             if data:
                 image_config_dict = eval(data.value)
-                namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else store.enterprise_id)
+                namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else data.enterprise_id)
                 image_config["hub_url"] = image_config_dict.get("hub_url", None)
                 image_config["hub_user"] = image_config_dict.get("hub_user", None)
                 image_config["hub_password"] = image_config_dict.get("hub_password", None)
@@ -53,7 +53,7 @@ class AppStore(object):
             data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
             if data:
                 image_config_dict = eval(data.value)
-                namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else store.enterprise_id)
+                namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else data.enterprise_id)
                 image_config["ftp_host"] = image_config_dict.get("hub_url", None)
                 image_config["ftp_username"] = image_config_dict.get("hub_user", None)
                 image_config["ftp_password"] = image_config_dict.get("hub_password", None)
