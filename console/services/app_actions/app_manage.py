@@ -364,23 +364,25 @@ class AppManageService(AppManageBase):
         extend_repo.create_extend_method(**params)
 
     def __save_volume(self, tenant, service, volumes):
-        if not volumes:
-            return 200, "success"
-        for volume in volumes:
-            service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
-            if service_volume:
-                continue
-            file_content = volume.get("file_content", None)
-            settings = {}
-            settings["volume_capacity"] = volume["volume_capacity"]
-            volume_service.add_service_volume(
-                tenant,
-                service,
-                volume["volume_path"],
-                volume_type=volume["volume_type"],
-                volume_name=volume["volume_name"],
-                file_content=file_content,
-                settings=settings)
+        if volumes:
+            for volume in volumes:
+                try:
+                    service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
+                    if service_volume:
+                        continue
+                    file_content = volume.get("file_content", None)
+                    settings = {}
+                    settings["volume_capacity"] = volume["volume_capacity"]
+                    volume_service.add_service_volume(
+                        tenant,
+                        service,
+                        volume["volume_path"],
+                        volume_type=volume["volume_type"],
+                        volume_name=volume["volume_name"],
+                        file_content=file_content,
+                        settings=settings)
+                except ServiceHandleException as e:
+                    logger.exception(e)
         return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
