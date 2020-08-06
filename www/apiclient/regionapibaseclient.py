@@ -11,13 +11,13 @@ import ssl
 
 import certifi
 import urllib3
-from addict import Dict
-from django.conf import settings
-from django.http import HttpResponse, QueryDict
 from urllib3.exceptions import MaxRetryError
 
+from addict import Dict
 from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo
+from django.conf import settings
+from django.http import HttpResponse, QueryDict
 
 logger = logging.getLogger('default')
 
@@ -155,6 +155,7 @@ class RegionApiBaseHttpClient(object):
             })
         except MaxRetryError as e:
             logger.debug("error url {}".format(url))
+            logger.exception(e)
             raise ServiceHandleException(error_code=10411, msg="MaxRetryError", msg_show="访问数据中心异常，请稍后重试")
         except Exception as e:
             logger.debug("error url {}".format(url))
