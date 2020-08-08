@@ -6,52 +6,66 @@ import datetime
 import json
 import logging
 
+from django.conf import settings
+
 from console.cloud.services import check_memory_quota
 from console.constants import AppConstants
-from console.enum.component_enum import ComponentType, is_singleton, is_state
+from console.enum.component_enum import ComponentType
+from console.enum.component_enum import is_singleton
+from console.enum.component_enum import is_state
 from console.exception.main import ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
-from console.repositories.app import (delete_service_repo, recycle_bin_repo,
-                                      relation_recycle_bin_repo, service_repo,
-                                      service_source_repo)
-from console.repositories.app_config import (auth_repo, create_step_repo,
-                                             dep_relation_repo, domain_repo,
-                                             env_var_repo, extend_repo,
-                                             mnt_repo, port_repo,
-                                             service_attach_repo,
-                                             service_payment_repo, tcp_domain,
-                                             volume_repo)
+from console.repositories.app import delete_service_repo
+from console.repositories.app import recycle_bin_repo
+from console.repositories.app import relation_recycle_bin_repo
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
+from console.repositories.app_config import auth_repo
+from console.repositories.app_config import create_step_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import domain_repo
+from console.repositories.app_config import env_var_repo
+from console.repositories.app_config import extend_repo
+from console.repositories.app_config import mnt_repo
+from console.repositories.app_config import port_repo
+from console.repositories.app_config import service_attach_repo
+from console.repositories.app_config import service_payment_repo
+from console.repositories.app_config import tcp_domain
+from console.repositories.app_config import volume_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
-from console.repositories.group import (group_service_relation_repo,
-                                        tenant_service_group_repo)
+from console.repositories.group import group_service_relation_repo
+from console.repositories.group import tenant_service_group_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.migration_repo import migrate_repo
-from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
+from console.repositories.oauth_repo import oauth_repo
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.repositories.share_repo import share_repo
-from console.services.app import app_market_service, app_service
+from console.services.app import app_market_service
+from console.services.app import app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
-from console.services.app_config import (AppEnvVarService, AppMntService,
-                                         AppPortService,
-                                         AppServiceRelationService,
-                                         AppVolumeService)
+from console.services.app_config import AppEnvVarService
+from console.services.app_config import AppMntService
+from console.services.app_config import AppPortService
+from console.services.app_config import AppServiceRelationService
+from console.services.app_config import AppVolumeService
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
-from console.utils.oauth.oauth_types import (NoSupportOAuthType,
-                                             get_oauth_instance)
-from django.conf import settings
+from console.utils.oauth.oauth_types import get_oauth_instance
+from console.utils.oauth.oauth_types import NoSupportOAuthType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.tenantservice.baseservice import BaseTenantService
+from www.tenantservice.baseservice import TenantUsedResource
 from www.utils.crypt import make_uuid
 
 tenantUsedResource = TenantUsedResource()
