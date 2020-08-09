@@ -3,6 +3,7 @@
   Created on 18/1/12.
 """
 import datetime
+import json
 import logging
 
 from django.db.models import Q
@@ -64,6 +65,10 @@ class TenantServiceEnvVarRepository(object):
         envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, attr_name__in=attr_names)
         return envs
 
+    def get_depend_outer_envs_by_ids(self, tenant_id, service_ids):
+        envs = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, scope="outer")
+        return envs
+
     def get_env_by_ids_and_env_id(self, tenant_id, service_id, env_id):
         envs = TenantServiceEnvVar.objects.get(tenant_id=tenant_id, service_id=service_id, ID=env_id)
         return envs
@@ -99,8 +104,8 @@ class TenantServiceEnvVarRepository(object):
         default_envs = Q(attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
         prefix_start_env = Q(attr_name__startswith="BUILD_")
         build_start_env = Q(scope="build")
-        buildEnvs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | build_start_env)
-        for benv in buildEnvs:
+        build_envs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | build_start_env)
+        for benv in build_envs:
             attr_name = benv.attr_name
             if attr_name.startswith("BUILD_"):
                 attr_name = attr_name.replace("BUILD_", "", 1)
@@ -428,6 +433,12 @@ class ServiceDomainRepository(object):
     def get_domains_by_service_ids(self, service_ids):
         return ServiceDomain.objects.filter(service_id__in=service_ids)
 
+    def get_domains_by_tenant_ids(self, tenant_ids, is_auto_ssl=None):
+        if is_auto_ssl is None:
+            return ServiceDomain.objects.filter(tenant_id__in=tenant_ids)
+        else:
+            return ServiceDomain.objects.filter(tenant_id__in=tenant_ids, auto_ssl=is_auto_ssl)
+
     def get_domain_by_id(self, domain_id):
         domains = ServiceDomain.objects.filter(ID=domain_id)
         if domains:
@@ -698,8 +709,8 @@ class ServiceTcpDomainRepository(object):
                 if hostport[0] == "0.0.0.0":
                     query = Q(region_id=region_id, end_point__icontains=":{}".format(hostport[1]))
                     return ServiceTcpDomain.objects.filter(query)
-                queryDefaultEndpoint = "0.0.0.0:{0}".format(hostport[1])
-                query = Q(region_id=region_id, end_point=end_point) | Q(region_id=region_id, end_point=queryDefaultEndpoint)
+                query_default_endpoint = "0.0.0.0:{0}".format(hostport[1])
+                query = Q(region_id=region_id, end_point=end_point) | Q(region_id=region_id, end_point=query_default_endpoint)
                 return ServiceTcpDomain.objects.filter(query)
             return None
         except ServiceTcpDomain.DoesNotExist:
@@ -710,6 +721,9 @@ class ServiceTcpDomainRepository(object):
 
     def get_service_tcpdomains(self, service_id):
         return ServiceTcpDomain.objects.filter(service_id=service_id).all()
+
+    def get_services_tcpdomains(self, service_ids):
+        return ServiceTcpDomain.objects.filter(service_id__in=service_ids)
 
     def get_service_tcpdomain_by_tcp_rule_id(self, tcp_rule_id):
         return ServiceTcpDomain.objects.filter(tcp_rule_id=tcp_rule_id).first()
@@ -723,14 +737,27 @@ class ServiceTcpDomainRepository(object):
 
 
 class TenantServiceEndpoints(object):
-    def add_service_endpoints(self, service_endpoints):
-        return ThirdPartyServiceEndpoints.objects.create(**service_endpoints)
-
     def get_service_endpoints_by_service_id(self, service_id):
-        data = ThirdPartyServiceEndpoints.objects.filter(service_id=service_id).first()
-        if data:
-            return data
-        return None
+        return ThirdPartyServiceEndpoints.objects.filter(service_id=service_id)
+
+    def update_or_create_endpoints(self, tenant, service, service_endpoints):
+        endpoints = self.get_service_endpoints_by_service_id(service.service_id)
+        if not service_endpoints:
+            endpoints.delete()
+        elif endpoints:
+            endpoints = endpoints.first()
+            endpoints.endpoints_info = json.dumps(service_endpoints)
+            endpoints.save()
+        else:
+            data = {
+                "tenant_id": tenant.tenant_id,
+                "service_id": service.service_id,
+                "service_cname": service.service_cname,
+                "endpoints_info": json.dumps(service_endpoints),
+                "endpoints_type": "static"
+            }
+            endpoints = ThirdPartyServiceEndpoints.objects.create(**data)
+        return endpoints
 
 
 class GatewayCustom(object):

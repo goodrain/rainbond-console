@@ -2,24 +2,25 @@
 """
   Created on 18/3/5.
 """
-from www.decorator import perm_required
-from www.apiclient.regionapi import RegionInvokeApi
-from console.views.app_config.base import AppBaseView
+import json
+import logging
+
+from rest_framework.response import Response
+
 from console.services.app_config.plugin_service import app_plugin_service
 from console.services.plugin import plugin_version_service
-from www.utils.return_message import general_message, error_message
-import logging
-from rest_framework.response import Response
-from www.services import plugin_svc
+from console.views.app_config.base import AppBaseView
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import HasNoDownStreamService
-import json
+from www.services import plugin_svc
+from www.utils.return_message import error_message
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
 class APPPluginsView(AppBaseView):
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件可用的插件列表
@@ -71,11 +72,9 @@ class APPPluginInstallView(AppBaseView):
                 config = {}
                 config["attr_name"] = attrItem.attr_name
                 config["attr_type"] = attrItem.attr_type
-                config["attr_default_value"] = attrItem.attr_default_value
                 # TODO: 可选参数 alternative
                 config["attr_alt_value"] = attrItem.attr_alt_value
                 config["is_change"] = attrItem.is_change
-                config["attr_default_value"] = attrItem.attr_default_value
                 config["attr_value"] = attrItem.attr_default_value
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
@@ -87,7 +86,6 @@ class APPPluginInstallView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    @perm_required('manage_service_plugin')
     def post(self, request, plugin_id, *args, **kwargs):
         """
         组件安装插件
@@ -121,7 +119,7 @@ class APPPluginInstallView(AppBaseView):
             if not plugin_id:
                 return Response(general_message(400, "params error", "参数错误"), status=400)
             if not build_version:
-                plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+                plugin_version = plugin_version_service.get_newest_usable_plugin_version(self.tenant.tenant_id, plugin_id)
                 build_version = plugin_version.build_version
 
             # 1. 建立关联关系
@@ -188,7 +186,6 @@ class APPPluginInstallView(AppBaseView):
             logger.exception(e)
             return Response(result, status=500)
 
-    @perm_required('manage_service_plugin')
     def delete(self, request, plugin_id, *args, **kwargs):
         """
         组件卸载插件
@@ -227,7 +224,6 @@ class APPPluginInstallView(AppBaseView):
 
 
 class APPPluginOpenView(AppBaseView):
-    @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         启停用组件插件
@@ -301,7 +297,6 @@ class APPPluginConfigView(AppBaseView):
                 # TODO: 可选参数 alternative
                 config["attr_alt_value"] = attrItem.attr_alt_value
                 config["is_change"] = attrItem.is_change
-                config["attr_default_value"] = attrItem.attr_default_value
                 config["attr_value"] = attrItem.attr_default_value
                 config["attr_info"] = attrItem.attr_info
                 configList.append(config)
@@ -313,7 +308,6 @@ class APPPluginConfigView(AppBaseView):
         logger.debug("plugin.relation", "attrsList is {}".format(attrsList))
         return attrsList
 
-    @perm_required('view_service')
     def get(self, request, plugin_id, *args, **kwargs):
         """
         组件插件查看配置
@@ -367,7 +361,6 @@ class APPPluginConfigView(AppBaseView):
             result = error_message(e.message)
             return Response(result, result["code"])
 
-    @perm_required('manage_service_plugin')
     def put(self, request, plugin_id, *args, **kwargs):
         """
         组件插件更新

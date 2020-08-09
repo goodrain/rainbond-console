@@ -7,12 +7,10 @@ from django.conf import settings
 from django.db.models import Q
 
 from console.exception.exceptions import ConfigExistError
-from console.models.main import ConsoleSysConfig
-from console.models.main import OAuthServices
+from console.models.main import ConsoleSysConfig, OAuthServices
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import NoSupportOAuthType
+from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
 from goodrain_web.custom_config import custom_config as custom_settings
 
 logger = logging.getLogger("default")
@@ -83,7 +81,6 @@ class ConfigService(object):
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
-        rst_datas["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
         return rst_datas
 
     def update_config(self, key, value):
@@ -171,6 +168,7 @@ class EnterpriseConfigService(ConfigService):
             "EXPORT_APP",
             "CLOUD_MARKET",
             "OBJECT_STORAGE",
+            "AUTO_SSL",
         ]
         self.cfg_keys_value = {
             "APPSTORE_IMAGE_HUB": {
@@ -209,6 +207,11 @@ class EnterpriseConfigService(ConfigService):
                 "desc": u"云端备份使用的对象存储信息",
                 "enable": False
             },
+            "AUTO_SSL": {
+                "value": None,
+                "desc": u"证书自动签发",
+                "enable": False
+            }
         }
 
     def init_base_config_value(self):
@@ -254,6 +257,12 @@ class EnterpriseConfigService(ConfigService):
         if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
             return None
         return eval(cloud_obj_storage_info.value)
+
+    def get_auto_ssl_info(self):
+        auto_ssl_config = self.get_config_by_key("AUTO_SSL")
+        if not auto_ssl_config or not auto_ssl_config.enable:
+            return None
+        return eval(auto_ssl_config.value)
 
 
 class PlatformConfigService(ConfigService):
@@ -330,6 +339,9 @@ class PlatformConfigService(ConfigService):
     def get_enterprise_center_oauth(self):
         try:
             oauth_service = OAuthServices.objects.get(is_deleted=False, enable=True, oauth_type="enterprisecenter", ID=1)
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
         except OAuthServices.DoesNotExist:
             return None
         try:

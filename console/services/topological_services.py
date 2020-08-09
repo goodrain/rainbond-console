@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceGroupRelation, TenantServiceRelation, TenantServiceInfo, TenantServicesPort, ServiceDomain
 from console.services.region_services import region_services
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort)
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -34,7 +34,8 @@ class TopologicalService(object):
                     "enterprise_id": enterprise_id
                 })
                 service_status_list = service_status_list["list"]
-                service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
+                if service_status_list:
+                    service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
             except Exception as e:
                 logger.error('batch query service status failed!')
                 logger.exception(e)
@@ -158,14 +159,7 @@ class TopologicalService(object):
                 if outer_service['port'] == '-1':
                     port_info['outer_url'] = 'query error!'
                 else:
-                    if port.protocol == "http":
-                        # 5.0版本策略展示即可，暂时注掉
-                        # port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'],
-                        #                                               outer_service['port'])
-                        port_info['outer_url'] = ''
-                    else:
-                        # port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
-                        port_info['outer_url'] = ''
+                    port_info['outer_url'] = ''
             # 自定义域名
             if exist_service_domain:
                 if len(service_domain_list) > 0:

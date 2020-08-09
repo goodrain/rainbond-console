@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import os
 
 import jwt
 from addict import Dict
@@ -12,7 +13,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.authentication import (get_authorization_header)
+from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import NotFound
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
@@ -25,11 +26,21 @@ from rest_framework_jwt.settings import api_settings
 
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import BusinessException
+from console.exception.main import NoPermissionsError
 from console.exception.main import ResourceNotEnoughException
 from console.exception.main import ServiceHandleException
+from console.models.main import EnterpriseUserPerm
+from console.models.main import OAuthServices
+from console.models.main import PermsInfo
+from console.models.main import RoleInfo
+from console.models.main import RolePerms
+from console.models.main import UserOAuthServices
+from console.models.main import UserRole
 from console.repositories.enterprise_repo import enterprise_repo
+from console.utils.oauth.oauth_types import get_oauth_instance
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models.main import TenantEnterprise
 from www.models.main import Tenants
 from www.models.main import Users
 
@@ -63,11 +74,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
         if len(auth) == 1:
             msg = _('请求头不合法，未提供认证信息')
-            # msg = _('Invalid Authorization header. No credentials provided.')
             raise exceptions.AuthenticationFailed(msg)
         elif len(auth) > 2:
-            # msg = _('Invalid Authorization header. Credentials string '
-            #         'should not contain spaces.')
             msg = _("请求头不合法")
             raise exceptions.AuthenticationFailed(msg)
         return auth[1]
@@ -105,17 +113,13 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             try:
                 payload = jwt_decode_handler(jwt_value)
             except jwt.ExpiredSignature:
-                # msg = _('Signature has expired.')
                 msg = _('认证信息已过期')
                 raise AuthenticationInfoHasExpiredError(msg)
             except jwt.DecodeError:
-                # msg = _('Error decoding signature.')
                 msg = _('认证信息错误')
-                # raise exceptions.AuthenticationFailed(msg)
                 raise AuthenticationInfoHasExpiredError(msg)
             except jwt.InvalidTokenError:
                 msg = _('认证信息错误,请求Token不合法')
-                # raise exceptions.AuthenticationFailed(msg)
                 raise AuthenticationInfoHasExpiredError(msg)
 
             user = self.authenticate_credentials(payload)
@@ -125,27 +129,21 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         """
         Returns an active user that matches the payload's user id and email.
         """
-        # User = get_user_model()
         username = jwt_get_username_from_payload(payload)
         if not username:
-            # msg = _('Invalid payload.')
             msg = _('认证信息不合法.')
             # raise exceptions.AuthenticationFailed(msg)
-            logger.debug('==========================>'.format(msg))
+            logger.debug('==========================>{}'.format(msg))
             raise AuthenticationInfoHasExpiredError(msg)
 
         try:
             user = Users.objects.get(nick_name=username)
         except Users.DoesNotExist:
-            # msg = _('Invalid signature.')
             msg = _('签名不合法.')
-            # raise exceptions.AuthenticationFailed(msg)
             raise AuthenticationInfoHasExpiredError(msg)
 
         if not user.is_active:
-            # msg = _('User account is disabled.')
             msg = _('用户身份未激活.')
-            # raise exceptions.AuthenticationFailed(msg)
             raise AuthenticationInfoHasExpiredError(msg)
 
         return user
@@ -183,9 +181,83 @@ class JWTAuthApiView(APIView):
         super(JWTAuthApiView, self).__init__(*args, **kwargs)
         self.report = Dict({"ok": True})
         self.user = None
+        self.enterprise = None
+        self.is_enterprise_admin = False
+        self.user_perms = None
+
+    def check_perms(self, request, *args, **kwargs):
+        if kwargs.get("__message"):
+            request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
+            if request_perms:
+                if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
+                    raise NoPermissionsError
+
+    def has_perms(self, request_perms):
+        if request_perms:
+            if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
+                raise NoPermissionsError
+
+    def get_perms(self):
+        self.user_perms = []
+        if self.is_enterprise_admin:
+            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
+            self.user_perms.extend([100000, 200000])
+        roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
+        if roles:
+            role_ids = roles.values_list("ID", flat=True)
+            user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
+            if user_roles:
+                user_role_ids = user_roles.values_list("role_id", flat=True)
+                role_perms = RolePerms.objects.filter(role_id__in=user_role_ids)
+                if role_perms:
+                    self.user_perms = role_perms.values_list("perm_code", flat=True)
+        self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
         self.user = request.user
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
+        if enterprise_user_perms:
+            self.is_enterprise_admin = True
+        self.get_perms()
+        self.check_perms(request, *args, **kwargs)
+
+
+class EnterpriseAdminView(JWTAuthApiView):
+    def __init__(self, *args, **kwargs):
+        super(EnterpriseAdminView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        super(EnterpriseAdminView, self).initial(request, *args, **kwargs)
+        if not self.is_enterprise_admin:
+            raise NoPermissionsError
+
+
+class CloudEnterpriseCenterView(JWTAuthApiView):
+    def __init__(self, *args, **kwargs):
+        super(CloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+        self.oauth_instance = None
+        self.oauth = None
+        self.oauth_user = None
+
+    def initial(self, request, *args, **kwargs):
+        super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
+        try:
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
+            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
+            if pre_enterprise_center:
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
+            oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=self.user.user_id)
+        except OAuthServices.DoesNotExist:
+            raise NotFound("enterprise center oauth server not found")
+        except UserOAuthServices.DoesNotExist:
+            msg = _('用户身份未在企业中心认证')
+            raise AuthenticationInfoHasExpiredError(msg)
+        self.oauth_instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+        if not self.oauth_instance:
+            msg = _('未找到企业中心OAuth服务类型')
+            raise AuthenticationInfoHasExpiredError(msg)
 
 
 class RegionTenantHeaderView(JWTAuthApiView):
@@ -199,45 +271,97 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.team = None
         self.report = Dict({"ok": True})
         self.user = None
+        self.is_team_owner = False
+
+    def get_perms(self):
+        self.user_perms = []
+        if self.is_enterprise_admin:
+            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
+            self.user_perms.extend([100000, 200000])
+        else:
+            ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
+            if ent_roles:
+                ent_role_ids = ent_roles.values_list("ID", flat=True)
+                ent_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=ent_role_ids)
+                if ent_user_roles:
+                    ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
+                    ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
+                    if ent_role_perms:
+                        self.user_perms = list(ent_role_perms.values_list("perm_code", flat=True))
+
+        if self.is_team_owner:
+            team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
+            self.user_perms.extend(team_perms)
+            self.user_perms.append(200000)
+        else:
+            team_roles = RoleInfo.objects.filter(kind="team", kind_id=self.tenant.tenant_id)
+            if team_roles:
+                role_ids = team_roles.values_list("ID", flat=True)
+                team_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
+                if team_user_roles:
+                    team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
+                    team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
+                    if team_role_perms:
+                        self.user_perms.extend(list(team_role_perms.values_list("perm_code", flat=True)))
+        self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
-
-        super(RegionTenantHeaderView, self).initial(request, *args, **kwargs)
-        self.response_region = kwargs.get("region_name", None)
-        self.tenant_name = kwargs.get("tenantName", None)
-        if kwargs.get("team_name", None):
-            self.tenant_name = kwargs.get("team_name", None)
-            self.team_name = self.tenant_name
-        else:
-            self.team_name = self.tenant_name
         self.user = request.user
-        if not self.response_region:
-            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
-            # self.response_region = self.request.COOKIES.get('region_name', None)
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
+        if enterprise_user_perms:
+            self.is_enterprise_admin = True
+        self.tenant_name = kwargs.get("tenantName", None)
+        self.response_region = kwargs.get("region_name", None)
+
+        if not self.tenant_name:
+            self.tenant_name = kwargs.get("team_name", None)
         if not self.tenant_name:
             self.tenant_name = request.META.get('HTTP_X_TEAM_NAME', None)
-            # self.tenant_name = self.request.COOKIES.get('team', None)
-
-        if not self.response_region:
-            self.response_region = self.request.COOKIES.get('region_name', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team', None)
+        self.team_name = self.tenant_name
 
         if not self.response_region:
-            raise ImportError("region_name not found !")
+            self.response_region = request.GET.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region", None)
+        if not self.response_region:
+            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
+        if not self.response_region:
+            self.response_region = self.request.COOKIES.get('region_name', None)
         self.region_name = self.response_region
+        if not self.response_region:
+            raise ImportError("region_name not found !")
         if not self.tenant_name:
             raise ImportError("team_name not found !")
-        if self.tenant_name:
-            try:
-                self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
-                self.team = self.tenant
-            except Tenants.DoesNotExist:
-                raise NotFound("tenant {0} not found".format(self.tenant_name))
-        self.initial_header_info(request)
+        try:
+            self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
+            self.team = self.tenant
+        except Tenants.DoesNotExist:
+            raise NotFound("tenant {0} not found".format(self.tenant_name))
 
-    def initial_header_info(self, request):
-        pass
+        if self.user.user_id == self.tenant.creater:
+            self.is_team_owner = True
+        self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()
+        self.is_enterprise_admin = False
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.tenant.enterprise_id, user_id=self.user.user_id).first()
+        if enterprise_user_perms:
+            self.is_enterprise_admin = True
+        self.get_perms()
+        self.check_perms(request, *args, **kwargs)
+
+
+class TeamOwnerView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(TeamOwnerView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        super(TeamOwnerView, self).initial(request, *args, **kwargs)
+        if not self.is_team_owner:
+            raise NoPermissionsError
 
 
 class EnterpriseHeaderView(JWTAuthApiView):
@@ -253,10 +377,6 @@ class EnterpriseHeaderView(JWTAuthApiView):
         self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
         if not self.enterprise:
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
-        self.initial_header_info(request)
-
-    def initial_header_info(self, request):
-        pass
 
 
 def custom_exception_handler(exc, context):
@@ -284,8 +404,8 @@ def custom_exception_handler(exc, context):
         if exc.message.get("httpcode") == 404:
             data = {"code": 404, "msg": "region no found this resource", "msg_show": u"数据中心资源不存在"}
         else:
-            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作失败"}
-        return Response(data, status=404)
+            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作故障，请稍后重试"}
+        return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):

@@ -93,7 +93,7 @@ class AppCheckService(object):
             source_body = service.docker_cmd
         elif service.service_source == AppConstants.THIRD_PARTY:
             # endpoints信息
-            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
             if service_endpoints:
                 if service_endpoints.endpoints_type == "discovery":
                     source_body = service_endpoints.endpoints_info

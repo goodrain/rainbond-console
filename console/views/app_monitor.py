@@ -7,11 +7,11 @@ from urllib import urlencode
 
 from rest_framework.response import Response
 
+from console.services.app_config import env_var_service
 from console.services.group_service import group_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
-from www.decorator import perm_required
 from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
@@ -28,7 +28,6 @@ def get_sufix_path(full_url):
 
 
 class AppMonitorQueryView(AppBaseView):
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         监控信息查询
@@ -51,13 +50,12 @@ class AppMonitorQueryView(AppBaseView):
             res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
-            logger.exception(e)
-            result = general_message(400, e.message, "查询失败")
+            logger.debug(e)
+            result = general_message(200, "success", "查询成功", bean=[])
         return Response(result, status=result["code"])
 
 
 class AppMonitorQueryRangeView(AppBaseView):
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         监控信息范围查询
@@ -81,12 +79,11 @@ class AppMonitorQueryRangeView(AppBaseView):
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(400, e.message, "查询失败")
+            result = general_message(200, "success", "查询成功", bean=[])
         return Response(result, status=result["code"])
 
 
 class AppResourceQueryView(AppBaseView):
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         组件资源查询
@@ -117,7 +114,6 @@ class AppResourceQueryView(AppBaseView):
 
 
 class BatchAppMonitorQueryView(RegionTenantHeaderView):
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         监控信息查询
@@ -228,3 +224,41 @@ class BatchAppMonitorQueryView(RegionTenantHeaderView):
             '",client=~"public|' + query_pod_ips + '"}[1m])/12)) by (service_id,client)'
         throughput_rate = urlencode({"1": throughput_rate})[2:]
         return response_time, throughput_rate
+
+
+class AppTraceView(AppBaseView):
+    def get(self, request, *args, **kwargs):
+        envs = env_var_service.get_all_envs_incloud_depend_env(self.tenant, self.service)
+        trace_status = {"collector_host": "", "collector_port": "", "enable_apm": False}
+        for env in envs:
+            if env.attr_name == "COLLECTOR_TCP_HOST":
+                trace_status["collector_host"] = env.attr_value
+            if env.attr_name == "COLLECTOR_TCP_PORT":
+                trace_status["collector_host"] = env.attr_value
+            if env.attr_name == "ES_ENABLE_APM" and env.attr_value == "true":
+                trace_status["enable_apm"] = True
+        result = general_message(200, "success", "查询成功", bean=trace_status)
+        return Response(result, status=result["code"])
+
+    def post(self, request, *args, **kwargs):
+        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
+        if enable_env:
+            enable_env.attr_value = "true"
+            enable_env.save
+        else:
+            env_var_service.add_service_env_var(self.tenant, self.service, 0, "ES_ENABLE_APM", "ES_ENABLE_APM", "true", True,
+                                                "inner")
+            env_var_service.add_service_env_var(self.tenant, self.service, 0, "ES_TRACE_APP_NAME", "ES_TRACE_APP_NAME",
+                                                self.service.service_cname, True, "inner")
+        result = general_message(200, "success", "设置成功")
+        return Response(result, status=result["code"])
+
+    def delete(self, request, *args, **kwargs):
+        enable_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
+        if enable_env:
+            env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ES_ENABLE_APM")
+        trace_name_env = env_var_service.get_env_by_attr_name(self.tenant, self.service, "ES_TRACE_APP_NAME")
+        if trace_name_env:
+            env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ES_TRACE_APP_NAME")
+        result = general_message(200, "success", "关闭成功")
+        return Response(result, status=result["code"])

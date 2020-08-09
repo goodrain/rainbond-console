@@ -84,6 +84,14 @@ class PluginCategoryConstants(object):
     COMMON_TYPE = "general-plugin"
 
 
+class DefaultPluginConstants(object):
+    PERF_ANALYZE_PLUGIN = "perf_analyze_plugin"
+    DOWNSTREAM_NET_PLUGIN = "downstream_net_plugin"
+    INANDOUT_NET_PLUGIN = "inandout_net_plugin"
+    FILEBEAT_LOG_PLUGIN = "filebeat_log_plugin"
+    LOGTAIL_LOG_PLUGIN = "logtail_log_plugin"
+
+
 class PluginMetaType(object):
     UPSTREAM_PORT = "upstream_port"
     DOWNSTREAM_PORT = "downstream_port"

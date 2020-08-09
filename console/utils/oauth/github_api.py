@@ -1,11 +1,17 @@
 # -*- coding: utf8 -*-
 
-from github import Github
+import logging
 
+from github import Github
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
+
+from console.exception.main import ServiceHandleException
+from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
-from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
+
+logger = logging.getLogger("default")
 
 
 class GithubApiV3MiXin(object):
@@ -69,17 +75,20 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                     user = self.api.get_user()
                     if user.login:
                         return self.oauth_user.access_token, self.oauth_user.refresh_token
-                except Exception:
+                except Exception as e:
+                    logger.debug(e)
                     if self.oauth_user.refresh_token:
                         try:
                             self.refresh_access_token()
                         except Exception:
                             self.oauth_user.delete()
-                            raise NoAccessKeyErr("access key is expired, please reauthorize")
+                            raise NoAccessKeyErr("refresh key is expired, please reauthorize")
+                    elif isinstance(e, (SSLError, MaxRetryError, ReadTimeoutError)):
+                        raise ServiceHandleException(msg=e.message, msg_show=u"连接github不稳定, 请刷新后重试")
                     else:
                         self.oauth_user.delete()
                         raise NoAccessKeyErr("access key is expired, please reauthorize")
-            raise NoAccessKeyErr("can not get access key")
+        raise NoAccessKeyErr("can not get access key")
 
     def refresh_access_token(self):
         pass
@@ -106,7 +115,9 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
         if not page:
             page = 1
         repo_list = []
-        for repo in self.api.get_user().get_repos().get_page(page=int(page) - 1):
+        meta = self.api.get_user().get_repos()
+        total = meta.totalCount
+        for repo in meta.get_page(page=int(page) - 1):
             repo_list.append({
                 "project_id": repo.id,
                 "project_full_name": repo.full_name,
@@ -118,34 +129,34 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                 "updated_at": repo.updated_at,
                 "created_at": repo.created_at
             })
-        return repo_list
+        return repo_list, total
 
     def search_repos(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
         page = int(kwargs.get("page", 1))
         repo_list = []
+        total = 0
         try:
-            repos = self.api.search_repositories(query=full_name + ' in:name')
+            meta = self.api.search_repositories(query=full_name + ' in:name')
+            total = meta.totalCount
+            for repo in meta.get_page(page=int(page) - 1):
+                if repo:
+                    rst = {
+                        "project_id": repo.id,
+                        "project_full_name": repo.full_name,
+                        "project_name": repo.name,
+                        "project_description": repo.description,
+                        "project_url": repo.clone_url,
+                        "project_ssh_url": repo.ssh_url,
+                        "project_default_branch": repo.default_branch,
+                        "updated_at": repo.updated_at,
+                        "created_at": repo.created_at
+                    }
+                    repo_list.append(rst)
         except Exception:
-            return repo_list
-        for repo in repos:
-            if repo is None:
-                pass
-            else:
-                rst = {
-                    "project_id": repo.id,
-                    "project_full_name": repo.full_name,
-                    "project_name": repo.name,
-                    "project_description": repo.description,
-                    "project_url": repo.clone_url,
-                    "project_ssh_url": repo.ssh_url,
-                    "project_default_branch": repo.default_branch,
-                    "updated_at": repo.updated_at,
-                    "created_at": repo.created_at
-                }
-                repo_list.append(rst)
+            return repo_list, total
 
-        return repo_list[10 * page - 10:10 * page]
+        return repo_list, total
 
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()

@@ -4,9 +4,9 @@ import os
 import random
 import re
 import string
-
 from django.core.paginator import Paginator
-
+from django.db.transaction import atomic
+from console.exception.main import ServiceHandleException
 from console.repositories.group import group_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.enterprise_repo import enterprise_repo
@@ -15,6 +15,9 @@ from www.models.main import TenantEnterprise
 from www.models.main import TenantEnterpriseToken
 from www.models.main import Tenants
 from www.utils.crypt import make_uuid
+from console.repositories.region_repo import region_repo
+from console.repositories.team_repo import team_repo
+from console.repositories.user_repo import user_repo
 
 logger = logging.getLogger('default')
 
@@ -32,7 +35,6 @@ class EnterpriseServices(object):
         total = ents.count()
         if total == 0:
             return [], 0
-
         paginator = Paginator(ents, page_size)
         pp = paginator.page(page)
         data = []
@@ -43,6 +45,9 @@ class EnterpriseServices(object):
                 "enterprise_alias": ent.enterprise_alias,
                 "create_time": ent.create_time,
                 "is_active": ent.is_active,
+                "region_num": region_repo.get_regions_by_enterprise_id(ent.enterprise_id).count(),
+                "user_num": user_repo.get_enterprise_users(ent.enterprise_id).count(),
+                "team_num": team_repo.get_team_by_enterprise_id(ent.enterprise_id).count()
             })
         return data, total
 
@@ -80,6 +85,7 @@ class EnterpriseServices(object):
             enter_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return enter_name
 
+    @atomic
     def create_enterprise(self, enterprise_name='', enterprise_alias=''):
         """
         创建一个本地的企业信息, 并生成本地的企业ID
@@ -106,7 +112,13 @@ class EnterpriseServices(object):
         enterprise.enterprise_name = enter_name
 
         # 根据企业英文名确认UUID
-        enterprise.enterprise_id = os.environ.get('ENTERPRISE_ID', make_uuid(enter_name))
+        eid = os.environ.get('ENTERPRISE_ID')
+        if not eid:
+            eid = make_uuid(enter_name)
+        region = region_repo.get_all_regions().first()
+        region.enterprise_id = eid
+        region.save()
+        enterprise.enterprise_id = eid
 
         # 处理企业别名
         if not enterprise_alias:
@@ -114,6 +126,22 @@ class EnterpriseServices(object):
         else:
             enterprise.enterprise_alias = enterprise_alias
 
+        enterprise.save()
+        return enterprise
+
+    def create_oauth_enterprise(self, enterprise_name, enterprise_alias, enterprise_id):
+        """
+        创建一个本地的企业信息, 并生成本地的企业ID
+
+        :param enterprise_name: 企业的domain, 如果没有则自动生成一个, 如果存在则需要保证传递的名字在数据库中唯一
+        :param enterprise_alias: 企业的名称, 可以中文, 用于展示用, 如果为空则自动生成一个
+        :param enterprise_id: 企业的id
+        :return:
+        """
+        enterprise = TenantEnterprise()
+        enterprise.enterprise_name = enterprise_name
+        enterprise.enterprise_id = enterprise_id
+        enterprise.enterprise_alias = enterprise_alias
         enterprise.save()
         return enterprise
 
@@ -228,8 +256,8 @@ class EnterpriseServices(object):
         for region in regions:
             data = None
             try:
-                data = region_api.get_enterprise_running_services(enterprise_id, region.region_name)
-            except region_api.CallApiError as e:
+                data = region_api.get_enterprise_running_services(enterprise_id, region.region_name, test=True)
+            except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception("get region:'{0}' running failed: {1}".format(region.region_name, e))
             if data and data.get("service_ids"):
                 running_component_ids.extend(data.get("service_ids"))

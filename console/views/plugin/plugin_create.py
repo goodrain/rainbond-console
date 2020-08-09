@@ -7,11 +7,10 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.services.plugin.app_plugin import allow_plugins
+from console.services.plugin.app_plugin import allow_plugins, default_plugins
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
@@ -20,7 +19,6 @@ logger = logging.getLogger("default")
 
 class PluginCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         插件创建
@@ -144,8 +142,8 @@ class PluginCreateView(RegionTenantHeaderView):
             # 数据中心创建插件
             code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin, image_tag)
             if code != 200:
-                plugin_service.delete_console_tenant_plugin(tenant_plugin.plugin_id)
-                plugin_version_service.delete_build_version_by_id_and_version(tenant_plugin.plugin_id,
+                plugin_service.delete_console_tenant_plugin(self.tenant.tenant_id, tenant_plugin.plugin_id)
+                plugin_version_service.delete_build_version_by_id_and_version(self.tenant.tenant_id, tenant_plugin.plugin_id,
                                                                               plugin_build_version.build_version, True)
                 return Response(general_message(code, "create plugin error", msg), status=code)
 
@@ -161,16 +159,15 @@ class PluginCreateView(RegionTenantHeaderView):
             logger.exception(e)
             result = error_message(e.message)
             if tenant_plugin:
-                plugin_service.delete_console_tenant_plugin(tenant_plugin.plugin_id)
+                plugin_service.delete_console_tenant_plugin(self.tenant.tenant_id, tenant_plugin.plugin_id)
             if plugin_build_version:
-                plugin_version_service.delete_build_version_by_id_and_version(tenant_plugin.plugin_id,
+                plugin_version_service.delete_build_version_by_id_and_version(self.tenant.tenant_id, tenant_plugin.plugin_id,
                                                                               plugin_build_version.build_version, True)
         return Response(result, status=result["code"])
 
 
 class DefaultPluginCreateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required('manage_plugin')
     def post(self, request, *args, **kwargs):
         """
         插件创建
@@ -190,7 +187,7 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
         plugin_type = request.data.get("plugin_type", None)
         if not plugin_type:
             return Response(general_message(400, "plugin type is null", "请指明插件类型"), status=400)
-        if plugin_type not in ("perf_analyze_plugin", "downstream_net_plugin", "inandout_net_plugin"):
+        if plugin_type not in default_plugins:
             return Response(general_message(400, "plugin type not support", "插件类型不支持"), status=400)
         plugin_service.add_default_plugin(self.user, self.team, self.response_region, plugin_type)
         result = general_message(200, "success", "创建成功")
@@ -207,15 +204,7 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
               type: string
               paramType: path
         """
-        try:
-            default_plugins = plugin_service.get_default_plugin(self.response_region, self.tenant)
-            bean = {"downstream_net_plugin": False, "perf_analyze_plugin": False, "inandout_net_plugin": False}
-            for p in default_plugins:
-                bean[p.origin_share_id] = True
+        default_plugin_dict = plugin_service.get_default_plugin_from_cache(self.response_region, self.tenant)
 
-            result = general_message(200, "success", "查询成功", bean=bean)
-            return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        result = general_message(200, "success", "查询成功", list=default_plugin_dict)
+        return Response(result, status=200)

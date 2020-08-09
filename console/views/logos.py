@@ -1,13 +1,19 @@
 # -*- coding: utf8 -*-
 import logging
+import os
 
+from django.db import transaction
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
-from console.repositories.perm_repo import role_perm_repo
+from console.repositories.perm_repo import perms_repo
+from console.repositories.team_repo import team_repo
 from console.services.config_service import platform_config_service
+from console.services.perm_services import role_kind_services
+from console.services.perm_services import user_kind_role_service
 from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
+from www.models.main import Tenants
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
@@ -21,16 +27,13 @@ class ConfigRUDView(AlowAnyApiView):
     """
 
     def get(self, request, *args, **kwargs):
-        try:
-            code = 200
-            status = role_perm_repo.initialize_permission_settings()
-            data = platform_config_service.initialization_or_get_config
-            result = general_message(code, "query success", u"Logo获取成功", bean=data, initialize_info=status)
-            return Response(result, status=code)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result)
+        code = 200
+        status = perms_repo.initialize_permission_settings()
+        data = platform_config_service.initialization_or_get_config
+        if data.get("enterprise_id", None) is None:
+            data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
+        result = general_message(code, "query success", u"Logo获取成功", bean=data, initialize_info=status)
+        return Response(result, status=code)
 
     def put(self, request, *args, **kwargs):
         key = request.GET.get("key")
@@ -221,3 +224,38 @@ class PhpConfigView(AlowAnyApiView):
                    }]
         bean = {"versions": versions, "default_version": default_version, "extends": extends}
         return Response(general_message(200, "success", "查询成功", bean))
+
+
+class InitPerms(AlowAnyApiView):
+    @transaction.atomic()
+    def post(self, request, *args, **kwargs):
+        enterprise_id = request.data.get("enterprise_id")
+        tenant_id = request.data.get("tenant_id")
+        if tenant_id and enterprise_id:
+            teams = Tenants.objects.filter(tenant_id=tenant_id, enterprise_id=enterprise_id)
+        elif tenant_id and not enterprise_id:
+            teams = Tenants.objects.filter(tenant_id=tenant_id)
+        elif not tenant_id and enterprise_id:
+            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
+        else:
+            teams = Tenants.objects.all()
+        if not teams:
+            print(u"未发现团队, 初始化结束")
+            return
+        for team in teams:
+            role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
+            users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
+            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"开发者")
+            if not admin or not developer:
+                raise ServiceHandleException(msg="init failed", msg_show=u"初始化失败")
+            if users:
+                for user in users:
+                    if user.user_id == team.creater:
+                        user_kind_role_service.update_user_roles(
+                            kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin.ID])
+                    else:
+                        user_kind_role_service.update_user_roles(
+                            kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
+        result = general_message(msg="success", msg_show=u"初始化权限分配成功", code=200)
+        return Response(result, status=200)

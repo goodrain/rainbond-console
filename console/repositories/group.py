@@ -74,16 +74,10 @@ class GroupRepository(object):
         return group
 
     def get_apps_list(self, team_id=None, region_name=None, query=None):
-        q = None
+        q = Q(region_name=region_name) & Q(tenant_id=team_id)
         if query:
-            q = q | Q(group_name__icontains=query)
-        if region_name:
-            q = q & Q(region_name=region_name)
-        if team_id:
-            q = q & Q(tenant_id=team_id)
-        if q:
-            return ServiceGroup.objects.filter(q).order_by("-order_index")
-        return ServiceGroup.objects.all().order_by("-order_index")
+            q = q & Q(group_name__icontains=query)
+        return ServiceGroup.objects.filter(q).order_by("-order_index")
 
     def get_multi_app_info(self, app_ids):
         return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-order_index")
@@ -138,7 +132,6 @@ class GroupServiceRelationRepository(object):
                 group_info["group_name"] = "未分组"
                 group_info["group_id"] = -1
                 result_map[service_id] = group_info
-
         return result_map
 
     def create_service_group_relation(self, **params):

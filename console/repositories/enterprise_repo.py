@@ -3,26 +3,16 @@ import logging
 
 from django.db.models import Q
 
-from console.exception.exceptions import ExterpriseNotExistError
-from console.models.main import EnterpriseUserPerm
+from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
+from console.models.main import (Applicants, EnterpriseUserPerm, RainbondCenterApp)
 from console.repositories.base import BaseConnection
+from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.user_role_repo import user_role_repo
-from console.repositories.user_role_repo import UserRoleNotFoundException
-from console.repositories.group import group_service_relation_repo
-from console.repositories.group import group_repo
-from console.repositories.service_repo import service_repo
-from console.models.main import Applicants
-from console.models.main import RainbondCenterApp
-
-from www.models.main import TenantEnterprise
-from www.models.main import TenantRegionInfo
-from www.models.main import ServiceGroup
-from www.models.main import ServiceGroupRelation
-from www.models.main import Users
-from www.models.main import Tenants
-from www.models.main import PermRelTenant
+from console.repositories.user_role_repo import (UserRoleNotFoundException, user_role_repo)
+from www.models.main import (PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise, TenantRegionInfo, Tenants,
+                             Users)
 
 logger = logging.getLogger("default")
 
@@ -82,6 +72,7 @@ class TenantEnterpriseRepo(object):
         return team_repo.get_tenants_by_user_id_and_eid(enterprise_id, user_id, name)
 
     def get_enterprise_user_join_teams(self, enterprise_id, user_id):
+        team_ids = []
         teams = self.get_enterprise_user_teams(enterprise_id, user_id)
         if not teams:
             return teams
@@ -107,16 +98,18 @@ class TenantEnterpriseRepo(object):
             return None
         active_tenants_list = []
         for tenant in tenants:
-            user = user_repo.get_user_by_user_id(tenant.creater)
+            owner = None
             try:
-                role = user_role_repo.get_role_names(user.user_id, tenant.tenant_id)
+                owner = user_repo.get_user_by_user_id(tenant.creater)
+                role = user_role_repo.get_role_names(user_id, tenant.tenant_id)
+            except UserNotExistError:
+                pass
             except UserRoleNotFoundException:
-                if tenant.creater == user.user_id:
+                if tenant.creater == user_id:
                     role = "owner"
                 else:
                     role = None
             region_name_list = []
-            user = user_repo.get_user_by_user_id(tenant.creater)
             region_list = team_repo.get_team_regions(tenant.tenant_id)
             if region_list:
                 region_name_list = region_list.values_list("region_name", flat=True)
@@ -124,7 +117,7 @@ class TenantEnterpriseRepo(object):
                 "tenant_id": tenant.tenant_id,
                 "team_alias": tenant.tenant_alias,
                 "owner": tenant.creater,
-                "owner_name": user.get_name(),
+                "owner_name": owner.get_name() if owner else "",
                 "enterprise_id": tenant.enterprise_id,
                 "create_time": tenant.create_time,
                 "team_name": tenant.tenant_name,
@@ -174,8 +167,8 @@ class TenantEnterpriseRepo(object):
     def list_all(self, query):
         if query:
             return TenantEnterprise.objects.filter(Q(enterprise_name__contains=query)
-                                                   | Q(enterprise_alias__contains=query)).all()
-        return TenantEnterprise.objects.all()
+                                                   | Q(enterprise_alias__contains=query)).all().order_by("-create_time")
+        return TenantEnterprise.objects.all().order_by("-create_time")
 
     def update(self, eid, **data):
         TenantEnterprise.objects.filter(enterprise_id=eid).update(**data)
@@ -229,12 +222,7 @@ class TenantEnterpriseRepo(object):
         return Applicants.objects.filter(user_id=user_id, team_id__in=team_ids).order_by("is_pass", "-apply_time")
 
     def get_enterprise_tenant_ids(self, enterprise_id, user=None):
-        if user is None:
-            teams = Tenants.objects.filter(enterprise_id=enterprise_id)
-            if not teams:
-                return None
-            team_ids = teams.values_list("tenant_id", flat=True)
-        elif self.is_user_admin_in_enterprise(user, enterprise_id):
+        if user is None or self.is_user_admin_in_enterprise(user, enterprise_id):
             teams = Tenants.objects.filter(enterprise_id=enterprise_id)
             if not teams:
                 return None

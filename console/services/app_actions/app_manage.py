@@ -8,6 +8,7 @@ import logging
 
 from django.conf import settings
 
+from console.cloud.services import check_memory_quota
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.enum.component_enum import is_singleton
@@ -40,12 +41,14 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.migration_repo import migrate_repo
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
-from console.repositories.perm_repo import service_perm_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
-from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.repositories.service_group_relation_repo import \
+    service_group_relation_repo
 from console.repositories.share_repo import share_repo
+from console.services.app import app_market_service
+from console.services.app import app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
 from console.services.app_config import AppEnvVarService
@@ -54,8 +57,11 @@ from console.services.app_config import AppPortService
 from console.services.app_config import AppServiceRelationService
 from console.services.app_config import AppVolumeService
 from console.services.exception import ErrChangeServiceType
+from console.services.service_services import base_service
 from console.utils import slug_util
+from console.utils.oauth.base.exception import NoAccessKeyErr
 from console.utils.oauth.oauth_types import get_oauth_instance
+from console.utils.oauth.oauth_types import NoSupportOAuthType
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService
@@ -165,7 +171,9 @@ class AppManageBase(object):
 
 
 class AppManageService(AppManageBase):
-    def start(self, tenant, service, user):
+    def start(self, tenant, service, user, oauth_instance):
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -201,8 +209,13 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def restart(self, tenant, service, user):
+    def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
+            status_info_map = app_service.get_service_status(tenant, service)
+            if status_info_map.get("status", "Unknown") in [
+                    "undeploy", "closed "
+            ] and not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+                raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body = dict()
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
@@ -220,7 +233,12 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def deploy(self, tenant, service, user, group_version, committer_name=None):
+    def deploy(self, tenant, service, user, group_version, committer_name=None, oauth_instance=None):
+        status_info_map = app_service.get_service_status(tenant, service)
+        if status_info_map.get("status", "Unknown") in [
+                "undeploy", "closed "
+        ] and not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+            raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body = dict()
         # 默认更新升级
         body["action"] = "deploy"
@@ -244,12 +262,15 @@ class AppManageService(AppManageBase):
                     return 507, "构建异常", ""
                 try:
                     instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-                except Exception as e:
+                except NoSupportOAuthType as e:
                     logger.debug(e)
-                    return 507, "构建异常", ""
+                    return 400, "该组件构建源代码仓库类型已不支持", ""
                 if not instance.is_git_oauth():
-                    return 507, "构建异常", ""
-                git_url = instance.get_clone_url(service.git_url)
+                    return 400, "该组件构建源代码仓库类型不正确", ""
+                try:
+                    git_url = instance.get_clone_url(service.git_url)
+                except NoAccessKeyErr as e:
+                    return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
                 body["code_info"] = {
                     "repo_url": git_url,
                     "branch": service.code_version,
@@ -343,23 +364,25 @@ class AppManageService(AppManageBase):
         extend_repo.create_extend_method(**params)
 
     def __save_volume(self, tenant, service, volumes):
-        if not volumes:
-            return 200, "success"
-        for volume in volumes:
-            service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
-            if service_volume:
-                continue
-            file_content = volume.get("file_content", None)
-            settings = {}
-            settings["volume_capacity"] = volume["volume_capacity"]
-            volume_service.add_service_volume(
-                tenant,
-                service,
-                volume["volume_path"],
-                volume_type=volume["volume_type"],
-                volume_name=volume["volume_name"],
-                file_content=file_content,
-                settings=settings)
+        if volumes:
+            for volume in volumes:
+                try:
+                    service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
+                    if service_volume:
+                        continue
+                    file_content = volume.get("file_content", None)
+                    settings = {}
+                    settings["volume_capacity"] = volume["volume_capacity"]
+                    volume_service.add_service_volume(
+                        tenant,
+                        service,
+                        volume["volume_path"],
+                        volume_type=volume["volume_type"],
+                        volume_name=volume["volume_name"],
+                        file_content=file_content,
+                        settings=settings)
+                except ServiceHandleException as e:
+                    logger.exception(e)
         return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
@@ -435,7 +458,12 @@ class AppManageService(AppManageBase):
                 return code, msg
         return 200, "success"
 
-    def upgrade(self, tenant, service, user, committer_name=None):
+    def upgrade(self, tenant, service, user, committer_name=None, oauth_instance=None):
+        status_info_map = app_service.get_service_status(tenant, service)
+        if status_info_map.get("status", "Unknown") in [
+                "undeploy", "closed "
+        ] and not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         body = dict()
         body["service_id"] = service.service_id
         try:
@@ -456,12 +484,10 @@ class AppManageService(AppManageBase):
         """获取组件种类，兼容老的逻辑"""
         if service.service_source:
             if service.service_source == AppConstants.SOURCE_CODE:
-                # return "source"
                 return "build_from_source_code"
             elif service.service_source == AppConstants.DOCKER_RUN \
                     or service.service_source == AppConstants.DOCKER_COMPOSE \
                     or service.service_source == AppConstants.DOCKER_IMAGE:
-                # return "image"
                 return "build_from_image"
             elif service.service_source == AppConstants.MARKET:
                 if slug_util.is_slug(service.image, service.language):
@@ -505,7 +531,7 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def batch_action(self, tenant, user, action, service_ids, move_group_id):
+    def batch_action(self, tenant, user, action, service_ids, move_group_id, oauth_instance):
         services = service_repo.get_services_by_service_ids(service_ids)
         code = 500
         msg = "系统异常"
@@ -514,17 +540,19 @@ class AppManageService(AppManageBase):
             try:
                 # 第三方组件不具备启动，停止，重启操作
                 if action == "start" and service.service_source != "third_party":
-                    self.start(tenant, service, user)
+                    self.start(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "stop" and service.service_source != "third_party":
                     self.stop(tenant, service, user)
                 elif action == "restart" and service.service_source != "third_party":
-                    self.restart(tenant, service, user)
+                    self.restart(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "move":
                     self.move(service, move_group_id)
                 elif action == "deploy" and service.service_source != "third_party":
-                    self.deploy(tenant, service, user, group_version=None)
+                    self.deploy(tenant, service, user, group_version=None, oauth_instance=oauth_instance)
                 code = 200
                 msg = "success"
+            except ServiceHandleException as e:
+                raise e
             except Exception as e:
                 fail_service_name.append(service.service_cname)
                 logger.exception(e)
@@ -532,20 +560,22 @@ class AppManageService(AppManageBase):
         return code, msg
 
     # 5.1新版批量操作（启动，关闭，构建）
-    def batch_operations(self, tenant, user, action, service_ids):
+    def batch_operations(self, tenant, user, action, service_ids, oauth_instance):
         services = service_repo.get_services_by_service_ids(service_ids)
+        if not services or len(services) == 0:
+            return 200, "无组件被操作"
         # 获取所有组件信息
         body = dict()
         code = 200
         data = ''
         if action == "start":
-            code, data = self.start_services_info(body, services, tenant, user)
+            code, data = self.start_services_info(body, services, tenant, user, oauth_instance)
         elif action == "stop":
             code, data = self.stop_services_info(body, services, tenant, user)
         elif action == "upgrade":
-            code, data = self.upgrade_services_info(body, services, tenant, user)
+            code, data = self.upgrade_services_info(body, services, tenant, user, oauth_instance)
         elif action == "deploy":
-            code, data = self.deploy_services_info(body, services, tenant, user)
+            code, data = self.deploy_services_info(body, services, tenant, user, oauth_instance)
         if code != 200:
             return 415, "组件信息获取失败"
         # 获取数据中心信息
@@ -558,10 +588,13 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             return 500, "数据中心操作失败"
 
-    def start_services_info(self, body, services, tenant, user):
+    def start_services_info(self, body, services, tenant, user, oauth_instance):
         body["operation"] = "start"
         start_infos_list = []
         body["start_infos"] = start_infos_list
+        request_memory = base_service.get_not_run_services_request_memory(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             if service.service_source == "":
                 continue
@@ -582,10 +615,13 @@ class AppManageService(AppManageBase):
                 stop_infos_list.append(service_dict)
         return 200, body
 
-    def upgrade_services_info(self, body, services, tenant, user):
+    def upgrade_services_info(self, body, services, tenant, user, oauth_instance):
         body["operation"] = "upgrade"
         upgrade_infos_list = []
         body["upgrade_infos"] = upgrade_infos_list
+        request_memory = base_service.get_not_run_services_request_memory(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             service_dict = dict()
             if service.create_status == "complete":
@@ -593,10 +629,13 @@ class AppManageService(AppManageBase):
                 upgrade_infos_list.append(service_dict)
         return 200, body
 
-    def deploy_services_info(self, body, services, tenant, user):
+    def deploy_services_info(self, body, services, tenant, user, oauth_instance):
         body["operation"] = "build"
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
+        request_memory = base_service.get_not_run_services_request_memory(tenant, services)
+        if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             service_dict = dict()
             service_dict["service_id"] = service.service_id
@@ -619,19 +658,38 @@ class AppManageService(AppManageBase):
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
                 source_code["cmd"] = service.cmd
-                if service_source:
-                    if service_source.user_name or service_source.password:
-                        source_code["user"] = service_source.user_name
-                        source_code["password"] = service_source.password
+                if service.oauth_service_id:
+                    try:
+                        oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
+                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
+                            service_id=service.oauth_service_id, user_id=user.user_id)
+                    except Exception as e:
+                        logger.debug(e)
+                        continue
+                    try:
+                        instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                    except Exception as e:
+                        logger.debug(e)
+                        continue
+                    if not instance.is_git_oauth():
+                        continue
+                    try:
+                        git_url = instance.get_clone_url(service.git_url)
+                    except NoAccessKeyErr as e:
+                        logger.exception(e)
+                        git_url = service.git_url
+                    source_code["repo_url"] = git_url
+                elif service_source and (service_source.user_name or service_source.password):
+                    source_code["user"] = service_source.user_name
+                    source_code["password"] = service_source.password
             # 镜像
             elif kind == "build_from_image":
                 source_image = dict()
                 source_image["image_url"] = service.image
                 source_image["cmd"] = service.cmd
-                if service_source:
-                    if service_source.user_name or service_source.password:
-                        source_image["user"] = service_source.user_name
-                        source_image["password"] = service_source.password
+                if service_source and (service_source.user_name or service_source.password):
+                    source_image["user"] = service_source.user_name
+                    source_image["password"] = service_source.password
                 service_dict["image_info"] = source_image
 
             # 云市
@@ -645,9 +703,11 @@ class AppManageService(AppManageBase):
                         if old_extent_info.get("install_from_cloud", False):
                             install_from_cloud = True
                             # TODO:Skip the subcontract structure to avoid loop introduction
-                            from console.services.market_app_service import market_app_service
-                            _, app_version = market_app_service.get_app_from_cloud(tenant, service_source.group_key,
-                                                                                   service_source.version)
+                            market_name = old_extent_info.get("market_name")
+                            market = app_market_service.get_app_market_by_name(
+                                tenant.enterprise_id, market_name, raise_exception=True)
+                            _, app_version = app_market_service.cloud_app_model_to_db_model(
+                                market, service_source.group_key, service_source.version)
                         # install from local cloud
                         else:
                             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
@@ -694,6 +754,7 @@ class AppManageService(AppManageBase):
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
+                                        new_extend_info["market_name"] = old_extent_info.get("market_name")
                                     service_source.extend_info = json.dumps(new_extend_info)
                                     service_source.save()
                                     code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
@@ -708,6 +769,10 @@ class AppManageService(AppManageBase):
                                     if code != 200:
                                         raise Exception(msg)
                                     self.__save_extend_info(service, app["extend_method_map"])
+                except ServiceHandleException as e:
+                    if e.msg != "no found app market":
+                        logger.exception(e)
+                        raise e
                 except Exception as e:
                     logger.exception(e)
                     if service_source:
@@ -717,7 +782,7 @@ class AppManageService(AppManageBase):
             deploy_infos_list.append(service_dict)
         return 200, body
 
-    def vertical_upgrade(self, tenant, service, user, new_memory):
+    def vertical_upgrade(self, tenant, service, user, new_memory, oauth_instance):
         """组件水平升级"""
         new_memory = int(new_memory)
         if new_memory == service.min_memory:
@@ -726,6 +791,10 @@ class AppManageService(AppManageBase):
             return 400, "内存范围在64M到64G之间"
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
+        if new_memory > service.min_memory:
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, new_memory - int(service.min_memory),
+                                      service.min_node):
+                raise ServiceHandleException(error_code=20002, msg="not enough quota")
 
         new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
         if service.create_status == "complete":
@@ -750,7 +819,7 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
-    def horizontal_upgrade(self, tenant, service, user, new_node):
+    def horizontal_upgrade(self, tenant, service, user, new_node, oauth_instance):
         """组件水平升级"""
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
@@ -760,6 +829,11 @@ class AppManageService(AppManageBase):
 
         if new_node > 1 and is_singleton(service.extend_method):
             raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
+
+        if new_node > service.min_node:
+            if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory,
+                                      new_node - int(service.min_node)):
+                raise ServiceHandleException(status_code=20002, msg="not enough quota")
 
         if service.create_status == "complete":
             body = dict()
@@ -878,7 +952,6 @@ class AppManageService(AppManageBase):
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
         service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
-        service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
@@ -1158,7 +1231,6 @@ class AppManageService(AppManageBase):
         probe_repo.delete_service_probe(service.service_id)
         service_payment_repo.delete_service_payment(service.service_id)
         service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
-        service_perm_repo.delete_service_perm(service.ID)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         # 删除组件和插件的关系

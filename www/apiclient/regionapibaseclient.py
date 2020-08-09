@@ -11,15 +11,20 @@ import ssl
 
 import certifi
 import urllib3
-from addict import Dict
-from django.conf import settings
+from urllib3.exceptions import MaxRetryError
 
+from addict import Dict
+from console.exception.main import ServiceHandleException
 from console.repositories.region_repo import region_repo
-from goodrain_web.decorator import method_perf_time
+from django.conf import settings
+from django.http import HttpResponse, QueryDict
 
 logger = logging.getLogger('default')
 
-resource_not_enough_message = {"cluster_lack_of_memory": "集群资源不足，请联系集群管理员", "tenant_lack_of_memory": "团队可用资源不足，请联系企业管理员"}
+resource_not_enough_message = {
+    "cluster_lack_of_memory": "集群可用资源不足，请联系集群管理员",
+    "tenant_lack_of_memory": "团队使用内存已超过限额，请联系企业管理员增加限额"
+}
 
 
 class RegionApiBaseHttpClient(object):
@@ -76,6 +81,8 @@ class RegionApiBaseHttpClient(object):
 
     def __init__(self, *args, **kwargs):
         self.timeout = 5
+        # cache client
+        self.clients = {}
         self.apitype = 'Not specified'
 
     def _jsondecode(self, string):
@@ -119,57 +126,54 @@ class RegionApiBaseHttpClient(object):
         else:
             return dict()
 
-    @method_perf_time
-    def _request(self, url, method, headers=None, body=None, client=None, *args, **kwargs):
-        region_name = kwargs["region"]
-        region = region_repo.get_region_by_region_name(region_name)
+    def _request(self, url, method, headers=None, body=None, *args, **kwargs):
+        region_name = kwargs.get("region")
+        retries = kwargs.get("retries", 3)
+        timeout = kwargs.get("timeout", 5)
+        if kwargs.get("for_test"):
+            region = region_name
+            region_name = region.region_name
+        else:
+            region = region_repo.get_region_by_region_name(region_name)
         if not region:
-            raise Exception("region {0} not found".format(region_name))
-        verify_ssl = False
-        # 判断是否为https请求
-        wsurl_split_list = region.url.split(':')
-        if wsurl_split_list[0] == "https":
-            verify_ssl = True
+            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
+        client = self.get_client(region_config=region)
+        if not client:
+            raise ServiceHandleException(
+                msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查集群配置", error_code=10411)
+        try:
+            if body is None:
+                response = client.request(url=url, method=method, headers=headers, timeout=timeout, retries=retries)
+            else:
+                response = client.request(url=url, method=method, headers=headers, body=body, timeout=timeout, retries=retries)
+            return response.status, response.data
+        except socket.timeout as e:
+            raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
+                "type": "request time out",
+                "error": str(e),
+                "error_code": 10411,
+            })
+        except MaxRetryError as e:
+            logger.debug("error url {}".format(url))
+            raise ServiceHandleException(error_code=10411, msg="MaxRetryError", msg_show="访问数据中心异常，请稍后重试")
+        except Exception as e:
+            logger.debug("error url {}".format(url))
+            logger.exception(e)
+            raise ServiceHandleException(error_code=10411, msg="Exception", msg_show="访问数据中心异常，请稍后重试")
 
-        config = Configuration(verify_ssl, region.ssl_ca_cert, region.cert_file, region.key_file, region_name=region_name)
+    def get_client(self, region_config):
+        # get client from cache
+        key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)
+        client = self.clients.get(key, None)
+        if client:
+            return client
+        config = Configuration(region_config)
+        pools_size = int(os.environ.get("CLIENT_POOL_SIZE", 20))
+        client = self.create_client(config, pools_size)
+        self.clients[key] = client
+        return client
 
-        client = self.get_client(config)
-        retry_count = 2
-        while retry_count:
-            try:
-                if body is None:
-                    response = client.request(url=url, method=method, headers=headers)
-                else:
-                    response = client.request(url=url, method=method, headers=headers, body=body)
-
-                # if len(content) > 10000:
-                #     record_content = '%s  .....ignore.....' % content[:1000]
-                # else:
-                #     record_content = content
-                # if body is not None and len(body) > 1000:
-                #     record_body = '%s .....ignore.....' % body[:1000]
-                # else:
-                #     record_body = body
-                return response.status, response.data
-            except socket.timeout as e:
-                logger.error('client_error', "timeout: %s" % url)
-                logger.exception('client_error', e)
-                raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
-                    "type": "request time out",
-                    "error": str(e)
-                })
-            except socket.error as e:
-                retry_count -= 1
-                if retry_count:
-                    logger.error("client_error", "retry request: %s" % url)
-                else:
-                    logger.exception('client_error', e)
-                    raise self.ApiSocketError(self.apitype, url, method, Dict({"status": 101}), {
-                        "type": "connect error",
-                        "error": str(e)
-                    })
-
-    def get_client(self, configuration, pools_size=4, maxsize=None, *args, **kwargs):
+    def create_client(self, configuration, pools_size=4, maxsize=None, *args, **kwargs):
 
         if configuration.verify_ssl:
             cert_reqs = ssl.CERT_REQUIRED
@@ -203,6 +207,7 @@ class RegionApiBaseHttpClient(object):
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
                 proxy_url=configuration.proxy,
+                timeout=5,
                 **addition_pool_args)
         else:
             self.pool_manager = urllib3.PoolManager(
@@ -212,6 +217,7 @@ class RegionApiBaseHttpClient(object):
                 ca_certs=ca_certs,
                 cert_file=configuration.cert_file,
                 key_file=configuration.key_file,
+                timeout=5,
                 **addition_pool_args)
         return self.pool_manager
 
@@ -247,78 +253,159 @@ class RegionApiBaseHttpClient(object):
         res, body = self._check_status(url, 'DELETE', response, content)
         return res, body
 
+    def proxy(self, request, url, region_name, requests_args=None):
+        """
+        Forward as close to an exact copy of the request as possible along to the
+        given url.  Respond with as close to an exact copy of the resulting
+        response as possible.
+        If there are any additional arguments you wish to send to requests, put
+        them in the requests_args dictionary.
+        """
+        requests_args = (requests_args or {}).copy()
+        headers = self.get_headers(request.META)
 
-def createFile(path, name, body):
+        if 'headers' not in requests_args:
+            requests_args['headers'] = {}
+        if 'body' not in requests_args:
+            requests_args['body'] = request.body
+        if 'fields' not in requests_args:
+            requests_args['fields'] = QueryDict('', mutable=True)
 
+        # Overwrite any headers and params from the incoming request with explicitly
+        # specified values for the requests library.
+        headers.update(requests_args['headers'])
+
+        # If there's a content-length header from Django, it's probably in all-caps
+        # and requests might not notice it, so just remove it.
+        for key in list(headers.keys()):
+            if key.lower() == 'content-length':
+                del headers[key]
+
+        requests_args['headers'] = headers
+
+        region = region_repo.get_region_by_region_name(region_name)
+        if not region:
+            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
+        client = self.get_client(region_config=region)
+        response = client.request(method=request.method, timeout=20, url="{}{}".format(region.url, url), **requests_args)
+
+        proxy_response = HttpResponse(response.data, status=response.status)
+
+        excluded_headers = set([
+            # Hop-by-hop headers
+            # ------------------
+            # Certain response headers should NOT be just tunneled through.  These
+            # are they.  For more info, see:
+            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1
+            'connection',
+            'keep-alive',
+            'proxy-authenticate',
+            'proxy-authorization',
+            'te',
+            'trailers',
+            'transfer-encoding',
+            'upgrade',
+
+            # Although content-encoding is not listed among the hop-by-hop headers,
+            # it can cause trouble as well.  Just let the server set the value as
+            # it should be.
+            'content-encoding',
+
+            # Since the remote server may or may not have sent the content in the
+            # same encoding as Django will, let Django worry about what the length
+            # should be.
+            'content-length',
+        ])
+        for key, value in response.headers.items():
+            if key.lower() in excluded_headers:
+                continue
+            elif key.lower() == 'location':
+                # If the location is relative at all, we want it to be absolute to
+                # the upstream server.
+                proxy_response[key] = self.make_absolute_location(response.url, value)
+            else:
+                proxy_response[key] = value
+
+        return proxy_response
+
+    def get_headers(self, environ):
+        """
+        Retrieve the HTTP headers from a WSGI environment dictionary.  See
+        https://docs.djangoproject.com/en/dev/ref/request-response/#django.http.HttpRequest.META
+        """
+        headers = {}
+        for key, value in environ.items():
+            # Sometimes, things don't like when you send the requesting host through.
+            if key.startswith('HTTP_') and key != 'HTTP_HOST':
+                headers[key[5:].replace('_', '-')] = value
+            elif key in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
+                headers[key.replace('_', '-')] = value
+
+        return headers
+
+
+def create_file(path, name, body):
     if not os.path.exists(path):
         os.makedirs(path)
     file_path = path + "/" + name
     with open(file_path, 'w') as f:
         f.writelines(body)
-        f.close()
-    f = open(file_path, "r")
-    content = f.read()
-    if content == body:
-        return file_path
-    else:
+    f.close()
+    read = ""
+    with open(file_path, 'r') as f:
+        read = f.read()
+    f.close()
+    if read != body:
         return None
+    return file_path
 
 
 def check_file_path(path, name, body):
-    file_path = createFile(path, name, body)
+    file_path = create_file(path, name, body)
     if not file_path:
-        check_file_path(path, name, body)
-    else:
-        return file_path
+        file_path = create_file(path, name, body)
+    return file_path
 
 
 class Configuration():
-    def __init__(self, verify_ssl=True, ssl_ca_cert=None, cert_file=None, key_file=None, assert_hostname=None,
-                 region_name=None):
+    def __init__(self, region_config, assert_hostname=None):
         """
         Constructor
         """
+        # create new client
+        verify_ssl = False
+        # 判断是否为https请求
+        wsurl_split_list = region_config.url.split(':')
+        if wsurl_split_list[0] == "https":
+            verify_ssl = True
         # Default Base url
-        self.host = "https://localhost:8888"
+        self.host = region_config.url
 
         # SSL/TLS verification
         # Set this to false to skip verifying SSL certificate when calling API from https server.
         self.verify_ssl = verify_ssl
         # Set this to customize the certificate file to verify the peer.
         # 兼容证书路径和内容
+        file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(region_config.enterprise_id, region_config.region_name)
+        ssl_ca_cert = region_config.ssl_ca_cert
+        cert_file = region_config.cert_file
+        key_file = region_config.key_file
         if not ssl_ca_cert or ssl_ca_cert.startswith('/'):
             self.ssl_ca_cert = ssl_ca_cert
         else:
-            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
-            path = file_path + "/" + "ca.pem"
-            # 判断证书路径是否存在
-            if os.path.isfile(path):
-                self.ssl_ca_cert = path
-            else:
-                # 校验证书文件是否写入成功
-                self.ssl_ca_cert = check_file_path(file_path, "ca.pem", ssl_ca_cert)
+            self.ssl_ca_cert = check_file_path(file_path, "ca.pem", ssl_ca_cert)
 
         # client certificate file
         if not cert_file or cert_file.startswith('/'):
             self.cert_file = cert_file
         else:
-            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
-            path = file_path + "/" + "client.pem"
-            if os.path.isfile(path):
-                self.cert_file = path
-            else:
-                self.cert_file = check_file_path(file_path, "client.pem", cert_file)
+            self.cert_file = check_file_path(file_path, "client.pem", cert_file)
 
         # client key file
         if not key_file or key_file.startswith('/'):
             self.key_file = key_file
         else:
-            file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_name)
-            path = file_path + "/" + "client.key.pem"
-            if os.path.isfile(path):
-                self.key_file = path
-            else:
-                self.key_file = check_file_path(file_path, "client.key.pem", key_file)
+            self.key_file = check_file_path(file_path, "client.key.pem", key_file)
 
         # Set this to True/False to enable/disable SSL hostname verification.
         self.assert_hostname = assert_hostname

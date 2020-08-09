@@ -139,3 +139,8 @@ class CheckThirdpartEndpointFailed(ServiceHandleException):
 class ExportAppError(ServiceHandleException):
     def __init__(self, msg="export error", msg_show="导出失败", status_code=500):
         super(ExportAppError, self).__init__(msg, msg_show, status_code)
+
+
+class NoPermissionsError(ServiceHandleException):
+    def __init__(self, msg="no permissions ", msg_show="没有操作权限", status_code=403, error_code=10402):
+        super(NoPermissionsError, self).__init__(msg, msg_show, status_code, error_code)

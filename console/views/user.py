@@ -4,27 +4,26 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.exceptions import SameIdentityError
 from console.exception.exceptions import UserNotExistError
+from console.repositories.oauth_repo import oauth_user_repo
+from console.exception.main import ServiceHandleException
 from console.repositories.user_repo import user_repo
-from console.services.auth import login
-from console.services.auth import logout
+from console.repositories.team_repo import team_repo
+from console.services.auth import login, logout
 from console.services.enterprise_services import enterprise_services
-from console.services.exception import ErrAdminUserDoesNotExist
-from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
 from console.services.team_services import team_services
 from console.services.user_services import user_services
-from console.views.base import AlowAnyApiView
-from console.views.base import BaseApiView
-from console.views.base import JWTAuthApiView
+from console.services.perm_services import user_kind_role_service
+from console.views.base import AlowAnyApiView, BaseApiView, JWTAuthApiView, TeamOwnerView, EnterpriseAdminView
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser
 from www.services import user_svc
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 
@@ -151,7 +150,7 @@ class UserLogoutView(JWTAuthApiView):
             return Response(result, status=500)
 
 
-class UserPemTraView(JWTAuthApiView):
+class UserPemTraView(TeamOwnerView):
     def post(self, request, team_name, *args, **kwargs):
         """
         移交团队管理权
@@ -168,119 +167,11 @@ class UserPemTraView(JWTAuthApiView):
               type: string
               paramType: body
         """
-        try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-            role_list = team_services.get_user_perm_role_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-
-            no_auth = "owner" not in perm_list and "owner" not in role_list
-
-            if no_auth:
-                code = 400
-                result = general_message(code, "no identity", "你不是最高管理员")
-            else:
-                user_name = request.data.get("user_name", None)
-                other_user = user_services.get_user_by_username(user_name=user_name)
-                if other_user.nick_name != user_name:
-                    code = 400
-                    result = general_message(code, "identity modify failed", "{}不能修改自己的权限".format(user_name))
-                else:
-                    code, msg = team_services.change_tenant_admin(
-                        user_id=request.user.user_id, other_user_id=other_user.user_id, tenant_name=team_name)
-                    if code == 200:
-                        result = general_message(code, "identity modify success", msg)
-                    else:
-                        result = general_message(code, "Authorization failure", "授权失败")
-        except Exception as e:
-            code = 500
-            result = error_message(e.message)
-            logger.exception(e)
-        return Response(result, status=code)
-
-
-class UserPemView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
-        """
-        可选权限展示
-        ---
-
-        """
-        try:
-            perm_info = [{
-                "key": "admin",
-                "name": u"管理员"
-            }, {
-                "key": "developer",
-                "name": u"开发者"
-            }, {
-                "key": "viewer",
-                "name": u"观察者"
-            }, {
-                "key": "access",
-                "name": u"访问者"
-            }]
-            result = general_message(200, "get permissions success", "获取权限成功", list=perm_info)
-            return Response(result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
-
-
-class UserAddPemView(JWTAuthApiView):
-    def post(self, request, team_name, user_name, *args, **kwargs):
-        """
-        修改成员权限
-        ---
-        parameters:
-            - name: team_name
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: user_name
-              description: 被修改权限的团队成员
-              required: true
-              type: string
-              paramType: path
-            - name: identitys
-              description: 权限  格式 {"identitys": "viewer,access"}
-              required: true
-              type: string
-              paramType: body
-        """
-        try:
-            perm_list = team_services.get_user_perm_identitys_in_permtenant(user_id=request.user.user_id, tenant_name=team_name)
-            no_auth = ("owner" not in perm_list) and ("admin" not in perm_list)
-            if no_auth:
-                code = 400
-                result = general_message(code, "no identity", "您不是管理员，没有权限做此操作")
-            else:
-                code = 200
-                new_identitys = request.data.get("identitys", None)
-                if new_identitys:
-                    new_identitys = new_identitys.split(',') if new_identitys else []
-                    other_user = user_services.get_user_by_username(user_name=user_name)
-                    if other_user.user_id == request.user.user_id:
-                        result = general_message(400, "failed", "您不能修改自己的权限！")
-                        return Response(result, status=400)
-                    team_services.change_tenant_identity(
-                        user_id=other_user.user_id, tenant_name=team_name, new_identitys=new_identitys)
-                    result = general_message(code, "identity modify success", "{}权限修改成功".format(user_name))
-                else:
-                    result = general_message(400, "identity failed", "修改权限时，权限不能为空")
-        except SameIdentityError as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "identity exist", "该用户已拥有此权限")
-        except UserNotExistError as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "users not exist", "该用户不存在")
-        except Exception as e:
-            logger.exception(e)
-            code = 500
-            result = error_message(e.message)
-        return Response(result, status=code)
+        user_id = request.data.get("user_id")
+        self.tenant.creater = user_id
+        self.tenant.save()
+        result = general_message(msg="success", msg_show="移交成功", code=200)
+        return Response(result, status=200)
 
 
 class AdminUserLCView(JWTAuthApiView):
@@ -346,6 +237,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 data.append({
                     "email": user.email,
                     "nick_name": user.nick_name,
+                    "real_name": (user.nick_name if user.real_name is None else user.real_name),
                     "user_id": user.user_id,
                     "create_time": user.create_time,
                     "default_favorite_name": default_favorite_name,
@@ -355,54 +247,65 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         return Response(result, status=200)
 
     def post(self, request, enterprise_id, *args, **kwargs):
+
         tenant_name = request.data.get("tenant_name", None)
         user_name = request.data.get("user_name", None)
         email = request.data.get("email", None)
         password = request.data.get("password", None)
         re_password = request.data.get("re_password", None)
         role_ids = request.data.get("role_ids", None)
+        phone = request.data.get("phone", None)
+        real_name = request.data.get("real_name", None)
+        tenant = team_services.get_tenant_by_tenant_name(tenant_name)
         if len(password) < 8:
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
             # 校验用户信息
-        is_pass, msg = user_services.check_params(user_name, email, password, re_password)
+        is_pass, msg = user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
         if not is_pass:
             result = general_message(403, "user information is not passed", msg)
             return Response(result)
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         # 创建用户
-        user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
+        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+
+        if oauth_instance:
+            user = user_services.create_enterprise_center_user_set_password(user_name, email, password, "admin add", enterprise,
+                                                                            client_ip, phone, real_name, oauth_instance)
+        else:
+            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone)
         result = general_message(200, "success", "添加用户成功")
-        if role_ids:
-            try:
-                role_id_list = [int(id) for id in role_ids.split(",")]
-            except Exception as e:
-                logger.exception(e)
-                code = 400
-                result = general_message(code, "params is empty", "参数格式不正确")
-                return Response(result, status=code)
-            for id in role_id_list:
-                if id not in team_services.get_all_team_role_id(tenant_name=tenant_name):
-                    code = 400
-                    result = general_message(code, "The role does not exist", "该角色在团队中不存在")
-                    return Response(result, status=code)
-            # 创建用户团队关系表
-            if tenant_name:
-                team_services.create_tenant_role(user_id=user.user_id, tenant_name=tenant_name, role_id_list=role_id_list)
-            user.is_active = True
-            user.save()
-            result = general_message(200, "success", "添加用户成功")
+        if tenant:
+            create_perm_param = {
+                "user_id": user.user_id,
+                "tenant_id": tenant.ID,
+                "identity": "",
+                "enterprise_id": enterprise.ID,
+            }
+            team_repo.create_team_perms(**create_perm_param)
+            if role_ids:
+                user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
+                user.is_active = True
+                user.save()
+                result = general_message(200, "success", "添加用户成功")
         return Response(result)
 
 
 class EnterPriseUsersUDView(JWTAuthApiView):
+    @transaction.atomic()
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
-        user_name = request.data.get("user_name", None)
-        email = request.data.get("email", None)
         password = request.data.get("password", None)
-        user = user_services.update_user_set_password(enterprise_id, user_id, user_name, email, password)
+        real_name = request.data.get("real_name", None)
+        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name)
         user.save()
+        oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+        if oauth_instance:
+            data = {
+                "password": password,
+                "real_name": real_name,
+            }
+            oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
         result = general_message(200, "success", "更新用户成功")
         return Response(result, status=200)
 
@@ -412,5 +315,26 @@ class EnterPriseUsersUDView(JWTAuthApiView):
             result = general_message(400, "fail", "未找到该用户")
             return Response(result, 403)
         user_services.delete_user(user_id)
+        oauth_instance, oauth_user = user_services.check_user_is_enterprise_center_user(user_id)
+        if oauth_instance:
+            oauth_instance.delete_user(enterprise_id, user.enterprise_center_user_id)
+        all_oauth_user = oauth_user_repo.get_all_user_oauth(user_id)
+        all_oauth_user.delete()
         result = general_message(200, "success", "删除用户成功")
+        return Response(result, status=200)
+
+
+class AdministratorJoinTeamView(EnterpriseAdminView):
+    def post(self, request, *args, **kwargs):
+        nojoin_user_ids = []
+        team_name = request.data.get("team_name")
+        team = team_services.get_enterprise_tenant_by_tenant_name(self.user.enterprise_id, team_name)
+        if not team:
+            raise ServiceHandleException(msg="no found team", msg_show=u"团队不存在", status_code=404)
+        users = team_services.get_team_users(team)
+        if users:
+            nojoin_user_ids = users.values_list("user_id", flat=True)
+        if self.user.user_id not in nojoin_user_ids:
+            team_services.add_user_role_to_team(tenant=team, user_ids=[self.user.user_id], role_ids=[])
+        result = general_message(200, "success", None)
         return Response(result, status=200)

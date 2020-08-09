@@ -8,13 +8,18 @@ import logging
 import random
 import string
 
+from addict import Dict
 from django.db.models import Q
 
+from console.appstore.appstore import app_store
 from console.constants import AppConstants
 from console.constants import PluginImage
 from console.constants import SourceCodeType
 from console.enum.component_enum import ComponentType
-from console.exception.main import ErrDoNotSupportMultiDomain
+from console.exception.main import ServiceHandleException
+from console.models.main import RainbondCenterApp
+from console.models.main import RainbondCenterAppVersion
+from console.repositories.app import app_market_repo
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import dep_relation_repo
@@ -23,15 +28,12 @@ from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.app_config import volume_repo
-from console.repositories.base import BaseConnection
-from console.repositories.perm_repo import perms_repo
-from console.repositories.perm_repo import role_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.utils.oauth.oauth_types import support_oauth_type
-from console.utils.validation import validate_endpoint_address
+from console.utils.validation import validate_endpoints_info
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume
@@ -335,70 +337,17 @@ class AppService(object):
                             "is_inner_service": False,
                             "is_outer_service": False
                         }
-                        service_port = port_repo.add_service_port(**service_port)
-
-        # 保存endpoints数据
-        service_endpoints = {
-            "tenant_id": tenant.tenant_id,
-            "service_id": new_service.service_id,
-            "service_cname": new_service.service_cname,
-            "endpoints_info": json.dumps(endpoints),
-            "endpoints_type": endpoints_type
-        }
-        logger.debug('------service_endpoints------------->{0}'.format(service_endpoints))
-        service_endpoints_repo.add_service_endpoints(service_endpoints)
+                        port_repo.add_service_port(**service_port)
+                service_endpoints_repo.update_or_create_endpoints(tenant, new_service, endpoints)
 
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, u"创建成功", ts
 
-    def get_app_list(self, tenant_pk, user, tenant_id, region, query=""):
-        user_pk = user.pk
-        services = []
-
-        def list_services():
-            q = Q(tenant_id=tenant_id, service_region=region)
-            if query:
-                q &= Q(service_cname__contains=query)
-            return TenantServiceInfo.objects.filter(q)
-
-        if user.is_sys_admin:
-            services = list_services()
-        else:
-            perm = perms_repo.get_user_tenant_perm(tenant_pk, user_pk)
-            if not perm:
-                if tenant_pk == 5073:
-                    services = list_services().order_by('service_alias')
-            else:
-                # if user is owner, perm.role_id is null when identity is owner, so use perm.identity(owner) first
-                role_name = perm.identity
-                if perm.role_id:
-                    # if perm.role_id is is not None, use role_id find user's role instead of perm.identity
-                    role_name = role_repo.get_role_name_by_role_id(perm.role_id)
-                if role_name in ('admin', 'developer', 'viewer', 'gray', 'owner'):
-                    services = list_services().order_by('service_alias')
-                else:
-                    dsn = BaseConnection()
-                    add_sql = ''
-                    where = """
-                    WHERE
-                        s.tenant_id = "{tenant_id}"
-                        AND sp.user_id = { user_id }
-                        AND sp.service_id = s.ID
-                        AND s.service_cname LIKE "%{query}%"
-                        AND s.service_region = "{region}" { add_sql }""".format(
-                        tenant_id=tenant_id, user_id=user_pk, region=region, query=query, add_sql=add_sql)
-                    query_sql = '''
-                        SELECT
-                            s.*
-                        FROM
-                            tenant_service s,
-                            service_perms sp
-                        {where}
-                        ORDER BY
-                            s.service_alias'''.format(where=where)
-                    services = dsn.query(query_sql)
-
-        return services
+    def get_app_list(self, tenant_id, region, query=""):
+        q = Q(tenant_id=tenant_id, service_region=region)
+        if query:
+            q &= Q(service_cname__contains=query)
+        return TenantServiceInfo.objects.filter(q)
 
     def get_service_status(self, tenant, service):
         """获取组件状态"""
@@ -642,22 +591,12 @@ class AppService(object):
             data["ports_info"] = list(ports_info)
 
         # endpoints
-        endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
-        if endpoints.endpoints_type == "static":
-            eps = json.loads(endpoints.endpoints_info)
-            for address in eps:
-                if "https://" in address:
-                    address = address.partition("https://")[2]
-                if "http://" in address:
-                    address = address.partition("http://")[2]
-                if ":" in address:
-                    address = address.rpartition(":")[0]
-                errs = validate_endpoint_address(address)
-                if errs:
-                    if len(eps) > 1:
-                        raise ErrDoNotSupportMultiDomain("do not support multi domain address")
-        endpoints_dict = dict()
+        endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
         if endpoints:
+            if endpoints.endpoints_type == "static":
+                eps = json.loads(endpoints.endpoints_info)
+                validate_endpoints_info(eps)
+            endpoints_dict = dict()
             endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
             data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
@@ -700,4 +639,282 @@ class AppService(object):
         return dep_services[0]
 
 
+class AppMarketService(object):
+    def get_app_markets(self, enterprise_id, extend):
+        app_market_repo.create_default_app_market_if_not_exists(enterprise_id)
+
+        market_list = []
+        markets = app_market_repo.get_app_markets(enterprise_id)
+        for market in markets:
+            dt = {
+                "access_key": market.access_key,
+                "name": market.name,
+                "url": market.url,
+                "enterprise_id": market.enterprise_id,
+                "type": market.type,
+                "domain": market.domain,
+                "ID": market.ID,
+            }
+            if extend == "true":
+                try:
+                    extend_info = app_store.get_market(market)
+                    market.description = extend_info.description
+                    market.alias = extend_info.name
+                    market.status = extend_info.status
+                    market.create_time = extend_info.create_time
+                    market.access_actions = extend_info.access_actions
+                except Exception as e:
+                    logger.debug(e)
+                    market.description = None
+                    market.alias = market.name
+                    market.status = 0
+                    market.create_time = None
+                    market.access_actions = []
+                dt.update({
+                    "description": market.description,
+                    "alias": market.alias,
+                    "status": market.status,
+                    "access_actions": market.access_actions,
+                })
+            market_list.append(dt)
+        return market_list
+
+    def get_app_market(self, enterprise_id, market_name, extend="false", raise_exception=False):
+        market = app_market_repo.get_app_market_by_name(enterprise_id, market_name, raise_exception)
+        dt = {
+            "access_key": market.access_key,
+            "name": market.name,
+            "url": market.url,
+            "type": market.type,
+            "domain": market.domain,
+            "ID": market.ID,
+        }
+        if extend == "true":
+            try:
+                extend_info = app_store.get_market(market)
+                market.description = extend_info.description
+                market.alias = extend_info.name
+                market.status = extend_info.status
+                market.access_actions = extend_info.access_actions
+            except Exception as e:
+                logger.debug(e)
+                market.description = None
+                market.alias = None
+                market.status = 0
+                market.access_actions = []
+            if raise_exception:
+                if market.status == 0:
+                    raise ServiceHandleException(msg="call market error", msg_show=u"应用商店状态异常")
+            dt.update({
+                "description": market.description,
+                "alias": market.alias,
+                "status": market.status,
+                "access_actions": market.access_actions,
+            })
+        return dt, market
+
+    def get_app_market_by_name(self, enterprise_id, name, raise_exception=False):
+        return app_market_repo.get_app_market_by_name(enterprise_id, name, raise_exception=raise_exception)
+
+    def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
+        return app_market_repo.get_app_market_by_domain_url(enterprise_id, domain, url, raise_exception=raise_exception)
+
+    def create_app_market(self, data):
+        exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
+        if exit_market:
+            raise ServiceHandleException(msg="name exist", msg_show=u"名称已存在", status_code=400)
+        return app_market_repo.create_app_market(**data)
+
+    def update_app_market(self, app_market, data):
+        exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
+        if exit_market:
+            if exit_market.ID != app_market.ID:
+                raise ServiceHandleException(msg="name exist", msg_show=u"名称已存在", status_code=400)
+        app_market.name = data["name"]
+        app_market.type = data["type"]
+        app_market.enterprise_id = data["enterprise_id"]
+        app_market.url = data["url"]
+        app_market.access_key = data["access_key"]
+        app_market.domain = data["domain"]
+        app_market.save()
+        return app_market
+
+    def app_models_serializers(self, market, data, extend=False):
+        app_models = []
+
+        if data:
+            for dt in data:
+                versions = []
+                for version in dt.versions:
+                    versions.append({
+                        "app_key_id": version.app_key_id,
+                        "app_version": version.app_version,
+                        "app_version_alias": version.app_version_alias,
+                        "create_time": version.create_time,
+                        "desc": version.desc,
+                        "rainbond_version": version.desc,
+                        "update_time": version.update_time,
+                        "update_version": version.update_version,
+                    })
+
+                market_info = {
+                    "app_id": dt.app_key_id,
+                    "app_name": dt.name,
+                    "update_time": dt.update_time,
+                    "local_market_id": market.ID,
+                    "local_market_name": market.name,
+                    "enterprise_id": market.enterprise_id,
+                    "source": "market",
+                    "versions": versions,
+                    "tags": [t for t in dt.tags],
+                    "logo": dt.logo,
+                    "market_id": dt.market_id,
+                    "market_name": dt.market_name,
+                    "market_url": dt.market_url,
+                    "install_number": dt.install_count,
+                    "describe": dt.desc,
+                    "dev_status": dt.dev_status,
+                    "app_url": dt.app_detail_url,
+                    "create_time": dt.create_time,
+                    "download_number": dt.download_count,
+                    "details": dt.introduction,
+                    "details_html": dt.introduction_html,
+                    "is_official": dt.is_official,
+                    "publish_type": dt.publish_type,
+                    "start_count": dt.start_count,
+                }
+                app_models.append(Dict(market_info))
+        return app_models
+
+    def app_model_serializers(self, market, data, extend=False):
+        app_model = {}
+        if data:
+            app_model = {
+                "app_id": data.app_key_id,
+                "app_name": data.name,
+                "update_time": data.update_time,
+                "local_market_id": market.ID,
+                "enterprise_id": market.enterprise_id,
+                "source": "market",
+            }
+            if extend:
+                app_model.update({
+                    "market_id": data.market_id,
+                    "logo": data.logo,
+                    "market_name": data.market_name,
+                    "market_url": data.market_url,
+                    "install_number": data.install_count,
+                    "describe": data.desc,
+                    "dev_status": data.dev_status,
+                    "app_url": data.app_detail_url,
+                    "create_time": data.create_time,
+                    "download_number": data.download_count,
+                    "details": data.introduction,
+                    "details_html": data.introduction_html,
+                    "is_official": data.is_official,
+                    "publish_type": data.publish_type,
+                    "start_count": data.start_count,
+                    "versions": data.versions,
+                    "tags": data.tags,
+                })
+        return Dict(app_model)
+
+    def app_model_versions_serializers(self, market, data, extend=False):
+        app_models = []
+        if data:
+            for dt in data:
+                version = {
+                    "app_id": dt.app_key_id,
+                    "version": dt.app_version,
+                    "version_alias": dt.app_version_alias,
+                    "update_version": dt.update_version,
+                    "app_version_info": dt.desc,
+                    "rainbond_version": dt.rainbond_version,
+                    "create_time": dt.create_time,
+                    "update_time": dt.update_time,
+                    "enterprise_id": market.enterprise_id,
+                    "local_market_id": market.ID,
+                }
+                app_models.append(Dict(version))
+        return app_models
+
+    def app_model_version_serializers(self, market, data, extend=False):
+        version = {}
+        if data:
+            version = {
+                "template_type": data.template_type,
+                "template": data.template,
+                "delivery_mode": data.delivery_mode,
+                "update_time": data.update_time,
+                "version": data.version,
+                "version_alias": data.version_alias,
+                "update_version": data.update_version,
+                "app_version_info": data.description,
+                "rainbond_version": data.rainbond_version,
+                "create_time": data.create_time,
+                "app_id": data.app_key_id,
+                "app_name": data.app_name,
+                "enterprise_id": market.enterprise_id,
+                "local_market_id": market.ID,
+            }
+        return Dict(version)
+
+    def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
+        data = self.app_models_serializers(market, results.apps, extend=extend)
+        return data, results.page, results.page_size, results.total
+
+    def get_market_app_model(self, market, app_id, extend=False):
+        results = app_store.get_app(market, app_id)
+        return self.app_model_serializers(market, results, extend=extend)
+
+    def get_market_app_model_versions(self, market, app_id, query_all=False, extend=False):
+        if not app_id:
+            raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
+        results = app_store.get_app_versions(market, app_id, query_all=query_all)
+        data = self.app_model_versions_serializers(market, results.versions, extend=extend)
+        return data
+
+    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False):
+        if not app_id:
+            raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
+        results = app_store.get_app_version(market, app_id, version, for_install=for_install)
+        data = self.app_model_version_serializers(market, results, extend=extend)
+        return data
+
+    def cloud_app_model_to_db_model(self, market, app_id, version):
+        app = app_store.get_app(market, app_id)
+        app_template = app_store.get_app_version(market, app_id, version, for_install=True)
+        rainbond_app = RainbondCenterApp(
+            app_id=app.app_key_id,
+            app_name=app.name,
+            dev_status=app.dev_status,
+            source="market",
+            scope="goodrain",
+            describe=app.desc,
+            details=app.introduction,
+            pic=app.logo,
+            create_time=app.create_time,
+            update_time=app.update_time)
+        rainbond_app.market_name = market.name
+        rainbond_app_version = RainbondCenterAppVersion(
+            app_id=app.app_key_id,
+            app_template=app_template.template,
+            version=app_template.version,
+            version_alias=app_template.version_alias,
+            template_version=app_template.rainbond_version,
+            app_version_info=app_template.description,
+            update_time=app_template.update_time,
+            is_official=1)
+        rainbond_app_version.template_type = app_template.template_type
+        return rainbond_app, rainbond_app_version
+
+    def create_market_app_model(self, market, body):
+        return app_store.create_app(market, body)
+
+    def create_market_app_model_version(self, market, app_id, body):
+        app_store.create_app_version(market, app_id, body)
+
+
 app_service = AppService()
+app_market_service = AppMarketService()

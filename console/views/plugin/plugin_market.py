@@ -3,13 +3,12 @@ import logging
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from console.services.user_services import user_services
 from console.models.main import RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.plugin import plugin_repo
 from console.services.market_plugin_service import market_plugin_service
 from console.views.base import RegionTenantHeaderView
-from www.utils.return_message import general_message, error_message
+from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
 
@@ -24,27 +23,16 @@ class MarketPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        try:
-            plugin_name = request.GET.get('plugin_name')
-            page = request.GET.get('page', 1)
-            limit = request.GET.get('limit', 10)
-            # is_download = request.GET.get('is_download')
+        plugin_name = request.GET.get('plugin_name')
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+        # is_download = request.GET.get('is_download')
 
-            # market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
-            total, plugins = market_plugin_service.get_paged_plugins(
-                plugin_name,
-                page=page,
-                limit=limit,
-                order_by='is_complete',
-                source='market',
-                scope='goodrain',
-                tenant=self.tenant)
-            result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
-            return Response(data=result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        # market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
+        total, plugins = market_plugin_service.get_paged_plugins(
+            plugin_name, page=page, limit=limit, order_by='is_complete', source='market', scope='goodrain', tenant=self.tenant)
+        result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
+        return Response(data=result, status=200)
 
 
 class SyncMarketPluginsView(RegionTenantHeaderView):
@@ -56,27 +44,22 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        try:
-            if not self.user.is_sys_admin:
-                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
+        if not self.user.is_sys_admin:
+            if not self.is_enterprise_admin:
+                return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
 
-            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
-            if ent and not ent.is_active:
-                result = general_message(10407, "failed", "用户未跟云市认证")
-                return Response(result, 500)
-
-            page = request.GET.get('page', 1)
-            limit = request.GET.get('limit', 10)
-            plugin_name = request.GET.get('plugin_name', '')
-
-            plugins, total = market_plugin_service.sync_market_plugins(self.tenant, self.user, page, limit, plugin_name)
-            result = general_message(200, "success", "同步成功", list=plugins, total=total)
-            return Response(result, 200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+        if ent and not ent.is_active:
+            result = general_message(10407, "failed", "用户未跟云市认证")
             return Response(result, 500)
+
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+        plugin_name = request.GET.get('plugin_name', '')
+
+        plugins, total = market_plugin_service.sync_market_plugins(self.tenant, page, limit, plugin_name)
+        result = general_message(200, "success", "同步成功", list=plugins, total=total)
+        return Response(result, 200)
 
 
 class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
@@ -88,26 +71,21 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        try:
-            if not self.user.is_sys_admin:
-                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
+        if not self.user.is_sys_admin:
+            if not self.is_enterprise_admin:
+                return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
 
-            ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
-            if ent and not ent.is_active:
-                result = general_message(10407, "failed", "用户未跟云市认证")
-                return Response(result, 500)
-
-            plugin_data = request.data
-            data = {'plugin_key': plugin_data["plugin_key"], 'version': plugin_data['version']}
-
-            market_plugin_service.sync_market_plugin_templates(self.user, self.tenant, data)
-            result = general_message(200, "success", "同步成功")
-            return Response(result, 200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        ent = enterprise_repo.get_enterprise_by_enterprise_id(self.tenant.enterprise_id)
+        if ent and not ent.is_active:
+            result = general_message(10407, "failed", "用户未跟云市认证")
             return Response(result, 500)
+
+        plugin_data = request.data
+        data = {'plugin_key': plugin_data["plugin_key"], 'version': plugin_data['version']}
+
+        market_plugin_service.sync_market_plugin_templates(self.tenant, data)
+        result = general_message(200, "success", "同步成功")
+        return Response(result, 200)
 
 
 class InstallMarketPlugin(RegionTenantHeaderView):
@@ -140,20 +118,15 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        try:
-            plugin_name = request.GET.get('plugin_name')
-            page = request.GET.get('page', 1)
-            limit = request.GET.get('limit', 10)
-            scope = request.GET.get('scope')
+        plugin_name = request.GET.get('plugin_name')
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
+        scope = request.GET.get('scope')
 
-            total, plugins = market_plugin_service.get_paged_plugins(
-                plugin_name, is_complete=True, scope=scope, tenant=self.tenant, page=page, limit=limit)
-            result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
-            return Response(data=result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        total, plugins = market_plugin_service.get_paged_plugins(
+            plugin_name, is_complete=True, scope=scope, tenant=self.tenant, page=page, limit=limit)
+        result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
+        return Response(data=result, status=200)
 
 
 class InstallableInteralPluginsView(RegionTenantHeaderView):
@@ -165,30 +138,25 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
         :param kwargs:
         :return:
         """
-        try:
-            plugin_name = request.GET.get('plugin_name')
-            page = request.GET.get('page', 1)
-            limit = request.GET.get('limit', 10)
+        plugin_name = request.GET.get('plugin_name')
+        page = request.GET.get('page', 1)
+        limit = request.GET.get('limit', 10)
 
-            total, plugins = market_plugin_service.get_paged_plugins(
-                plugin_name, is_complete=True, tenant=self.tenant, page=page, limit=limit)
+        total, plugins = market_plugin_service.get_paged_plugins(
+            plugin_name, is_complete=True, tenant=self.tenant, page=page, limit=limit)
 
-            installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \
-                filter(origin__in=['local_market', 'market'])
+        installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \
+            filter(origin__in=['local_market', 'market'])
 
-            for p in plugins:
-                if installed.filter(origin_share_id=p["plugin_key"]).exists():
-                    # if installed.filter(plugin_alias=p["plugin_name"]).exists():
-                    p["is_installed"] = True
-                else:
-                    p["is_installed"] = False
+        for p in plugins:
+            if installed.filter(origin_share_id=p["plugin_key"]).exists():
+                # if installed.filter(plugin_alias=p["plugin_name"]).exists():
+                p["is_installed"] = True
+            else:
+                p["is_installed"] = False
 
-            result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
-            return Response(data=result, status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
+        return Response(data=result, status=200)
 
 
 class UninstallPluginTemplateView(RegionTenantHeaderView):

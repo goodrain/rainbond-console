@@ -15,7 +15,6 @@ from console.services.groupapp_recovery.groupapps_migrate import migrate_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
-from www.decorator import perm_required
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
@@ -24,7 +23,6 @@ logger = logging.getLogger('default')
 
 class GroupAppsMigrateView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
     def post(self, request, *args, **kwargs):
         """
         应用迁移
@@ -73,7 +71,7 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
         migrate_team = team_services.get_tenant_by_tenant_name(team)
         if not migrate_team:
             return Response(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status=404)
-        regions = region_services.get_team_usable_regions(migrate_team)
+        regions = region_services.get_team_usable_regions(migrate_team, self.tenant.enterprise_id)
         if migrate_region not in [r.region_name for r in regions]:
             msg_cn = "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(migrate_region, migrate_team.tenant_name)
             return Response(general_message(412, "region is not usable", msg_cn), status=412)
@@ -84,7 +82,6 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required("import_and_export_service")
     def get(self, request, *args, **kwargs):
         """
         查询迁移状态
@@ -120,7 +117,6 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
 
 class GroupAppsView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
     def delete(self, request, *args, **kwargs):
         """
         应用数据删除
@@ -177,7 +173,6 @@ class GroupAppsView(RegionTenantHeaderView):
 
 class MigrateRecordView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("import_and_export_service")
     def get(self, request, group_id, *args, **kwargs):
         """
         查询当前用户是否有未完成的恢复和迁移

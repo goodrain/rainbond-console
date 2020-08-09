@@ -12,7 +12,7 @@ from django.db import transaction
 from django.db.models import Q
 from docker_image import reference
 
-from console.constants import (PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
+from console.constants import (PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType, DefaultPluginConstants)
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo
@@ -45,6 +45,12 @@ allow_plugins = [
     PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE
 ]
 
+default_plugins = [
+    DefaultPluginConstants.DOWNSTREAM_NET_PLUGIN, DefaultPluginConstants.PERF_ANALYZE_PLUGIN,
+    DefaultPluginConstants.INANDOUT_NET_PLUGIN, DefaultPluginConstants.FILEBEAT_LOG_PLUGIN,
+    DefaultPluginConstants.LOGTAIL_LOG_PLUGIN
+]
+
 
 class AppPluginService(object):
     def get_service_abled_plugin(self, service):
@@ -72,11 +78,17 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def create_service_plugin_relation(self, service_id, plugin_id, build_version, service_meta_type="", plugin_status=True):
+    def create_service_plugin_relation(self,
+                                       tenant_id,
+                                       service_id,
+                                       plugin_id,
+                                       build_version,
+                                       service_meta_type="",
+                                       plugin_status=True):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
-        plugin_version_info = plugin_version_repo.get_by_id_and_version(plugin_id, build_version)
+        plugin_version_info = plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, build_version)
         min_memory = plugin_version_info.min_memory
         min_cpu = plugin_version_info.min_cpu
         params = {
@@ -164,7 +176,7 @@ class AppPluginService(object):
     @transaction.atomic
     def install_new_plugin(self, region, tenant, service, plugin_id, plugin_version=None):
         if not plugin_version:
-            plugin_version = plugin_version_service.get_newest_usable_plugin_version(plugin_id)
+            plugin_version = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin_id)
             plugin_version = plugin_version.build_version
         logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
         # 1.生成console数据，存储
@@ -177,7 +189,7 @@ class AppPluginService(object):
         data["switch"] = True
         data["version_id"] = plugin_version
         data.update(region_config)
-        self.create_service_plugin_relation(service.service_id, plugin_id, plugin_version)
+        self.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id, plugin_version)
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
@@ -516,13 +528,13 @@ class AppPluginService(object):
             self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"], data["version_id"],
                                               service_plugin_config_vars)
 
-            self.create_service_plugin_relation(service.service_id, data["plugin_id"], data["version_id"])
+            self.create_service_plugin_relation(tenant.tenant_id, service.service_id, data["plugin_id"], data["version_id"])
 
     def build_plugin_data_4marketsvc(self, tenant, service, plugin):
         plugin_key = plugin["plugin_key"]
         p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
         plugin_id = p[0].plugin_id
-        plugin_version = plugin_version_service.get_newest_plugin_version(plugin_id)
+        plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
         build_version = plugin_version.build_version
 
         region_config = self.get_region_config_from_db(service, plugin_id, build_version)
@@ -590,7 +602,7 @@ class AppPluginService(object):
         for plugin in plugins:
             if PluginCategoryConstants.OUTPUT_NET == plugin.category or \
                PluginCategoryConstants.OUTPUT_INPUT_NET == plugin.category:
-                pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
+                pbv = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
                     self.update_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version, configs,
@@ -601,7 +613,7 @@ class AppPluginService(object):
         plugins = self.get_service_abled_plugin(service)
         for plugin in plugins:
             if PluginCategoryConstants.INPUT_NET == plugin.category:
-                pbv = plugin_version_service.get_newest_usable_plugin_version(plugin.plugin_id)
+                pbv = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version)
                     self.update_service_plugin_config(tenant, service, plugin.plugin_id, pbv.build_version, configs,
@@ -643,8 +655,8 @@ class PluginService(object):
         logger.debug("plugin.create", "create region plugin {0}".format(body))
         return 200, "success"
 
-    def delete_console_tenant_plugin(self, plugin_id):
-        plugin_repo.delete_by_plugin_id(plugin_id)
+    def delete_console_tenant_plugin(self, tenant_id, plugin_id):
+        plugin_repo.delete_by_plugin_id(tenant_id, plugin_id)
 
     def get_plugin_event_log(self, region, tenant, event_id, level):
         data = {"event_id": event_id, "level": level}
@@ -684,21 +696,31 @@ class PluginService(object):
         body = region_api.build_plugin(region, tenant.tenant_name, plugin.plugin_id, build_data)
         return body
 
+    all_default_config = None
+    module_dir = os.path.dirname(__file__)
+    file_path = os.path.join(module_dir, 'default_config.json')
+    with open(file_path) as f:
+        all_default_config = json.load(f)
+
     def add_default_plugin(self, user, tenant, region, plugin_type="perf_analyze_plugin"):
         plugin_base_info = None
         try:
-            all_default_config = None
-            module_dir = os.path.dirname(__file__)
-            file_path = os.path.join(module_dir, 'default_config.json')
-            with open(file_path) as f:
-                all_default_config = json.load(f)
-            if not all_default_config:
+            if not self.all_default_config:
                 raise Exception("no config was found")
 
-            needed_plugin_config = all_default_config[plugin_type]
-            ref = reference.Reference.parse(needed_plugin_config["image"])
-            _, name = ref.split_hostname()
-            image = settings.IMAGE_REPO + "/" + name
+            needed_plugin_config = self.all_default_config[plugin_type]
+            image = needed_plugin_config.get("image", "")
+            build_source = needed_plugin_config.get("build_source", "")
+            image_tag = "latest"
+            if image and build_source and build_source == "image":
+                ref = reference.Reference.parse(image)
+                if ref["tag"]:
+                    image_tag = ref["tag"]
+                if "goodrain.me" in image:
+                    _, name = ref.split_hostname()
+                    image = settings.IMAGE_REPO + "/" + name
+                else:
+                    image = image.split(":")[0]
             plugin_params = {
                 "tenant_id": tenant.tenant_id,
                 "region": region,
@@ -706,7 +728,7 @@ class PluginService(object):
                 "desc": needed_plugin_config["desc"],
                 "plugin_alias": needed_plugin_config["plugin_alias"],
                 "category": needed_plugin_config["category"],
-                "build_source": needed_plugin_config["build_source"],
+                "build_source": build_source,
                 "image": image,
                 "code_repo": needed_plugin_config["code_repo"],
                 "username": "",
@@ -718,7 +740,7 @@ class PluginService(object):
             plugin_base_info.save()
 
             plugin_build_version = plugin_version_service.create_build_version(
-                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64)
+                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64, image_tag=image_tag)
 
             plugin_config_meta_list = []
             config_items_list = []
@@ -777,7 +799,9 @@ class PluginService(object):
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
 
     def delete_plugin(self, region, team, plugin_id):
-        plugin_service_relations = app_plugin_relation_repo.get_service_plugin_relation_by_plugin_id(plugin_id)
+        services = service_repo.get_tenant_region_services(region, team.tenant_id)
+        service_ids = services.values_list("service_id", flat=True)
+        plugin_service_relations = app_plugin_relation_repo.get_service_plugin_relation_by_plugin_id(plugin_id, service_ids)
         if plugin_service_relations:
             return 412, "当前插件被组件使用中，请先卸载"
         # 删除数据中心数据
@@ -788,20 +812,42 @@ class PluginService(object):
                 raise e
         app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(plugin_id)
         app_plugin_attr_repo.delete_attr_by_plugin_id(plugin_id)
-        plugin_version_repo.delete_build_version_by_plugin_id(plugin_id)
-        plugin_repo.delete_by_plugin_id(plugin_id)
+        plugin_version_repo.delete_build_version_by_plugin_id(team.tenant_id, plugin_id)
+        plugin_repo.delete_by_plugin_id(team.tenant_id, plugin_id)
         config_item_repo.delete_config_items_by_plugin_id(plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(plugin_id)
         return 200, "删除成功"
 
     def get_default_plugin(self, region, tenant):
         # 兼容3.5版本升级
-        plugins = plugin_repo.get_tenant_plugins(
-            tenant.tenant_id,
-            region).filter(origin_share_id__in=["perf_analyze_plugin", "downstream_net_plugin", "inandout_net_plugin"])
+        plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id,
+                                                 region).filter(origin_share_id__in=[plugin for plugin in default_plugins])
         if plugins:
             return plugins
         else:
             q = Q(category="analyst-plugin:perf", image=PluginImage.RUNNER)
             q |= Q(category="analyst-plugin:perf", image=IMAGE_REPO)
             return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(q)
+
+    def get_default_plugin_from_cache(self, region, tenant):
+        if not self.all_default_config:
+            raise Exception("no config was found")
+
+        default_plugin_list = []
+        for plugin in self.all_default_config:
+            default_plugin_list.append({
+                "category": plugin,
+                "plugin_alias": self.all_default_config[plugin].get("plugin_alias"),
+                "desc": self.all_default_config[plugin].get("desc"),
+                "plugin_type": self.all_default_config[plugin].get("category"),
+            })
+
+        installed_default_plugins = self.get_default_plugin(region, tenant)
+        installed_default_plugin_alias_list = [plugin.plugin_alias for plugin in installed_default_plugins]
+
+        for plugin in default_plugin_list:
+            plugin["has_install"] = False
+            if plugin["plugin_alias"] in installed_default_plugin_alias_list:
+                plugin["has_install"] = True
+
+        return default_plugin_list

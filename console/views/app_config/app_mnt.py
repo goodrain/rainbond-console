@@ -12,7 +12,6 @@ from console.services.app import app_service
 from console.services.app_config import mnt_service
 from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
-from www.decorator import perm_required
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -20,7 +19,6 @@ logger = logging.getLogger("default")
 
 class AppMntView(AppBaseView):
     @never_cache
-    @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         """
         获取组件挂载的组件
@@ -70,9 +68,7 @@ class AppMntView(AppBaseView):
         if query_type == "mnt":
             mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_types)
         elif query_type == "unmnt":
-            services = app_service.get_app_list(self.tenant.pk, self.user, self.tenant.tenant_id, self.service.service_region,
-                                                query)
-
+            services = app_service.get_app_list(self.tenant.tenant_id, self.service.service_region, query)
             services_ids = [s.service_id for s in services]
             mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids, page,
                                                                           page_size, is_config)
@@ -83,7 +79,6 @@ class AppMntView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    @perm_required('manage_service_config')
     def post(self, request, *args, **kwargs):
         """
         为组件添加挂载依赖
@@ -119,7 +114,6 @@ class AppMntView(AppBaseView):
 
 class AppMntManageView(AppBaseView):
     @never_cache
-    @perm_required('manage_service_config')
     def delete(self, request, *args, **kwargs):
         """
         为组件取消挂载依赖

@@ -27,10 +27,23 @@ elif [ "$1" = "init" ];then
     fi
 
     echo -e "${GREEN}Start initializing database${NC}"
-    python manage.py makemigrations www
-    python manage.py makemigrations console
-    python manage.py migrate
-    python default_region.py
+    if !(python manage.py makemigrations www 2> /dev/null); then
+        echo -e "${RED}failed to makemigrations www${NC}"
+        exit 1
+    fi
+    if !(python manage.py makemigrations console 2> /dev/null); then
+        echo -e "${RED}failed to makemigrations console${NC}"
+        exit 1
+    fi
+    if !(python manage.py migrate 2> /dev/null); then
+        echo -e "${RED}failed to migrate${NC}"
+        exit 1
+    fi
+    if !(python default_region.py 2> /dev/null); then
+        echo -e "${RED}failed to default_region${NC}"
+        exit 1
+    fi
+    
     echo -e "${GREEN}Database initialization completed${NC}"
 else
     # check database
@@ -39,7 +52,6 @@ else
         exit 1
     fi
     
-    #TODO: support  upgrade
-    # python upgrade.py
-    exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --debug --workers=4 --log-file - --access-logfile - --error-logfile -
+    python upgrade.py
+    exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --workers=4 --timeout=75 --log-file - --access-logfile - --error-logfile -
 fi

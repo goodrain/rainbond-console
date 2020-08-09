@@ -8,26 +8,20 @@ import logging
 import urllib2
 
 from console.appstore.appstore import app_store
+from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
-from console.repositories.market_app_repo import app_export_record_repo
-from console.repositories.market_app_repo import app_import_record_repo
-from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.market_app_repo import (app_export_record_repo, app_import_record_repo, rainbond_app_repo)
 from console.repositories.region_repo import region_repo
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from www.apiclient.baseclient import client_auth_service
-from www.apiclient.marketclient import MarketOpenAPI
+from console.services.app_config.app_relation_service import \
+    AppServiceRelationService
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantRegionInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.exception.main import RegionNotFound, RecordNotFound
-from console.exception.main import ExportAppError
-from console.exception.main import RbdAppNotFound
-from www.models.main import TenantRegionInfo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
-market_api = MarketOpenAPI()
 region_api = RegionInvokeApi()
 
 
@@ -127,13 +121,6 @@ class AppExportService(object):
         response.close()
         return image_base64_string
 
-    def get_app_share_region(self, app, app_version):
-        import_record_id = app_version.record_id
-        import_record = app_import_record_repo.get_import_record(import_record_id)
-        if not import_record:
-            return None
-        return import_record.region
-
     def get_export_status(self, enterprise_id, app, app_version):
         app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(
             enterprise_id, app.app_id, app_version.version)
@@ -198,12 +185,6 @@ class AppExportService(object):
             else:
                 return "http://" + splits_texts[1] + raw_url
 
-            # if len(splits_texts) > 2:
-            #     temp_url = splits_texts[0] + "://" + region.tcpdomain
-            #     return temp_url + ":6060" + raw_url
-            # else:
-            #     return "http://" + region.tcpdomain + ":6060" + raw_url
-
     def get_export_record(self, export_format, app):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
 
@@ -224,31 +205,9 @@ class AppExportService(object):
         else:
             return "exporting"
 
-    def get_file_down_req(self, export_format, tenant_name, app):
-        export_record = app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
-        # TODO fix get region bugs, this func need app and version two parameters
-        region = self.get_app_share_region(app)
-
-        download_url = self.__get_down_url(region, export_record.file_path)
-        file_name = export_record.file_path.split("/")[-1]
-        url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
-        if not token:
-            region_info = region_repo.get_region_by_region_name(region)
-            if region_info:
-                token = region_info.token
-
-        req = urllib2.Request(download_url)
-        if token:
-            if token.startswith("Token"):
-                req.add_header("Authorization", "{}".format(token))
-            else:
-                req.add_header("Authorization", "Token {}".format(token))
-
-        return req, file_name
-
 
 class AppImportService(object):
-    def start_import_apps(self, scope, event_id, file_names, team_name=None):
+    def start_import_apps(self, scope, event_id, file_names, team_name=None, enterprise_id=None):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         if not import_record:
             raise RecordNotFound("import_record not found")
@@ -256,7 +215,7 @@ class AppImportService(object):
         if team_name:
             import_record.team_name = team_name
 
-        service_image = app_store.get_image_connection_info(scope, import_record.enterprise_id, team_name)
+        service_image = app_store.get_app_hub_info(enterprise_id=enterprise_id)
         data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
         if scope == "enterprise":
             region_api.import_app_2_enterprise(import_record.region, import_record.enterprise_id, data)
@@ -429,45 +388,52 @@ class AppImportService(object):
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
                 if app_version:
+                    # update version if exists
                     app_version.scope = import_record.scope
                     app_version.app_template = json.dumps(app_template)
                     app_version.template_version = app_template["template_version"]
                     app_version.save()
-                continue
-            image_base64_string = app_template.pop("image_base64_string", "")
-            pic_url = ""
-            if image_base64_string:
-                pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
-
-            key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
-            if key_and_version in key_and_version_list:
-                continue
-            key_and_version_list.append(key_and_version)
-            rainbond_app = RainbondCenterApp(
-                enterprise_id=import_record.enterprise_id,
-                app_id=app_template["group_key"],
-                app_name=app_template["group_name"],
-                source="import",
-                create_team=import_record.team_name,
-                scope=import_record.scope,
-                describe=app_template.pop("describe", ""),
-                pic=pic_url,
-            )
-            rainbond_apps.append(rainbond_app)
-            rainbond_app_version = RainbondCenterAppVersion(
-                scope=rainbond_app.scope,
-                enterprise_id=rainbond_app.enterprise_id,
-                app_id=rainbond_app.app_id,
-                app_template=json.dumps(app_template),
-                version=app_template["group_version"],
-                template_version=app_template["template_version"],
-                record_id=import_record.ID,
-                share_user=0,
-                is_complete=1,
-            )
-            rainbond_app_versions.append(rainbond_app_version)
+                else:
+                    # create a new version
+                    rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
+            else:
+                image_base64_string = app_template.pop("image_base64_string", "")
+                pic_url = ""
+                if image_base64_string:
+                    pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
+                key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
+                if key_and_version in key_and_version_list:
+                    continue
+                key_and_version_list.append(key_and_version)
+                rainbond_app = RainbondCenterApp(
+                    enterprise_id=import_record.enterprise_id,
+                    app_id=app_template["group_key"],
+                    app_name=app_template["group_name"],
+                    source="import",
+                    create_team=import_record.team_name,
+                    scope=import_record.scope,
+                    describe=app_template.pop("describe", ""),
+                    pic=pic_url,
+                )
+                rainbond_apps.append(rainbond_app)
+                # create a new app version
+                rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template))
         rainbond_app_repo.bulk_create_rainbond_app_versions(rainbond_app_versions)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
+
+    @staticmethod
+    def create_app_version(app, import_record, app_template):
+        return RainbondCenterAppVersion(
+            scope=import_record.scope,
+            enterprise_id=import_record.enterprise_id,
+            app_id=app.app_id,
+            app_template=json.dumps(app_template),
+            version=app_template["group_version"],
+            template_version=app_template["template_version"],
+            record_id=import_record.ID,
+            share_user=0,
+            is_complete=1,
+        )
 
     def __save_import_info(self, tenant, scope, metadata):
         rainbond_apps = []

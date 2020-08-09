@@ -5,6 +5,7 @@
 import copy
 import logging
 
+from console.exception.main import ServiceHandleException
 from console.repositories.probe_repo import probe_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
@@ -117,12 +118,13 @@ class ProbeService(object):
     def update_service_probea(self, tenant, service, data):
         code, msg = self.__check_probe_data(data)
         if code != 200:
-            return code, msg, None
+            raise ServiceHandleException(status_code=code, msg_show=msg, msg="error")
         probes = probe_repo.get_service_probe(service.service_id)
         if not probes:
             if service.service_source == "third_party":
-                return self.add_service_probe(tenant, service, data)
-            return 404, u"组件未设置探针，无法进行修改操作", None
+                code, msg, new_probe = self.add_service_probe(tenant, service, data)
+                return new_probe
+            raise ServiceHandleException(status_code=404, msg="no found", msg_show=u"组件未设置探针，无法进行修改操作")
         probe = probes[0]
         # delete more probe without first, one service will have one probe
         if len(probes) > 1:
@@ -130,7 +132,7 @@ class ProbeService(object):
                 if index > 0:
                     self.delete_service_probe(tenant, service, probes[index].probe_id)
         if not probe:
-            return 404, u"组件未设置探针，无法进行修改操作", None
+            raise ServiceHandleException(status_code=404, msg="no found", msg_show=u"组件未设置探针，无法进行修改操作")
         is_used = data.get("is_used", None)
         if is_used is None:
             is_used = probe.is_used
@@ -155,14 +157,19 @@ class ProbeService(object):
         console_probe = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
         if service.create_status == "complete":
-            res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name, service.service_alias,
-                                                         prob_data)
-            logger.debug("update probe action status {0}".format(res.status))
+            try:
+                res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name, service.service_alias,
+                                                             prob_data)
+                logger.debug("update probe action status {0}".format(res.status))
+            except region_api.CallApiError as e:
+                logger.debug(e)
+                if e.message.get("httpcode") == 404:
+                    probe.delete()
         console_probe.pop("probe_id")
         console_probe.pop("service_id")
         probe_repo.update_service_probeb(service_id=service.service_id, probe_id=probe.probe_id, **console_probe)
         new_probe = probe_repo.get_probe_by_probe_id(service.service_id, probe.probe_id)
-        return 200, "success", new_probe
+        return new_probe
 
     def delete_service_probe(self, tenant, service, probe_id):
         probe = probe_repo.get_probe_by_probe_id(service.service_id, probe_id)

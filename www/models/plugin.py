@@ -23,7 +23,7 @@ class TenantPlugin(BaseModel):
 
     plugin_id = models.CharField(max_length=32, help_text=u"插件ID")
     tenant_id = models.CharField(max_length=32, help_text=u"租户ID")
-    region = models.CharField(max_length=32, help_text=u"数据中心")
+    region = models.CharField(max_length=64, help_text=u"数据中心")
     create_user = models.IntegerField(help_text=u"创建插件的用户id")
     desc = models.CharField(max_length=256, default="", help_text=u"描述")
     plugin_name = models.CharField(max_length=32, help_text=u"插件名称")
@@ -48,7 +48,7 @@ class PluginBuildVersion(BaseModel):
 
     plugin_id = models.CharField(max_length=32, help_text=u"插件ID")
     tenant_id = models.CharField(max_length=32, help_text=u"租户ID")
-    region = models.CharField(max_length=32, help_text=u"数据中心")
+    region = models.CharField(max_length=64, help_text=u"数据中心")
     user_id = models.IntegerField(help_text=u"构建此版本的用户id")
     update_info = models.CharField(max_length=256, help_text=u"插件更新说明")
     build_version = models.CharField(max_length=32, help_text=u"构建版本")

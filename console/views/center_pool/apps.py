@@ -2,35 +2,25 @@
 """
   Created on 18/2/1.
 """
-import logging
-import httplib2
-import httplib
-import json
 import datetime
+import json
+import logging
 
 from django.db import transaction
 from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
 
-from console.exception.main import AccountOverdueException
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ServiceHandleException
-from console.repositories.enterprise_repo import enterprise_repo
+from console.exception.main import (AccountOverdueException, ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import app_tag_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.services.enterprise_services import enterprise_services
+from console.services.app import app_market_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
-from console.services.market_app_service import market_sycn_service
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
-from console.views.base import RegionTenantHeaderView
-from console.views.base import JWTAuthApiView
-from www.apiclient.baseclient import HttpClient
-from www.decorator import perm_required
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger('default')
 
@@ -102,7 +92,6 @@ class CenterAppListView(JWTAuthApiView):
 
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
-    @perm_required("create_service")
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
@@ -136,6 +125,7 @@ class CenterAppView(RegionTenantHeaderView):
             app_version = request.data.get("app_version", None)
             is_deploy = request.data.get("is_deploy", True)
             install_from_cloud = request.data.get("install_from_cloud", False)
+            market_name = request.data.get("market_name", None)
             if not app_id or not app_version:
                 return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
             if int(group_id) != -1:
@@ -143,7 +133,8 @@ class CenterAppView(RegionTenantHeaderView):
             app = None
             app_version_info = None
             if install_from_cloud:
-                app, app_version_info = market_app_service.get_app_from_cloud(self.tenant, app_id, app_version, True)
+                dt, market = app_market_service.get_app_market(self.tenant.enterprise_id, market_name, raise_exception=True)
+                app, app_version_info = app_market_service.cloud_app_model_to_db_model(market, app_id, app_version)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
@@ -152,22 +143,27 @@ class CenterAppView(RegionTenantHeaderView):
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
-            market_app_service.install_service(self.tenant, self.response_region, self.user, group_id, app, app_version_info,
-                                               is_deploy, install_from_cloud)
+            market_app_service.install_service(
+                self.tenant,
+                self.response_region,
+                self.user,
+                group_id,
+                app,
+                app_version_info,
+                is_deploy,
+                install_from_cloud,
+                market_name=market_name)
             if not install_from_cloud:
                 market_app_service.update_rainbond_app_install_num(self.user.enterprise_id, app_id, app_version)
             logger.debug("market app create success")
             result = general_message(200, "success", "创建成功")
+        except ServiceHandleException as e:
+            raise e
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
         return Response(result, status=result["code"])
 
 
@@ -226,8 +222,8 @@ class CenterAppCLView(JWTAuthApiView):
         if scope == "team" and not create_team:
             result = general_message(400, "please select team", "请选择团队")
             return Response(result, status=400)
-        if scope == "goodrain" and (not scope_target or not scope_target.get("market_id")):
-            result = general_message(400, "parameter market_id not found", None)
+        if scope not in ["team", "enterprise"]:
+            result = general_message(400, "parameter error", "scope 参数不正确")
             return Response(result, status=400)
         if not name:
             result = general_message(400, "error params", "请填写应用名称")
@@ -309,9 +305,9 @@ class CenterAppManageView(JWTAuthApiView):
               paramType: form
         """
         try:
-            if not self.user.is_sys_admin:
-                if not user_services.is_user_admin_in_current_enterprise(self.user, self.tenant.enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
+            if not self.user.is_sys_admin and not user_services.is_user_admin_in_current_enterprise(
+                    self.user, self.tenant.enterprise_id):
+                return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
             app_id = request.data.get("app_id", None)
             app_version_list = request.data.get("app_versions", [])
             action = request.data.get("action", None)
@@ -341,184 +337,6 @@ class CenterAppManageView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
         return Response(result, status=result["code"])
-
-
-class DownloadMarketAppTemplateView(JWTAuthApiView):
-    @never_cache
-    def post(self, request, enterprise_id, *args, **kwargs):
-        """
-        同步下载云市组详情模板到云帮
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名称
-              required: true
-              type: string
-              paramType: path
-            - name: body
-              description: 需要同步的应用[{"group_key":"xxxxxxx","version":"xxxxxx","template_version":"xxxx"}]
-              required: true
-              type: string
-              paramType: body
-        """
-        try:
-            app_id = request.data.get("app_id", None)
-            app_versions = request.data.get("app_versions", [])
-            template_version = request.data.get("template_version", "v2")
-            if not app_versions or not app_id:
-                return Response(general_message(400, "app is null", "请指明需要更新的应用"), status=400)
-            ent = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
-            if ent and not ent.is_active:
-                result = general_message(10407, "failed", "用户未跟云市认证")
-                return Response(result, 500)
-
-            if not self.user.is_sys_admin:
-                if not user_services.is_user_admin_in_current_enterprise(self.user, enterprise_id):
-                    return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
-            logger.debug("start synchronized market apps detail")
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
-            if not enterprise.is_active:
-                return Response(general_message(10407, "enterprise is not active", "您的企业未激活"), status=403)
-
-            for version in app_versions:
-                market_sycn_service.down_market_group_app_detail(self.user, enterprise_id, app_id, version, template_version)
-            result = general_message(200, "success", "应用同步成功")
-        except HttpClient.CallApiError as e:
-            logger.exception(e)
-            if e.status == 403:
-                return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
-            else:
-                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
-
-class CenterAllMarketAppView(JWTAuthApiView):
-    @never_cache
-    def get(self, request, enterprise_id, *args, **kwargs):
-        """
-        查询远端云市的应用
-        ---
-        parameters:
-            - name: app_name
-              description: 搜索的组件名
-              required: false
-              type: string
-              paramType: query
-            - name: is_complete
-              description: 是否已下载
-              required: false
-              type: boolean
-              paramType: query
-            - name: page
-              description: 当前页
-              required: true
-              type: string
-              paramType: query
-            - name: page_size
-              description: 每页大小,默认为10
-              required: true
-              type: string
-              paramType: query
-        """
-        page = request.GET.get("page", 1)
-        page_size = request.GET.get("page_size", 10)
-        app_name = request.GET.get("app_name", None)
-        open_query = request.GET.get("open_query", False)
-        try:
-            if not open_query:
-                ent = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
-                if ent and not ent.is_active:
-                    result = general_message(10407, "failed", "用户未跟云市认证")
-                    return Response(result, 500)
-            total, apps = market_app_service.get_remote_market_apps(enterprise_id, int(page), int(page_size), app_name)
-
-            result = general_message(200, "success", "查询成功", list=apps, total=total, next_page=int(page) + 1)
-        except (httplib2.ServerNotFoundError, httplib.ResponseNotReady) as e:
-            logger.exception(e)
-            return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
-        except HttpClient.CallApiError as e:
-            logger.exception(e)
-            if e.status == 403:
-                return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
-            else:
-                return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
-
-class CenterVersionlMarversionketAppView(JWTAuthApiView):
-    @never_cache
-    def get(self, request, enterprise_id, *args, **kwargs):
-        """
-        查询远端云市指定版本的应用
-
-        """
-        version = request.GET.get("version", None)
-        app_name = request.GET.get("app_name", None)
-        app_id = request.GET.get("app_id", None)
-        if not app_id or not app_name or not version:
-            result = general_message(400, "not config", "参数缺失")
-            return Response(result, status=400)
-        try:
-            ent = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
-            if ent and not ent.is_active:
-                result = general_message(10407, "failed", "用户未跟云市认证")
-                return Response(result, 500)
-
-            total, apps = market_app_service.get_market_version_apps(enterprise_id, app_name, app_id, version)
-
-            result = general_message(200, "success", "查询成功", list=apps)
-        except HttpClient.CallApiError as e:
-            logger.exception(e)
-            if e.status == 403:
-                return Response(general_message(10407, "no cloud permission", u"云端授权未通过"), status=403)
-            else:
-                return Response(general_message(500, "call cloud api failure", u"云端获取应用列表失败"), status=500)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
-
-class GetCloudRecommendedAppList(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
-        """
-        获取云端市场推荐应用列表
-        ---
-        parameters:
-            - name: app_name
-              description: 应用名字
-              required: false
-              type: string
-              paramType: query
-            - name: page
-              description: 当前页
-              required: true
-              type: string
-              paramType: query
-            - name: page_size
-              description: 每页大小,默认为10
-              required: true
-              type: string
-              paramType: query
-        """
-        app_name = request.GET.get("app_name", None)
-        page = request.GET.get("page", 1)
-        page_size = request.GET.get("page_size", 10)
-        try:
-            apps, total, page = market_sycn_service.get_recommended_app_list(enterprise_id, page, page_size, app_name)
-            if apps:
-                return MessageResponse("success", msg_show="查询成功", list=apps, total=total, next_page=int(page) + 1)
-            else:
-                return Response(general_message(200, "no apps", u"查询成功"), status=200)
-        except Exception as e:
-            logger.exception(e)
-            return Response(general_message(10503, "call cloud api failure", u"网络不稳定，无法获取云端应用"), status=210)
 
 
 class TagCLView(JWTAuthApiView):
@@ -595,3 +413,11 @@ class AppTagCDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(404, "fail", u"删除失败")
         return Response(result, status=result.get("code", 200))
+
+
+class AppStoreCLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        pass
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        pass

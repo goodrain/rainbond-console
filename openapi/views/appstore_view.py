@@ -14,13 +14,12 @@ from openapi.serializer.appstore_serializer import ListAppStoreInfosRespSerializ
 from openapi.serializer.appstore_serializer import UpdAppStoreInfoReqSerializer
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
 from www.models.main import TenantEnterpriseToken
 
 logger = logging.getLogger("default")
 
 
-class ListAppStoresView(ListAPIView):
+class ListAppStoresView(BaseOpenAPIView):
     @swagger_auto_schema(
         operation_description="获取应用市场信息列表",
         manual_parameters=[
@@ -67,7 +66,6 @@ class AppStoreInfoView(BaseOpenAPIView):
         try:
             res = enterprise_services.update_appstore_info(eid, req.data)
         except TenantEnterpriseToken:
-            raise exceptions.NotFound({"msg": "应用市场信息不存在".format(eid)})
-
+            raise exceptions.NotFound({"msg": "应用市场信息不存在 {}".format(eid)})
         serializer = AppStoreInfoSerializer(res)
         return Response(serializer.data, status=status.HTTP_200_OK)
