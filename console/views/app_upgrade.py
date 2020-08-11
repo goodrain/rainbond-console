@@ -18,7 +18,7 @@ from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import (parse_args, parse_argument, parse_date, parse_item)
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.core.paginator import Paginator
 from django.db.models import Q
 
@@ -171,7 +171,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
         return MessageResponse(msg="success", list=upgrade_info + add_info)
 
 
-class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class AppUpgradeTaskView(RegionTenantHeaderCloudEnterpriseCenterView):
     def post(self, request, group_id, *args, **kwargs):
         """提交升级任务"""
         rq_args = (

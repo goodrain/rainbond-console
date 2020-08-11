@@ -334,6 +334,15 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.check_perms(request, *args, **kwargs)
 
 
+class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        RegionTenantHeaderView.initial(self, request, *args, **kwargs)
+        CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
+
+
 class TeamOwnerView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(TeamOwnerView, self).__init__(*args, **kwargs)

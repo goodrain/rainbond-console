@@ -12,7 +12,7 @@ from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.utils.reqparse import parse_item
-from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from www.apiclient.regionapi import RegionInvokeApi
@@ -160,7 +160,7 @@ class TenantGroupOperationView(ApplicationView):
 
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
-class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView):
+class TenantGroupCommonOperationView(RegionTenantHeaderCloudEnterpriseCenterView):
     def post(self, request, *args, **kwargs):
         """
         ---

@@ -22,7 +22,7 @@ from console.services.app_config import volume_service
 from console.services.compose_service import compose_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import CloudEnterpriseCenterView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import RegionTenantHeaderCloudEnterpriseCenterView
 from console.cloud.services import check_memory_quota
 from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import error_message
@@ -123,7 +123,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             return True
 
 
-class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -171,7 +171,8 @@ class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             group_compose.save()
             for s in new_app_list:
                 try:
-                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None, oauth_instance=self.oauth_instance)
+                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None,
+                                              oauth_instance=self.oauth_instance)
                 except Exception as e:
                     logger.exception(e)
                     continue
