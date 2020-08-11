@@ -433,6 +433,7 @@ def custom_exception_handler(exc, context):
             data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障，请稍后重试"}
         return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
+        logger.error(exc)
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
