@@ -14,7 +14,7 @@ from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
 from console.views.app_config.base import AppBaseView
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView)
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -521,7 +521,7 @@ class MarketServiceUpgradeView(AppBaseView):
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
 
 
-class TeamAppsCloseView(RegionTenantHeaderView):
+class TeamAppsCloseView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         region_name = request.data.get("region_name")
         if region_name:
