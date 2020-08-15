@@ -528,3 +528,4 @@ class TeamAppsCloseView(JWTAuthApiView):
             app_manage_service.close_all_component_in_tenant(self.team, region_name, self.user)
         else:
             app_manage_service.close_all_component_in_team(self.team, self.user)
+        return Response(status=200, data=general_message(200, "success", "操作成功"))
