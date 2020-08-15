@@ -11,14 +11,20 @@ from console.constants import AppConstants
 from console.enum.component_enum import ComponentType, is_singleton, is_state
 from console.exception.main import ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
-from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
+from console.repositories.app import (delete_service_repo, recycle_bin_repo,
+                                      relation_recycle_bin_repo, service_repo,
                                       service_source_repo)
-from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
-                                             extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
-                                             tcp_domain, volume_repo)
+from console.repositories.app_config import (auth_repo, create_step_repo,
+                                             dep_relation_repo, domain_repo,
+                                             env_var_repo, extend_repo,
+                                             mnt_repo, port_repo,
+                                             service_attach_repo,
+                                             service_payment_repo, tcp_domain,
+                                             volume_repo)
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
-from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo)
+from console.repositories.group import (group_service_relation_repo,
+                                        tenant_service_group_repo)
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.migration_repo import migrate_repo
@@ -33,13 +39,16 @@ from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
-from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
+from console.services.app_config import (AppEnvVarService, AppMntService,
+                                         AppPortService,
+                                         AppServiceRelationService,
                                          AppVolumeService)
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
-from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
+from console.utils.oauth.oauth_types import (NoSupportOAuthType,
+                                             get_oauth_instance)
 from django.conf import settings
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -1159,21 +1168,25 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 raise ServiceHandleException(msg="delete component {0} failure", msg_show="组件删除失败")
 
-    def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False):
+    def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False, not_delete_from_cluster=False):
         """组件真实删除方法，调用端必须进行事务控制"""
-        try:
-            data = {}
-            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id,
-                                      data)
-        except region_api.CallApiError as e:
-            if (not ignore_cluster_result) and int(e.status) != 404:
-                logger.error("delete component form cluster failure {}".format(e.body))
-                raise ServiceHandleException(msg="delete component from cluster failure", msg_show="组件从集群删除失败")
-        except Exception as e:
-            logger.exception(e)
-            if (not ignore_cluster_result):
-                raise ServiceHandleException(msg="delete component from cluster failure", msg_show="组件从集群删除失败")
+        ignore_delete_from_cluster = not_delete_from_cluster
+        if not not_delete_from_cluster:
+            try:
+                data = {}
+                data["etcd_keys"] = self.get_etcd_keys(tenant, service)
+                region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
+                                          tenant.enterprise_id, data)
+            except region_api.CallApiError as e:
+                if (not ignore_cluster_result) and int(e.status) != 404:
+                    logger.error("delete component form cluster failure {}".format(e.body))
+                    raise ServiceHandleException(msg="delete component from cluster failure", msg_show="组件从集群删除失败")
+            except Exception as e:
+                logger.exception(e)
+                if (not ignore_cluster_result):
+                    raise ServiceHandleException(msg="delete component from cluster failure", msg_show="组件从集群删除失败")
+                else:
+                    ignore_delete_from_cluster = True
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
@@ -1213,6 +1226,7 @@ class AppManageService(AppManageBase):
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
+        return ignore_delete_from_cluster
 
     def change_service_type(self, tenant, service, extend_method):
         # 存储限制

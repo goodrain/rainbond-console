@@ -292,8 +292,10 @@ class RegionService(object):
         # and removing the cluster only ensures that the component's resources are freed up.
         from console.services.app_actions import app_manage_service
         from console.services.plugin import plugin_service
+        not_delete_from_cluster = False
         for service in services:
-            app_manage_service.really_delete_service(tenant, service, user, ignore_cluster_resource)
+            not_delete_from_cluster = app_manage_service.really_delete_service(tenant, service, user, ignore_cluster_resource,
+                                                                               not_delete_from_cluster)
         plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region_name)
         if plugins:
             for plugin in plugins:
