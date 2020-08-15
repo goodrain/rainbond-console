@@ -796,12 +796,13 @@ class PluginService(object):
         data["plugin_name"] = tenant_plugin.plugin_name
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
 
-    def delete_plugin(self, region, team, plugin_id):
-        try:
-            region_api.delete_plugin(region, team.tenant_name, plugin_id)
-        except region_api.CallApiError as e:
-            if e.status != 404:
-                raise ServiceHandleException(msg="delete plugin form cluster failure", msg_show="从集群删除插件失败")
+    def delete_plugin(self, region, team, plugin_id, ignore_cluster_resource=False):
+        if not ignore_cluster_resource:
+            try:
+                region_api.delete_plugin(region, team.tenant_name, plugin_id)
+            except region_api.CallApiError as e:
+                if e.status != 404:
+                    raise ServiceHandleException(msg="delete plugin form cluster failure", msg_show="从集群删除插件失败")
         app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(plugin_id)
         app_plugin_attr_repo.delete_attr_by_plugin_id(plugin_id)
         plugin_version_repo.delete_build_version_by_plugin_id(team.tenant_id, plugin_id)

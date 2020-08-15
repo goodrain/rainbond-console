@@ -297,7 +297,7 @@ class RegionService(object):
         plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region_name)
         if plugins:
             for plugin in plugins:
-                plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id)
+                plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id, ignore_cluster_resource)
         # delete tenant
         if not ignore_cluster_resource:
             try:
