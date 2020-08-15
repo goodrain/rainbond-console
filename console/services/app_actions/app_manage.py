@@ -25,6 +25,7 @@ from console.repositories.migration_repo import migrate_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
@@ -171,7 +172,6 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功"
 
     def stop(self, tenant, service, user):
-
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -181,11 +181,9 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                raise ServiceHandleException(msg_show="从集群关闭组件受阻，请稍后重试")
             except region_api.CallApiFrequentError as e:
-                logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试")
 
     def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
@@ -1250,3 +1248,19 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             logger.exception(e)
             raise ErrChangeServiceType
+
+    def close_all_component_in_team(self, tenant, user):
+        # close all component in define team
+        tenant_regions = region_repo.list_by_tenant_id(tenant.tenant_id)
+        if tenant_regions:
+            for region in tenant_regions:
+                self.close_all_component_in_tenant(tenant, region.region_name, user)
+
+    def close_all_component_in_tenant(self, tenant, region_name, user):
+        services = service_repo.get_services_by_team_and_region(tenant.tenant_id, region_name)
+        if services and len(services) > 0:
+            for service in services:
+                try:
+                    self.stop(tenant, service, user)
+                except Exception as e:
+                    logger.exception(e)

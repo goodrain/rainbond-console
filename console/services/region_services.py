@@ -12,10 +12,8 @@ from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.app_actions import app_manage_service
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
-from console.services.plugin import plugin_service
 from console.services.service_services import base_service
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -279,7 +277,7 @@ class RegionService(object):
             # check cluster api health
             if info["rbd_version"] == "":
                 ignore_cluster_resource = True
-        services = service_repo.get_services_by_team_and_region(enterprise_id, tenant.tenant_id, region_name)
+        services = service_repo.get_services_by_team_and_region(tenant.tenant_id, region_name)
         if not ignore_cluster_resource and services and len(services) > 0:
             # check component status
             service_ids = [service.service_id for service in services]
@@ -292,6 +290,8 @@ class RegionService(object):
                     msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))
         # Components are the key to resource utilization,
         # and removing the cluster only ensures that the component's resources are freed up.
+        from console.services.app_actions import app_manage_service
+        from console.services.plugin import plugin_service
         for service in services:
             app_manage_service.really_delete_service(tenant, service, user, ignore_cluster_resource)
         plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region_name)

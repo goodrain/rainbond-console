@@ -15,7 +15,7 @@ from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
 from console.services.common_services import common_services
 from console.services.enterprise_services import enterprise_services
-from console.services.exception import (ErrAllTenantDeletionFailed, ErrStillHasServices, ErrTenantRegionNotFound)
+from console.services.exception import ErrTenantRegionNotFound
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from django.conf import settings
@@ -221,6 +221,8 @@ class TeamService(object):
         for region in tenant_regions:
             try:
                 region_services.delete_tenant_on_region(tenant.enterprise_id, tenant.tenant_name, region.region_name, user)
+            except ServiceHandleException as e:
+                raise e
             except Exception as e:
                 logger.exception(e)
                 raise ServiceHandleException(msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队", msg="delete tenant failure")

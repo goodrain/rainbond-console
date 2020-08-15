@@ -79,11 +79,8 @@ class StopAppView(AppBaseView):
               paramType: path
 
         """
-        code, msg = app_manage_service.stop(self.tenant, self.service, self.user)
-        bean = {}
-        if code != 200:
-            return Response(general_message(code, "stop app error", msg, bean=bean), status=code)
-        result = general_message(code, "success", "操作成功", bean=bean)
+        app_manage_service.stop(self.tenant, self.service, self.user)
+        result = general_message(200, "success", "操作成功", bean={})
         return Response(result, status=result["code"])
 
 
@@ -526,17 +523,8 @@ class MarketServiceUpgradeView(AppBaseView):
 
 class TeamAppsCloseView(RegionTenantHeaderView):
     def post(self, request, *args, **kwargs):
-        service_id_list = request.data.get("service_ids", None)
-        services = service_repo.get_tenant_region_services(self.region_name, self.tenant.tenant_id)
-        if not services:
-            result = general_message(200, "success", "操作成功")
-            return Response(result, status=200)
-        service_ids = services.values_list("service_id", flat=True)
-        if service_id_list:
-            service_ids = list(set(service_ids) & set(service_id_list))
-        code, msg = app_manage_service.batch_action(self.tenant, self.user, "stop", service_ids, None)
-        if code != 200:
-            result = general_message(code, "batch manage error", msg)
+        region_name = request.data.get("region_name")
+        if region_name:
+            app_manage_service.close_all_component_in_tenant(self.team, region_name, self.user)
         else:
-            result = general_message(200, "success", "操作成功")
-        return Response(result, status=result["code"])
+            app_manage_service.close_all_component_in_team(self.team, self.user)
