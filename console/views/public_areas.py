@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db import connection
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.group import group_repo
@@ -18,7 +13,11 @@ from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import connection
+from django.views.decorators.cache import never_cache
 from goodrain_web.tools import JuncheePaginator
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
@@ -110,6 +109,7 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["memory_usage"] = 0
             if source:
                 try:
+                    overview_detail["region_health"] = True
                     overview_detail["team_service_memory_count"] = int(source["memory"])
                     overview_detail["team_service_total_disk"] = int(source["disk"])
                     overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
@@ -126,6 +126,8 @@ class TeamOverView(RegionTenantHeaderView):
                 except Exception as e:
                     logger.debug(source)
                     logger.exception(e)
+            else:
+                overview_detail["region_health"] = False
             return Response(general_message(200, "success", "查询成功", bean=overview_detail))
         else:
             data = {"user_nums": 1, "team_service_num": 0, "total_memory": 0, "eid": self.team.enterprise_id}

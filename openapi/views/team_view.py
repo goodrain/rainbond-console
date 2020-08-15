@@ -2,13 +2,6 @@
 # creater by: barnett
 import logging
 
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import exceptions
-from rest_framework import serializers
-from rest_framework import status
-from rest_framework.response import Response
-
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
@@ -20,32 +13,21 @@ from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.base_serializer import FailSerializer
-from openapi.serializer.team_serializer import CreateTeamReqSerializer
-from openapi.serializer.team_serializer import CreateTeamUserReqSerializer
-from openapi.serializer.team_serializer import ListRegionTeamServicesSerializer
-from openapi.serializer.team_serializer import ListTeamRegionsRespSerializer
-from openapi.serializer.team_serializer import ListTeamRespSerializer
-from openapi.serializer.team_serializer import TeamAppsResourceSerializer
-from openapi.serializer.team_serializer import TeamBaseInfoSerializer
-from openapi.serializer.team_serializer import TeamCertificatesCSerializer
-from openapi.serializer.team_serializer import TeamCertificatesLSerializer
-from openapi.serializer.team_serializer import TeamCertificatesRSerializer
-from openapi.serializer.team_serializer import TeamInfoSerializer
-from openapi.serializer.team_serializer import TeamRegionReqSerializer
-from openapi.serializer.team_serializer import TenantRegionListSerializer
-from openapi.serializer.team_serializer import UpdateTeamInfoReqSerializer
+from openapi.serializer.team_serializer import (
+    CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
+    ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
+    TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer,
+    TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
 from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
-from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
-from openapi.views.base import TeamAPIView
-from openapi.views.base import TeamNoRegionAPIView
-from openapi.views.exceptions import ErrRegionNotFound
-from openapi.views.exceptions import ErrTeamNotFound
-from www.models.main import PermRelTenant
-from www.models.main import TenantRegionInfo
-from www.models.main import Tenants
+from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamAPIView, TeamNoRegionAPIView)
+from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
+from rest_framework import exceptions, serializers, status
+from rest_framework.response import Response
+from www.models.main import PermRelTenant, TenantRegionInfo, Tenants
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -106,17 +88,11 @@ class ListTeamInfo(BaseOpenAPIView):
             user = user_services.get_user_by_user_id(team_data.get("creater", 0))
         except UserNotExistError:
             user = request.user
-        code, msg, team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
-        if code == 200 and region:
-            code, message, bean = region_services.create_tenant_on_region(team.tenant_name, region.region_name)
-            if code != 200:
-                team.delete()
-                raise serializers.ValidationError("数据中心创建团队时发生错误")
-        if code == 200:
-            re = TeamBaseInfoSerializer(team)
-            return Response(re.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
+        if region:
+            region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name)
+        re = TeamBaseInfoSerializer(team)
+        return Response(re.data, status=status.HTTP_201_CREATED)
 
 
 class TeamInfo(TeamNoRegionAPIView):
@@ -145,15 +121,9 @@ class TeamInfo(TeamNoRegionAPIView):
         tags=['openapi-team'],
     )
     def delete(self, req, team_id, *args, **kwargs):
-        force = req.GET.get("force", False)
-        if force == "true":
-            force = True
         try:
-            res = team_services.delete_by_tenant_id(self.user, self.team, force=force)
-            if res:
-                return Response(None, status.HTTP_200_OK)
-            else:
-                return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            team_services.delete_by_tenant_id(self.user, self.team)
+            return Response(None, status.HTTP_200_OK)
         except Tenants.DoesNotExist as e:
             logger.exception("failed to delete tenant: {}".format(e.message))
             return Response(None, status=status.HTTP_404_NOT_FOUND)
@@ -320,14 +290,9 @@ class ListRegionsView(TeamNoRegionAPIView):
             if not region:
                 raise ErrRegionNotFound
         team = team_services.get_team_by_team_id(team_id)
-        code, message, bean = region_services.create_tenant_on_region(team.tenant_name, region.region_name)
-        if code != 200:
-            raise serializers.ValidationError("数据中心创建团队时发生错误")
-        if code == 200:
-            re = TeamBaseInfoSerializer(team)
-            return Response(re.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name)
+        re = TeamBaseInfoSerializer(team)
+        return Response(re.data, status=status.HTTP_201_CREATED)
 
 
 class TeamRegionView(TeamNoRegionAPIView):

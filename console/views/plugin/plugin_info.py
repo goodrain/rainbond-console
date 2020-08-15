@@ -2,20 +2,19 @@
 """
   Created on 18/3/5.
 """
-from rest_framework.response import Response
-from docker_image import reference
+import logging
+import threading
 
+from console.repositories.plugin import (app_plugin_relation_repo, plugin_version_repo)
+from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.views.base import RegionTenantHeaderView
 from console.views.plugin.base import PluginBaseView
 from django.views.decorators.cache import never_cache
-
+from docker_image import reference
 from goodrain_web.tools import JuncheePaginator
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import general_message, error_message
-import logging
-from console.services.plugin import plugin_version_service, plugin_service, plugin_config_service, app_plugin_service
-import threading
-from console.repositories.plugin import app_plugin_relation_repo, plugin_version_repo
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -64,11 +63,8 @@ class PluginBaseInfoView(PluginBaseView):
               paramType: path
 
         """
-        code, msg = plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id)
-        if code != 200:
-            return Response(general_message(code, "delete plugin fail", msg), status=code)
-        else:
-            result = general_message(code, "success", msg)
+        plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id)
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
 

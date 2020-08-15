@@ -2,44 +2,35 @@
 import logging
 import re
 
-from django.conf import settings
-from django.core.paginator import EmptyPage
-from django.core.paginator import PageNotAnInteger
-from django.core.paginator import Paginator
-from django.db.models import Q
-from django.db import transaction
-from rest_framework.response import Response
-
-from console.exception.exceptions import NoEnableRegionError
-from console.exception.exceptions import TenantExistError
-from console.exception.exceptions import UserNotExistError
+from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.models.main import UserMessage
 from console.repositories.app import service_repo
 from console.repositories.apply_repo import apply_repo
-from console.repositories.enterprise_repo import enterprise_repo
-from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
 from console.services.config_service import platform_config_service
-from console.services.enterprise_services import enterprise_services
-from console.services.enterprise_services import enterprise_services as console_enterprise_service
+from console.services.enterprise_services import \
+    enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
+from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
-from console.services.perm_services import user_kind_role_service
-from console.services.perm_services import role_kind_services
 from console.utils.timeutil import time_to_str
-from console.views.base import JWTAuthApiView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from django.conf import settings
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import transaction
+from django.db.models import Q
 from goodrain_web.tools import JuncheePaginator
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -153,21 +144,17 @@ class AddTeamView(JWTAuthApiView):
                 result = general_message(400, "failed", "该团队名已存在")
                 return Response(result, status=400)
             else:
-                enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+                enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 if not enterprise:
                     return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
-                code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
-                # 初始化默认角色
-                role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-                admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
-                user_kind_role_service.update_user_roles(
-                    kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
+                team = team_services.create_team(self.user, enterprise, regions, team_alias)
                 for r in regions:
-                    code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, r)
-                    if code != 200:
-                        # team_services.delete_tenant(team.tenant_name)
-                        continue
-                        # return Response(general_message(code, "add team error", msg), status=code)
+                    try:
+                        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r)
+                    except ServiceHandleException as e:
+                        logger.exception(e)
+                    except Exception as e:
+                        logger.exception(e)
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)
@@ -339,20 +326,14 @@ class TeamDelView(JWTAuthApiView):
               type: string
               paramType: path
         """
-        code = 200
-        force = request.GET.get("force", False)
-        if force == "true":
-            force = True
-        else:
-            force = False
-        tenant = team_services.get_tenant_by_tenant_name(tenant_name=team_name)
+        tenant = team_services.get_enterprise_tenant_by_tenant_name(
+            enterprise_id=self.enterprise.enterprise_id, tenant_name=team_name)
         if tenant is None:
-            code = 404
-            result = general_message(code, "tenant not exist", "{}团队不存在".format(team_name))
+            result = general_message(404, "tenant not exist", "{}团队不存在".format(team_name))
         else:
-            team_services.delete_by_tenant_id(self.user, tenant, force=force)
-            result = general_message(code, "delete a tenant successfully", "删除团队成功")
-        return Response(result, status=code)
+            team_services.delete_by_tenant_id(self.user, tenant)
+            result = general_message(200, "delete a tenant successfully", "删除团队成功")
+        return Response(result, status=result["code"])
 
 
 class TeamExitView(RegionTenantHeaderView):
@@ -410,22 +391,13 @@ class TeamRegionInitView(JWTAuthApiView):
             region = region_repo.get_region_by_region_name(region_name)
             if not region:
                 return Response(general_message(404, "region not exist", "需要开通的数据中心{0}不存在".format(region_name)), status=404)
-            enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             if not enterprise:
                 return Response(general_message(404, "user's enterprise is not found", "无法找到用户所在的数据中心"))
 
-            code, msg, team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
-            if not code:
-                return Response(general_message(code, "create team error", msg), status=code)
-            role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-            admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
-            user_kind_role_service.update_user_roles(
-                kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
-
+            team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
             # 为团队开通默认数据中心并在数据中心创建租户
-            code, msg, tenant_region = region_services.create_tenant_on_region(team.tenant_name, team.region)
-            if code != 200:
-                return Response(general_message(code, "create tenant on region error", msg), status=code)
+            tenant_region = region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, team.region)
             # 公有云，如果没有领过资源包，为开通的数据中心领取免费资源包
             if settings.MODULES.get('SSO_LOGIN'):
                 result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,
@@ -693,9 +665,9 @@ class AllUserView(JWTAuthApiView):
             page_size = int(request.GET.get("page_size", 5))
             user_name = request.GET.get("user_name", None)
             if not enterprise_id:
-                enter = enterprise_services.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
+                enter = console_enterprise_service.get_enterprise_by_id(enterprise_id=self.user.enterprise_id)
                 enterprise_id = enter.enterprise_id
-            enter = enterprise_services.get_enterprise_by_id(enterprise_id=enterprise_id)
+            enter = console_enterprise_service.get_enterprise_by_id(enterprise_id=enterprise_id)
             if user_name:
                 euser = user_services.get_user_by_user_name(enterprise_id, user_name)
                 list = []
@@ -865,10 +837,6 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 5))
         repo = request.GET.get("repo", "1")
-        # team = team_services.get_tenant_by_tenant_name(team_name)
-        # if not team:
-        #     result = general_message(400, "team id null", "团队不存在")
-        #     return Response(result, status=400)
         if repo == "1":
             total_traffic = 0
             total = 0
@@ -899,7 +867,7 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
             try:
                 res, body = region_api.get_query_range_data(region_name, team_name, sufix)
             except Exception as e:
-                logger.debug(e)
+                logger.exception(e)
             result = general_message(200, "success", "查询成功", bean=body)
             return Response(result, status=200)
 

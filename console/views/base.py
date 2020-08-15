@@ -4,6 +4,11 @@ import os
 
 import jwt
 from addict import Dict
+from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
+from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
+from console.repositories.enterprise_repo import enterprise_repo
+from console.utils.oauth.oauth_types import get_oauth_instance
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
@@ -11,38 +16,17 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
-from rest_framework import exceptions
-from rest_framework import status
+from goodrain_web import errors
+from rest_framework import exceptions, status
 from rest_framework.authentication import get_authorization_header
-from rest_framework.exceptions import NotFound
-from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.views import set_rollback
+from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
-
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import BusinessException
-from console.exception.main import NoPermissionsError
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ServiceHandleException
-from console.models.main import EnterpriseUserPerm
-from console.models.main import OAuthServices
-from console.models.main import PermsInfo
-from console.models.main import RoleInfo
-from console.models.main import RolePerms
-from console.models.main import UserOAuthServices
-from console.models.main import UserRole
-from console.repositories.enterprise_repo import enterprise_repo
-from console.utils.oauth.oauth_types import get_oauth_instance
-from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantEnterprise
-from www.models.main import Tenants
-from www.models.main import Users
+from www.models.main import TenantEnterprise, Tenants, Users
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -222,6 +206,13 @@ class JWTAuthApiView(APIView):
             self.is_enterprise_admin = True
         self.get_perms()
         self.check_perms(request, *args, **kwargs)
+        self.tenant_name = kwargs.get("tenantName", None)
+        if self.tenant_name:
+            try:
+                self.tenant = Tenants.objects.get(tenant_name=self.tenant_name, enterprise_id=self.user.enterprise_id)
+                self.team = self.tenant
+            except Tenants.DoesNotExist:
+                raise ServiceHandleException(msg="team not found", msg_show="团队不存在")
 
 
 class EnterpriseAdminView(JWTAuthApiView):
