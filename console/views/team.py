@@ -16,7 +16,7 @@ from console.services.config_service import platform_config_service
 from console.services.enterprise_services import \
     enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
-from console.services.perm_services import (role_kind_services, user_kind_role_service)
+from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services

@@ -3,6 +3,7 @@
   Created on 18/1/16.
 """
 import logging
+import os
 
 from console.exception.main import ServiceHandleException
 from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenterAppTagsRelation, ServiceRecycleBin,
