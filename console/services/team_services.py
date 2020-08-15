@@ -225,7 +225,8 @@ class TeamService(object):
                 raise e
             except Exception as e:
                 logger.exception(e)
-                raise ServiceHandleException(msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队", msg="delete tenant failure")
+                raise ServiceHandleException(
+                    msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name), msg="delete tenant failure")
         team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
 
     def get_current_user_tenants(self, user_id):
@@ -298,7 +299,7 @@ class TeamService(object):
         # init default roles
         role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
         admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
-        user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
+        user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])
         return team
 
     def delete_team_region(self, team_id, region_name):

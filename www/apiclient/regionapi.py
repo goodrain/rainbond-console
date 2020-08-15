@@ -1664,8 +1664,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
-        url = region.url + "/v2/show"
-        _, body = self._get(url, self.default_headers, region=region_info.region_name, for_test=True, retries=1, timeout=1)
+        url = region_info.url + "/v2/show"
+        _, body = self._get(url, self.default_headers, region=region_info.region_name, retries=1, timeout=1)
         return body
 
     def list_tenants(self, enterprise_id, region, page=1, page_size=10):

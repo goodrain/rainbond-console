@@ -837,10 +837,6 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 5))
         repo = request.GET.get("repo", "1")
-        # team = team_services.get_tenant_by_tenant_name(team_name)
-        # if not team:
-        #     result = general_message(400, "team id null", "团队不存在")
-        #     return Response(result, status=400)
         if repo == "1":
             total_traffic = 0
             total = 0
@@ -871,7 +867,7 @@ class TeamSortDomainQueryView(RegionTenantHeaderView):
             try:
                 res, body = region_api.get_query_range_data(region_name, team_name, sufix)
             except Exception as e:
-                logger.debug(e)
+                logger.exception(e)
             result = general_message(200, "success", "查询成功", bean=body)
             return Response(result, status=200)
 
