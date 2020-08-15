@@ -2,24 +2,23 @@
 import json
 import logging
 
+from console.exception.exceptions import UserNotExistError
+from console.exception.main import ServiceHandleException
+from console.repositories.oauth_repo import oauth_user_repo
+from console.repositories.team_repo import team_repo
+from console.repositories.user_repo import user_repo
+from console.services.auth import login, logout
+from console.services.enterprise_services import enterprise_services
+from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
+from console.services.perm_services import user_kind_role_service
+from console.services.team_services import team_services
+from console.services.user_services import user_services
+from console.views.base import (AlowAnyApiView, BaseApiView, EnterpriseAdminView, JWTAuthApiView, TeamOwnerView)
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.exception.exceptions import UserNotExistError
-from console.repositories.oauth_repo import oauth_user_repo
-from console.exception.main import ServiceHandleException
-from console.repositories.user_repo import user_repo
-from console.repositories.team_repo import team_repo
-from console.services.auth import login, logout
-from console.services.enterprise_services import enterprise_services
-from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
-from console.services.team_services import team_services
-from console.services.user_services import user_services
-from console.services.perm_services import user_kind_role_service
-from console.views.base import AlowAnyApiView, BaseApiView, JWTAuthApiView, TeamOwnerView, EnterpriseAdminView
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser
 from www.services import user_svc
@@ -260,21 +259,22 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         if len(password) < 8:
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
-            # 校验用户信息
+        # check user info
         is_pass, msg = user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
         if not is_pass:
             result = general_message(403, "user information is not passed", msg)
             return Response(result)
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
-        # 创建用户
+        # create user
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
 
         if oauth_instance:
             user = user_services.create_enterprise_center_user_set_password(user_name, email, password, "admin add", enterprise,
                                                                             client_ip, phone, real_name, oauth_instance)
         else:
-            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone)
+            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone,
+                                                          real_name)
         result = general_message(200, "success", "添加用户成功")
         if tenant:
             create_perm_param = {

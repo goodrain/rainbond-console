@@ -8,11 +8,7 @@ import logging
 import os
 
 from addict import Dict
-from django.db import transaction
-from django.db.models import Q
-from docker_image import reference
-
-from console.constants import (PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType, DefaultPluginConstants)
+from console.constants import (DefaultPluginConstants, PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo
@@ -23,6 +19,9 @@ from console.services.app import app_service
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.rbd_center_app_service import rbd_center_app_service
+from django.db import transaction
+from django.db.models import Q
+from docker_image import reference
 from goodrain_web import settings
 from goodrain_web.settings import IMAGE_REPO
 from goodrain_web.tools import JuncheePaginator
@@ -707,7 +706,6 @@ class PluginService(object):
         try:
             if not self.all_default_config:
                 raise Exception("no config was found")
-
             needed_plugin_config = self.all_default_config[plugin_type]
             image = needed_plugin_config.get("image", "")
             build_source = needed_plugin_config.get("build_source", "")
@@ -799,24 +797,17 @@ class PluginService(object):
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
 
     def delete_plugin(self, region, team, plugin_id):
-        services = service_repo.get_tenant_region_services(region, team.tenant_id)
-        service_ids = services.values_list("service_id", flat=True)
-        plugin_service_relations = app_plugin_relation_repo.get_service_plugin_relation_by_plugin_id(plugin_id, service_ids)
-        if plugin_service_relations:
-            return 412, "当前插件被组件使用中，请先卸载"
-        # 删除数据中心数据
         try:
             region_api.delete_plugin(region, team.tenant_name, plugin_id)
         except region_api.CallApiError as e:
             if e.status != 404:
-                raise e
+                raise ServiceHandleException(msg="delete plugin form cluster failure", msg_show="从集群删除插件失败")
         app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(plugin_id)
         app_plugin_attr_repo.delete_attr_by_plugin_id(plugin_id)
         plugin_version_repo.delete_build_version_by_plugin_id(team.tenant_id, plugin_id)
         plugin_repo.delete_by_plugin_id(team.tenant_id, plugin_id)
         config_item_repo.delete_config_items_by_plugin_id(plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(plugin_id)
-        return 200, "删除成功"
 
     def get_default_plugin(self, region, tenant):
         # 兼容3.5版本升级

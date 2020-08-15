@@ -3,20 +3,17 @@
   Created on 18/1/16.
 """
 import logging
-from docker_image import reference
-from django.db import transaction
 
 from console.exception.main import ServiceHandleException
-from console.models.main import ServiceRecycleBin
-from console.models.main import ServiceRelationRecycleBin
-from console.models.main import ServiceSourceInfo
-from console.models.main import RainbondCenterAppTag
-from console.models.main import RainbondCenterAppTagsRelation
-from console.models.main import AppMarket
+from console.models.main import (AppMarket, RainbondCenterAppTag,
+                                 RainbondCenterAppTagsRelation,
+                                 ServiceRecycleBin, ServiceRelationRecycleBin,
+                                 ServiceSourceInfo)
 from console.repositories.base import BaseConnection
-from www.models.main import ServiceWebhooks
-from www.models.main import TenantServiceInfo
-from www.models.main import TenantServiceInfoDelete
+from django.db import transaction
+from docker_image import reference
+from www.models.main import (ServiceWebhooks, TenantServiceInfo,
+                             TenantServiceInfoDelete)
 
 logger = logging.getLogger('default')
 
@@ -146,6 +143,9 @@ class TenantServiceInfoRepository(object):
 
     def create(self, service_base):
         TenantServiceInfo(**service_base).save()
+
+    def get_services_by_team_and_region(self, team_id, region_name):
+        return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).all()
 
 
 class ServiceSourceRepository(object):
