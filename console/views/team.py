@@ -147,12 +147,7 @@ class AddTeamView(JWTAuthApiView):
                 enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 if not enterprise:
                     return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
-                code, msg, team = team_services.create_team(self.user, enterprise, regions, team_alias)
-                # 初始化默认角色
-                role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-                admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
-                user_kind_role_service.update_user_roles(
-                    kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
+                team = team_services.create_team(self.user, enterprise, regions, team_alias)
                 for r in regions:
                     try:
                         region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r)
@@ -400,14 +395,7 @@ class TeamRegionInitView(JWTAuthApiView):
             if not enterprise:
                 return Response(general_message(404, "user's enterprise is not found", "无法找到用户所在的数据中心"))
 
-            code, msg, team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
-            if not code:
-                return Response(general_message(code, "create team error", msg), status=code)
-            role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-            admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
-            user_kind_role_service.update_user_roles(
-                kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
-
+            team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
             # 为团队开通默认数据中心并在数据中心创建租户
             tenant_region = region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, team.region)
             # 公有云，如果没有领过资源包，为开通的数据中心领取免费资源包

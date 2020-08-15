@@ -88,14 +88,11 @@ class ListTeamInfo(BaseOpenAPIView):
             user = user_services.get_user_by_user_id(team_data.get("creater", 0))
         except UserNotExistError:
             user = request.user
-        code, msg, team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
-        if code == 200 and region:
+        team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
+        if region:
             region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name)
-        if code == 200:
-            re = TeamBaseInfoSerializer(team)
-            return Response(re.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        re = TeamBaseInfoSerializer(team)
+        return Response(re.data, status=status.HTTP_201_CREATED)
 
 
 class TeamInfo(TeamNoRegionAPIView):

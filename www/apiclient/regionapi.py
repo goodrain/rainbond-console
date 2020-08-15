@@ -4,11 +4,10 @@ import logging
 import os
 
 import httplib2
-from django import http
-from django.conf import settings
-
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from django import http
+from django.conf import settings
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -1660,6 +1659,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region = RegionConfig(**region_data)
         url = region.url + "/v2/show"
         return self._get(url, self.default_headers, region=region, for_test=True, retries=1, timeout=1)
+
+    def check_region_api(self, enterprise_id, region):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region.url + "/v2/show"
+        _, body = self._get(url, self.default_headers, region=region_info.region_name, for_test=True, retries=1, timeout=1)
+        return body
 
     def list_tenants(self, enterprise_id, region, page=1, page_size=10):
         """list tenants"""

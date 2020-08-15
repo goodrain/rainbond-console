@@ -16,7 +16,7 @@ from console.repositories.user_repo import user_repo
 from console.services.common_services import common_services
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
-from console.services.perm_services import user_kind_role_service
+from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.region_services import region_services
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -257,6 +257,7 @@ class TeamService(object):
             team.creater_name = user.get_name()
         return team
 
+    @transaction.atomic
     def create_team(self, user, enterprise, region_list=None, team_alias=None):
         team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
         is_public = settings.MODULES.get('SSO_LOGIN')
@@ -270,11 +271,9 @@ class TeamService(object):
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-        if not region_list:
-            region_list = [r.region_name for r in region_repo.get_usable_regions(enterprise.enterprise_id)]
-            if not region_list:
-                return 404, "无可用数据中心", None
-        default_region = region_list[0]
+        default_region = ""
+        if region_list and len(region_list) > 0:
+            default_region = region_list[0]
         if not team_alias:
             team_alias = "{0}的团队".format(user.nick_name)
         params = {
@@ -296,7 +295,11 @@ class TeamService(object):
             "enterprise_id": enterprise.ID,
         }
         team_repo.create_team_perms(**create_perm_param)
-        return 200, "success", team
+        # init default roles
+        role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
+        admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
+        user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=self.user, role_ids=[admin_role.ID])
+        return team
 
     def delete_team_region(self, team_id, region_name):
         # check team

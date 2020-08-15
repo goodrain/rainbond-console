@@ -128,8 +128,8 @@ class RegionApiBaseHttpClient(object):
 
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
-        retries = kwargs.get("retries", 3)
-        timeout = kwargs.get("timeout", 5)
+        retries = kwargs.get("retries", 2)
+        timeout = kwargs.get("timeout", 5.0)
         if kwargs.get("for_test"):
             region = region_name
             region_name = region.region_name
@@ -143,9 +143,20 @@ class RegionApiBaseHttpClient(object):
                 msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查集群配置", error_code=10411)
         try:
             if body is None:
-                response = client.request(url=url, method=method, headers=headers, timeout=timeout, retries=retries)
+                response = client.request(
+                    url=url,
+                    method=method,
+                    headers=headers,
+                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
+                    retries=retries)
             else:
-                response = client.request(url=url, method=method, headers=headers, body=body, timeout=timeout, retries=retries)
+                response = client.request(
+                    url=url,
+                    method=method,
+                    headers=headers,
+                    body=body,
+                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
+                    retries=retries)
             return response.status, response.data
         except socket.timeout as e:
             raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {

@@ -273,9 +273,9 @@ class RegionService(object):
             # cluster spec info not found, cluster side resources are no longer operated on
             ignore_cluster_resource = True
         else:
-            info = self.conver_region_info(region_config, True)
+            info = region_api.check_region_api(enterprise_id, region_name)
             # check cluster api health
-            if info["rbd_version"] == "":
+            if not info or info["rbd_version"] == "":
                 ignore_cluster_resource = True
         services = service_repo.get_services_by_team_and_region(tenant.tenant_id, region_name)
         if not ignore_cluster_resource and services and len(services) > 0:
