@@ -1,24 +1,19 @@
+import classnames from 'classnames';
+import { List as makeList, Map as makeMap } from 'immutable';
 import React from 'react';
 import { connect } from 'react-redux';
-import classnames from 'classnames';
-import { Map as makeMap, List as makeList } from 'immutable';
-
 import { clickNode, enterNode, leaveNode } from '../actions/app-actions';
-import { getNodeColor, getStatusColor} from '../utils/color-utils';
-import MatchedText from '../components/matched-text';
 import MatchedResults from '../components/matched-results';
-import { trackMixpanelEvent } from '../utils/tracking-utils';
-import { GRAPH_VIEW_MODE } from '../constants/naming';
+import MatchedText from '../components/matched-text';
 import { NODE_BASE_SIZE } from '../constants/styles';
-
-import NodeShapeStack from './node-shape-stack';
+import { getStatusColor } from '../utils/color-utils';
 import NodeNetworksOverlay from './node-networks-overlay';
+import NodeShapeStack from './node-shape-stack';
 import {
-  NodeShapeCloud,
-  NodeShapeCircle,
-  NodeShapeSquare,
-  NodeShapeHexagon,
-  NodeShapeHeptagon,
+  NodeShapeCircle, NodeShapeCloud,
+
+
+  NodeShapeHeptagon, NodeShapeHexagon, NodeShapeSquare
 } from './node-shapes';
 
 
@@ -33,7 +28,7 @@ const nodeShapes = {
 
 function stackedShape(Shape, stackNum) {
   const factory = React.createFactory(NodeShapeStack);
-  return props => factory(Object.assign({}, props, {shape: Shape, stackNum: stackNum}));
+  return props => factory(Object.assign({}, props, {shape: Shape, stackNum}));
 }
 
 function getNodeShape({ shape, stack, stackNum }) {
@@ -142,22 +137,10 @@ class Node extends React.Component {
   }
 
   handleMouseClick(ev) {
+    console.log(ev);
     ev.stopPropagation();
-    // trackMixpanelEvent('scope.node.click', {
-    //   layout: GRAPH_VIEW_MODE,
-    //   topologyId: this.props.currentTopology.get('id'),
-    //   parentTopologyId: this.props.currentTopology.get('parentId'),
-    // });
-
-    //如果父级window有挂在处理点击节点的方法， 则优先调用它
-    if(window.parent && window.parent.weavescope){
-      var config = window.parent.weavescope || {};
-      config.onNodeClick && config.onNodeClick(this.props.label);
-      return false;
-    }
-
-
-    this.props.clickNode(this.props.id, this.props.label, this.shapeRef.getBoundingClientRect(), this.props.serviceAlias);
+    this.props.clickNode(this.props.id, this.props.label,
+      this.shapeRef.getBoundingClientRect(), this.props.serviceAlias);
   }
 
   handleMouseEnter() {
