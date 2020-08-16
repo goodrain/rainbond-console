@@ -189,8 +189,7 @@ function doRequest(opts) {
   }
   config.headers = config.headers || {};
 
-  // const token = cookie.get('token');
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTg2MjAwNTAsInVzZXJuYW1lIjoiemVuZ3FnQGdvb2RyYWluIiwiZW1haWwiOiJ6ZW5ncWdAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6MTd9.3Xe22dPpSX_MoLiZvse9YvEEO_qChZVj7rysdBQZNqs';
+  const token = cookie.get('token');
   if (token) {
     config.headers.Authorization = `GRJWT ${token}`;
   }
@@ -382,8 +381,8 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
   }
     // tiem++
   const windowParent = window.parent;
-  // const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
-  const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
+  const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
+  // const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
   doRequest({
     url,
     success: (res) => {
@@ -420,16 +419,19 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
 
 export function getNodeMonitorData(dispatch) {
   const windowParent = window.parent;
-  const getDataFn = windowParent.iframeGetMonitor && windowParent.iframeGetMonitor;
+  const getDataFn = windowParent.iframeGetMonitor;
   if (getDataFn) {
     getDataFn((data) => {
       dispatch(receiveNodesMonitor(data.list));
       setTimeout(() => {
         getNodeMonitorData(dispatch);
       }, 10000);
+    }, (err) => {
+      console.log(err);
     });
   }
 }
+
 
 export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   // get details for all opened nodes
@@ -441,13 +443,6 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   if (obj && serviceAlias && tenantName && groupId) {
     const topologyUrl = topologyUrlsById.get(obj.topologyId);
-    // let urlComponents = [getApiPath(), topologyUrl, '/', encodeURIComponent(obj.id)];
-    // if (currentTopologyId === obj.topologyId) {
-    //   // Only forward filters for nodes in the current topology
-    //   const optionsQuery = buildOptionsQuery(options);
-    //   urlComponents = urlComponents.concat(['?', optionsQuery]);
-    // }
-    // const url = urlComponents.join('');
     let url = '';
     if (obj.id === 'The Internet') {
       url = `/console/teams/${tenantName}/${groupId}/outer-service?region=${region}&_=${new Date().getTime()}`;
@@ -455,25 +450,9 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
       url = `/console/teams/${tenantName}/topological/services/${serviceAlias}?region=${region}&_=${new Date().getTime()}`;
     }
 
-
-    // 调试用数据
-    // var res = {"service_cname": "dev-goodrain-app", "total_memory": 128, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "deploy_version": "20170704174434", "replicas": 1, "service_alias": "dev-goodrain-app", "cur_status": "running",
-    // "port_list": {"5000": {"is_outer_service": true, "is_inner_service": false, "service_id": "c234ddbcecb76686c6ad1bc521bae7ee", "port_alias": "APPLICATION", "container_port": 5000, "mapping_port": 0, "protocol": "http", "tenant_id": "b7584c080ad24fafaa812a7739174b50", "outer_url": "dev-goodrain-app.goodrain.ali-sh.goodrain.net:10080", "ID": 9436}},
-    // "relation_list": {
-    //   "36fbdf6b3b6dfaef716d04f4bfe06363": [{"mapping_port": 9204, "service_cname": "\u65e5\u5fd7\u5206\u67902", "service_alias": "bbb"}, {"mapping_port": 9304, "service_cname": "\u65e5\u5fd7\u5206\u67902", "service_alias": "gre06363"}], "e1a0c13176acf2b1374370bfc6c5d2e8": [{"mapping_port": 3307, "service_cname": "user_mysql", "service_alias": "bbb"}], "689a72457cecfa981e89f08aa4b3b277": [{"mapping_port": 5004, "service_cname": "zyq-debug", "service_alias": "zyq-debug"}], "90dfd8b86e2c7c94b4432abcf4dc0e3c": [{"mapping_port": 11212, "service_cname": "user_cache", "service_alias": "bbb"}], "dcbf56bb7a906ba1260ee7e9241f11d8": [{"mapping_port": 6383, "service_cname": "discourse-redis", "service_alias": "bbb"}]}, "container_cpu": 40, "tenant_id": "b7584c080ad24fafaa812a7739174b50", "pod_list": [{"pod_ip": "192.168.0.103", "phase": "Running", "pod_name": "345528949c9a806a5b41b02929186814-a0000", "node_name": "10.0.4.17"}], "container_memory": 256, "service_region": "ali-sh", "status": 200}
-    // res.id = obj.id;
-
-    // dispatch(receiveNodeDetails(res));
-    // return;
-
     doRequest({
       url,
       success: (res) => {
-        // make sure node is still selected
-        // if (nodeMap.has(res.node.id)) {
-        //   dispatch(receiveNodeDetails(res.node));
-        // }
-
         res = res || {};
 
         res.rank = res.cur_status;
