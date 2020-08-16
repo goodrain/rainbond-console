@@ -21,9 +21,8 @@ from openapi.serializer.team_serializer import (
     ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
     TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer,
     TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
-from openapi.serializer.user_serializer import ListTeamUsersRespSerializer
 from openapi.serializer.utils import pagination
-from openapi.views.base import (BaseOpenAPIView, ListAPIView, TeamAPIView, TeamNoRegionAPIView)
+from openapi.views.base import (BaseOpenAPIView, TeamAPIView, TeamNoRegionAPIView)
 from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
 from rest_framework import exceptions, serializers, status
 from rest_framework.response import Response
@@ -156,33 +155,6 @@ class TeamInfo(TeamNoRegionAPIView):
             return Response(None, status.HTTP_200_OK)
         except Tenants.DoesNotExist:
             return Response(None, status.HTTP_404_NOT_FOUND)
-
-
-class ListTeamUsersInfo(ListAPIView):
-    @swagger_auto_schema(
-        operation_description="获取团队用户列表",
-        manual_parameters=[
-            openapi.Parameter("query", openapi.IN_QUERY, description="用户名、邮箱、手机号搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
-        ],
-        responses={200: ListTeamUsersRespSerializer()},
-        tags=['openapi-team'],
-    )
-    def get(self, req, team_id, *args, **kwargs):
-        try:
-            page = int(req.GET.get("page", 1))
-        except ValueError:
-            page = 1
-        try:
-            page_size = int(req.GET.get("page_size", 10))
-        except ValueError:
-            page_size = 10
-        query = req.GET.get("query", "")
-        users, total = user_services.list_users_by_tenant_id(tenant_id=team_id, page=page, size=page_size, query=query)
-        serializer = ListTeamUsersRespSerializer(data={"users": users, "total": total})
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data, status.HTTP_200_OK)
 
 
 class TeamUserInfoView(TeamAPIView):

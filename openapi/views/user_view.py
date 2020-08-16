@@ -2,29 +2,17 @@
 # creater by: barnett
 import logging
 
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import serializers
-from rest_framework import status
-from rest_framework.response import Response
-
-from console.exception.exceptions import EmailExistError
-from console.exception.exceptions import PhoneExistError
-from console.exception.exceptions import UserExistError
-from console.exception.exceptions import UserNotExistError
+from console.exception.exceptions import (EmailExistError, PhoneExistError, UserExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.repositories.user_repo import user_repo
-from console.services.team_services import team_services
 from console.services.user_services import user_services
-from openapi.serializer.team_serializer import ListTeamRespSerializer
-from openapi.serializer.user_serializer import CreateUserSerializer
-from openapi.serializer.user_serializer import ListUsersRespView
-from openapi.serializer.user_serializer import UpdateUserSerializer
-from openapi.serializer.user_serializer import UserInfoSerializer
-from openapi.serializer.user_serializer import ChangePassWdUserSerializer
-from openapi.serializer.user_serializer import ChangePassWdSerializer
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from openapi.serializer.user_serializer import (ChangePassWdSerializer, ChangePassWdUserSerializer, CreateUserSerializer,
+                                                ListUsersRespView, UpdateUserSerializer, UserInfoSerializer)
 from openapi.views.base import BaseOpenAPIView
-from openapi.views.base import ListAPIView
+from rest_framework import serializers, status
+from rest_framework.response import Response
 from www.models.main import Users
 
 logger = logging.getLogger("default")
@@ -123,42 +111,6 @@ class UserInfoView(BaseOpenAPIView):
             return Response(None, status.HTTP_200_OK)
         except Users.DoesNotExist:
             return Response(None, status.HTTP_404_NOT_FOUND)
-
-
-class UserTeamInfoView(ListAPIView):
-    @swagger_auto_schema(
-        operation_description="获取用户的团队列表",
-        manual_parameters=[
-            openapi.Parameter("eid", openapi.IN_QUERY, description="企业ID", type=openapi.TYPE_STRING),
-            openapi.Parameter("query", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
-        ],
-        responses={200: ListTeamRespSerializer()},
-        tags=['openapi-user'],
-    )
-    def get(self, req, user_id, *args, **kwargs):
-        eid = req.GET.get("eid", "")
-        if not eid:
-            raise serializers.ValidationError("缺少'eid'字段")
-        query = req.GET.get("query", "")
-        try:
-            page = int(req.GET.get("page", 1))
-        except ValueError:
-            page = 1
-        try:
-            page_size = int(req.GET.get("page_size", 10))
-        except ValueError:
-            page_size = 10
-        # TODO 修改权限控制
-        tenants, total = team_services.list_teams_by_user_id(
-            eid=eid, user_id=user_id, query=query, page=page, page_size=page_size)
-        result = {"tenants": tenants, "total": total}
-
-        serializer = ListTeamRespSerializer(data=result)
-        serializer.is_valid(raise_exception=True)
-
-        return Response(result, status.HTTP_200_OK)
 
 
 class ChangePassword(BaseOpenAPIView):
