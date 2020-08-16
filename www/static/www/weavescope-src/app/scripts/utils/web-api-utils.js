@@ -189,7 +189,8 @@ function doRequest(opts) {
   }
   config.headers = config.headers || {};
 
-  const token = cookie.get('token');
+  // const token = cookie.get('token');
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTg2MjAwNTAsInVzZXJuYW1lIjoiemVuZ3FnQGdvb2RyYWluIiwiZW1haWwiOiJ6ZW5ncWdAZ29vZHJhaW4uY29tIiwidXNlcl9pZCI6MTd9.3Xe22dPpSX_MoLiZvse9YvEEO_qChZVj7rysdBQZNqs';
   if (token) {
     config.headers.Authorization = `GRJWT ${token}`;
   }
@@ -381,8 +382,8 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
   }
     // tiem++
   const windowParent = window.parent;
-  const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
-  // const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
+  // const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
+  const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
   doRequest({
     url,
     success: (res) => {
