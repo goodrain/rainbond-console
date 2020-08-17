@@ -9,39 +9,32 @@ import random
 import string
 
 from addict import Dict
-from django.db.models import Q
-
 from console.appstore.appstore import app_store
-from console.constants import AppConstants
-from console.constants import PluginImage
-from console.constants import SourceCodeType
+from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp
-from console.models.main import RainbondCenterAppVersion
-from console.repositories.app import app_market_repo
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.app_config import dep_relation_repo
-from console.repositories.app_config import env_var_repo
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import service_endpoints_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.repositories.app import (app_market_repo, service_repo,
+                                      service_source_repo)
+from console.repositories.app_config import (dep_relation_repo, env_var_repo,
+                                             mnt_repo, port_repo,
+                                             service_endpoints_repo,
+                                             volume_repo)
+from console.repositories.service_group_relation_repo import \
+    service_group_relation_repo
 from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.utils.validation import validate_endpoints_info
+from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
-from www.models.main import ServiceConsume
-from www.models.main import TenantServiceInfo
-from www.tenantservice.baseservice import BaseTenantService
-from www.tenantservice.baseservice import CodeRepositoriesService
-from www.tenantservice.baseservice import ServicePluginResource
-from www.tenantservice.baseservice import TenantUsedResource
+from www.models.main import ServiceConsume, TenantServiceInfo
+from www.tenantservice.baseservice import (BaseTenantService,
+                                           CodeRepositoriesService,
+                                           ServicePluginResource,
+                                           TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
 
@@ -774,7 +767,7 @@ class AppMarketService(object):
                     "install_number": dt.install_count,
                     "describe": dt.desc,
                     "dev_status": dt.dev_status,
-                    "app_url": dt.app_detail_url,
+                    "app_detail_url": dt.app_detail_url,
                     "create_time": dt.create_time,
                     "download_number": dt.download_count,
                     "details": dt.introduction,
@@ -806,7 +799,7 @@ class AppMarketService(object):
                     "install_number": data.install_count,
                     "describe": data.desc,
                     "dev_status": data.dev_status,
-                    "app_url": data.app_detail_url,
+                    "app_detail_url": data.app_detail_url,
                     "create_time": data.create_time,
                     "download_number": data.download_count,
                     "details": data.introduction,
