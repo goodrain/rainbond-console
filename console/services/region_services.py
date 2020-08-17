@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+
 import yaml
-from django.core.paginator import Paginator
-from django.db import transaction
-from www.utils.crypt import make_uuid
-from console.exception.main import ServiceHandleException
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
-from console.models.main import ConsoleSysConfig
-from console.models.main import RegionConfig
+from console.exception.main import ServiceHandleException
+from console.models.main import ConsoleSysConfig, RegionConfig
+from console.repositories.app import service_repo
 from console.repositories.group import group_repo
+from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.config_service import platform_config_service
+from console.services.enterprise_services import enterprise_services
 from console.services.service_services import base_service
+from django.core.paginator import Paginator
+from django.db import transaction
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
-from console.services.enterprise_services import enterprise_services
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -224,13 +226,12 @@ class RegionService(object):
             return region.url
         return ""
 
-    def create_tenant_on_region(self, team_name, region_name):
-        tenant = team_repo.get_team_by_team_name(team_name)
-        if not tenant:
-            return 404, u"需要开通的团队{0}不存在".format(team_name), None
-        region_config = region_repo.get_region_by_region_name(region_name)
+    @transaction.atomic
+    def create_tenant_on_region(self, enterprise_id, team_name, region_name):
+        tenant = team_repo.get_team_by_team_name_and_eid(enterprise_id, team_name)
+        region_config = region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
         if not region_config:
-            return 404, u"需要开通的数据中心{0}不存在".format(region_name), None
+            raise ServiceHandleException(msg="cluster not found", msg_show="需要开通的集群不存在")
         tenant_region = region_repo.get_team_region_by_tenant_and_region(tenant.tenant_id, region_name)
         if not tenant_region:
             tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
@@ -238,10 +239,10 @@ class RegionService(object):
         if not tenant_region.is_init:
             res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id)
             if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
-                return res["status"], u"数据中心创建租户失败", None
+                logger.error(res)
+                raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
             tenant_region.is_active = True
             tenant_region.is_init = True
-            # TODO 将从数据中心获取的租户信息记录到tenant_region, 当前只是用tenant的数据填充
             tenant_region.region_tenant_id = tenant.tenant_id
             tenant_region.region_tenant_name = tenant.tenant_name
             tenant_region.region_scope = region_config.scope
@@ -257,7 +258,60 @@ class RegionService(object):
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
         group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
-        return 200, u"success", tenant_region
+        return tenant_region
+
+    @transaction.atomic
+    def delete_tenant_on_region(self, enterprise_id, team_name, region_name, user):
+        tenant = team_repo.get_team_by_team_name_and_eid(enterprise_id, team_name)
+        tenant_region = region_repo.get_team_region_by_tenant_and_region(tenant.tenant_id, region_name)
+        if not tenant_region:
+            raise ServiceHandleException(msg="team not open cluster, not need close", msg_show="该团队未开通此集群，无需关闭")
+        # start delete
+        region_config = region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
+        ignore_cluster_resource = False
+        if not region_config:
+            # cluster spec info not found, cluster side resources are no longer operated on
+            ignore_cluster_resource = True
+        else:
+            info = region_api.check_region_api(enterprise_id, region_name)
+            # check cluster api health
+            if not info or info["rbd_version"] == "":
+                ignore_cluster_resource = True
+        services = service_repo.get_services_by_team_and_region(tenant.tenant_id, region_name)
+        if not ignore_cluster_resource and services and len(services) > 0:
+            # check component status
+            service_ids = [service.service_id for service in services]
+            status_list = base_service.status_multi_service(
+                region=region_name, tenant_name=tenant.tenant_name, service_ids=service_ids, enterprise_id=tenant.enterprise_id)
+            status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
+            if len(status_list) > 0:
+                raise ServiceHandleException(
+                    msg="There are running components under the current application",
+                    msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))
+        # Components are the key to resource utilization,
+        # and removing the cluster only ensures that the component's resources are freed up.
+        from console.services.app_actions import app_manage_service
+        from console.services.plugin import plugin_service
+        not_delete_from_cluster = False
+        for service in services:
+            not_delete_from_cluster = app_manage_service.really_delete_service(tenant, service, user, ignore_cluster_resource,
+                                                                               not_delete_from_cluster)
+        plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region_name)
+        if plugins:
+            for plugin in plugins:
+                plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id, ignore_cluster_resource)
+        # delete tenant
+        if not ignore_cluster_resource:
+            try:
+                region_api.delete_tenant(region_name, team_name)
+            except region_api.CallApiError as e:
+                if e.status != 404:
+                    logger.error("delete tenant failure {}".format(e.body))
+                    raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
+            except Exception as e:
+                logger.exception(e)
+                raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
+        tenant_region.delete()
 
     def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
         try:

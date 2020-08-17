@@ -5,12 +5,6 @@ import os
 import re
 from datetime import datetime
 
-from django.core.paginator import Paginator
-from django.db import transaction
-from django.db.models import Q
-from fuzzyfinder.main import fuzzyfinder
-from rest_framework.response import Response
-
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
                                           ServiceHandleException, TenantNotExistError, UserExistError, UserNotExistError)
 from console.models.main import EnterpriseUserPerm, UserRole
@@ -24,6 +18,11 @@ from console.services.perm_services import (role_kind_services, user_kind_role_s
 from console.services.team_services import team_services
 from console.services.user_accesstoken_services import user_access_services
 from console.utils.oauth.oauth_types import get_oauth_instance
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
+from fuzzyfinder.main import fuzzyfinder
+from rest_framework.response import Response
 from www.gitlab_http import GitlabApi
 from www.models.main import PermRelTenant, Tenants, Users
 from www.tenantservice.baseservice import CodeRepositoriesService
@@ -320,9 +319,6 @@ class UserService(object):
         if not perm:
             return None
         user = self.get_user_by_user_id(perm.user_id)
-        perm_list = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, user.enterprise_id)
-        if not perm_list:
-            return None
         return user
 
     def get_administrator_user_token(self, user):
