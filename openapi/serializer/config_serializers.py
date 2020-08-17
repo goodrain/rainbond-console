@@ -88,7 +88,7 @@ class CloudMarketBaseRespSerializer(ConfigBaseSerializer):
 
 
 class AutoSSLSerializer(ConfigBaseSerializer):
-    value = serializers.JSONField()
+    value = serializers.JSONField(allow_null=True)
 
 
 class OauthServicesBaseRespSerializer(ConfigBaseSerializer):
@@ -97,7 +97,7 @@ class OauthServicesBaseRespSerializer(ConfigBaseSerializer):
 
 class EnterpriseConfigSeralizer(serializers.Serializer):
     export_app = ExportAppBaseRespSerializer(required=False)
-    auto_ssl = AutoSSLSerializer(required=False)
+    auto_ssl = AutoSSLSerializer(required=False, allow_null=True)
     oauth_services = OauthServicesBaseRespSerializer(required=False)
     cloud_market = CloudMarketBaseRespSerializer(required=False)
     object_storage = ObjectStorageBaseRespSerializer(required=False)
