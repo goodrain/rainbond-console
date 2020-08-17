@@ -5,17 +5,14 @@ const path = require('path');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ContrastStyleCompiler = require('./app/scripts/contrast-compiler');
 
 const GLOBALS = {
   'process.env': {NODE_ENV: '"production"'}
 };
 
-let OUTPUT_PATH = 'build/';
 let PUBLIC_PATH = '';
 
 if (process.env.EXTERNAL) {
-  OUTPUT_PATH = 'build-external/';
   // Change this line to point to resources on an external host.
   PUBLIC_PATH = 'https://s3.amazonaws.com/static.weave.works/scope-ui/';
 }
@@ -32,8 +29,6 @@ module.exports = {
 
   entry: {
     app: './app/scripts/main',
-    'contrast-theme': ['./app/scripts/contrast-theme'],
-    'terminal-app': './app/scripts/terminal-main',
     // keep only some in here, to make vendors and app bundles roughly same size
     vendors: ['babel-polyfill', 'classnames', 'immutable',
       'react', 'react-dom', 'react-redux', 'redux', 'redux-thunk'
@@ -41,7 +36,7 @@ module.exports = {
   },
 
   output: {
-    path: path.join(__dirname, "../weavescope/"),
+    path: path.join(__dirname, '../weavescope/'),
     filename: '[name]-[chunkhash].js',
     publicPath: PUBLIC_PATH
   },
@@ -53,26 +48,13 @@ module.exports = {
     new webpack.optimize.OccurrenceOrderPlugin(true),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
     new webpack.IgnorePlugin(/.*\.map$/, /xterm\/lib\/addons/),
-    // new webpack.optimize.UglifyJsPlugin({
-    //   sourceMap: false,
-    //   compress: {
-    //     warnings: false
-    //   }
-    // }),
     new ExtractTextPlugin('style-[name]-[chunkhash].css'),
     new HtmlWebpackPlugin({
       hash: true,
-      chunks: ['vendors', 'terminal-app'],
-      template: 'app/html/index.html',
-      filename: 'terminal.html'
-    }),
-    new HtmlWebpackPlugin({
-      hash: true,
-      chunks: ['vendors', 'app', 'contrast-theme'],
+      chunks: ['vendors', 'app'],
       template: 'app/html/index.html',
       filename: 'index.html'
     }),
-    new ContrastStyleCompiler()
   ],
 
   module: {
@@ -81,15 +63,6 @@ module.exports = {
     noParse: [/xterm\/dist\/xterm\.js/],
 
     rules: [
-      // {
-      //   test: /\.js$/,
-      //   exclude: /node_modules|vendor/,
-      //   loader: 'eslint-loader',
-      //   enforce: 'pre',
-      //   options: {
-      //     failOnError: true
-      //   }
-      // },
       {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
         loader: 'url-loader',
@@ -134,7 +107,6 @@ module.exports = {
             options: {
               minimize: true,
               includePaths: [
-                path.resolve(__dirname, './node_modules/xterm'),
                 path.resolve(__dirname, './node_modules/font-awesome'),
                 path.resolve(__dirname, './node_modules/rc-slider'),
               ]

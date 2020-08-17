@@ -55,7 +55,7 @@ class RegionInfoRSerializer(serializers.Serializer):
     ssl_ca_cert = serializers.CharField(allow_null=True)
     cert_file = serializers.CharField(allow_null=True)
     key_file = serializers.CharField(allow_null=True)
-    desc = serializers.CharField(allow_null=True)
+    desc = serializers.CharField(allow_null=True, allow_blank=True)
     used_disk = serializers.FloatField(required=False, help_text=u"使用的存储")
     total_disk = serializers.FloatField(required=False, help_text=u"全部存储")
     used_memory = serializers.FloatField(required=False, help_text=u"使用内存")

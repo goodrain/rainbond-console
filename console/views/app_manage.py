@@ -4,9 +4,6 @@
 """
 import logging
 
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
 from console.enum.component_enum import is_state, is_support
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
@@ -17,7 +14,9 @@ from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
 from console.views.app_config.base import AppBaseView
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView)
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -80,11 +79,8 @@ class StopAppView(AppBaseView):
               paramType: path
 
         """
-        code, msg = app_manage_service.stop(self.tenant, self.service, self.user)
-        bean = {}
-        if code != 200:
-            return Response(general_message(code, "stop app error", msg, bean=bean), status=code)
-        result = general_message(code, "success", "操作成功", bean=bean)
+        app_manage_service.stop(self.tenant, self.service, self.user)
+        result = general_message(200, "success", "操作成功", bean={})
         return Response(result, status=result["code"])
 
 
@@ -418,11 +414,8 @@ class AgainDelete(RegionTenantHeaderView):
         """
         service_id = request.data.get("service_id", None)
         service = service_repo.get_service_by_service_id(service_id)
-        code, msg = app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
-        bean = {}
-        if code != 200:
-            return Response(general_message(code, "delete service error", msg, bean=bean), status=code)
-        result = general_message(code, "success", "操作成功", bean=bean)
+        app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
+        result = general_message(200, "success", "操作成功", bean={})
 
         return Response(result, status=result["code"])
 
@@ -528,19 +521,11 @@ class MarketServiceUpgradeView(AppBaseView):
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
 
 
-class TeamAppsCloseView(RegionTenantHeaderView):
+class TeamAppsCloseView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
-        service_id_list = request.data.get("service_ids", None)
-        services = service_repo.get_tenant_region_services(self.region_name, self.tenant.tenant_id)
-        if not services:
-            result = general_message(200, "success", "操作成功")
-            return Response(result, status=200)
-        service_ids = services.values_list("service_id", flat=True)
-        if service_id_list:
-            service_ids = list(set(service_ids) & set(service_id_list))
-        code, msg = app_manage_service.batch_action(self.tenant, self.user, "stop", service_ids, None)
-        if code != 200:
-            result = general_message(code, "batch manage error", msg)
+        region_name = request.data.get("region_name")
+        if region_name:
+            app_manage_service.close_all_component_in_tenant(self.team, region_name, self.user)
         else:
-            result = general_message(200, "success", "操作成功")
-        return Response(result, status=result["code"])
+            app_manage_service.close_all_component_in_team(self.team, self.user)
+        return Response(status=200, data=general_message(200, "success", "操作成功"))

@@ -139,8 +139,9 @@ venv.bak/
 # vscode
 .vscode/
 
-static/
-
 .scannerwork
 
 Dockerfile.test
+
+static
+!www/static

@@ -1,15 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
 
-from rest_framework.response import Response
-
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import JWTAuthApiView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from rest_framework.response import Response
 from www.apiclient.marketclient import MarketOpenAPI
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
@@ -83,14 +80,8 @@ class OpenRegionView(RegionTenantHeaderView):
         team = team_services.get_tenant_by_tenant_name(team_name)
         if not team:
             return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
-        # is_admin = user_services.is_user_admin_in_current_enterprise(self.user, team.enterprise_id)
-        # if not is_admin:
-        #     return Response(
-        #         general_message(403, "current user is not admin in current enterprise", "用户不为当前企业管理员"), status=403)
-        code, msg, tenant_region = region_services.create_tenant_on_region(team_name, region_name)
-        if code != 200:
-            return Response(general_message(code, "open region error", msg), status=code)
-        result = general_message(code, "success", "数据中心{0}开通成功".format(region_name))
+        region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name)
+        result = general_message(200, "success", "数据中心{0}开通成功".format(region_name))
         return Response(result, result["code"])
 
     def patch(self, request, team_name, *args, **kwargs):
@@ -119,9 +110,7 @@ class OpenRegionView(RegionTenantHeaderView):
             return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
         region_list = region_names.split(",")
         for region_name in region_list:
-            code, msg, tenant_region = region_services.create_tenant_on_region(team_name, region_name)
-            if code != 200:
-                return Response(general_message(code, "open region error", msg), status=code)
+            region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name)
         result = general_message(200, "success", "批量开通数据中心成功")
         return Response(result, result["code"])
 
@@ -144,13 +133,8 @@ class OpenRegionView(RegionTenantHeaderView):
         region_name = request.data.get("region_name", None)
         if not region_name:
             return Response(general_message(400, "params error", "参数异常"), status=400)
-        team = team_services.get_tenant_by_tenant_name(team_name)
-        if not team:
-            return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
-        code, msg, tenant_region = region_services.close_tenant_on_region(team_name, region_name)
-        if code != 200:
-            return Response(general_message(code, "open region error", msg), status=code)
-        result = general_message(code, "success", "数据中心{0}关闭成功".format(region_name))
+        region_services.delete_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, self.user)
+        result = general_message(200, "success", "团队关闭数据中心{0}成功".format(region_name))
         return Response(result, result["code"])
 
 

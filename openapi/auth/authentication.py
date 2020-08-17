@@ -11,7 +11,6 @@ logger = logging.getLogger("default")
 
 
 class OpenAPIAuthentication(authentication.TokenAuthentication):
-    # TODO only use user open api
     def authenticate(self, request):
         token = request.META.get('HTTP_AUTHORIZATION')
         if not token:

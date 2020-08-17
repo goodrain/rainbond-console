@@ -7,7 +7,7 @@ gunicorn==19.10.0
 wsgiref==0.1.2
 httplib2==0.9.1
 simplejson==3.8.0
-urllib3==1.24.3
+urllib3==1.25.10
 certifi
 whitenoise==2.0.3
 pillow==6.2.0
