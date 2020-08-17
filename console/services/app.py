@@ -14,11 +14,8 @@ from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
-from console.repositories.app import (app_market_repo, service_repo,
-                                      service_source_repo)
-from console.repositories.app_config import (dep_relation_repo, env_var_repo,
-                                             mnt_repo, port_repo,
-                                             service_endpoints_repo,
+from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
+from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, service_endpoints_repo,
                                              volume_repo)
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
@@ -31,9 +28,7 @@ from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume, TenantServiceInfo
-from www.tenantservice.baseservice import (BaseTenantService,
-                                           CodeRepositoriesService,
-                                           ServicePluginResource,
+from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource,
                                            TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
