@@ -217,7 +217,7 @@ class TeamService(object):
 
     @transaction.atomic()
     def delete_by_tenant_id(self, user, tenant):
-        tenant_regions = region_repo.list_by_tenant_id(tenant.tenant_id)
+        tenant_regions = region_repo.get_tenant_regions_by_teamid(tenant.tenant_id)
         for region in tenant_regions:
             try:
                 region_services.delete_tenant_on_region(tenant.enterprise_id, tenant.tenant_name, region.region_name, user)
