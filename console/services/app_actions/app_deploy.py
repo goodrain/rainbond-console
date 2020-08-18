@@ -3,38 +3,33 @@ import json
 import logging
 from copy import deepcopy
 from datetime import datetime
-
-from addict import Dict
-from django.db import transaction
 from enum import IntEnum
 
-from console.exception.main import EnvAlreadyExist
-from console.exception.main import ErrDepVolumeNotFound
-from console.exception.main import ErrInvalidVolume
-from console.exception.main import ServiceHandleException
-from console.exception.main import InnerPortNotFound
-from console.exception.main import InvalidEnvName
-from console.exception.main import ServiceRelationAlreadyExist
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import volume_repo
+from addict import Dict
+from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound,
+                                    ErrInvalidVolume, InnerPortNotFound,
+                                    InvalidEnvName, ServiceHandleException,
+                                    ServiceRelationAlreadyExist)
+from console.repositories.app import service_repo, service_source_repo
+from console.repositories.app_config import port_repo, volume_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import PropertiesChanges
-from console.services.app_actions.properties_changes import get_upgrade_app_version_template_app
-from console.services.app_config import AppPortService
-from console.services.app_config import env_var_service
-from console.services.app_config import mnt_service
-from console.services.app_config.app_relation_service import AppServiceRelationService
-from console.services.backup_service import groupapp_backup_service as backup_service
+from console.services.app_actions.properties_changes import (
+    PropertiesChanges, get_upgrade_app_version_template_app)
+from console.services.app_config import (AppPortService, env_var_service,
+                                         mnt_service)
+from console.services.app_config.app_relation_service import \
+    AppServiceRelationService
+from console.services.backup_service import \
+    groupapp_backup_service as backup_service
 from console.services.exception import ErrDepServiceNotFound
 from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
@@ -301,11 +296,12 @@ class MarketService(object):
         self._update_service(app)
         self._update_service_source(app, self.version)
         changes = deepcopy(self.changes)
-        for k, v in changes.items():
-            func = self.update_funcs.get(k, None)
-            if func is None:
-                continue
-            func(v)
+        if changes:
+            for k, v in changes.items():
+                func = self.update_funcs.get(k, None)
+                if func is None:
+                    continue
+                func(v)
 
     @staticmethod
     def _compare_async_action(a, b):
@@ -326,8 +322,9 @@ class MarketService(object):
             return self.async_action
         changes = deepcopy(self.changes)
         async_action = AsyncAction.NOTHING.value
-        for key in changes:
-            async_action = self._compare_async_action(async_action, self._key_action(key))
+        if changes:
+            for key in changes:
+                async_action = self._compare_async_action(async_action, self._key_action(key))
         return async_action
 
     def _key_action(self, key):
@@ -344,12 +341,13 @@ class MarketService(object):
         raise: RegionApiBaseHttpClient.CallApiError
         """
         changes = deepcopy(self.changes)
-        for k, v in changes.items():
-            func = self.sync_funcs.get(k, None)
-            if func is None:
-                continue
-            func(v)
-            self.changed[k] = v
+        if changes:
+            for k, v in changes.items():
+                func = self.sync_funcs.get(k, None)
+                if func is None:
+                    continue
+                func(v)
+                self.changed[k] = v
 
     def restore_backup(self, backup=None):
         """

@@ -275,7 +275,6 @@ class RegionApiBaseHttpClient(object):
         """
         requests_args = (requests_args or {}).copy()
         headers = self.get_headers(request.META)
-        params = request.GET.copy()
 
         if 'headers' not in requests_args:
             requests_args['headers'] = {}
@@ -287,7 +286,6 @@ class RegionApiBaseHttpClient(object):
         # Overwrite any headers and params from the incoming request with explicitly
         # specified values for the requests library.
         headers.update(requests_args['headers'])
-        params.update(requests_args['fields'])
 
         # If there's a content-length header from Django, it's probably in all-caps
         # and requests might not notice it, so just remove it.
@@ -296,7 +294,6 @@ class RegionApiBaseHttpClient(object):
                 del headers[key]
 
         requests_args['headers'] = headers
-        requests_args['fields'] = params
 
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
