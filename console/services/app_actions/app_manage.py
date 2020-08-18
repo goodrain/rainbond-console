@@ -179,9 +179,9 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                raise ServiceHandleException(msg_show="从集群关闭组件受阻，请稍后重试", msg="check console log", status=500)
+                raise ServiceHandleException(msg_show="从集群关闭组件受阻，请稍后重试", msg="check console log", status_code=500)
             except region_api.CallApiFrequentError as e:
-                raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试", msg="wait a moment please", status=409)
+                raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试", msg="wait a moment please", status_code=409)
 
     def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
