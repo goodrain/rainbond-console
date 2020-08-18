@@ -14,7 +14,6 @@ from console.repositories.market_app_repo import (app_export_record_repo, app_im
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
-from www.apiclient.baseclient import client_auth_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantRegionInfo
 from www.tenantservice.baseservice import BaseTenantService
@@ -47,7 +46,7 @@ class AppExportService(object):
         return 200, "success", new_export_record
 
     def _export_app_region(self, eid):
-        tenant_region_info = region_repo.get_region_by_enterprise_id(eid)
+        tenant_region_info = region_repo.get_team_used_region_by_enterprise_id(eid)
         if tenant_region_info:
             return tenant_region_info.region_name
         raise RecordNotFound("数据中心未找到")
@@ -515,7 +514,7 @@ class AppImportService(object):
     def create_app_import_record_2_enterprise(self, eid, user_name):
         event_id = make_uuid()
         try:
-            region = region_repo.get_region_by_enterprise_id(eid)
+            region = region_repo.get_team_used_region_by_enterprise_id(eid)
         except TenantRegionInfo.DoesNotExist:
             raise RegionNotFound("region not found")
         if not region:
@@ -540,15 +539,6 @@ class AppImportService(object):
             else:
                 upload_url = "http://" + splits_texts[1] + raw_url
         return upload_url + "/" + event_id
-
-        # if region:
-        #     splits_texts = region.url.split(":")
-        #     if len(splits_texts) > 2:
-        #         temp_url = splits_texts[0] + "://" + region.tcpdomain
-        #         upload_url = temp_url + ":6060" + raw_url
-        #     else:
-        #         upload_url = "http://" + region.tcpdomain + ":6060" + raw_url
-        # return upload_url
 
 
 export_service = AppExportService()
