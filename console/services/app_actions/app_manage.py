@@ -11,14 +11,20 @@ from console.constants import AppConstants
 from console.enum.component_enum import ComponentType, is_singleton, is_state
 from console.exception.main import ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
-from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
+from console.repositories.app import (delete_service_repo, recycle_bin_repo,
+                                      relation_recycle_bin_repo, service_repo,
                                       service_source_repo)
-from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
-                                             extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
-                                             tcp_domain, volume_repo)
+from console.repositories.app_config import (auth_repo, create_step_repo,
+                                             dep_relation_repo, domain_repo,
+                                             env_var_repo, extend_repo,
+                                             mnt_repo, port_repo,
+                                             service_attach_repo,
+                                             service_payment_repo, tcp_domain,
+                                             volume_repo)
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
-from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo)
+from console.repositories.group import (group_service_relation_repo,
+                                        tenant_service_group_repo)
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.migration_repo import migrate_repo
@@ -33,13 +39,16 @@ from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
-from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
+from console.services.app_config import (AppEnvVarService, AppMntService,
+                                         AppPortService,
+                                         AppServiceRelationService,
                                          AppVolumeService)
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
-from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
+from console.utils.oauth.oauth_types import (NoSupportOAuthType,
+                                             get_oauth_instance)
 from django.conf import settings
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -343,6 +352,9 @@ class AppManageService(AppManageBase):
                 service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
                 if service_volume:
                     continue
+                service_volume = volume_repo.get_service_volume_by_path(service.service_id, volume["volume_path"])
+                if service_volume:
+                    continue
                 file_content = volume.get("file_content", None)
                 settings = {}
                 settings["volume_capacity"] = volume["volume_capacity"]
@@ -354,7 +366,6 @@ class AppManageService(AppManageBase):
                     volume_name=volume["volume_name"],
                     file_content=file_content,
                     settings=settings)
-        return 200, "success"
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
@@ -732,10 +743,7 @@ class AppManageService(AppManageBase):
                                                                 app["service_connect_info_map_list"])
                                     if code != 200:
                                         raise Exception(msg)
-                                    code, msg = self.__save_volume(tenant, service, app["service_volume_map_list"])
-                                    if code != 200:
-                                        raise Exception(msg)
-                                    logger.debug('-------222---->{0}'.format(app["port_map_list"]))
+                                    self.__save_volume(tenant, service, app["service_volume_map_list"])
                                     code, msg = self.__save_port(tenant, service, app["port_map_list"])
                                     if code != 200:
                                         raise Exception(msg)
