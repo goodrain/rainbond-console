@@ -2,39 +2,31 @@
 import datetime
 import json
 import logging
-import time
 import os
-
-from django.db import transaction
+import time
 
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
-from console.exception.main import AbortRequest
-from console.exception.main import RbdAppNotFound
-from console.exception.main import ServiceHandleException
-from console.models.main import PluginShareRecordEvent
-from console.models.main import RainbondCenterApp
-from console.models.main import RainbondCenterAppVersion
-from console.models.main import ServiceShareRecordEvent
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.market_app_repo import app_export_record_repo
-from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.plugin import app_plugin_relation_repo
-from console.repositories.plugin import plugin_repo
-from console.repositories.plugin import service_plugin_config_repo
+from console.exception.main import (AbortRequest, RbdAppNotFound,
+                                    ServiceHandleException)
+from console.models.main import (PluginShareRecordEvent, RainbondCenterApp,
+                                 RainbondCenterAppVersion,
+                                 ServiceShareRecordEvent)
+from console.repositories.app import app_tag_repo
+from console.repositories.app_config import mnt_repo, volume_repo
+from console.repositories.market_app_repo import (app_export_record_repo,
+                                                  rainbond_app_repo)
+from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo,
+                                         service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.group_service import group_service
-from console.services.plugin import plugin_config_service
-from console.services.plugin import plugin_service
+from console.services.plugin import plugin_config_service, plugin_service
 from console.services.service_services import base_service
+from django.db import transaction
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import make_uuid
-from www.models.main import ServiceEvent
-from www.models.main import TenantServiceInfo
-from console.repositories.app import app_tag_repo
+from www.models.main import ServiceEvent, TenantServiceInfo, make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -1146,7 +1138,7 @@ class ShareService(object):
                 market = app_market_service.get_app_market_by_name(
                     tenant.enterprise_id, last_shared.share_app_market_name, raise_exception=True)
                 app_version = app_market_service.get_market_app_model_version(
-                    market, last_shared.app_id, last_shared.share_version, for_install=True)
+                    market, last_shared.app_id, last_shared.share_version, get_template=True)
             except ServiceHandleException as e:
                 logger.debug(e)
                 return None, None

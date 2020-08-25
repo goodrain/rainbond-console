@@ -2,18 +2,11 @@
 """
   Created on 18/2/1.
 """
-import logging
-import json
 import datetime
+import json
+import logging
 
-from django.db import transaction
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-from rest_framework import status
-
-from console.exception.main import AccountOverdueException
-from console.exception.main import ResourceNotEnoughException
-from console.exception.main import ServiceHandleException
+from console.exception.main import (AccountOverdueException, ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import app_tag_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.app import app_market_service
@@ -21,10 +14,12 @@ from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
-from console.views.base import RegionTenantHeaderView
-from console.views.base import JWTAuthApiView
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from django.db import transaction
+from django.views.decorators.cache import never_cache
+from rest_framework import status
+from rest_framework.response import Response
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger('default')
 
@@ -138,7 +133,8 @@ class CenterAppView(RegionTenantHeaderView):
             app_version_info = None
             if install_from_cloud:
                 dt, market = app_market_service.get_app_market(self.tenant.enterprise_id, market_name, raise_exception=True)
-                app, app_version_info = app_market_service.cloud_app_model_to_db_model(market, app_id, app_version)
+                app, app_version_info = app_market_service.cloud_app_model_to_db_model(
+                    market, app_id, app_version, for_install=True)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
@@ -417,11 +413,3 @@ class AppTagCDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(404, "fail", u"删除失败")
         return Response(result, status=result.get("code", 200))
-
-
-class AppStoreCLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
-        pass
-
-    def post(self, request, enterprise_id, *args, **kwargs):
-        pass

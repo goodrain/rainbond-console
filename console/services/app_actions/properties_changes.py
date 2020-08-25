@@ -3,19 +3,14 @@ import json
 import logging
 import time
 
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
+from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
+from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, volume_repo)
 from console.repositories.group import group_service_relation_repo
-from console.repositories.app_config import dep_relation_repo
-from console.repositories.app_config import env_var_repo
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.probe_repo import probe_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.service_group_relation_repo import service_group_relation_repo
-from console.repositories.app import app_market_repo
-from console.services.app import app_service, app_market_service
+from console.repositories.probe_repo import probe_repo
+from console.repositories.service_group_relation_repo import \
+    service_group_relation_repo
+from console.services.app import app_market_service, app_service
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
@@ -448,7 +443,7 @@ def has_changes(changes):
 
 def get_upgrade_app_version_template_app(tenant, version, pc):
     if pc.install_from_cloud:
-        data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, for_install=True)
+        data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, get_template=True)
         template = json.loads(data.template)
         apps = template.get("apps")
 

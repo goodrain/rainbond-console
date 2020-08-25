@@ -7,41 +7,29 @@ import json
 import logging
 import random
 import string
+
 from addict import Dict
-
-from django.db.models import Q
-
-from console.constants import AppConstants
-from console.constants import PluginImage
-from console.constants import SourceCodeType
+from console.appstore.appstore import app_store
+from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp
-from console.models.main import RainbondCenterAppVersion
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.app_config import dep_relation_repo
-from console.repositories.app_config import env_var_repo
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import service_endpoints_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.service_group_relation_repo import service_group_relation_repo
-from console.repositories.app import app_market_repo
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
+from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, service_endpoints_repo,
+                                             volume_repo)
+from console.repositories.service_group_relation_repo import \
+    service_group_relation_repo
 from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.utils.oauth.oauth_types import support_oauth_type
-from console.appstore.appstore import app_store
 from console.utils.validation import validate_endpoints_info
+from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
-from www.models.main import ServiceConsume
-from www.models.main import TenantServiceInfo
-from www.tenantservice.baseservice import BaseTenantService
-from www.tenantservice.baseservice import CodeRepositoriesService
-from www.tenantservice.baseservice import ServicePluginResource
-from www.tenantservice.baseservice import TenantUsedResource
+from www.models.main import ServiceConsume, TenantServiceInfo
+from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource,
+                                           TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
 
@@ -873,16 +861,16 @@ class AppMarketService(object):
         data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
 
-    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False):
+    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False, get_template=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
-        results = app_store.get_app_version(market, app_id, version, for_install=for_install)
+        results = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=get_template)
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
 
-    def cloud_app_model_to_db_model(self, market, app_id, version):
+    def cloud_app_model_to_db_model(self, market, app_id, version, for_install=False):
         app = app_store.get_app(market, app_id)
-        app_template = app_store.get_app_version(market, app_id, version, for_install=True)
+        app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
         rainbond_app = RainbondCenterApp(
             app_id=app.app_key_id,
             app_name=app.name,
