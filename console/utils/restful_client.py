@@ -77,7 +77,7 @@ def apiException(func):
                 res = json.loads(e.body)
                 if res:
                     raise ServiceHandleException(
-                        msg=res.msg, msg_show="资源不存在", status_code=res["status"], error_code=res["code"])
+                        msg=res.get("msg"), msg_show="资源不存在", status_code=e.status, error_code=res.get("code"))
             except Exception:
                 pass
             if e.status == 401:
