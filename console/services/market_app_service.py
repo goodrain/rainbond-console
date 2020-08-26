@@ -1001,9 +1001,8 @@ class MarketAppService(object):
                         min_memory = group_service.get_service_group_memory(pc.template)
                         break
                 except ServiceHandleException as e:
-                    if e.msg != "no found app market":
+                    if e.status_code != 10009:
                         logger.exception(e)
-                        raise e
             if not pc or not pc.current_app or not pc.current_version:
                 continue
             dat = {
