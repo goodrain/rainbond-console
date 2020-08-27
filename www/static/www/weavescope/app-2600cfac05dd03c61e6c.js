@@ -13442,7 +13442,7 @@ function getNodeShape(_ref) {
 
   var nodeShape = nodeShapes[shape];
   if (!nodeShape) {
-    throw new Error('Unknown shape: ' + shape + '!');
+    throw new Error("Unknown shape: " + shape + "!");
   }
   return stack ? stackedShape(nodeShape, stackNum) : nodeShape;
 }
@@ -13467,29 +13467,37 @@ var Node = function (_React$Component) {
   }
 
   _createClass(Node, [{
-    key: 'renderSvgLabels',
+    key: "renderSvgLabels",
     value: function renderSvgLabels(labelClassName, labelMinorClassName, labelOffsetY) {
       var _props = this.props,
           label = _props.label,
           labelMinor = _props.labelMinor;
 
       return _react2.default.createElement(
-        'g',
-        { className: 'node-labels-container' },
+        "g",
+        { className: "node-labels-container" },
         _react2.default.createElement(
-          'text',
-          { className: labelClassName, y: 13 + labelOffsetY, textAnchor: 'middle' },
+          "text",
+          {
+            className: labelClassName,
+            y: 13 + labelOffsetY,
+            textAnchor: "middle"
+          },
           label
         ),
         _react2.default.createElement(
-          'text',
-          { className: labelMinorClassName, y: 30 + labelOffsetY, textAnchor: 'middle' },
+          "text",
+          {
+            className: labelMinorClassName,
+            y: 30 + labelOffsetY,
+            textAnchor: "middle"
+          },
           labelMinor
         )
       );
     }
   }, {
-    key: 'renderStandardLabels',
+    key: "renderStandardLabels",
     value: function renderStandardLabels(labelClassName, labelMinorClassName, labelOffsetY, mouseEvents) {
       var _props2 = this.props,
           label = _props2.label,
@@ -13497,37 +13505,38 @@ var Node = function (_React$Component) {
           _props2$matches = _props2.matches,
           matches = _props2$matches === undefined ? (0, _immutable.Map)() : _props2$matches;
 
-      var matchedMetadata = matches.get('metadata', (0, _immutable.List)());
-      var matchedParents = matches.get('parents', (0, _immutable.List)());
+      var matchedMetadata = matches.get("metadata", (0, _immutable.List)());
+      var matchedParents = matches.get("parents", (0, _immutable.List)());
       var matchedNodeDetails = matchedMetadata.concat(matchedParents);
 
       return _react2.default.createElement(
-        'foreignObject',
+        "foreignObject",
         {
-          className: 'node-labels-container',
+          className: "node-labels-container",
           y: labelOffsetY,
           x: -0.5 * labelWidth,
           width: labelWidth,
-          height: '5em' },
+          height: "5em"
+        },
         _react2.default.createElement(
-          'div',
-          _extends({ className: 'node-label-wrapper' }, mouseEvents),
+          "div",
+          _extends({ className: "node-label-wrapper" }, mouseEvents),
           _react2.default.createElement(
-            'div',
+            "div",
             { className: labelClassName },
-            _react2.default.createElement(_matchedText2.default, { text: label, match: matches.get('label') })
+            _react2.default.createElement(_matchedText2.default, { text: label, match: matches.get("label") })
           ),
           _react2.default.createElement(
-            'div',
+            "div",
             { className: labelMinorClassName },
-            _react2.default.createElement(_matchedText2.default, { text: labelMinor, match: matches.get('labelMinor') })
+            _react2.default.createElement(_matchedText2.default, { text: labelMinor, match: matches.get("labelMinor") })
           ),
           _react2.default.createElement(_matchedResults2.default, { matches: matchedNodeDetails })
         )
       );
     }
   }, {
-    key: 'render',
+    key: "render",
     value: function render() {
       var _props3 = this.props,
           focused = _props3.focused,
@@ -13549,9 +13558,9 @@ var Node = function (_React$Component) {
       var truncate = !focused && !hovered;
       var labelOffsetY = showingNetworks && networks ? 40 : 28;
 
-      var nodeClassName = (0, _classnames2.default)('node', { highlighted: highlighted, hovered: hovered, pseudo: pseudo });
-      var labelClassName = (0, _classnames2.default)('node-label', { truncate: truncate });
-      var labelMinorClassName = (0, _classnames2.default)('node-label-minor', { truncate: truncate });
+      var nodeClassName = (0, _classnames2.default)("node", { highlighted: highlighted, hovered: hovered, pseudo: pseudo });
+      var labelClassName = (0, _classnames2.default)("node-label", { truncate: truncate });
+      var labelMinorClassName = (0, _classnames2.default)("node-label-minor", { truncate: truncate });
 
       var NodeShapeType = getNodeShape(this.props);
       var mouseEvents = {
@@ -13561,12 +13570,15 @@ var Node = function (_React$Component) {
       };
 
       return _react2.default.createElement(
-        'g',
+        "g",
         { className: nodeClassName, transform: transform },
         exportingGraph ? this.renderSvgLabels(labelClassName, labelMinorClassName, labelOffsetY) : this.renderStandardLabels(labelClassName, labelMinorClassName, labelOffsetY, mouseEvents),
         _react2.default.createElement(
-          'g',
-          _extends({}, mouseEvents, { ref: this.saveShapeRef }),
+          "g",
+          _extends({}, mouseEvents, {
+            ref: this.saveShapeRef,
+            style: { pointerEvents: 'bounding-box' }
+          }),
           _react2.default.createElement(NodeShapeType, {
             id: id,
             highlighted: highlighted,
@@ -13579,25 +13591,25 @@ var Node = function (_React$Component) {
       );
     }
   }, {
-    key: 'saveShapeRef',
+    key: "saveShapeRef",
     value: function saveShapeRef(ref) {
       this.shapeRef = ref;
     }
   }, {
-    key: 'handleMouseClick',
+    key: "handleMouseClick",
     value: function handleMouseClick(ev) {
       console.log(ev);
       ev.stopPropagation();
       this.props.clickNode(this.props.id, this.props.label, this.shapeRef.getBoundingClientRect(), this.props.serviceAlias);
     }
   }, {
-    key: 'handleMouseEnter',
+    key: "handleMouseEnter",
     value: function handleMouseEnter() {
       this.props.enterNode(this.props.id);
       this.setState({ hovered: true });
     }
   }, {
-    key: 'handleMouseLeave',
+    key: "handleMouseLeave",
     value: function handleMouseLeave() {
       this.props.leaveNode(this.props.id);
       this.setState({ hovered: false });
@@ -13609,10 +13621,10 @@ var Node = function (_React$Component) {
 
 function mapStateToProps(state) {
   return {
-    exportingGraph: state.get('exportingGraph'),
-    showingNetworks: state.get('showingNetworks'),
-    currentTopology: state.get('currentTopology'),
-    contrastMode: state.get('contrastMode')
+    exportingGraph: state.get("exportingGraph"),
+    showingNetworks: state.get("showingNetworks"),
+    currentTopology: state.get("currentTopology"),
+    contrastMode: state.get("contrastMode")
   };
 }
 

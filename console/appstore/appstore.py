@@ -2,10 +2,8 @@
 import logging
 
 import openapi_client
-
 from console.services.config_service import EnterpriseConfigService
-from console.utils.restful_client import apiException
-from console.utils.restful_client import get_market_client
+from console.utils.restful_client import apiException, get_market_client
 
 logger = logging.getLogger('default')
 
@@ -87,10 +85,10 @@ class AppStore(object):
         return data
 
     @apiException
-    def get_app_version(self, store, app_id, version, for_install=False):
+    def get_app_version(self, store, app_id, version, for_install=False, get_template=False):
         store_client = get_market_client(store.access_key, store.url)
         data = store_client.get_user_app_version_detail(
-            app_id=app_id, version=version, market_domain=store.domain, for_install=for_install)
+            app_id=app_id, version=version, market_domain=store.domain, for_install=for_install, get_template=get_template)
         return data
 
     @apiException
