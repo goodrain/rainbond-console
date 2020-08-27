@@ -185,7 +185,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     if tenant.creater == request.user.user_id:
                         roles.append("owner")
                     owner = user_repo.get_by_user_id(tenant.creater)
-                    new_join_team.append({
+                    team_item = {
                         "team_name": tenant.tenant_name,
                         "team_alias": tenant.tenant_alias,
                         "team_id": tenant.tenant_id,
@@ -197,7 +197,10 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "owner_name": (owner.get_name() if owner else None),
                         "roles": roles,
                         "is_pass": True,
-                    })
+                    }
+                    if not team_item["region"] and len(region_name_list) > 0:
+                        team_item["region"] = region_name_list[0]
+                    new_join_team.append(team_item)
             if join_tenants:
                 for tenant in join_tenants:
                     region_name_list = []
@@ -210,7 +213,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         nick_name = user.nick_name
                     except UserNotExistError:
                         nick_name = None
-                    new_join_team.append({
+                    team_item = {
                         "team_name": tenant.team_name,
                         "team_alias": tenant.team_alias,
                         "team_id": tenant.team_id,
@@ -222,7 +225,10 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "owner_name": nick_name,
                         "role": None,
                         "is_pass": tenant.is_pass,
-                    })
+                    }
+                    if not team_item["region"] and len(region_name_list) > 0:
+                        team_item["region"] = region_name_list[0]
+                    new_join_team.append(team_item)
             if request_tenants:
                 for request_tenant in request_tenants:
                     region_name_list = []
@@ -235,7 +241,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         nick_name = user.nick_name
                     except UserNotExistError:
                         nick_name = None
-                    request_join_team.append({
+                    team_item = {
                         "team_name": request_tenant.team_name,
                         "team_alias": request_tenant.team_alias,
                         "team_id": request_tenant.team_id,
@@ -249,7 +255,10 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         "owner_name": nick_name,
                         "role": "viewer",
                         "is_pass": request_tenant.is_pass,
-                    })
+                    }
+                    if not team_item["region"] and len(region_name_list) > 0:
+                        team_item["region"] = region_name_list[0]
+                    request_join_team.append(team_item)
             data = {
                 "active_teams": active_tenants,
                 "new_join_team": new_join_team,
