@@ -692,7 +692,6 @@ class AppMarketAppModelLView(JWTAuthApiView):
                 logger.error("parse app logo error: ", e)
                 base64_logo = ""
         dt = {
-            "app_classification_id": request.data.get("app_classification_id"),
             "desc": request.data.get("desc"),
             "logo": base64_logo,
             "name": request.data.get("name"),
