@@ -100,7 +100,7 @@ class AppStore(object):
     @apiException
     def create_app(self, store, body):
         store_client = get_market_client(store.access_key, store.url)
-        body = openapi_client.V1AppCreateRequest(**body)
+        body = openapi_client.V1AppModelCreateRequest(**body)
         data = store_client.create_app(body=body, market_domain=store.domain)
         return data
 

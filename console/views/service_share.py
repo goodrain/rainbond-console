@@ -1,27 +1,24 @@
 # -*- coding: utf-8 -*-
-import re
+import base64
 import datetime
 import logging
-import base64
+import re
 
 from django.db.models import Q
 from rest_framework.response import Response
 
+from console.enum.component_enum import is_singleton
 from console.exception.main import ServiceHandleException
-from console.models.main import PluginShareRecordEvent
-from console.models.main import ServiceShareRecordEvent
+from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
 from console.repositories.group import group_repo
-from console.repositories.share_repo import share_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
-from console.views.base import RegionTenantHeaderView
-from console.views.base import JWTAuthApiView
+from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from www.utils.crypt import make_uuid
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
-from console.enum.component_enum import is_singleton
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger('default')
 # 数字和字母组合，不允许纯数字
