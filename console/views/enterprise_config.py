@@ -40,3 +40,23 @@ class EnterpriseObjectStorageView(JWTAuthApiView):
             "secret_key": secret_key,
         })
         return Response(status=status.HTTP_200_OK)
+
+
+class EnterpriseAppStoreImageHubView(JWTAuthApiView):
+    @never_cache
+    def put(self, request, enterprise_id):
+        enable = bool_argument(parse_item(request, "enable", required=True))
+        hub_url = parse_item(request, "hub_url", required=True)
+        namespace = parse_item(request, "namespace")
+        hub_user = parse_item(request, "hub_user")
+        hub_password = parse_item(request, "hub_password")
+
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id)
+        ent_cfg_svc.update_config_enable_status(key="APPSTORE_IMAGE_HUB", enable=enable)
+        ent_cfg_svc.update_config_value(key="APPSTORE_IMAGE_HUB", value={
+            "hub_url": hub_url,
+            "namespace": namespace,
+            "hub_user": hub_user,
+            "hub_password": hub_password,
+        })
+        return Response(status=status.HTTP_200_OK)

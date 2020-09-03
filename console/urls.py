@@ -144,6 +144,7 @@ from console.views.enterprise import EnterpriseTeams
 from console.views.enterprise import EnterpriseUserTeams
 from console.views.enterprise_active import BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_active import BindMarketEnterpriseOptimizAccessTokenView
+from console.views.enterprise_config import EnterpriseAppStoreImageHubView
 from console.views.enterprise_config import EnterpriseObjectStorageView
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
@@ -850,6 +851,7 @@ urlpatterns = [
     url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # enterprise configuration
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/objectstorage$', EnterpriseObjectStorageView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/appstoreimagehub$', EnterpriseAppStoreImageHubView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
