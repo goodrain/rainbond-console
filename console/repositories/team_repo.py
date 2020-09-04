@@ -1,18 +1,12 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.db.models import Q
-
 from console.exception.exceptions import TenantNotExistError
-from console.models.main import RegionConfig
-from console.models.main import TeamGitlabInfo
+from console.exception.main import ServiceHandleException
+from console.models.main import RegionConfig, TeamGitlabInfo
 from console.repositories.base import BaseConnection
-from www.models.main import PermRelTenant
-from www.models.main import Tenants
-from www.models.main import Users
-from www.models.main import ServiceGroup
-from www.models.main import TenantRegionInfo
-from www.models.main import TenantEnterprise
+from django.db.models import Q
+from www.models.main import (PermRelTenant, ServiceGroup, TenantEnterprise, TenantRegionInfo, Tenants, Users)
 
 logger = logging.getLogger("default")
 
@@ -171,6 +165,12 @@ class TeamRepo(object):
             return Tenants.objects.get(tenant_name=team_name)
         except Tenants.DoesNotExist:
             return None
+
+    def get_team_by_team_name_and_eid(self, eid, team_name):
+        try:
+            return Tenants.objects.get(tenant_name=team_name, enterprise_id=eid)
+        except Tenants.DoesNotExist:
+            raise ServiceHandleException(msg_show="团队不存在", msg="team not found")
 
     def delete_user_perms_in_permtenant(self, user_id, tenant_id):
         PermRelTenant.objects.filter(Q(user_id=user_id, tenant_id=tenant_id) & ~Q(identity='owner')).delete()

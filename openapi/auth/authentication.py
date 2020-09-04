@@ -2,27 +2,28 @@
 # creater by: barnett
 
 import logging
-from www.models.main import Users
-from openapi.services.api_user_service import apiUserService
-from rest_framework import authentication
-from rest_framework import exceptions
 import os
+
+from rest_framework import authentication, exceptions
+
+from openapi.services.api_user_service import apiUserService
+from www.models.main import Users
+
 logger = logging.getLogger("default")
 
 
 class OpenAPIAuthentication(authentication.TokenAuthentication):
-    # TODO only use user open api
     def authenticate(self, request):
         token = request.META.get('HTTP_AUTHORIZATION')
         if not token:
             raise exceptions.AuthenticationFailed('No token')
         try:
             user = apiUserService.get_user_by_token(token)
-            if not user:
-                raise exceptions.AuthenticationFailed('No such user or user is not admin')
         except Exception as e:
             logger.exception(e)
             raise exceptions.AuthenticationFailed('No such user')
+        if not user:
+            raise exceptions.AuthenticationFailed('No such user or user is not admin')
         return (user, None)
 
 

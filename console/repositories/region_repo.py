@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Q
-
 from console.exception.main import RegionNotFound
 from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
 from console.repositories.team_repo import team_repo
+from django.db.models import Q
 from www.models.main import TenantRegionInfo
 
 
@@ -100,6 +99,10 @@ class RegionRepo(object):
     def get_region_info_by_region_name(self, region_name):
         return RegionConfig.objects.filter(region_name=region_name)
 
+    def get_tenant_regions_by_teamid(self, team_id):
+        return TenantRegionInfo.objects.filter(tenant_id=team_id)
+
+    # not list tenant region if region is not exist
     def list_by_tenant_id(self, tenant_id, query="", page=None, page_size=None):
         limit = ""
         if page is not None and page_size is not None:
@@ -160,8 +163,14 @@ class RegionRepo(object):
         region.delete()
         return region
 
-    def get_region_by_enterprise_id(self, eid):
-        return TenantRegionInfo.objects.filter(enterprise_id=eid).first()
+    def get_team_used_region_by_enterprise_id(self, eid):
+        trs = TenantRegionInfo.objects.filter(enterprise_id=eid)
+        if trs:
+            for tr in trs:
+                region = RegionConfig.objects.filter(enterprise_id=eid, region_name=tr.region_name)
+                if region:
+                    return tr
+        return None
 
     def get_regions_by_enterprise_id(self, eid, status=None):
         if status:

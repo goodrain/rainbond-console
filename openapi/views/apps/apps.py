@@ -2,43 +2,30 @@
 # creater by: barnett
 import logging
 
-from django.forms.models import model_to_dict
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
-from rest_framework.response import Response
-
 from console.constants import PluginCategoryConstants
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
-from console.services.app_actions import app_manage_service
-from console.services.app_actions import event_service
+from console.services.app_actions import app_manage_service, event_service
 from console.services.app_config import port_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
 from console.services.service_services import base_service
-from openapi.serializer.app_serializer import AppBaseInfoSerializer
-from openapi.serializer.app_serializer import AppInfoSerializer
-from openapi.serializer.app_serializer import AppPostInfoSerializer
-from openapi.serializer.app_serializer import AppServiceEventsSerializer
-from openapi.serializer.app_serializer import AppServiceTelescopicHorizontalSerializer
-from openapi.serializer.app_serializer import AppServiceTelescopicVerticalSerializer
-from openapi.serializer.app_serializer import ComponentEnvsSerializers
-from openapi.serializer.app_serializer import ComponentMonitorSerializers
-from openapi.serializer.app_serializer import ListServiceEventsResponse
-from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
-from openapi.serializer.app_serializer import ServiceGroupOperationsSerializer
-from openapi.serializer.app_serializer import TeamAppsCloseSerializers
-from openapi.serializer.base_serializer import FailSerializer
-from openapi.serializer.base_serializer import SuccessSerializer
+from django.forms.models import model_to_dict
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from openapi.serializer.app_serializer import (
+    AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
+    AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentEnvsSerializers,
+    ComponentMonitorSerializers, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
+    TeamAppsCloseSerializers)
+from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
-from openapi.views.base import EnterpriseServiceOauthView
-from openapi.views.base import TeamAPIView
-from openapi.views.base import TeamAppAPIView
-from openapi.views.base import TeamAppServiceAPIView
+from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
 from openapi.views.exceptions import ErrAppNotFound
+from rest_framework import status
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -163,9 +150,7 @@ class AppInfoView(TeamAppAPIView):
                         code_status = code
                         if force:
                             code_status = 200
-                            code, msg = app_manage_service.delete_again(self.user, self.team, service, is_force=True)
-                            if code != 200:
-                                code_status = code
+                            app_manage_service.delete_again(self.user, self.team, service, is_force=True)
                 if code_status != 200:
                     raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
                 else:
@@ -276,9 +261,8 @@ class AppServicesView(TeamAppServiceAPIView):
         except ValueError:
             raise ServiceHandleException(msg='force value error', msg_show=u"参数错误")
         code, msg = app_manage_service.delete(self.user, self.team, self.service, True)
-        if code != 200:
-            if force:
-                code, msg = app_manage_service.delete_again(self.user, self.team, self.service, is_force=True)
+        if code != 200 and force:
+            app_manage_service.delete_again(self.user, self.team, self.service, is_force=True)
         msg_dict = dict()
         msg_dict['status'] = code
         msg_dict['msg'] = msg

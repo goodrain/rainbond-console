@@ -1,26 +1,21 @@
-import React from 'react';
-import { connect } from 'react-redux';
-import classnames from 'classnames';
-import { Map as makeMap, List as makeList } from 'immutable';
-
-import { clickNode, enterNode, leaveNode } from '../actions/app-actions';
-import { getNodeColor, getStatusColor} from '../utils/color-utils';
-import MatchedText from '../components/matched-text';
-import MatchedResults from '../components/matched-results';
-import { trackMixpanelEvent } from '../utils/tracking-utils';
-import { GRAPH_VIEW_MODE } from '../constants/naming';
-import { NODE_BASE_SIZE } from '../constants/styles';
-
-import NodeShapeStack from './node-shape-stack';
-import NodeNetworksOverlay from './node-networks-overlay';
+import classnames from "classnames";
+import { List as makeList, Map as makeMap } from "immutable";
+import React from "react";
+import { connect } from "react-redux";
+import { clickNode, enterNode, leaveNode } from "../actions/app-actions";
+import MatchedResults from "../components/matched-results";
+import MatchedText from "../components/matched-text";
+import { NODE_BASE_SIZE } from "../constants/styles";
+import { getStatusColor } from "../utils/color-utils";
+import NodeNetworksOverlay from "./node-networks-overlay";
+import NodeShapeStack from "./node-shape-stack";
 import {
-  NodeShapeCloud,
   NodeShapeCircle,
-  NodeShapeSquare,
-  NodeShapeHexagon,
+  NodeShapeCloud,
   NodeShapeHeptagon,
-} from './node-shapes';
-
+  NodeShapeHexagon,
+  NodeShapeSquare,
+} from "./node-shapes";
 
 const labelWidth = 1.2 * NODE_BASE_SIZE;
 const nodeShapes = {
@@ -33,7 +28,8 @@ const nodeShapes = {
 
 function stackedShape(Shape, stackNum) {
   const factory = React.createFactory(NodeShapeStack);
-  return props => factory(Object.assign({}, props, {shape: Shape, stackNum: stackNum}));
+  return (props) =>
+    factory(Object.assign({}, props, { shape: Shape, stackNum }));
 }
 
 function getNodeShape({ shape, stack, stackNum }) {
@@ -43,7 +39,6 @@ function getNodeShape({ shape, stack, stackNum }) {
   }
   return stack ? stackedShape(nodeShape, stackNum) : nodeShape;
 }
-
 
 class Node extends React.Component {
   constructor(props, context) {
@@ -62,18 +57,33 @@ class Node extends React.Component {
     const { label, labelMinor } = this.props;
     return (
       <g className="node-labels-container">
-        <text className={labelClassName} y={13 + labelOffsetY} textAnchor="middle">{label}</text>
-        <text className={labelMinorClassName} y={30 + labelOffsetY} textAnchor="middle">
+        <text
+          className={labelClassName}
+          y={13 + labelOffsetY}
+          textAnchor="middle"
+        >
+          {label}
+        </text>
+        <text
+          className={labelMinorClassName}
+          y={30 + labelOffsetY}
+          textAnchor="middle"
+        >
           {labelMinor}
         </text>
       </g>
     );
   }
 
-  renderStandardLabels(labelClassName, labelMinorClassName, labelOffsetY, mouseEvents) {
+  renderStandardLabels(
+    labelClassName,
+    labelMinorClassName,
+    labelOffsetY,
+    mouseEvents
+  ) {
     const { label, labelMinor, matches = makeMap() } = this.props;
-    const matchedMetadata = matches.get('metadata', makeList());
-    const matchedParents = matches.get('parents', makeList());
+    const matchedMetadata = matches.get("metadata", makeList());
+    const matchedParents = matches.get("parents", makeList());
     const matchedNodeDetails = matchedMetadata.concat(matchedParents);
 
     return (
@@ -82,13 +92,14 @@ class Node extends React.Component {
         y={labelOffsetY}
         x={-0.5 * labelWidth}
         width={labelWidth}
-        height="5em">
+        height="5em"
+      >
         <div className="node-label-wrapper" {...mouseEvents}>
           <div className={labelClassName}>
-            <MatchedText text={label} match={matches.get('label')} />
+            <MatchedText text={label} match={matches.get("label")} />
           </div>
           <div className={labelMinorClassName}>
-            <MatchedText text={labelMinor} match={matches.get('labelMinor')} />
+            <MatchedText text={labelMinor} match={matches.get("labelMinor")} />
           </div>
           <MatchedResults matches={matchedNodeDetails} />
         </div>
@@ -97,17 +108,29 @@ class Node extends React.Component {
   }
 
   render() {
-    const { focused, highlighted, networks, pseudo, rank, label, transform,
-      exportingGraph, showingNetworks, stack, id, metric } = this.props;
+    const {
+      focused,
+      highlighted,
+      networks,
+      pseudo,
+      rank,
+      label,
+      transform,
+      exportingGraph,
+      showingNetworks,
+      stack,
+      id,
+      metric,
+    } = this.props;
     const { hovered } = this.state;
 
     const color = getStatusColor(rank);
     const truncate = !focused && !hovered;
-    const labelOffsetY = (showingNetworks && networks) ? 40 : 28;
+    const labelOffsetY = showingNetworks && networks ? 40 : 28;
 
-    const nodeClassName = classnames('node', { highlighted, hovered, pseudo });
-    const labelClassName = classnames('node-label', { truncate });
-    const labelMinorClassName = classnames('node-label-minor', { truncate });
+    const nodeClassName = classnames("node", { highlighted, hovered, pseudo });
+    const labelClassName = classnames("node-label", { truncate });
+    const labelMinorClassName = classnames("node-label-minor", { truncate });
 
     const NodeShapeType = getNodeShape(this.props);
     const mouseEvents = {
@@ -118,11 +141,24 @@ class Node extends React.Component {
 
     return (
       <g className={nodeClassName} transform={transform}>
-        {exportingGraph ?
-          this.renderSvgLabels(labelClassName, labelMinorClassName, labelOffsetY) :
-          this.renderStandardLabels(labelClassName, labelMinorClassName, labelOffsetY, mouseEvents)}
+        {exportingGraph
+          ? this.renderSvgLabels(
+              labelClassName,
+              labelMinorClassName,
+              labelOffsetY
+            )
+          : this.renderStandardLabels(
+              labelClassName,
+              labelMinorClassName,
+              labelOffsetY,
+              mouseEvents
+            )}
 
-        <g {...mouseEvents} ref={this.saveShapeRef}>
+        <g
+          {...mouseEvents}
+          ref={this.saveShapeRef}
+          style={{ pointerEvents: 'bounding-box' }}
+        >
           <NodeShapeType
             id={id}
             highlighted={highlighted}
@@ -132,7 +168,9 @@ class Node extends React.Component {
           />
         </g>
 
-        {showingNetworks && <NodeNetworksOverlay networks={networks} stack={stack} />}
+        {showingNetworks && (
+          <NodeNetworksOverlay networks={networks} stack={stack} />
+        )}
       </g>
     );
   }
@@ -142,22 +180,14 @@ class Node extends React.Component {
   }
 
   handleMouseClick(ev) {
+    console.log(ev);
     ev.stopPropagation();
-    // trackMixpanelEvent('scope.node.click', {
-    //   layout: GRAPH_VIEW_MODE,
-    //   topologyId: this.props.currentTopology.get('id'),
-    //   parentTopologyId: this.props.currentTopology.get('parentId'),
-    // });
-
-    //如果父级window有挂在处理点击节点的方法， 则优先调用它
-    if(window.parent && window.parent.weavescope){
-      var config = window.parent.weavescope || {};
-      config.onNodeClick && config.onNodeClick(this.props.label);
-      return false;
-    }
-
-
-    this.props.clickNode(this.props.id, this.props.label, this.shapeRef.getBoundingClientRect(), this.props.serviceAlias);
+    this.props.clickNode(
+      this.props.id,
+      this.props.label,
+      this.shapeRef.getBoundingClientRect(),
+      this.props.serviceAlias
+    );
   }
 
   handleMouseEnter() {
@@ -173,14 +203,13 @@ class Node extends React.Component {
 
 function mapStateToProps(state) {
   return {
-    exportingGraph: state.get('exportingGraph'),
-    showingNetworks: state.get('showingNetworks'),
-    currentTopology: state.get('currentTopology'),
-    contrastMode: state.get('contrastMode'),
+    exportingGraph: state.get("exportingGraph"),
+    showingNetworks: state.get("showingNetworks"),
+    currentTopology: state.get("currentTopology"),
+    contrastMode: state.get("contrastMode"),
   };
 }
 
-export default connect(
-  mapStateToProps,
-  { clickNode, enterNode, leaveNode }
-)(Node);
+export default connect(mapStateToProps, { clickNode, enterNode, leaveNode })(
+  Node
+);

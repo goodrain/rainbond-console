@@ -3,7 +3,6 @@ const autoprefixer = require('autoprefixer');
 const path = require('path');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ContrastStyleCompiler = require('./app/scripts/contrast-compiler');
 /**
  * This is the Webpack configuration file for local development.
  * It contains local-specific configuration which includes:
@@ -25,16 +24,8 @@ module.exports = {
       './app/scripts/main',
       'webpack-hot-middleware/client'
     ],
-    'contrast-theme': [
-      './app/scripts/contrast-theme',
-      'webpack-hot-middleware/client'
-    ],
     'dev-app': [
       './app/scripts/main.dev',
-      'webpack-hot-middleware/client'
-    ],
-    'terminal-app': [
-      './app/scripts/terminal-main',
       'webpack-hot-middleware/client'
     ],
     vendors: ['babel-polyfill', 'classnames', 'dagre', 'filesize', 'immutable',
@@ -59,21 +50,15 @@ module.exports = {
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
     new ExtractTextPlugin('style-[name]-[chunkhash].css'),
     new HtmlWebpackPlugin({
-      chunks: ['vendors', 'terminal-app'],
-      template: 'app/html/index.html',
-      filename: 'terminal.html'
-    }),
-    new HtmlWebpackPlugin({
-      chunks: ['vendors', 'dev-app', 'contrast-theme'],
+      chunks: ['vendors', 'dev-app'],
       template: 'app/html/index.html',
       filename: 'dev.html'
     }),
     new HtmlWebpackPlugin({
-      chunks: ['vendors', 'app', 'contrast-theme'],
+      chunks: ['vendors', 'app'],
       template: 'app/html/index.html',
       filename: 'index.html'
     }),
-    new ContrastStyleCompiler()
   ],
 
   // Transform source code using Babel and React Hot Loader

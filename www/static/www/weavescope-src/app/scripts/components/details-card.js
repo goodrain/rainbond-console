@@ -1,13 +1,8 @@
 import React from 'react';
 import { connect } from 'react-redux';
-
+import { DETAILS_PANEL_MARGINS as MARGINS, DETAILS_PANEL_OFFSET as OFFSET, DETAILS_PANEL_WIDTH as WIDTH } from '../constants/styles';
 import NodeDetails from './node-details';
-import EmbeddedTerminal from './embedded-terminal';
-import {
-  DETAILS_PANEL_WIDTH as WIDTH,
-  DETAILS_PANEL_OFFSET as OFFSET,
-  DETAILS_PANEL_MARGINS as MARGINS
-} from '../constants/styles';
+
 
 class DetailsCard extends React.Component {
 
@@ -56,7 +51,6 @@ class DetailsCard extends React.Component {
     };
     return (
       <div className="details-wrapper" style={style}>
-        {showingTerminal && <EmbeddedTerminal />}
         <NodeDetails
           key={this.props.id}
           nodeId={this.props.id}

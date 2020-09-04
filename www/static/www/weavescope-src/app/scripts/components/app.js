@@ -1,82 +1,78 @@
 import debug from 'debug';
+import { debounce } from 'lodash';
 import React from 'react';
 import { connect } from 'react-redux';
-import { debounce } from 'lodash';
-
-import Logo from './logo';
-import Footer from './footer';
-import Sidebar from './sidebar';
-import HelpPanel from './help-panel';
-import TroubleshootingMenu from './troubleshooting-menu';
-import Search from './search';
-import Status from './status';
-import Topologies from './topologies';
-import TopologyOptions from './topology-options';
-import { getApiDetails, getTopologies } from '../utils/web-api-utils';
 import {
   focusSearch,
-  pinNextMetric,
-  pinPreviousMetric,
   hitBackspace,
   hitEsc,
-  unpinMetric,
-  toggleHelp,
+  pinNextMetric,
+  pinPreviousMetric,
   setGraphView,
-  setTableView,
   setResourceView,
-  shutdown,
+  setTableView,
   setViewportDimensions,
+  shutdown,
+  toggleHelp,
+  unpinMetric
 } from '../actions/app-actions';
-import Details from './details';
-import Nodes from './nodes';
-import ViewModeSelector from './view-mode-selector';
-import NetworkSelector from './networks-selector';
-import DebugToolbar, { showingDebugToolbar, toggleDebugToolbar } from './debug-toolbar';
-import { getRouter, getUrlState } from '../utils/router-utils';
-import { trackMixpanelEvent } from '../utils/tracking-utils';
+import { BACKSPACE_KEY_CODE, ESC_KEY_CODE } from '../constants/key-codes';
+import { VIEWPORT_RESIZE_DEBOUNCE_INTERVAL } from '../constants/timer';
 import { availableNetworksSelector } from '../selectors/node-networks';
 import {
   activeTopologyOptionsSelector,
-  isResourceViewModeSelector,
-  isTableViewModeSelector,
   isGraphViewModeSelector,
+  isResourceViewModeSelector,
+  isTableViewModeSelector
 } from '../selectors/topology';
-import { VIEWPORT_RESIZE_DEBOUNCE_INTERVAL } from '../constants/timer';
-import {
-  BACKSPACE_KEY_CODE,
-  ESC_KEY_CODE,
-} from '../constants/key-codes';
+import { getRouter, getUrlState } from '../utils/router-utils';
+import { trackMixpanelEvent } from '../utils/tracking-utils';
+import { getTopologies } from '../utils/web-api-utils';
+import { toggleDebugToolbar } from './debug-toolbar';
+import Details from './details';
+import Nodes from './nodes';
 
 const keyPressLog = debug('scope:app-key-press');
 require('../../styles/font-awesome.min.css');
+
+
 class App extends React.Component {
   constructor(props, context) {
     super(props, context);
 
     this.setViewportDimensions = this.setViewportDimensions.bind(this);
-    this.handleResize = debounce(this.setViewportDimensions, VIEWPORT_RESIZE_DEBOUNCE_INTERVAL);
+    this.handleResize = debounce(
+      this.setViewportDimensions,
+      VIEWPORT_RESIZE_DEBOUNCE_INTERVAL
+    );
 
     this.saveAppRef = this.saveAppRef.bind(this);
     this.onKeyPress = this.onKeyPress.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
   }
-  componentWillMount(){
-     var hash = window.location.hash;
-     if(hash){
-        window.location.hash = '';
-     }
+  componentWillMount() {
+    const hash = window.location.hash;
+    if (hash) {
+      window.location.hash = '';
+    }
   }
   componentDidMount() {
     this.setViewportDimensions();
     // window.addEventListener('resize', this.handleResize);
     // window.addEventListener('keypress', this.onKeyPress);
     window.addEventListener('keyup', this.onKeyUp);
-    getRouter(this.props.dispatch, this.props.urlState).start({hashbang: true});
+    getRouter(this.props.dispatch, this.props.urlState).start({
+      hashbang: true,
+    });
 
     if (!this.props.routeSet || process.env.WEAVE_CLOUD) {
       // dont request topologies when already done via router.
       // If running as a component, always request topologies when the app mounts.
-      getTopologies(this.props.activeTopologyOptions, this.props.dispatch, true);
+      getTopologies(
+        this.props.activeTopologyOptions,
+        this.props.dispatch,
+        true
+      );
     }
     // getApiDetails(this.props.dispatch);
   }
@@ -113,12 +109,12 @@ class App extends React.Component {
       if (char === '<') {
         dispatch(pinPreviousMetric());
         this.trackEvent('scope.metric.selector.pin.previous.keypress', {
-          metricType: this.props.pinnedMetricType
+          metricType: this.props.pinnedMetricType,
         });
       } else if (char === '>') {
         dispatch(pinNextMetric());
         this.trackEvent('scope.metric.selector.pin.next.keypress', {
-          metricType: this.props.pinnedMetricType
+          metricType: this.props.pinnedMetricType,
         });
       } else if (char === 'g') {
         dispatch(setGraphView());
@@ -131,7 +127,7 @@ class App extends React.Component {
         this.trackEvent('scope.layout.selector.keypress');
       } else if (char === 'q') {
         this.trackEvent('scope.metric.selector.unpin.keypress', {
-          metricType: this.props.pinnedMetricType
+          metricType: this.props.pinnedMetricType,
         });
         dispatch(unpinMetric());
       } else if (char === '/') {
@@ -150,37 +146,49 @@ class App extends React.Component {
       ...additionalProps,
     });
   }
-  //设置视图 的高
+  // 设置视图 的高
   setViewportDimensions() {
     if (this.appRef) {
       const { width, height } = this.appRef.getBoundingClientRect();
       this.props.dispatch(setViewportDimensions(width, height));
       setTimeout(() => {
-          this.forceUpdate();
-      })
-      
+        this.forceUpdate();
+      });
     }
   }
 
   saveAppRef(ref) {
     this.appRef = ref;
   }
-  
+
   render() {
-    const { isTableViewMode, isGraphViewMode, isResourceViewMode, showingDetails, showingHelp,
-    showingNetworkSelector, showingTroubleshootingMenu, monitorData } = this.props;
-    const isIframe = window !== window.top;
+    const { showingDetails, monitorData } = this.props;
     const mData = monitorData ? monitorData.data || {} : {};
     return (
       <div className="scope-app" ref={this.saveAppRef}>
         {showingDetails && <Details />}
         <Nodes />
-        {monitorData && <span style={{borderRadius: '6px', border:'1px solid #dedece', padding: '10px 20px', position: 'fixed', left: monitorData.left, top: monitorData.top-60, zIndex: 9999, background: '#fff'}}>吞吐率 - 点密度表示: {mData.throughput_rate || '-'} dps <br /> 响应时间 - 点速度表示: {mData.response_time || '-'} ms</span>}
+        {monitorData && (
+          <span
+            style={{
+              borderRadius: '6px',
+              border: '1px solid #dedece',
+              padding: '10px 20px',
+              position: 'fixed',
+              left: monitorData.left,
+              top: monitorData.top - 60,
+              zIndex: 9999,
+              background: '#fff',
+            }}
+          >
+            吞吐率 - 点密度表示: {mData.throughput_rate || '-'} dps <br />{' '}
+            响应时间 - 点速度表示: {mData.response_time || '-'} ms
+          </span>
+        )}
       </div>
     );
   }
 }
-
 
 function mapStateToProps(state) {
   return {
@@ -200,10 +208,8 @@ function mapStateToProps(state) {
     showingTerminal: state.get('controlPipes').size > 0,
     topologyViewMode: state.get('topologyViewMode'),
     urlState: getUrlState(state),
-    monitorData: state.get('monitorData')
+    monitorData: state.get('monitorData'),
   };
 }
 
-export default connect(
-  mapStateToProps
-)(App);
+export default connect(mapStateToProps)(App);
