@@ -4,11 +4,6 @@ import logging
 import random
 import string
 
-from django.conf import settings
-from django.core.paginator import Paginator
-from django.db import transaction
-from django.db.models import Q
-
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import TenantUserRole
@@ -20,9 +15,13 @@ from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
 from console.services.common_services import common_services
 from console.services.enterprise_services import enterprise_services
-from console.services.exception import (ErrAllTenantDeletionFailed, ErrStillHasServices, ErrTenantRegionNotFound)
-from console.services.perm_services import user_kind_role_service
+from console.services.exception import ErrTenantRegionNotFound
+from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.region_services import region_services
+from django.conf import settings
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
@@ -217,66 +216,17 @@ class TeamService(object):
         team_repo.delete_tenant(tenant_name=tenant_name)
 
     @transaction.atomic()
-    def delete_by_tenant_id(self, user, tenant, force=False):
-        from openapi.services.app_service import app_service
-        from console.services.plugin import plugin_service
-        from console.services.group_service import group_service
-        from console.services.service_services import base_service
-        from console.services.app_actions import app_manage_service
-        from console.repositories.app import service_repo
-        msg_list = []
-        tenant_regions = region_repo.list_by_tenant_id(tenant.tenant_id)
-        if not force:
-            service_count = self.count_by_tenant_id(tenant_id=tenant.tenant_id)
-            if service_count >= 1:
-                raise ErrStillHasServices
-        success_count = 0
+    def delete_by_tenant_id(self, user, tenant):
+        tenant_regions = region_repo.get_tenant_regions_by_teamid(tenant.tenant_id)
         for region in tenant_regions:
-            if force:
-                apps = group_service.get_apps_list(team_id=tenant.tenant_id, region_name=region["region_name"])
-                plugins = plugin_service.get_tenant_plugins(region["region_name"], tenant)
-                for app in apps:
-                    service_ids = app_service.get_group_services_by_id(app.ID)
-                    services = service_repo.get_services_by_service_ids(service_ids)
-                    if services:
-                        status_list = base_service.status_multi_service(
-                            region=app.region_name,
-                            tenant_name=tenant.tenant_name,
-                            service_ids=service_ids,
-                            enterprise_id=tenant.enterprise_id)
-                        status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
-                        if len(status_list) > 0:
-                            raise ServiceHandleException(
-                                msg="There are running components under the current application", msg_show=u"当前团队下有运行态的组件，不可删除")
-                        code_status = 200
-                        for service in services:
-                            code, msg = app_manage_service.batch_delete(user, tenant, service, is_force=True)
-                            msg_dict = dict()
-                            msg_dict['status'] = code
-                            msg_dict['msg'] = msg
-                            msg_dict['service_id'] = service.service_id
-                            msg_dict['service_cname'] = service.service_cname
-                            msg_list.append(msg_dict)
-                            if code != 200:
-                                code, msg = app_manage_service.delete_again(user, tenant, service, is_force=True)
-                                if code != 200:
-                                    code_status = code
-                        if code_status != 200:
-                            raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
-                        code, msg, data = group_service.delete_group_no_service(app.ID)
-                        if code != 200:
-                            raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
-                for plugin in plugins:
-                    plugin_service.delete_plugin(region["region_name"], tenant, plugin.plugin_id)
             try:
-                # There is no guarantee that the deletion of each tenant can be successful.
-                region_api.delete_tenant(region["region_name"], region["tenant_name"])
-                success_count += 1
+                region_services.delete_tenant_on_region(tenant.enterprise_id, tenant.tenant_name, region.region_name, user)
+            except ServiceHandleException as e:
+                raise e
             except Exception as e:
-                logger.error("tenant id: {}; region name: {}; delete tenant: {}".format(tenant.tenant_id, region["tenant_name"],
-                                                                                        e))
-        if success_count == 0:
-            raise ErrAllTenantDeletionFailed
+                logger.exception(e)
+                raise ServiceHandleException(
+                    msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name), msg="delete tenant failure")
         team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
 
     def get_current_user_tenants(self, user_id):
@@ -308,6 +258,7 @@ class TeamService(object):
             team.creater_name = user.get_name()
         return team
 
+    @transaction.atomic
     def create_team(self, user, enterprise, region_list=None, team_alias=None):
         team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
         is_public = settings.MODULES.get('SSO_LOGIN')
@@ -321,11 +272,9 @@ class TeamService(object):
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-        if not region_list:
-            region_list = [r.region_name for r in region_repo.get_usable_regions(enterprise.enterprise_id)]
-            if not region_list:
-                return 404, "无可用数据中心", None
-        default_region = region_list[0]
+        default_region = ""
+        if region_list and len(region_list) > 0:
+            default_region = region_list[0]
         if not team_alias:
             team_alias = "{0}的团队".format(user.nick_name)
         params = {
@@ -347,7 +296,11 @@ class TeamService(object):
             "enterprise_id": enterprise.ID,
         }
         team_repo.create_team_perms(**create_perm_param)
-        return 200, "success", team
+        # init default roles
+        role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
+        admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
+        user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])
+        return team
 
     def delete_team_region(self, team_id, region_name):
         # check team

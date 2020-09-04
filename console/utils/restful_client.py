@@ -1,25 +1,18 @@
 # -*- coding: utf8 -*-
+import json
 import logging
 import os
 from functools import wraps
 
 import market_client
-import openapi_client as store_client
 from market_client.configuration import Configuration
+
+import openapi_client as store_client
+from console.exception.main import ServiceHandleException
 from openapi_client.configuration import Configuration as storeConfiguration
 from openapi_client.rest import ApiException
 
-from console.exception.main import ServiceHandleException
-
 logger = logging.getLogger("default")
-
-# def get_market_client(enterpriseID, enterpriseToken, host=None):
-#     configuration = Configuration()
-#     configuration.host = host if host else os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80')
-#     configuration.api_key['X_ENTERPRISE_TOKEN'] = enterpriseToken
-#     configuration.api_key['X_ENTERPRISE_ID'] = enterpriseID
-#     # create an instance of the API class
-#     return market_client.AppsApi(market_client.ApiClient(configuration))
 
 
 def get_default_market_client():
@@ -43,7 +36,14 @@ def apiException(func):
         try:
             return func(*args, **kwargs)
         except ApiException as e:
-            logger.debug(e)
+            res = None
+            try:
+                res = json.loads(e.body)
+            except Exception:
+                pass
+            if res:
+                raise ServiceHandleException(
+                    msg=res.get("msg"), msg_show="资源不存在", status_code=e.status, error_code=res.get("code"))
             if e.status == 401:
                 raise ServiceHandleException(
                     msg="no store auth token", msg_show="缺少云应用市场token", status_code=401, error_code=10421)

@@ -2,30 +2,23 @@
 """存放组件升级细节"""
 import json
 import logging
-from enum import Enum
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 
-from django.db import DatabaseError, transaction
-from django.db.models import Q
-
-from console.exception.main import (
-    AbortRequest,
-    RbdAppNotFound,
-    RecordNotFound,
-    ServiceHandleException,
-    ResourceNotEnoughException,
-    AccountOverdueException,
-)
+from console.exception.main import (AbortRequest, AccountOverdueException, RbdAppNotFound, RecordNotFound,
+                                    ResourceNotEnoughException, ServiceHandleException)
 from console.models.main import (AppUpgradeRecord, RainbondCenterAppVersion, ServiceSourceInfo, ServiceUpgradeRecord,
                                  UpgradeStatus)
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
-from console.services.group_service import group_service
 from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app)
+from console.services.group_service import group_service
+from django.db import DatabaseError, transaction
+from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
@@ -184,7 +177,7 @@ class UpgradeService(object):
                     app_template = app.app_template
             else:
                 market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
-                app = app_market_service.get_market_app_model_version(market, group_key, version, for_install=True)
+                app = app_market_service.get_market_app_model_version(market, group_key, version, get_template=True)
                 if app:
                     app_template = app.template
             if app_template:
@@ -460,7 +453,7 @@ class UpgradeService(object):
             install_info = {}
             if add_info:
                 old_app = app_market_service.get_market_app_model_version(
-                    pc.market, app_model_id, app_model_version, for_install=True)
+                    pc.market, app_model_id, app_model_version, get_template=True)
                 new_app = deepcopy(old_app)
                 # mock app信息
                 template = json.loads(new_app.template)

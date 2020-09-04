@@ -2,19 +2,20 @@
 # creater by: barnett
 
 import logging
+
+from console.exception.main import ServiceHandleException
+from console.services.app import app_market_service
+from console.services.group_service import group_service
+from console.services.market_app_service import market_app_service
+from console.services.upgrade_services import upgrade_service
+from django.forms.models import model_to_dict
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from openapi.views.base import TeamAppAPIView, EnterpriseServiceOauthView
+from openapi.serializer.app_serializer import (InstallSerializer, ListUpgradeSerializer, MarketInstallSerializer,
+                                               UpgradeSerializer)
+from openapi.views.base import EnterpriseServiceOauthView, TeamAppAPIView
 from rest_framework import status
 from rest_framework.response import Response
-from django.forms.models import model_to_dict
-from console.exception.main import ServiceHandleException
-from openapi.serializer.app_serializer import (InstallSerializer, ListUpgradeSerializer, UpgradeSerializer,
-                                               MarketInstallSerializer)
-from console.services.group_service import group_service
-from console.services.upgrade_services import upgrade_service
-from console.services.market_app_service import market_app_service
-from console.services.app import app_market_service
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -60,18 +61,19 @@ class AppInstallView(TeamAppAPIView):
             app_market_service.create_app_market(dt)
             dt, market = app_market_service.get_app_market(self.team.enterprise_id, market_name, raise_exception=True)
         market_name = market.name
-        app, app_version_info = app_market_service.cloud_app_model_to_db_model(market, app_model_id, app_model_version)
+        app, app_version_info = app_market_service.cloud_app_model_to_db_model(
+            market, app_model_id, app_model_version, for_install=True)
         if not app:
             raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用不存在")
         market_app_service.install_service(
             self.team, self.region_name, self.user, app_id, app, app_version_info, is_deploy, True, market_name=market_name)
         services = group_service.get_group_services(app_id)
-        appInfo = model_to_dict(self.app)
-        appInfo["app_name"] = appInfo["group_name"]
-        appInfo["team_id"] = appInfo["tenant_id"]
-        appInfo["enterprise_id"] = self.team.enterprise_id
-        appInfo["service_list"] = services
-        reapp = MarketInstallSerializer(data=appInfo)
+        app_info = model_to_dict(self.app)
+        app_info["app_name"] = app_info["group_name"]
+        app_info["team_id"] = app_info["tenant_id"]
+        app_info["enterprise_id"] = self.team.enterprise_id
+        app_info["service_list"] = services
+        reapp = MarketInstallSerializer(data=app_info)
         reapp.is_valid()
         return Response(reapp.data, status=status.HTTP_200_OK)
 

@@ -1,14 +1,16 @@
+/* eslint-disable class-methods-use-this */
+/* eslint-disable default-case */
+import * as d3 from 'd3';
 import React from 'react';
 import { connect } from 'react-redux';
-
-import NodesChartElements from './nodes-chart-elements';
-import ZoomableCanvas from '../components/zoomable-canvas';
 import { clickBackground } from '../actions/app-actions';
+import ZoomableCanvas from '../components/zoomable-canvas';
 import {
   graphZoomLimitsSelector,
-  graphZoomStateSelector,
+  graphZoomStateSelector
 } from '../selectors/graph-view/zoom';
-import * as d3 from 'd3'
+import NodesChartElements from './nodes-chart-elements';
+
 require('../../styles/nodeStyle.css');
 
 
@@ -47,7 +49,7 @@ class NodesChart extends React.Component {
   }
 
 
-  loading  ()  {
+  loading() {
     // 为D3设置SVG
     const width = 960;
     const height = 500;
@@ -59,7 +61,7 @@ class NodesChart extends React.Component {
       .attr('width', width)
       .attr('height', height);
 
-  //设置初始节点和链接
+  // 设置初始节点和链接
 // -节点是通过“id”知道的，而不是通过数组中的索引知道的。
 // -节点上表示自反边(黑体圈)。
 // -链接总是源<目标;边缘方向由“左”和“右”设置。
@@ -76,7 +78,7 @@ class NodesChart extends React.Component {
 
     // init D3力布局
     const force = d3.forceSimulation()
-      .force('link', d3.forceLink().id((d) => d.id).distance(150))
+      .force('link', d3.forceLink().id(d => d.id).distance(150))
       .force('charge', d3.forceManyBody().strength(-500))
       .force('x', d3.forceX(width / 2))
       .force('y', d3.forceY(height / 2))
@@ -165,7 +167,7 @@ class NodesChart extends React.Component {
         return `M${sourceX},${sourceY}L${targetX},${targetY}`;
       });
 
-      circle.attr('transform', (d) => `translate(${d.x},${d.y})`);
+      circle.attr('transform', d => `translate(${d.x},${d.y})`);
     }
 
     // 更新图(需要时调用)
@@ -174,9 +176,9 @@ class NodesChart extends React.Component {
       path = path.data(links);
 
       // 更新现有的链接
-      path.classed('selected', (d) => d === selectedLink)
-        .style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
-        .style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '');
+      path.classed('selected', d => d === selectedLink)
+        .style('marker-start', d => d.left ? 'url(#start-arrow)' : '')
+        .style('marker-end', d => d.right ? 'url(#end-arrow)' : '');
 
       // 删除旧的链接
       path.exit().remove();
@@ -184,9 +186,9 @@ class NodesChart extends React.Component {
       // 添加新链接
       path = path.enter().append('svg:path')
         .attr('class', 'link')
-        .classed('selected', (d) => d === selectedLink)
-        .style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
-        .style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '')
+        .classed('selected', d => d === selectedLink)
+        .style('marker-start', d => d.left ? 'url(#start-arrow)' : '')
+        .style('marker-end', d => d.right ? 'url(#end-arrow)' : '')
         .on('mousedown', (d) => {
           if (d3.event.ctrlKey) return;
 
@@ -198,14 +200,14 @@ class NodesChart extends React.Component {
         })
         .merge(path);
 
-     //循环(节点)组
-// NB:函数arg在这里很重要!节点是通过id知道的，而不是通过索引!
-      circle = circle.data(nodes, (d) => d.id);
+      // 循环(节点)组
+      // NB:函数arg在这里很重要!节点是通过id知道的，而不是通过索引!
+      circle = circle.data(nodes, d => d.id);
 
       // 更新现有节点(自反性和选定的视觉状态)
       circle.selectAll('circle')
-        .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
-        .classed('reflexive', (d) => d.reflexive);
+        .style('fill', d => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+        .classed('reflexive', d => d.reflexive);
 
       // 删除旧的节点
       circle.exit().remove();
@@ -216,9 +218,9 @@ class NodesChart extends React.Component {
       g.append('svg:circle')
         .attr('class', 'node')
         .attr('r', 12)
-        .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
-        .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
-        .classed('reflexive', (d) => d.reflexive)
+        .style('fill', d => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+        .style('stroke', d => d3.rgb(colors(d.id)).darker().toString())
+        .classed('reflexive', d => d.reflexive)
         .on('mouseover', function (d) {
           if (!mousedownNode || d === mousedownNode) return;
           // 扩大目标节点
@@ -263,13 +265,13 @@ class NodesChart extends React.Component {
           // unenlarge target nodeunenlarge目标节点
           d3.select(this).attr('transform', '');
 
-        //向图形添加链接(如果存在，请更新)
-// NB:链接是严格的来源<目标;由布尔值分别指定的箭头
+           // 向图形添加链接(如果存在，请更新)
+          // NB:链接是严格的来源<目标;由布尔值分别指定的箭头
           const isRight = mousedownNode.id < mouseupNode.id;
           const source = isRight ? mousedownNode : mouseupNode;
           const target = isRight ? mouseupNode : mousedownNode;
 
-          const link = links.filter((l) => l.source === source && l.target === target)[0];
+          const link = links.filter(l => l.source === source && l.target === target)[0];
           if (link) {
             link[isRight ? 'right' : 'left'] = true;
           } else {
@@ -287,7 +289,7 @@ class NodesChart extends React.Component {
         .attr('x', 0)
         .attr('y', 4)
         .attr('class', 'id')
-        .text((d) => d.id);
+        .text(d => d.id);
 
       circle = g.merge(circle);
 
@@ -338,7 +340,7 @@ class NodesChart extends React.Component {
     }
 
     function spliceLinksForNode(node) {
-      const toSplice = links.filter((l) => l.source === node || l.target === node);
+      const toSplice = links.filter(l => l.source === node || l.target === node);
       for (const l of toSplice) {
         links.splice(links.indexOf(l), 1);
       }
@@ -425,47 +427,18 @@ class NodesChart extends React.Component {
   }
 
 
-
   render() {
-    //点击的当前名字 id
     const { selectedNodeId } = this.props;
-    // var width = 400;
-    //     var height = 400;
-        
-        
-    //     var svg = d3.select("body")
-    //         .append("svg")
-    //         .attr("width",width)
-    //         .attr("height",height);
-        
-    //     var padding = {top: 20 ,right: 20,bottom:20,left:20};
-        
- 
- 
-        // svg.append("rect")
-        //     .attr("fill","red")
-        //     .attr("x",20)
-        //     .attr("y",18)
-            // .attr("width",100)
-            // .attr("height",300)
-            // .transition()
-            // .attr("width",300)
     return (
       <div className="nodes-chart">
-        {/* {this.loading()} */}
         <ZoomableCanvas
           onClick={this.handleMouseClick}
           zoomLimitsSelector={graphZoomLimitsSelector}
           zoomStateSelector={graphZoomStateSelector}
           disabled={selectedNodeId}>
           <EdgeMarkerDefinition selectedNodeId={selectedNodeId} />
-          {/* node 的数据 显示 */}
           <NodesChartElements />
         </ZoomableCanvas>
-{/* <svg width="1000" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
-    <rect x="20" y="20" width="200" height="100" style={{fill: "steelblue", stroke: "blue", strokeWidth:4, opacity: 0.5}}></rect>
-    <rect x="250" y="20" rx="10" ry="10" width="200" height="100" style={{fill: "steelblue", stroke: "blue", strokeWidth:4, opacity: 0.5}}></rect>
-</svg> */}
       </div>
     );
   }

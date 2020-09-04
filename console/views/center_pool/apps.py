@@ -134,7 +134,8 @@ class CenterAppView(RegionTenantHeaderView):
             app_version_info = None
             if install_from_cloud:
                 dt, market = app_market_service.get_app_market(self.tenant.enterprise_id, market_name, raise_exception=True)
-                app, app_version_info = app_market_service.cloud_app_model_to_db_model(market, app_id, app_version)
+                app, app_version_info = app_market_service.cloud_app_model_to_db_model(
+                    market, app_id, app_version, for_install=True)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
@@ -413,11 +414,3 @@ class AppTagCDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(404, "fail", u"删除失败")
         return Response(result, status=result.get("code", 200))
-
-
-class AppStoreCLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
-        pass
-
-    def post(self, request, enterprise_id, *args, **kwargs):
-        pass

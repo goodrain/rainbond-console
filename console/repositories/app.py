@@ -9,16 +9,10 @@ from django.db import transaction
 from docker_image import reference
 
 from console.exception.main import ServiceHandleException
-from console.models.main import AppMarket
-from console.models.main import RainbondCenterAppTag
-from console.models.main import RainbondCenterAppTagsRelation
-from console.models.main import ServiceRecycleBin
-from console.models.main import ServiceRelationRecycleBin
-from console.models.main import ServiceSourceInfo
+from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenterAppTagsRelation, ServiceRecycleBin,
+                                 ServiceRelationRecycleBin, ServiceSourceInfo)
 from console.repositories.base import BaseConnection
-from www.models.main import ServiceWebhooks
-from www.models.main import TenantServiceInfo
-from www.models.main import TenantServiceInfoDelete
+from www.models.main import (ServiceWebhooks, TenantServiceInfo, TenantServiceInfoDelete)
 
 logger = logging.getLogger('default')
 
@@ -153,7 +147,7 @@ class TenantServiceInfoRepository(object):
         where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
         if name:
             where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
-        limit = "LIMIT {page}, {page_size}".format(page=page-1, page_size=page_size)
+        limit = "LIMIT {page}, {page_size}".format(page=page - 1, page_size=page_size)
         conn = BaseConnection()
         sql = """
         SELECT
@@ -204,6 +198,9 @@ class TenantServiceInfoRepository(object):
         sql += where + "GROUP BY A.ID "
         result = conn.query(sql)
         return result
+
+    def get_services_by_team_and_region(self, team_id, region_name):
+        return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).all()
 
 
 class ServiceSourceRepository(object):
@@ -400,20 +397,20 @@ class AppTagRepository(object):
 
 class AppMarketRepository(object):
     def create_default_app_market_if_not_exists(self, eid):
-        try:
-            AppMarket.objects.get(domain="rainbond", enterprise_id=eid)
-        except AppMarket.DoesNotExist:
-            access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY")
-            if not access_key:
-                access_key = "c8593c3049d7480db0d70680269973f2"
-            AppMarket.objects.create(
-                name="RainbondMarket",
-                url="https://store.goodrain.com",
-                domain="rainbond",
-                type="rainstore",
-                access_key=access_key,
-                enterprise_id=eid,
-            )
+        markets = AppMarket.objects.filter(domain="rainbond", url="https://store.goodrain.com", enterprise_id=eid)
+        if markets:
+            return
+        access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY")
+        if not access_key:
+            access_key = "c8593c3049d7480db0d70680269973f2"
+        AppMarket.objects.create(
+            name="RainbondMarket",
+            url="https://store.goodrain.com",
+            domain="rainbond",
+            type="rainstore",
+            access_key=access_key,
+            enterprise_id=eid,
+        )
 
     def get_app_markets(self, enterprise_id):
         return AppMarket.objects.filter(enterprise_id=enterprise_id)

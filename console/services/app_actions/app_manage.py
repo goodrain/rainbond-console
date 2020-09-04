@@ -6,66 +6,45 @@ import datetime
 import json
 import logging
 
-from django.conf import settings
-
 from console.cloud.services import check_memory_quota
 from console.constants import AppConstants
-from console.enum.component_enum import ComponentType
-from console.enum.component_enum import is_singleton
-from console.enum.component_enum import is_state
+from console.enum.component_enum import ComponentType, is_singleton, is_state
 from console.exception.main import ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
-from console.repositories.app import delete_service_repo
-from console.repositories.app import recycle_bin_repo
-from console.repositories.app import relation_recycle_bin_repo
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.app_config import auth_repo
-from console.repositories.app_config import create_step_repo
-from console.repositories.app_config import dep_relation_repo
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import env_var_repo
-from console.repositories.app_config import extend_repo
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import service_attach_repo
-from console.repositories.app_config import service_payment_repo
-from console.repositories.app_config import tcp_domain
-from console.repositories.app_config import volume_repo
+from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
+                                      service_source_repo)
+from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
+                                             extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
+                                             tcp_domain, volume_repo)
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
-from console.repositories.group import group_service_relation_repo
-from console.repositories.group import tenant_service_group_repo
+from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo)
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.migration_repo import migrate_repo
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.repositories.share_repo import share_repo
-from console.services.app import app_market_service
-from console.services.app import app_service
+from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
-from console.services.app_config import AppEnvVarService
-from console.services.app_config import AppMntService
-from console.services.app_config import AppPortService
-from console.services.app_config import AppServiceRelationService
-from console.services.app_config import AppVolumeService
+from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
+                                         AppVolumeService)
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.oauth.oauth_types import NoSupportOAuthType
+from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
+from django.conf import settings
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation
-from www.tenantservice.baseservice import BaseTenantService
-from www.tenantservice.baseservice import TenantUsedResource
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.utils.crypt import make_uuid
 
 tenantUsedResource = TenantUsedResource()
@@ -160,8 +139,6 @@ class AppManageBase(object):
         return False
 
     def check_resource(self, tenant, service, new_add_memory=0, is_check_status=False):
-        # if self.isOwnedMoney(tenant):
-        #     return 400, u"余额不足请及时充值"
         if self.isExpired(tenant, service):
             return 400, u"该应用试用已到期"
         # if self.is_over_resource(tenant, service):
@@ -193,7 +170,6 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功"
 
     def stop(self, tenant, service, user):
-
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -203,11 +179,9 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                raise ServiceHandleException(msg_show="从集群关闭组件受阻，请稍后重试", msg="check console log", status_code=500)
             except region_api.CallApiFrequentError as e:
-                logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试", msg="wait a moment please", status_code=409)
 
     def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
@@ -366,24 +340,23 @@ class AppManageService(AppManageBase):
     def __save_volume(self, tenant, service, volumes):
         if volumes:
             for volume in volumes:
-                try:
-                    service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
-                    if service_volume:
-                        continue
-                    file_content = volume.get("file_content", None)
-                    settings = {}
-                    settings["volume_capacity"] = volume["volume_capacity"]
-                    volume_service.add_service_volume(
-                        tenant,
-                        service,
-                        volume["volume_path"],
-                        volume_type=volume["volume_type"],
-                        volume_name=volume["volume_name"],
-                        file_content=file_content,
-                        settings=settings)
-                except ServiceHandleException as e:
-                    logger.exception(e)
-        return 200, "success"
+                service_volume = volume_repo.get_service_volume_by_name(service.service_id, volume["volume_name"])
+                if service_volume:
+                    continue
+                service_volume = volume_repo.get_service_volume_by_path(service.service_id, volume["volume_path"])
+                if service_volume:
+                    continue
+                file_content = volume.get("file_content", None)
+                settings = {}
+                settings["volume_capacity"] = volume["volume_capacity"]
+                volume_service.add_service_volume(
+                    tenant,
+                    service,
+                    volume["volume_path"],
+                    volume_type=volume["volume_type"],
+                    volume_name=volume["volume_name"],
+                    file_content=file_content,
+                    settings=settings)
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
@@ -761,10 +734,7 @@ class AppManageService(AppManageBase):
                                                                 app["service_connect_info_map_list"])
                                     if code != 200:
                                         raise Exception(msg)
-                                    code, msg = self.__save_volume(tenant, service, app["service_volume_map_list"])
-                                    if code != 200:
-                                        raise Exception(msg)
-                                    logger.debug('-------222---->{0}'.format(app["port_map_list"]))
+                                    self.__save_volume(tenant, service, app["service_volume_map_list"])
                                     code, msg = self.__save_port(tenant, service, app["port_map_list"])
                                     if code != 200:
                                         raise Exception(msg)
@@ -866,15 +836,7 @@ class AppManageService(AppManageBase):
         # 判断组件是否被其他组件挂载
         is_mounted, msg = self.__is_service_mnt_related(tenant, service)
         if is_mounted:
-            return 412, "当前组件被{0}挂载, 不可删除".format(msg)
-        # 判断组件是否绑定了域名
-        is_bind_domain = self.__is_service_bind_domain(service)
-        if is_bind_domain:
-            return 412, "请先解绑组件绑定的域名"
-        # 判断是否有插件
-        if self.__is_service_has_plugins(service):
-            return 412, "请先卸载组件安装的插件"
-
+            return 412, "当前组件有存储被{0}组件挂载, 不可删除".format(msg)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
@@ -1170,36 +1132,41 @@ class AppManageService(AppManageBase):
                 msg = "删除异常"
                 return code, msg
 
+    @transaction.atomic
     def delete_again(self, user, tenant, service, is_force):
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
             # 组件关系移除
             self.move_service_relation_info_recycle_bin(tenant, service)
-            return 200, "success"
         else:
             try:
-                code, msg = self.again_delete_service(tenant, service, user)
-                if code != 200:
-                    return code, msg
-                else:
-                    return code, "success"
+                self.really_delete_service(tenant, service, user)
+            except ServiceHandleException as e:
+                raise e
             except Exception as e:
                 logger.exception(e)
-                return 507, u"删除异常"
+                raise ServiceHandleException(msg="delete component {0} failure", msg_show="组件删除失败")
 
-    def again_delete_service(self, tenant, service, user=None):
-        """二次删除组件"""
-
-        try:
-            data = {}
-            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id,
-                                      data)
-        except region_api.CallApiError as e:
-            if int(e.status) != 404:
+    def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False, not_delete_from_cluster=False):
+        """组件真实删除方法，调用端必须进行事务控制"""
+        ignore_delete_from_cluster = not_delete_from_cluster
+        if not not_delete_from_cluster:
+            try:
+                data = {}
+                data["etcd_keys"] = self.get_etcd_keys(tenant, service)
+                region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
+                                          tenant.enterprise_id, data)
+            except region_api.CallApiError as e:
+                if (not ignore_cluster_result) and int(e.status) != 404:
+                    logger.error("delete component form cluster failure {}".format(e.body))
+                    raise ServiceHandleException(msg="delete component from cluster failure", msg_show="组件从集群删除失败")
+            except Exception as e:
                 logger.exception(e)
-                return 500, "删除组件失败 {0}".format(e.message)
+                if (not ignore_cluster_result):
+                    raise ServiceHandleException(msg="delete component from cluster failure", msg_show="组件从集群删除失败")
+                else:
+                    ignore_delete_from_cluster = True
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
@@ -1212,7 +1179,6 @@ class AppManageService(AppManageBase):
             data.pop("server_type")
             data.pop("git_full_name")
             delete_service_repo.create_delete_service(**data)
-
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
@@ -1233,16 +1199,14 @@ class AppManageService(AppManageBase):
         service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
-        # 删除组件和插件的关系
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
-        # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
-        return 200, "success"
+        return ignore_delete_from_cluster
 
     def change_service_type(self, tenant, service, extend_method):
         # 存储限制
@@ -1278,3 +1242,19 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             logger.exception(e)
             raise ErrChangeServiceType
+
+    def close_all_component_in_team(self, tenant, user):
+        # close all component in define team
+        tenant_regions = region_repo.list_by_tenant_id(tenant.tenant_id)
+        if tenant_regions:
+            for region in tenant_regions:
+                self.close_all_component_in_tenant(tenant, region.region_name, user)
+
+    def close_all_component_in_tenant(self, tenant, region_name, user):
+        services = service_repo.get_services_by_team_and_region(tenant.tenant_id, region_name)
+        if services and len(services) > 0:
+            for service in services:
+                try:
+                    self.stop(tenant, service, user)
+                except Exception as e:
+                    logger.exception(e)

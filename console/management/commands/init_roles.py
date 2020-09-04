@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from console.exception.main import ServiceHandleException
+from console.repositories.team_repo import team_repo
+from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from django.core.management import BaseCommand
 from django.db import transaction
-
-from console.exception.main import ServiceHandleException
-from console.services.perm_services import role_kind_services
-from console.services.perm_services import user_kind_role_service
-from console.repositories.team_repo import team_repo
-
 from www.models.main import Tenants
 
 
@@ -49,4 +46,3 @@ class Command(BaseCommand):
                     else:
                         user_kind_role_service.update_user_roles(
                             kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
-        print("初始化权限分配成功")
