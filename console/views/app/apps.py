@@ -36,6 +36,5 @@ class AppLView(RegionTenantHeaderView):
                 "tenant_id": app.tenant_id,
                 "service_list": json.loads(app.service_list) if app.service_list else []
             })
-        result = general_message(200, "success", "获取成功", list=data,
-                                 total_count=len(app_count), page=page, page_size=page_size)
+        result = general_message(200, "success", "获取成功", list=data, total_count=len(app_count), page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
