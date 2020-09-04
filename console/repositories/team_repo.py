@@ -210,6 +210,9 @@ class TeamRepo(object):
     def get_team_by_enterprise_id(self, enterprise_id):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
 
+    def get_enterprise_team_by_name(self, enterprise_id, team_name):
+        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name)
+
     def update_by_tenant_id(self, tenant_id, **data):
         return Tenants.objects.filter(tenant_id=tenant_id).update(*data)
 
