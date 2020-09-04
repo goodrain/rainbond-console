@@ -1899,7 +1899,7 @@ d3-zoom@1.1.4:
 
 d3@5.7.0:
   version "5.7.0"
-  resolved "http://r.cnpmjs.org/d3/download/d3-5.7.0.tgz#f189d338bdde62acf02f308918e0ec34dd7568f9"
+  resolved "https://r.cnpmjs.org/d3/download/d3-5.7.0.tgz#f189d338bdde62acf02f308918e0ec34dd7568f9"
   integrity sha1-8YnTOL3eYqzwLzCJGODsNN11aPk=
   dependencies:
     d3-array "1"
@@ -4034,8 +4034,9 @@ lodash.memoize@^4.1.0:
   resolved "https://registry.yarnpkg.com/lodash.memoize/-/lodash.memoize-4.1.2.tgz#bcc6c49a42a2840ed997f323eada5ecd182e0bfe"
 
 lodash.mergewith@^4.6.0:
-  version "4.6.0"
-  resolved "https://registry.yarnpkg.com/lodash.mergewith/-/lodash.mergewith-4.6.0.tgz#150cf0a16791f5903b8891eab154609274bdea55"
+  version "4.6.2"
+  resolved "https://registry.yarnpkg.com/lodash.mergewith/-/lodash.mergewith-4.6.2.tgz#617121f89ac55f59047c7aec1ccd6654c6590f55"
+  integrity sha512-GK3g5RPZWTRSeLSpgP8Xhra+pnjBC56q9FZYe1d5RN3TJ35dbkGy3YqBSMbyCrlbi+CM9Z3Jk5yTL7RCsqboyQ==
 
 lodash.tail@^4.1.1:
   version "4.1.1"
@@ -5110,7 +5111,7 @@ promise@^7.1.1:
 
 prop-types@15.5.8, prop-types@^15.0.0, prop-types@^15.5.4, prop-types@^15.5.6, prop-types@^15.5.7, prop-types@^15.5.8, prop-types@~15.5.7:
   version "15.5.8"
-  resolved "http://r.cnpmjs.org/prop-types/download/prop-types-15.5.8.tgz#6b7b2e141083be38c8595aa51fc55775c7199394"
+  resolved "https://r.cnpmjs.org/prop-types/download/prop-types-15.5.8.tgz#6b7b2e141083be38c8595aa51fc55775c7199394"
   integrity sha1-a3suFBCDvjjIWVqlH8VXdccZk5Q=
   dependencies:
     fbjs "^0.8.9"
@@ -5217,7 +5218,7 @@ rc-animate@2.x:
 
 rc-slider@7.0.2:
   version "7.0.2"
-  resolved "http://r.cnpmjs.org/rc-slider/download/rc-slider-7.0.2.tgz#119ea8343233ebf42445728784ec9c1899ae9ac0"
+  resolved "https://r.cnpmjs.org/rc-slider/download/rc-slider-7.0.2.tgz#119ea8343233ebf42445728784ec9c1899ae9ac0"
   integrity sha1-EZ6oNDIz6/QkRXKHhOycGJmumsA=
   dependencies:
     babel-runtime "6.x"
