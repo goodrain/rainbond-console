@@ -1,5 +1,22 @@
 # -*- coding: utf-8 -*-
 
+Admin = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
 OauthConfig = {"__message": {"get": {"perms": []}, "post": {"perms": []}, "put": {"perms": [100000]}, "delete": {"perms": []}}}
 
 OauthService = {
