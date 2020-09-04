@@ -21,7 +21,7 @@
     "d3-drag": "1.0.4",
     "d3-zoom": "1.1.4",
     "dagre": "0.7.4",
-    "debug": "2.6.6",
+    "debug": "4.1.1",
     "filesize": "3.5.9",
     "font-awesome": "4.7.0",
     "immutable": "3.8.1",
