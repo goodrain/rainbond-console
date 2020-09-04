@@ -19,7 +19,7 @@ logger = logging.getLogger("default")
 
 class EnterpriseObjectStorageView(JWTAuthApiView):
     @never_cache
-    def put(self, request, enterprise_id):
+    def put(self, request, enterprise_id, *args, **kwargs):
         enable = bool_argument(parse_item(request, "enable", required=True))
         provider = parse_item(request, "provider", required=True)
         endpoint = parse_item(request, "endpoint", required=True)
@@ -46,7 +46,7 @@ class EnterpriseObjectStorageView(JWTAuthApiView):
 
 class EnterpriseAppStoreImageHubView(JWTAuthApiView):
     @never_cache
-    def put(self, request, enterprise_id):
+    def put(self, request, enterprise_id, *args, **kwargs):
         enable = bool_argument(parse_item(request, "enable", required=True))
         hub_url = parse_item(request, "hub_url", required=True)
         namespace = parse_item(request, "namespace")
