@@ -656,8 +656,8 @@ urlpatterns = [
     # 获取当前团队所有的申请者
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view(), perms.ApplicantsView),
     # enterprise configuration
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/objectstorage$', EnterpriseObjectStorageView.as_view(), perms.Admin),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/appstoreimagehub$', EnterpriseAppStoreImageHubView.as_view(), perms.Admin),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/objectstorage$', EnterpriseObjectStorageView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/appstoreimagehub$', EnterpriseAppStoreImageHubView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),

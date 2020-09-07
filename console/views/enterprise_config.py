@@ -12,12 +12,12 @@ from console.exception.main import AbortRequest
 from console.services.config_service import EnterpriseConfigService
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
-from console.views.base import JWTAuthApiView
+from console.views.base import EnterpriseAdminView
 
 logger = logging.getLogger("default")
 
 
-class EnterpriseObjectStorageView(JWTAuthApiView):
+class EnterpriseObjectStorageView(EnterpriseAdminView):
     @never_cache
     def put(self, request, enterprise_id, *args, **kwargs):
         enable = bool_argument(parse_item(request, "enable", required=True))
@@ -44,7 +44,7 @@ class EnterpriseObjectStorageView(JWTAuthApiView):
         return Response(status=status.HTTP_200_OK)
 
 
-class EnterpriseAppStoreImageHubView(JWTAuthApiView):
+class EnterpriseAppStoreImageHubView(EnterpriseAdminView):
     @never_cache
     def put(self, request, enterprise_id, *args, **kwargs):
         enable = bool_argument(parse_item(request, "enable", required=True))
