@@ -2,18 +2,18 @@
 """
   Created on 18/1/17.
 """
-from .port_service import AppPortService
-from .port_service import EndpointService
-from .image_relation_service import AppImageRelationService
-from .env_service import AppEnvVarService, AppEnvService
 from .app_relation_service import AppServiceRelationService
-from .volume_service import AppVolumeService
-from .mnt_service import AppMntService
-from .domain_service import DomainService
-from .probe_service import ProbeService
-from .label_service import LabelService
-from .extend_service import AppExtendService
 from .deploy_type_service import DeployTypeService
+from .domain_service import DomainService
+from .env_service import AppEnvService, AppEnvVarService
+from .extend_service import AppExtendService
+from .image_relation_service import AppImageRelationService
+from .label_service import LabelService
+from .mnt_service import AppMntService
+from .port_service import AppPortService, EndpointService
+from .probe_service import ProbeService
+from .service_monitor import ComponentServiceMonitor
+from .volume_service import AppVolumeService
 
 port_service = AppPortService()
 endpoint_service = EndpointService()
@@ -28,3 +28,4 @@ label_service = LabelService()
 extend_service = AppExtendService()
 compile_env_service = AppEnvService()
 deploy_type_service = DeployTypeService()
+component_service_monitor = ComponentServiceMonitor()

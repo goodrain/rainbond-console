@@ -17,6 +17,7 @@ from console.views.app_config.app_mnt import AppMntManageView, AppMntView
 from console.views.app_config.app_port import (AppPortManageView, AppPortView, AppTcpOuterManageView, TopologicalPortView)
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView)
+from console.views.app_config.service_monitor import (ComponentServiceMonitorEditView, ComponentServiceMonitorView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID)
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
@@ -52,8 +53,8 @@ from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseOverview,
     EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
     EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams, EnterpriseUserTeams)
-from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
+from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
@@ -494,6 +495,10 @@ urlpatterns = [
         perms.BatchAppMonitorQueryView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/trace$', AppTraceView.as_view(),
         perms.AppMonitorQueryRangeView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/service_monitor$',
+        ComponentServiceMonitorView.as_view(), perms.AppServiceMonitor),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/service_monitor/(?P<name>[\w\-]+)$',
+        ComponentServiceMonitorEditView.as_view(), perms.AppServiceMonitor),
     # 组件标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view(), perms.AppLabelView),
     # 添加特性获取可用标签

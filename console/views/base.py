@@ -4,11 +4,6 @@ import os
 
 import jwt
 from addict import Dict
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
-from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
-from console.repositories.enterprise_repo import enterprise_repo
-from console.utils.oauth.oauth_types import get_oauth_instance
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
@@ -16,7 +11,6 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
-from goodrain_web import errors
 from rest_framework import exceptions, status
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import NotFound, ValidationError
@@ -25,6 +19,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
+
+from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
+from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
+from console.repositories.enterprise_repo import enterprise_repo
+from console.utils.oauth.oauth_types import get_oauth_instance
+from console.utils.perms import get_enterprise_adminer_codes
+from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
 
@@ -172,29 +174,28 @@ class JWTAuthApiView(APIView):
     def check_perms(self, request, *args, **kwargs):
         if kwargs.get("__message"):
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
-            if request_perms:
-                if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
-                    raise NoPermissionsError
+            if request_perms and len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
+                raise NoPermissionsError
 
     def has_perms(self, request_perms):
-        if request_perms:
-            if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
-                raise NoPermissionsError
+        if request_perms and len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
+            raise NoPermissionsError
 
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
-            self.user_perms.extend([100000, 200000])
-        roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
-        if roles:
-            role_ids = roles.values_list("ID", flat=True)
-            user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
-            if user_roles:
-                user_role_ids = user_roles.values_list("role_id", flat=True)
-                role_perms = RolePerms.objects.filter(role_id__in=user_role_ids)
-                if role_perms:
-                    self.user_perms = role_perms.values_list("perm_code", flat=True)
+            # enterprise code
+            self.user_perms = get_enterprise_adminer_codes()
+        else:
+            roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
+            if roles:
+                role_ids = roles.values_list("ID", flat=True)
+                user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
+                if user_roles:
+                    user_role_ids = user_roles.values_list("role_id", flat=True)
+                    role_perms = RolePerms.objects.filter(role_id__in=user_role_ids)
+                    if role_perms:
+                        self.user_perms = role_perms.values_list("perm_code", flat=True)
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
@@ -267,8 +268,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
-            self.user_perms.extend([100000, 200000])
+            self.user_perms = get_enterprise_adminer_codes()
         else:
             ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
             if ent_roles:
