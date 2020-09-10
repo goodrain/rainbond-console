@@ -1,3 +1,5 @@
-import pymysql
+import platform
 
-pymysql.install_as_MySQLdb()
+if platform.system() == "Darwin":
+    import pymysql
+    pymysql.install_as_MySQLdb()
