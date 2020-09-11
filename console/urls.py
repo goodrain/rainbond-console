@@ -81,7 +81,8 @@ from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView)
-from console.views.region import (GetRegionPublicKeyView, OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
+from console.views.region import (GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView, OpenRegionView,
+                                  QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import (AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView,
@@ -687,6 +688,10 @@ urlpatterns = [
         EnterpriseRegionTenantLimitView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/dashboard/(?P<path>.*)',
         EnterpriseRegionDashboard.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings$', MavenSettingView.as_view(),
+        perms.MavenSettingRUDView),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings/(?P<name>[\w\-]+)$',
+        MavenSettingRUDView.as_view(), perms.MavenSettingRUDView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$', EnterpriseAppComponentsLView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),

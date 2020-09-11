@@ -20,6 +20,7 @@ TEAM = {
     "perms": [
         ["describe", u"查看团队信息", 200001],
         ["dynamic_describe", u"查看团队动态", 200009],
+        ["maven_setting", u"管理Maven配置", 200014],
     ],
     "teamRegion": {
         "perms": [["describe", u"查看", 200002], ["install", u"开通", 200003], ["uninstall", u"关闭", 200004]]
@@ -262,9 +263,27 @@ def get_perms_name_code_kv():
     return perms
 
 
+def get_perm_code(obj):
+    codes = []
+    for key in obj:
+        if key == "perms":
+            for item in obj["perms"]:
+                codes.append(item[2])
+        if isinstance(obj[key], dict):
+            codes.extend(get_perm_code(obj[key]))
+    return codes
+
+
+def get_enterprise_adminer_codes():
+    codes = get_perm_code(TEAM)
+    codes.extend([10000, 20000])
+    return codes
+
+
 if __name__ == '__main__':
     # 检测权限命名和权限编码是否重复
     check_perms_metadata()
+    print get_enterprise_adminer_codes()
     # print get_perms_structure()
     # print get_perms_model()
     # print get_perms_name_code_kv()

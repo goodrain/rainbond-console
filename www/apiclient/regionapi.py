@@ -4,10 +4,11 @@ import logging
 import os
 
 import httplib2
-from console.exception.main import ServiceHandleException
-from console.models.main import RegionConfig
 from django import http
 from django.conf import settings
+
+from console.exception.main import ServiceHandleException
+from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -1692,4 +1693,49 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += "/v2/tenants/{0}/limit_memory".format(tenant_name)
         res, body = self._post(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        return res, body
+
+    def list_maven_settings(self, enterprise_id, region):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/builder/mavensetting"
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return res, body
+
+    def add_maven_setting(self, enterprise_id, region, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/builder/mavensetting"
+        res, body = self._post(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        return res, body
+
+    def get_maven_setting(self, enterprise_id, region, name):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/builder/mavensetting/{0}".format(name)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return res, body
+
+    def update_maven_setting(self, enterprise_id, region, name, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/builder/mavensetting/{0}".format(name)
+        res, body = self._put(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        return res, body
+
+    def delete_maven_setting(self, enterprise_id, region, name):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/builder/mavensetting/{0}".format(name)
+        res, body = self._delete(url, self.default_headers, region=region_info.region_name)
         return res, body

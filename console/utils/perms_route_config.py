@@ -3625,3 +3625,21 @@ TeamAppsCloseView = {
         }
     }
 }
+
+
+MavenSettingRUDView = {
+    "__message": {
+        "get": {
+            "perms": [200001]
+        },
+        "post": {
+            "perms": [200014]
+        },
+        "put": {
+            "perms": [200014]
+        },
+        "delete": {
+            "perms": [200014]
+        }
+    }
+}
