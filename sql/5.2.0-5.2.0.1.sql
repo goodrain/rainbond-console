@@ -98,3 +98,6 @@ alter table console.rainbond_center_app_version add template_type varchar(32) DE
 
 alter table console.app_upgrade_record add market_name varchar(32) DEFAULT NULL;
 alter table console.app_upgrade_record add is_from_cloud tinyint(2) DEFAULT NULL;
+
+ALTER TABLE console.service_group ADD `create_time` datetime DEFAULT NULL;
+ALTER TABLE console.service_group ADD `update_time` datetime DEFAULT NULL;

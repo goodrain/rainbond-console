@@ -7,18 +7,16 @@ import re
 
 from django.db import transaction
 
-from console.repositories.share_repo import share_repo
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
+from console.exception.main import ServiceHandleException
+from console.repositories.app import service_repo, service_source_repo
 from console.repositories.backup_repo import backup_record_repo
-from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
+from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.share_repo import share_repo
 from console.repositories.upgrade_repo import upgrade_repo
+from console.services.service_services import base_service
 from console.utils.shortcuts import get_object_or_404
 from www.models.main import ServiceGroup, ServiceGroupRelation
-from console.services.service_services import base_service
-from console.repositories.plugin import app_plugin_relation_repo
-from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
 
@@ -183,6 +181,8 @@ class GroupService(object):
         for app in app_list:
             apps[app.ID] = {
                 "group_id": app.ID,
+                "update_time": app.update_time,
+                "create_time": app.create_time,
                 "group_name": app.group_name,
                 "group_note": app.note,
                 "service_list": [],
@@ -289,6 +289,11 @@ class GroupService(object):
     def get_app_id_by_service_ids(self, service_ids):
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
         return {s.service_id: s.group_id for s in sgr}
+
+    def set_app_update_time_by_service(self, service):
+        sg = self.get_service_group_info(service.service_id)
+        if sg and sg.group_id:
+            group_repo.update_group_time(sg.group_id)
 
 
 group_service = GroupService()
