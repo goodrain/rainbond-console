@@ -292,8 +292,8 @@ class GroupService(object):
 
     def set_app_update_time_by_service(self, service):
         sg = self.get_service_group_info(service.service_id)
-        if sg and sg.group_id:
-            group_repo.update_group_time(sg.group_id)
+        if sg and sg.ID:
+            group_repo.update_group_time(sg.ID)
 
 
 group_service = GroupService()
