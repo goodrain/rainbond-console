@@ -277,7 +277,7 @@ def get_perm_code(obj):
 
 def get_enterprise_adminer_codes():
     codes = get_perm_code(TEAM)
-    codes.extend([10000, 20000])
+    codes.extend([100000, 200000])
     return codes
 
 

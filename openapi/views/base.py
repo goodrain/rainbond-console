@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import os
+
 from rest_framework import generics
 from rest_framework.views import APIView
 
 from console.exception.main import NoPermissionsError, ServiceHandleException
-from console.models.main import (EnterpriseUserPerm, PermsInfo, RoleInfo, RolePerms, UserRole)
+from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.utils.oauth.oauth_types import get_oauth_instance
+from console.utils.perms import get_enterprise_adminer_codes
 from openapi.auth.authentication import (OpenAPIAuthentication, OpenAPIManageAuthentication)
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.exceptions import ErrEnterpriseNotFound, ErrRegionNotFound
 from www.models.main import TenantEnterprise, TenantServiceInfo
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.models.main import OAuthServices, UserOAuthServices
 
 
 class ListAPIView(generics.ListAPIView):
@@ -40,20 +41,17 @@ class BaseOpenAPIView(APIView):
     def check_perms(self, request, *args, **kwargs):
         if kwargs.get("__message"):
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
-            if request_perms:
-                if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
-                    raise NoPermissionsError
+            if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
+                raise NoPermissionsError
 
     def has_perms(self, request_perms):
-        if request_perms:
-            if len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
-                raise NoPermissionsError
+        if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
+            raise NoPermissionsError
 
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
-            self.user_perms.extend([100000, 200000])
+            self.user_perms = get_enterprise_adminer_codes()
         roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
         if roles:
             role_ids = roles.values_list("ID", flat=True)
@@ -97,8 +95,7 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = list(PermsInfo.objects.all().values_list("code", flat=True))
-            self.user_perms.extend([100000, 200000])
+            self.user_perms = get_enterprise_adminer_codes()
         else:
             ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
             if ent_roles:
