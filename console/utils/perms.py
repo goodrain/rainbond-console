@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
+
 """
 - enterprise 100
     sub1 -- 101
@@ -23,7 +24,7 @@ TEAM = {
         ["maven_setting", u"管理Maven配置", 200014],
     ],
     "teamRegion": {
-        "perms": [["describe", u"查看", 200002], ["install", u"开通", 200003], ["uninstall", u"关闭", 200004]]
+        "perms": [["describe", u"查看", 200002], ["install", u"开通", 200003], ["uninstall", u"卸载", 200004]]
     },
     "teamMember": {
         "perms": [
