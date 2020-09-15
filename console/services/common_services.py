@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from django.conf import settings
+
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantRegionInfo
-from django.conf import settings
 
 logger = logging.getLogger('default')
 region_api = RegionInvokeApi()
