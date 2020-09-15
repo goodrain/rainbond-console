@@ -3630,7 +3630,7 @@ TeamAppsCloseView = {
 MavenSettingRUDView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": []
         },
         "post": {
             "perms": [200014]
