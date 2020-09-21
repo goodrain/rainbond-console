@@ -10,11 +10,29 @@ from rest_framework.response import Response
 
 from console.exception.main import AbortRequest
 from console.services.config_service import EnterpriseConfigService
+from console.services.config_service import ConfigService
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
 from console.views.base import EnterpriseAdminView
+from console.enum.system_config import ConfigKeyEnum
+
 
 logger = logging.getLogger("default")
+
+
+class EnterpriseConfigView(EnterpriseAdminView):
+    @never_cache
+    def put(self, request, enterprise_id, *args, **kwargs):
+        title = parse_item(request, "title")
+        logo = parse_item(request, "logo")
+
+        config_service = ConfigService()
+        if title:
+            config_service.update_config_value(ConfigKeyEnum.TITLE.name, title)
+        if logo:
+            config_service.update_config_value(ConfigKeyEnum.LOGO.name, logo)
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class EnterpriseObjectStorageView(EnterpriseAdminView):
