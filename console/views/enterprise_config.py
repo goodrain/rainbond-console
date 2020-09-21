@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from console.exception.main import AbortRequest
 from console.services.config_service import EnterpriseConfigService
 from console.services.config_service import ConfigService
+from console.services.enterprise_services import enterprise_services
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
 from console.views.base import EnterpriseAdminView
@@ -25,12 +26,15 @@ class EnterpriseConfigView(EnterpriseAdminView):
     def put(self, request, enterprise_id, *args, **kwargs):
         title = parse_item(request, "title")
         logo = parse_item(request, "logo")
+        enterprise_alias = parse_item(request, "enterprise_alias")
 
         config_service = ConfigService()
         if title:
             config_service.update_config_value(ConfigKeyEnum.TITLE.name, title)
         if logo:
             config_service.update_config_value(ConfigKeyEnum.LOGO.name, logo)
+        if enterprise_alias:
+            enterprise_services.update_alias(enterprise_id, enterprise_alias)
 
         return Response(status=status.HTTP_200_OK)
 
