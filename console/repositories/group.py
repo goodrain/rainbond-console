@@ -64,7 +64,7 @@ class GroupRepository(object):
 
     def get_default_by_service(self, service):
         return ServiceGroup.objects.filter(
-            tenant_id=service.tenant_id, region_name=service.region_name, is_default=True).first()
+            tenant_id=service.tenant_id, region_name=service.service_region, is_default=True).first()
 
     def get_or_create_default_group(self, tenant_id, region_name):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建

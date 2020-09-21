@@ -11,13 +11,13 @@ import ssl
 
 import certifi
 import urllib3
-from urllib3.exceptions import MaxRetryError
-
 from addict import Dict
-from console.exception.main import ServiceHandleException
-from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict
+from urllib3.exceptions import MaxRetryError
+
+from console.exception.main import ServiceHandleException
+from console.repositories.region_repo import region_repo
 
 logger = logging.getLogger('default')
 
@@ -103,6 +103,8 @@ class RegionApiBaseHttpClient(object):
         if isinstance(body, dict):
             body = Dict(body)
         if 400 <= status <= 600:
+            if "code" in body:
+                raise ServiceHandleException(msg=body.get("msg"), status_code=body.get("status"), error_code=body.get("code"))
             if status == 409:
                 raise self.CallApiFrequentError(self.apitype, url, method, res, body)
             if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
@@ -354,6 +356,14 @@ class RegionApiBaseHttpClient(object):
                 headers[key.replace('_', '-')] = value
 
         return headers
+
+    def handle_error(self, body):
+        region_bcode = json.loads(body)
+        if "code" in region_bcode:
+            raise ServiceHandleException(
+                msg=region_bcode.get("msg"), status_code=region_bcode.get("status"), error_code=region_bcode.get("code"))
+        logger.error("request api failure, response body is {}".format(body))
+        raise ServiceHandleException(msg="request region api failure", status_code=500, error_code=10411)
 
 
 def create_file(path, name, body):

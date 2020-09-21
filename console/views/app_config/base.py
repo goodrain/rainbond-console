@@ -44,11 +44,7 @@ class AppBaseView(RegionTenantHeaderView):
                             status=404))
             # 请求应用资源的数据中心与用户当前页面数据中心不一致
             if self.service.service_region != self.response_region:
-                raise BusinessException(
-                    Response(
-                        general_message(10404, "service region is not current region", "组件{0}不属于当前数据中心".format(service_alias),
-                                        {"service_region": self.service.service_region}),
-                        status=404))
+                self.response_region = self.service.service_region
         else:
             raise BusinessException(
                 Response(general_message(404, "service not found", "组件{0}不存在".format(service_alias)), status=404))

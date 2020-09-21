@@ -2,17 +2,12 @@
 import json
 import logging
 from datetime import datetime
+from enum import Enum, IntEnum
 
 from django.db import models
-from django.db.models.fields import AutoField
-from django.db.models.fields import BooleanField
-from django.db.models.fields import CharField
-from django.db.models.fields import DateTimeField
-from django.db.models.fields import DecimalField
-from django.db.models.fields import IntegerField
+from django.db.models.fields import (AutoField, BooleanField, CharField,
+                                     DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
-from enum import Enum
-from enum import IntEnum
 
 from goodrain_web import settings
 from www.models.main import TenantServiceInfo
@@ -931,3 +926,17 @@ class AppMarket(BaseModel):
     access_key = models.CharField(max_length=255, null=True, blank=True, help_text="应用商店访问令牌")
     enterprise_id = models.CharField(max_length=32, help_text="企业id")
     type = models.CharField(max_length=32, help_text="类型")
+
+
+class ServiceMonitor(BaseModel):
+    class Meta:
+        db_table = "tenant_service_monitor"
+        unique_together = ('name', 'tenant_id')
+
+    name = models.CharField(max_length=64, help_text="应用商店标识")
+    tenant_id = models.CharField(max_length=32, help_text="团队ID")
+    service_id = models.CharField(max_length=32, help_text="组件ID")
+    path = models.CharField(max_length=32, help_text="组件ID")
+    port = models.IntegerField(help_text="端口号")
+    service_show_name = models.CharField(max_length=64, help_text="组件ID")
+    interval = models.CharField(max_length=10, help_text="收集指标时间间隔")

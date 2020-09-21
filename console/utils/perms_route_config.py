@@ -1,5 +1,22 @@
 # -*- coding: utf-8 -*-
 
+Admin = {
+    "__message": {
+        "get": {
+            "perms": [100000]
+        },
+        "post": {
+            "perms": [100000]
+        },
+        "put": {
+            "perms": [100000]
+        },
+        "delete": {
+            "perms": [100000]
+        }
+    }
+}
+
 OauthConfig = {"__message": {"get": {"perms": []}, "post": {"perms": []}, "put": {"perms": [100000]}, "delete": {"perms": []}}}
 
 OauthService = {
@@ -2026,7 +2043,7 @@ ChangeServiceNameView = {
 ServiceCodeBranch = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [400001]
         },
         "post": {
             "perms": []
@@ -2043,7 +2060,7 @@ ServiceCodeBranch = {
 AppMonitorQueryRangeView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [400001]
         },
         "post": {
             "perms": []
@@ -2060,7 +2077,7 @@ AppMonitorQueryRangeView = {
 AppMonitorQueryView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [400001]
         },
         "post": {
             "perms": []
@@ -2077,7 +2094,7 @@ AppMonitorQueryView = {
 BatchAppMonitorQueryView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [400001]
         },
         "post": {
             "perms": []
@@ -2094,7 +2111,7 @@ BatchAppMonitorQueryView = {
 AppLabelView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [400001]
         },
         "post": {
             "perms": [400020]
@@ -2111,7 +2128,7 @@ AppLabelView = {
 AppLabelAvailableView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [400001]
         },
         "post": {
             "perms": []
@@ -2128,7 +2145,7 @@ AppLabelAvailableView = {
 AppResourceQueryView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [400001]
         },
         "post": {
             "perms": []
@@ -3622,6 +3639,23 @@ TeamAppsCloseView = {
         },
         "delete": {
             "perms": []
+        }
+    }
+}
+
+AppServiceMonitor = {
+    "__message": {
+        "get": {
+            "perms": [400001]
+        },
+        "post": {
+            "perms": [400022]
+        },
+        "put": {
+            "perms": [400022]
+        },
+        "delete": {
+            "perms": [400022]
         }
     }
 }

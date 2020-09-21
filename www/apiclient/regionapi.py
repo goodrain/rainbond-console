@@ -4,10 +4,11 @@ import logging
 import os
 
 import httplib2
-from console.exception.main import ServiceHandleException
-from console.models.main import RegionConfig
 from django import http
 from django.conf import settings
+
+from console.exception.main import ServiceHandleException
+from console.models.main import RegionConfig
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -1692,4 +1693,31 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += "/v2/tenants/{0}/limit_memory".format(tenant_name)
         res, body = self._post(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        return res, body
+
+    def create_service_monitor(self, enterprise_id, region, tenant_name, service_alias, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/tenants/{0}/services/{1}/service-monitors".format(tenant_name, service_alias)
+        res, body = self._post(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        return res, body
+
+    def update_service_monitor(self, enterprise_id, region, tenant_name, service_alias, name, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/tenants/{0}/services/{1}/service-monitors/{2}".format(tenant_name, service_alias, name)
+        res, body = self._put(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        return res, body
+
+    def delete_service_monitor(self, enterprise_id, region, tenant_name, service_alias, name, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/tenants/{0}/services/{1}/service-monitors/{2}".format(tenant_name, service_alias, name)
+        res, body = self._delete(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
         return res, body
