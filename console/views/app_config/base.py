@@ -7,6 +7,7 @@ import logging
 from rest_framework.response import Response
 
 from console.exception.main import BusinessException
+from console.services.group_service import group_service
 from console.views.base import RegionTenantHeaderView
 from www.models.main import Tenants, TenantServiceInfo
 from www.utils.return_message import general_message
@@ -28,6 +29,9 @@ class AppBaseView(RegionTenantHeaderView):
         services = TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=self.tenant.tenant_id)
         if services:
             self.service = services[0]
+            # update app
+            if request.method != 'GET':
+                group_service.set_app_update_time_by_service(self.service)
             if self.service.tenant_id != self.tenant.tenant_id:
                 team_info = Tenants.objects.filter(tenant_id=self.service.tenant_id)
                 if team_info:

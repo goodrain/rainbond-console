@@ -1,13 +1,18 @@
 # -*- coding: utf8 -*-
 import logging
 
+from rest_framework.response import Response
+
+from console.exception.main import ServiceHandleException
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
-from rest_framework.response import Response
 from www.apiclient.marketclient import MarketOpenAPI
+from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.utils.return_message import error_message, general_message
 
+region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 market_api = MarketOpenAPI()
 
@@ -298,3 +303,91 @@ class RegionResPurchage(JWTAuthApiView):
             logger.exception(e)
             data = general_message(500, "buy res error", "资源购买失败")
             return Response(status=500, data=data)
+
+
+class MavenSettingView(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+        onlyname = request.GET.get("onlyname", True)
+        res, body = region_api.list_maven_settings(enterprise_id, region_name)
+        redata = body.get("list")
+        if redata and isinstance(redata, list) and (onlyname is True or onlyname == "true"):
+            newdata = []
+            for setting in redata:
+                newdata.append({"name": setting["name"]})
+            redata = newdata
+        result = general_message(200, 'query success', '数据中心Maven获取成功', list=redata)
+        return Response(status=200, data=result)
+
+    def post(self, request, enterprise_id, region_name, *args, **kwargs):
+        try:
+            res, body = region_api.add_maven_setting(enterprise_id, region_name, request.data)
+            result = general_message(200, 'query success', '添加成功', bean=body.get("bean"))
+        except RegionApiBaseHttpClient.CallApiError as exc:
+            if exc.message.get("httpcode") == 400:
+                result = general_message(400, 'maven setting name is exist', '配置名称已存在')
+            else:
+                logger.exception(exc)
+                result = general_message(500, 'add maven setting failure', '配置添加失败')
+        except ServiceHandleException as e:
+            if e.status_code == 400:
+                result = general_message(400, 'maven setting name is exist', '配置名称已存在')
+            else:
+                logger.exception(e)
+                result = general_message(500, 'add maven setting failure', '配置添加失败')
+        return Response(status=result["code"], data=result)
+
+
+class MavenSettingRUDView(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_name, name, *args, **kwargs):
+        try:
+            res, body = region_api.get_maven_setting(enterprise_id, region_name, name)
+            result = general_message(200, 'query success', '获取成功', bean=body.get("bean"))
+        except RegionApiBaseHttpClient.CallApiError as exc:
+            if exc.message.get("httpcode") == 404:
+                result = general_message(404, 'maven setting is not exist', '配置不存在')
+            else:
+                logger.exception(exc)
+                result = general_message(500, 'add maven setting failure', '获取配置失败')
+        except ServiceHandleException as e:
+            if e.status_code == 404:
+                result = general_message(404, 'maven setting is not exist', '配置不存在')
+            else:
+                logger.exception(e)
+                result = general_message(500, 'add maven setting failure', '获取配置失败')
+        return Response(status=result["code"], data=result)
+
+    def put(self, request, enterprise_id, region_name, name, *args, **kwargs):
+        try:
+            res, body = region_api.update_maven_setting(enterprise_id, region_name, name, request.data)
+            result = general_message(200, 'update success', '修改成功', bean=body.get("bean"))
+        except RegionApiBaseHttpClient.CallApiError as exc:
+            if exc.message.get("httpcode") == 404:
+                result = general_message(404, 'maven setting is not exist', '配置不存在')
+            else:
+                logger.exception(exc)
+                result = general_message(500, 'update maven setting failure', '更新配置失败')
+        except ServiceHandleException as e:
+            if e.status_code == 404:
+                result = general_message(404, 'maven setting is not exist', '配置不存在')
+            else:
+                logger.exception(e)
+                result = general_message(500, 'update maven setting failure', '更新配置失败')
+        return Response(status=result["code"], data=result)
+
+    def delete(self, request, enterprise_id, region_name, name, *args, **kwargs):
+        try:
+            res, body = region_api.delete_maven_setting(enterprise_id, region_name, name)
+            result = general_message(200, 'delete success', '删除成功', bean=body.get("bean"))
+        except RegionApiBaseHttpClient.CallApiError as exc:
+            if exc.message.get("httpcode") == 404:
+                result = general_message(404, 'maven setting is not exist', '配置不存在')
+            else:
+                logger.exception(exc)
+                result = general_message(500, 'add maven setting failure', '删除配置失败')
+        except ServiceHandleException as e:
+            if e.status_code == 404:
+                result = general_message(404, 'maven setting is not exist', '配置不存在')
+            else:
+                logger.exception(e)
+                result = general_message(500, 'add maven setting failure', '删除配置失败')
+        return Response(status=result["code"], data=result)
