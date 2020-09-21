@@ -1729,8 +1729,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url += "/v2/cluster/builder/mavensetting/{0}".format(name)
         res, body = self._delete(url, self.default_headers, region=region_info.region_name)
         return res, body
-    
-        def add_maven_setting(self, enterprise_id, region, body):
+
+    def add_maven_setting(self, enterprise_id, region, body):
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
