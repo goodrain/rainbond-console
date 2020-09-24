@@ -10,4 +10,7 @@ CREATE TABLE `tenant_service_monitor` (
   `interval` varchar(10) NOT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `tenant_service_monitor_name_tenant_id_df0b897f_uniq` (`name`,`tenant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ALTER TABLE console.service_group ADD `create_time` datetime DEFAULT NULL;
+ALTER TABLE console.service_group ADD `update_time` datetime DEFAULT NULL;

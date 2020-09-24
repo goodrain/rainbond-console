@@ -2,6 +2,12 @@
 import logging
 import re
 
+from django.conf import settings
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import transaction
+from django.db.models import Q
+from rest_framework.response import Response
+
 from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.models.main import UserMessage
@@ -22,12 +28,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
-from django.conf import settings
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db import transaction
-from django.db.models import Q
 from goodrain_web.tools import JuncheePaginator
-from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message, general_message
@@ -457,11 +458,12 @@ class ApplicantsView(RegionTenantHeaderView):
         """管理员审核用户"""
         user_id = request.data.get("user_id")
         action = request.data.get("action")
+        role_ids = request.data.get("role_ids")
         join = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
         if action is True:
             join.update(is_pass=1)
             team = team_repo.get_team_by_team_name(team_name=team_name)
-            team_services.add_user_to_team(tenant=team, user_id=user_id)
+            team_services.add_user_to_team(tenant=team, user_id=user_id, role_ids=role_ids)
             # 发送通知
             info = "同意"
             self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
