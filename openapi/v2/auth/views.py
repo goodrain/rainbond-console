@@ -16,23 +16,22 @@ class TokenInfoView(APIView):
     authentication_classes = []
     permission_classes = []
 
-    @swagger_auto_schema(
-        responses={
-            200: TokenSerializer(),
-            status.HTTP_400_BAD_REQUEST: FailSerializer(),
-            status.HTTP_404_NOT_FOUND: FailSerializer(),
-        },
-        request_body=openapi.Schema(
-            title="AuthRequest",
-            type=openapi.TYPE_OBJECT,
-            required=['username', 'password'],
-            properties={
-                'username': openapi.Schema(type=openapi.TYPE_STRING, description="管理员用户名"),
-                'password': openapi.Schema(type=openapi.TYPE_STRING, description="管理员密码"),
-            },
-        ),
-        tags=['openapi-auth'],
-        operation_description="企业管理员账号密码获取API-Token")
+    @swagger_auto_schema(responses={
+        200: TokenSerializer(),
+        status.HTTP_400_BAD_REQUEST: FailSerializer(),
+        status.HTTP_404_NOT_FOUND: FailSerializer(),
+    },
+                         request_body=openapi.Schema(
+                             title="AuthRequest",
+                             type=openapi.TYPE_OBJECT,
+                             required=['username', 'password'],
+                             properties={
+                                 'username': openapi.Schema(type=openapi.TYPE_STRING, description="管理员用户名"),
+                                 'password': openapi.Schema(type=openapi.TYPE_STRING, description="管理员密码"),
+                             },
+                         ),
+                         tags=['openapi-auth'],
+                         operation_description="企业管理员账号密码获取API-Token")
     def post(self, request):
         username = request.data.get("username", None)
         password = request.data.get("password", None)

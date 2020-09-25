@@ -17,7 +17,6 @@ class SyncTenantServiceManager(object):
         docker_cmd命令，
         team_gitlab_info表中的数据
     """
-
     def sync_service_info(self):
         try:
             # count = self.get_services_counts()

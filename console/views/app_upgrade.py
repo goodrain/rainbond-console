@@ -46,8 +46,11 @@ class GroupAppView(RegionTenantHeaderView):
 class AppUpgradeVersion(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取某云市应用的可升级版本"""
-        group_key = parse_argument(
-            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
+        group_key = parse_argument(request,
+                                   'group_key',
+                                   value_type=str,
+                                   required=True,
+                                   error='group_key is a required parameter')
 
         # 获取云市应用可升级版本列表
         versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key)
@@ -102,10 +105,9 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
         for record in records:
             upgrade_service.synchronous_upgrade_status(self.tenant, record)
 
-        return MessageResponse(
-            msg="success",
-            bean={"total": paginator.count},
-            list=[upgrade_service.serialized_upgrade_record(record) for record in records])
+        return MessageResponse(msg="success",
+                               bean={"total": paginator.count},
+                               list=[upgrade_service.serialized_upgrade_record(record) for record in records])
 
     def post(self, request, group_id, *args, **kwargs):
         """新增升级订单"""
@@ -128,12 +130,11 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
 class AppUpgradeRecordView(RegionTenantHeaderView):
     def get(self, request, group_id, record_id, *args, **kwargs):
         """获取升级订单"""
-        record = get_object_or_404(
-            AppUpgradeRecord,
-            msg="Upgrade record not found",
-            tenant_id=self.tenant.tenant_id,
-            group_id=int(group_id),
-            pk=int(record_id))
+        record = get_object_or_404(AppUpgradeRecord,
+                                   msg="Upgrade record not found",
+                                   tenant_id=self.tenant.tenant_id,
+                                   group_id=int(group_id),
+                                   pk=int(record_id))
 
         # 同步升级记录状态
         upgrade_service.synchronous_upgrade_status(self.tenant, record)
@@ -149,8 +150,11 @@ class UpgradeType(Enum):
 class AppUpgradeInfoView(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取升级信息"""
-        group_key = parse_argument(
-            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
+        group_key = parse_argument(request,
+                                   'group_key',
+                                   value_type=str,
+                                   required=True,
+                                   error='group_key is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
         market_name = request.GET.get("market_name")
 

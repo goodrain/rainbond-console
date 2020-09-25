@@ -242,8 +242,9 @@ class RegionResourceDetailView(JWTAuthApiView):
             if not team:
                 return Response(general_message(404, "team not found", "指定团队不存在"), status=404)
 
-            res, data = market_api.get_enterprise_regions_resource(
-                tenant_id=team.tenant_id, enterprise_id=team.enterprise_id, region=region)
+            res, data = market_api.get_enterprise_regions_resource(tenant_id=team.tenant_id,
+                                                                   enterprise_id=team.enterprise_id,
+                                                                   region=region)
             if isinstance(data, list):
                 result = general_message(200, "success", "查询成功", list=data)
             elif isinstance(data, dict):

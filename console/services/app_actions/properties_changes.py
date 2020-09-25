@@ -38,8 +38,9 @@ class PropertiesChanges(object):
                 self.install_from_cloud = True
             if self.install_from_cloud:
                 self.market_name = extend_info.get("market_name", None)
-                self.market = app_market_repo.get_app_market_by_name(
-                    tenant.enterprise_id, self.market_name, raise_exception=True)
+                self.market = app_market_repo.get_app_market_by_name(tenant.enterprise_id,
+                                                                     self.market_name,
+                                                                     raise_exception=True)
             self.__get_current_app_and_version()
 
     def __get_current_app_and_version(self):

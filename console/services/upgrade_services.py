@@ -60,8 +60,9 @@ class UpgradeService(object):
                 if not is_from_cloud:
                     app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key).first()
                     if not app:
-                        raise ServiceHandleException(
-                            msg="the rainbond app is not in the group", msg_show="该应用中没有这个云市组件", status_code=404)
+                        raise ServiceHandleException(msg="the rainbond app is not in the group",
+                                                     msg_show="该应用中没有这个云市组件",
+                                                     status_code=404)
                     app_name = app.app_name
                 else:
                     market = app_market_service.get_app_market_by_name(tenant.enterprise_id, market_name, raise_exception=True)
@@ -113,8 +114,7 @@ class UpgradeService(object):
         versions = ServiceSourceInfo.objects.filter(
             group_key=group_key,
             service_id__in=service_ids,
-        ).values_list(
-            'version', flat=True) or []
+        ).values_list('version', flat=True) or []
 
         app = RainbondCenterAppVersion.objects.filter(app_id=group_key, version__in=versions).order_by('-create_time').first()
         if app and app.version:
@@ -232,12 +232,11 @@ class UpgradeService(object):
         service_id_event_mapping = {events[key]: key for key in events}
         services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_id_event_mapping.keys())
         for service in services:
-            upgrade_repo.create_service_upgrade_record(
-                app_record,
-                service,
-                service_id_event_mapping[service.service_id],
-                add_service_infos[service.service_key],
-                upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value)
+            upgrade_repo.create_service_upgrade_record(app_record,
+                                                       service,
+                                                       service_id_event_mapping[service.service_id],
+                                                       add_service_infos[service.service_key],
+                                                       upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value)
 
     @staticmethod
     def market_service_and_create_backup(tenant, service, version):
@@ -276,8 +275,12 @@ class UpgradeService(object):
         for market_service in market_services:
             app_deploy_service = AppDeployService()
             app_deploy_service.set_impl(market_service)
-            code, msg, event_id = app_deploy_service.execute(
-                tenant, market_service.service, user, True, app_record.version, oauth_instance=oauth_instance)
+            code, msg, event_id = app_deploy_service.execute(tenant,
+                                                             market_service.service,
+                                                             user,
+                                                             True,
+                                                             app_record.version,
+                                                             oauth_instance=oauth_instance)
 
             upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event_id,
                                                        service_infos[market_service.service.service_id],
@@ -392,20 +395,19 @@ class UpgradeService(object):
         """序列化升级记录
         :type : AppUpgradeRecord
         """
-        return dict(
-            service_record=[{
-                "status": service_record.status,
-                "update_time": service_record.update_time,
-                "event_id": service_record.event_id,
-                "update": json.loads(service_record.update),
-                "app_upgrade_record": service_record.app_upgrade_record_id,
-                "service_cname": service_record.service_cname,
-                "create_time": service_record.create_time,
-                "service_id": service_record.service_id,
-                "upgrade_type": service_record.upgrade_type,
-                "ID": service_record.ID
-            } for service_record in app_record.service_upgrade_records.all()],
-            **app_record.to_dict())
+        return dict(service_record=[{
+            "status": service_record.status,
+            "update_time": service_record.update_time,
+            "event_id": service_record.event_id,
+            "update": json.loads(service_record.update),
+            "app_upgrade_record": service_record.app_upgrade_record_id,
+            "service_cname": service_record.service_cname,
+            "create_time": service_record.create_time,
+            "service_id": service_record.service_id,
+            "upgrade_type": service_record.upgrade_type,
+            "ID": service_record.ID
+        } for service_record in app_record.service_upgrade_records.all()],
+                    **app_record.to_dict())
 
     def get_upgrade_info(self, team, services, app_model_id, app_model_version, market_name):
         # 查询某一个云市应用下的所有组件
@@ -452,8 +454,10 @@ class UpgradeService(object):
             # 处理新增的组件
             install_info = {}
             if add_info:
-                old_app = app_market_service.get_market_app_model_version(
-                    pc.market, app_model_id, app_model_version, get_template=True)
+                old_app = app_market_service.get_market_app_model_version(pc.market,
+                                                                          app_model_id,
+                                                                          app_model_version,
+                                                                          get_template=True)
                 new_app = deepcopy(old_app)
                 # mock app信息
                 template = json.loads(new_app.template)
@@ -469,8 +473,10 @@ class UpgradeService(object):
                     raise re
                 except AccountOverdueException as re:
                     logger.exception(re)
-                    raise ServiceHandleException(
-                        msg="resource is not enough", msg_show=re.message, status_code=412, error_code=10406)
+                    raise ServiceHandleException(msg="resource is not enough",
+                                                 msg_show=re.message,
+                                                 status_code=412,
+                                                 error_code=10406)
                 upgrade_service.create_add_service_record(app_record, install_info['events'], add_info)
 
             app_record.version = app_model_version

@@ -74,8 +74,8 @@ class ProxyView(CloudEnterpriseCenterView):
             if self.oauth_instance.oauth_service.home_url:
                 remoteurl = "{0}/{1}".format(self.oauth_instance.oauth_service.home_url, path)
             else:
-                remoteurl = "http://{0}:{1}/{2}".format(
-                    os.getenv("ENTERPRISE_HOST", "127.0.0.1"), os.getenv("ENTERPRISE_PORT", "8080"), path)
+                remoteurl = "http://{0}:{1}/{2}".format(os.getenv("ENTERPRISE_HOST", "127.0.0.1"),
+                                                        os.getenv("ENTERPRISE_PORT", "8080"), path)
             response = self.proxy_view(request, remoteurl, extra_requests_args)
         except Exception as exc:
             response = self.handle_exception(exc)

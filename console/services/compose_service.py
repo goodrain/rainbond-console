@@ -159,8 +159,10 @@ class ComposeService(object):
                 s = name_service_map[key]
                 for dep_name in dep_services_names:
                     dep_service = name_service_map[dep_name]
-                    code, msg, d = app_relation_service.add_service_dependency(
-                        tenant, s, dep_service.service_id, open_inner=True)
+                    code, msg, d = app_relation_service.add_service_dependency(tenant,
+                                                                               s,
+                                                                               dep_service.service_id,
+                                                                               open_inner=True)
                     if code != 200:
                         logger.error("compose add service error {0}".format(msg))
 

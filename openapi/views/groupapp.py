@@ -25,8 +25,9 @@ class GroupAppsCopyView(TeamAPIView):
     )
     @never_cache
     def get(self, request, team_id, app_id, **kwargs):
-        group_services = groupapp_copy_service.get_group_services_with_build_source(
-            self.team, self.region_name, group_id=app_id)
+        group_services = groupapp_copy_service.get_group_services_with_build_source(self.team,
+                                                                                    self.region_name,
+                                                                                    group_id=app_id)
         serializer = AppCopyLSerializer(data=group_services, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=200)

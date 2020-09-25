@@ -136,16 +136,22 @@ class DomainService(object):
         zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
         match = zh_pattern.search(domain_name.decode('utf-8'))
         if match:
-            raise ServiceHandleException(
-                status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
+            raise ServiceHandleException(status_code=400,
+                                         error_code=400,
+                                         msg="domain can not be include chinese",
+                                         msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         s_domain = domain_repo.get_domain_by_domain_name(domain_name)
         if s_domain and s_domain.tenant_id != team_id:
-            raise ServiceHandleException(
-                status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
+            raise ServiceHandleException(status_code=400,
+                                         error_code=400,
+                                         msg="domain be used other team",
+                                         msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:
-            raise ServiceHandleException(
-                status_code=400, error_code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
+            raise ServiceHandleException(status_code=400,
+                                         error_code=400,
+                                         msg="domain more than 256 bytes",
+                                         msg_show="域名超过256个字符")
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate)

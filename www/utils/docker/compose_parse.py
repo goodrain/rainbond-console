@@ -53,14 +53,13 @@ def compose_list(file_path):
         return None, str(e)
     # 解析docker compose，转化为goodrain平台信息
     version = compose_config.version
-    yaml_info = DockerComposeYaml(
-        version=version,
-        file_name=file_path,
-        md5=md5string,
-        services=compose_config.services,
-        volumes=compose_config.volumes,
-        networks=compose_config.networks,
-        build_args="")
+    yaml_info = DockerComposeYaml(version=version,
+                                  file_name=file_path,
+                                  md5=md5string,
+                                  services=compose_config.services,
+                                  volumes=compose_config.volumes,
+                                  networks=compose_config.networks,
+                                  build_args="")
     yaml_info.save()
     # 解析文件
     service_list = []

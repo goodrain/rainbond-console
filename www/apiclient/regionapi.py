@@ -435,10 +435,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except RegionApiBaseHttpClient.CallApiError as e:
             message = e.body.get("msg")
             if message and message.find("do not allow operate outer port for thirdpart domain endpoints") >= 0:
-                raise ServiceHandleException(
-                    status_code=400,
-                    msg="do not allow operate outer port for thirdpart domain endpoints",
-                    msg_show=u"该第三方组件具有域名类实例，暂不支持开放网关访问")
+                raise ServiceHandleException(status_code=400,
+                                             msg="do not allow operate outer port for thirdpart domain endpoints",
+                                             msg_show=u"该第三方组件具有域名类实例，暂不支持开放网关访问")
             else:
                 raise e
 
@@ -1122,8 +1121,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_region_info(region_name)
         url = region_info.url + "/v2/event"
         self._set_headers(region_info.token)
-        res, body = self._get(
-            url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}), timeout=10)
+        res, body = self._get(url,
+                              self.default_headers,
+                              region=region_name,
+                              body=json.dumps({"event_ids": event_ids}),
+                              timeout=10)
         return body
 
     def __get_region_access_info(self, tenant_name, region):

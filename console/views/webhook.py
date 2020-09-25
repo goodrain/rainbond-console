@@ -91,8 +91,10 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info.get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status != "closed":
-                    return user_services.deploy_service(
-                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
+                    return user_services.deploy_service(tenant_obj=tenant_obj,
+                                                        service_obj=service_obj,
+                                                        user=user_obj,
+                                                        committer_name=committer_name)
                 else:
                     result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=400)
@@ -152,8 +154,10 @@ class WebHooksDeploy(AlowAnyApiView):
                 user = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 logger.debug("status", status_map)
                 if status != "closed":
-                    return user_services.deploy_service(
-                        tenant_obj=tenant_obj, service_obj=service_obj, user=user, committer_name=committer_name)
+                    return user_services.deploy_service(tenant_obj=tenant_obj,
+                                                        service_obj=service_obj,
+                                                        user=user,
+                                                        committer_name=committer_name)
                 else:
                     result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=200)
@@ -200,8 +204,10 @@ class WebHooksDeploy(AlowAnyApiView):
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status != "closed":
 
-                    return user_services.deploy_service(
-                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
+                    return user_services.deploy_service(tenant_obj=tenant_obj,
+                                                        service_obj=service_obj,
+                                                        user=user_obj,
+                                                        committer_name=committer_name)
                 else:
                     result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=200)
@@ -246,8 +252,10 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info[0].get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status != "closed":
-                    return user_services.deploy_service(
-                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
+                    return user_services.deploy_service(tenant_obj=tenant_obj,
+                                                        service_obj=service_obj,
+                                                        user=user_obj,
+                                                        committer_name=committer_name)
                 else:
                     result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=200)
@@ -301,8 +309,10 @@ class WebHooksDeploy(AlowAnyApiView):
                 committer_name = commits_info.get("author").get("username")
                 user_obj = user_services.init_webhook_user(service_obj, "Webhook", committer_name)
                 if status != "closed":
-                    return user_services.deploy_service(
-                        tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
+                    return user_services.deploy_service(tenant_obj=tenant_obj,
+                                                        service_obj=service_obj,
+                                                        user=user_obj,
+                                                        committer_name=committer_name)
                 else:
                     result = general_message(200, "component is closed, not support", "组件状态不支持")
                     return Response(result, status=400)
@@ -378,47 +388,44 @@ class GetWebHooksUrl(AppBaseView):
                 deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
                 secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
                 url = host + "/console/" + "custom/deploy/" + service_obj.service_id
-                result = general_message(
-                    200,
-                    "success",
-                    "获取URl及开启状态成功",
-                    bean={
-                        "url": url,
-                        "secret_key": secret_key,
-                        "status": service_webhook.state,
-                        "display": True,
-                        "support_type": support_type
-                    })
+                result = general_message(200,
+                                         "success",
+                                         "获取URl及开启状态成功",
+                                         bean={
+                                             "url": url,
+                                             "secret_key": secret_key,
+                                             "status": service_webhook.state,
+                                             "display": True,
+                                             "support_type": support_type
+                                         })
             # 镜像处发自动部署
             elif deployment_way == "image_webhooks":
                 url = host + "/console/" + "image/webhooks/" + service_obj.service_id
 
-                result = general_message(
-                    200,
-                    "success",
-                    "获取URl及开启状态成功",
-                    bean={
-                        "url": url,
-                        "status": service_webhook.state,
-                        "display": True,
-                        "support_type": support_type,
-                        "trigger": service_webhook.trigger,
-                    })
+                result = general_message(200,
+                                         "success",
+                                         "获取URl及开启状态成功",
+                                         bean={
+                                             "url": url,
+                                             "status": service_webhook.state,
+                                             "display": True,
+                                             "support_type": support_type,
+                                             "trigger": service_webhook.trigger,
+                                         })
             # 源码处发自动部署
             else:
                 url = host + "/console/" + "webhooks/" + service_obj.service_id
                 deploy_keyword = service_webhook.deploy_keyword
-                result = general_message(
-                    200,
-                    "success",
-                    "获取URl及开启状态成功",
-                    bean={
-                        "url": url,
-                        "status": service_webhook.state,
-                        "display": True,
-                        "support_type": support_type,
-                        "deploy_keyword": deploy_keyword
-                    })
+                result = general_message(200,
+                                         "success",
+                                         "获取URl及开启状态成功",
+                                         bean={
+                                             "url": url,
+                                             "status": service_webhook.state,
+                                             "display": True,
+                                             "support_type": support_type,
+                                             "deploy_keyword": deploy_keyword
+                                         })
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
@@ -438,20 +445,18 @@ class ImageWebHooksTrigger(AppBaseView):
         except Exception as e:
             logger.exception(e)
             return error_message(e.message)
-        return Response(
-            general_message(
-                200,
-                "success",
-                "自动部署触发条件更新成功",
-                bean={
-                    "url":
-                    "{host}/console/image/webhooks/{service_id}".format(
-                        host=os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host()),
-                        service_id=self.service.service_id),
-                    "trigger":
-                    service_webhook.trigger
-                }),
-            status=200)
+        return Response(general_message(200,
+                                        "success",
+                                        "自动部署触发条件更新成功",
+                                        bean={
+                                            "url":
+                                            "{host}/console/image/webhooks/{service_id}".format(
+                                                host=os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host()),
+                                                service_id=self.service.service_id),
+                                            "trigger":
+                                            service_webhook.trigger
+                                        }),
+                        status=200)
 
 
 class WebHooksStatus(AppBaseView):
@@ -526,8 +531,10 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         status = status_map.get("status", None)
         logger.debug(status)
         if status != "closed":
-            return user_services.deploy_service(
-                tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=user_name)
+            return user_services.deploy_service(tenant_obj=tenant_obj,
+                                                service_obj=service_obj,
+                                                user=user_obj,
+                                                committer_name=user_name)
         else:
             result = general_message(200, "component is closed, not support", "组件状态不支持")
             return Response(result, status=400)
@@ -537,7 +544,6 @@ class UpdateSecretKey(AppBaseView):
     """
     修改部署秘钥
     """
-
     def put(self, request, *args, **kwargs):
         try:
             secret_key = request.data.get("secret_key", None)
@@ -567,7 +573,6 @@ class ImageWebHooksDeploy(AlowAnyApiView):
     """
     镜像仓库webhooks回调地址
     """
-
     def post(self, request, service_id, *args, **kwargs):
         try:
             service_obj = TenantServiceInfo.objects.get(service_id=service_id)
@@ -630,8 +635,10 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             user_obj = user_services.init_webhook_user(service_obj, "ImageWebhook", pusher)
             committer_name = pusher
             if status != "closed":
-                return user_services.deploy_service(
-                    tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
+                return user_services.deploy_service(tenant_obj=tenant_obj,
+                                                    service_obj=service_obj,
+                                                    user=user_obj,
+                                                    committer_name=committer_name)
             else:
                 result = general_message(400, "failed", "组件状态处于关闭中，不支持自动构建")
                 return Response(result, status=400)

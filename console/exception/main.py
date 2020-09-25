@@ -59,7 +59,6 @@ class RegionNotFound(ServiceHandleException):
     """
     region not found exception
     """
-
     def __init__(self, msg):
         super(RegionNotFound, self).__init__("region not found")
 
@@ -73,7 +72,6 @@ class RecordNotFound(Exception):
     """
     There is no corresponding record in the database
     """
-
     def __init__(self, msg):
         super(RecordNotFound, self).__init__(msg)
 

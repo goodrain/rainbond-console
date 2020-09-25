@@ -86,16 +86,19 @@ class ShareRepo(object):
             return None
 
     def get_shared_apps_by_team(self, team_name):
-        return RainbondCenterApp.objects.filter(
-            share_team=team_name, is_complete=True, scope__in=["team", "enterprise", "goodrain"]).values(
-                "group_key", "group_name", "version").order_by("group_key")
+        return RainbondCenterApp.objects.filter(share_team=team_name,
+                                                is_complete=True,
+                                                scope__in=["team", "enterprise", "goodrain"]).values(
+                                                    "group_key", "group_name", "version").order_by("group_key")
 
     def get_shared_app_by_group_key(self, group_key, version, team_name):
         if version:
-            return RainbondCenterApp.objects.filter(
-                group_key=group_key, share_team=team_name, version=version, is_complete=True).order_by("-create_time").first()
-        return RainbondCenterApp.objects.filter(
-            group_key=group_key, share_team=team_name, is_complete=True).order_by("-create_time").first()
+            return RainbondCenterApp.objects.filter(group_key=group_key,
+                                                    share_team=team_name,
+                                                    version=version,
+                                                    is_complete=True).order_by("-create_time").first()
+        return RainbondCenterApp.objects.filter(group_key=group_key, share_team=team_name,
+                                                is_complete=True).order_by("-create_time").first()
 
     def get_shared_app_versions_by_group_key(self, group_key, team_name):
         return RainbondCenterApp.objects.filter(group_key=group_key, share_team=team_name, is_complete=True)
@@ -105,12 +108,13 @@ class ShareRepo(object):
 
     def get_last_shared_app_version_by_group_id(self, group_id, team_name=None, scope=None):
         if scope == "goodrain":
-            return ServiceShareRecord.objects.filter(
-                group_id=group_id, scope=scope, is_success=True).order_by("-create_time").first()
+            return ServiceShareRecord.objects.filter(group_id=group_id, scope=scope,
+                                                     is_success=True).order_by("-create_time").first()
         else:
-            return ServiceShareRecord.objects.filter(
-                group_id=group_id, scope__in=["team", "enterprise"], team_name=team_name,
-                is_success=True).order_by("-create_time").first()
+            return ServiceShareRecord.objects.filter(group_id=group_id,
+                                                     scope__in=["team", "enterprise"],
+                                                     team_name=team_name,
+                                                     is_success=True).order_by("-create_time").first()
 
     def get_local_apps(self):
         return RainbondCenterApp.objects.all().order_by("-create_time")

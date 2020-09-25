@@ -356,8 +356,8 @@ class AppService(object):
     def get_service_resource_with_plugin(self, tenant, service, status):
         disk = 0
 
-        service_consume = ServiceConsume.objects.filter(
-            tenant_id=tenant.tenant_id, service_id=service.service_id).order_by("-ID")
+        service_consume = ServiceConsume.objects.filter(tenant_id=tenant.tenant_id,
+                                                        service_id=service.service_id).order_by("-ID")
         if service_consume:
             disk = service_consume[0].disk
 
@@ -873,27 +873,25 @@ class AppMarketService(object):
     def cloud_app_model_to_db_model(self, market, app_id, version, for_install=False):
         app = app_store.get_app(market, app_id)
         app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
-        rainbond_app = RainbondCenterApp(
-            app_id=app.app_key_id,
-            app_name=app.name,
-            dev_status=app.dev_status,
-            source="market",
-            scope="goodrain",
-            describe=app.desc,
-            details=app.introduction,
-            pic=app.logo,
-            create_time=app.create_time,
-            update_time=app.update_time)
+        rainbond_app = RainbondCenterApp(app_id=app.app_key_id,
+                                         app_name=app.name,
+                                         dev_status=app.dev_status,
+                                         source="market",
+                                         scope="goodrain",
+                                         describe=app.desc,
+                                         details=app.introduction,
+                                         pic=app.logo,
+                                         create_time=app.create_time,
+                                         update_time=app.update_time)
         rainbond_app.market_name = market.name
-        rainbond_app_version = RainbondCenterAppVersion(
-            app_id=app.app_key_id,
-            app_template=app_template.template,
-            version=app_template.version,
-            version_alias=app_template.version_alias,
-            template_version=app_template.rainbond_version,
-            app_version_info=app_template.description,
-            update_time=app_template.update_time,
-            is_official=1)
+        rainbond_app_version = RainbondCenterAppVersion(app_id=app.app_key_id,
+                                                        app_template=app_template.template,
+                                                        version=app_template.version,
+                                                        version_alias=app_template.version_alias,
+                                                        template_version=app_template.rainbond_version,
+                                                        app_version_info=app_template.description,
+                                                        update_time=app_template.update_time,
+                                                        is_official=1)
         rainbond_app_version.template_type = app_template.template_type
         return rainbond_app, rainbond_app_version
 

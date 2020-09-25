@@ -7,8 +7,8 @@ from django.db import transaction
 
 class AppConfigGroupService(object):
     @transaction.atomic
-    def create_config_group(self, app_id, config_group_name, config_items, deploy_type,
-                            deploy_status, service_ids, region_name):
+    def create_config_group(self, app_id, config_group_name, config_items, deploy_type, deploy_status, service_ids,
+                            region_name):
         group_req = {
             "app_id": app_id,
             "config_group_name": config_group_name,

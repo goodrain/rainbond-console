@@ -134,8 +134,10 @@ class CenterAppView(RegionTenantHeaderView):
             app_version_info = None
             if install_from_cloud:
                 dt, market = app_market_service.get_app_market(self.tenant.enterprise_id, market_name, raise_exception=True)
-                app, app_version_info = app_market_service.cloud_app_model_to_db_model(
-                    market, app_id, app_version, for_install=True)
+                app, app_version_info = app_market_service.cloud_app_model_to_db_model(market,
+                                                                                       app_id,
+                                                                                       app_version,
+                                                                                       for_install=True)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
@@ -144,16 +146,15 @@ class CenterAppView(RegionTenantHeaderView):
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
 
-            market_app_service.install_service(
-                self.tenant,
-                self.response_region,
-                self.user,
-                group_id,
-                app,
-                app_version_info,
-                is_deploy,
-                install_from_cloud,
-                market_name=market_name)
+            market_app_service.install_service(self.tenant,
+                                               self.response_region,
+                                               self.user,
+                                               group_id,
+                                               app,
+                                               app_version_info,
+                                               is_deploy,
+                                               install_from_cloud,
+                                               market_name=market_name)
             if not install_from_cloud:
                 market_app_service.update_rainbond_app_install_num(self.user.enterprise_id, app_id, app_version)
             logger.debug("market app create success")
@@ -253,7 +254,6 @@ class CenterAppUDView(JWTAuthApiView):
         编辑和删除应用市场应用
         ---
     """
-
     def put(self, request, enterprise_id, app_id, *args, **kwargs):
         name = request.data.get("name")
         describe = request.data.get("describe", 'This is a default description.')

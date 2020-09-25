@@ -179,8 +179,9 @@ class AppVolumeService(object):
                 raise ServiceHandleException(msg="path error", msg_show="持久化路径不能再挂载共享路径下")
         volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
         if volume:
-            raise ServiceHandleException(
-                msg="path already exists", msg_show="持久化路径[{0}]已存在".format(volume_path), status_code=412)
+            raise ServiceHandleException(msg="path already exists",
+                                         msg_show="持久化路径[{0}]已存在".format(volume_path),
+                                         status_code=412)
         if service.service_source == AppConstants.SOURCE_CODE:
             if volume_path == "/app":
                 raise ServiceHandleException(msg="path error", msg_show="源码组件不能挂载/app目录", status_code=409)
@@ -201,8 +202,9 @@ class AppVolumeService(object):
         for path in list(all_volumes):
             # volume_path不能重复
             if path["volume_path"].startswith(volume_path + "/") or volume_path.startswith(path["volume_path"] + "/"):
-                raise ServiceHandleException(
-                    msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]), status_code=412)
+                raise ServiceHandleException(msg="path error",
+                                             msg_show="已存在以{0}开头的路径".format(path["volume_path"]),
+                                             status_code=412)
 
     def __setting_volume_access_mode(self, service, volume_type, settings):
         access_mode = settings.get("access_mode", "")
@@ -358,8 +360,9 @@ class AppVolumeService(object):
                                                                                 body))
             except region_api.CallApiError as e:
                 if e.status != 404:
-                    raise ServiceHandleException(
-                        msg="delete volume from region failure", msg_show="从集群删除存储发生错误", status_code=500)
+                    raise ServiceHandleException(msg="delete volume from region failure",
+                                                 msg_show="从集群删除存储发生错误",
+                                                 status_code=500)
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume_id(volume_id)
 

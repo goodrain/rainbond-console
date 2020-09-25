@@ -126,8 +126,7 @@ class RegionRepo(object):
             tenant_region tr
         {where}
         {limit}
-        """.format(
-            where=where, limit=limit)
+        """.format(where=where, limit=limit)
         conn = BaseConnection()
         return conn.query(sql)
 

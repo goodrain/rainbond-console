@@ -57,15 +57,18 @@ class ProbeSerilizer(serializers.Serializer):
 
     path = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True, help_text=u"路径")
     port = serializers.IntegerField(required=True, help_text=u"检测端口")
-    cmd = serializers.CharField(
-        max_length=150, required=False, default="", allow_blank=True, allow_null=True, help_text=u"cmd 命令")
-    http_header = serializers.CharField(
-        max_length=300,
-        default="",
-        required=False,
-        allow_blank=True,
-        allow_null=True,
-        help_text=u"http请求头，key=value,key2=value2")
+    cmd = serializers.CharField(max_length=150,
+                                required=False,
+                                default="",
+                                allow_blank=True,
+                                allow_null=True,
+                                help_text=u"cmd 命令")
+    http_header = serializers.CharField(max_length=300,
+                                        default="",
+                                        required=False,
+                                        allow_blank=True,
+                                        allow_null=True,
+                                        help_text=u"http请求头，key=value,key2=value2")
     initial_delay_second = serializers.IntegerField(default=4, required=False, help_text=u"初始化等候时间")
     period_second = serializers.IntegerField(default=3, required=False, help_text=u"检测间隔时间")
     timeout_second = serializers.IntegerField(default=5, required=False, help_text=u"检测超时时间")
@@ -80,15 +83,18 @@ class ProbeUpdateSerilizer(serializers.Serializer):
 
     path = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True, help_text=u"路径")
     port = serializers.IntegerField(required=True, help_text=u"检测端口")
-    cmd = serializers.CharField(
-        max_length=150, required=False, default="", allow_blank=True, allow_null=True, help_text=u"cmd 命令")
-    http_header = serializers.CharField(
-        max_length=300,
-        default="",
-        required=False,
-        allow_blank=True,
-        allow_null=True,
-        help_text=u"http请求头，key=value,key2=value2")
+    cmd = serializers.CharField(max_length=150,
+                                required=False,
+                                default="",
+                                allow_blank=True,
+                                allow_null=True,
+                                help_text=u"cmd 命令")
+    http_header = serializers.CharField(max_length=300,
+                                        default="",
+                                        required=False,
+                                        allow_blank=True,
+                                        allow_null=True,
+                                        help_text=u"http请求头，key=value,key2=value2")
     initial_delay_second = serializers.IntegerField(default=4, required=False, help_text=u"初始化等候时间")
     period_second = serializers.IntegerField(default=3, required=False, help_text=u"检测间隔时间")
     timeout_second = serializers.IntegerField(default=5, required=False, help_text=u"检测超时时间")

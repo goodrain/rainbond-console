@@ -64,8 +64,9 @@ class APPPluginInstallView(AppBaseView):
         logger.debug("plugin.relation", "metatype List is {}".format(len(metaTypeList)))
         attrsList = []
         for meta_info in metaTypeList:
-            attr_list = plugin_svc.get_env_attr_by_service_meta_type(
-                plugin_id=plugin_id, build_version=build_version, service_meta_type=meta_info.service_meta_type)
+            attr_list = plugin_svc.get_env_attr_by_service_meta_type(plugin_id=plugin_id,
+                                                                     build_version=build_version,
+                                                                     service_meta_type=meta_info.service_meta_type)
             logger.debug("plugin.relation", "attr_list is {}".format(len(attr_list)))
             configList = []
             for attrItem in attr_list:
@@ -136,8 +137,9 @@ class APPPluginInstallView(AppBaseView):
                 res, resultBody = region_api.pluginServiceRelation(self.service.service_region, self.tenant.tenant_name,
                                                                    self.service.service_alias, body_relation)
                 if res.status == 200:
-                    plugin_svc.add_service_plugin_relation(
-                        service_id=self.service.service_id, plugin_id=plugin_id, build_version=build_version)
+                    plugin_svc.add_service_plugin_relation(service_id=self.service.service_id,
+                                                           plugin_id=plugin_id,
+                                                           build_version=build_version)
             except region_api.CallApiError as e:
                 if e.status == 400:
                     result = general_message(400, "plugin already related", u"该类型插件已关联，请先卸载同类插件")
@@ -285,8 +287,9 @@ class APPPluginConfigView(AppBaseView):
         logger.debug("plugin.relation", "metatype List is {}".format(len(metaTypeList)))
         attrsList = []
         for meta_info in metaTypeList:
-            attr_list = plugin_svc.get_env_attr_by_service_meta_type(
-                plugin_id=plugin_id, build_version=build_version, service_meta_type=meta_info.service_meta_type)
+            attr_list = plugin_svc.get_env_attr_by_service_meta_type(plugin_id=plugin_id,
+                                                                     build_version=build_version,
+                                                                     service_meta_type=meta_info.service_meta_type)
             logger.debug("plugin.relation", "attr_list is {}".format(len(attr_list)))
             configList = []
             for attrItem in attr_list:

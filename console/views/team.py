@@ -196,8 +196,9 @@ class TeamUserView(RegionTenantHeaderView):
             users_list = list()
             for user in user_list:
                 # get role list
-                role_info_list = user_kind_role_service.get_user_roles(
-                    kind="team", kind_id=self.tenant.tenant_id, user=self.user)
+                role_info_list = user_kind_role_service.get_user_roles(kind="team",
+                                                                       kind_id=self.tenant.tenant_id,
+                                                                       user=self.user)
                 users_list.append({
                     "user_id": user.user_id,
                     "user_name": user.get_name(),
@@ -327,8 +328,8 @@ class TeamDelView(JWTAuthApiView):
               type: string
               paramType: path
         """
-        tenant = team_services.get_enterprise_tenant_by_tenant_name(
-            enterprise_id=self.enterprise.enterprise_id, tenant_name=team_name)
+        tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id=self.enterprise.enterprise_id,
+                                                                    tenant_name=team_name)
         if tenant is None:
             result = general_message(404, "tenant not exist", "{}团队不存在".format(team_name))
         else:
@@ -479,8 +480,11 @@ class ApplicantsView(RegionTenantHeaderView):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=team_name)
         message_id = make_uuid()
         content = '{0}团队{1}您加入该团队'.format(tenant.tenant_alias, info)
-        UserMessage.objects.create(
-            message_id=message_id, receiver_id=user_id, content=content, msg_type="warn", title="用户加入团队信息")
+        UserMessage.objects.create(message_id=message_id,
+                                   receiver_id=user_id,
+                                   content=content,
+                                   msg_type="warn",
+                                   title="用户加入团队信息")
 
 
 class RegisterStatusView(JWTAuthApiView):
@@ -603,8 +607,11 @@ class JoinTeamView(JWTAuthApiView):
         for admin in admins:
             message_id = make_uuid()
             content = '{0}用户申请加入{1}团队'.format(nick_name, tenant.tenant_alias)
-            UserMessage.objects.create(
-                message_id=message_id, receiver_id=admin.user_id, content=content, msg_type="warn", title="团队加入信息")
+            UserMessage.objects.create(message_id=message_id,
+                                       receiver_id=admin.user_id,
+                                       content=content,
+                                       msg_type="warn",
+                                       title="团队加入信息")
 
     def delete(self, request, *args, **kwargs):
         """

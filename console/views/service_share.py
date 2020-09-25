@@ -60,8 +60,9 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     try:
                         if store_id and share_record.app_id:
 
-                            market = app_market_service.get_app_market_by_name(
-                                self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+                            market = app_market_service.get_app_market_by_name(self.tenant.enterprise_id,
+                                                                               share_record.share_app_market_name,
+                                                                               raise_exception=True)
                             cloud_app = app_market_service.get_market_app_model(market, share_record.app_id)
                             if cloud_app:
                                 app_model_id = share_record.app_id
@@ -134,8 +135,10 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看!", bean={})
                 return Response(result, status=200)
             # 判断是否满足分享条件
-            data = share_service.check_service_source(
-                team=self.team, team_name=team_name, group_id=group_id, region_name=self.response_region)
+            data = share_service.check_service_source(team=self.team,
+                                                      team_name=team_name,
+                                                      group_id=group_id,
+                                                      region_name=self.response_region)
             if data and data["code"] == 400:
                 return Response(data, status=data["code"])
             fields_dict = {
@@ -174,8 +177,10 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             store_id = share_record.share_app_market_name
             scope = share_record.scope
             if store_id:
-                _, market = app_market_service.get_app_market(
-                    self.tenant.enterprise_id, share_record.share_app_market_name, extend=True, raise_exception=True)
+                _, market = app_market_service.get_app_market(self.tenant.enterprise_id,
+                                                              share_record.share_app_market_name,
+                                                              extend=True,
+                                                              raise_exception=True)
                 if market:
                     store_name = market.name
             app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
@@ -346,12 +351,11 @@ class ServiceShareInfoView(RegionTenantHeaderView):
                         return Response(result, status=400)
 
         # 继续给app_template_incomplete赋值
-        code, msg, bean = share_service.create_share_info(
-            share_record=share_record,
-            share_team=self.team,
-            share_user=request.user,
-            share_info=request.data,
-            use_force=use_force)
+        code, msg, bean = share_service.create_share_info(share_record=share_record,
+                                                          share_team=self.team,
+                                                          share_user=request.user,
+                                                          share_info=request.data,
+                                                          use_force=use_force)
         result = general_message(code, "create share info", msg, bean=bean)
         return Response(result, status=code)
 
@@ -520,8 +524,11 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
                 result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
                 return Response(result, status=415)
             app_market_url = share_service.complete(self.tenant, self.user, share_record)
-            result = general_message(
-                200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
+            result = general_message(200,
+                                     "share complete",
+                                     "应用分享完成",
+                                     bean=share_record.to_dict(),
+                                     app_market_url=app_market_url)
         except ServiceHandleException as e:
             raise e
         except Exception as e:
@@ -550,11 +557,15 @@ class ShareRecordView(RegionTenantHeaderView):
         share_record = share_repo.get_service_share_record_by_groupid(group_id=group_id)
         if share_record:
             if share_record.step == 2:
-                result = general_message(
-                    200, "the current application does not confirm sharing", "当前应用未确认分享", bean=share_record.to_dict())
+                result = general_message(200,
+                                         "the current application does not confirm sharing",
+                                         "当前应用未确认分享",
+                                         bean=share_record.to_dict())
                 return Response(result, status=200)
-        result = general_message(
-            200, "the current application is not Shared or Shared", "当前应用未分享或已分享", bean=share_record.to_dict())
+        result = general_message(200,
+                                 "the current application is not Shared or Shared",
+                                 "当前应用未分享或已分享",
+                                 bean=share_record.to_dict())
         return Response(result, status=200)
 
 
@@ -612,8 +623,11 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
         market_name = request.GET.get("market_id", None)
         data = share_service.get_last_shared_app_and_app_list(self.tenant.enterprise_id, self.tenant, group_id, scope,
                                                               market_name)
-        result = general_message(
-            200, "get shared apps list complete", None, bean=data["last_shared_app"], list=data["app_model_list"])
+        result = general_message(200,
+                                 "get shared apps list complete",
+                                 None,
+                                 bean=data["last_shared_app"],
+                                 list=data["app_model_list"])
         return Response(result, status=200)
 
 
@@ -676,8 +690,12 @@ class AppMarketAppModelLView(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
-        data, page, page_size, total = app_market_service.get_market_app_models(
-            market_model, page, page_size, query=query, query_all=query_all, extend=True)
+        data, page, page_size, total = app_market_service.get_market_app_models(market_model,
+                                                                                page,
+                                                                                page_size,
+                                                                                query=query,
+                                                                                query_all=query_all,
+                                                                                extend=True)
         result = general_message(200, msg="success", msg_show=None, list=data, page=page, page_size=page_size, total=total)
         return Response(result, status=200)
 

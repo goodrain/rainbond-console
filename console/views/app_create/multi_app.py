@@ -31,8 +31,10 @@ class MultiAppCheckView(RegionTenantHeaderView):
         if code != 200:
             result = general_message(code, msg, msg_show)
         else:
-            result = general_message(
-                code, "successfully entered the multi-service creation process", "成功进入多组件创建流程", list=services)
+            result = general_message(code,
+                                     "successfully entered the multi-service creation process",
+                                     "成功进入多组件创建流程",
+                                     list=services)
         return Response(data=result, status=200)
 
 
@@ -65,12 +67,11 @@ class MultiAppCreateView(RegionTenantHeaderView):
         if resp:
             return resp
 
-        code, msg, msg_show, group_id = multi_app_service.create_services(
-            region_name=self.response_region,
-            tenant=self.tenant,
-            user=self.user,
-            service_alias=service_alias,
-            service_infos=service_infos)
+        code, msg, msg_show, group_id = multi_app_service.create_services(region_name=self.response_region,
+                                                                          tenant=self.tenant,
+                                                                          user=self.user,
+                                                                          service_alias=service_alias,
+                                                                          service_infos=service_infos)
 
         result = general_message(code, msg, msg_show, bean=group_id)
 

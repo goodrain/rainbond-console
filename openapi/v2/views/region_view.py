@@ -22,15 +22,14 @@ logger = logging.getLogger("default")
 class ListRegionInfo(ListAPIView):
     view_perms = ["regions"]
 
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
-            openapi.Parameter("current", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
-            openapi.Parameter("pageSize", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
-        ],
-        responses={200: ListRegionsRespSerializer()},
-        tags=['openapi-region'],
-        operation_description="获取全部数据中心列表")
+    @swagger_auto_schema(manual_parameters=[
+        openapi.Parameter("query", openapi.IN_QUERY, description="根据数据中心名称搜索", type=openapi.TYPE_STRING),
+        openapi.Parameter("current", openapi.IN_QUERY, description="页码", type=openapi.TYPE_STRING),
+        openapi.Parameter("pageSize", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_STRING),
+    ],
+                         responses={200: ListRegionsRespSerializer()},
+                         tags=['openapi-region'],
+                         operation_description="获取全部数据中心列表")
     def get(self, req):
         query = req.GET.get("query", "")
         try:
