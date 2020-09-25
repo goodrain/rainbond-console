@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
-
 """
 - enterprise 100
     sub1 -- 101

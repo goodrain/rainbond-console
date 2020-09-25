@@ -143,6 +143,10 @@ class GroupServiceRelationRepository(object):
     def get_services_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id)
 
+    @staticmethod
+    def count_service_by_app_id(app_id):
+        return ServiceGroupRelation.objects.filter(group_id=app_id).count()
+
     def get_service_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).first()
 

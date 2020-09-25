@@ -601,6 +601,10 @@ class ServiceDomainRepository(object):
     def list_service_domains_by_cert_id(self, certificate_id):
         return ServiceDomain.objects.filter(certificate_id=certificate_id)
 
+    @staticmethod
+    def count_by_service_ids(region_id, service_ids):
+        return ServiceDomain.objects.filter(region_id=region_id, service_id__in=service_ids).count()
+
 
 class ServiceExtendRepository(object):
     # only market service return extend_method
@@ -734,6 +738,10 @@ class ServiceTcpDomainRepository(object):
     def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
         return ServiceTcpDomain.objects.filter(
             tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
+
+    @staticmethod
+    def count_by_service_ids(region_id, service_ids):
+        return ServiceTcpDomain.objects.filter(region_id=region_id, service_id__in=service_ids).count()
 
 
 class TenantServiceEndpoints(object):

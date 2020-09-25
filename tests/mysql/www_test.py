@@ -47,10 +47,6 @@ from www.models.main import ComposeServiceRelation
 from www.models.main import ServiceRuleHistory
 from www.models.main import ServiceAttachInfo
 from www.models.main import ServiceCreateStep
-from www.models.main import ThirdAppInfo
-from www.models.main import CDNTrafficHourRecord
-from www.models.main import ThirdAppOperator
-from www.models.main import ThirdAppOrder
 from www.models.main import ServiceFeeBill
 from www.models.main import ServiceConsume
 from www.models.main import ServiceEvent

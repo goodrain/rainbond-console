@@ -5,9 +5,15 @@
 import logging
 import re
 
+from deprecated import deprecated
 from django.db import transaction
 
+from console.services.service_services import base_service
+from console.services.compose_service import compose_service
+from console.services.market_app_service import market_app_service
 from console.repositories.share_repo import share_repo
+from console.repositories.region_repo import region_repo
+from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
@@ -16,8 +22,8 @@ from console.repositories.group import group_service_relation_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
 from www.models.main import ServiceGroup, ServiceGroupRelation
-from console.services.service_services import base_service
 from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.user_repo import user_repo
 from console.exception.main import ServiceHandleException
 
 logger = logging.getLogger("default")
@@ -72,6 +78,36 @@ class GroupService(object):
                 group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, u"success"
 
+    def get_app_detail(self, tenant, region_name, app_id):
+        # app metadata
+        app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+
+        app['app_id'] = app.ID
+        app['app_name'] = app.group_name
+        app['note'] = app.group_name
+
+        # get principal by principal_id
+        if app.principal_id:
+            app['principal'] = user_repo.get_by_user_id(app.principal_id)
+
+        app['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
+        app['backup_num'] = backup_record_repo.count_by_app_id(app_id)
+        app['share_num'] = share_repo.count_complete_by_app_id(app_id)
+        app['ingress_num'] = self.count_ingress_by_app_id(region_name, app_id)
+        app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(tenant, region_name, app_id)
+        # TODO: config_group_num
+
+        app["create_status"] = "complete"
+        app["compose_id"] = None
+        if app_id != -1:
+            compose_group = compose_service.get_group_compose_by_group_id(app_id)
+            if compose_group:
+                app["create_status"] = compose_group.create_status
+                app["compose_id"] = compose_group.compose_id
+
+        return app
+
+    @deprecated
     def get_group_by_id(self, tenant, region, group_id):
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
@@ -289,6 +325,17 @@ class GroupService(object):
     def get_app_id_by_service_ids(self, service_ids):
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
         return {s.service_id: s.group_id for s in sgr}
+
+    def count_ingress_by_app_id(self, region_name, app_id):
+        # list service_ids
+        relations = group_service_relation_repo.get_services_by_group(app_id)
+        service_ids = relations.values_list("service_id", flat=True)
+
+        region = region_repo.get_by_region_name(region_name)
+
+        # count ingress
+        return domain_repo.count_by_service_ids(region.region_id, service_ids) + tcp_domain.count_by_service_ids(
+            region.region_id, service_ids)
 
 
 group_service = GroupService()

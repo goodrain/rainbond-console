@@ -954,13 +954,19 @@ class MarketAppService(object):
         except TenantEnterpriseToken.DoesNotExist:
             return None
 
+    def count_upgradeable_market_apps(self, tenant, region, app_id):
+        service_group_keys = set(group_service.get_group_service_sources(app_id).values_list('group_key', flat=True))
+        iterator = self.yield_app_info(service_group_keys, tenant, app_id)
+        market_apps = [market_app for market_app in iterator if len(market_app.upgrade_versions) > 0]
+        return len(market_apps)
+
     def get_market_apps_in_app(self, region, tenant, group):
         service_group_keys = set(group_service.get_group_service_sources(group.ID).values_list('group_key', flat=True))
-        iterator = self.yield_app_info(service_group_keys, tenant, group)
+        iterator = self.yield_app_info(service_group_keys, tenant, group.ID)
         app_info_list = [app_info for app_info in iterator]
         return app_info_list
 
-    def yield_app_info(self, services_app_model_ids, tenant, group):
+    def yield_app_info(self, services_app_model_ids, tenant, app_id):
         for services_app_model_id in services_app_model_ids:
             group_key = services_app_model_id
             group_name = None
@@ -975,7 +981,7 @@ class MarketAppService(object):
             is_official = None
             details = None
             min_memory = None
-            services = group_service.get_rainbond_services(group.ID, group_key)
+            services = group_service.get_rainbond_services(app_id, group_key)
             pc = None
             for service in services:
                 try:
@@ -986,7 +992,7 @@ class MarketAppService(object):
                         group_name = pc.current_app.app_name
                         share_user = pc.current_app.create_user
                         share_team = pc.current_app.create_team
-                        tenant_service_group_id = group.ID
+                        tenant_service_group_id = app_id
                         pic = pc.current_app.pic
                         source = pc.current_app.source
                         market_name = pc.market_name
@@ -1018,7 +1024,7 @@ class MarketAppService(object):
                 'details': details,
                 'min_memory': min_memory,
             }
-            not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, group.ID, group_key)
+            not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, app_id, group_key)
             dat.update({
                 'current_version': pc.current_version.version,
                 'can_upgrade': bool(pc.get_upgradeable_versions),
