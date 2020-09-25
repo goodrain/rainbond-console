@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
-
 """
 - enterprise 100
     sub1 -- 101
@@ -21,9 +20,10 @@ TEAM = {
     "perms": [
         ["describe", u"查看团队信息", 200001],
         ["dynamic_describe", u"查看团队动态", 200009],
+        ["maven_setting", u"管理Maven配置", 200014],
     ],
     "teamRegion": {
-        "perms": [["describe", u"查看", 200002], ["install", u"开通", 200003], ["uninstall", u"关闭", 200004]]
+        "perms": [["describe", u"查看", 200002], ["install", u"开通", 200003], ["uninstall", u"卸载", 200004]]
     },
     "teamMember": {
         "perms": [
@@ -278,7 +278,7 @@ def get_perm_code(obj):
 
 def get_enterprise_adminer_codes():
     codes = get_perm_code(TEAM)
-    codes.extend([10000, 20000])
+    codes.extend([100000, 200000])
     return codes
 
 

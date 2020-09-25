@@ -3659,3 +3659,20 @@ AppServiceMonitor = {
         }
     }
 }
+
+MavenSettingRUDView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [200014]
+        },
+        "put": {
+            "perms": [200014]
+        },
+        "delete": {
+            "perms": [200014]
+        }
+    }
+}
