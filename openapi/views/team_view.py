@@ -17,7 +17,8 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
-    CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
+    CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer,
+    ListTeamRegionsRespSerializer,
     ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
     TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer,
     TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
@@ -116,8 +117,7 @@ class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="删除团队",
         manual_parameters=[
-            openapi.Parameter("force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true",
-                                                                                                               "false"]),
+            openapi.Parameter("force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true", "false"]),
         ],
         responses={},
         tags=['openapi-team'],
