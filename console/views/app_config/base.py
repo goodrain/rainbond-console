@@ -36,14 +36,16 @@ class AppBaseView(RegionTenantHeaderView):
                 team_info = Tenants.objects.filter(tenant_id=self.service.tenant_id)
                 if team_info:
                     raise BusinessException(
-                        response=Response(general_message(10403, "service team is not current team", "组件{0}不属于当前团队".format(
-                            service_alias), {"service_team_name": team_info[0].tenant_name}),
-                                          status=404))
+                        response=Response(
+                            general_message(10403, "service team is not current team", "组件{0}不属于当前团队".format(service_alias),
+                                            {"service_team_name": team_info[0].tenant_name}),
+                            status=404))
                 else:
                     raise BusinessException(
-                        response=Response(general_message(10403, "service team is not current team", "组件{0}不属于当前团队且其团队不存在".
-                                                          format(service_alias), {"service_team_name": ""}),
-                                          status=404))
+                        response=Response(
+                            general_message(10403, "service team is not current team", "组件{0}不属于当前团队且其团队不存在".format(
+                                service_alias), {"service_team_name": ""}),
+                            status=404))
             # 请求应用资源的数据中心与用户当前页面数据中心不一致
             if self.service.service_region != self.response_region:
                 self.response_region = self.service.service_region

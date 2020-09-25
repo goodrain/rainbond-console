@@ -24,7 +24,8 @@ class LabelService(object):
         # 判断标签是否被节点使用
         if region_config:
             node_label_ids = node_label_repo.get_node_label_by_region(
-                region_config.region_id).exclude(label_id__in=service_label_ids).values_list("label_id", flat=True)
+                region_config.region_id).exclude(label_id__in=service_label_ids).values_list(
+                    "label_id", flat=True)
         used_labels = label_repo.get_labels_by_label_ids(service_label_ids)
         logger.debug('-----------used_labels------->{0}'.format(used_labels))
         unused_labels = []
@@ -44,10 +45,8 @@ class LabelService(object):
         label_map = [label.label_name for label in labels]
         service_labels = list()
         for label_id in label_ids:
-            service_label = ServiceLabels(tenant_id=tenant.tenant_id,
-                                          service_id=service.service_id,
-                                          label_id=label_id,
-                                          region=service.service_region)
+            service_label = ServiceLabels(
+                tenant_id=tenant.tenant_id, service_id=service.service_id, label_id=label_id, region=service.service_region)
             service_labels.append(service_label)
 
         if service.create_status == "complete":

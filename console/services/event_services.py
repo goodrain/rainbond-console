@@ -32,7 +32,8 @@ class ServiceEventDynamic(object):
           and s.service_region = "{region_name}"
         ORDER BY start_time DESC
         LIMIT {start},{end}
-        """.format(team_id=team.tenant_id, region_name=region, start=start, end=end)
+        """.format(
+            team_id=team.tenant_id, region_name=region, start=start, end=end)
 
         events = dsn.query(query_sql)
         events_ids = []

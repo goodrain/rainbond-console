@@ -127,14 +127,15 @@ class AppInfoView(TeamAppAPIView):
         service_ids = app_service.get_group_services_by_id(self.app.ID)
         services = service_repo.get_services_by_service_ids(service_ids)
         if services:
-            status_list = base_service.status_multi_service(region=self.app.region_name,
-                                                            tenant_name=self.team.tenant_name,
-                                                            service_ids=service_ids,
-                                                            enterprise_id=self.team.enterprise_id)
+            status_list = base_service.status_multi_service(
+                region=self.app.region_name,
+                tenant_name=self.team.tenant_name,
+                service_ids=service_ids,
+                enterprise_id=self.team.enterprise_id)
             status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
             if len(status_list) > 0:
-                raise ServiceHandleException(msg="There are running components under the current application",
-                                             msg_show=u"当前应用下有运行态的组件，不可删除")
+                raise ServiceHandleException(
+                    msg="There are running components under the current application", msg_show=u"当前应用下有运行态的组件，不可删除")
             else:
                 code_status = 200
                 for service in services:
@@ -235,10 +236,11 @@ class AppServicesView(TeamAppServiceAPIView):
         tags=['openapi-apps'],
     )
     def get(self, req, app_id, service_id, *args, **kwargs):
-        status_list = base_service.status_multi_service(region=self.app.region_name,
-                                                        tenant_name=self.team.tenant_name,
-                                                        service_ids=[self.service.service_id],
-                                                        enterprise_id=self.team.enterprise_id)
+        status_list = base_service.status_multi_service(
+            region=self.app.region_name,
+            tenant_name=self.team.tenant_name,
+            service_ids=[self.service.service_id],
+            enterprise_id=self.team.enterprise_id)
         self.service.status = status_list[0]["status"]
         serializer = ServiceBaseInfoSerializer(data=self.service.to_dict())
         serializer.is_valid()
@@ -309,11 +311,8 @@ class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceO
         serializer = AppServiceTelescopicVerticalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_memory = serializer.data.get("new_memory")
-        code, msg = app_manage_service.vertical_upgrade(self.team,
-                                                        self.service,
-                                                        self.user,
-                                                        int(new_memory),
-                                                        oauth_instance=self.oauth_instance)
+        code, msg = app_manage_service.vertical_upgrade(
+            self.team, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="vertical upgrade error", msg_show=msg)
         return Response(None, status=code)
@@ -333,11 +332,8 @@ class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServic
         serializer = AppServiceTelescopicHorizontalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_node = serializer.data.get("new_node")
-        app_manage_service.horizontal_upgrade(self.team,
-                                              self.service,
-                                              self.user,
-                                              int(new_node),
-                                              oauth_instance=self.oauth_instance)
+        app_manage_service.horizontal_upgrade(
+            self.team, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
         return Response(None, status=200)
 
 
@@ -369,11 +365,8 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
         operation_description="应用下组件实时监控",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
-            openapi.Parameter("is_outer",
-                              openapi.IN_QUERY,
-                              description="是否只获取对外组件监控",
-                              type=openapi.TYPE_STRING,
-                              enum=["false", "true"]),
+            openapi.Parameter(
+                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
         ],
         responses={200: ComponentMonitorSerializers(many=True)},
         tags=['openapi-apps'],
@@ -436,11 +429,8 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
             openapi.Parameter("start", openapi.IN_PATH, description="起始时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("end", openapi.IN_PATH, description="结束时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("step", openapi.IN_PATH, description="步长（默认60）", type=openapi.TYPE_NUMBER),
-            openapi.Parameter("is_outer",
-                              openapi.IN_QUERY,
-                              description="是否只获取对外组件监控",
-                              type=openapi.TYPE_STRING,
-                              enum=["false", "true"]),
+            openapi.Parameter(
+                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
         ],
         responses={200: ComponentMonitorSerializers(many=True)},
         tags=['openapi-apps'],

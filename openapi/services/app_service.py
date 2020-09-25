@@ -20,10 +20,8 @@ class AppService(object):
         services = group_service.get_group_services(app.ID)
         service_ids = [service.service_id for service in services]
         team = team_services.get_team_by_team_id(app.tenant_id)
-        status_list = base_service.status_multi_service(region=app.region_name,
-                                                        tenant_name=team.tenant_name,
-                                                        service_ids=service_ids,
-                                                        enterprise_id=team.enterprise_id)
+        status_list = base_service.status_multi_service(
+            region=app.region_name, tenant_name=team.tenant_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
         status_map = {}
         if status_list:
             for status in status_list:

@@ -52,6 +52,7 @@ class DockerService(BaseModel):
 
 class DockerComposeYaml(BaseModel):
     """ 组件发布表格 """
+
     class Meta:
         db_table = 'docker_compose_yaml'
 

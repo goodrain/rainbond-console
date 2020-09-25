@@ -31,12 +31,13 @@ class ConfigRepository(object):
             setattr(obj, "value", value)
             obj.save()
         except ConsoleSysConfig.DoesNotExist:
-            ConsoleSysConfig.objects.create(key=key,
-                                            value=value,
-                                            type="json",
-                                            desc="git配置",
-                                            enable=True,
-                                            create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            ConsoleSysConfig.objects.create(
+                key=key,
+                value=value,
+                type="json",
+                desc="git配置",
+                enable=True,
+                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     def get_by_key(self, key):
         return ConsoleSysConfig.objects.get(key=key, enable=True)

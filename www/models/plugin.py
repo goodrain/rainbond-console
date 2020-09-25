@@ -17,6 +17,7 @@ plugin_status = (
 
 class TenantPlugin(BaseModel):
     """插件基础信息"""
+
     class Meta:
         db_table = "tenant_plugin"
 
@@ -32,11 +33,8 @@ class TenantPlugin(BaseModel):
     image = models.CharField(max_length=256, null=True, blank=True, help_text=u"镜像地址")
     code_repo = models.CharField(max_length=256, null=True, blank=True, help_text=u"docker构建代码仓库地址")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-    origin = models.CharField(max_length=12,
-                              default="source_code",
-                              null=False,
-                              blank=False,
-                              help_text=u"插件来源 source_code|market|local_market")
+    origin = models.CharField(
+        max_length=12, default="source_code", null=False, blank=False, help_text=u"插件来源 source_code|market|local_market")
     origin_share_id = models.CharField(max_length=32, default="new_create", help_text=u"分享的插件的id,自己创建为new_create")
     username = models.CharField(max_length=32, null=True, blank=True, help_text="镜像仓库或代码仓库用户名")
     password = models.CharField(max_length=32, null=True, blank=True, help_text="镜像仓库或代码仓库秘密")
@@ -44,6 +42,7 @@ class TenantPlugin(BaseModel):
 
 class PluginBuildVersion(BaseModel):
     """插件构建版本"""
+
     class Meta:
         db_table = "plugin_build_version"
 
@@ -66,6 +65,7 @@ class PluginBuildVersion(BaseModel):
 
 class PluginConfigGroup(BaseModel):
     """插件配置组"""
+
     class Meta:
         db_table = "plugin_config_group"
 
@@ -79,6 +79,7 @@ class PluginConfigGroup(BaseModel):
 
 class PluginConfigItems(BaseModel):
     """插件配置组下的配置项"""
+
     class Meta:
         db_table = "plugin_config_items"
 
@@ -97,6 +98,7 @@ class PluginConfigItems(BaseModel):
 
 class TenantServicePluginRelation(BaseModel):
     """组件和插件关系"""
+
     class Meta:
         db_table = "tenant_service_plugin_relation"
 
@@ -112,6 +114,7 @@ class TenantServicePluginRelation(BaseModel):
 
 class TenantServicePluginAttr(BaseModel):
     """旧版组件插件属性"""
+
     class Meta:
         db_table = "tenant_service_plugin_attr"
 
@@ -135,6 +138,7 @@ class TenantServicePluginAttr(BaseModel):
 
 class ServicePluginConfigVar(BaseModel):
     """新版组件插件属性"""
+
     class Meta:
         db_table = "service_plugin_config_var"
 

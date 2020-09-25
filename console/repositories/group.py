@@ -15,17 +15,18 @@ logger = logging.getLogger("default")
 
 class GroupRepository(object):
     def list_tenant_group_on_region(self, tenant, region_name):
-        return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name).order_by(
-            "-update_time", "-order_index")
+        return ServiceGroup.objects.filter(
+            tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
 
     def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False):
-        group = ServiceGroup.objects.create(tenant_id=tenant_id,
-                                            region_name=region_name,
-                                            group_name=group_name,
-                                            note=group_note,
-                                            is_default=is_default,
-                                            update_time=datetime.now(),
-                                            create_time=datetime.now())
+        group = ServiceGroup.objects.create(
+            tenant_id=tenant_id,
+            region_name=region_name,
+            group_name=group_name,
+            note=group_note,
+            is_default=is_default,
+            update_time=datetime.now(),
+            create_time=datetime.now())
         return group
 
     def update_group_time(self, group_id):
@@ -62,8 +63,8 @@ class GroupRepository(object):
         return group_count
 
     def get_tenant_region_groups(self, team_id, region, query=""):
-        return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region, group_name__icontains=query).order_by(
-            "-update_time", "-order_index")
+        return ServiceGroup.objects.filter(
+            tenant_id=team_id, region_name=region, group_name__icontains=query).order_by("-update_time", "-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
@@ -75,8 +76,8 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(pk=group_id).first()
 
     def get_default_by_service(self, service):
-        return ServiceGroup.objects.filter(tenant_id=service.tenant_id, region_name=service.service_region,
-                                           is_default=True).first()
+        return ServiceGroup.objects.filter(
+            tenant_id=service.tenant_id, region_name=service.service_region, is_default=True).first()
 
     def get_or_create_default_group(self, tenant_id, region_name):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建
@@ -106,10 +107,8 @@ class GroupServiceRelationRepository(object):
         ServiceGroupRelation.objects.filter(service_id=service_id).delete()
 
     def add_service_group_relation(self, group_id, service_id, tenant_id, region_name):
-        sgr = ServiceGroupRelation.objects.create(service_id=service_id,
-                                                  group_id=group_id,
-                                                  tenant_id=tenant_id,
-                                                  region_name=region_name)
+        sgr = ServiceGroupRelation.objects.create(
+            service_id=service_id, group_id=group_id, tenant_id=tenant_id, region_name=region_name)
         return sgr
 
     def get_group_by_service_id(self, service_id):

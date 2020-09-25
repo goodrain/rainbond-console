@@ -129,8 +129,8 @@ class PluginService(object):
         :param plugin_id: 插件id
         :return: 指定插件的所有版本信息
         """
-        plugin_build_version = PluginBuildVersion.objects.filter(region=region, tenant_id=tenant.tenant_id,
-                                                                 plugin_id=plugin_id).order_by("-ID")
+        plugin_build_version = PluginBuildVersion.objects.filter(
+            region=region, tenant_id=tenant.tenant_id, plugin_id=plugin_id).order_by("-ID")
         return plugin_build_version
 
     def get_tenant_plugin_newest_versions(self, region_name, tenant, plugin_id):
@@ -140,10 +140,8 @@ class PluginService(object):
         :param plugin_id: 插件id
         :return: 指定插件的所有版本信息
         """
-        plugin_build_version = PluginBuildVersion.objects.filter(region=region_name,
-                                                                 tenant_id=tenant.tenant_id,
-                                                                 plugin_id=plugin_id,
-                                                                 build_status="build_success").order_by("-ID")
+        plugin_build_version = PluginBuildVersion.objects.filter(
+            region=region_name, tenant_id=tenant.tenant_id, plugin_id=plugin_id, build_status="build_success").order_by("-ID")
         return plugin_build_version
 
     def get_tenant_service_plugin_relation(self, service_id):
@@ -170,9 +168,8 @@ class PluginService(object):
         @param build_version: 插件构建版本
         @return:
         """
-        return TenantServicePluginRelation.objects.create(service_id=service_id,
-                                                          build_version=build_version,
-                                                          plugin_id=plugin_id)
+        return TenantServicePluginRelation.objects.create(
+            service_id=service_id, build_version=build_version, plugin_id=plugin_id)
 
     def del_service_plugin_relation_and_attrs(self, service_id, plugin_id):
         # delete service plugin attrs
@@ -202,56 +199,56 @@ class PluginService(object):
         return PluginBuildVersion.objects.get(plugin_id=plugin_id, build_version=build_version)
 
     def get_env_attr_by_service_meta_type(self, plugin_id, build_version, service_meta_type):
-        return PluginConfigItems.objects.filter(plugin_id=plugin_id,
-                                                build_version=build_version,
-                                                service_meta_type=service_meta_type)
+        return PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type)
 
     def InsertSqlInDownStreamMeta(self, downStreamList, plugin_id, service_id):
         store_list = []
         for stream in downStreamList:
             for cf in stream.get("config"):
-                tspa = TenantServicePluginAttr(service_id=stream.get("service_id"),
-                                               service_alias=stream.get("service_alias"),
-                                               dest_service_id=stream.get("dest_service_id"),
-                                               dest_service_alias=stream.get("dest_service_alias"),
-                                               plugin_id=plugin_id,
-                                               service_meta_type=stream.get("service_meta_type"),
-                                               injection=stream.get("injection"),
-                                               container_port=stream.get("port"),
-                                               attr_name=cf.get("attr_name"),
-                                               attr_value=cf.get("attr_default_value", " "),
-                                               attr_type=cf.get("attr_type"),
-                                               attr_default_value=cf.get("attr_default_value"),
-                                               attr_alt_value=cf.get("attr_alt_value"),
-                                               protocol=stream.get("protocol"),
-                                               attr_info=cf.get("attr_info"),
-                                               is_change=cf.get("is_change"))
+                tspa = TenantServicePluginAttr(
+                    service_id=stream.get("service_id"),
+                    service_alias=stream.get("service_alias"),
+                    dest_service_id=stream.get("dest_service_id"),
+                    dest_service_alias=stream.get("dest_service_alias"),
+                    plugin_id=plugin_id,
+                    service_meta_type=stream.get("service_meta_type"),
+                    injection=stream.get("injection"),
+                    container_port=stream.get("port"),
+                    attr_name=cf.get("attr_name"),
+                    attr_value=cf.get("attr_default_value", " "),
+                    attr_type=cf.get("attr_type"),
+                    attr_default_value=cf.get("attr_default_value"),
+                    attr_alt_value=cf.get("attr_alt_value"),
+                    protocol=stream.get("protocol"),
+                    attr_info=cf.get("attr_info"),
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
-        TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                               plugin_id=plugin_id,
-                                               service_meta_type=ConstKey.DOWNSTREAM_PORT).delete()
+        TenantServicePluginAttr.objects.filter(
+            service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.DOWNSTREAM_PORT).delete()
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
     def UpdateSqlInDownStreamMeta(self, downStreamList, plugin_id, service_id):
         store_list = []
         for stream in downStreamList:
             for cf in stream.get("config"):
-                tspa = TenantServicePluginAttr(service_id=stream.get("service_id"),
-                                               service_alias=stream.get("service_alias"),
-                                               dest_service_id=stream.get("dest_service_id"),
-                                               dest_service_alias=stream.get("dest_service_alias"),
-                                               plugin_id=plugin_id,
-                                               service_meta_type=stream.get("service_meta_type"),
-                                               injection=stream.get("injection"),
-                                               container_port=stream.get("port"),
-                                               attr_name=cf.get("attr_name"),
-                                               attr_value=cf.get("attr_value", " "),
-                                               attr_type=cf.get("attr_type"),
-                                               attr_default_value=cf.get("attr_default_value"),
-                                               attr_alt_value=cf.get("attr_alt_value"),
-                                               protocol=stream.get("protocol"),
-                                               attr_info=cf.get("attr_info"),
-                                               is_change=cf.get("is_change"))
+                tspa = TenantServicePluginAttr(
+                    service_id=stream.get("service_id"),
+                    service_alias=stream.get("service_alias"),
+                    dest_service_id=stream.get("dest_service_id"),
+                    dest_service_alias=stream.get("dest_service_alias"),
+                    plugin_id=plugin_id,
+                    service_meta_type=stream.get("service_meta_type"),
+                    injection=stream.get("injection"),
+                    container_port=stream.get("port"),
+                    attr_name=cf.get("attr_name"),
+                    attr_value=cf.get("attr_value", " "),
+                    attr_type=cf.get("attr_type"),
+                    attr_default_value=cf.get("attr_default_value"),
+                    attr_alt_value=cf.get("attr_alt_value"),
+                    protocol=stream.get("protocol"),
+                    attr_info=cf.get("attr_info"),
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
@@ -259,44 +256,45 @@ class PluginService(object):
         store_list = []
         for stream in upStreamList:
             for cf in stream.get("config"):
-                tspa = TenantServicePluginAttr(service_id=stream.get("service_id"),
-                                               service_alias=stream.get("service_alias"),
-                                               plugin_id=plugin_id,
-                                               service_meta_type=stream.get("service_meta_type"),
-                                               injection=stream.get("injection"),
-                                               container_port=stream.get("port"),
-                                               attr_name=cf.get("attr_name"),
-                                               attr_value=cf.get("attr_default_value", " "),
-                                               attr_type=cf.get("attr_type"),
-                                               attr_default_value=cf.get("attr_default_value"),
-                                               attr_alt_value=cf.get("attr_alt_value"),
-                                               protocol=stream.get("protocol"),
-                                               attr_info=cf.get("attr_info"),
-                                               is_change=cf.get("is_change"))
+                tspa = TenantServicePluginAttr(
+                    service_id=stream.get("service_id"),
+                    service_alias=stream.get("service_alias"),
+                    plugin_id=plugin_id,
+                    service_meta_type=stream.get("service_meta_type"),
+                    injection=stream.get("injection"),
+                    container_port=stream.get("port"),
+                    attr_name=cf.get("attr_name"),
+                    attr_value=cf.get("attr_default_value", " "),
+                    attr_type=cf.get("attr_type"),
+                    attr_default_value=cf.get("attr_default_value"),
+                    attr_alt_value=cf.get("attr_alt_value"),
+                    protocol=stream.get("protocol"),
+                    attr_info=cf.get("attr_info"),
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
-        TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                               plugin_id=plugin_id,
-                                               service_meta_type=ConstKey.UPSTREAM_PORT).delete()
+        TenantServicePluginAttr.objects.filter(
+            service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.UPSTREAM_PORT).delete()
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
     def UpdateSqlInUpStreamMeta(self, upStreamList, plugin_id, service_id):
         store_list = []
         for stream in upStreamList:
             for cf in stream.get("config"):
-                tspa = TenantServicePluginAttr(service_id=stream.get("service_id"),
-                                               service_alias=stream.get("service_alias"),
-                                               plugin_id=plugin_id,
-                                               service_meta_type=stream.get("service_meta_type"),
-                                               injection=stream.get("injection"),
-                                               container_port=stream.get("port"),
-                                               attr_name=cf.get("attr_name"),
-                                               attr_value=cf.get("attr_value", " "),
-                                               attr_type=cf.get("attr_type"),
-                                               attr_default_value=cf.get("attr_default_value"),
-                                               attr_alt_value=cf.get("attr_alt_value"),
-                                               protocol=stream.get("protocol"),
-                                               attr_info=cf.get("attr_info"),
-                                               is_change=cf.get("is_change"))
+                tspa = TenantServicePluginAttr(
+                    service_id=stream.get("service_id"),
+                    service_alias=stream.get("service_alias"),
+                    plugin_id=plugin_id,
+                    service_meta_type=stream.get("service_meta_type"),
+                    injection=stream.get("injection"),
+                    container_port=stream.get("port"),
+                    attr_name=cf.get("attr_name"),
+                    attr_value=cf.get("attr_value", " "),
+                    attr_type=cf.get("attr_type"),
+                    attr_default_value=cf.get("attr_default_value"),
+                    attr_alt_value=cf.get("attr_alt_value"),
+                    protocol=stream.get("protocol"),
+                    attr_info=cf.get("attr_info"),
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
@@ -304,52 +302,55 @@ class PluginService(object):
         store_list = []
         for stream in envList:
             for cf in stream.get("config"):
-                tspa = TenantServicePluginAttr(service_id=stream.get("service_id"),
-                                               service_alias=stream.get("service_alias"),
-                                               plugin_id=plugin_id,
-                                               service_meta_type=stream.get("service_meta_type"),
-                                               container_port=0,
-                                               injection=stream.get("injection"),
-                                               attr_name=cf.get("attr_name"),
-                                               attr_value=cf.get("attr_default_value", " "),
-                                               attr_type=cf.get("attr_type"),
-                                               attr_default_value=cf.get("attr_default_value"),
-                                               attr_alt_value=cf.get("attr_alt_value"),
-                                               attr_info=cf.get("attr_info"),
-                                               is_change=cf.get("is_change"))
+                tspa = TenantServicePluginAttr(
+                    service_id=stream.get("service_id"),
+                    service_alias=stream.get("service_alias"),
+                    plugin_id=plugin_id,
+                    service_meta_type=stream.get("service_meta_type"),
+                    container_port=0,
+                    injection=stream.get("injection"),
+                    attr_name=cf.get("attr_name"),
+                    attr_value=cf.get("attr_default_value", " "),
+                    attr_type=cf.get("attr_type"),
+                    attr_default_value=cf.get("attr_default_value"),
+                    attr_alt_value=cf.get("attr_alt_value"),
+                    attr_info=cf.get("attr_info"),
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
-        TenantServicePluginAttr.objects.filter(service_id=service_id, plugin_id=plugin_id,
-                                               service_meta_type=ConstKey.UNDEFINE).delete()
+        TenantServicePluginAttr.objects.filter(
+            service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.UNDEFINE).delete()
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
     def UpdateSqlInENVMeta(self, envList, plugin_id, service_id):
         store_list = []
         for stream in envList:
             for cf in stream.get("config"):
-                tspa = TenantServicePluginAttr(service_id=stream.get("service_id"),
-                                               service_alias=stream.get("service_alias"),
-                                               plugin_id=plugin_id,
-                                               service_meta_type=stream.get("service_meta_type"),
-                                               container_port=0,
-                                               injection=stream.get("injection"),
-                                               attr_name=cf.get("attr_name"),
-                                               attr_value=cf.get("attr_value", " "),
-                                               attr_type=cf.get("attr_type"),
-                                               attr_default_value=cf.get("attr_default_value"),
-                                               attr_alt_value=cf.get("attr_alt_value"),
-                                               attr_info=cf.get("attr_info"),
-                                               is_change=cf.get("is_change"))
+                tspa = TenantServicePluginAttr(
+                    service_id=stream.get("service_id"),
+                    service_alias=stream.get("service_alias"),
+                    plugin_id=plugin_id,
+                    service_meta_type=stream.get("service_meta_type"),
+                    container_port=0,
+                    injection=stream.get("injection"),
+                    attr_name=cf.get("attr_name"),
+                    attr_value=cf.get("attr_value", " "),
+                    attr_type=cf.get("attr_type"),
+                    attr_default_value=cf.get("attr_default_value"),
+                    attr_alt_value=cf.get("attr_alt_value"),
+                    attr_info=cf.get("attr_info"),
+                    is_change=cf.get("is_change"))
                 store_list.append(tspa)
         TenantServicePluginAttr.objects.bulk_create(store_list)
 
     def getServicePluginAttrByAttrName(self, service_id, plugin_id, metaType, pubDict, configList):
         if metaType == ConstKey.DOWNSTREAM_PORT:
-            attrList = TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                                              plugin_id=plugin_id,
-                                                              service_meta_type=metaType,
-                                                              dest_service_alias=pubDict.get("dest_service_alias"),
-                                                              container_port=int(pubDict.get("port")),
-                                                              injection=pubDict.get("injection"))
+            attrList = TenantServicePluginAttr.objects.filter(
+                service_id=service_id,
+                plugin_id=plugin_id,
+                service_meta_type=metaType,
+                dest_service_alias=pubDict.get("dest_service_alias"),
+                container_port=int(pubDict.get("port")),
+                injection=pubDict.get("injection"))
             if len(attrList) == 0:
                 return configList
             for config in configList:
@@ -357,11 +358,12 @@ class PluginService(object):
                     if attr.attr_name == config.get("attr_name"):
                         config["attr_value"] = attr.attr_value
         elif metaType == ConstKey.UPSTREAM_PORT:
-            attrList = TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                                              plugin_id=plugin_id,
-                                                              service_meta_type=metaType,
-                                                              container_port=int(pubDict.get("port")),
-                                                              injection=pubDict.get("injection"))
+            attrList = TenantServicePluginAttr.objects.filter(
+                service_id=service_id,
+                plugin_id=plugin_id,
+                service_meta_type=metaType,
+                container_port=int(pubDict.get("port")),
+                injection=pubDict.get("injection"))
             if len(attrList) == 0:
                 return configList
             for config in configList:
@@ -369,10 +371,8 @@ class PluginService(object):
                     if attr.attr_name == config.get("attr_name"):
                         config["attr_value"] = attr.attr_value
         elif metaType == ConstKey.UNDEFINE:
-            attrList = TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                                              plugin_id=plugin_id,
-                                                              service_meta_type=metaType,
-                                                              injection=pubDict.get("injection"))
+            attrList = TenantServicePluginAttr.objects.filter(
+                service_id=service_id, plugin_id=plugin_id, service_meta_type=metaType, injection=pubDict.get("injection"))
             if len(attrList) == 0:
                 return configList
             for config in configList:
@@ -469,12 +469,11 @@ class PluginService(object):
         :return: 指定插件的和版本的构建信息
         """
         if not build_version:
-            plugin_build_versions = PluginBuildVersion.objects.filter(tenant_id=tenant.tenant_id,
-                                                                      plugin_id=plugin_id).order_by("-ID")
+            plugin_build_versions = PluginBuildVersion.objects.filter(
+                tenant_id=tenant.tenant_id, plugin_id=plugin_id).order_by("-ID")
         else:
-            plugin_build_versions = PluginBuildVersion.objects.filter(tenant_id=tenant.tenant_id,
-                                                                      plugin_id=plugin_id,
-                                                                      build_version=build_version).order_by("-ID")
+            plugin_build_versions = PluginBuildVersion.objects.filter(
+                tenant_id=tenant.tenant_id, plugin_id=plugin_id, build_version=build_version).order_by("-ID")
         if plugin_build_versions:
             return plugin_build_versions[0]
         return None
@@ -507,17 +506,18 @@ class PluginService(object):
         """创建插件基础信息"""
         plugin_id = make_uuid()
         category = CATEGORY_REGION_MAP.get(category, category)
-        tenant_plugin = TenantPlugin.objects.create(plugin_id=plugin_id,
-                                                    tenant_id=tenant.tenant_id,
-                                                    region=region,
-                                                    create_user=user_id,
-                                                    desc=desc,
-                                                    plugin_name="gr" + plugin_id[:6],
-                                                    plugin_alias=plugin_alias,
-                                                    category=category,
-                                                    build_source=build_source,
-                                                    image=image,
-                                                    code_repo=code_repo)
+        tenant_plugin = TenantPlugin.objects.create(
+            plugin_id=plugin_id,
+            tenant_id=tenant.tenant_id,
+            region=region,
+            create_user=user_id,
+            desc=desc,
+            plugin_name="gr" + plugin_id[:6],
+            plugin_alias=plugin_alias,
+            category=category,
+            build_source=build_source,
+            image=image,
+            code_repo=code_repo)
         return tenant_plugin
 
     def sortList(self, pList):
@@ -553,15 +553,12 @@ class PluginService(object):
         auto_envs = {}
         logger.debug("plugin.relation", "service_id: {0}, plugin_id:{1}, service_alias:{2}".format(
             service_id, service_alias, plugin_id))
-        downStream_attrsList = TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                                                      plugin_id=plugin_id,
-                                                                      service_meta_type=ConstKey.DOWNSTREAM_PORT)
-        upstream_attrsList = TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                                                    plugin_id=plugin_id,
-                                                                    service_meta_type=ConstKey.UPSTREAM_PORT)
-        env_attrsList = TenantServicePluginAttr.objects.filter(service_id=service_id,
-                                                               plugin_id=plugin_id,
-                                                               service_meta_type=ConstKey.UNDEFINE)
+        downStream_attrsList = TenantServicePluginAttr.objects.filter(
+            service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.DOWNSTREAM_PORT)
+        upstream_attrsList = TenantServicePluginAttr.objects.filter(
+            service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.UPSTREAM_PORT)
+        env_attrsList = TenantServicePluginAttr.objects.filter(
+            service_id=service_id, plugin_id=plugin_id, service_meta_type=ConstKey.UNDEFINE)
 
         # 处理downstram
         service_port_items = self.sortList(
@@ -642,15 +639,16 @@ class PluginService(object):
     def updateTenantServicePluginAttr(self, request):
         logger.debug(
             "plugin.relation", "old attr is " + request.get("config_group[service_alias]", "") + ";" +
-            request.get("config_group[dest_service_alias]", "") + ";" + request.get("plugin_id", None) + ";" +
-            request.get("config_group[service_meta_type]", None) + ";" + str(request.get("config_group[port]", 0)) + ";" +
-            request.get("config_group[config][attr_name]", None))
-        oldAttr = TenantServicePluginAttr.objects.get(service_alias=request.get("config_group[service_alias]", ""),
-                                                      dest_service_alias=request.get("config_group[dest_service_alias]", ""),
-                                                      plugin_id=request.get("plugin_id", None),
-                                                      service_meta_type=request.get("config_group[service_meta_type]", None),
-                                                      container_port=request.get("config_group[port]", 0),
-                                                      attr_name=request.get("config_group[config][attr_name]", None))
+            request.get("config_group[dest_service_alias]", "") + ";" + request.get("plugin_id", None) + ";" + request.get(
+                "config_group[service_meta_type]", None) + ";" + str(request.get("config_group[port]", 0)) + ";" + request.get(
+                    "config_group[config][attr_name]", None))
+        oldAttr = TenantServicePluginAttr.objects.get(
+            service_alias=request.get("config_group[service_alias]", ""),
+            dest_service_alias=request.get("config_group[dest_service_alias]", ""),
+            plugin_id=request.get("plugin_id", None),
+            service_meta_type=request.get("config_group[service_meta_type]", None),
+            container_port=request.get("config_group[port]", 0),
+            attr_name=request.get("config_group[config][attr_name]", None))
         oldAttr.attr_value = request.get("config_group[config][attr_value]", None)
         if not oldAttr.attr_value:
             oldAttr.attr_value = request.get("config_group[config][attr_default_value]", None)
@@ -670,18 +668,19 @@ class PluginService(object):
                                     image_tag="latest",
                                     code_version="master"):
         """创建插件版本信息"""
-        plugin_build_version = PluginBuildVersion.objects.create(plugin_id=plugin_id,
-                                                                 tenant_id=tenant_id,
-                                                                 region=region,
-                                                                 user_id=user_id,
-                                                                 update_info=update_info,
-                                                                 build_version=build_version,
-                                                                 build_status=build_status,
-                                                                 min_memory=min_memory,
-                                                                 min_cpu=min_cpu,
-                                                                 build_cmd=build_cmd,
-                                                                 image_tag=image_tag,
-                                                                 code_version=code_version)
+        plugin_build_version = PluginBuildVersion.objects.create(
+            plugin_id=plugin_id,
+            tenant_id=tenant_id,
+            region=region,
+            user_id=user_id,
+            update_info=update_info,
+            build_version=build_version,
+            build_status=build_status,
+            min_memory=min_memory,
+            min_cpu=min_cpu,
+            build_cmd=build_cmd,
+            image_tag=image_tag,
+            code_version=code_version)
         return plugin_build_version
 
     def calculate_cpu(self, region, memory):
@@ -728,23 +727,25 @@ class PluginService(object):
         if config_group:
             for config in config_group:
                 options = config["options"]
-                plugin_config_meta = PluginConfigGroup(plugin_id=plugin_id,
-                                                       build_version=build_version,
-                                                       config_name=config["config_name"],
-                                                       service_meta_type=config["service_meta_type"],
-                                                       injection=config["injection"])
+                plugin_config_meta = PluginConfigGroup(
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    config_name=config["config_name"],
+                    service_meta_type=config["service_meta_type"],
+                    injection=config["injection"])
                 plugin_config_meta_list.append(plugin_config_meta)
 
                 for option in options:
-                    config_item = PluginConfigItems(plugin_id=plugin_id,
-                                                    build_version=build_version,
-                                                    service_meta_type=config["service_meta_type"],
-                                                    attr_name=option["attr_name"],
-                                                    attr_alt_value=option["attr_alt_value"],
-                                                    attr_type=option.get("attr_type", "string"),
-                                                    attr_default_value=option.get("attr_default_value", None),
-                                                    is_change=option.get("is_change", False),
-                                                    attr_info=option.get("attr_info", ""))
+                    config_item = PluginConfigItems(
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config["service_meta_type"],
+                        attr_name=option["attr_name"],
+                        attr_alt_value=option["attr_alt_value"],
+                        attr_type=option.get("attr_type", "string"),
+                        attr_default_value=option.get("attr_default_value", None),
+                        is_change=option.get("is_change", False),
+                        attr_info=option.get("attr_info", ""))
                     config_items_list.append(config_item)
         self.bulk_create_plugin_config_group(plugin_config_meta_list)
         self.bulk_create_plugin_config_items(config_items_list)
@@ -788,9 +789,8 @@ class PluginService(object):
         return PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version)
 
     def get_config_items_by_id_metadata_and_version(self, plugin_id, build_version, service_meta_type):
-        return PluginConfigItems.objects.filter(plugin_id=plugin_id,
-                                                build_version=build_version,
-                                                service_meta_type=service_meta_type)
+        return PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type)
 
     def delete_config_group_by_group_id_and_version(self, plugin_id, build_version):
         PluginConfigGroup.objects.filter(plugin_id=plugin_id, build_version=build_version).delete()
@@ -952,10 +952,10 @@ class PluginService(object):
         return PluginConfigGroup.objects.get(pk=pk)
 
     def delete_config_group_by_meta_type(self, plugin_id, build_version, service_meta_type):
-        PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version,
-                                         service_meta_type=service_meta_type).delete()
-        PluginConfigGroup.objects.filter(plugin_id=plugin_id, build_version=build_version,
-                                         service_meta_type=service_meta_type).delete()
+        PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type).delete()
+        PluginConfigGroup.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type).delete()
 
     def update_config_group_by_pk(self, pk, config_name, service_meta_type, injection):
         pcg = PluginConfigGroup.objects.get(pk=pk)
@@ -965,21 +965,22 @@ class PluginService(object):
         pcg.save()
 
     def delete_config_items_by_meta_type(self, plugin_id, build_version, service_meta_type):
-        PluginConfigItems.objects.filter(plugin_id=plugin_id, build_version=build_version,
-                                         service_meta_type=service_meta_type).delete()
+        PluginConfigItems.objects.filter(
+            plugin_id=plugin_id, build_version=build_version, service_meta_type=service_meta_type).delete()
 
     def create_config_items(self, plugin_id, build_version, service_meta_type, *options):
         config_items_list = []
         for option in options:
-            config_item = PluginConfigItems(plugin_id=plugin_id,
-                                            build_version=build_version,
-                                            service_meta_type=service_meta_type,
-                                            attr_name=option["attr_name"],
-                                            attr_alt_value=option["attr_alt_value"],
-                                            attr_type=option.get("attr_type", "string"),
-                                            attr_default_value=option.get("attr_default_value", None),
-                                            is_change=option.get("is_change", False),
-                                            attr_info=option.get("attr_info", ""))
+            config_item = PluginConfigItems(
+                plugin_id=plugin_id,
+                build_version=build_version,
+                service_meta_type=service_meta_type,
+                attr_name=option["attr_name"],
+                attr_alt_value=option["attr_alt_value"],
+                attr_type=option.get("attr_type", "string"),
+                attr_default_value=option.get("attr_default_value", None),
+                is_change=option.get("is_change", False),
+                attr_info=option.get("attr_info", ""))
             config_items_list.append(config_item)
 
         self.bulk_create_plugin_config_items(config_items_list)

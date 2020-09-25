@@ -29,18 +29,19 @@ def test_restore_env():
             "scope": "inner",
             "service_id": "36966cedcad44358a12f1707dece18da",
             "ID": 1080
-        }, {
-            "name": "PHP_EXTRA_CONFIGURE_ARGS",
-            "tenant_id": "c1a29fe4d7b0413993dc859430cf743d",
-            "attr_name": "PHP_EXTRA_CONFIGURE_ARGS",
-            "container_port": 0,
-            "create_time": "2019-05-14 18:04:26",
-            "attr_value": "--with-apxs2 --disable-cgi",
-            "is_change": True,
-            "scope": "inner",
-            "service_id": "36966cedcad44358a12f1707dece18da",
-            "ID": 1081
-        }]
+        },
+                             {
+                                 "name": "PHP_EXTRA_CONFIGURE_ARGS",
+                                 "tenant_id": "c1a29fe4d7b0413993dc859430cf743d",
+                                 "attr_name": "PHP_EXTRA_CONFIGURE_ARGS",
+                                 "container_port": 0,
+                                 "create_time": "2019-05-14 18:04:26",
+                                 "attr_value": "--with-apxs2 --disable-cgi",
+                                 "is_change": True,
+                                 "scope": "inner",
+                                 "service_id": "36966cedcad44358a12f1707dece18da",
+                                 "ID": 1081
+                             }]
     }
     service_env_vars = backup_data["service_env_vars"]
     raw_envs = [env["name"] for env in service_env_vars]

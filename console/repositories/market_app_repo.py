@@ -74,7 +74,8 @@ class RainbondCenterAppRepository(object):
                 app.enterprise_id = '{eid}'
                 {extend_where}
             limit {offset}, {rows}
-            """.format(eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size)
+            """.format(
+            eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size)
         return sql
 
     def get_rainbond_app_in_teams_by_querey(self, eid, scope, teams, app_name, tag_names=None, page=1, page_size=10):
@@ -114,7 +115,8 @@ class RainbondCenterAppRepository(object):
             where
                 app.enterprise_id = '{eid}'
                 {extend_where}
-            """.format(eid=eid, extend_where=extend_where)
+            """.format(
+            eid=eid, extend_where=extend_where)
         conn = BaseConnection()
         count = conn.query(sql)
         return count
@@ -304,8 +306,8 @@ class RainbondCenterAppRepository(object):
         return result
 
     def get_rainbond_app_versions_by_id(self, eid, app_id):
-        where = 'WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND BB.app_id="{app_id}";'.format(eid=eid,
-                                                                                                                 app_id=app_id)
+        where = 'WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND BB.app_id="{app_id}";'.format(
+            eid=eid, app_id=app_id)
         sql = """
                 SELECT
                     BB.ID,
@@ -348,7 +350,8 @@ class RainbondCenterAppRepository(object):
         where = """
             WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND
              BB.app_id="{app_id}" AND C.version="{version}";
-            """.format(eid=eid, app_id=app_id, version=version)
+            """.format(
+            eid=eid, app_id=app_id, version=version)
         sql = """
                 SELECT
                     BB.ID,
@@ -398,8 +401,8 @@ class RainbondCenterAppRepository(object):
         app.install_number += 1
         app.save()
 
-        app_version = RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id,
-                                                              version=app_version).order_by("-upgrade_time").first()
+        app_version = RainbondCenterAppVersion.objects.filter(
+            enterprise_id=enterprise_id, app_id=app_id, version=app_version).order_by("-upgrade_time").first()
         app_version.install_number += 1
         app_version.save()
 
@@ -436,19 +439,16 @@ class RainbondCenterAppRepository(object):
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
         app = RainbondCenterApp.objects.filter(app_id=group_key).first()
-        app_version = RainbondCenterAppVersion.objects.filter(app_id=group_key,
-                                                              version=version,
-                                                              scope__in=["team", "enterprise",
-                                                                         "goodrain"]).order_by("-upgrade_time").first()
+        app_version = RainbondCenterAppVersion.objects.filter(
+            app_id=group_key, version=version, scope__in=["team", "enterprise", "goodrain"]).order_by("-upgrade_time").first()
         if app and app_version:
             app_version.app_name = app.app_name
         return app_version
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
         app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
-        rcapps = RainbondCenterAppVersion.objects.filter(app_id=group_key,
-                                                         version=group_version,
-                                                         enterprise_id__in=["public", enterprise_id]).order_by("-update_time")
+        rcapps = RainbondCenterAppVersion.objects.filter(
+            app_id=group_key, version=group_version, enterprise_id__in=["public", enterprise_id]).order_by("-update_time")
         if rcapps and app:
             rcapp = rcapps.filter(enterprise_id=enterprise_id)
             # 优先获取企业下的应用
@@ -511,20 +511,15 @@ class AppExportRepository(object):
         return AppExportRecord.objects.filter(group_key=group_key, version=version, format=export_format).first()
 
     def get_export_record(self, eid, app_id, app_version, export_format):
-        records = AppExportRecord.objects.filter(group_key=app_id,
-                                                 version=app_version,
-                                                 format=export_format,
-                                                 enterprise_id__in=[eid, "public"],
-                                                 status="exporting")
+        records = AppExportRecord.objects.filter(
+            group_key=app_id, version=app_version, format=export_format, enterprise_id__in=[eid, "public"], status="exporting")
         if not records:
             return None
         return records[0]
 
     def get_enter_export_record_by_unique_key(self, enterprise_id, group_key, version, export_format):
-        app_records = AppExportRecord.objects.filter(group_key=group_key,
-                                                     version=version,
-                                                     format=export_format,
-                                                     enterprise_id__in=[enterprise_id, "public"])
+        app_records = AppExportRecord.objects.filter(
+            group_key=group_key, version=version, format=export_format, enterprise_id__in=[enterprise_id, "public"])
         if app_records:
             current_enter_records = app_records.filter(enterprise_id=enterprise_id)
             if current_enter_records:
@@ -565,8 +560,8 @@ class AppImportRepository(object):
         return AppImportRecord.objects.filter(user_name=user_name, team_name=team_name, status="importing")
 
     def get_user_unfinished_import_record(self, team_name, user_name):
-        return AppImportRecord.objects.filter(user_name=user_name,
-                                              team_name=team_name).exclude(status__in=["success", "failed"])
+        return AppImportRecord.objects.filter(
+            user_name=user_name, team_name=team_name).exclude(status__in=["success", "failed"])
 
     def get_user_not_finished_import_record_in_enterprise(self, eid, user_name):
         return AppImportRecord.objects.filter(user_name=user_name, enterprise_id=eid).exclude(status__in=["success", "failed"])

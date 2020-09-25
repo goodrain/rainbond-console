@@ -35,8 +35,8 @@ class PluginManage(object):
                             if e.status != 404:
                                 continue
 
-                        TenantServicePluginRelation.objects.filter(service_id=service.service_id,
-                                                                   plugin_id=tp.plugin_id).delete()
+                        TenantServicePluginRelation.objects.filter(
+                            service_id=service.service_id, plugin_id=tp.plugin_id).delete()
 
                         ServicePluginConfigVar.objects.filter(service_id=service.service_id, plugin_id=tp.plugin_id).delete()
                         TenantServicePluginAttr.objects.filter(service_id=service.service_id, plugin_id=tp.plugin_id).delete()

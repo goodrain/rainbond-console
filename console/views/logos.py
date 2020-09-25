@@ -25,6 +25,7 @@ class ConfigRUDView(AlowAnyApiView):
     获取配置信息
     ---
     """
+
     def get(self, request, *args, **kwargs):
         code = 200
         status = perms_repo.initialize_permission_settings()
@@ -144,82 +145,83 @@ class PhpConfigView(AlowAnyApiView):
             "value": "mbstring",
             "url": "http://docs.php.net/mbstring",
             "version": "1.3.2"
-        }, {
-            "name": "MySQL(PHP 5.5 版本已经停止支持，请使用 MySQLi 或 PDO)",
-            "value": "mysql",
-            "url": "http://docs.php.net/book.mysql",
-            "version": "mysqlnd 5.0.11-dev"
-        }, {
-            "name": "PCNTL",
-            "value": "pcntl",
-            "url": "http://docs.php.net/pcntl",
-            "version": None
-        }, {
-            "name": "Shmop",
-            "value": "shmop",
-            "url": "http://docs.php.net/shmop",
-            "version": None
-        }, {
-            "name": "SOAP",
-            "value": "soap",
-            "url": "http://docs.php.net/soap",
-            "version": None
-        }, {
-            "name": "SQLite3",
-            "value": "sqlite3",
-            "url": "http://docs.php.net/sqlite3",
-            "version": "0.7-dev"
-        }, {
-            "name": "SQLite(PDO)",
-            "value": "pdo_sqlite",
-            "url": "http://docs.php.net/pdo_sqlite",
-            "version": "3.8.2"
-        }, {
-            "name": "XMLRPC",
-            "value": "xmlrpc",
-            "url": "http://docs.php.net/xmlrpc",
-            "version": "0.51"
-        }, {
-            "name": "XSL",
-            "value": "xsl",
-            "url": "http://docs.php.net/xsl",
-            "version": "1.1.28"
-        }, {
-            "name": "APCu",
-            "value": "apcu",
-            "url": "http://pecl.php.net/package/apcu",
-            "version": "4.0.6"
-        }, {
-            "name": "Blackfire",
-            "value": "blackfire",
-            "url": "http://blackfire.io/",
-            "version": "0.20.6"
-        }, {
-            "name": "memcached",
-            "value": "memcached",
-            "url": "http://docs.php.net/memcached",
-            "version": "2.2.0"
-        }, {
-            "name": "MongoDB",
-            "value": "mongodb",
-            "url": "http://docs.php.net/mongo",
-            "version": "1.6.6"
-        }, {
-            "name": "NewRelic",
-            "value": "newrelic",
-            "url": "http://newrelic.com/php",
-            "version": "4.19.0.90"
-        }, {
-            "name": "OAuth",
-            "value": "oauth",
-            "url": "http://docs.php.net/oauth",
-            "version": "1.2.3"
-        }, {
-            "name": "PHPRedis",
-            "value": "redis",
-            "url": "http://pecl.php.net/package/redis",
-            "version": "2.2.7"
-        }]
+        },
+                   {
+                       "name": "MySQL(PHP 5.5 版本已经停止支持，请使用 MySQLi 或 PDO)",
+                       "value": "mysql",
+                       "url": "http://docs.php.net/book.mysql",
+                       "version": "mysqlnd 5.0.11-dev"
+                   }, {
+                       "name": "PCNTL",
+                       "value": "pcntl",
+                       "url": "http://docs.php.net/pcntl",
+                       "version": None
+                   }, {
+                       "name": "Shmop",
+                       "value": "shmop",
+                       "url": "http://docs.php.net/shmop",
+                       "version": None
+                   }, {
+                       "name": "SOAP",
+                       "value": "soap",
+                       "url": "http://docs.php.net/soap",
+                       "version": None
+                   }, {
+                       "name": "SQLite3",
+                       "value": "sqlite3",
+                       "url": "http://docs.php.net/sqlite3",
+                       "version": "0.7-dev"
+                   }, {
+                       "name": "SQLite(PDO)",
+                       "value": "pdo_sqlite",
+                       "url": "http://docs.php.net/pdo_sqlite",
+                       "version": "3.8.2"
+                   }, {
+                       "name": "XMLRPC",
+                       "value": "xmlrpc",
+                       "url": "http://docs.php.net/xmlrpc",
+                       "version": "0.51"
+                   }, {
+                       "name": "XSL",
+                       "value": "xsl",
+                       "url": "http://docs.php.net/xsl",
+                       "version": "1.1.28"
+                   }, {
+                       "name": "APCu",
+                       "value": "apcu",
+                       "url": "http://pecl.php.net/package/apcu",
+                       "version": "4.0.6"
+                   }, {
+                       "name": "Blackfire",
+                       "value": "blackfire",
+                       "url": "http://blackfire.io/",
+                       "version": "0.20.6"
+                   }, {
+                       "name": "memcached",
+                       "value": "memcached",
+                       "url": "http://docs.php.net/memcached",
+                       "version": "2.2.0"
+                   }, {
+                       "name": "MongoDB",
+                       "value": "mongodb",
+                       "url": "http://docs.php.net/mongo",
+                       "version": "1.6.6"
+                   }, {
+                       "name": "NewRelic",
+                       "value": "newrelic",
+                       "url": "http://newrelic.com/php",
+                       "version": "4.19.0.90"
+                   }, {
+                       "name": "OAuth",
+                       "value": "oauth",
+                       "url": "http://docs.php.net/oauth",
+                       "version": "1.2.3"
+                   }, {
+                       "name": "PHPRedis",
+                       "value": "redis",
+                       "url": "http://pecl.php.net/package/redis",
+                       "version": "2.2.7"
+                   }]
         bean = {"versions": versions, "default_version": default_version, "extends": extends}
         return Response(general_message(200, "success", "查询成功", bean))
 
@@ -250,14 +252,10 @@ class InitPerms(AlowAnyApiView):
             if users:
                 for user in users:
                     if user.user_id == team.creater:
-                        user_kind_role_service.update_user_roles(kind="team",
-                                                                 kind_id=team.tenant_id,
-                                                                 user=user,
-                                                                 role_ids=[admin.ID])
+                        user_kind_role_service.update_user_roles(
+                            kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin.ID])
                     else:
-                        user_kind_role_service.update_user_roles(kind="team",
-                                                                 kind_id=team.tenant_id,
-                                                                 user=user,
-                                                                 role_ids=[developer.ID])
+                        user_kind_role_service.update_user_roles(
+                            kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
         result = general_message(msg="success", msg_show=u"初始化权限分配成功", code=200)
         return Response(result, status=200)

@@ -38,12 +38,13 @@ class MultiAppService(object):
         group_id = service_group_relation_repo.get_group_id_by_service(temporary_service)
 
         # save services
-        code, msg = self.save_multi_services(region_name=region_name,
-                                             tenant=tenant,
-                                             group_id=group_id,
-                                             service=temporary_service,
-                                             user=user,
-                                             service_infos=service_infos)
+        code, msg = self.save_multi_services(
+            region_name=region_name,
+            tenant=tenant,
+            group_id=group_id,
+            service=temporary_service,
+            user=user,
+            service_infos=service_infos)
         if code != 200:
             return code, msg, "创建多组件应用失败", -1
 

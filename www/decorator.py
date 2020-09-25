@@ -22,6 +22,7 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
     redirecting to the log-in page if necessary. The test should be a callable
     that takes the user object and returns True if the user passes.
     """
+
     def login_redirect(request):
         path = request.build_absolute_uri()
         resolved_login_url = resolve_url(login_url or settings.LOGIN_URL)

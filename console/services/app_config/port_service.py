@@ -80,24 +80,12 @@ class AppPortService(object):
             if not port_alias:
                 return 400, u"端口别名不能为空", None
 
-            code, msg, data = env_var_service.add_service_env_var(tenant,
-                                                                  service,
-                                                                  container_port,
-                                                                  u"连接地址",
-                                                                  env_prefix + "_HOST",
-                                                                  "127.0.0.1",
-                                                                  False,
-                                                                  scope="outer")
+            code, msg, data = env_var_service.add_service_env_var(
+                tenant, service, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
             if code != 200:
                 return code, msg, None
-            code, msg, data = env_var_service.add_service_env_var(tenant,
-                                                                  service,
-                                                                  container_port,
-                                                                  u"端口",
-                                                                  env_prefix + "_PORT",
-                                                                  mapping_port,
-                                                                  False,
-                                                                  scope="outer")
+            code, msg, data = env_var_service.add_service_env_var(
+                tenant, service, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
             if code != 200:
                 return code, msg, None
 
@@ -476,24 +464,12 @@ class AppPortService(object):
 
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
         # 添加环境变量
-        code, msg, data = env_var_service.add_service_env_var(tenant,
-                                                              service,
-                                                              deal_port.container_port,
-                                                              u"连接地址",
-                                                              env_prefix + "_HOST",
-                                                              "127.0.0.1",
-                                                              False,
-                                                              scope="outer")
+        code, msg, data = env_var_service.add_service_env_var(
+            tenant, service, deal_port.container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
         if code != 200:
             return code, msg
-        code, msg, data = env_var_service.add_service_env_var(tenant,
-                                                              service,
-                                                              deal_port.container_port,
-                                                              u"端口",
-                                                              env_prefix + "_PORT",
-                                                              mapping_port,
-                                                              False,
-                                                              scope="outer")
+        code, msg, data = env_var_service.add_service_env_var(
+            tenant, service, deal_port.container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
         if code != 200:
             return code, msg
 

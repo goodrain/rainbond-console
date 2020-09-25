@@ -565,8 +565,8 @@ class BuildSourceinfo(AppBaseView):
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
 
-            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
-                                                                         service_id=self.service.service_id)
+            service_source_user = service_source_repo.get_service_source(
+                team_id=self.service.tenant_id, service_id=self.service.service_id)
 
             if not service_source_user:
                 service_source_info = {

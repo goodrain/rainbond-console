@@ -112,6 +112,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
     """
     获取实例endpoint列表
     """
+
     def get(self, request, service_id, *args, **kwargs):
         secret_key = request.GET.get("secret_key")
         # 加密

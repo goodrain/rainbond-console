@@ -51,14 +51,15 @@ class GroupAppsCopyView(RegionTenantHeaderView):
         try:
             groupapp_copy_service.copy_group_services(request.user, self.tenant, self.region_name, tar_team, tar_region_name,
                                                       tar_group, group_id, services)
-            result = general_message(200,
-                                     "success",
-                                     "获取成功",
-                                     bean={
-                                         "tar_team_name": tar_team_name,
-                                         "tar_region_name": tar_region_name,
-                                         "tar_group_id": tar_group_id
-                                     })
+            result = general_message(
+                200,
+                "success",
+                "获取成功",
+                bean={
+                    "tar_team_name": tar_team_name,
+                    "tar_region_name": tar_region_name,
+                    "tar_group_id": tar_group_id
+                })
             status = 200
         except HttpClient.CallApiError as e:
             logger.exception(e)

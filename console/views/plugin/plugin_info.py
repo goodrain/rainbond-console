@@ -137,18 +137,13 @@ class AllPluginVersionInfoView(PluginBaseView):
         paginator = JuncheePaginator(pbvs, int(page_size))
         show_pbvs = paginator.page(int(page))
 
-        update_status_thread = threading.Thread(target=plugin_version_service.update_plugin_build_status,
-                                                args=(self.response_region, self.tenant))
+        update_status_thread = threading.Thread(
+            target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
         update_status_thread.start()
 
         data = [pbv.to_dict() for pbv in show_pbvs]
-        result = general_message(200,
-                                 "success",
-                                 "查询成功",
-                                 list=data,
-                                 total=paginator.count,
-                                 current_page=int(page),
-                                 next_page=int(page) + 1)
+        result = general_message(
+            200, "success", "查询成功", list=data, total=paginator.count, current_page=int(page), next_page=int(page) + 1)
 
         return Response(result, status=result["code"])
 
@@ -181,8 +176,8 @@ class PluginVersionInfoView(PluginBaseView):
             base_info.image = base_info.image + ":" + self.plugin_version.image_tag
         data = base_info.to_dict()
         data.update(self.plugin_version.to_dict())
-        update_status_thread = threading.Thread(target=plugin_version_service.update_plugin_build_status,
-                                                args=(self.response_region, self.tenant))
+        update_status_thread = threading.Thread(
+            target=plugin_version_service.update_plugin_build_status, args=(self.response_region, self.tenant))
         update_status_thread.start()
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])

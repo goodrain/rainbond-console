@@ -137,11 +137,8 @@ class EnterpriseTeams(JWTAuthApiView):
         if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
             result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
             return Response(result, status=status.HTTP_200_OK)
-        teams, total = team_services.get_enterprise_teams(enterprise_id,
-                                                          query=name,
-                                                          page=page,
-                                                          page_size=page_size,
-                                                          user=self.user)
+        teams, total = team_services.get_enterprise_teams(
+            enterprise_id, query=name, page=page, page_size=page_size, user=self.user)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
@@ -181,9 +178,8 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     region_list = team_repo.get_team_regions(tenant.tenant_id)
                     if region_list:
                         region_name_list = region_list.values_list("region_name", flat=True)
-                    user_role_list = user_kind_role_service.get_user_roles(kind="team",
-                                                                           kind_id=tenant.tenant_id,
-                                                                           user=request.user)
+                    user_role_list = user_kind_role_service.get_user_roles(
+                        kind="team", kind_id=tenant.tenant_id, user=request.user)
                     roles = map(lambda x: x["role_name"], user_role_list["roles"])
                     if tenant.creater == request.user.user_id:
                         roles.append("owner")
@@ -340,10 +336,8 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")
-        data = region_services.get_enterprise_regions(enterprise_id,
-                                                      level="safe",
-                                                      status=region_status,
-                                                      check_status=check_status)
+        data = region_services.get_enterprise_regions(
+            enterprise_id, level="safe", status=region_status, check_status=check_status)
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -389,10 +383,11 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("pageSize", 10)
         tenants, total = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
-        result = general_message(200, "success", "获取成功", bean={
-            "tenants": tenants,
-            "total": total,
-        })
+        result = general_message(
+            200, "success", "获取成功", bean={
+                "tenants": tenants,
+                "total": total,
+            })
         return Response(result, status=status.HTTP_200_OK)
 
 

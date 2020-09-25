@@ -80,18 +80,11 @@ class AppDeployService(object):
         async_action = self.get_async_action()
         logger.info("service id: {}; async action is '{}'".format(service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
-            code, msg, event_id = app_manage_service.deploy(tenant,
-                                                            service,
-                                                            user,
-                                                            group_version=version,
-                                                            oauth_instance=oauth_instance,
-                                                            committer_name=committer_name)
+            code, msg, event_id = app_manage_service.deploy(
+                tenant, service, user, group_version=version, oauth_instance=oauth_instance, committer_name=committer_name)
         elif async_action == AsyncAction.UPDATE.value:
-            code, msg, event_id = app_manage_service.upgrade(tenant,
-                                                             service,
-                                                             user,
-                                                             committer_name,
-                                                             oauth_instance=oauth_instance)
+            code, msg, event_id = app_manage_service.upgrade(
+                tenant, service, user, committer_name, oauth_instance=oauth_instance)
         else:
             return 200, "", ""
         return code, msg, event_id
@@ -109,6 +102,7 @@ class OtherService(object):
     """
     Services outside the market service
     """
+
     def pre_action(self):
         logger.info("type: other; pre-deployment action.")
 
@@ -120,6 +114,7 @@ class MarketService(object):
     """
     Define some methods for upgrading market services.
     """
+
     def __init__(self, tenant, service, version):
         self.tenant = tenant
         self.service = service

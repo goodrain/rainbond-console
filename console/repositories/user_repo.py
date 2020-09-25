@@ -106,7 +106,8 @@ class UserRepo(object):
             WHERE a.user_id = b.user_id
             AND b.tenant_id = c.ID
             AND a.user_id = {user_id}
-            AND c.tenant_id = '{tenant_id}'""".format(tenant_id=tenant_id, user_id=user_id)
+            AND c.tenant_id = '{tenant_id}'""".format(
+            tenant_id=tenant_id, user_id=user_id)
         result = conn.query(sql)
         if len(result) == 0:
             raise UserNotExistError("用户{0}不存在于团队{1}中".format(user_id, tenant_id))
@@ -144,7 +145,8 @@ class UserRepo(object):
                 tenant_perms b,
                 tenant_info c
             {where}
-            {limit}""".format(where=where, limit=limit)
+            {limit}""".format(
+            where=where, limit=limit)
         result = conn.query(sql)
         return result
 

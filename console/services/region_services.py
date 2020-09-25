@@ -281,14 +281,13 @@ class RegionService(object):
         if not ignore_cluster_resource and services and len(services) > 0:
             # check component status
             service_ids = [service.service_id for service in services]
-            status_list = base_service.status_multi_service(region=region_name,
-                                                            tenant_name=tenant.tenant_name,
-                                                            service_ids=service_ids,
-                                                            enterprise_id=tenant.enterprise_id)
+            status_list = base_service.status_multi_service(
+                region=region_name, tenant_name=tenant.tenant_name, service_ids=service_ids, enterprise_id=tenant.enterprise_id)
             status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
             if len(status_list) > 0:
-                raise ServiceHandleException(msg="There are running components under the current application",
-                                             msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))
+                raise ServiceHandleException(
+                    msg="There are running components under the current application",
+                    msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))
         # Components are the key to resource utilization,
         # and removing the cluster only ensures that the component's resources are freed up.
         from console.services.app_actions import app_manage_service
@@ -319,8 +318,8 @@ class RegionService(object):
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
         except Exception as e:
-            logger.error("get_new_user_free_res_pkg error with params: {}".format(
-                (tenant_id, enterprise_id, region_name, user_name)))
+            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name,
+                                                                                   user_name)))
             logger.exception(e)
             return False
 
@@ -522,8 +521,8 @@ class RegionService(object):
         region_resource = self.__init_region_resource_data(region, level)
         if check_status == "yes":
             try:
-                _, rbd_version = region_api.get_enterprise_api_version_v2(enterprise_id=region.enterprise_id,
-                                                                          region=region.region_name)
+                _, rbd_version = region_api.get_enterprise_api_version_v2(
+                    enterprise_id=region.enterprise_id, region=region.region_name)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
                 rbd_version = rbd_version["raw"].decode("utf-8")
                 if res.get("status") == 200:
