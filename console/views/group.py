@@ -14,6 +14,9 @@ from console.services.group_service import group_service
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
+from console.utils.reqparse import parse_item
+from console.enum.app import GovernanceModeEnum
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -235,3 +238,14 @@ class GroupStatusView(RegionTenantHeaderView):
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.debug(e)
             raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
+
+
+class AppGovernanceModeView(RegionTenantHeaderView):
+    def put(self, r, app_id, *args, **kwargs):
+        governance_mode = parse_item(r, "governance_mode", required=True)
+        if governance_mode not in GovernanceModeEnum.choices():
+            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.choices()))
+
+        group_service.update_governance_mode(governance_mode)
+        result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+        return Response(result)

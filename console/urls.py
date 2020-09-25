@@ -57,7 +57,8 @@ from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView, EnterpriseConfigView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
+from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
+                                 AppGovernanceModeView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -261,8 +262,9 @@ urlpatterns = [
         perms.ServiceShareCompleteView),
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view(), perms.TenantGroupView),
-    # 应用删除
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)$', TenantGroupOperationView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)$/governancemode', AppGovernanceModeView.as_view(),
         perms.TenantGroupOperationView),
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.GroupStatusView),

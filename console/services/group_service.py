@@ -5,7 +5,6 @@
 import logging
 import re
 
-from deprecated import deprecated
 from django.db import transaction
 
 from console.services.service_services import base_service
@@ -106,7 +105,6 @@ class GroupService(object):
 
         return app
 
-    @deprecated
     def get_group_by_id(self, tenant, region, group_id):
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
@@ -342,6 +340,10 @@ class GroupService(object):
         sg = self.get_service_group_info(service.service_id)
         if sg and sg.ID:
             group_repo.update_group_time(sg.ID)
+
+    def update_governance_mode(self, tenant, region_name, app_id, governance_mode):
+        self.get_group_by_id(tenant, region_name, app_id)
+        group_repo.update_governance_mode()
 
 
 group_service = GroupService()

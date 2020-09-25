@@ -54,6 +54,10 @@ class GroupRepository(object):
     def update_group_name(self, group_id, new_group_name, group_note=""):
         ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note, update_time=datetime.now())
 
+    def update_governance_mode(self, tenant_id, region_name, app_id, governance_mode):
+        ServiceGroup.objects.filter(pk=app_id).update(
+            tenant_id=tenant_id, region_name=region_name, governance_mode=governance_mode, update_time=datetime.now())
+
     def delete_group_by_pk(self, group_id):
         logger.debug("delete group id {0}".format(group_id))
         ServiceGroup.objects.filter(pk=group_id).delete()
