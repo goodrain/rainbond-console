@@ -188,6 +188,10 @@ class TenantServicePortRepository(object):
     def list_by_service_ids(service_ids):
         return TenantServicesPort.objects.filter(service_id__in=service_ids)
 
+    @staticmethod
+    def get_by_k8s_service_name(tenant_id, k8s_service_name):
+        return TenantServicesPort.objects.get(tenant_id=tenant_id, k8s_service_name=k8s_service_name)
+
 
 class TenantServiceVolumnRepository(object):
     def get_multi_service_volumes(self, service_ids):
