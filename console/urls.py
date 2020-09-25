@@ -107,6 +107,7 @@ from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegi
                                           UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
+from console.views.app_config_group import AppConfigGroupCommonOperationView
 
 urlpatterns = [
     # record error logs
@@ -269,6 +270,9 @@ urlpatterns = [
     # 应用(组)常见操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
         TenantGroupCommonOperationView.as_view(), perms.TenantGroupCommonOperationView),
+    # Application Config Group
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/configgroups$',
+        AppConfigGroupCommonOperationView.as_view(), perms.TenantGroupCommonOperationView),
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),

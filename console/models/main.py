@@ -939,3 +939,36 @@ class ServiceMonitor(BaseModel):
     port = models.IntegerField(help_text="端口号")
     service_show_name = models.CharField(max_length=64, help_text="组件ID")
     interval = models.CharField(max_length=10, help_text="收集指标时间间隔")
+
+
+class ApplicationConfigGroup(BaseModel):
+    class Meta:
+        db_table = "app_config_group"
+        unique_together = ('app_id', 'config_group_name')
+
+    app_id = models.IntegerField(max_length=32, help_text="应用ID")
+    config_group_name = models.CharField(max_length=64, help_text="应用配置组名")
+    deploy_type = models.CharField(max_length=32, help_text="生效类型")
+    deploy_status = models.CharField(max_length=32, help_text="生效状态")
+    region_name = models.CharField(max_length=32, help_text="集群名称")
+
+
+class ConfigGroupItem(BaseModel):
+    class Meta:
+        db_table = "app_config_group_item"
+        unique_together = ('app_id', 'config_group_name', 'item_key')
+
+    app_id = models.IntegerField(max_length=32, help_text="应用ID")
+    config_group_name = models.CharField(max_length=64, help_text="应用配置组名")
+    item_key = models.CharField(max_length=255, help_text="配置项")
+    item_value = models.CharField(max_length=65535, help_text="配置项的值")
+
+
+class ConfigGroupService(BaseModel):
+    class Meta:
+        db_table = "app_config_group_service"
+
+    app_id = models.IntegerField(max_length=32, help_text="应用ID")
+    config_group_name = models.CharField(max_length=64, help_text="应用配置组名")
+    service_id = models.CharField(max_length=32, help_text="组件ID")
+    service_alias = models.CharField(max_length=64, help_text="组件别名")
