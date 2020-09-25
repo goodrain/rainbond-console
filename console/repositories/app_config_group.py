@@ -35,7 +35,6 @@ class ApplicationConfigGroupServiceRepository(object):
         return ConfigGroupService.objects.filter(app_id=app_id, config_group_name=config_group_name).delete()
 
 
-
 class ApplicationConfigGroupItemRepository(object):
     def create(self, **data):
         return ConfigGroupItem.objects.create(**data)
