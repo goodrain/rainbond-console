@@ -4,20 +4,33 @@
 """
 
 import logging
+from datetime import datetime
+
 from django.db.models import Q
-from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceGroup
+
+from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
 
 logger = logging.getLogger("default")
 
 
 class GroupRepository(object):
     def list_tenant_group_on_region(self, tenant, region_name):
-        return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name).order_by("-order_index")
+        return ServiceGroup.objects.filter(
+            tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
 
     def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False):
         group = ServiceGroup.objects.create(
-            tenant_id=tenant_id, region_name=region_name, group_name=group_name, note=group_note, is_default=is_default)
+            tenant_id=tenant_id,
+            region_name=region_name,
+            group_name=group_name,
+            note=group_note,
+            is_default=is_default,
+            update_time=datetime.now(),
+            create_time=datetime.now())
         return group
+
+    def update_group_time(self, group_id):
+        ServiceGroup.objects.filter(pk=group_id).update(update_time=datetime.now())
 
     def get_group_by_unique_key(self, tenant_id, region_name, group_name):
         groups = ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, group_name=group_name)
@@ -39,7 +52,7 @@ class GroupRepository(object):
             return None
 
     def update_group_name(self, group_id, new_group_name, group_note=""):
-        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note)
+        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note, update_time=datetime.now())
 
     def delete_group_by_pk(self, group_id):
         logger.debug("delete group id {0}".format(group_id))
@@ -51,13 +64,13 @@ class GroupRepository(object):
 
     def get_tenant_region_groups(self, team_id, region, query=""):
         return ServiceGroup.objects.filter(
-            tenant_id=team_id, region_name=region, group_name__icontains=query).order_by("-order_index")
+            tenant_id=team_id, region_name=region, group_name__icontains=query).order_by("-update_time", "-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
 
     def get_groups_by_tenant_ids(self, tenant_ids):
-        return ServiceGroup.objects.filter(tenant_id__in=tenant_ids).order_by("-order_index")
+        return ServiceGroup.objects.filter(tenant_id__in=tenant_ids).order_by("-update_time", "-order_index")
 
     def get_group_by_id(self, group_id):
         return ServiceGroup.objects.filter(pk=group_id).first()
@@ -77,13 +90,13 @@ class GroupRepository(object):
         q = Q(region_name=region_name) & Q(tenant_id=team_id)
         if query:
             q = q & Q(group_name__icontains=query)
-        return ServiceGroup.objects.filter(q).order_by("-order_index")
+        return ServiceGroup.objects.filter(q).order_by("-update_time", "-order_index")
 
     def get_multi_app_info(self, app_ids):
-        return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-order_index")
+        return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-update_time", "-order_index")
 
     def get_apps_in_multi_team(self, team_ids):
-        return ServiceGroup.objects.filter(tenant_id__in=team_ids).order_by("-order_index")
+        return ServiceGroup.objects.filter(tenant_id__in=team_ids).order_by("-update_time", "-order_index")
 
 
 class GroupServiceRelationRepository(object):

@@ -17,14 +17,13 @@ from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
-from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
-from www.models.main import ServiceGroup, ServiceGroupRelation
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.user_repo import user_repo
 from console.exception.main import ServiceHandleException
+from www.models.main import ServiceGroup, ServiceGroupRelation
 
 logger = logging.getLogger("default")
 
@@ -219,6 +218,8 @@ class GroupService(object):
         for app in app_list:
             apps[app.ID] = {
                 "group_id": app.ID,
+                "update_time": app.update_time,
+                "create_time": app.create_time,
                 "group_name": app.group_name,
                 "group_note": app.note,
                 "service_list": [],
@@ -336,6 +337,11 @@ class GroupService(object):
         # count ingress
         return domain_repo.count_by_service_ids(region.region_id, service_ids) + tcp_domain.count_by_service_ids(
             region.region_id, service_ids)
+
+    def set_app_update_time_by_service(self, service):
+        sg = self.get_service_group_info(service.service_id)
+        if sg and sg.ID:
+            group_repo.update_group_time(sg.ID)
 
 
 group_service = GroupService()

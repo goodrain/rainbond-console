@@ -1017,6 +1017,8 @@ class ServiceGroup(BaseModel):
         null=True,
         blank=True,
         help_text="governance mode")
+    create_time = models.DateTimeField(help_text=u"创建时间")
+    update_time = models.DateTimeField(help_text=u"更新时间")
 
 
 class ServiceGroupRelation(BaseModel):
