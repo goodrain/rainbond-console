@@ -945,6 +945,7 @@ class TenantServicesPort(BaseModel):
     port_alias = models.CharField(max_length=64, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部组件；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部组件；0:不绑定；1:绑定")
+    k8s_service_name = models.CharField(max_length=63, blank=True, help_text="the name of kubernetes service")
 
 
 class TenantServiceMountRelation(BaseModel):

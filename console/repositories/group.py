@@ -39,15 +39,9 @@ class GroupRepository(object):
         return None
 
     # get_group_by_pk get group by group id and tenantid and region name
-    def get_group_by_pk(self, tenant_id, region_name, group_id):
+    def get_group_by_pk(self, tenant_id, region_name, app_id):
         try:
-            return ServiceGroup.objects.get(tenant_id=tenant_id, region_name=region_name, pk=group_id)
-        except ServiceGroup.DoesNotExist:
-            return None
-
-    def get_app_by_pk(self, app_id):
-        try:
-            return ServiceGroup.objects.get(pk=app_id)
+            return ServiceGroup.objects.get(tenant_id=tenant_id, region_name=region_name, pk=app_id)
         except ServiceGroup.DoesNotExist:
             return None
 
@@ -159,6 +153,13 @@ class GroupServiceRelationRepository(object):
 
     def get_services_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id)
+
+    @staticmethod
+    def list_serivce_ids_by_app_id(tenant_id, region_name, app_id):
+        relations = ServiceGroupRelation.objects.filter(tenant_id=tenant_id, region_name=region_name, group_id=app_id)
+        if not relations:
+            return
+        return relations.values_list("service_id", flat=True)
 
     @staticmethod
     def count_service_by_app_id(app_id):

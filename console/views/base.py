@@ -24,6 +24,7 @@ from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.group import group_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.utils.perms import get_enterprise_adminer_codes
 from goodrain_web import errors
@@ -458,3 +459,15 @@ def custom_exception_handler(exc, context):
     else:
         logger.exception(exc)
         return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ApplicationView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(ApplicationView, self).__init__(*args, **kwargs)
+
+    def initial(self, r, app_id, *args, **kwargs):
+        super(ApplicationView, self).initial(r, *args, **kwargs)
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
+        self.app = app

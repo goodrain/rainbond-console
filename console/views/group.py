@@ -11,7 +11,7 @@ from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView, ApplicationView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from console.utils.reqparse import parse_item
@@ -240,7 +240,7 @@ class GroupStatusView(RegionTenantHeaderView):
             raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
 
 
-class AppGovernanceModeView(RegionTenantHeaderView):
+class AppGovernanceModeView(ApplicationView):
     def put(self, r, app_id, *args, **kwargs):
         governance_mode = parse_item(r, "governance_mode", required=True)
         if governance_mode not in GovernanceModeEnum.choices():
@@ -248,4 +248,11 @@ class AppGovernanceModeView(RegionTenantHeaderView):
 
         group_service.update_governance_mode(governance_mode)
         result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+        return Response(result)
+
+
+class AppKubernetesServiceView(ApplicationView):
+    def get(self, r, app_id, *args, **kwargs):
+        res = group_service.list_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id)
+        result = general_message(200, "success", "更新成功", list=res)
         return Response(result)

@@ -12,7 +12,7 @@ from console.services.compose_service import compose_service
 from console.services.market_app_service import market_app_service
 from console.repositories.share_repo import share_repo
 from console.repositories.region_repo import region_repo
-from console.repositories.app_config import domain_repo, tcp_domain
+from console.repositories.app_config import domain_repo, tcp_domain, port_repo
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
@@ -73,7 +73,8 @@ class GroupService(object):
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
                     return 404, u"应用不存在"
-                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
+                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id,
+                                                                       region_name)
         return 200, u"success"
 
     def get_app_detail(self, tenant, region_name, app_id):
@@ -157,7 +158,8 @@ class GroupService(object):
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
-        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
+        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups(
+            [g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
         for k, v in service_group_map.iteritems():
@@ -247,7 +249,8 @@ class GroupService(object):
             group_id = a.ID
             app = apps.get(a.ID)
             app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
-            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
+            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(
+                group_id) else 0
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
                 app["run_service_num"] = 0
@@ -325,10 +328,9 @@ class GroupService(object):
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
         return {s.service_id: s.group_id for s in sgr}
 
-    def count_ingress_by_app_id(self, region_name, app_id):
+    def count_ingress_by_app_id(self, tenant_id, region_name, app_id):
         # list service_ids
-        relations = group_service_relation_repo.get_services_by_group(app_id)
-        service_ids = relations.values_list("service_id", flat=True)
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
 
         region = region_repo.get_by_region_name(region_name)
 
@@ -341,9 +343,31 @@ class GroupService(object):
         if sg and sg.ID:
             group_repo.update_group_time(sg.ID)
 
-    def update_governance_mode(self, tenant, region_name, app_id, governance_mode):
-        self.get_group_by_id(tenant, region_name, app_id)
-        group_repo.update_governance_mode()
+    @staticmethod
+    def update_governance_mode(tenant, region_name, app_id, governance_mode):
+        group_repo.update_governance_mode(tenant.tenant_id, region_name, app_id, governance_mode)
+
+    @staticmethod
+    def list_kubernetes_services(tenant_id, region_name, app_id):
+        # list service_ids
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        # service_id to service_alias
+        services = {service.service_id: service.service_alias for service in service_repo.list_by_ids(service_ids)}
+
+        ports = port_repo.list_by_service_ids(service_ids)
+        # build response
+        k8s_services = []
+        for port in ports:
+            # set service_alias_container_port as default kubernetes service name
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[port.service_id] + "_" + port.container_port
+            k8s_services.append({
+                "service_id": port.service_id,
+                "port": port.container_port,
+                "port_alias": port.port_alias,
+                "k8s_service_name": k8s_service_name,
+            })
+
+        return k8s_services
 
 
 group_service = GroupService()

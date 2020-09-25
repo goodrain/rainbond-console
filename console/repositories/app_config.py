@@ -184,6 +184,10 @@ class TenantServicePortRepository(object):
             tenant_id=param["tenant_id"], service_id=param["service_id"],
             container_port=param["container_port"]).update(**param)
 
+    @staticmethod
+    def list_by_service_ids(service_ids):
+        return TenantServicesPort.objects.filter(service_id__in=service_ids)
+
 
 class TenantServiceVolumnRepository(object):
     def get_multi_service_volumes(self, service_ids):
