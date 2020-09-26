@@ -946,10 +946,12 @@ class ApplicationConfigGroup(BaseModel):
         db_table = "app_config_group"
         unique_together = ('app_id', 'config_group_name')
 
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
     app_id = models.IntegerField(max_length=32, help_text="应用ID")
     config_group_name = models.CharField(max_length=64, help_text="应用配置组名")
     deploy_type = models.CharField(max_length=32, help_text="生效类型")
-    deploy_status = models.CharField(max_length=32, help_text="生效状态")
+    deploy_status = models.BooleanField(help_text="生效状态")
     region_name = models.CharField(max_length=32, help_text="集群名称")
 
 
