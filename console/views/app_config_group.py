@@ -53,4 +53,3 @@ class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCen
         config_group_name = request.GET.get("name", None)
         acg = app_config_group.get_config_group(group_id, config_group_name)
         return Response(status=200, data=general_data(bean=acg.to_dict()))
-

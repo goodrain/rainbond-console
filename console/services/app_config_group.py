@@ -68,8 +68,7 @@ class AppConfigGroupService(object):
 
     def get_config_group(self, app_id, config_group_name):
         cgroup = app_config_group_repo.get_config_group_by_id(app_id, config_group_name)
-        config_group_services = app_config_group_service_repo.list_config_group_services_by_id(
-            app_id, cgroup.config_group_name)
+        config_group_services = app_config_group_service_repo.list_config_group_services_by_id(app_id, cgroup.config_group_name)
         config_group_items = app_config_group_item_repo.list_config_group_items_by_id(app_id, cgroup.config_group_name)
 
         config_group = {
