@@ -14,3 +14,5 @@ CREATE TABLE `tenant_service_monitor` (
 
 ALTER TABLE console.service_group ADD `create_time` datetime DEFAULT NULL;
 ALTER TABLE console.service_group ADD `update_time` datetime DEFAULT NULL;
+
+ALTER TABLE `console`.`tenant_services_port` ADD COLUMN `k8s_service_name` varchar(63) NULL AFTER `is_outer_service`;

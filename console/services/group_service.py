@@ -8,8 +8,7 @@ import re
 from django.db import transaction
 
 from console.services.service_services import base_service
-from console.services.compose_service import compose_service
-from console.services.market_app_service import market_app_service
+from console.repositories.compose_repo import compose_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.app_config import domain_repo, tcp_domain, port_repo
@@ -22,7 +21,8 @@ from console.utils.shortcuts import get_object_or_404
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.user_repo import user_repo
 from console.exception.main import ServiceHandleException
-from www.models.main import ServiceGroup, ServiceGroupRelation
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 
@@ -92,13 +92,14 @@ class GroupService(object):
         app['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         app['share_num'] = share_repo.count_complete_by_app_id(app_id)
         app['ingress_num'] = self.count_ingress_by_app_id(region_name, app_id)
-        app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(tenant, region_name, app_id)
+        # TODO: upgradable_num
+        # app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(tenant, region_name, app_id)
         # TODO: config_group_num
 
         app["create_status"] = "complete"
         app["compose_id"] = None
         if app_id != -1:
-            compose_group = compose_service.get_group_compose_by_group_id(app_id)
+            compose_group = compose_repo.get_group_compose_by_group_id(app_id)
             if compose_group:
                 app["create_status"] = compose_group.create_status
                 app["compose_id"] = compose_group.compose_id
@@ -351,13 +352,13 @@ class GroupService(object):
         # service_id to service_alias
         services = {service.service_id: service.service_alias for service in service_repo.list_by_ids(service_ids)}
 
-        ports = port_repo.list_by_service_ids(service_ids)
+        ports = port_repo.list_by_service_ids(tenant_id, service_ids)
         # build response
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[
-                port.service_id] + "_" + port.container_port
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[port.service_id] + "_" + str(
+                port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,
                 "port": port.container_port,
@@ -366,6 +367,37 @@ class GroupService(object):
             })
 
         return k8s_services
+
+    @transaction.atomic()
+    def update_kubernetes_services(self, tenant_id, region_name, app_id, k8s_services):
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        for k8s_service in k8s_services:
+            # check k8s_service_name
+            try:
+                # whether k8s_service_name exists
+                port_repo.get_by_k8s_service_name(tenant_id, k8s_service["k8s_service_name"])
+                try:
+                    # k8s_service_name belong to the current k8s_service?
+                    port_repo.check_k8s_service_name(tenant_id, k8s_service["service_id"], k8s_service["port"],
+                                                     k8s_service["k8s_service_name"])
+                except TenantServicesPort.DoesNotExist:
+                    raise AbortRequest("k8s_service_name '{}' already exits", k8s_service["k8s_service_name"])
+            except TenantServicesPort.DoesNotExist:
+                pass
+
+            # check if the given k8s_services belong to the app based on app_id
+            if k8s_service["service_id"] not in service_ids:
+                raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app_id))
+
+        # bulk_update is only available after django 2.2
+        for k8s_service in k8s_services:
+            port_repo.update_port(
+                tenant_id, k8s_service["service_id"], k8s_service["port"], **{
+                    "port_alias": k8s_service["port_alias"],
+                    "k8s_service_name": k8s_service["k8s_service_name"],
+                })
+
+        # TODO: sync k8s service name in the region
 
 
 group_service = GroupService()

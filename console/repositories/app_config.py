@@ -185,12 +185,17 @@ class TenantServicePortRepository(object):
             container_port=param["container_port"]).update(**param)
 
     @staticmethod
-    def list_by_service_ids(service_ids):
-        return TenantServicesPort.objects.filter(service_id__in=service_ids)
+    def list_by_service_ids(tenant_id, service_ids):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
 
     @staticmethod
     def get_by_k8s_service_name(tenant_id, k8s_service_name):
         return TenantServicesPort.objects.get(tenant_id=tenant_id, k8s_service_name=k8s_service_name)
+
+    @staticmethod
+    def check_k8s_service_name(tenant_id, service_id, port, k8s_service_names):
+        return TenantServicesPort.objects.get(
+            tenant_id=tenant_id, service_id=service_id, container_port=port, k8s_service_name__in=k8s_service_names)
 
 
 class TenantServiceVolumnRepository(object):

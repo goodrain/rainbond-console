@@ -3,6 +3,7 @@
   Created by leon on 18/1/5.
 """
 import logging
+import re
 
 from rest_framework.response import Response
 
@@ -251,8 +252,31 @@ class AppGovernanceModeView(ApplicationView):
         return Response(result)
 
 
-class AppKubernetesServiceView(ApplicationView):
-    def get(self, r, app_id, *args, **kwargs):
+class AppKubernetesServiceView(RegionTenantHeaderView):
+    def get(self, request, app_id, *args, **kwargs):
         res = group_service.list_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id)
-        result = general_message(200, "success", "更新成功", list=res)
+        result = general_message(200, "success", "查询成功", list=res)
+        return Response(result)
+
+    def put(self, request, app_id, *args, **kwargs):
+        k8s_services = request.data
+
+        # data validation
+        for k8s_service in k8s_services:
+            # k8s_service_name
+            if len(k8s_service.get("k8s_service_name")) > 63 or len(k8s_service.get("k8s_service_name")) == 0:
+                raise AbortRequest("k8s_service_name must be no more than 63 characters")
+            if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service['k8s_service_name']):
+                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
+            # service_id
+            if not k8s_service.get("service_id"):
+                raise AbortRequest("the field 'service_id' is required")
+            if not k8s_service.get("port"):
+                raise AbortRequest("the field 'port' is required")
+            if not k8s_service.get("port_alias"):
+                raise AbortRequest("the field 'port_alias' is required")
+
+        group_service.update_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id, k8s_services)
+
+        result = general_message(200, "success", "更新成功", list=k8s_services)
         return Response(result)
