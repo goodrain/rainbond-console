@@ -39,5 +39,32 @@ class AppConfigGroupService(object):
             })
         app_config_group_service_repo.create(**group_service_reqs)
 
+    def list_config_groups(self, app_id, page, page_size):
+        cgroup_info = []
+        config_groups = app_config_group_repo.list_config_groups_by_app_id(app_id, page, page_size)
+        total = app_config_group_repo.count_config_groups_by_app_id(app_id)
+
+        for cgroup in config_groups:
+            config_group_services = app_config_group_service_repo.list_config_group_services_by_id(
+                app_id, cgroup.config_group_name)
+            config_group_items = app_config_group_item_repo.list_config_group_items_by_id(app_id, cgroup.config_group_name)
+            cgroup_info.append({
+                "create_time": cgroup.create_time,
+                "update_time": cgroup.update_time,
+                "config_group_name": cgroup.config_group_name,
+                "config_items": config_group_items,
+                "deploy_type": cgroup.deploy_type,
+                "deploy_status": cgroup.deploy_status,
+                "services": config_group_services,
+            })
+
+        result = {
+            "list": cgroup_info,
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+        }
+        return result
+
 
 app_config_group = AppConfigGroupService()

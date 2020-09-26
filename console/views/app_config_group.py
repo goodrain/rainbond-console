@@ -31,3 +31,17 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
                                                    req_service_ids, region_name)
 
         return Response(status=200, data=general_data(bean=acg.to_dict()))
+
+    def get(self, request, *args, **kwargs):
+        group_id = int(kwargs.get("group_id", None))
+        try:
+            page = int(request.GET.get("page", 1))
+        except ValueError:
+            page = 1
+        try:
+            page_size = int(request.GET.get("page_size", 10))
+        except ValueError:
+            page_size = 10
+
+        acg = app_config_group.list_config_groups(group_id, page, page_size)
+        return Response(status=200, data=general_data(bean=acg.to_dict()))
