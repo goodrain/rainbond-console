@@ -45,3 +45,12 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
 
         acg = app_config_group.list_config_groups(group_id, page, page_size)
         return Response(status=200, data=general_data(bean=acg.to_dict()))
+
+
+class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+    def get(self, request, *args, **kwargs):
+        group_id = int(kwargs.get("group_id", None))
+        config_group_name = request.GET.get("name", None)
+        acg = app_config_group.get_config_group(group_id, config_group_name)
+        return Response(status=200, data=general_data(bean=acg.to_dict()))
+

@@ -108,6 +108,7 @@ from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegi
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
 from console.views.app_config_group import AppConfigGroupCommonOperationView
+from console.views.app_config_group import AppConfigGroupEditOperationView
 
 urlpatterns = [
     # record error logs
@@ -273,6 +274,8 @@ urlpatterns = [
     # Application Config Group
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/configgroups$',
         AppConfigGroupCommonOperationView.as_view(), perms.TenantGroupCommonOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
+        AppConfigGroupEditOperationView.as_view(), perms.TenantGroupCommonOperationView),
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),
