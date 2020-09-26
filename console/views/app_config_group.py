@@ -48,6 +48,12 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
 
 
 class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+    def delete(self, request, *args, **kwargs):
+        group_id = int(kwargs.get("group_id", None))
+        config_group_name = request.GET.get("name", None)
+        acg = app_config_group.delete_config_group(group_id, config_group_name)
+        return Response(status=200, data=general_data(bean=acg.to_dict()))
+
     def get(self, request, *args, **kwargs):
         group_id = int(kwargs.get("group_id", None))
         config_group_name = request.GET.get("name", None)
