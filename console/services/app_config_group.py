@@ -40,6 +40,39 @@ class AppConfigGroupService(object):
             })
         app_config_group_service_repo.create(**group_service_reqs)
 
+    @transaction.atomic
+    def update_config_group(self, app_id, config_group_name, config_items, deploy_status, service_ids):
+        group_req = {
+            "app_id": app_id,
+            "config_group_name": config_group_name,
+            "deploy_status": deploy_status,
+        }
+        app_config_group_repo.update(**group_req)
+
+        group_item_reqs = []
+        app_config_group_item_repo.delete(app_id, config_group_name)
+        for item in config_items:
+            group_item_reqs.append({
+                "app_id": app_id,
+                "config_group_name": config_group_name,
+                "item_key": item.item_key,
+                "item_value": item.item_value,
+            })
+        app_config_group_item_repo.create(**group_item_reqs)
+
+        group_service_reqs = []
+        app_config_group_service_repo.delete(app_id, config_group_name)
+        for sid in service_ids:
+            s = service_repo.get_service_by_service_id(sid)
+            group_service_reqs.append({
+                "app_id": app_id,
+                "config_group_name": config_group_name,
+                "service_id": s.service_id,
+                "service_alias": s.service_alias,
+            })
+        app_config_group_service_repo.create(**group_service_reqs)
+        return self.get_config_group(app_id, config_group_name)
+
     def list_config_groups(self, app_id, page, page_size):
         cgroup_info = []
         config_groups = app_config_group_repo.list_config_groups_by_app_id(app_id, page, page_size)

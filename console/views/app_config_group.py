@@ -3,6 +3,7 @@ from console.services.app_config_group import app_config_group
 from console.repositories.group import group_service_relation_repo
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
 from www.utils.return_message import general_data, general_message
+from console.repositories.app_config_group import app_config_group_repo
 
 
 class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
@@ -48,6 +49,32 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
 
 
 class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+    def put(self, request, *args, **kwargs):
+        group_id = int(kwargs.get("group_id", None))
+        config_group_name = request.GET.get("name", None)
+        acg = app_config_group_repo.get_config_group_by_id(group_id, config_group_name)
+        if not acg:
+            result = general_message(404, "not app config group", "没有该应用配置组，无法操作")
+            return Response(result)
+        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        if not services:
+            result = general_message(400, "not service", "当前组内无组件，无法操作")
+            return Response(result)
+        service_ids = [service.service_id for service in services]
+
+        # Judge whether the requested service ID is correct
+        req_service_ids = request.data.get("service_ids", None)
+        for sid in req_service_ids:
+            if sid not in service_ids:
+                result = general_message(404, "The serviceID is not in the serviceID of the current application binding",
+                                         "请求的组件ID不在当前应用绑定的组件ID中")
+                return Response(result)
+
+        config_items = request.data.get("config_items", None)
+        deploy_status = request.data.get("deploy_status", None)
+        acg = app_config_group.update_config_group(group_id, config_group_name, config_items, deploy_status, req_service_ids)
+        return Response(status=200, data=general_data(bean=acg.to_dict()))
+
     def delete(self, request, *args, **kwargs):
         group_id = int(kwargs.get("group_id", None))
         config_group_name = request.GET.get("name", None)
