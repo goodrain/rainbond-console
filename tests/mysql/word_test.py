@@ -2,6 +2,8 @@
 import unittest
 import json
 
+from docx import Document
+
 from django.test import TestCase
 from www.models.main import Tenants
 from www.models.main import TenantRegionInfo
