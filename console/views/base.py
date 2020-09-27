@@ -174,28 +174,26 @@ class JWTAuthApiView(APIView):
     def check_perms(self, request, *args, **kwargs):
         if kwargs.get("__message"):
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
-            if request_perms and len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
+            if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
                 raise NoPermissionsError
 
     def has_perms(self, request_perms):
-        if request_perms and len(set(request_perms) & set(self.user_perms)) != len(set(request_perms)):
+        if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
             raise NoPermissionsError
 
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            # enterprise code
             self.user_perms = get_enterprise_adminer_codes()
-        else:
-            roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
-            if roles:
-                role_ids = roles.values_list("ID", flat=True)
-                user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
-                if user_roles:
-                    user_role_ids = user_roles.values_list("role_id", flat=True)
-                    role_perms = RolePerms.objects.filter(role_id__in=user_role_ids)
-                    if role_perms:
-                        self.user_perms = role_perms.values_list("perm_code", flat=True)
+        roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
+        if roles:
+            role_ids = roles.values_list("ID", flat=True)
+            user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
+            if user_roles:
+                user_role_ids = user_roles.values_list("role_id", flat=True)
+                role_perms = RolePerms.objects.filter(role_id__in=user_role_ids)
+                if role_perms:
+                    self.user_perms = role_perms.values_list("perm_code", flat=True)
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):

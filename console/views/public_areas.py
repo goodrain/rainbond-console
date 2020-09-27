@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import connection
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
+
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.group import group_repo
@@ -13,11 +18,7 @@ from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db import connection
-from django.views.decorators.cache import never_cache
 from goodrain_web.tools import JuncheePaginator
-from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
@@ -81,6 +82,9 @@ class TeamOverView(RegionTenantHeaderView):
             source = common_services.get_current_region_used_resource(self.team, self.response_region)
             # 获取tcp和http策略数量
             region = region_repo.get_region_by_region_name(self.response_region)
+            if not region:
+                overview_detail["region_health"] = False
+                return Response(general_message(200, "success", "查询成功", bean=overview_detail))
             total_tcp_domain = tcp_domain.get_all_domain_count_by_tenant_and_region(self.team.tenant_id, region.region_id)
             overview_detail["total_tcp_domain"] = total_tcp_domain
 

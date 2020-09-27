@@ -1008,6 +1008,8 @@ class ServiceGroup(BaseModel):
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
     order_index = models.IntegerField(default=0, help_text=u"应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
+    create_time = models.DateTimeField(help_text=u"创建时间")
+    update_time = models.DateTimeField(help_text=u"更新时间")
 
 
 class ServiceGroupRelation(BaseModel):
