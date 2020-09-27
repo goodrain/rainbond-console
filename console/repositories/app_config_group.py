@@ -32,6 +32,8 @@ class ApplicationConfigGroupRepository(object):
                 FROM
                     app_config_group
                 {where}
+                ORDER BY
+                    create_time desc
                 {limit}
                 """.format(
             where=where, limit=limit)

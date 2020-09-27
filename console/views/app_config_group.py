@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from rest_framework.response import Response
 from console.services.app_config_group import app_config_group
 from console.repositories.group import group_service_relation_repo
@@ -41,8 +42,7 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
             result = general_message(409, "The configuration group already exists", "该配置组已存在")
             return Response(result)
 
-    def get(self, request, *args, **kwargs):
-        group_id = int(kwargs.get("group_id", None))
+    def get(self, request, app_id, *args, **kwargs):
         try:
             page = int(request.GET.get("page", 1))
         except ValueError:
@@ -52,5 +52,5 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
         except ValueError:
             page_size = 10
 
-        acg = app_config_group.list_config_groups(group_id, page, page_size)
-        return Response(status=200, data=general_data(bean=acg.to_dict()))
+        acg = app_config_group.list_config_groups(app_id, page, page_size)
+        return Response(status=200, data=general_data(bean=acg))
