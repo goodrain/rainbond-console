@@ -89,22 +89,6 @@ class AppConfigGroupService(object):
         }
         return result
 
-    def get_config_group(self, app_id, config_group_name):
-        cgroup = app_config_group_repo.get_config_group_by_id(app_id, config_group_name)
-        config_group_services = app_config_group_service_repo.list_config_group_services_by_id(app_id, cgroup.config_group_name)
-        config_group_items = app_config_group_item_repo.list_config_group_items_by_id(app_id, cgroup.config_group_name)
-
-        config_group = {
-            "create_time": cgroup.create_time,
-            "update_time": cgroup.update_time,
-            "config_group_name": cgroup.config_group_name,
-            "config_items": config_group_items,
-            "deploy_type": cgroup.deploy_type,
-            "deploy_status": cgroup.deploy_status,
-            "services": config_group_services,
-        }
-        return config_group
-
 
 def convert_todict(cgroup_items, cgroup_services):
     # Convert application config group items to dict
