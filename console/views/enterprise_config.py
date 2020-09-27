@@ -17,7 +17,6 @@ from console.utils.reqparse import parse_item
 from console.views.base import EnterpriseAdminView
 from console.enum.system_config import ConfigKeyEnum
 
-
 logger = logging.getLogger("default")
 
 
