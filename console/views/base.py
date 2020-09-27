@@ -467,7 +467,8 @@ class ApplicationView(RegionTenantHeaderView):
 
     def initial(self, r, *args, **kwargs):
         super(ApplicationView, self).initial(r, *args, **kwargs)
-        # app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
-        # if not app:
-        #     raise ServiceHandleException("app not found", "应用不存在", status_code=404)
-        # self.app = app
+        app_id = r.GET.get("app_id")
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
+        self.app = app

@@ -252,7 +252,7 @@ class AppGovernanceModeView(ApplicationView):
         return Response(result)
 
 
-class AppKubernetesServiceView(RegionTenantHeaderView):
+class AppKubernetesServiceView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         res = group_service.list_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=res)
@@ -276,7 +276,7 @@ class AppKubernetesServiceView(RegionTenantHeaderView):
             if not k8s_service.get("port_alias"):
                 raise AbortRequest("the field 'port_alias' is required")
 
-        group_service.update_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id, k8s_services)
+        group_service.update_kubernetes_services(self.tenant, self.region_name, app_id, k8s_services)
 
         result = general_message(200, "success", "更新成功", list=k8s_services)
         return Response(result)

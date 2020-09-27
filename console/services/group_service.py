@@ -23,8 +23,10 @@ from console.repositories.user_repo import user_repo
 from console.exception.main import ServiceHandleException
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
 from console.exception.main import AbortRequest
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class GroupService(object):
@@ -369,16 +371,16 @@ class GroupService(object):
         return k8s_services
 
     @transaction.atomic()
-    def update_kubernetes_services(self, tenant_id, region_name, app_id, k8s_services):
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+    def update_kubernetes_services(self, tenant, region_name, app_id, k8s_services):
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
         for k8s_service in k8s_services:
             # check k8s_service_name
             try:
                 # whether k8s_service_name exists
-                port_repo.get_by_k8s_service_name(tenant_id, k8s_service["k8s_service_name"])
+                port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service["k8s_service_name"])
                 try:
                     # k8s_service_name belong to the current k8s_service?
-                    port_repo.check_k8s_service_name(tenant_id, k8s_service["service_id"], k8s_service["port"],
+                    port_repo.check_k8s_service_name(tenant.tenant_id, k8s_service["service_id"], k8s_service["port"],
                                                      k8s_service["k8s_service_name"])
                 except TenantServicesPort.DoesNotExist:
                     raise AbortRequest("k8s_service_name '{}' already exits", k8s_service["k8s_service_name"])
@@ -392,12 +394,13 @@ class GroupService(object):
         # bulk_update is only available after django 2.2
         for k8s_service in k8s_services:
             port_repo.update_port(
-                tenant_id, k8s_service["service_id"], k8s_service["port"], **{
+                tenant.tenant_id, k8s_service["service_id"], k8s_service["port"], **{
                     "port_alias": k8s_service["port_alias"],
                     "k8s_service_name": k8s_service["k8s_service_name"],
                 })
-
         # TODO: sync k8s service name in the region
+        # TODO: region_app_id
+        # region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
 
 
 group_service = GroupService()

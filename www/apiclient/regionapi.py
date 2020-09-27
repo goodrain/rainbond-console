@@ -1765,3 +1765,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url += "/v2/cluster/builder/mavensetting"
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return res, body
+
+    def update_app_ports(self, region_name, tenant_name, app_id, data):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/ports"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_name)
+        return body
