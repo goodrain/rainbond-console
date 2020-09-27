@@ -58,5 +58,9 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
 
 class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     def get(self, request, app_id, name, *args, **kwargs):
-        acg = app_config_group.get_config_group(app_id, name)
+        try:
+            acg = app_config_group.get_config_group(app_id, name)
+        except ApplicationConfigGroup.DoesNotExist:
+            result = general_message(404, "The configuration group not found", "该配置组不存在")
+            return Response(result)
         return Response(status=200, data=general_data(bean=acg))
