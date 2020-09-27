@@ -48,24 +48,7 @@ class AppConfigGroupService(object):
         cgroup_services = app_config_group_service_repo.list_config_group_services_by_id(app_id, cgroup.config_group_name)
         cgroup_items = app_config_group_item_repo.list_config_group_items_by_id(app_id, cgroup.config_group_name)
 
-        # Convert application config group items to dict
-        config_group_items = []
-        for i in cgroup_items:
-            cgi = i.to_dict()
-            config_group_items.append({
-                "item_key": cgi["item_key"],
-                "item_value": cgi["item_value"],
-            })
-
-        # Convert application config group services to dict
-        config_group_services = []
-        for i in cgroup_services:
-            cgi = i.to_dict()
-            config_group_services.append({
-                "service_id": cgi["service_id"],
-                "service_alias": cgi["service_alias"],
-            })
-
+        config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
         config_group = {
             "create_time": cgroup.create_time,
             "update_time": cgroup.update_time,
@@ -87,23 +70,7 @@ class AppConfigGroupService(object):
             cgroup_services = app_config_group_service_repo.list_config_group_services_by_id(app_id, cgroup.config_group_name)
             cgroup_items = app_config_group_item_repo.list_config_group_items_by_id(app_id, cgroup.config_group_name)
 
-            # Convert application config group items to dict
-            config_group_items = []
-            for i in cgroup_items:
-                cgi = i.to_dict()
-                config_group_items.append({
-                    "item_key": cgi["item_key"],
-                    "item_value": cgi["item_value"],
-                })
-
-            # Convert application config group services to dict
-            config_group_services = []
-            for i in cgroup_services:
-                cgi = i.to_dict()
-                config_group_services.append({
-                    "service_id": cgi["service_id"],
-                    "service_alias": cgi["service_alias"],
-                })
+            config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
             cgroup_info.append({
                 "create_time": cgroup.create_time,
                 "update_time": cgroup.update_time,
@@ -121,6 +88,26 @@ class AppConfigGroupService(object):
             "total": total,
         }
         return result
+
+
+def convert_todict(cgroup_items, cgroup_services):
+    # Convert application config group items to dict
+    config_group_items = []
+    for i in cgroup_items:
+        cgi = i.to_dict()
+        config_group_items.append({
+            "item_key": cgi["item_key"],
+            "item_value": cgi["item_value"],
+        })
+    # Convert application config group services to dict
+    config_group_services = []
+    for i in cgroup_services:
+        cgi = i.to_dict()
+        config_group_services.append({
+            "service_id": cgi["service_id"],
+            "service_alias": cgi["service_alias"],
+        })
+    return config_group_items, config_group_services
 
 
 app_config_group = AppConfigGroupService()
