@@ -234,4 +234,10 @@ class UserFavoriteNotExistError(BaseException):
 
 
 # 20000 ~ 20099 => user
-err_user_not_found = ServiceHandleException("user not found", u"用户不存在", 404, 20000)
+class ErrUserNotFound(ServiceHandleException):
+    def __init__(self, message):
+        msg = "user not found"
+        super(ErrUserNotFound, self).__init__(msg)
+        self.msg_show = u"用户不存在"
+        self.status_code = 404
+        self.error_code = 20000

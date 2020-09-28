@@ -5,8 +5,16 @@ import os
 import re
 from datetime import datetime
 
-from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
-                                          ServiceHandleException, TenantNotExistError, UserExistError, UserNotExistError,)
+from console.exception.exceptions import (
+    AccountNotExistError,
+    EmailExistError,
+    PasswordTooShortError,
+    PhoneExistError,
+    ServiceHandleException,
+    TenantNotExistError,
+    UserExistError,
+    UserNotExistError,
+)
 from console.models.main import EnterpriseUserPerm, UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
