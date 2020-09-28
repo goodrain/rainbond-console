@@ -952,7 +952,7 @@ class ApplicationConfigGroup(BaseModel):
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     deploy_type = models.CharField(max_length=32, help_text="effective type")
     enable = models.BooleanField(help_text="effective status")
-    region_name = models.CharField(max_length=32, help_text="region name")
+    region_name = models.CharField(max_length=64, help_text="region name")
 
 
 class ConfigGroupItem(BaseModel):

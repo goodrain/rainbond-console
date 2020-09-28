@@ -1,35 +1,33 @@
 # -*- coding: utf-8 -*-
 from rest_framework.response import Response
 
-from console.services.app_config_group import app_config_group
+from console.services.app_config_group import app_config_group_service
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_data, general_message
-from console.models.main import ApplicationConfigGroup
 from console.services.group_service import group_service
+from console.serializer import AppConfigGroupCreateSerilizer
+from console.serializer import AppConfigGroupUpdateSerilizer
+from console.exception.main import AbortRequest
 
 
 class ListAppConfigGroupView(RegionTenantHeaderView):
     def post(self, request, app_id, *args, **kwargs):
+        serializer = AppConfigGroupCreateSerilizer(data=request.data)
+        serializer.is_valid()
+        params = dict(serializer.data)
         req_service_ids = request.data.get("service_ids", None)
-        config_group_name = request.data.get("config_group_name", None)
         config_items = request.data.get("config_items", None)
-        deploy_type = request.data.get("deploy_type", None)
-        enable = request.data.get("enable", None)
-        region_name = request.data.get("region_name", None)
 
         result = checkParam(app_id, req_service_ids)
         if result:
             return Response(result)
-        # If the application config group exists, it is not created
-        try:
-            app_config_group.get_config_group(app_id, config_group_name)
-        except ApplicationConfigGroup.DoesNotExist:
-            acg = app_config_group.create_config_group(app_id, config_group_name, config_items, deploy_type, enable,
-                                                       req_service_ids, region_name)
-            return Response(status=200, data=general_data(bean=acg))
-        else:
-            result = general_message(409, "The configuration group already exists", "该配置组已存在")
-            return Response(result)
+        if len(config_items) == 0:
+            raise AbortRequest(msg="The request must contain a config item")
+
+        acg = app_config_group_service.create_config_group(app_id, params["config_group_name"], config_items,
+                                                           params["deploy_type"], params["enable"], req_service_ids,
+                                                           params["region_name"])
+        return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, *args, **kwargs):
         try:
@@ -41,38 +39,32 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
         except ValueError:
             page_size = 10
 
-        acg = app_config_group.list_config_groups(app_id, page, page_size)
+        acg = app_config_group_service.list_config_groups(app_id, page, page_size)
         return Response(status=200, data=general_data(bean=acg))
 
 
 class AppConfigGroupView(RegionTenantHeaderView):
     def put(self, request, app_id, name, *args, **kwargs):
-        try:
-            app_config_group.get_config_group(app_id, name)
-        except ApplicationConfigGroup.DoesNotExist:
-            result = general_message(404, "not app config group", "没有该应用配置组，无法操作")
-            return Response(result)
-
+        serializer = AppConfigGroupUpdateSerilizer(data=request.data)
+        serializer.is_valid()
+        params = dict(serializer.data)
         config_items = request.data.get("config_items", None)
-        enable = request.data.get("enable", None)
         req_service_ids = request.data.get("service_ids", None)
-
         result = checkParam(app_id, req_service_ids)
         if result:
             return Response(result)
-        acg = app_config_group.update_config_group(app_id, name, config_items, enable, req_service_ids)
+        if len(config_items) == 0:
+            raise AbortRequest(msg="The request must contain a config item")
+
+        acg = app_config_group_service.update_config_group(app_id, name, config_items, params["enable"], req_service_ids)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, name, *args, **kwargs):
-        try:
-            acg = app_config_group.get_config_group(app_id, name)
-        except ApplicationConfigGroup.DoesNotExist:
-            result = general_message(404, "The configuration group not found", "该配置组不存在")
-            return Response(result)
+        acg = app_config_group_service.get_config_group(app_id, name)
         return Response(status=200, data=general_data(bean=acg))
 
     def delete(self, request, app_id, name, *args, **kwargs):
-        acg = app_config_group.delete_config_group(app_id, name)
+        acg = app_config_group_service.delete_config_group(app_id, name)
         return Response(status=200, data=general_data(bean=acg))
 
 

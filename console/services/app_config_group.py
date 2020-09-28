@@ -7,6 +7,9 @@ from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app import service_repo
+from console.models.main import ApplicationConfigGroup
+from console.exception.exceptions import ErrAppConfigGroupNotFound
+from console.exception.exceptions import ErrAppConfigGroupExists
 
 
 class AppConfigGroupService(object):
@@ -20,12 +23,21 @@ class AppConfigGroupService(object):
             "enable": enable,
             "region_name": region_name,
         }
-        app_config_group_repo.create(**group_req)
-        create_items_and_services(app_id, config_group_name, config_items, service_ids)
+
+        try:
+            app_config_group_repo.get(app_id, config_group_name)
+        except ApplicationConfigGroup.DoesNotExist:
+            app_config_group_repo.create(**group_req)
+            create_items_and_services(app_id, config_group_name, config_items, service_ids)
+        else:
+            raise ErrAppConfigGroupExists
         return self.get_config_group(app_id, config_group_name)
 
     def get_config_group(self, app_id, config_group_name):
-        cgroup = app_config_group_repo.get(app_id, config_group_name)
+        try:
+            cgroup = app_config_group_repo.get(app_id, config_group_name)
+        except ApplicationConfigGroup.DoesNotExist:
+            raise ErrAppConfigGroupNotFound
         config_group_info = build_response(app_id, cgroup)
         return config_group_info
 
@@ -37,11 +49,15 @@ class AppConfigGroupService(object):
             "enable": enable,
             "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
         }
-        app_config_group_repo.update(**group_req)
-
-        app_config_group_item_repo.delete(app_id, config_group_name)
-        app_config_group_service_repo.delete(app_id, config_group_name)
-        create_items_and_services(app_id, config_group_name, config_items, service_ids)
+        try:
+            app_config_group_repo.get(app_id, config_group_name)
+        except ApplicationConfigGroup.DoesNotExist:
+            raise ErrAppConfigGroupNotFound
+        else:
+            app_config_group_repo.update(**group_req)
+            app_config_group_item_repo.delete(app_id, config_group_name)
+            app_config_group_service_repo.delete(app_id, config_group_name)
+            create_items_and_services(app_id, config_group_name, config_items, service_ids)
         return self.get_config_group(app_id, config_group_name)
 
     def list_config_groups(self, app_id, page, page_size):
@@ -117,4 +133,4 @@ def create_items_and_services(app_id, config_group_name, config_items, service_i
             app_config_group_service_repo.create(**group_service)
 
 
-app_config_group = AppConfigGroupService()
+app_config_group_service = AppConfigGroupService()

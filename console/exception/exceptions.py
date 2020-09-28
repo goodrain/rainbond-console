@@ -231,3 +231,22 @@ class UserFavoriteNotExistError(BaseException):
     """
     用户收藏视图不存在
     """
+
+
+# 20100 ~ 20199 => app config group
+class ErrAppConfigGroupExists(ServiceHandleException):
+    def __init__(self):
+        msg = "app config group exists"
+        super(ErrAppConfigGroupExists, self).__init__(msg)
+        self.msg_show = u"应用配置组已存在"
+        self.status_code = 409
+        self.error_code = 20100
+
+
+class ErrAppConfigGroupNotFound(ServiceHandleException):
+    def __init__(self):
+        msg = "app config group not found"
+        super(ErrAppConfigGroupNotFound, self).__init__(msg)
+        self.msg_show = u"应用配置组不存在"
+        self.status_code = 404
+        self.error_code = 20101
