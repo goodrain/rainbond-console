@@ -16,6 +16,7 @@ from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.utils.shortcuts import get_object_or_404
 from console.repositories.plugin import app_plugin_relation_repo
@@ -43,9 +44,27 @@ class GroupService(object):
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
-    def add_group(self, tenant, region_name, group_name, group_note=""):
-        self.check_app_name(tenant, region_name, group_name)
-        return group_repo.add_group(tenant.tenant_id, region_name, group_name, group_note)
+    @transaction.atomic()
+    def add_group(self, tenant, region_name, app_name, note=""):
+        self.check_app_name(tenant, region_name, app_name)
+        return group_repo.add_group(tenant.tenant_id, region_name, app_name, note)
+
+    def create_app(self, tenant, region_name, app_name, note=""):
+        app = self.add_group(tenant, region_name, app_name, note)
+
+        region_app = region_api.create_application(region_name, tenant.tenant_name, {
+            "app_name": app_name,
+        })
+
+        # record the dependencies between region app and console app
+        data = {
+            "region_name": region_name,
+            "region_app_id": region_app["app_id"],
+            "app_id": app.ID,
+        }
+        region_app_repo.create(**data)
+
+        return app.to_dict()
 
     def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
         # check app id

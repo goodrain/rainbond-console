@@ -1034,6 +1034,18 @@ class ServiceGroupRelation(BaseModel):
     region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
 
 
+class RegionApp(BaseModel):
+    """the dependencies between region app and console app"""
+
+    class Meta:
+        db_table = 'region_app'
+        unique_together = ('region_name', 'region_app_id', 'app_id')
+
+    region_name = models.CharField(max_length=64, help_text="region name")
+    region_app_id = models.CharField(max_length=32, help_text="region app id")
+    app_id = models.IntegerField()
+
+
 class ImageServiceRelation(BaseModel):
     """image_url拉取的service的对应关系"""
 
