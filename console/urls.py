@@ -37,8 +37,8 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
-                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
-                                        ImageAppView, ListAppPodsView)
+                                        AppKeywordView, AppPluginsBriefView, AppVisitView, BuildSourceinfo, ImageAppView,
+                                        ListAppPodsView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
                                                   EnterpriseAppImportInitView, ImportingRecordView)
