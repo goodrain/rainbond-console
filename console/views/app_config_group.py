@@ -2,14 +2,13 @@
 from rest_framework.response import Response
 
 from console.services.app_config_group import app_config_group
-from console.repositories.group import group_service_relation_repo
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_data, general_message
-from console.repositories.app_config_group import app_config_group_repo
 from console.models.main import ApplicationConfigGroup
+from console.services.group_service import group_service
 
 
-class ListAppConfigGroupView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class ListAppConfigGroupView(RegionTenantHeaderView):
     def post(self, request, app_id, *args, **kwargs):
         req_service_ids = request.data.get("service_ids", None)
         config_group_name = request.data.get("config_group_name", None)
@@ -23,7 +22,7 @@ class ListAppConfigGroupView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             return Response(result)
         # If the application config group exists, it is not created
         try:
-            app_config_group_repo.get(app_id, config_group_name)
+            app_config_group.get_config_group(app_id, config_group_name)
         except ApplicationConfigGroup.DoesNotExist:
             acg = app_config_group.create_config_group(app_id, config_group_name, config_items, deploy_type, enable,
                                                        req_service_ids, region_name)
@@ -46,10 +45,10 @@ class ListAppConfigGroupView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         return Response(status=200, data=general_data(bean=acg))
 
 
-class AppConfigGroupView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class AppConfigGroupView(RegionTenantHeaderView):
     def put(self, request, app_id, name, *args, **kwargs):
         try:
-            app_config_group_repo.get(app_id, name)
+            app_config_group.get_config_group(app_id, name)
         except ApplicationConfigGroup.DoesNotExist:
             result = general_message(404, "not app config group", "没有该应用配置组，无法操作")
             return Response(result)
@@ -78,10 +77,7 @@ class AppConfigGroupView(RegionTenantHeaderView, CloudEnterpriseCenterView):
 
 
 def checkParam(app_id, req_service_ids):
-    services = group_service_relation_repo.get_services_obj_by_group(app_id)
-    if services.count() == 0:
-        result = general_message(400, "not service", "当前组内无组件，无法操作")
-        return result
+    services = group_service.get_group_services(app_id)
     service_ids = [service.service_id for service in services]
 
     # Judge whether the requested service ID is correct

@@ -21,47 +21,13 @@ class AppConfigGroupService(object):
             "region_name": region_name,
         }
         app_config_group_repo.create(**group_req)
-
-        # create application config group items
-        for item in config_items:
-            group_item = {
-                "app_id": app_id,
-                "config_group_name": config_group_name,
-                "item_key": item["item_key"],
-                "item_value": item["item_value"],
-            }
-            app_config_group_item_repo.create(**group_item)
-
-        # create application config group services takes effect
-        if service_ids is not None:
-            for sid in service_ids:
-                s = service_repo.get_service_by_service_id(sid["service_id"])
-                group_service = {
-                    "app_id": app_id,
-                    "config_group_name": config_group_name,
-                    "service_id": s.service_id,
-                    "service_alias": s.service_alias,
-                }
-                app_config_group_service_repo.create(**group_service)
+        create_items_and_services(app_id, config_group_name, config_items, service_ids)
         return self.get_config_group(app_id, config_group_name)
 
     def get_config_group(self, app_id, config_group_name):
         cgroup = app_config_group_repo.get(app_id, config_group_name)
-        cgroup_services = app_config_group_service_repo.list(app_id, cgroup.config_group_name)
-        cgroup_items = app_config_group_item_repo.list(app_id, cgroup.config_group_name)
-
-        config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
-        config_group = {
-            "create_time": cgroup.create_time,
-            "update_time": cgroup.update_time,
-            "app_id": app_id,
-            "config_group_name": cgroup.config_group_name,
-            "config_items": config_group_items,
-            "deploy_type": cgroup.deploy_type,
-            "enable": cgroup.enable,
-            "services": config_group_services,
-        }
-        return config_group
+        config_group_info = build_response(app_id, cgroup)
+        return config_group_info
 
     @transaction.atomic
     def update_config_group(self, app_id, config_group_name, config_items, enable, service_ids):
@@ -74,26 +40,8 @@ class AppConfigGroupService(object):
         app_config_group_repo.update(**group_req)
 
         app_config_group_item_repo.delete(app_id, config_group_name)
-        for item in config_items:
-            group_item = {
-                "app_id": app_id,
-                "config_group_name": config_group_name,
-                "item_key": item["item_key"],
-                "item_value": item["item_value"],
-            }
-            app_config_group_item_repo.create(**group_item)
-
         app_config_group_service_repo.delete(app_id, config_group_name)
-        if service_ids is not None:
-            for sid in service_ids:
-                s = service_repo.get_service_by_service_id(sid["service_id"])
-                group_service = {
-                    "app_id": app_id,
-                    "config_group_name": config_group_name,
-                    "service_id": s.service_id,
-                    "service_alias": s.service_alias,
-                }
-                app_config_group_service_repo.create(**group_service)
+        create_items_and_services(app_id, config_group_name, config_items, service_ids)
         return self.get_config_group(app_id, config_group_name)
 
     def list_config_groups(self, app_id, page, page_size):
@@ -102,19 +50,8 @@ class AppConfigGroupService(object):
         total = app_config_group_repo.count(app_id)
 
         for cgroup in config_groups:
-            cgroup_services = app_config_group_service_repo.list(app_id, cgroup.config_group_name)
-            cgroup_items = app_config_group_item_repo.list(app_id, cgroup.config_group_name)
-
-            config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
-            cgroup_info.append({
-                "create_time": cgroup.create_time,
-                "update_time": cgroup.update_time,
-                "config_group_name": cgroup.config_group_name,
-                "config_items": config_group_items,
-                "deploy_type": cgroup.deploy_type,
-                "enable": cgroup.enable,
-                "services": config_group_services,
-            })
+            config_group_info = build_response(app_id, cgroup)
+            cgroup_info.append(config_group_info)
 
         result = {
             "list": cgroup_info,
@@ -136,19 +73,48 @@ def convert_todict(cgroup_items, cgroup_services):
     config_group_items = []
     for i in cgroup_items:
         cgi = i.to_dict()
-        config_group_items.append({
-            "item_key": cgi["item_key"],
-            "item_value": cgi["item_value"],
-        })
+        config_group_items.append(cgi)
     # Convert application config group services to dict
     config_group_services = []
-    for i in cgroup_services:
-        cgi = i.to_dict()
-        config_group_services.append({
-            "service_id": cgi["service_id"],
-            "service_alias": cgi["service_alias"],
-        })
+    for s in cgroup_services:
+        cgs = s.to_dict()
+        config_group_services.append(cgs)
     return config_group_items, config_group_services
+
+
+def build_response(app_id, cgroup):
+    cgroup_services = app_config_group_service_repo.list(app_id, cgroup.config_group_name)
+    cgroup_items = app_config_group_item_repo.list(app_id, cgroup.config_group_name)
+    config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
+
+    config_group_info = cgroup.to_dict()
+    config_group_info["services"] = config_group_services
+    config_group_info["config_items"] = config_group_items
+    return config_group_info
+
+
+def create_items_and_services(app_id, config_group_name, config_items, service_ids):
+    # create application config group items
+    for item in config_items:
+        group_item = {
+            "app_id": app_id,
+            "config_group_name": config_group_name,
+            "item_key": item["item_key"],
+            "item_value": item["item_value"],
+        }
+        app_config_group_item_repo.create(**group_item)
+
+    # create application config group services takes effect
+    if service_ids is not None:
+        for sid in service_ids:
+            s = service_repo.get_service_by_service_id(sid["service_id"])
+            group_service = {
+                "app_id": app_id,
+                "config_group_name": config_group_name,
+                "service_id": s.service_id,
+                "service_alias": s.service_alias,
+            }
+            app_config_group_service_repo.create(**group_service)
 
 
 app_config_group = AppConfigGroupService()
