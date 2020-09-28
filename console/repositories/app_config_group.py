@@ -45,9 +45,7 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.filter(app_id=app_id).count()
 
     def delete(self, app_id, config_group_name):
-        application = ApplicationConfigGroup.objects.get(app_id=app_id, config_group_name=config_group_name)
-        row = ApplicationConfigGroup.objects.filter(app_id=application.ID).delete()
-        return row > 0
+        return ApplicationConfigGroup.objects.filter(app_id=app_id, config_group_name=config_group_name).delete()
 
 
 class ApplicationConfigGroupServiceRepository(object):

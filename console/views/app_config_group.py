@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from rest_framework.response import Response
 from console.services.app_config_group import app_config_group
 from console.repositories.group import group_service_relation_repo
@@ -64,8 +65,6 @@ class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCen
             return Response(result)
         return Response(status=200, data=general_data(bean=acg))
 
-    def delete(self, request, *args, **kwargs):
-        group_id = int(kwargs.get("group_id", None))
-        config_group_name = request.GET.get("name", None)
-        acg = app_config_group.delete_config_group(group_id, config_group_name)
-        return Response(status=200, data=general_data(bean=acg.to_dict()))
+    def delete(self, request, app_id, name, *args, **kwargs):
+        acg = app_config_group.delete_config_group(app_id, name)
+        return Response(status=200, data=general_data(bean=acg))

@@ -90,6 +90,12 @@ class AppConfigGroupService(object):
         }
         return result
 
+    @transaction.atomic
+    def delete_config_group(self, app_id, config_group_name):
+        app_config_group_item_repo.delete(app_id, config_group_name)
+        app_config_group_service_repo.delete(app_id, config_group_name)
+        app_config_group_repo.delete(app_id, config_group_name)
+
 
 def convert_todict(cgroup_items, cgroup_services):
     # Convert application config group items to dict
@@ -109,15 +115,6 @@ def convert_todict(cgroup_items, cgroup_services):
             "service_alias": cgi["service_alias"],
         })
     return config_group_items, config_group_services
-
-    @transaction.atomic
-    def delete_config_group(self, app_id, config_group_name):
-        acg = app_config_group_repo.get_config_group_by_id(app_id, config_group_name)
-        if not acg:
-            raise ServiceHandleException(msg="application config group is not found", msg_show="应用配置组不存在", status_code=404)
-        app_config_group_repo.delete(app_id, config_group_name)
-        app_config_group_item_repo.delete(app_id, config_group_name)
-        app_config_group_service_repo.delete(app_id, config_group_name)
 
 
 app_config_group = AppConfigGroupService()
