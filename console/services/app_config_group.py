@@ -4,7 +4,7 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app import service_repo
 from django.db import transaction
-from console.exception.main import ServiceHandleException
+import time
 
 
 class AppConfigGroupService(object):
@@ -68,31 +68,31 @@ class AppConfigGroupService(object):
             "app_id": app_id,
             "config_group_name": config_group_name,
             "deploy_status": deploy_status,
+            "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
         }
         app_config_group_repo.update(**group_req)
 
-        group_item_reqs = []
         app_config_group_item_repo.delete(app_id, config_group_name)
         for item in config_items:
-            group_item_reqs.append({
+            group_item = {
                 "app_id": app_id,
                 "config_group_name": config_group_name,
-                "item_key": item.item_key,
-                "item_value": item.item_value,
-            })
-        app_config_group_item_repo.create(**group_item_reqs)
+                "item_key": item["item_key"],
+                "item_value": item["item_value"],
+            }
+            app_config_group_item_repo.create(**group_item)
 
-        group_service_reqs = []
         app_config_group_service_repo.delete(app_id, config_group_name)
-        for sid in service_ids:
-            s = service_repo.get_service_by_service_id(sid)
-            group_service_reqs.append({
-                "app_id": app_id,
-                "config_group_name": config_group_name,
-                "service_id": s.service_id,
-                "service_alias": s.service_alias,
-            })
-        app_config_group_service_repo.create(**group_service_reqs)
+        if service_ids is not None:
+            for sid in service_ids:
+                s = service_repo.get_service_by_service_id(sid["service_id"])
+                group_service = {
+                    "app_id": app_id,
+                    "config_group_name": config_group_name,
+                    "service_id": s.service_id,
+                    "service_alias": s.service_alias,
+                }
+                app_config_group_service_repo.create(**group_service)
         return self.get_config_group(app_id, config_group_name)
 
     def list_config_groups(self, app_id, page, page_size):

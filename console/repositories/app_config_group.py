@@ -14,7 +14,6 @@ class ApplicationConfigGroupRepository(object):
         return res
 
     def get_config_group_by_id(self, app_id, config_group_name):
-        print(app_id, config_group_name)
         return ApplicationConfigGroup.objects.get(app_id=app_id, config_group_name=config_group_name)
 
     def list_config_groups_by_app_id(self, app_id, page=None, page_size=None):
