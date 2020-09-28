@@ -25,6 +25,7 @@ class EnterpriseConfigView(EnterpriseAdminView):
     def put(self, request, enterprise_id, *args, **kwargs):
         title = parse_item(request, "title")
         logo = parse_item(request, "logo")
+        favicon = parse_item(request, "favicon")
         enterprise_alias = parse_item(request, "enterprise_alias")
 
         config_service = ConfigService()
@@ -34,6 +35,8 @@ class EnterpriseConfigView(EnterpriseAdminView):
             config_service.update_config_value(ConfigKeyEnum.LOGO.name, logo)
         if enterprise_alias:
             enterprise_services.update_alias(enterprise_id, enterprise_alias)
+        if favicon:
+            config_service.update_config_value(ConfigKeyEnum.FAVICON.name, favicon)
 
         return Response(status=status.HTTP_200_OK)
 

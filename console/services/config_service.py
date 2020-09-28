@@ -273,6 +273,7 @@ class PlatformConfigService(ConfigService):
         self.cfg_keys = [
             "TITLE",
             "LOGO",
+            "FAVICON",
             "IS_REGIST",
             "DOCUMENT",
             "OFFICIAL_DEMO",
@@ -286,6 +287,11 @@ class PlatformConfigService(ConfigService):
             "LOGO": {
                 "value": None,
                 "desc": u"云帮图标",
+                "enable": True
+            },
+            "FAVICON": {
+                "value": None,
+                "desc": u"网站图标",
                 "enable": True
             },
             "DOCUMENT": {
