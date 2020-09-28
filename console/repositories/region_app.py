@@ -11,5 +11,10 @@ class RegionAppRepository(object):
     def create(**data):
         return RegionApp.objects.create(**data)
 
+    @staticmethod
+    def get_region_app_id(region_name, app_id):
+        region_app = RegionApp.objects.get(region_name=region_name, app_id=app_id)
+        return region_app.region_app_id
+
 
 region_app_repo = RegionAppRepository()

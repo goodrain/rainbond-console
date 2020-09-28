@@ -13,9 +13,11 @@ CREATE TABLE IF NOT EXISTS `tenant_service_monitor` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `region_app` (
+    `ID` int(11) NOT NULL AUTO_INCREMENT,
   `region_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `region_app_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `app_id` int NOT NULL,
+  PRIMARY KEY (`ID`),
   PRIMARY KEY (`region_name`,`region_app_id`,`app_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -18,9 +18,9 @@ from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
-from console.utils.shortcuts import get_object_or_404
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.user_repo import user_repo
+from console.utils.shortcuts import get_object_or_404
 from console.exception.main import ServiceHandleException
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
 from console.exception.main import AbortRequest
@@ -438,20 +438,16 @@ class GroupService(object):
                 })
         # TODO: sync k8s service name in the region
 
-        region_app_id = self.get_region_app_id(region_name, app_id)
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
 
-    def get_app_status(self, tenant, region_name, app_id):
-        region_app_id = self.get_region_app_id(region_name, app_id)
+    @staticmethod
+    def get_app_status(tenant, region_name, app_id):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
         if status.get("status") == "NIL":
             status["status"] = None
-        return
-
-    @staticmethod
-    def get_region_app_id(region_name, app_id):
-        # TODO: get region_app_id based on the given app_id
-        return app_id
+        return status
 
 
 group_service = GroupService()

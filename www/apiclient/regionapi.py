@@ -1782,7 +1782,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, region=region_name)
-        return body
+        return body["bean"]
 
     def create_application(self, region_name, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
