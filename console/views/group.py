@@ -281,3 +281,10 @@ class AppKubernetesServiceView(ApplicationView):
 
         result = general_message(200, "success", "更新成功", list=k8s_services)
         return Response(result)
+
+
+class AppStatusView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        status = group_service.get_app_status(self.tenant, self.region_name, app_id)
+        result = general_message(200, "success", "查询成功", list=status)
+        return Response(result)

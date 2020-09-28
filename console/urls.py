@@ -58,7 +58,7 @@ from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, Ent
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 AppGovernanceModeView, AppKubernetesServiceView)
+                                 AppGovernanceModeView, AppKubernetesServiceView, AppStatusView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -269,6 +269,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode', AppGovernanceModeView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8sservices', AppKubernetesServiceView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', AppStatusView.as_view()),
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.GroupStatusView),
     # 应用(组)常见操作

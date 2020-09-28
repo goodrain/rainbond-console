@@ -90,7 +90,8 @@ class GroupService(object):
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
                     return 404, u"应用不存在"
-                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
+                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id,
+                                                                       region_name)
         return 200, u"success"
 
     def get_app_detail(self, tenant, region_name, app_id):
@@ -175,7 +176,8 @@ class GroupService(object):
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
-        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
+        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups(
+            [g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
         for k, v in service_group_map.iteritems():
@@ -265,7 +267,8 @@ class GroupService(object):
             group_id = a.ID
             app = apps.get(a.ID)
             app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
-            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
+            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(
+                group_id) else 0
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
                 app["run_service_num"] = 0
@@ -374,7 +377,8 @@ class GroupService(object):
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[port.service_id] + "_" + str(
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[
+                                                                                       port.service_id] + "_" + str(
                 port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,
@@ -414,8 +418,21 @@ class GroupService(object):
                     "k8s_service_name": k8s_service["k8s_service_name"],
                 })
         # TODO: sync k8s service name in the region
-        # TODO: region_app_id
-        # region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
+
+        region_app_id = self.get_region_app_id(region_name, app_id)
+        region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
+
+    def get_app_status(self, tenant, region_name, app_id):
+        region_app_id = self.get_region_app_id(region_name, app_id)
+        status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+        if status.get("status") == "NIL":
+            status["status"] = None
+        return
+
+    @staticmethod
+    def get_region_app_id(region_name, app_id):
+        # TODO: get region_app_id based on the given app_id
+        return app_id
 
 
 group_service = GroupService()

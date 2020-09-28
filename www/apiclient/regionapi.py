@@ -1774,3 +1774,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_name)
         return body
+
+    def get_app_status(self, region_name, tenant_name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/status"
+
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region_name)
+        return body
