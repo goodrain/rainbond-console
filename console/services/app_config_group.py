@@ -4,7 +4,6 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app import service_repo
 from django.db import transaction
-from console.exception.main import ServiceHandleException
 
 
 class AppConfigGroupService(object):
