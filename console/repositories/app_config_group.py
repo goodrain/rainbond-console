@@ -9,14 +9,12 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.create(**data)
 
     def update(self, app_id, config_group_name, **data):
-        ApplicationConfigGroup.objects.filter(app_id=app_id, config_group_name=config_group_name).update(**data)
-        res = ApplicationConfigGroup.objects.get(app_id=app_id, config_group_name=config_group_name)
-        return res
+        return ApplicationConfigGroup.objects.filter(app_id=app_id, config_group_name=config_group_name).update(**data)
 
-    def get_config_group_by_id(self, app_id, config_group_name):
+    def get(self, app_id, config_group_name):
         return ApplicationConfigGroup.objects.get(app_id=app_id, config_group_name=config_group_name)
 
-    def list_config_groups_by_app_id(self, app_id, page=None, page_size=None):
+    def list(self, app_id, page=None, page_size=None):
         limit = ""
         if page is not None and page_size is not None:
             page = page if page > 0 else 1
@@ -40,7 +38,7 @@ class ApplicationConfigGroupRepository(object):
         conn = BaseConnection()
         return conn.query(sql)
 
-    def count_config_groups_by_app_id(self, app_id):
+    def count(self, app_id):
         return ApplicationConfigGroup.objects.filter(app_id=app_id).count()
 
     def delete(self, app_id, config_group_name):
@@ -51,7 +49,7 @@ class ApplicationConfigGroupServiceRepository(object):
     def create(self, **data):
         return ConfigGroupService.objects.create(**data)
 
-    def list_config_group_services_by_id(self, app_id, config_group_name):
+    def list(self, app_id, config_group_name):
         return ConfigGroupService.objects.filter(app_id=app_id, config_group_name=config_group_name)
 
     def delete(self, app_id, config_group_name):
@@ -67,7 +65,7 @@ class ApplicationConfigGroupItemRepository(object):
         res = ConfigGroupItem.objects.get(app_id=app_id, config_group_name=config_group_name, item_key=item_key)
         return res
 
-    def list_config_group_items_by_id(self, app_id, config_group_name):
+    def list(self, app_id, config_group_name):
         return ConfigGroupItem.objects.filter(app_id=app_id, config_group_name=config_group_name)
 
     def delete(self, app_id, config_group_name):

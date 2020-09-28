@@ -948,11 +948,11 @@ class ApplicationConfigGroup(BaseModel):
 
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
-    app_id = models.IntegerField(max_length=32, help_text="应用ID")
-    config_group_name = models.CharField(max_length=64, help_text="应用配置组名")
-    deploy_type = models.CharField(max_length=32, help_text="生效类型")
-    deploy_status = models.BooleanField(help_text="生效状态")
-    region_name = models.CharField(max_length=32, help_text="集群名称")
+    app_id = models.IntegerField(help_text="application ID")
+    config_group_name = models.CharField(max_length=64, help_text="application config group name")
+    deploy_type = models.CharField(max_length=32, help_text="effective type")
+    enable = models.BooleanField(help_text="effective status")
+    region_name = models.CharField(max_length=32, help_text="region name")
 
 
 class ConfigGroupItem(BaseModel):
@@ -960,17 +960,17 @@ class ConfigGroupItem(BaseModel):
         db_table = "app_config_group_item"
         unique_together = ('app_id', 'config_group_name', 'item_key')
 
-    app_id = models.IntegerField(max_length=32, help_text="应用ID")
-    config_group_name = models.CharField(max_length=64, help_text="应用配置组名")
-    item_key = models.CharField(max_length=255, help_text="配置项")
-    item_value = models.CharField(max_length=65535, help_text="配置项的值")
+    app_id = models.IntegerField(help_text="application ID")
+    config_group_name = models.CharField(max_length=64, help_text="application config group name")
+    item_key = models.CharField(max_length=255, help_text="config item key")
+    item_value = models.CharField(max_length=65535, help_text="config item value")
 
 
 class ConfigGroupService(BaseModel):
     class Meta:
         db_table = "app_config_group_service"
 
-    app_id = models.IntegerField(max_length=32, help_text="应用ID")
-    config_group_name = models.CharField(max_length=64, help_text="应用配置组名")
-    service_id = models.CharField(max_length=32, help_text="组件ID")
-    service_alias = models.CharField(max_length=64, help_text="组件别名")
+    app_id = models.IntegerField(help_text="application ID")
+    config_group_name = models.CharField(max_length=64, help_text="application config group name")
+    service_id = models.CharField(max_length=32, help_text="service ID")
+    service_alias = models.CharField(max_length=64, help_text="service alias")

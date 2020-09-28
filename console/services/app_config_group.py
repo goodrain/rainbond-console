@@ -9,14 +9,13 @@ import time
 
 class AppConfigGroupService(object):
     @transaction.atomic
-    def create_config_group(self, app_id, config_group_name, config_items, deploy_type, deploy_status, service_ids,
-                            region_name):
+    def create_config_group(self, app_id, config_group_name, config_items, deploy_type, enable, service_ids, region_name):
         # create application config group
         group_req = {
             "app_id": app_id,
             "config_group_name": config_group_name,
             "deploy_type": deploy_type,
-            "deploy_status": deploy_status,
+            "enable": enable,
             "region_name": region_name,
         }
         app_config_group_repo.create(**group_req)
@@ -45,9 +44,9 @@ class AppConfigGroupService(object):
         return self.get_config_group(app_id, config_group_name)
 
     def get_config_group(self, app_id, config_group_name):
-        cgroup = app_config_group_repo.get_config_group_by_id(app_id, config_group_name)
-        cgroup_services = app_config_group_service_repo.list_config_group_services_by_id(app_id, cgroup.config_group_name)
-        cgroup_items = app_config_group_item_repo.list_config_group_items_by_id(app_id, cgroup.config_group_name)
+        cgroup = app_config_group_repo.get(app_id, config_group_name)
+        cgroup_services = app_config_group_service_repo.list(app_id, cgroup.config_group_name)
+        cgroup_items = app_config_group_item_repo.list(app_id, cgroup.config_group_name)
 
         config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
         config_group = {
@@ -57,17 +56,17 @@ class AppConfigGroupService(object):
             "config_group_name": cgroup.config_group_name,
             "config_items": config_group_items,
             "deploy_type": cgroup.deploy_type,
-            "deploy_status": cgroup.deploy_status,
+            "enable": cgroup.enable,
             "services": config_group_services,
         }
         return config_group
 
     @transaction.atomic
-    def update_config_group(self, app_id, config_group_name, config_items, deploy_status, service_ids):
+    def update_config_group(self, app_id, config_group_name, config_items, enable, service_ids):
         group_req = {
             "app_id": app_id,
             "config_group_name": config_group_name,
-            "deploy_status": deploy_status,
+            "enable": enable,
             "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
         }
         app_config_group_repo.update(**group_req)
@@ -97,12 +96,12 @@ class AppConfigGroupService(object):
 
     def list_config_groups(self, app_id, page, page_size):
         cgroup_info = []
-        config_groups = app_config_group_repo.list_config_groups_by_app_id(app_id, page, page_size)
-        total = app_config_group_repo.count_config_groups_by_app_id(app_id)
+        config_groups = app_config_group_repo.list(app_id, page, page_size)
+        total = app_config_group_repo.count(app_id)
 
         for cgroup in config_groups:
-            cgroup_services = app_config_group_service_repo.list_config_group_services_by_id(app_id, cgroup.config_group_name)
-            cgroup_items = app_config_group_item_repo.list_config_group_items_by_id(app_id, cgroup.config_group_name)
+            cgroup_services = app_config_group_service_repo.list(app_id, cgroup.config_group_name)
+            cgroup_items = app_config_group_item_repo.list(app_id, cgroup.config_group_name)
 
             config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
             cgroup_info.append({
@@ -111,7 +110,7 @@ class AppConfigGroupService(object):
                 "config_group_name": cgroup.config_group_name,
                 "config_items": config_group_items,
                 "deploy_type": cgroup.deploy_type,
-                "deploy_status": cgroup.deploy_status,
+                "enable": cgroup.enable,
                 "services": config_group_services,
             })
 

@@ -20,7 +20,7 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
         config_group_name = request.data.get("config_group_name", None)
         config_items = request.data.get("config_items", None)
         deploy_type = request.data.get("deploy_type", None)
-        deploy_status = request.data.get("deploy_status", None)
+        enable = request.data.get("enable", None)
         region_name = request.data.get("region_name", None)
 
         # Judge whether the requested service ID is correct
@@ -33,9 +33,9 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
 
         # If the application config group exists, it is not created
         try:
-            app_config_group_repo.get_config_group_by_id(app_id, config_group_name)
+            app_config_group_repo.get(app_id, config_group_name)
         except ApplicationConfigGroup.DoesNotExist:
-            acg = app_config_group.create_config_group(app_id, config_group_name, config_items, deploy_type, deploy_status,
+            acg = app_config_group.create_config_group(app_id, config_group_name, config_items, deploy_type, enable,
                                                        req_service_ids, region_name)
             return Response(status=200, data=general_data(bean=acg))
         else:
@@ -59,7 +59,7 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
 class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     def put(self, request, app_id, name, *args, **kwargs):
         try:
-            app_config_group_repo.get_config_group_by_id(app_id, name)
+            app_config_group_repo.get(app_id, name)
         except ApplicationConfigGroup.DoesNotExist:
             result = general_message(404, "not app config group", "没有该应用配置组，无法操作")
             return Response(result)
@@ -70,7 +70,7 @@ class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCen
             return Response(result)
         service_ids = [service.service_id for service in services]
         config_items = request.data.get("config_items", None)
-        deploy_status = request.data.get("deploy_status", None)
+        enable = request.data.get("enable", None)
         req_service_ids = request.data.get("service_ids", None)
         # Judge whether the requested service ID is correct
         if req_service_ids is not None:
@@ -80,7 +80,7 @@ class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCen
                                              "请求的组件ID不在当前应用绑定的组件ID中")
                     return Response(result)
 
-        acg = app_config_group.update_config_group(app_id, name, config_items, deploy_status, req_service_ids)
+        acg = app_config_group.update_config_group(app_id, name, config_items, enable, req_service_ids)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, name, *args, **kwargs):
