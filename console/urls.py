@@ -107,8 +107,8 @@ from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegi
                                           UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
-from console.views.app_config_group import AppConfigGroupCommonOperationView
-from console.views.app_config_group import AppConfigGroupEditOperationView
+from console.views.app_config_group import ListAppConfigGroupView
+from console.views.app_config_group import AppConfigGroupView
 
 urlpatterns = [
     # record error logs
@@ -272,10 +272,10 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/common_operation$',
         TenantGroupCommonOperationView.as_view(), perms.TenantGroupCommonOperationView),
     # Application Config Group
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups$', AppConfigGroupCommonOperationView.as_view(),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups$', ListAppConfigGroupView.as_view(),
         perms.TenantGroupCommonOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
-        AppConfigGroupEditOperationView.as_view(), perms.TenantGroupCommonOperationView),
+        AppConfigGroupView.as_view(), perms.TenantGroupCommonOperationView),
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),

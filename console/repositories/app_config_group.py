@@ -60,11 +60,6 @@ class ApplicationConfigGroupItemRepository(object):
     def create(self, **data):
         return ConfigGroupItem.objects.create(**data)
 
-    def update(self, app_id, config_group_name, item_key, **data):
-        ConfigGroupItem.objects.filter(app_id=app_id, config_group_name=config_group_name, item_key=item_key).update(**data)
-        res = ConfigGroupItem.objects.get(app_id=app_id, config_group_name=config_group_name, item_key=item_key)
-        return res
-
     def list(self, app_id, config_group_name):
         return ConfigGroupItem.objects.filter(app_id=app_id, config_group_name=config_group_name)
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from rest_framework.response import Response
+
 from console.services.app_config_group import app_config_group
 from console.repositories.group import group_service_relation_repo
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
@@ -8,14 +9,8 @@ from console.repositories.app_config_group import app_config_group_repo
 from console.models.main import ApplicationConfigGroup
 
 
-class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class ListAppConfigGroupView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     def post(self, request, app_id, *args, **kwargs):
-        services = group_service_relation_repo.get_services_obj_by_group(app_id)
-        if not services:
-            result = general_message(400, "not service", "当前组内无组件，无法操作")
-            return Response(result)
-
-        service_ids = [service.service_id for service in services]
         req_service_ids = request.data.get("service_ids", None)
         config_group_name = request.data.get("config_group_name", None)
         config_items = request.data.get("config_items", None)
@@ -23,14 +18,9 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
         enable = request.data.get("enable", None)
         region_name = request.data.get("region_name", None)
 
-        # Judge whether the requested service ID is correct
-        if req_service_ids is not None:
-            for sid in req_service_ids:
-                if sid["service_id"] not in service_ids:
-                    result = general_message(404, "The serviceID is not in the serviceID of the current application binding",
-                                             "请求的组件ID不在当前应用绑定的组件ID中")
-                    return Response(result)
-
+        result = checkParam(app_id, req_service_ids)
+        if result:
+            return Response(result)
         # If the application config group exists, it is not created
         try:
             app_config_group_repo.get(app_id, config_group_name)
@@ -56,7 +46,7 @@ class AppConfigGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseC
         return Response(status=200, data=general_data(bean=acg))
 
 
-class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class AppConfigGroupView(RegionTenantHeaderView, CloudEnterpriseCenterView):
     def put(self, request, app_id, name, *args, **kwargs):
         try:
             app_config_group_repo.get(app_id, name)
@@ -64,22 +54,13 @@ class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCen
             result = general_message(404, "not app config group", "没有该应用配置组，无法操作")
             return Response(result)
 
-        services = group_service_relation_repo.get_services_obj_by_group(app_id)
-        if not services:
-            result = general_message(400, "not service", "当前组内无组件，无法操作")
-            return Response(result)
-        service_ids = [service.service_id for service in services]
         config_items = request.data.get("config_items", None)
         enable = request.data.get("enable", None)
         req_service_ids = request.data.get("service_ids", None)
-        # Judge whether the requested service ID is correct
-        if req_service_ids is not None:
-            for sid in req_service_ids:
-                if sid["service_id"] not in service_ids:
-                    result = general_message(404, "The serviceID is not in the serviceID of the current application binding",
-                                             "请求的组件ID不在当前应用绑定的组件ID中")
-                    return Response(result)
 
+        result = checkParam(app_id, req_service_ids)
+        if result:
+            return Response(result)
         acg = app_config_group.update_config_group(app_id, name, config_items, enable, req_service_ids)
         return Response(status=200, data=general_data(bean=acg))
 
@@ -94,3 +75,19 @@ class AppConfigGroupEditOperationView(RegionTenantHeaderView, CloudEnterpriseCen
     def delete(self, request, app_id, name, *args, **kwargs):
         acg = app_config_group.delete_config_group(app_id, name)
         return Response(status=200, data=general_data(bean=acg))
+
+
+def checkParam(app_id, req_service_ids):
+    services = group_service_relation_repo.get_services_obj_by_group(app_id)
+    if services.count() == 0:
+        result = general_message(400, "not service", "当前组内无组件，无法操作")
+        return result
+    service_ids = [service.service_id for service in services]
+
+    # Judge whether the requested service ID is correct
+    if req_service_ids is not None:
+        for sid in req_service_ids:
+            if sid["service_id"] not in service_ids:
+                result = general_message(404, "The serviceID is not in the serviceID of the current application binding",
+                                         "请求的组件ID不在当前应用绑定的组件ID中")
+                return result
