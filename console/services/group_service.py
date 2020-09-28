@@ -33,7 +33,8 @@ class GroupService(object):
     def get_tenant_groups_by_region(self, tenant, region_name):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
-    def check_group_name(self, tenant, region_name, group_name):
+    @staticmethod
+    def check_app_name(tenant, region_name, group_name):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
@@ -43,17 +44,31 @@ class GroupService(object):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
     def add_group(self, tenant, region_name, group_name, group_note=""):
-        self.check_group_name(tenant, region_name, group_name)
+        self.check_app_name(tenant, region_name, group_name)
         return group_repo.add_group(tenant.tenant_id, region_name, group_name, group_note)
 
-    def update_group(self, tenant, region_name, group_id, group_name, group_note=""):
-        if not group_id or group_id < 0:
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
+        # check app id
+        if not app_id or app_id < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
-        self.check_group_name(tenant, region_name, group_name)
-        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
-        if group and group.ID != group_id:
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(group_name))
-        group_repo.update_group_name(group_id, group_name, group_note)
+        # check username
+        if username:
+            user_repo.get_user_by_username(username)
+        # check app name
+        self.check_app_name(tenant, region_name, app_name)
+        app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
+        if app and app.ID != app_id:
+            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
+
+        data = {
+            "note": note,
+        }
+        if username:
+            data["username"] = username
+        if app_name:
+            data["group_name"] = app_name
+
+        group_repo.update(app_id, **data)
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or group_id < 0:

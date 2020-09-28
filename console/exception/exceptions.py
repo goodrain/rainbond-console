@@ -231,3 +231,7 @@ class UserFavoriteNotExistError(BaseException):
     """
     用户收藏视图不存在
     """
+
+
+# 20000 ~ 20099 => user
+err_user_not_found = ServiceHandleException("user not found", u"用户不存在", 404, 20000)

@@ -99,12 +99,13 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                   paramType: form
 
         """
-        group_name = request.data.get("group_name", None)
-        app_id = int(app_id)
-        group_note = request.data.get("group_note", "")
-        if group_note and len(group_note) > 2048:
+        app_name = request.data.get("app_name", None)
+        app_note = request.data.get("app_note", "")
+        if app_note and len(app_note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-        group_service.update_group(self.tenant, self.response_region, app_id, group_name, group_note)
+        username = request.data.get("username", None)
+
+        group_service.update_group(self.tenant, self.response_region, app_id, app_name, app_note, username)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 

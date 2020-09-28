@@ -2,10 +2,9 @@
 """
   Created on 18/1/9.
 """
-
 import logging
-from datetime import datetime
 
+from datetime import datetime
 from django.db.models import Q
 
 from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
@@ -14,6 +13,10 @@ logger = logging.getLogger("default")
 
 
 class GroupRepository(object):
+    @staticmethod
+    def update(app_id, **data):
+        ServiceGroup.objects.filter(pk=app_id).update(**data)
+
     def list_tenant_group_on_region(self, tenant, region_name):
         return ServiceGroup.objects.filter(
             tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
