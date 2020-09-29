@@ -18,6 +18,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.apply_service import apply_service
+from console.services.app_config import port_service
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import \
     enterprise_services as console_enterprise_service
@@ -29,6 +30,8 @@ from console.services.user_services import user_services
 from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
+from console.utils.reqparse import parse_item
+from console.exception.main import AbortRequest
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message, general_message
@@ -946,3 +949,16 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
 
         result = general_message(200, "success", "查询成功", list=service_list)
         return Response(result, status=result["code"])
+
+
+class TeamCheckKubernetesServiceName(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        k8s_service_name = parse_item("k8s_service_name", required=True)
+        if len(k8s_service_name) > 63:
+            raise AbortRequest("k8s_service_name must be no more than 63 characters")
+        if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
+            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
+
+        res = port_service.check_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+        result = general_message(200, "success", "检测成功", bean=res)
+        return Response(result)

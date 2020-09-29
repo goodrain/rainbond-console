@@ -945,6 +945,7 @@ class TenantServicesPort(BaseModel):
     port_alias = models.CharField(max_length=64, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部组件；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部组件；0:不绑定；1:绑定")
+    k8s_service_name = models.CharField(max_length=63, blank=True, help_text="the name of kubernetes service")
 
 
 class TenantServiceMountRelation(BaseModel):
@@ -999,6 +1000,8 @@ class TenantServiceConfigurationFile(BaseModel):
 class ServiceGroup(BaseModel):
     """组件分组（应用）"""
 
+    from console.enum.app import GovernanceModeEnum
+
     class Meta:
         db_table = 'service_group'
 
@@ -1008,6 +1011,13 @@ class ServiceGroup(BaseModel):
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
     order_index = models.IntegerField(default=0, help_text=u"应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
+    username = models.IntegerField(null=True, blank=True, help_text="the identity of principal")
+    governance_mode = models.CharField(
+        choices=GovernanceModeEnum.choices(),
+        default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name,
+        null=True,
+        blank=True,
+        help_text="governance mode")
     create_time = models.DateTimeField(help_text=u"创建时间")
     update_time = models.DateTimeField(help_text=u"更新时间")
 
@@ -1022,6 +1032,18 @@ class ServiceGroupRelation(BaseModel):
     group_id = models.IntegerField()
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     region_name = models.CharField(max_length=64, help_text=u"区域中心名称")
+
+
+class RegionApp(BaseModel):
+    """the dependencies between region app and console app"""
+
+    class Meta:
+        db_table = 'region_app'
+        unique_together = ('region_name', 'region_app_id', 'app_id')
+
+    region_name = models.CharField(max_length=64, help_text="region name")
+    region_app_id = models.CharField(max_length=32, help_text="region app id")
+    app_id = models.IntegerField()
 
 
 class ImageServiceRelation(BaseModel):

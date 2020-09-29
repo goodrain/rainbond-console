@@ -1,5 +1,8 @@
 # -*- coding: utf8 -*-
 import unittest
+import json
+
+from docx import Document
 
 from django.test import TestCase
 from www.models.main import Tenants
@@ -67,10 +70,6 @@ from console.models.main import ServiceUpgradeRecord
 from console.models.main import RegionConfig
 from console.models.main import CloundBangImages
 from console.models.main import Announcement
-
-from docx import Document
-
-import json
 
 
 class Json2WordCase(TestCase):
