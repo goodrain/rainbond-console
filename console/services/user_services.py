@@ -5,8 +5,16 @@ import os
 import re
 from datetime import datetime
 
-from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
-                                          ServiceHandleException, TenantNotExistError, UserExistError, UserNotExistError)
+from console.exception.exceptions import (
+    AccountNotExistError,
+    EmailExistError,
+    PasswordTooShortError,
+    PhoneExistError,
+    ServiceHandleException,
+    TenantNotExistError,
+    UserExistError,
+    UserNotExistError,
+)
 from console.models.main import EnterpriseUserPerm, UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -158,11 +166,7 @@ class UserService(object):
             UserRole.objects.filter(user_id__in=user_id_list, role_id__in=role_ids).delete()
 
     def get_user_by_username(self, user_name):
-        users = Users.objects.filter(nick_name=user_name)
-        if not users:
-            raise UserNotExistError("用户名{}不存在".format(user_name))
-
-        return users[0]
+        return user_repo.get_user_by_username(user_name)
 
     def get_enterprise_user_by_username(self, user_name, eid):
         return user_repo.get_enterprise_user_by_username(eid, user_name)

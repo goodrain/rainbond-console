@@ -7,25 +7,36 @@ import re
 
 from django.db import transaction
 
-from console.exception.main import ServiceHandleException
-from console.repositories.app import service_repo, service_source_repo
+from console.services.service_services import base_service
+from console.repositories.compose_repo import compose_repo
+from console.repositories.share_repo import share_repo
+from console.repositories.region_repo import region_repo
+from console.repositories.app_config import domain_repo, tcp_domain, port_repo
+from console.repositories.app import service_repo
+from console.repositories.app import service_source_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.plugin import app_plugin_relation_repo
-from console.repositories.share_repo import share_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
-from console.services.service_services import base_service
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.user_repo import user_repo
 from console.utils.shortcuts import get_object_or_404
-from www.models.main import ServiceGroup, ServiceGroupRelation
+from console.exception.main import ServiceHandleException
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
+from console.exception.main import AbortRequest
+from console.exception.exceptions import ErrUserNotFound
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class GroupService(object):
     def get_tenant_groups_by_region(self, tenant, region_name):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
-    def check_group_name(self, tenant, region_name, group_name):
+    @staticmethod
+    def check_app_name(tenant, region_name, group_name):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
@@ -34,18 +45,50 @@ class GroupService(object):
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
-    def add_group(self, tenant, region_name, group_name, group_note=""):
-        self.check_group_name(tenant, region_name, group_name)
-        return group_repo.add_group(tenant.tenant_id, region_name, group_name, group_note)
+    @transaction.atomic()
+    def add_group(self, tenant, region_name, app_name, note=""):
+        self.check_app_name(tenant, region_name, app_name)
+        return group_repo.add_group(tenant.tenant_id, region_name, app_name, note)
 
-    def update_group(self, tenant, region_name, group_id, group_name, group_note=""):
-        if not group_id or group_id < 0:
+    def create_app(self, tenant, region_name, app_name, note=""):
+        app = self.add_group(tenant, region_name, app_name, note)
+
+        region_app = region_api.create_application(region_name, tenant.tenant_name, {
+            "app_name": app_name,
+        })
+
+        # record the dependencies between region app and console app
+        data = {
+            "region_name": region_name,
+            "region_app_id": region_app["app_id"],
+            "app_id": app.ID,
+        }
+        region_app_repo.create(**data)
+
+        return app.to_dict()
+
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
+        # check app id
+        if not app_id or app_id < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
-        self.check_group_name(tenant, region_name, group_name)
-        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
-        if group and group.ID != group_id:
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(group_name))
-        group_repo.update_group_name(group_id, group_name, group_note)
+        # check username
+        if username:
+            user_repo.get_user_by_username(username)
+        # check app name
+        self.check_app_name(tenant, region_name, app_name)
+        app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
+        if app and app.ID != app_id:
+            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
+
+        data = {
+            "note": note,
+        }
+        if username:
+            data["username"] = username
+        if app_name:
+            data["group_name"] = app_name
+
+        group_repo.update(app_id, **data)
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or group_id < 0:
@@ -69,6 +112,37 @@ class GroupService(object):
                     return 404, u"应用不存在"
                 group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, u"success"
+
+    def get_app_detail(self, tenant, region_name, app_id):
+        # app metadata
+        app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+
+        res = {'app_id': app.ID, 'app_name': app.group_name, 'note': app.group_name}
+
+        # get principal by principal_id
+        if app.username:
+            try:
+                res['principal'] = user_repo.get_user_by_username(app.username)
+            except ErrUserNotFound:
+                pass
+
+        res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
+        res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
+        res['share_num'] = share_repo.count_complete_by_app_id(app_id)
+        res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
+        # TODO: upgradable_num
+        # app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(tenant, region_name, app_id)
+        # TODO: config_group_num
+
+        res["create_status"] = "complete"
+        res["compose_id"] = None
+        if app_id != -1:
+            compose_group = compose_repo.get_group_compose_by_group_id(app_id)
+            if compose_group:
+                res["create_status"] = compose_group.create_status
+                res["compose_id"] = compose_group.compose_id
+
+        return res
 
     def get_group_by_id(self, tenant, region, group_id):
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
@@ -290,10 +364,90 @@ class GroupService(object):
         sgr = ServiceGroupRelation.objects.filter(service_id__in=service_ids)
         return {s.service_id: s.group_id for s in sgr}
 
+    def count_ingress_by_app_id(self, tenant_id, region_name, app_id):
+        # list service_ids
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        if not service_ids:
+            return 0
+
+        region = region_repo.get_by_region_name(region_name)
+
+        # count ingress
+        return domain_repo.count_by_service_ids(region.region_id, service_ids) + tcp_domain.count_by_service_ids(
+            region.region_id, service_ids)
+
     def set_app_update_time_by_service(self, service):
         sg = self.get_service_group_info(service.service_id)
         if sg and sg.ID:
             group_repo.update_group_time(sg.ID)
+
+    @staticmethod
+    def update_governance_mode(tenant_id, region_name, app_id, governance_mode):
+        group_repo.update_governance_mode(tenant_id, region_name, app_id, governance_mode)
+
+    @staticmethod
+    def list_kubernetes_services(tenant_id, region_name, app_id):
+        # list service_ids
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        # service_id to service_alias
+        services = {service.service_id: service.service_alias for service in service_repo.list_by_ids(service_ids)}
+
+        ports = port_repo.list_by_service_ids(tenant_id, service_ids)
+        # build response
+        k8s_services = []
+        for port in ports:
+            # set service_alias_container_port as default kubernetes service name
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[port.service_id] + "_" + str(
+                port.container_port)
+            k8s_services.append({
+                "service_id": port.service_id,
+                "port": port.container_port,
+                "port_alias": port.port_alias,
+                "k8s_service_name": k8s_service_name,
+            })
+
+        return k8s_services
+
+    @transaction.atomic()
+    def update_kubernetes_services(self, tenant, region_name, app_id, k8s_services):
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
+        for k8s_service in k8s_services:
+            # check k8s_service_name
+            try:
+                # whether k8s_service_name exists
+                port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service["k8s_service_name"])
+                try:
+                    # k8s_service_name belong to the current k8s_service?
+                    port_repo.check_k8s_service_name(tenant.tenant_id, k8s_service["service_id"], k8s_service["port"],
+                                                     k8s_service["k8s_service_name"])
+                except TenantServicesPort.DoesNotExist:
+                    raise AbortRequest("k8s_service_name '{}' already exits", k8s_service["k8s_service_name"])
+            except TenantServicesPort.DoesNotExist:
+                pass
+
+            # check if the given k8s_services belong to the app based on app_id
+            if k8s_service["service_id"] not in service_ids:
+                raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app_id))
+
+        # bulk_update is only available after django 2.2
+        for k8s_service in k8s_services:
+            port_repo.update_port(
+                tenant.tenant_id, k8s_service["service_id"], k8s_service["port"], **{
+                    "port_alias": k8s_service["port_alias"],
+                    "k8s_service_name": k8s_service["k8s_service_name"],
+                })
+        # TODO: sync k8s service name in the region
+
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
+
+    @staticmethod
+    def get_app_status(tenant, region_name, app_id):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+        if status.get("status") == "NIL":
+            status["status"] = None
+        return status
 
 
 group_service = GroupService()

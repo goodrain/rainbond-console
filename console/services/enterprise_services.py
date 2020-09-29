@@ -59,6 +59,12 @@ class EnterpriseServices(object):
             d["enterprise_name"] = data["name"]
         enterprise_repo.update(eid, **data)
 
+    def update_alias(self, eid, alias):
+        data = {
+            "enterprise_alias": alias,
+        }
+        enterprise_repo.update(eid, **data)
+
     def random_tenant_name(self, enterprise=None, length=8):
         """
         生成随机的云帮租户（云帮的团队名），副需要符合k8s的规范(小写字母,_)

@@ -37,8 +37,8 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
-                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
-                                        ImageAppView, ListAppPodsView)
+                                        AppKeywordView, AppPluginsBriefView, AppVisitView, BuildSourceinfo, ImageAppView,
+                                        ListAppPodsView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
                                                   EnterpriseAppImportInitView, ImportingRecordView)
@@ -54,10 +54,11 @@ from console.views.enterprise import (
     EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
     EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams, EnterpriseUserTeams)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
-from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
+from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView, EnterpriseConfigView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
+from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
+                                 AppGovernanceModeView, AppKubernetesServiceView, AppStatusView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -99,7 +100,7 @@ from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, C
                                 JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamDelView, TeamExitView,
                                 TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView, TeamSortServiceQueryView,
                                 TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView, UserDelView,
-                                UserFuzSerView)
+                                UserFuzSerView, TeamCheckKubernetesServiceName)
 from console.views.user import (AdministratorJoinTeamView, AdminUserDView, AdminUserLCView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -192,6 +193,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/group/service/visit', AppGroupVisitView.as_view(), perms.AppGroupVisitView),
     # 退出当前团队
     url(r'^teams/(?P<team_name>[\w\-]+)/exit$', TeamExitView.as_view()),
+    # check kubernetes service name
+    url(r'^teams/(?P<team_name>[\w\-]+)/checkK8sServiceName$', TeamCheckKubernetesServiceName.as_view()),
     # 获取团队下域名访问量排序
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$', TeamSortDomainQueryView.as_view(),
         perms.TeamSortDomainQueryView),
@@ -263,9 +266,12 @@ urlpatterns = [
         perms.ServiceShareCompleteView),
     # 租户数据中心组信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view(), perms.TenantGroupView),
-    # 应用删除
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', TenantGroupOperationView.as_view(),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)$', TenantGroupOperationView.as_view(),
         perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode', AppGovernanceModeView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8sservices', AppKubernetesServiceView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', AppStatusView.as_view()),
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.GroupStatusView),
     # 应用(组)常见操作
@@ -669,6 +675,7 @@ urlpatterns = [
     # 获取当前团队所有的申请者
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view(), perms.ApplicantsView),
     # enterprise configuration
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/configs$', EnterpriseConfigView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/objectstorage$', EnterpriseObjectStorageView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/appstoreimagehub$', EnterpriseAppStoreImageHubView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),

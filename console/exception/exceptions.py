@@ -233,6 +233,16 @@ class UserFavoriteNotExistError(BaseException):
     """
 
 
+# 20000 ~ 20099 => user
+class ErrUserNotFound(ServiceHandleException):
+    def __init__(self, message):
+        msg = "user not found"
+        super(ErrUserNotFound, self).__init__(msg)
+        self.msg_show = u"用户不存在"
+        self.status_code = 404
+        self.error_code = 20000
+
+
 # 20100 ~ 20199 => app config group
 class ErrAppConfigGroupExists(ServiceHandleException):
     def __init__(self):

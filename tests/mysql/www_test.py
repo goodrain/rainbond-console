@@ -2,10 +2,8 @@
 import datetime
 
 from django.test import TestCase
-
 from django.db.models import Q
 
-from www.models.main import WeChatConfig
 from www.models.main import WeChatUser
 from www.models.main import WeChatUnBind
 from www.models.main import WeChatState
@@ -47,10 +45,6 @@ from www.models.main import ComposeServiceRelation
 from www.models.main import ServiceRuleHistory
 from www.models.main import ServiceAttachInfo
 from www.models.main import ServiceCreateStep
-from www.models.main import ThirdAppInfo
-from www.models.main import CDNTrafficHourRecord
-from www.models.main import ThirdAppOperator
-from www.models.main import ThirdAppOrder
 from www.models.main import ServiceFeeBill
 from www.models.main import ServiceConsume
 from www.models.main import ServiceEvent
@@ -66,6 +60,7 @@ from www.models.main import ThirdPartyServiceEndpoints
 from www.models.main import ServiceWebhooks
 from www.models.main import GatewayCustomConfiguration
 from www.models.main import TenantServiceInfo
+from www.models.main import WeChatConfig
 
 now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -1296,121 +1291,6 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         # 删除
         ServiceCreateStep.objects.filter(filter).delete()
         assert len(ServiceCreateStep.objects.all()) == 0
-
-    def test_third_app_info(self):
-        # 增加
-        ThirdAppInfo.objects.create(
-            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-            service_id="2aab7a1728ce42a1a4ba820ad405420a",
-            bucket_name="bucket_name",
-            app_type="mysql",
-            create_time=now,
-            name="mysql3",
-            bill_type="demand",
-            open=False,
-            delete=False,
-            create_user=1,
-        ).save()
-
-        # 查询
-        assert len(ThirdAppInfo.objects.all()) == 1
-
-        # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
-        ThirdAppInfo.objects.filter(filter).update(open=True, name="thirdpart-mysql")
-
-        updated = ThirdAppInfo.objects.get(filter)
-        assert updated.open is True
-        assert updated.name == "thirdpart-mysql"
-
-        # 删除
-        ThirdAppInfo.objects.filter(filter).delete()
-        assert len(ThirdAppInfo.objects.all()) == 0
-
-    def test_cdn_traffic_hour_record(self):
-        # 增加
-        CDNTrafficHourRecord.objects.create(
-            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-            service_id="2aab7a1728ce42a1a4ba820ad405420a",
-            bucket_name="bucket_name",
-            start_time=now,
-            end_time=now,
-            traffic_number=1024,
-            balance=10,
-            create_time=now,
-            order_id="1dk2nd9123nd910sm3832d01k8d34dn1",
-        ).save()
-
-        # 查询
-        assert len(CDNTrafficHourRecord.objects.all()) == 1
-
-        # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a")
-        CDNTrafficHourRecord.objects.filter(filter).update(traffic_number=2048)
-
-        updated = CDNTrafficHourRecord.objects.get(filter)
-        assert updated.traffic_number == 2048
-
-        # 删除
-        CDNTrafficHourRecord.objects.filter(filter).delete()
-        assert len(CDNTrafficHourRecord.objects.all()) == 0
-
-    def test_third_app_operator(self):
-        # 增加
-        ThirdAppOperator.objects.create(
-            service_id="2aab7a1728ce42a1a4ba820ad405420a",
-            bucket_name="bucket_name",
-            operator_name="post",
-            real_name="whoareyou",
-            password="123123123",
-        ).save()
-
-        # 查询
-        assert len(ThirdAppOperator.objects.all()) == 1
-
-        # 修改
-        filter = Q(service_id="2aab7a1728ce42a1a4ba820ad405420a")
-        ThirdAppOperator.objects.filter(filter).update(real_name="jackson", password="321321312")
-
-        updated = ThirdAppOperator.objects.get(filter)
-        assert updated.real_name == "jackson"
-        assert updated.password == "321321312"
-
-        # 删除
-        ThirdAppOperator.objects.filter(filter).delete()
-        assert len(ThirdAppOperator.objects.all()) == 0
-
-    def test_third_app_order(self):
-        # 增加
-        ThirdAppOrder.objects.create(
-            order_id="20191029383812",
-            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-            service_id="2aab7a1728ce42a1a4ba820ad405420a",
-            bucket_name="bucket_name",
-            start_time=now,
-            end_time=now,
-            create_time=now,
-            traffic_size=1024,
-            oos_size=10,
-            request_size=20,
-            bill_type="cash",
-            total_cost=100,
-            total_traffic_cost=200,
-        ).save()
-
-        # 查询
-        assert len(ThirdAppOrder.objects.all()) == 1
-
-        # 修改
-        filter = Q(order_id="20191029383812")
-        ThirdAppOrder.objects.filter(filter).update(bill_type="packet")
-
-        updated = ThirdAppOrder.objects.get(filter)
-        assert updated.bill_type == "packet"
-
-        # 删除
-        ThirdAppOrder.objects.filter(filter).delete()
-        assert len(ThirdAppOrder.objects.all()) == 0
 
     def test_service_fee_bill(self):
         # 增加

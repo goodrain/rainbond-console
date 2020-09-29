@@ -48,7 +48,7 @@ def parse_args(request, argument_tuple):
 
 
 def parse_item(request, key, default=None, required=False, error=''):
-    """ 解析某一个date参数
+    """ 解析某一个data参数
     :type request: rest_framework.request.Request
     """
 

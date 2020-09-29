@@ -3,6 +3,7 @@
   Created by leon on 18/1/5.
 """
 import logging
+import re
 
 from rest_framework.response import Response
 
@@ -10,11 +11,13 @@ from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service
-from console.services.compose_service import compose_service
 from console.services.group_service import group_service
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView, ApplicationView)
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
+from console.utils.reqparse import parse_item
+from console.enum.app import GovernanceModeEnum
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -55,32 +58,18 @@ class TenantGroupView(RegionTenantHeaderView):
               paramType: form
 
         """
-        try:
-            group_name = request.data.get("group_name", None)
-            group_note = request.data.get("group_note", "")
-            if group_note and len(group_note) > 2048:
-                return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-            data = group_service.add_group(self.tenant, self.response_region, group_name, group_note)
-            bean = {
-                "group_note": data.note,
-                "region_name": data.region_name,
-                "tenant_id": data.tenant_id,
-                "group_name": data.group_name,
-                "is_default": data.is_default,
-                "group_id": data.ID,
-            }
-            result = general_message(200, "success", "创建成功", bean=bean)
-        except ServiceHandleException as e:
-            result = general_message(400, e.msg, e.msg_show)
-            return Response(result, status=400)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        group_name = request.data.get("group_name", None)
+        group_note = request.data.get("group_note", "")
+        if group_note and len(group_note) > 2048:
+            return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
+
+        data = group_service.create_app(self.tenant, self.response_region, group_name, group_note)
+        result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
 
 
-class TenantGroupOperationView(RegionTenantHeaderView):
-    def put(self, request, *args, **kwargs):
+class TenantGroupOperationView(ApplicationView):
+    def put(self, request, app_id, *args, **kwargs):
         """
             修改组信息
             ---
@@ -90,7 +79,7 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                   required: true
                   type: string
                   paramType: path
-                - name: group_id
+                - name: app_id
                   description: 组id
                   required: true
                   type: string
@@ -102,12 +91,13 @@ class TenantGroupOperationView(RegionTenantHeaderView):
                   paramType: form
 
         """
-        group_name = request.data.get("group_name", None)
-        group_id = int(kwargs.get("group_id", None))
-        group_note = request.data.get("group_note", "")
-        if group_note and len(group_note) > 2048:
+        app_name = request.data.get("app_name", None)
+        app_note = request.data.get("app_note", "")
+        if app_note and len(app_note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-        group_service.update_group(self.tenant, self.response_region, group_id, group_name, group_note)
+        username = request.data.get("username", None)
+
+        group_service.update_group(self.tenant, self.response_region, app_id, app_name, app_note, username)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
@@ -143,39 +133,24 @@ class TenantGroupOperationView(RegionTenantHeaderView):
             result = general_message(code, "success", msg)
         return Response(result, status=result["code"])
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, app_id, *args, **kwargs):
         """
-            查询组信息
-            ---
-            parameters:
-                - name: tenantName
-                  description: 租户名
-                  required: true
-                  type: string
-                  paramType: path
-                - name: group_id
-                  description: 组id
-                  required: true
-                  type: string
-                  paramType: path
-
+        查询组信息
+        ---
+        parameters:
+            - name: tenantName
+                description: 租户名
+                required: true
+                type: string
+                paramType: path
+            - name: app_id
+                description: 组id
+                required: true
+                type: string
+                paramType: path
         """
-        try:
-            group_id = int(kwargs.get("group_id", None))
-            data = group_service.get_group_by_id(self.tenant, self.response_region, int(group_id))
-            data["create_status"] = "complete"
-            data["compose_id"] = None
-            if group_id != -1:
-                compose_group = compose_service.get_group_compose_by_group_id(group_id)
-                if compose_group:
-                    data["create_status"] = compose_group.create_status
-                    data["compose_id"] = compose_group.compose_id
-            result = general_message(200, "success", "success", bean=data)
-        except ServiceHandleException as e:
-            result = general_message(e.status_code, e.msg, e.msg_show)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
+        app = group_service.get_app_detail(self.tenant, self.response_region, app_id)
+        result = general_message(200, "success", "success", bean=app)
         return Response(result, status=result["code"])
 
 
@@ -257,3 +232,51 @@ class GroupStatusView(RegionTenantHeaderView):
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.debug(e)
             raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
+
+
+class AppGovernanceModeView(ApplicationView):
+    def put(self, request, app_id, *args, **kwargs):
+        governance_mode = parse_item(request, "governance_mode", required=True)
+        if governance_mode not in GovernanceModeEnum.choices():
+            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.choices()))
+
+        group_service.update_governance_mode(self.tenant.tenant_id, self.region_name, app_id, governance_mode)
+        result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+        return Response(result)
+
+
+class AppKubernetesServiceView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        res = group_service.list_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id)
+        result = general_message(200, "success", "查询成功", list=res)
+        return Response(result)
+
+    def put(self, request, app_id, *args, **kwargs):
+        k8s_services = request.data
+
+        # data validation
+        for k8s_service in k8s_services:
+            # k8s_service_name
+            if len(k8s_service.get("k8s_service_name")) > 63 or len(k8s_service.get("k8s_service_name")) == 0:
+                raise AbortRequest("k8s_service_name must be no more than 63 characters")
+            if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service['k8s_service_name']):
+                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
+            # service_id
+            if not k8s_service.get("service_id"):
+                raise AbortRequest("the field 'service_id' is required")
+            if not k8s_service.get("port"):
+                raise AbortRequest("the field 'port' is required")
+            if not k8s_service.get("port_alias"):
+                raise AbortRequest("the field 'port_alias' is required")
+
+        group_service.update_kubernetes_services(self.tenant, self.region_name, app_id, k8s_services)
+
+        result = general_message(200, "success", "更新成功", list=k8s_services)
+        return Response(result)
+
+
+class AppStatusView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        status = group_service.get_app_status(self.tenant, self.region_name, app_id)
+        result = general_message(200, "success", "查询成功", list=status)
+        return Response(result)
