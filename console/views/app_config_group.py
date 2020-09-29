@@ -63,8 +63,8 @@ class AppConfigGroupView(RegionTenantHeaderView):
         acg = app_config_group_service.get_config_group(app_id, name)
         return Response(status=200, data=general_data(bean=acg))
 
-    def delete(self, request, app_id, name, *args, **kwargs):
-        acg = app_config_group_service.delete_config_group(app_id, name)
+    def delete(self, request, tenantName, app_id, name, *args, **kwargs):
+        acg = app_config_group_service.delete_config_group(tenantName, app_id, name)
         return Response(status=200, data=general_data(bean=acg))
 
 

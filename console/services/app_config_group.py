@@ -99,7 +99,11 @@ class AppConfigGroupService(object):
         return result
 
     @transaction.atomic
-    def delete_config_group(self, app_id, config_group_name):
+    def delete_config_group(self, tenant_name, app_id, config_group_name):
+        cgroup = app_config_group_repo.get(app_id, config_group_name)
+        region_app_id = region_app_repo.get_region_app_id(cgroup.region_name, app_id)
+        region_api.delete_app_config_group(cgroup.region_name, tenant_name, region_app_id, cgroup.config_group_name)
+
         app_config_group_item_repo.delete(app_id, config_group_name)
         app_config_group_service_repo.delete(app_id, config_group_name)
         app_config_group_repo.delete(app_id, config_group_name)
