@@ -22,6 +22,8 @@ from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
+from console.repositories.region_app import region_app_repo
+from www.models.main import RegionApp
 
 event_service = AppEventService()
 
@@ -224,6 +226,24 @@ class GroupServiceView(RegionTenantHeaderView):
             if group_count == 0:
                 result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
                 return Response(result, status=200)
+
+            try:
+                region_app_repo.get_region_app_id(self.region_name, group_id)
+            except RegionApp.DoesNotExist:
+                group = group_repo.get_group_by_id(group_id)
+                create_body = {"app_name": group.group_name}
+                bean = region_api.create_application(self.region_name, self.tenant_name, create_body)
+                req = {"region_name": self.region_name, "region_app_id": bean["app_id"], "app_id": group_id}
+                region_app_repo.create(**req)
+
+                # TODO: Increase batch operation interface in data center , Modify the method below
+                group_services = base_service.get_group_services_list(self.team.tenant_id, self.region_name, group_id, query)
+                if group_services:
+                    for service in group_services:
+                        region_api_id = region_app_repo.get_region_app_id(self.region_name, group_id)
+                        update_body = {"service_name": service["service_name"], "app_id": region_api_id}
+                        region_api.update_service_app_id(self.region_name, self.tenant_name, service["service_alias"], update_body)
+
             group_service_list = service_repo.get_group_service_by_group_id(
                 group_id=group_id,
                 region_name=self.response_region,
