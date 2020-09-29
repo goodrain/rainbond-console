@@ -25,5 +25,5 @@ ALTER TABLE console.service_group ADD `create_time` datetime DEFAULT NULL;
 ALTER TABLE console.service_group ADD `update_time` datetime DEFAULT NULL;
 
 ALTER TABLE `console`.`tenant_services_port` ADD COLUMN `k8s_service_name` varchar(63) NULL AFTER `is_outer_service`;
-ALTER TABLE `console`.`service_group` ADD COLUMN `principal_id` int(0) NULL AFTER `note`;
+ALTER TABLE `console`.`service_group` ADD COLUMN `username` varchar(255) NULL AFTER `note`;
 ALTER TABLE `console`.`service_group` ADD COLUMN `governance_mode` varchar(255) NULL AFTER `principal_id`;

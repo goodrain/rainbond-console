@@ -68,7 +68,7 @@ class TenantGroupView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class TenantGroupOperationView(RegionTenantHeaderView):
+class TenantGroupOperationView(ApplicationView):
     def put(self, request, app_id, *args, **kwargs):
         """
             修改组信息
