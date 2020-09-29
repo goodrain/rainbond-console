@@ -34,7 +34,7 @@ class AppConfigGroupService(object):
             app_config_group_repo.create(**group_req)
             create_items_and_services(app_id, config_group_name, config_items, service_ids)
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-            region_api.create_app_config_group(region_name, tenantName, region_app_id, tenantName, {
+            region_api.create_app_config_group(region_name, tenantName, region_app_id, {
                 "app_id": region_app_id,
                 "config_group_name": config_group_name,
                 "deploy_type": deploy_type,
@@ -56,7 +56,7 @@ class AppConfigGroupService(object):
         return config_group_info
 
     @transaction.atomic
-    def update_config_group(self, app_id, config_group_name, config_items, enable, service_ids):
+    def update_config_group(self, app_id, config_group_name, config_items, enable, service_ids, tenant_name):
         group_req = {
             "app_id": app_id,
             "config_group_name": config_group_name,
@@ -64,7 +64,7 @@ class AppConfigGroupService(object):
             "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
         }
         try:
-            app_config_group_repo.get(app_id, config_group_name)
+            cgroup = app_config_group_repo.get(app_id, config_group_name)
         except ApplicationConfigGroup.DoesNotExist:
             raise ErrAppConfigGroupNotFound
         else:
@@ -72,6 +72,13 @@ class AppConfigGroupService(object):
             app_config_group_item_repo.delete(app_id, config_group_name)
             app_config_group_service_repo.delete(app_id, config_group_name)
             create_items_and_services(app_id, config_group_name, config_items, service_ids)
+            region_app_id = region_app_repo.get_region_app_id(cgroup.region_name, app_id)
+            region_api.update_app_config_group(cgroup.region_name, tenant_name, region_app_id, cgroup.config_group_name, {
+                "enable": enable,
+                "service_ids": service_ids,
+                "config_items": config_items,
+                "config_group_name": config_group_name,
+            })
         return self.get_config_group(app_id, config_group_name)
 
     def list_config_groups(self, app_id, page, page_size):

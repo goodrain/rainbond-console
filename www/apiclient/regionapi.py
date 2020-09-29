@@ -1801,3 +1801,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
+
+    def update_app_config_group(self, region_name, tenant_name, app_id, config_group_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id +"/configgroups/" + config_group_name
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        return body.get("bean", None)

@@ -44,7 +44,7 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
 
 
 class AppConfigGroupView(RegionTenantHeaderView):
-    def put(self, request, app_id, name, *args, **kwargs):
+    def put(self, request, tenantName, app_id, name, *args, **kwargs):
         serializer = AppConfigGroupUpdateSerilizer(data=request.data)
         serializer.is_valid()
         params = dict(serializer.data)
@@ -56,7 +56,7 @@ class AppConfigGroupView(RegionTenantHeaderView):
         if len(config_items) == 0:
             raise AbortRequest(msg="The request must contain a config item")
 
-        acg = app_config_group_service.update_config_group(app_id, name, config_items, params["enable"], req_service_ids)
+        acg = app_config_group_service.update_config_group(app_id, name, config_items, params["enable"], req_service_ids, tenantName)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, name, *args, **kwargs):
