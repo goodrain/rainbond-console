@@ -11,7 +11,7 @@ from console.exception.main import AbortRequest
 
 
 class ListAppConfigGroupView(RegionTenantHeaderView):
-    def post(self, request, app_id, *args, **kwargs):
+    def post(self, request, tenantName, app_id, *args, **kwargs):
         serializer = AppConfigGroupCreateSerilizer(data=request.data)
         serializer.is_valid()
         params = dict(serializer.data)
@@ -26,7 +26,7 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
 
         acg = app_config_group_service.create_config_group(app_id, params["config_group_name"], config_items,
                                                            params["deploy_type"], params["enable"], req_service_ids,
-                                                           params["region_name"])
+                                                           params["region_name"], tenantName)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, *args, **kwargs):

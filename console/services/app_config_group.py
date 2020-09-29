@@ -10,11 +10,15 @@ from console.repositories.app import service_repo
 from console.models.main import ApplicationConfigGroup
 from console.exception.exceptions import ErrAppConfigGroupNotFound
 from console.exception.exceptions import ErrAppConfigGroupExists
+from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.region_app import region_app_repo
+
+region_api = RegionInvokeApi()
 
 
 class AppConfigGroupService(object):
     @transaction.atomic
-    def create_config_group(self, app_id, config_group_name, config_items, deploy_type, enable, service_ids, region_name):
+    def create_config_group(self, app_id, config_group_name, config_items, deploy_type, enable, service_ids, region_name, tenantName):
         # create application config group
         group_req = {
             "app_id": app_id,
@@ -29,6 +33,16 @@ class AppConfigGroupService(object):
         except ApplicationConfigGroup.DoesNotExist:
             app_config_group_repo.create(**group_req)
             create_items_and_services(app_id, config_group_name, config_items, service_ids)
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+            region_api.create_app_config_group(region_name, tenantName, region_app_id, tenantName, {
+                "app_id": region_app_id,
+                "config_group_name": config_group_name,
+                "deploy_type": deploy_type,
+                "enable": enable,
+                "region_name": region_name,
+                "service_ids": service_ids,
+                "config_items": config_items,
+            })
         else:
             raise ErrAppConfigGroupExists
         return self.get_config_group(app_id, config_group_name)
