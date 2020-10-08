@@ -32,6 +32,8 @@ from www.models.plugin import PluginBuildVersion
 from www.models.plugin import TenantServicePluginRelation
 from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
+from console.repositories.region_app import region_app_repo
+from console.repositories.service_group_relation_repo import service_group_relation_repo
 
 logger = logging.getLogger('default')
 
@@ -240,6 +242,9 @@ class BaseTenantService(object):
             tenant = Tenants.objects.get(tenant_id=newTenantService.tenant_id)
             logger.debug("----- create service {0}".format(json.dumps(data)))
             data["enterprise_id"] = tenant.enterprise_id
+            group_id = service_group_relation_repo.get_group_id_by_service(newTenantService)
+            region_app_id = region_app_repo.get_region_app_id(newTenantService.service_region,group_id)
+            data["app_id"] = region_app_id
             region_api.create_service(region, tenant.tenant_name, data)
             temp_port_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id)
             self.handle_service_port(tenant, newTenantService, temp_port_info)
