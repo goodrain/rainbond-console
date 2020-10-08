@@ -236,13 +236,14 @@ class GroupServiceView(RegionTenantHeaderView):
                 req = {"region_name": self.region_name, "region_app_id": bean["app_id"], "app_id": group_id}
                 region_app_repo.create(**req)
 
-                # TODO: Increase batch operation interface in data center , Modify the method below
                 group_services = base_service.get_group_services_list(self.team.tenant_id, self.region_name, group_id, query)
+                update_req = []
                 if group_services:
                     for service in group_services:
-                        region_api_id = region_app_repo.get_region_app_id(self.region_name, group_id)
-                        update_body = {"service_name": service["service_name"], "app_id": region_api_id}
-                        region_api.update_service_app_id(self.region_name, self.tenant_name, service["service_alias"], update_body)
+                        update_req.append(service["service_id"])
+                        region_app_id = region_app_repo.get_region_app_id(self.region_name, group_id)
+                    body = {"service_ids": update_req}
+                    region_api.batch_update_service_app_id(self.region_name, self.tenant_name, region_app_id, body)
 
             group_service_list = service_repo.get_group_service_by_group_id(
                 group_id=group_id,
