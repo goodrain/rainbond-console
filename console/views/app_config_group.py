@@ -23,7 +23,6 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
             return Response(result)
         if len(config_items) == 0:
             raise AbortRequest(msg="The request must contain a config item")
-
         acg = app_config_group_service.create_config_group(app_id, params["config_group_name"], config_items,
                                                            params["deploy_type"], params["enable"], req_service_ids,
                                                            params["region_name"], tenantName)
@@ -55,8 +54,8 @@ class AppConfigGroupView(RegionTenantHeaderView):
             return Response(result)
         if len(config_items) == 0:
             raise AbortRequest(msg="The request must contain a config item")
-
-        acg = app_config_group_service.update_config_group(app_id, name, config_items, params["enable"], req_service_ids, tenantName)
+        acg = app_config_group_service.update_config_group(app_id, name, config_items, params["enable"], req_service_ids,
+                                                           tenantName)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, name, *args, **kwargs):
@@ -75,7 +74,7 @@ def checkParam(app_id, req_service_ids):
     # Judge whether the requested service ID is correct
     if req_service_ids is not None:
         for sid in req_service_ids:
-            if sid["service_id"] not in service_ids:
+            if sid not in service_ids:
                 result = general_message(404, "The serviceID is not in the serviceID of the current application binding",
                                          "请求的组件ID不在当前应用绑定的组件ID中")
                 return result
