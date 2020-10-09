@@ -428,7 +428,7 @@ class AppService(object):
         data["os_type"] = label_service.get_service_os_name(service)
         # 数据中心创建
         group_id = service_group_relation_repo.get_group_id_by_service(service)
-        region_app_id = region_app_repo.get_region_app_id(service.service_region,group_id)
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, group_id)
         data["app_id"] = region_app_id
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成
@@ -598,7 +598,7 @@ class AppService(object):
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
         group_id = service_group_relation_repo.get_group_id_by_service(service)
-        region_app_id = region_app_repo.get_region_app_id(service.service_region,group_id)
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, group_id)
         data["app_id"] = region_app_id
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成

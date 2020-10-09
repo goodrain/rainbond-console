@@ -243,7 +243,7 @@ class BaseTenantService(object):
             logger.debug("----- create service {0}".format(json.dumps(data)))
             data["enterprise_id"] = tenant.enterprise_id
             group_id = service_group_relation_repo.get_group_id_by_service(newTenantService)
-            region_app_id = region_app_repo.get_region_app_id(newTenantService.service_region,group_id)
+            region_app_id = region_app_repo.get_region_app_id(newTenantService.service_region, group_id)
             data["app_id"] = region_app_id
             region_api.create_service(region, tenant.tenant_name, data)
             temp_port_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id)

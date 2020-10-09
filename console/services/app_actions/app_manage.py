@@ -46,6 +46,10 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.utils.crypt import make_uuid
+from console.repositories.team_repo import team_repo
+from console.repositories.region_app import region_app_repo
+from www.models.main import RegionApp
+from console.repositories.group import group_repo
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -504,6 +508,7 @@ class AppManageService(AppManageBase):
                 return 409, u"操作过于频繁，请稍后再试"
         return 200, u"操作成功"
 
+    @transaction.atomic()
     def batch_action(self, tenant, user, action, service_ids, move_group_id, oauth_instance):
         services = service_repo.get_services_by_service_ids(service_ids)
         code = 500
@@ -1079,6 +1084,19 @@ class AppManageService(AppManageBase):
         # 再新建该组件新的关联数据
         group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
                                                                service.service_region)
+        tenant_name = team_repo.get_team_by_team_id(service.tenant_id)
+        try:
+            region_app_repo.get_region_app_id(service.service_region, move_group_id)
+        except RegionApp.DoesNotExist:
+            group = group_repo.get_group_by_id(move_group_id)
+            create_body = {"app_name": group.group_name}
+            bean = region_api.create_application(service.service_region, tenant_name, create_body)
+            req = {"region_name": service.service_region, "region_app_id": bean["app_id"], "app_id": move_group_id}
+            region_app_repo.create(**req)
+
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
+        update_body = {"service_name": service.service_name, "app_id": region_app_id}
+        region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
 
     # 批量删除组件
     def batch_delete(self, user, tenant, service, is_force):
