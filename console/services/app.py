@@ -716,12 +716,13 @@ class AppMarketService(object):
 
     @transaction.atomic
     def batch_create_app_market(self, eid, data):
-        for dt in data:
-            exist_market = app_market_repo.get_app_market_by_name(enterprise_id=eid, name=dt["name"])
-            if exist_market:
-                logger.debug("enterprise app-store {0} already exists, no need to create".format(exist_market.name))
-                continue
-            app_market_repo.create_app_market(**dt)
+        if data is not None:
+            for dt in data:
+                exist_market = app_market_repo.get_app_market_by_name(enterprise_id=eid, name=dt["name"])
+                if exist_market:
+                    logger.debug("enterprise app-store {0} already exists, no need to create".format(exist_market.name))
+                    continue
+                app_market_repo.create_app_market(**dt)
         return self.get_app_markets(eid, extend=True)
 
     def update_app_market(self, app_market, data):

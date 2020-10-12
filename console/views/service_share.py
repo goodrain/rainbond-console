@@ -649,8 +649,8 @@ class AppMarketCLView(JWTAuthApiView):
 
 class AppMarketBatchCView(JWTAuthApiView):
     def post(self, request, enterprise_id, *args, **kwargs):
-        dt = []
-        for market in request.data.get("markets"):
+        data = []
+        for market in request.data.get("markets", []):
             name = market["name"]
             if not market_name_format(name):
                 raise ServiceHandleException(msg="name format error", msg_show=u"标识必须以字母开头且为数字字母组合")
@@ -659,7 +659,7 @@ class AppMarketBatchCView(JWTAuthApiView):
             access_key = market["access_key"]
             if len(access_key) > 255:
                 raise ServiceHandleException(msg="access key too long", msg_show=u"Access Key 字符串长度不能超过255")
-            dt.append({
+            data.append({
                 "name": name,
                 "url": market["url"],
                 "type": market["type"],
@@ -668,7 +668,7 @@ class AppMarketBatchCView(JWTAuthApiView):
                 "domain": market["domain"],
             })
 
-        app_market = app_market_service.batch_create_app_market(enterprise_id, dt)
+        app_market = app_market_service.batch_create_app_market(enterprise_id, data)
         result = general_message(200, "success", None, bean=app_market)
         return Response(result, status=200)
 
