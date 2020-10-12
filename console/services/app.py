@@ -718,7 +718,11 @@ class AppMarketService(object):
     def batch_create_app_market(self, data):
         for dt in data:
             eid = dt["enterprise_id"]
-            app_market_repo.get_or_create_app_market(**dt)
+            exist_market = app_market_repo.get_app_market_by_name(enterprise_id=dt["enterprise_id"], name=dt["name"])
+            if exist_market:
+                logger.debug("enterprise app-store {0} already exists, no need to create".format(exist_market.name))
+                continue
+            app_market_repo.create_app_market(**dt)
         return self.get_app_markets(eid, extend=True)
 
     def update_app_market(self, app_market, data):
