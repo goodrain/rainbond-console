@@ -149,7 +149,7 @@ class NoPermissionsError(ServiceHandleException):
 class StoreNoPermissionsError(ServiceHandleException):
     def __init__(self, bean=None):
         super(StoreNoPermissionsError, self).__init__(
-            msg="no store permissions", msg_show="没有云市操作权限,去认证", status_code=403, error_code=10407)
+            msg="no store permissions", msg_show="没有云应用商店操作权限,去认证", status_code=403, error_code=10407)
         self.bean = bean
 
     @property
