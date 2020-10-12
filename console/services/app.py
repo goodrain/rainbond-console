@@ -911,18 +911,9 @@ class AppMarketService(object):
 
         bindable_markets = app_store.list_bindable_markets(market)
         if not bindable_markets:
-            return None
+            return []
 
-        # make up bound markets
-        bound_markets = set()
-        for bm in self.get_app_markets(eid, "true"):
-            if not (len(bm["access_actions"]) == 1 and bm["access_actions"][0] == "OnlyRead"):
-                continue
-            bound_markets.add(bm["enterprise_id"] + bm["domain"] + bm["url"])
-
-        # filter out bound markets
-        result = [bm.to_dict() for bm in bindable_markets if eid + bm.domain + bm.url not in bound_markets]
-        return result
+        return [bm.to_dict() for bm in bindable_markets]
 
 
 app_service = AppService()
