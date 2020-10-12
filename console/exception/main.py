@@ -144,3 +144,18 @@ class ExportAppError(ServiceHandleException):
 class NoPermissionsError(ServiceHandleException):
     def __init__(self, msg="no permissions ", msg_show="没有操作权限", status_code=403, error_code=10402):
         super(NoPermissionsError, self).__init__(msg, msg_show, status_code, error_code)
+
+
+class StoreNoPermissionsError(ServiceHandleException):
+    def __init__(self, msg="no store permissions", msg_show="没有云市操作权限,去认证", status_code=403, error_code=10403, bean=None):
+        super(Exception, self).__init__(status_code, error_code, msg, msg_show, bean)
+        self.msg = msg
+        self.msg_show = msg_show or self.msg
+        self.status_code = status_code
+        self.error_code = error_code or status_code
+        self.bean = bean
+
+    @property
+    def response(self):
+        return MessageResponse(
+            self.msg, msg_show=self.msg_show, status_code=self.status_code, error_code=self.error_code, bean=self.bean)
