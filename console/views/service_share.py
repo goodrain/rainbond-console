@@ -668,7 +668,7 @@ class AppMarketBatchCView(JWTAuthApiView):
                 "domain": market["domain"],
             })
 
-        app_market = app_market_service.batch_create_app_market(dt)
+        app_market = app_market_service.batch_create_app_market(enterprise_id, dt)
         result = general_message(200, "success", None, bean=app_market)
         return Response(result, status=200)
 
