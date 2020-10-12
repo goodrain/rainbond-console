@@ -104,6 +104,7 @@ from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegi
                                           UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
+from console.views.app_market import BindableMarketsView
 
 urlpatterns = [
     # record error logs
@@ -705,6 +706,7 @@ urlpatterns = [
     url(
         r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+)'
         r'/versions/(?P<version>[\w\-.]+)$', AppMarketAppModelVersionsRView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/bindable-markets$', BindableMarketsView.as_view()),
 
     # 应用导出
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
