@@ -37,22 +37,24 @@ class CallRegionAPIException(Exception):
 
 
 class ServiceHandleException(Exception):
-    def __init__(self, msg, msg_show=None, status_code=400, error_code=None):
+    def __init__(self, msg, msg_show=None, status_code=400, error_code=None, bean=None):
         """
         :param msg: 错误信息(英文)
         :param msg_show: 错误信息(中文)
         :param status_code: http 状态码
         :param error_code: 错误码
         """
-        super(Exception, self).__init__(status_code, error_code, msg, msg_show)
+        super(Exception, self).__init__(status_code, error_code, msg, msg_show, bean)
         self.msg = msg
         self.msg_show = msg_show or self.msg
         self.status_code = status_code
         self.error_code = error_code or status_code
+        self.bean = bean
 
     @property
     def response(self):
-        return MessageResponse(self.msg, msg_show=self.msg_show, status_code=self.status_code, error_code=self.error_code)
+        return MessageResponse(
+            self.msg, msg_show=self.msg_show, status_code=self.status_code, error_code=self.error_code, bean=self.bean)
 
 
 class RegionNotFound(ServiceHandleException):

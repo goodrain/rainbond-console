@@ -36,19 +36,12 @@ def apiException(func):
         try:
             return func(*args, **kwargs)
         except ApiException as e:
-            res = None
-            try:
-                res = json.loads(e.body)
-            except Exception:
-                pass
-            if res:
-                raise ServiceHandleException(
-                    msg=res.get("msg"), msg_show="资源不存在", status_code=e.status, error_code=res.get("code"))
             if e.status == 401:
                 raise ServiceHandleException(
                     msg="no store auth token", msg_show="缺少云应用市场token", status_code=401, error_code=10421)
             if e.status == 403:
-                raise ServiceHandleException(msg="no store permission", msg_show="未进行授权", status_code=403, error_code=10407)
+                raise ServiceHandleException(
+                    msg="no store permission", msg_show="未进行授权", status_code=403, error_code=10407, bean={"name": args[1].name})
             if e.status == 404:
                 raise ServiceHandleException(msg=e.body, msg_show="资源不存在", status_code=404)
             if str(e.status)[0] == '4':
