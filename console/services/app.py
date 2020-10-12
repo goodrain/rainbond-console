@@ -13,7 +13,7 @@ from console.appstore.appstore import app_store
 from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppMarket
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, service_endpoints_repo,
                                              volume_repo)
@@ -902,6 +902,27 @@ class AppMarketService(object):
 
     def create_market_app_model_version(self, market, app_id, body):
         app_store.create_app_version(market, app_id, body)
+
+    def list_bindable_markets(self, eid, market_name, market_url, access_key):
+        if market_name:
+            market = app_market_service.get_app_market_by_name(eid, market_name)
+        else:
+            market = AppMarket(url=market_url, access_key=access_key)
+
+        bindable_markets = app_store.list_bindable_markets(market)
+        if not bindable_markets:
+            return None
+
+        # make up bound markets
+        bound_markets = set()
+        for bm in self.get_app_markets(eid, "true"):
+            if not (len(bm["access_actions"]) == 1 and bm["access_actions"][0] == "OnlyRead"):
+                continue
+            bound_markets.add(bm["enterprise_id"] + bm["domain"])
+
+        # filter out bound markets
+        result = [bm.to_dict() for bm in bindable_markets if bm.domain not in bound_markets]
+        return result
 
 
 app_service = AppService()
