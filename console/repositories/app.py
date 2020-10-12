@@ -389,6 +389,9 @@ class AppMarketRepository(object):
     def create_app_market(self, **kwargs):
         return AppMarket.objects.create(**kwargs)
 
+    def get_or_create_app_market(self, **kwargs):
+        return AppMarket.objects.get_or_create(**kwargs)
+
     def update_app_market(self, app_market, data):
         app_market.update(**data)
 
