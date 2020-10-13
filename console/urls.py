@@ -84,11 +84,11 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
 from console.views.region import (GetRegionPublicKeyView, OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import (AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView,
-                                         AppMarketCLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost,
-                                         ServiceShareCompleteView, ServiceShareDeleteView, ServiceShareEventList,
-                                         ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
-                                         ServiceShareRecordView, ShareRecordHistoryView, ShareRecordView)
+from console.views.service_share import (
+    AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView, AppMarketCLView,
+    AppMarketBatchCView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
+    ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
+    ServiceShareRecordView, ShareRecordHistoryView, ShareRecordView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
@@ -104,6 +104,7 @@ from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegi
                                           UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
+from console.views.app_market import BindableMarketsView
 
 urlpatterns = [
     # record error logs
@@ -695,6 +696,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/tag$', AppTagCDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets$', AppMarketCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/bind-markets$', AppMarketBatchCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)$', AppMarketRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models$',
         AppMarketAppModelLView.as_view()),
@@ -704,6 +706,7 @@ urlpatterns = [
     url(
         r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/app-models/(?P<app_id>[\w\-]+)'
         r'/versions/(?P<version>[\w\-.]+)$', AppMarketAppModelVersionsRView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/bindable-markets$', BindableMarketsView.as_view()),
 
     # 应用导出
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
