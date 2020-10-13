@@ -53,6 +53,7 @@ from console.views.enterprise import (
     EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
     EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams, EnterpriseUserTeams)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
+from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView, EnterpriseConfigView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
@@ -655,6 +656,10 @@ urlpatterns = [
         AppVersionManageView.as_view(), perms.AppVersionManageView),
     # 获取当前团队所有的申请者
     url(r'^teams/(?P<team_name>[\w\-]+)/applicants$', ApplicantsView.as_view(), perms.ApplicantsView),
+    # enterprise configuration
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/configs$', EnterpriseConfigView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/objectstorage$', EnterpriseObjectStorageView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/appstoreimagehub$', EnterpriseAppStoreImageHubView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
