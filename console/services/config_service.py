@@ -283,7 +283,7 @@ class PlatformConfigService(ConfigService):
         ]
         self.cfg_keys_value = {
             "TITLE": {
-                "value": "Rainbond-企业云应用操作系统，开发、交付云解决方案",
+                "value": "Rainbond",
                 "desc": u"云帮title",
                 "enable": True
             },
