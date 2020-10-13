@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
 
-from console.exception.exceptions import (UserFavoriteNotExistError, UserNotExistError)
+from console.exception.exceptions import (UserFavoriteNotExistError, UserNotExistError, ErrUserNotFound)
 from console.models.main import UserFavorite
 from console.repositories.base import BaseConnection
 from www.models.main import Users
@@ -20,10 +20,11 @@ class UserRepo(object):
     def get_enterprise_user_by_username(self, eid, username):
         return Users.objects.get(nick_name=username, enterprise_id=eid)
 
-    def get_user_by_username(self, user_name):
+    @staticmethod
+    def get_user_by_username(user_name):
         users = Users.objects.filter(nick_name=user_name)
         if not users:
-            raise UserNotExistError("用户{}不存在".format(user_name))
+            raise ErrUserNotFound
         return users[0]
 
     def get_user_by_user_name(self, user_name):

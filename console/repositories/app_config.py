@@ -184,6 +184,19 @@ class TenantServicePortRepository(object):
             tenant_id=param["tenant_id"], service_id=param["service_id"],
             container_port=param["container_port"]).update(**param)
 
+    @staticmethod
+    def list_by_service_ids(tenant_id, service_ids):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
+
+    @staticmethod
+    def get_by_k8s_service_name(tenant_id, k8s_service_name):
+        return TenantServicesPort.objects.get(tenant_id=tenant_id, k8s_service_name=k8s_service_name)
+
+    @staticmethod
+    def check_k8s_service_name(tenant_id, service_id, port, k8s_service_names):
+        return TenantServicesPort.objects.get(
+            tenant_id=tenant_id, service_id=service_id, container_port=port, k8s_service_name__in=k8s_service_names)
+
 
 class TenantServiceVolumnRepository(object):
     def get_multi_service_volumes(self, service_ids):
@@ -601,6 +614,10 @@ class ServiceDomainRepository(object):
     def list_service_domains_by_cert_id(self, certificate_id):
         return ServiceDomain.objects.filter(certificate_id=certificate_id)
 
+    @staticmethod
+    def count_by_service_ids(region_id, service_ids):
+        return ServiceDomain.objects.filter(region_id=region_id, service_id__in=service_ids).count()
+
 
 class ServiceExtendRepository(object):
     # only market service return extend_method
@@ -734,6 +751,10 @@ class ServiceTcpDomainRepository(object):
     def get_service_tcpdomain(self, tenant_id, region_id, service_id, container_port):
         return ServiceTcpDomain.objects.filter(
             tenant_id=tenant_id, region_id=region_id, service_id=service_id, container_port=container_port).first()
+
+    @staticmethod
+    def count_by_service_ids(region_id, service_ids):
+        return ServiceTcpDomain.objects.filter(region_id=region_id, service_id__in=service_ids).count()
 
 
 class TenantServiceEndpoints(object):

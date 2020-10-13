@@ -2,10 +2,9 @@
 """
   Created on 18/1/9.
 """
-
 import logging
-from datetime import datetime
 
+from datetime import datetime
 from django.db.models import Q
 
 from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
@@ -14,6 +13,10 @@ logger = logging.getLogger("default")
 
 
 class GroupRepository(object):
+    @staticmethod
+    def update(app_id, **data):
+        ServiceGroup.objects.filter(pk=app_id).update(**data)
+
     def list_tenant_group_on_region(self, tenant, region_name):
         return ServiceGroup.objects.filter(
             tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
@@ -39,20 +42,18 @@ class GroupRepository(object):
         return None
 
     # get_group_by_pk get group by group id and tenantid and region name
-    def get_group_by_pk(self, tenant_id, region_name, group_id):
+    def get_group_by_pk(self, tenant_id, region_name, app_id):
         try:
-            return ServiceGroup.objects.get(tenant_id=tenant_id, region_name=region_name, pk=group_id)
-        except ServiceGroup.DoesNotExist:
-            return None
-
-    def get_app_by_pk(self, app_id):
-        try:
-            return ServiceGroup.objects.get(pk=app_id)
+            return ServiceGroup.objects.get(tenant_id=tenant_id, region_name=region_name, pk=app_id)
         except ServiceGroup.DoesNotExist:
             return None
 
     def update_group_name(self, group_id, new_group_name, group_note=""):
         ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note, update_time=datetime.now())
+
+    def update_governance_mode(self, tenant_id, region_name, app_id, governance_mode):
+        ServiceGroup.objects.filter(pk=app_id).update(
+            tenant_id=tenant_id, region_name=region_name, governance_mode=governance_mode, update_time=datetime.now())
 
     def delete_group_by_pk(self, group_id):
         logger.debug("delete group id {0}".format(group_id))
@@ -155,6 +156,17 @@ class GroupServiceRelationRepository(object):
 
     def get_services_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id)
+
+    @staticmethod
+    def list_serivce_ids_by_app_id(tenant_id, region_name, app_id):
+        relations = ServiceGroupRelation.objects.filter(tenant_id=tenant_id, region_name=region_name, group_id=app_id)
+        if not relations:
+            return
+        return relations.values_list("service_id", flat=True)
+
+    @staticmethod
+    def count_service_by_app_id(app_id):
+        return ServiceGroupRelation.objects.filter(group_id=app_id).count()
 
     def get_service_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).first()

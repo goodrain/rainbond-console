@@ -33,5 +33,9 @@ class GroupAppBackupRecordRespository(object):
     def get_record_by_group_id_and_backup_id(self, group_id, backup_id):
         return GroupAppBackupRecord.objects.filter(group_id=group_id, backup_id=backup_id)
 
+    @staticmethod
+    def count_by_app_id(app_id):
+        return GroupAppBackupRecord.objects.filter(group_id=app_id).count()
+
 
 backup_record_repo = GroupAppBackupRecordRespository()

@@ -23,6 +23,7 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
 from console.services.region_services import region_services
+from www.models.main import TenantServicesPort
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.utils.crypt import make_uuid
@@ -786,3 +787,14 @@ class EndpointService(object):
         if validators.domain(endpoint):
             return True
         raise CheckThirdpartEndpointFailed(msg="invalid endpoint")
+
+    @staticmethod
+    def check_k8s_service_name(tenant_id, k8s_service_name):
+        is_valid = False
+        try:
+            port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+        except TenantServicesPort.DoesNotExist:
+            is_valid = True
+        return {
+            "is_valid": is_valid,
+        }
