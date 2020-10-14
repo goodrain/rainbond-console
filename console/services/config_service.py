@@ -12,6 +12,7 @@ from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
 from goodrain_web.custom_config import custom_config as custom_settings
+from console.enum.system_config import ConfigKeyEnum
 
 logger = logging.getLogger("default")
 
@@ -81,6 +82,7 @@ class ConfigService(object):
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
+
         return rst_datas
 
     def update_config(self, key, value):
@@ -273,19 +275,26 @@ class PlatformConfigService(ConfigService):
         self.cfg_keys = [
             "TITLE",
             "LOGO",
+            "FAVICON",
             "IS_REGIST",
             "DOCUMENT",
             "OFFICIAL_DEMO",
+            ConfigKeyEnum.ENTERPRISE_EDITION.name,
         ]
         self.cfg_keys_value = {
             "TITLE": {
-                "value": "Rainbond-企业云应用操作系统，开发、交付云解决方案",
+                "value": "Rainbond",
                 "desc": u"云帮title",
                 "enable": True
             },
             "LOGO": {
                 "value": None,
                 "desc": u"云帮图标",
+                "enable": True
+            },
+            "FAVICON": {
+                "value": None,
+                "desc": u"网站图标",
                 "enable": True
             },
             "DOCUMENT": {
@@ -303,6 +312,11 @@ class PlatformConfigService(ConfigService):
             "IS_REGIST": {
                 "value": None,
                 "desc": u"是否允许注册",
+                "enable": True
+            },
+            ConfigKeyEnum.ENTERPRISE_EDITION.name: {
+                "value": "false",
+                "desc": u"是否是企业版",
                 "enable": True
             },
         }
