@@ -6,6 +6,7 @@ from console.models.main import OAuthServices
 from console.models.main import UserOAuthServices
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.utils.oauth.oauth_types import get_oauth_instance
+from console.exception.bcode import ErrOauthServiceExists
 
 logger = logging.getLogger('default')
 
@@ -34,6 +35,10 @@ class OAuthRepo(object):
     def open_get_oauth_services_by_service_id(self, service_id):
         return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
 
+    @staticmethod
+    def get_by_name(name):
+        return OAuthServices.objects.get(name=name)
+
     def create_or_update_oauth_services(self, values, eid=None):
         querysetlist = []
         for value in values:
@@ -43,6 +48,13 @@ class OAuthRepo(object):
             api_url = instance.get_user_url(home_url=value["home_url"])
             is_git = instance.is_git_oauth()
             if value.get("service_id") is None:
+                # check if the name exists
+                try:
+                    self.get_by_name(value["name"])
+                    raise ErrOauthServiceExists
+                except OAuthServices.DoesNotExist:
+                    pass
+
                 querysetlist.append(
                     OAuthServices(
                         name=value["name"],
