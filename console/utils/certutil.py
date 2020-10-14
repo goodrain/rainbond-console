@@ -7,7 +7,7 @@ import time
 from OpenSSL import crypto
 
 from console.utils.exception import err_cert_expired
-from console.utils.exception import err_invalid_cert
+from console.utils.exception import err_invalid_cert, err_cert_mismatch, err_invalid_private_key
 from console.utils.exception import ServiceHandleException
 
 logger = logging.getLogger("default")
@@ -78,7 +78,22 @@ def cert_is_effective(content):
     except Exception as e:
         logger.warning("loading certificate: {}".format(e))
         raise err_invalid_cert
+    return True
 
+
+def private_key_is_effective(content, private_key):
+    """Determine whether the private key format is correct and whether the key pairs match"""
+    cert = crypto.load_certificate(crypto.FILETYPE_PEM, content)
+    try:
+        pri_key = crypto.load_privatekey(crypto.FILETYPE_PEM, private_key)
+    except Exception:
+        raise err_invalid_private_key
+
+    sign = crypto.sign(pri_key, "data", b"sha256")
+    try:
+        crypto.verify(cert, sign, "data", b"sha256")
+    except Exception:
+        raise err_cert_mismatch
     return True
 
 
