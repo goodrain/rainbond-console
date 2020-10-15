@@ -720,7 +720,7 @@ class AppMarketService(object):
             for dt in data:
                 exist_market = app_market_repo.get_app_market_by_name(enterprise_id=eid, name=dt["name"])
                 if exist_market:
-                    app_market_repo.update_app_market(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"])
+                    app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"])
                     continue
                 app_market_repo.create_app_market(**dt)
         return self.get_app_markets(eid, extend=True)
