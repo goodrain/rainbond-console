@@ -389,8 +389,8 @@ class AppMarketRepository(object):
     def create_app_market(self, **kwargs):
         return AppMarket.objects.create(**kwargs)
 
-    def update_app_market(self, app_market, data):
-        app_market.update(**data)
+    def update_access_key(self, enterprise_id, name, access_key):
+        return AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).update(access_key=access_key)
 
 
 service_repo = TenantServiceInfoRepository()
