@@ -57,7 +57,7 @@ class DomainService(object):
 
     def add_certificate(self, tenant, alias, certificate_id, certificate, private_key, certificate_type):
         self.__check_certificate_alias(tenant, alias)
-        cert_is_effective(certificate)
+        cert_is_effective(certificate, private_key)
         certificate = base64.b64encode(certificate)
         certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
                                                   certificate_type)
@@ -98,8 +98,7 @@ class DomainService(object):
 
     @transaction.atomic
     def update_certificate(self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
-        cert_is_effective(certificate)
-
+        cert_is_effective(certificate, private_key)
         cert = domain_repo.get_certificate_by_pk(certificate_id)
         if cert is None:
             raise err_cert_not_found
