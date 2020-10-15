@@ -829,6 +829,9 @@ class AppManageService(AppManageBase):
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
             msg = u"组件可能处于运行状态,请先关闭组件"
             return 409, msg
+        # Determine whether the component plugin is running
+        if self.__is_plugin_is_running(service):
+            return 409, u"组件下可能有运行中的插件，请先关闭插件"
         # 判断组件是否被依赖
         is_related, msg = self.__is_service_related(tenant, service)
         if is_related:
@@ -1056,6 +1059,15 @@ class AppManageService(AppManageBase):
         service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         if service_plugin_relations:
             return True
+        return False
+
+    def __is_plugin_is_running(self, service):
+        service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
+        if service_plugin_relations:
+            for spr in service_plugin_relations:
+                plugin = app_plugin_relation_repo.get_relation_by_service_and_plugin(service.service_id, spr.plugin_id)
+                if plugin[0].plugin_status:
+                    return True
         return False
 
     def delete_region_service(self, tenant, service):
