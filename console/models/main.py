@@ -944,7 +944,7 @@ class ServiceMonitor(BaseModel):
 class ApplicationConfigGroup(BaseModel):
     class Meta:
         db_table = "app_config_group"
-        unique_together = ('app_id', 'config_group_name')
+        unique_together = ('region_name', 'app_id', 'config_group_name')
 
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
@@ -958,19 +958,22 @@ class ApplicationConfigGroup(BaseModel):
 class ConfigGroupItem(BaseModel):
     class Meta:
         db_table = "app_config_group_item"
-        unique_together = ('app_id', 'config_group_name', 'item_key')
+        unique_together = ('region_name', 'app_id', 'config_group_name', 'item_key')
 
     app_id = models.IntegerField(help_text="application ID")
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     item_key = models.CharField(max_length=255, help_text="config item key")
     item_value = models.CharField(max_length=65535, help_text="config item value")
+    region_name = models.CharField(max_length=64, help_text="region name")
 
 
 class ConfigGroupService(BaseModel):
     class Meta:
         db_table = "app_config_group_service"
+        unique_together = ('region_name', 'app_id', 'config_group_name', 'service_id')
 
     app_id = models.IntegerField(help_text="application ID")
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     service_id = models.CharField(max_length=32, help_text="service ID")
     service_alias = models.CharField(max_length=64, help_text="service alias")
+    region_name = models.CharField(max_length=64, help_text="region name")

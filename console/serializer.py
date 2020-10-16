@@ -114,7 +114,11 @@ class AppConfigGroupCreateSerilizer(serializers.Serializer):
     deploy_type = serializers.CharField(max_length=32, required=False, default="env", help_text="effective type")
     enable = serializers.BooleanField(required=False, default=False, help_text="effective status")
     region_name = serializers.CharField(max_length=64, required=True, help_text="region name")
+    service_ids = serializers.ListField(required=False, default=None, help_text="request bind service_ids")
+    config_items = serializers.ListField(required=True, help_text="application config items")
 
 
 class AppConfigGroupUpdateSerilizer(serializers.Serializer):
+    service_ids = serializers.ListField(required=False, default=None, help_text="request bind service_ids")
+    config_items = serializers.ListField(required=True, help_text="application config items")
     enable = serializers.BooleanField(required=False, default=False, help_text="effective status")

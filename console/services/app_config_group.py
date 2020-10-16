@@ -12,6 +12,8 @@ from console.exception.exceptions import ErrAppConfigGroupNotFound
 from console.exception.exceptions import ErrAppConfigGroupExists
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
+from www.models.main import RegionApp
+from console.repositories.group import group_repo
 
 region_api = RegionInvokeApi()
 
@@ -19,7 +21,16 @@ region_api = RegionInvokeApi()
 class AppConfigGroupService(object):
     @transaction.atomic
     def create_config_group(self, app_id, config_group_name, config_items, deploy_type, enable, service_ids, region_name,
-                            tenantName):
+                            team_name):
+        try:
+            region_app_repo.get_region_app_id(region_name, app_id)
+        except RegionApp.DoesNotExist:
+            app = group_repo.get_group_by_id(app_id)
+            create_body = {"app_name": app.group_name}
+            bean = region_api.create_application(region_name, team_name, create_body)
+            req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
+            region_app_repo.create(**req)
+
         # create application config group
         group_req = {
             "app_id": app_id,
@@ -33,10 +44,10 @@ class AppConfigGroupService(object):
             app_config_group_repo.get(app_id, config_group_name)
         except ApplicationConfigGroup.DoesNotExist:
             app_config_group_repo.create(**group_req)
-            create_items_and_services(app_id, config_group_name, config_items, service_ids)
+            create_items_and_services(region_name, app_id, config_group_name, config_items, service_ids)
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             region_api.create_app_config_group(
-                region_name, tenantName, region_app_id, {
+                region_name, team_name, region_app_id, {
                     "app_id": region_app_id,
                     "config_group_name": config_group_name,
                     "deploy_type": deploy_type,
@@ -58,7 +69,7 @@ class AppConfigGroupService(object):
         return config_group_info
 
     @transaction.atomic
-    def update_config_group(self, app_id, config_group_name, config_items, enable, service_ids, tenant_name):
+    def update_config_group(self, app_id, config_group_name, config_items, enable, service_ids, team_name):
         group_req = {
             "enable": enable,
             "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
@@ -71,9 +82,9 @@ class AppConfigGroupService(object):
             app_config_group_repo.update(app_id, config_group_name, **group_req)
             app_config_group_item_repo.delete(app_id, config_group_name)
             app_config_group_service_repo.delete(app_id, config_group_name)
-            create_items_and_services(app_id, config_group_name, config_items, service_ids)
+            create_items_and_services(cgroup.region_name, app_id, config_group_name, config_items, service_ids)
             region_app_id = region_app_repo.get_region_app_id(cgroup.region_name, app_id)
-            region_api.update_app_config_group(cgroup.region_name, tenant_name, region_app_id, cgroup.config_group_name, {
+            region_api.update_app_config_group(cgroup.region_name, team_name, region_app_id, cgroup.config_group_name, {
                 "service_ids": service_ids,
                 "config_items": config_items,
             })
@@ -97,10 +108,10 @@ class AppConfigGroupService(object):
         return result
 
     @transaction.atomic
-    def delete_config_group(self, tenant_name, app_id, config_group_name):
+    def delete_config_group(self, team_name, app_id, config_group_name):
         cgroup = app_config_group_repo.get(app_id, config_group_name)
         region_app_id = region_app_repo.get_region_app_id(cgroup.region_name, app_id)
-        region_api.delete_app_config_group(cgroup.region_name, tenant_name, region_app_id, cgroup.config_group_name)
+        region_api.delete_app_config_group(cgroup.region_name, team_name, region_app_id, cgroup.config_group_name)
 
         app_config_group_item_repo.delete(app_id, config_group_name)
         app_config_group_service_repo.delete(app_id, config_group_name)
@@ -132,10 +143,11 @@ def build_response(app_id, cgroup):
     return config_group_info
 
 
-def create_items_and_services(app_id, config_group_name, config_items, service_ids):
+def create_items_and_services(region_name, app_id, config_group_name, config_items, service_ids):
     # create application config group items
     for item in config_items:
         group_item = {
+            "region_name": region_name,
             "app_id": app_id,
             "config_group_name": config_group_name,
             "item_key": item["item_key"],
@@ -148,6 +160,7 @@ def create_items_and_services(app_id, config_group_name, config_items, service_i
         for sid in service_ids:
             s = service_repo.get_service_by_service_id(sid)
             group_service = {
+                "region_name": region_name,
                 "app_id": app_id,
                 "config_group_name": config_group_name,
                 "service_id": s.service_id,
