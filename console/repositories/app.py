@@ -350,9 +350,7 @@ class AppMarketRepository(object):
         markets = AppMarket.objects.filter(domain="rainbond", url="https://store.goodrain.com", enterprise_id=eid)
         if markets:
             return
-        access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY")
-        if not access_key:
-            access_key = "c8593c3049d7480db0d70680269973f2"
+        access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
         AppMarket.objects.create(
             name="RainbondMarket",
             url="https://store.goodrain.com",
