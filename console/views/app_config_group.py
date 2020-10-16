@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from console.services.app_config_group import app_config_group_service
 from console.views.base import RegionTenantHeaderView
-from www.utils.return_message import general_data, general_message
+from www.utils.return_message import general_data
 from console.services.group_service import group_service
 from console.serializer import AppConfigGroupCreateSerilizer
 from console.serializer import AppConfigGroupUpdateSerilizer
