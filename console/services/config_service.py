@@ -83,6 +83,8 @@ class ConfigService(object):
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
 
+        rst_datas["default_market_url"] = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
+
         return rst_datas
 
     def update_config(self, key, value):
