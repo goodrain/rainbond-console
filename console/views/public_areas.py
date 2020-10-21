@@ -230,20 +230,20 @@ class GroupServiceView(RegionTenantHeaderView):
             try:
                 region_app_repo.get_region_app_id(self.region_name, group_id)
             except RegionApp.DoesNotExist:
-                group = group_repo.get_group_by_id(group_id)
-                create_body = {"app_name": group.group_name}
+                app = group_repo.get_group_by_id(group_id)
+                create_body = {"app_name": app.group_name}
                 bean = region_api.create_application(self.region_name, self.tenant_name, create_body)
-                req = {"region_name": self.region_name, "region_app_id": bean["app_id"], "app_id": group_id}
-                region_app_repo.create(**req)
 
                 group_services = base_service.get_group_services_list(self.team.tenant_id, self.region_name, group_id, query)
                 update_req = []
                 if group_services:
                     for service in group_services:
                         update_req.append(service["service_id"])
-                        region_app_id = region_app_repo.get_region_app_id(self.region_name, group_id)
                     body = {"service_ids": update_req}
-                    region_api.batch_update_service_app_id(self.region_name, self.tenant_name, region_app_id, body)
+                    region_api.batch_update_service_app_id(self.region_name, self.tenant_name, bean["app_id"], body)
+
+                req = {"region_name": self.region_name, "region_app_id": bean["app_id"], "app_id": group_id}
+                region_app_repo.create(**req)
 
             group_service_list = service_repo.get_group_service_by_group_id(
                 group_id=group_id,
