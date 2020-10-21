@@ -34,7 +34,7 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
         except ValueError:
             page_size = 10
 
-        acg = app_config_group_service.list_config_groups(app_id, page, page_size)
+        acg = app_config_group_service.list_config_groups(self.region_name, app_id, page, page_size)
         return Response(status=200, data=general_data(bean=acg))
 
 
@@ -47,16 +47,16 @@ class AppConfigGroupView(RegionTenantHeaderView):
         checkParam(app_id, params["service_ids"])
         if len(params["config_items"]) == 0:
             raise AbortRequest(msg="The request must contain a config item")
-        acg = app_config_group_service.update_config_group(app_id, name, params["config_items"], params["enable"],
-                                                           params["service_ids"], team_name)
+        acg = app_config_group_service.update_config_group(self.region_name, app_id, name, params["config_items"],
+                                                           params["enable"], params["service_ids"], team_name)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, name, *args, **kwargs):
-        acg = app_config_group_service.get_config_group(app_id, name)
+        acg = app_config_group_service.get_config_group(self.region_name, app_id, name)
         return Response(status=200, data=general_data(bean=acg))
 
     def delete(self, request, team_name, app_id, name, *args, **kwargs):
-        acg = app_config_group_service.delete_config_group(team_name, app_id, name)
+        acg = app_config_group_service.delete_config_group(self.region_name, team_name, app_id, name)
         return Response(status=200, data=general_data(bean=acg))
 
 
