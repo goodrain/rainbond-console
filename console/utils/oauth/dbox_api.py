@@ -11,7 +11,7 @@ class DboxOauth(object):
     def __init__(self, url, oauth_token=None):
         self._base_url = url
         self._url = "%s" % (url)
-        self.oauth_token = 'Bearer ' + oauth_token
+        self.oauth_token = oauth_token
         self.session = requests.Session()
         self.headers = {
             "Accept": "application/json",
