@@ -87,7 +87,7 @@ class AppConfigGroupService(object):
             cgroup_info.append(config_group_info)
 
         result = {
-            "list": cgroup_info,
+            "config_groups": cgroup_info,
             "page": page,
             "page_size": page_size,
             "total": total,
