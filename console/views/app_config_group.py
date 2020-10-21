@@ -16,12 +16,10 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
         serializer.is_valid()
         params = serializer.data
 
-        checkParam(app_id, params["service_ids"])
-        if len(params["config_items"]) == 0:
-            raise AbortRequest(msg="The request must contain a config item")
+        check_services(app_id, params["service_ids"])
         acg = app_config_group_service.create_config_group(app_id, params["config_group_name"], params["config_items"],
                                                            params["deploy_type"], params["enable"], params["service_ids"],
-                                                           params["region_name"], team_name)
+                                                           self.region_name, team_name)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, *args, **kwargs):
@@ -44,9 +42,7 @@ class AppConfigGroupView(RegionTenantHeaderView):
         serializer.is_valid()
         params = serializer.data
 
-        checkParam(app_id, params["service_ids"])
-        if len(params["config_items"]) == 0:
-            raise AbortRequest(msg="The request must contain a config item")
+        check_services(app_id, params["service_ids"])
         acg = app_config_group_service.update_config_group(self.region_name, app_id, name, params["config_items"],
                                                            params["enable"], params["service_ids"], team_name)
         return Response(status=200, data=general_data(bean=acg))
@@ -60,7 +56,7 @@ class AppConfigGroupView(RegionTenantHeaderView):
         return Response(status=200, data=general_data(bean=acg))
 
 
-def checkParam(app_id, req_service_ids):
+def check_services(app_id, req_service_ids):
     services = group_service.get_group_services(app_id)
     service_ids = [service.service_id for service in services]
 

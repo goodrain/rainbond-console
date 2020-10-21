@@ -22,15 +22,6 @@ class AppConfigGroupService(object):
     @transaction.atomic
     def create_config_group(self, app_id, config_group_name, config_items, deploy_type, enable, service_ids, region_name,
                             team_name):
-        try:
-            region_app_repo.get_region_app_id(region_name, app_id)
-        except RegionApp.DoesNotExist:
-            app = group_repo.get_group_by_id(app_id)
-            create_body = {"app_name": app.group_name}
-            bean = region_api.create_application(region_name, team_name, create_body)
-            req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
-            region_app_repo.create(**req)
-
         # create application config group
         group_req = {
             "app_id": app_id,
