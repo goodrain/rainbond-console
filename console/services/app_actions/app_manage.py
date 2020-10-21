@@ -1088,15 +1088,15 @@ class AppManageService(AppManageBase):
         try:
             region_app_repo.get_region_app_id(service.service_region, move_group_id)
         except RegionApp.DoesNotExist:
-            group = group_repo.get_group_by_id(move_group_id)
-            create_body = {"app_name": group.group_name}
+            app = group_repo.get_group_by_id(move_group_id)
+            create_body = {"app_name": app.group_name}
             bean = region_api.create_application(service.service_region, tenant_name, create_body)
-            req = {"region_name": service.service_region, "region_app_id": bean["app_id"], "app_id": move_group_id}
-            region_app_repo.create(**req)
 
-        region_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
-        update_body = {"service_name": service.service_name, "app_id": region_app_id}
+        update_body = {"service_name": service.service_name, "app_id": bean["app_id"]}
         region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
+
+        req = {"region_name": service.service_region, "region_app_id": bean["app_id"], "app_id": move_group_id}
+        region_app_repo.create(**req)
 
     # 批量删除组件
     def batch_delete(self, user, tenant, service, is_force):
