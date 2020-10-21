@@ -12,8 +12,6 @@ from console.exception.exceptions import ErrAppConfigGroupNotFound
 from console.exception.exceptions import ErrAppConfigGroupExists
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
-from www.models.main import RegionApp
-from console.repositories.group import group_repo
 
 region_api = RegionInvokeApi()
 
