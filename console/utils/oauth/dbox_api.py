@@ -139,7 +139,7 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
     def get_authorize_url(self):
         if self.oauth_service:
             params = {
-                "appid": self.oauth_service.client_id,
+                "client_id": self.oauth_service.client_id,
                 "scope": "snsapi_login",
                 "redirect_uri": urllib.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
             }
