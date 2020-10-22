@@ -29,22 +29,22 @@ class ApplicationConfigGroupServiceRepository(object):
     def create(self, **data):
         return ConfigGroupService.objects.create(**data)
 
-    def list(self, uuid):
-        return ConfigGroupService.objects.filter(uuid=uuid)
+    def list(self, config_group_uuid):
+        return ConfigGroupService.objects.filter(config_group_uuid=config_group_uuid)
 
-    def delete(self, uuid):
-        return ConfigGroupService.objects.filter(uuid=uuid).delete()
+    def delete(self, config_group_uuid):
+        return ConfigGroupService.objects.filter(config_group_uuid=config_group_uuid).delete()
 
 
 class ApplicationConfigGroupItemRepository(object):
     def create(self, **data):
         return ConfigGroupItem.objects.create(**data)
 
-    def list(self, uuid):
-        return ConfigGroupItem.objects.filter(uuid=uuid)
+    def list(self, config_group_uuid):
+        return ConfigGroupItem.objects.filter(config_group_uuid=config_group_uuid)
 
-    def delete(self, uuid):
-        return ConfigGroupItem.objects.filter(uuid=uuid).delete()
+    def delete(self, config_group_uuid):
+        return ConfigGroupItem.objects.filter(config_group_uuid=config_group_uuid).delete()
 
 
 app_config_group_repo = ApplicationConfigGroupRepository()
