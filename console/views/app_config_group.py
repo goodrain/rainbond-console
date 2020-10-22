@@ -32,8 +32,8 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
         except ValueError:
             page_size = 10
 
-        acg = app_config_group_service.list_config_groups(self.region_name, app_id, page, page_size)
-        return Response(status=200, data=general_data(list=acg))
+        acg, total = app_config_group_service.list_config_groups(self.region_name, app_id, page, page_size)
+        return Response(status=200, data=general_data(list=acg, total=total))
 
 
 class AppConfigGroupView(RegionTenantHeaderView):

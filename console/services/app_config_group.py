@@ -88,11 +88,8 @@ class AppConfigGroupService(object):
 
         result = {
             "config_groups": cgroup_info,
-            "page": page,
-            "page_size": page_size,
-            "total": total,
         }
-        return result
+        return result, total
 
     @transaction.atomic
     def delete_config_group(self, region_name, team_name, app_id, config_group_name):
