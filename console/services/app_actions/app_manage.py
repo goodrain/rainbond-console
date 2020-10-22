@@ -1086,6 +1086,7 @@ class AppManageService(AppManageBase):
         group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
                                                                service.service_region)
         tenant_name = team_repo.get_team_by_team_id(service.tenant_id)
+        resp_app_id = ""
         try:
             resp_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
         except RegionApp.DoesNotExist:
