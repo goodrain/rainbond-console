@@ -26,6 +26,8 @@ from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPo
 from console.exception.main import AbortRequest
 from console.exception.exceptions import ErrUserNotFound
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import RegionApp
+
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -118,6 +120,23 @@ class GroupService(object):
         app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
 
         res = {'app_id': app.ID, 'app_name': app.group_name, 'note': app.group_name}
+
+        try:
+            region_app_repo.get_region_app_id(region_name, app_id)
+        except RegionApp.DoesNotExist:
+            app = group_repo.get_group_by_id(app_id)
+            create_body = {"app_name": app.group_name}
+            bean = region_api.create_application(region_name, tenant, create_body)
+
+            group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, app_id)
+            update_req = []
+            if group_services:
+                for service in group_services:
+                    update_req.append(service["service_id"])
+                body = {"service_ids": update_req}
+                region_api.batch_update_service_app_id(region_name, tenant, bean["app_id"], body)
+            req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
+            region_app_repo.create(**req)
 
         # get principal by principal_id
         if app.username:
