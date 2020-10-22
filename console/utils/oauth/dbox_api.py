@@ -22,7 +22,7 @@ class DboxOauth(object):
         }
 
     def _api_get(self, url_suffix, params=None):
-        url = '/'.join([self._url, url_suffix])
+        url = self._url + url_suffix
         try:
             rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
             if rst.status_code == 200:
@@ -30,8 +30,10 @@ class DboxOauth(object):
                 if not isinstance(data, (list, dict)):
                     data = None
             else:
+                logger.error("request path {} responset status {} content {}".format(url, rst.status_code, rst.content))
                 data = None
-        except Exception:
+        except Exception as e:
+            logger.exception(e)
             data = None
         return data
 
@@ -65,7 +67,7 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
         try:
-            user = self._api_get(self.get_user_url(""))
+            user = self.api._api_get(self.get_user_url(""))
         except Exception as e:
             logger.exception(e)
             raise NoAccessKeyErr("can not get user info")
@@ -138,9 +140,11 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
                 raise NoAccessKeyErr("can not get access key")
 
     def get_user_info(self, code=None):
-        self._get_access_token(code=code)
+        access_token, refresh_token = self._get_access_token(code=code)
         user = self._get_user_info()
-        return OAuth2User(user["username"], user["userID"], user["email"]), None, None
+        if user:
+            return OAuth2User(user["username"], user["userID"], user["email"]), access_token, refresh_token
+        return None, None, None
 
     def get_authorize_url(self):
         if self.oauth_service:
