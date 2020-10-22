@@ -575,7 +575,7 @@ class AppPortService(object):
 
     def get_access_info(self, tenant, service):
         access_type = ""
-        data = {}
+        data = []
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         # ①是否有端口
         if not service_ports:
@@ -666,7 +666,7 @@ class AppPortService(object):
 
         if unopened_port:
             access_type = ServicePortConstants.NO_PORT
-            return access_type, {}
+            return access_type, []
 
     def __get_stream_outer_url(self, tenant, service, port):
         region = region_repo.get_region_by_region_name(service.service_region)
