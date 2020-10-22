@@ -1,10 +1,13 @@
 # -*- coding: utf8 -*-
 import requests
 import urllib
+import logging
 from console.utils.oauth.base.oauth import OAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
 from console.utils.urlutil import set_get_url
+
+logger = logging.getLogger("default")
 
 
 class DboxOauth(object):
@@ -63,8 +66,9 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
             raise NoOAuthServiceErr("no found oauth service")
         try:
             user = self._api_get(self.get_user_url(""))
-        except Exception:
-            raise NoAccessKeyErr("can not get access key")
+        except Exception as e:
+            logger.exception(e)
+            raise NoAccessKeyErr("can not get user info")
         if user:
             return user
         else:
@@ -83,8 +87,9 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
         }
         url = self.get_access_token_url(self.oauth_service.home_url)
         try:
-            rst = self._session.request(method='POST', url=url, headers=headers, params=params)
-        except Exception:
+            rst = self._session.request(method='POST', url=url, headers=headers, data=params)
+        except Exception as e:
+            logger.exception(e)
             raise NoAccessKeyErr("can not get access key")
         if rst.status_code == 200:
             data = rst.json()
@@ -116,8 +121,9 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
-                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
-            except Exception:
+                rst = self._session.request(method='POST', url=url, headers=headers, data=params)
+            except Exception as e:
+                logger.exception(e)
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
                 data = rst.json()
