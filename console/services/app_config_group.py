@@ -86,10 +86,7 @@ class AppConfigGroupService(object):
             config_group_info = build_response(cgroup)
             cgroup_info.append(config_group_info)
 
-        result = {
-            "config_groups": cgroup_info,
-        }
-        return result, total
+        return cgroup_info, total
 
     @transaction.atomic
     def delete_config_group(self, region_name, team_name, app_id, config_group_name):
