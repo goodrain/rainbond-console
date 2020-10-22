@@ -13,6 +13,7 @@ from console.constants import ServicePortConstants
 from console.exception.main import AbortRequest
 from console.exception.main import CheckThirdpartEndpointFailed
 from console.exception.main import ServiceHandleException
+from console.exception.main import ErrK8sServiceNameExists
 from console.repositories.app import service_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
@@ -241,7 +242,7 @@ class AppPortService(object):
 
     def __check_params(self, action, protocol, port_alias, service_id):
         standard_actions = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
-                            "change_port_alias")
+                            "change_port_alias", "update_k8s_service_name")
         if not action:
             return 400, u"操作类型不能为空"
         if action not in standard_actions:
@@ -260,7 +261,8 @@ class AppPortService(object):
                 return code, msg
         return 200, u"检测成功"
 
-    def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias):
+    @transaction.atomic
+    def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias, k8s_service_name=""):
         if port_alias:
             port_alias = str(port_alias).strip()
         region = region_repo.get_region_by_region_name(region_name)
@@ -282,6 +284,9 @@ class AppPortService(object):
             code, msg = self.__change_protocol(tenant, service, deal_port, protocol)
         elif action == "change_port_alias":
             code, msg = self.__change_port_alias(tenant, service, deal_port, port_alias)
+        elif action == "update_k8s_service_name":
+            self.__update_k8s_service_name(tenant, service, deal_port, k8s_service_name)
+
         new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if code != 200:
             return code, msg, None
@@ -573,6 +578,40 @@ class AppPortService(object):
             })
         deal_port.save()
         return 200, "success"
+
+    @staticmethod
+    def __update_k8s_service_name(tenant, service, deal_port, k8s_service_name):
+        if len(k8s_service_name) > 63:
+            raise AbortRequest("k8s_service_name must be no more than 63 characters")
+        if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
+            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
+
+        # make k8s_service_name unique
+        try:
+            port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
+            if port.k8s_service_name != k8s_service_name:
+                raise ErrK8sServiceNameExists
+        except TenantServicesPort.DoesNotExist:
+            pass
+
+        deal_port.k8s_service_name = k8s_service_name
+        if service.create_status == "complete":
+            body = {
+                "container_port": deal_port.container_port,
+                "is_inner_service": deal_port.is_inner_service,
+                "is_outer_service": deal_port.is_outer_service,
+                "mapping_port": deal_port.mapping_port,
+                "port_alias": deal_port.port_alias,
+                "protocol": deal_port.protocol,
+                "tenant_id": tenant.tenant_id,
+                "service_id": service.service_id,
+                "k8s_service_name": k8s_service_name,
+            }
+            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
+                "port": [body],
+                "enterprise_id": tenant.enterprise_id
+            })
+        deal_port.save()
 
     def get_access_info(self, tenant, service):
         access_type = ""

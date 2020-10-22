@@ -144,3 +144,9 @@ class ExportAppError(ServiceHandleException):
 class NoPermissionsError(ServiceHandleException):
     def __init__(self, msg="no permissions ", msg_show="没有操作权限", status_code=403, error_code=10402):
         super(NoPermissionsError, self).__init__(msg, msg_show, status_code, error_code)
+
+
+# 20100 ~ 20199 => service ports
+class ErrK8sServiceNameExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 10402)
