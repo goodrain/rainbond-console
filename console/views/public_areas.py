@@ -23,7 +23,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
 
-
 event_service = AppEventService()
 
 region_api = RegionInvokeApi()

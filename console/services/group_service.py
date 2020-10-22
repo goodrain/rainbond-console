@@ -28,7 +28,6 @@ from console.exception.exceptions import ErrUserNotFound
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
 
-
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 

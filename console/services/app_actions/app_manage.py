@@ -1078,6 +1078,7 @@ class AppManageService(AppManageBase):
             return 200, "success"
 
     # 变更应用分组
+    @transaction.atomic
     def move(self, service, move_group_id):
         # 先删除分组应用关系表中该组件数据
         group_service_relation_repo.delete_relation_by_service_id(service_id=service.service_id)
@@ -1086,17 +1087,29 @@ class AppManageService(AppManageBase):
                                                                service.service_region)
         tenant_name = team_repo.get_team_by_team_id(service.tenant_id)
         try:
-            region_app_repo.get_region_app_id(service.service_region, move_group_id)
+            resp_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
         except RegionApp.DoesNotExist:
             app = group_repo.get_group_by_id(move_group_id)
             create_body = {"app_name": app.group_name}
             bean = region_api.create_application(service.service_region, tenant_name, create_body)
 
-        update_body = {"service_name": service.service_name, "app_id": bean["app_id"]}
-        region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
+        if resp_app_id:
+            region_app_id = resp_app_id
+        else:
+            region_app_id = bean["app_id"]
 
-        req = {"region_name": service.service_region, "region_app_id": bean["app_id"], "app_id": move_group_id}
-        region_app_repo.create(**req)
+        # update region group relationship
+        update_body = {"service_name": service.service_name, "app_id": region_app_id}
+        try:
+            region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
+        except region_api.CallApiError as e:
+            if e.status != 404:
+                logger.exception(e)
+                raise ServiceHandleException(msg="region move group failure", msg_show="数据中心移动组件失败", status_code=500)
+
+        if not resp_app_id:
+            req = {"region_name": service.service_region, "region_app_id": region_app_id, "app_id": move_group_id}
+            region_app_repo.create(**req)
 
     # 批量删除组件
     def batch_delete(self, user, tenant, service, is_force):
