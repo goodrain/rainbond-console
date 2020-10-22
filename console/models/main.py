@@ -953,7 +953,7 @@ class ApplicationConfigGroup(BaseModel):
     deploy_type = models.CharField(max_length=32, help_text="effective type")
     enable = models.BooleanField(help_text="effective status")
     region_name = models.CharField(max_length=64, help_text="region name")
-    config_group_uuid = models.CharField(max_length=32, help_text="config group UUID")
+    config_group_id = models.CharField(max_length=32, help_text="config group id")
 
 
 class ConfigGroupItem(BaseModel):
@@ -967,7 +967,7 @@ class ConfigGroupItem(BaseModel):
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     item_key = models.CharField(max_length=255, help_text="config item key")
     item_value = models.CharField(max_length=65535, help_text="config item value")
-    config_group_uuid = models.CharField(max_length=32, help_text="config group UUID")
+    config_group_id = models.CharField(max_length=32, help_text="config group id")
 
 
 class ConfigGroupService(BaseModel):
@@ -980,4 +980,4 @@ class ConfigGroupService(BaseModel):
     app_id = models.IntegerField(help_text="application ID")
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     service_id = models.CharField(max_length=32, help_text="service ID")
-    config_group_uuid = models.CharField(max_length=32, help_text="config group UUID")
+    config_group_id = models.CharField(max_length=32, help_text="config group id")

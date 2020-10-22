@@ -29,7 +29,7 @@ class AppConfigGroupService(object):
             "deploy_type": deploy_type,
             "enable": enable,
             "region_name": region_name,
-            "config_group_uuid": make_uuid(),
+            "config_group_id": make_uuid(),
         }
 
         try:
@@ -70,8 +70,8 @@ class AppConfigGroupService(object):
             raise ErrAppConfigGroupNotFound
         else:
             app_config_group_repo.update(region_name, app_id, config_group_name, **group_req)
-            app_config_group_item_repo.delete(cgroup.config_group_uuid)
-            app_config_group_service_repo.delete(cgroup.config_group_uuid)
+            app_config_group_item_repo.delete(cgroup.config_group_id)
+            app_config_group_service_repo.delete(cgroup.config_group_id)
             create_items_and_services(cgroup, config_items, service_ids)
             region_app_id = region_app_repo.get_region_app_id(cgroup.region_name, app_id)
             region_api.update_app_config_group(cgroup.region_name, team_name, region_app_id, cgroup.config_group_name, {
@@ -102,8 +102,8 @@ class AppConfigGroupService(object):
             if e.status != 404:
                 raise e
 
-        app_config_group_item_repo.delete(cgroup.config_group_uuid)
-        app_config_group_service_repo.delete(cgroup.config_group_uuid)
+        app_config_group_item_repo.delete(cgroup.config_group_id)
+        app_config_group_service_repo.delete(cgroup.config_group_id)
         app_config_group_repo.delete(cgroup.region_name, app_id, config_group_name)
 
 
@@ -122,8 +122,8 @@ def convert_todict(cgroup_items, cgroup_services):
 
 
 def build_response(cgroup):
-    cgroup_services = app_config_group_service_repo.list(cgroup.config_group_uuid)
-    cgroup_items = app_config_group_item_repo.list(cgroup.config_group_uuid)
+    cgroup_services = app_config_group_service_repo.list(cgroup.config_group_id)
+    cgroup_items = app_config_group_item_repo.list(cgroup.config_group_id)
     config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
 
     config_group_info = cgroup.to_dict()
@@ -141,7 +141,7 @@ def create_items_and_services(app_config_group, config_items, service_ids):
             "config_group_name": app_config_group.config_group_name,
             "item_key": item["item_key"],
             "item_value": item["item_value"],
-            "config_group_uuid": app_config_group.config_group_uuid,
+            "config_group_id": app_config_group.config_group_id,
         }
         app_config_group_item_repo.create(**group_item)
 
@@ -154,7 +154,7 @@ def create_items_and_services(app_config_group, config_items, service_ids):
                 "app_id": app_config_group.app_id,
                 "config_group_name": app_config_group.config_group_name,
                 "service_id": s.service_id,
-                "config_group_uuid": app_config_group.config_group_uuid,
+                "config_group_id": app_config_group.config_group_id,
             }
             app_config_group_service_repo.create(**group_service)
 

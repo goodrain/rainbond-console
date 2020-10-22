@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS `app_config_group` (
   `config_group_name` varchar(64),
   `deploy_type` varchar(32) DEFAULT 'env',
   `enable` bool DEFAULT FALSE,
-  `config_group_uuid` varchar(64) NOT NULL,
+  `config_group_id` varchar(64) NOT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `app_config_group_region_app_id_config_group_name_uniq` (`region_name`, `app_id`,`config_group_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS `app_config_group_item` (
   `config_group_name` varchar(64),
   `item_key` varchar(255),
   `item_value` varchar(21000),
-  `config_group_uuid` varchar(64) NOT NULL,
+  `config_group_id` varchar(64) NOT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `app_config_group_app_id_config_group_name_item_key_uniq` (`app_id`,`config_group_name`, `item_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `app_config_group_service` (
   `app_id` int(11),
   `config_group_name` varchar(64),
   `service_id` varchar(32),
-  `config_group_uuid` varchar(64) NOT NULL,
+  `config_group_id` varchar(64) NOT NULL,
   PRIMARY KEY (`ID`),
   UNIQUE KEY `app_config_group_app_id_config_group_name_uniq` (`app_id`,`config_group_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
