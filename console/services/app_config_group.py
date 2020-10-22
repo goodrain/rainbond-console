@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
+import uuid
 
 from django.db import transaction
 from django.core.paginator import Paginator
@@ -28,13 +29,15 @@ class AppConfigGroupService(object):
             "deploy_type": deploy_type,
             "enable": enable,
             "region_name": region_name,
+            "uuid": str(uuid.uuid4()).replace('-', ''),
         }
 
         try:
             app_config_group_repo.get(region_name, app_id, config_group_name)
         except ApplicationConfigGroup.DoesNotExist:
-            app_config_group_repo.create(**group_req)
-            create_items_and_services(app_id, config_group_name, config_items, service_ids)
+            cgroup = app_config_group_repo.create(**group_req)
+            print(cgroup.uuid)
+            create_items_and_services(cgroup, config_items, service_ids)
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             region_api.create_app_config_group(
                 region_name, team_name, region_app_id, {
@@ -68,9 +71,9 @@ class AppConfigGroupService(object):
             raise ErrAppConfigGroupNotFound
         else:
             app_config_group_repo.update(region_name, app_id, config_group_name, **group_req)
-            app_config_group_item_repo.delete(app_id, config_group_name)
-            app_config_group_service_repo.delete(app_id, config_group_name)
-            create_items_and_services(app_id, config_group_name, config_items, service_ids)
+            app_config_group_item_repo.delete(cgroup.uuid)
+            app_config_group_service_repo.delete(cgroup.uuid)
+            create_items_and_services(cgroup, config_items, service_ids)
             region_app_id = region_app_repo.get_region_app_id(cgroup.region_name, app_id)
             region_api.update_app_config_group(cgroup.region_name, team_name, region_app_id, cgroup.config_group_name, {
                 "service_ids": service_ids,
@@ -100,8 +103,8 @@ class AppConfigGroupService(object):
             if e.status != 404:
                 raise e
 
-        app_config_group_item_repo.delete(app_id, config_group_name)
-        app_config_group_service_repo.delete(app_id, config_group_name)
+        app_config_group_item_repo.delete(cgroup.uuid)
+        app_config_group_service_repo.delete(cgroup.uuid)
         app_config_group_repo.delete(cgroup.region_name, app_id, config_group_name)
 
 
@@ -120,8 +123,8 @@ def convert_todict(cgroup_items, cgroup_services):
 
 
 def build_response(cgroup):
-    cgroup_services = app_config_group_service_repo.list(cgroup.app_id, cgroup.config_group_name)
-    cgroup_items = app_config_group_item_repo.list(cgroup.app_id, cgroup.config_group_name)
+    cgroup_services = app_config_group_service_repo.list(cgroup.uuid)
+    cgroup_items = app_config_group_item_repo.list(cgroup.uuid)
     config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
 
     config_group_info = cgroup.to_dict()
@@ -130,15 +133,16 @@ def build_response(cgroup):
     return config_group_info
 
 
-def create_items_and_services(app_id, config_group_name, config_items, service_ids):
+def create_items_and_services(app_config_group, config_items, service_ids):
     # create application config group items
     for item in config_items:
         group_item = {
             "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-            "app_id": app_id,
-            "config_group_name": config_group_name,
+            "app_id": app_config_group.app_id,
+            "config_group_name": app_config_group.config_group_name,
             "item_key": item["item_key"],
             "item_value": item["item_value"],
+            "uuid": app_config_group.uuid,
         }
         app_config_group_item_repo.create(**group_item)
 
@@ -148,9 +152,10 @@ def create_items_and_services(app_id, config_group_name, config_items, service_i
             s = service_repo.get_service_by_service_id(sid)
             group_service = {
                 "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-                "app_id": app_id,
-                "config_group_name": config_group_name,
+                "app_id": app_config_group.app_id,
+                "config_group_name": app_config_group.config_group_name,
                 "service_id": s.service_id,
+                "uuid": app_config_group.uuid,
             }
             app_config_group_service_repo.create(**group_service)
 
