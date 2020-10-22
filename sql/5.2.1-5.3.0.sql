@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS `app_config_group` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `create_time` datetime DEFAULT NULL,
   `update_time` datetime DEFAULT NULL,
-  `region_name` varchar(64) NOT NULL,
-  `app_id` int(11) NOT NULL,
-  `config_group_name` varchar(64) NOT NULL,
+  `region_name` varchar(64),
+  `app_id` int(11),
+  `config_group_name` varchar(64),
   `deploy_type` varchar(32) DEFAULT 'env',
   `enable` bool DEFAULT FALSE,
   PRIMARY KEY (`ID`),
@@ -36,24 +36,25 @@ CREATE TABLE IF NOT EXISTS `app_config_group` (
 
 CREATE TABLE IF NOT EXISTS `app_config_group_item` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `region_name` varchar(64) NOT NULL,
-  `app_id` int(11) NOT NULL,
-  `config_group_name` varchar(64) NOT NULL,
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  `app_id` int(11),
+  `config_group_name` varchar(64),
   `item_key` varchar(255),
   `item_value` varchar(21000),
   PRIMARY KEY (`ID`),
-  UNIQUE KEY `app_config_group_region_app_id_config_group_name_item_key_uniq` (`region_name`, `app_id`,`config_group_name`, `item_key`)
+  UNIQUE KEY `app_config_group_app_id_config_group_name_item_key_uniq` (`app_id`,`config_group_name`, `item_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `app_config_group_service` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `region_name` varchar(64) NOT NULL,
-  `app_id` int(11) NOT NULL,
-  `config_group_name` varchar(64) NOT NULL,
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  `app_id` int(11),
+  `config_group_name` varchar(64),
   `service_id` varchar(32),
-  `service_alias` varchar(64),
   PRIMARY KEY (`ID`),
-  UNIQUE KEY `app_config_group_region_app_id_config_group_name_uniq` (`region_name`, `app_id`,`config_group_name`)
+  UNIQUE KEY `app_config_group_app_id_config_group_name_uniq` (`app_id`,`config_group_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE console.service_group ADD `create_time` datetime DEFAULT NULL;

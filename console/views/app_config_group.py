@@ -19,7 +19,7 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
         check_services(app_id, params["service_ids"])
         acg = app_config_group_service.create_config_group(app_id, params["config_group_name"], params["config_items"],
                                                            params["deploy_type"], params["enable"], params["service_ids"],
-                                                           self.region_name, team_name)
+                                                           params["region_name"], team_name)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, *args, **kwargs):
