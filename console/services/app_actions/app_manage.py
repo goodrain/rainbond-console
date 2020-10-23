@@ -48,8 +48,6 @@ from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.utils.crypt import make_uuid
 from console.repositories.team_repo import team_repo
 from console.repositories.region_app import region_app_repo
-from www.models.main import RegionApp
-from console.repositories.group import group_repo
 from console.services.group_service import group_service
 
 tenantUsedResource = TenantUsedResource()
