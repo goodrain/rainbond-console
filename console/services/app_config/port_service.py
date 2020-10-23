@@ -242,7 +242,7 @@ class AppPortService(object):
 
     def __check_params(self, action, protocol, port_alias, service_id):
         standard_actions = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
-                            "change_port_alias", "update_k8s_service_name")
+                            "change_port_alias")
         if not action:
             return 400, u"操作类型不能为空"
         if action not in standard_actions:
@@ -270,7 +270,7 @@ class AppPortService(object):
         if code != 200:
             return code, msg, None
 
-        # Compatible with methods that do not return code, such as __change_port_alias and __update_k8s_service_name
+        # Compatible with methods that do not return code, such as __change_port_alias
         code = 200
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if action == "open_outer":
@@ -286,9 +286,7 @@ class AppPortService(object):
         elif action == "change_protocol":
             code, msg = self.__change_protocol(tenant, service, deal_port, protocol)
         elif action == "change_port_alias":
-            self.__change_port_alias(tenant, service, deal_port, port_alias)
-        elif action == "update_k8s_service_name":
-            self.__update_k8s_service_name(tenant, service, deal_port, k8s_service_name)
+            self.__change_port_alias(tenant, service, deal_port, port_alias, k8s_service_name)
 
         new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if code != 200:
@@ -528,7 +526,7 @@ class AppPortService(object):
 
         return 200, "success"
 
-    def __change_port_alias(self, tenant, service, deal_port, new_port_alias):
+    def __change_port_alias(self, tenant, service, deal_port, new_port_alias, k8s_service_name):
         old_port_alias = deal_port.port_alias
         deal_port.port_alias = new_port_alias
         envs = env_var_service.get_env_by_container_port(tenant, service, deal_port.container_port)
@@ -554,33 +552,26 @@ class AppPortService(object):
                 region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, add_env)
             env.save()
 
+        if k8s_service_name:
+            if len(k8s_service_name) > 63:
+                raise AbortRequest("k8s_service_name must be no more than 63 characters")
+            if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
+                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
+
+            # make k8s_service_name unique
+            try:
+                port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
+                if port.k8s_service_name != k8s_service_name:
+                    raise ErrK8sServiceNameExists
+            except TenantServicesPort.DoesNotExist:
+                pass
+
         if service.create_status == "complete":
             body = deal_port.to_dict()
             body["port_alias"] = new_port_alias
-            self.__update_service_port(tenant, service.service_region, service.service_alias, body)
-
-        deal_port.save()
-
-    def __update_k8s_service_name(self, tenant, service, deal_port, k8s_service_name):
-        if len(k8s_service_name) > 63:
-            raise AbortRequest("k8s_service_name must be no more than 63 characters")
-        if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
-
-        # make k8s_service_name unique
-        try:
-            port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
-            if port.k8s_service_name != k8s_service_name:
-                raise ErrK8sServiceNameExists
-        except TenantServicesPort.DoesNotExist:
-            pass
-
-        if service.create_status == "complete":
-            body = deal_port.to_dict()
             body["k8s_service_name"] = k8s_service_name
             self.__update_service_port(tenant, service.service_region, service.service_alias, body)
 
-        deal_port.k8s_service_name = k8s_service_name
         deal_port.save()
 
     @staticmethod
