@@ -117,7 +117,9 @@ class GroupService(object):
         # app metadata
         app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
 
-        res = {'app_id': app.ID, 'app_name': app.group_name, 'note': app.group_name}
+        res = app.to_dict()
+        res['app_id'] = app.ID
+        res['app_name'] = app.group_name
 
         # get principal by principal_id
         if app.username:
@@ -390,17 +392,19 @@ class GroupService(object):
         # list service_ids
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
         # service_id to service_alias
-        services = {service.service_id: service.service_alias for service in service_repo.list_by_ids(service_ids)}
+        services = service_repo.list_by_ids(service_ids)
+        service_aliases = {service.service_id: service.service_alias for service in services}
+        service_cnames = {service.service_id: service.service_cname for service in services}
 
         ports = port_repo.list_by_service_ids(tenant_id, service_ids)
         # build response
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[port.service_id] + "_" + str(
-                port.container_port)
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "_" + str(port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,
+                "service_cname": service_cnames[port.service_id],
                 "port": port.container_port,
                 "port_alias": port.port_alias,
                 "k8s_service_name": k8s_service_name,
@@ -436,7 +440,7 @@ class GroupService(object):
                     "port_alias": k8s_service["port_alias"],
                     "k8s_service_name": k8s_service["k8s_service_name"],
                 })
-        # TODO: sync k8s service name in the region
+            k8s_service["container_port"] = k8s_service["port"]
 
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
