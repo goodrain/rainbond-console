@@ -1086,29 +1086,17 @@ class AppManageService(AppManageBase):
         group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
                                                                service.service_region)
         tenant_name = team_repo.get_team_by_team_id(service.tenant_id)
-        resp_app_id = ""
+        service_ids = []
+        service_ids.append(service.service_id)
         try:
-            resp_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
+            region_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
+            update_body = {"service_name": service.service_name, "app_id": region_app_id}
+            region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
         except RegionApp.DoesNotExist:
             app = group_repo.get_group_by_id(move_group_id)
-            create_body = {"app_name": app.group_name}
+            create_body = {"app_name": app.group_name, "service_ids": service_ids}
             bean = region_api.create_application(service.service_region, tenant_name, create_body)
-
-        if resp_app_id:
-            region_app_id = resp_app_id
-        else:
             region_app_id = bean["app_id"]
-
-        # update region group relationship
-        update_body = {"service_name": service.service_name, "app_id": region_app_id}
-        try:
-            region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
-        except region_api.CallApiError as e:
-            if e.status != 404:
-                logger.exception(e)
-                raise ServiceHandleException(msg="region move group failure", msg_show="数据中心移动组件失败", status_code=500)
-
-        if not resp_app_id:
             req = {"region_name": service.service_region, "region_app_id": region_app_id, "app_id": move_group_id}
             region_app_repo.create(**req)
 
