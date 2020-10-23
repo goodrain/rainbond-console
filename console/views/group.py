@@ -236,8 +236,8 @@ class GroupStatusView(RegionTenantHeaderView):
 class AppGovernanceModeView(ApplicationView):
     def put(self, request, app_id, *args, **kwargs):
         governance_mode = parse_item(request, "governance_mode", required=True)
-        if governance_mode not in GovernanceModeEnum.choices():
-            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.choices()))
+        if governance_mode not in GovernanceModeEnum.names():
+            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
 
         group_service.update_governance_mode(self.tenant.tenant_id, self.region_name, app_id, governance_mode)
         result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
