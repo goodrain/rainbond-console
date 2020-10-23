@@ -353,7 +353,7 @@ class AppMarketRepository(object):
         name = os.getenv("DEFAULT_APP_MARKET_NAME", "RainbondMarket")
 
         markets = AppMarket.objects.filter(domain=domain, url=url, enterprise_id=eid)
-        if markets:
+        if markets or os.getenv("DISABLE_DEFAULT_APP_MARKET", False):
             return
         AppMarket.objects.create(
             name=name,
