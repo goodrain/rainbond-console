@@ -32,6 +32,7 @@ from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesSe
                                            TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
+from console.repositories.region_app import region_app_repo
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -426,6 +427,9 @@ class AppService(object):
         # runtime os name
         data["os_type"] = label_service.get_service_os_name(service)
         # 数据中心创建
+        app_id = service_group_relation_repo.get_group_id_by_service(service)
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
+        data["app_id"] = region_app_id
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成
         service.create_status = "complete"
@@ -593,6 +597,9 @@ class AppService(object):
         data["etcd_key"] = service.check_uuid
         # 数据中心创建
         logger.debug('-----------data-----------_>{0}'.format(data))
+        app_id = service_group_relation_repo.get_group_id_by_service(service)
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
+        data["app_id"] = region_app_id
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成
         service.create_status = "complete"
