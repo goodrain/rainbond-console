@@ -149,4 +149,4 @@ class NoPermissionsError(ServiceHandleException):
 # 20100 ~ 20199 => service ports
 class ErrK8sServiceNameExists(ServiceHandleException):
     def __init__(self):
-        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 10402)
+        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 20100)

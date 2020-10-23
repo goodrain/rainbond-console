@@ -269,6 +269,9 @@ class AppPortService(object):
         code, msg = self.__check_params(action, protocol, port_alias, service.service_id)
         if code != 200:
             return code, msg, None
+
+        # Compatible with methods that do not return code, such as __change_port_alias and __update_k8s_service_name
+        code = 200
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if action == "open_outer":
             code, msg = self.__open_outer(tenant, service, region, deal_port)
@@ -283,7 +286,7 @@ class AppPortService(object):
         elif action == "change_protocol":
             code, msg = self.__change_protocol(tenant, service, deal_port, protocol)
         elif action == "change_port_alias":
-            code, msg = self.__change_port_alias(tenant, service, deal_port, port_alias)
+            self.__change_port_alias(tenant, service, deal_port, port_alias)
         elif action == "update_k8s_service_name":
             self.__update_k8s_service_name(tenant, service, deal_port, k8s_service_name)
 
@@ -518,20 +521,9 @@ class AppPortService(object):
                 return 400, u"请关闭外部访问"
 
         if service.create_status == "complete":
-            body = {
-                "container_port": deal_port.container_port,
-                "is_inner_service": deal_port.is_inner_service,
-                "is_outer_service": deal_port.is_outer_service,
-                "mapping_port": deal_port.mapping_port,
-                "port_alias": deal_port.port_alias,
-                "protocol": protocol,
-                "tenant_id": tenant.tenant_id,
-                "service_id": service.service_id
-            }
-            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
-                "port": [body],
-                "enterprise_id": tenant.enterprise_id
-            })
+            body = deal_port.to_dict()
+            body["protocol"] = protocol
+            self.__update_service_port(tenant, service.service_region, service.service_alias, body)
         deal_port.save()
 
         return 200, "success"
@@ -561,26 +553,15 @@ class AppPortService(object):
                 }
                 region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, add_env)
             env.save()
-        body = {
-            "container_port": deal_port.container_port,
-            "is_inner_service": deal_port.is_inner_service,
-            "is_outer_service": deal_port.is_outer_service,
-            "mapping_port": deal_port.mapping_port,
-            "port_alias": new_port_alias,
-            "protocol": deal_port.protocol,
-            "tenant_id": tenant.tenant_id,
-            "service_id": service.service_id
-        }
-        if service.create_status == "complete":
-            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
-                "port": [body],
-                "enterprise_id": tenant.enterprise_id
-            })
-        deal_port.save()
-        return 200, "success"
 
-    @staticmethod
-    def __update_k8s_service_name(tenant, service, deal_port, k8s_service_name):
+        if service.create_status == "complete":
+            body = deal_port.to_dict()
+            body["port_alias"] = new_port_alias
+            self.__update_service_port(tenant, service.service_region, service.service_alias, body)
+
+        deal_port.save()
+
+    def __update_k8s_service_name(self, tenant, service, deal_port, k8s_service_name):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
         if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
@@ -594,24 +575,20 @@ class AppPortService(object):
         except TenantServicesPort.DoesNotExist:
             pass
 
-        deal_port.k8s_service_name = k8s_service_name
         if service.create_status == "complete":
-            body = {
-                "container_port": deal_port.container_port,
-                "is_inner_service": deal_port.is_inner_service,
-                "is_outer_service": deal_port.is_outer_service,
-                "mapping_port": deal_port.mapping_port,
-                "port_alias": deal_port.port_alias,
-                "protocol": deal_port.protocol,
-                "tenant_id": tenant.tenant_id,
-                "service_id": service.service_id,
-                "k8s_service_name": k8s_service_name,
-            }
-            region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
-                "port": [body],
-                "enterprise_id": tenant.enterprise_id
-            })
+            body = deal_port.to_dict()
+            body["k8s_service_name"] = k8s_service_name
+            self.__update_service_port(tenant, service.service_region, service.service_alias, body)
+
+        deal_port.k8s_service_name = k8s_service_name
         deal_port.save()
+
+    @staticmethod
+    def __update_service_port(tenant, region_name, service_alias, body):
+        region_api.update_service_port(region_name, tenant.tenant_name, service_alias, {
+            "port": [body],
+            "enterprise_id": tenant.enterprise_id
+        })
 
     def get_access_info(self, tenant, service):
         access_type = ""
