@@ -939,3 +939,45 @@ class ServiceMonitor(BaseModel):
     port = models.IntegerField(help_text="端口号")
     service_show_name = models.CharField(max_length=64, help_text="组件ID")
     interval = models.CharField(max_length=10, help_text="收集指标时间间隔")
+
+
+class ApplicationConfigGroup(BaseModel):
+    class Meta:
+        db_table = "app_config_group"
+        unique_together = ('region_name', 'app_id', 'config_group_name')
+
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
+    app_id = models.IntegerField(help_text="application ID")
+    config_group_name = models.CharField(max_length=64, help_text="application config group name")
+    deploy_type = models.CharField(max_length=32, help_text="effective type")
+    enable = models.BooleanField(help_text="effective status")
+    region_name = models.CharField(max_length=64, help_text="region name")
+    config_group_id = models.CharField(max_length=32, help_text="config group id")
+
+
+class ConfigGroupItem(BaseModel):
+    class Meta:
+        db_table = "app_config_group_item"
+        unique_together = ('app_id', 'config_group_name', 'item_key')
+
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
+    app_id = models.IntegerField(help_text="application ID")
+    config_group_name = models.CharField(max_length=64, help_text="application config group name")
+    item_key = models.CharField(max_length=255, help_text="config item key")
+    item_value = models.CharField(max_length=65535, help_text="config item value")
+    config_group_id = models.CharField(max_length=32, help_text="config group id")
+
+
+class ConfigGroupService(BaseModel):
+    class Meta:
+        db_table = "app_config_group_service"
+        unique_together = ('app_id', 'config_group_name')
+
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
+    app_id = models.IntegerField(help_text="application ID")
+    config_group_name = models.CharField(max_length=64, help_text="application config group name")
+    service_id = models.CharField(max_length=32, help_text="service ID")
+    config_group_id = models.CharField(max_length=32, help_text="config group id")
