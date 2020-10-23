@@ -321,8 +321,8 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         if action == "deploy":
             self.has_perms([400010])
         service_id_list = service_ids.split(",")
-        code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id,
-                                                    self.oauth_instance)
+        code, msg = app_manage_service.batch_action(self.region_name, self.tenant, self.user, action, service_id_list,
+                                                    move_group_id, self.oauth_instance)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
