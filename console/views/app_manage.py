@@ -292,7 +292,7 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
               type: string
               paramType: path
             - name: action
-              description: 操作名称 stop| start|restart|delete|move
+              description: 操作名称 stop| start|restart|delete|move|upgrade|deploy
               required: true
               type: string
               paramType: form
@@ -306,7 +306,7 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         action = request.data.get("action", None)
         service_ids = request.data.get("service_ids", None)
         move_group_id = request.data.get("move_group_id", None)
-        if action not in ("stop", "start", "restart", "move"):
+        if action not in ("stop", "start", "restart", "move", "upgrade", "deploy"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
         if action == "stop":
             self.has_perms([400008])
@@ -316,6 +316,10 @@ class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             self.has_perms([400007])
         if action == "move":
             self.has_perms([400003])
+        if action == "upgrade":
+            self.has_perms([400009])
+        if action == "deploy":
+            self.has_perms([400010])
         service_id_list = service_ids.split(",")
         code, msg = app_manage_service.batch_action(self.tenant, self.user, action, service_id_list, move_group_id,
                                                     self.oauth_instance)
