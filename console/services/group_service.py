@@ -117,7 +117,10 @@ class GroupService(object):
         # app metadata
         app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
 
-        res = {'app_id': app.ID, 'app_name': app.group_name, 'note': app.group_name}
+        res = app.to_dict()
+        res['app_id'] = app.ID
+        res['app_name'] = app.group_name
+        self.sync_app_services(tenant, region_name, app_id)
 
         # get principal by principal_id
         if app.username:
