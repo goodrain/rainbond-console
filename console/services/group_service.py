@@ -114,12 +114,7 @@ class GroupService(object):
                 group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, u"success"
 
-    def get_app_detail(self, tenant, region_name, app_id):
-        # app metadata
-        app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
-
-        res = {'app_id': app.ID, 'app_name': app.group_name, 'note': app.group_name}
-
+    def sync_app_services(self, tenant, region_name, app_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, app_id)
         service_ids = []
         if group_services:
@@ -136,6 +131,13 @@ class GroupService(object):
             bean = region_api.create_application(region_name, tenant, create_body)
             req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
             region_app_repo.create(**req)
+
+    def get_app_detail(self, tenant, region_name, app_id):
+        # app metadata
+        app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+
+        res = {'app_id': app.ID, 'app_name': app.group_name, 'note': app.group_name}
+        self.sync_app_services(tenant, region_name, app_id)
 
         # get principal by principal_id
         if app.username:

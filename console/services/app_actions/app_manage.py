@@ -50,6 +50,7 @@ from console.repositories.team_repo import team_repo
 from console.repositories.region_app import region_app_repo
 from www.models.main import RegionApp
 from console.repositories.group import group_repo
+from console.services.group_service import group_service
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -509,11 +510,12 @@ class AppManageService(AppManageBase):
         return 200, u"操作成功"
 
     @transaction.atomic()
-    def batch_action(self, tenant, user, action, service_ids, move_group_id, oauth_instance):
+    def batch_action(self, region_name, tenant, user, action, service_ids, move_group_id, oauth_instance):
         services = service_repo.get_services_by_service_ids(service_ids)
         code = 500
         msg = "系统异常"
         fail_service_name = []
+        group_service.sync_app_services(tenant, region_name, move_group_id)
         for service in services:
             try:
                 # 第三方组件不具备启动，停止，重启操作
@@ -1086,19 +1088,9 @@ class AppManageService(AppManageBase):
         group_service_relation_repo.add_service_group_relation(move_group_id, service.service_id, service.tenant_id,
                                                                service.service_region)
         tenant_name = team_repo.get_team_by_team_id(service.tenant_id)
-        service_ids = []
-        service_ids.append(service.service_id)
-        try:
-            region_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
-            update_body = {"service_name": service.service_name, "app_id": region_app_id}
-            region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
-        except RegionApp.DoesNotExist:
-            app = group_repo.get_group_by_id(move_group_id)
-            create_body = {"app_name": app.group_name, "service_ids": service_ids}
-            bean = region_api.create_application(service.service_region, tenant_name, create_body)
-            region_app_id = bean["app_id"]
-            req = {"region_name": service.service_region, "region_app_id": region_app_id, "app_id": move_group_id}
-            region_app_repo.create(**req)
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, move_group_id)
+        update_body = {"service_name": service.service_name, "app_id": region_app_id}
+        region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
 
     # 批量删除组件
     def batch_delete(self, user, tenant, service, is_force):
