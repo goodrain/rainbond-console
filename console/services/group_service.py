@@ -23,7 +23,7 @@ from console.repositories.user_repo import user_repo
 from console.utils.shortcuts import get_object_or_404
 from console.exception.main import ServiceHandleException
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
-from console.exception.main import AbortRequest
+from console.exception.main import AbortRequest, ErrK8sServiceNameExists
 from console.exception.exceptions import ErrUserNotFound
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -425,7 +425,7 @@ class GroupService(object):
                     port_repo.check_k8s_service_name(tenant.tenant_id, k8s_service["service_id"], k8s_service["port"],
                                                      k8s_service["k8s_service_name"])
                 except TenantServicesPort.DoesNotExist:
-                    raise AbortRequest("k8s_service_name '{}' already exits", k8s_service["k8s_service_name"])
+                    raise ErrK8sServiceNameExists
             except TenantServicesPort.DoesNotExist:
                 pass
 

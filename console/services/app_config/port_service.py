@@ -732,6 +732,17 @@ class AppPortService(object):
         validate_endpoints_info(endpoint_info)
         return "", "", 200
 
+    @staticmethod
+    def check_k8s_service_name(tenant_id, k8s_service_name):
+        is_valid = False
+        try:
+            port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+        except TenantServicesPort.DoesNotExist:
+            is_valid = True
+        return {
+            "is_valid": is_valid,
+        }
+
 
 class EndpointService(object):
     @transaction.atomic()
@@ -794,14 +805,3 @@ class EndpointService(object):
         if validators.domain(endpoint):
             return True
         raise CheckThirdpartEndpointFailed(msg="invalid endpoint")
-
-    @staticmethod
-    def check_k8s_service_name(tenant_id, k8s_service_name):
-        is_valid = False
-        try:
-            port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
-        except TenantServicesPort.DoesNotExist:
-            is_valid = True
-        return {
-            "is_valid": is_valid,
-        }
