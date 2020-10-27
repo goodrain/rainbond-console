@@ -1081,5 +1081,18 @@ class MarketAppService(object):
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
 
+    def update_rainbond_app_version_info(self, enterprise_id, app_id, version, **body):
+        version = rainbond_app_repo.update_app_version(enterprise_id, app_id, version, **body)
+        if not version:
+            raise ServiceHandleException(msg="can't get version", msg_show="应用下无该版本", status_code=404)
+        return version
+
+    def delete_rainbond_app_version(self, enterprise_id, app_id, version):
+        try:
+            rainbond_app_repo.delete_app_version_by_version(enterprise_id, app_id, version)
+        except Exception as e:
+            logger.exception(e)
+            raise e
+
 
 market_app_service = MarketAppService()
