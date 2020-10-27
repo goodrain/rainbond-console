@@ -422,7 +422,7 @@ class AppVersionUDView(JWTAuthApiView):
         version_alias = request.data.get("version_alias", None)
         app_version_info = request.data.get("app_version_info", None)
 
-        body = {"dev_status": dev_status, "version_alias": version_alias, "app_version_info": app_version_info}
+        body = {"release_user_id": self.user.user_id, "dev_status": dev_status, "version_alias": version_alias, "app_version_info": app_version_info}
         version = market_app_service.update_rainbond_app_version_info(enterprise_id, app_id, version, **body)
         result = general_message(200, "success", u"创建成功", bean=version.to_dict())
         return Response(result, status=result.get("code", 200))

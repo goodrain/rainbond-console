@@ -513,6 +513,8 @@ class RainbondCenterAppRepository(object):
                 version.version_alias = data["version_alias"]
             if data["app_version_info"] is not None:
                 version.app_version_info = data["app_version_info"]
+            if data["dev_status"] == "release":
+                version.release_user_id = data["release_user_id"]
             version.dev_status = data["dev_status"]
             version.update_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             version.save()
