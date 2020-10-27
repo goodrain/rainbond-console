@@ -1091,6 +1091,15 @@ class MarketAppService(object):
             for version in app_versions:
                 version["release_user"] = Users.objects.filter(user_id=version["release_user_id"]).first().nick_name
 
+        tag_list = []
+        tags = app_tag_repo.get_app_tags(enterprise_id, app_id)
+        for t in tags:
+            tag = app_tag_repo.get_tag_name(enterprise_id, t.tag_id)
+            tag_list.append({"tag_id": t.tag_id, "tag_name": tag.name})
+
+        app = app.to_dict()
+        app["tags"] = tag_list
+
         p = Paginator(app_versions, page_size)
         total = p.count
         return app, p.page(page).object_list, total
