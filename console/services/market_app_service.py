@@ -8,6 +8,7 @@ import logging
 
 from django.db import transaction
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -33,7 +34,7 @@ from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
 from console.utils import slug_util
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo)
+from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -1080,6 +1081,19 @@ class MarketAppService(object):
         # save app and tag relation
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
+
+    def get_rainbond_app_and_versions(self, enterprise_id, app_id, page, page_size):
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        app_versions = rainbond_app_repo.get_rainbond_app_versions_by_id(enterprise_id, app_id)
+        if not app:
+            raise RbdAppNotFound("未找到该应用")
+        if app_versions is not None:
+            for version in app_versions:
+                version["release_user"] = Users.objects.filter(user_id=version["release_user_id"]).first().nick_name
+
+        p = Paginator(app_versions, page_size)
+        total = p.count
+        return app, p.page(page).object_list, total
 
 
 market_app_service = MarketAppService()
