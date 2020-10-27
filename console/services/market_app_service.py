@@ -769,13 +769,10 @@ class MarketAppService(object):
                 "is_complete": version.is_complete,
                 "version": version.version,
                 "version_alias": version.version_alias,
+                "dev_status": version.dev_status,
             }
             if version_info not in app_with_versions[version.app_id]:
                 app_with_versions[version.app_id].append(version_info)
-            if version.dev_status == "release":
-                app = rainbond_app_repo.get_rainbond_app_by_app_id(eid, version.app_id)
-                app.dev_status = version.dev_status
-                app.save()
 
         apps_min_memory = self._get_rainbond_app_min_memory(versions)
         for app in apps:
@@ -783,6 +780,17 @@ class MarketAppService(object):
             if versions_info:
                 # sort rainbond app versions by version
                 versions_info.sort(lambda x, y: cmp(x["version"], y["version"]))
+                have_release = False
+                for v in versions_info:
+                    if "release" in v["dev_status"]:
+                        have_release = True
+                if have_release:
+                    app.dev_status = "release"
+                else:
+                    app.dev_status = ""
+                rainbond_app = rainbond_app_repo.get_rainbond_app_by_app_id(app["enterprise_id"], app["app_id"])
+                rainbond_app.dev_status = app.dev_status
+                rainbond_app.save()
             app.versions_info = versions_info
             app.min_memory = apps_min_memory.get(app.app_id, 0)
 
