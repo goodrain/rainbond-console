@@ -9,6 +9,7 @@ import logging
 from django.db import transaction
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.views.decorators.cache import never_cache
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -1087,15 +1088,17 @@ class MarketAppService(object):
         app_versions = rainbond_app_repo.get_rainbond_app_versions_by_id(enterprise_id, app_id)
         if not app:
             raise RbdAppNotFound("未找到该应用")
+
         if app_versions is not None:
             for version in app_versions:
                 version["release_user"] = Users.objects.filter(user_id=version["release_user_id"]).first().nick_name
+                version["dev_status"] = version.version_dev_status
 
         tag_list = []
         tags = app_tag_repo.get_app_tags(enterprise_id, app_id)
         for t in tags:
             tag = app_tag_repo.get_tag_name(enterprise_id, t.tag_id)
-            tag_list.append({"tag_id": t.tag_id, "tag_name": tag.name})
+            tag_list.append({"tag_id": t.tag_id, "name": tag.name})
 
         app = app.to_dict()
         app["tags"] = tag_list

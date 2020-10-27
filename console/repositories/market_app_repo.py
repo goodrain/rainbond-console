@@ -336,7 +336,8 @@ class RainbondCenterAppRepository(object):
                     C.app_version_info,
                     C.share_user,
                     C.share_team,
-                    C.release_user_id
+                    C.release_user_id,
+                    C.dev_status as version_dev_status
                 FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
                       FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
                 LEFT JOIN rainbond_center_app_version C
