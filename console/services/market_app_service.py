@@ -772,6 +772,11 @@ class MarketAppService(object):
             }
             if version_info not in app_with_versions[version.app_id]:
                 app_with_versions[version.app_id].append(version_info)
+            if version.dev_status == "release":
+                app = rainbond_app_repo.get_rainbond_app_by_app_id(eid, version.app_id)
+                app.dev_status = version.dev_status
+                app.save()
+
         apps_min_memory = self._get_rainbond_app_min_memory(versions)
         for app in apps:
             versions_info = app_with_versions.get(app.app_id)
