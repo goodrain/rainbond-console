@@ -1110,7 +1110,10 @@ class MarketAppService(object):
 
         if app_versions is not None:
             for version in app_versions:
-                version["release_user"] = Users.objects.filter(user_id=version["release_user_id"]).first().nick_name
+                version["release_user"] = ""
+                user = Users.objects.filter(user_id=version["release_user_id"]).first()
+                if user:
+                    version["release_user"] = user.nick_name
                 version["dev_status"] = version.version_dev_status
 
         tag_list = []
