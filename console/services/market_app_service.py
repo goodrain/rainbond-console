@@ -9,7 +9,6 @@ import logging
 from django.db import transaction
 from django.db.models import Q
 from django.core.paginator import Paginator
-from django.views.decorators.cache import never_cache
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -771,6 +770,12 @@ class MarketAppService(object):
                 "version_alias": version.version_alias,
                 "dev_status": version.dev_status,
             }
+            # If the versions are the same, take the last version information
+            for info in app_with_versions[version.app_id]:
+                if version_info["version"] in info["version"]:
+                    info["is_complete"] = version_info["is_complete"]
+                    info["version_alias"] = version_info["version_alias"]
+                    info["dev_status"] = version_info["dev_status"]
             if version_info not in app_with_versions[version.app_id]:
                 app_with_versions[version.app_id].append(version_info)
 
@@ -780,6 +785,7 @@ class MarketAppService(object):
             if versions_info:
                 # sort rainbond app versions by version
                 versions_info.sort(lambda x, y: cmp(x["version"], y["version"]))
+                # If there is a version to release, set the application to release state
                 have_release = False
                 for v in versions_info:
                     if "release" in v["dev_status"]:
