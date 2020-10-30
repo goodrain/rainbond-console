@@ -190,10 +190,6 @@ class AppVolumeService(object):
                 volume_path_win = True
             if not volume_path.startswith("/") and not volume_path_win:
                 raise ServiceHandleException(msg="path error", msg_show="路径仅支持linux和windows")
-            if volume_path in self.SYSDIRS:
-                raise ServiceHandleException(msg="path error", msg_show="路径{0}为系统路径".format(volume_path), status_code=412)
-            if volume_path_win and len(volume_path) == 3:
-                raise ServiceHandleException(msg="path error", msg_show="路径不能为系统路径", status_code=412)
         else:
             if not is_path_legal(volume_path):
                 raise ServiceHandleException(msg="path error", msg_show="请输入符合规范的路径（如：/tmp/volumes）", status_code=412)
