@@ -18,7 +18,7 @@ from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
-from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.market_app_repo import rainbond_app_repo, app_import_record_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -1120,6 +1120,10 @@ class MarketAppService(object):
                     version["release_user"] = user.nick_name
                 if share_user:
                     version["share_user"] = share_user.nick_name
+                else:
+                    record = app_import_record_repo.get_import_record(version["record_id"])
+                    if record:
+                        version["share_user"] = record.user_name
                 version["dev_status"] = version.version_dev_status
 
         tag_list = []
