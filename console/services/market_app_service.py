@@ -1103,6 +1103,7 @@ class MarketAppService(object):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
 
     def get_rainbond_app_and_versions(self, enterprise_id, app_id, page, page_size):
+        have_version = False
         app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         app_versions = rainbond_app_repo.get_rainbond_app_versions_by_id(enterprise_id, app_id)
         if not app:
@@ -1110,6 +1111,8 @@ class MarketAppService(object):
 
         if app_versions is not None:
             for version in app_versions:
+                if version["version"]:
+                    have_version = True
                 version["release_user"] = ""
                 version["share_user_id"] = version["share_user"]
                 version["share_user"] = ""
@@ -1137,7 +1140,9 @@ class MarketAppService(object):
 
         p = Paginator(app_versions, page_size)
         total = p.count
-        return app, p.page(page).object_list, total
+        if have_version:
+            return app, p.page(page).object_list, total
+        return app, None, 0
 
 
 market_app_service = MarketAppService()
