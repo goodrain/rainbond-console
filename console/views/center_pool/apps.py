@@ -286,6 +286,12 @@ class CenterAppUDView(JWTAuthApiView):
         result = general_message(200, "success", None)
         return Response(result, status=200)
 
+    def get(self, request, enterprise_id, app_id, *args, **kwargs):
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        app, versions, total = market_app_service.get_rainbond_app_and_versions(enterprise_id, app_id, page, page_size)
+        return MessageResponse("success", msg_show="查询成功", list=versions, bean=app, total=total)
+
 
 class CenterAppManageView(JWTAuthApiView):
     @never_cache

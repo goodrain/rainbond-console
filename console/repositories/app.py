@@ -344,6 +344,9 @@ class AppTagRepository(object):
         apps = conn.query(sql)
         return apps
 
+    def get_tag_name(self, enterprise_id, tag_id):
+        return RainbondCenterAppTag.objects.get(enterprise_id=enterprise_id, ID=tag_id)
+
 
 class AppMarketRepository(object):
     def create_default_app_market_if_not_exists(self, eid):
