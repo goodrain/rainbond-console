@@ -429,7 +429,7 @@ class AppVersionUDView(JWTAuthApiView):
             "app_version_info": app_version_info
         }
         version = market_app_service.update_rainbond_app_version_info(enterprise_id, app_id, version, **body)
-        result = general_message(200, "success", u"创建成功", bean=version.to_dict())
+        result = general_message(200, "success", u"更新成功", bean=version.to_dict())
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, app_id, version):
