@@ -14,7 +14,7 @@ pillow==6.2.0
 djangorestframework==3.8
 markdown==2.6.2
 django-filter==0.11.0
-requests==2.20.0
+requests==2.24.0
 python-dateutil==2.4.2
 rsa==3.4.2
 django-oauth-toolkit==0.10.0
