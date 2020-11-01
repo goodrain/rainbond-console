@@ -26,6 +26,7 @@ from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPo
 from console.exception.main import AbortRequest
 from console.exception.exceptions import ErrUserNotFound
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import RegionApp
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -112,6 +113,24 @@ class GroupService(object):
                     return 404, u"应用不存在"
                 group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, u"success"
+
+    def sync_app_services(self, tenant, region_name, app_id):
+        group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, app_id)
+        service_ids = []
+        if group_services:
+            for service in group_services:
+                service_ids.append(service["service_id"])
+
+        try:
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+            body = {"service_ids": service_ids}
+            region_api.batch_update_service_app_id(region_name, tenant, region_app_id, body)
+        except RegionApp.DoesNotExist:
+            app = group_repo.get_group_by_id(app_id)
+            create_body = {"app_name": app.group_name, "service_ids": service_ids}
+            bean = region_api.create_application(region_name, tenant, create_body)
+            req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
+            region_app_repo.create(**req)
 
     def get_app_detail(self, tenant, region_name, app_id):
         # app metadata

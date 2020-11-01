@@ -107,3 +107,18 @@ class TenantServiceUpdateSerilizer(serializers.Serializer):
     extend_method = serializers.CharField(max_length=32, required=False, help_text=u"组件类型")
     user_name = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text=u"拉取仓库需要的用户名")
     password = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text=u"拉取仓库需要的密码")
+
+
+class AppConfigGroupCreateSerilizer(serializers.Serializer):
+    region_name = serializers.CharField(max_length=64, required=True, help_text="region name")
+    config_group_name = serializers.CharField(max_length=64, required=True, help_text="application config group name")
+    deploy_type = serializers.CharField(max_length=32, required=False, default="env", help_text="effective type")
+    enable = serializers.BooleanField(required=False, default=False, help_text="effective status")
+    service_ids = serializers.ListField(required=False, default=None, help_text="request bind service_ids")
+    config_items = serializers.ListField(required=False, default=None, help_text="application config items")
+
+
+class AppConfigGroupUpdateSerilizer(serializers.Serializer):
+    service_ids = serializers.ListField(required=False, default=None, help_text="request bind service_ids")
+    config_items = serializers.ListField(required=False, default=None, help_text="application config items")
+    enable = serializers.BooleanField(required=False, default=False, help_text="effective status")

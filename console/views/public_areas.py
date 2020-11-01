@@ -224,6 +224,7 @@ class GroupServiceView(RegionTenantHeaderView):
             if group_count == 0:
                 result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
                 return Response(result, status=200)
+
             group_service_list = service_repo.get_group_service_by_group_id(
                 group_id=group_id,
                 region_name=self.response_region,
