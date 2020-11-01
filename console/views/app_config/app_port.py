@@ -8,6 +8,8 @@ from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.main import AbortRequest
+from console.utils.reqparse import parse_item
 from console.repositories.app_config import port_repo
 from console.services.app_config import domain_service
 from console.services.app_config import port_service
@@ -253,8 +255,10 @@ class AppPortManageView(AppBaseView):
         action = request.data.get("action", None)
         port_alias = request.data.get("port_alias", None)
         protocol = request.data.get("protocol", None)
+        k8s_service_name = parse_item(request, "k8s_service_name", default="")
         if not container_port:
-            return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
+            raise AbortRequest("container_port not specify", u"端口变量名未指定")
+
         if self.service.service_source == "third_party" and ("outer" in action):
             msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
             if code != 200:
@@ -262,7 +266,7 @@ class AppPortManageView(AppBaseView):
                 return Response(general_message(code, msg, msg_show), status=code)
 
         code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
-                                                   protocol, port_alias)
+                                                   protocol, port_alias, k8s_service_name)
         if code != 200:
             return Response(general_message(code, "change port fail", msg), status=code)
         result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
