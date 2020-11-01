@@ -420,3 +420,25 @@ class AppTagCDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(404, "fail", u"删除失败")
         return Response(result, status=result.get("code", 200))
+
+
+class AppVersionUDView(JWTAuthApiView):
+    def put(self, request, enterprise_id, app_id, version):
+        dev_status = request.data.get("dev_status", "")
+        version_alias = request.data.get("version_alias", None)
+        app_version_info = request.data.get("app_version_info", None)
+
+        body = {
+            "release_user_id": self.user.user_id,
+            "dev_status": dev_status,
+            "version_alias": version_alias,
+            "app_version_info": app_version_info
+        }
+        version = market_app_service.update_rainbond_app_version_info(enterprise_id, app_id, version, **body)
+        result = general_message(200, "success", u"更新成功", bean=version.to_dict())
+        return Response(result, status=result.get("code", 200))
+
+    def delete(self, request, enterprise_id, app_id, version):
+        result = general_message(200, "success", u"删除成功")
+        market_app_service.delete_rainbond_app_version(enterprise_id, app_id, version)
+        return Response(result, status=result.get("code", 200))

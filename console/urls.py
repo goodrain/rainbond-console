@@ -41,7 +41,8 @@ from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppD
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
                                                   EnterpriseAppImportInitView, ImportingRecordView)
-from console.views.center_pool.apps import (AppTagCDView, CenterAppCLView, CenterAppUDView, CenterAppView, TagCLView, TagUDView)
+from console.views.center_pool.apps import (AppTagCDView, CenterAppCLView, CenterAppUDView, CenterAppView, TagCLView, TagUDView,
+                                            AppVersionUDView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -697,6 +698,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/version/(?P<version>.*)',
+        AppVersionUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag$', TagCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/tag/(?P<tag_id>[\w\-]+)$', TagUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)/tag$', AppTagCDView.as_view()),

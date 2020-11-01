@@ -520,11 +520,9 @@ class MarketAppService(object):
                 dep_keys = service_key_dep_key_map[service_key]
                 for dep_key in dep_keys:
                     dep_service = key_service_map[dep_key["dep_service_key"]]
-                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id)
+                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id, True)
                     if code != 200:
-                        logger.error("compose add service error {0}".format(msg))
-                        return code, msg
-        return 200, "success"
+                        logger.error("save component dependency relation error {0}".format(msg))
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
@@ -1103,6 +1101,19 @@ class MarketAppService(object):
         # save app and tag relation
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
+
+    def update_rainbond_app_version_info(self, enterprise_id, app_id, version, **body):
+        version = rainbond_app_repo.update_app_version(enterprise_id, app_id, version, **body)
+        if not version:
+            raise ServiceHandleException(msg="can't get version", msg_show="应用下无该版本", status_code=404)
+        return version
+
+    def delete_rainbond_app_version(self, enterprise_id, app_id, version):
+        try:
+            rainbond_app_repo.delete_app_version_by_version(enterprise_id, app_id, version)
+        except Exception as e:
+            logger.exception(e)
+            raise e
 
     def get_rainbond_app_and_versions(self, enterprise_id, app_id, page, page_size):
         have_version = False

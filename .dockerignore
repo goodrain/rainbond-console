@@ -7,3 +7,6 @@ LICENSE
 Dockerfile.*
 sources.list
 .git/
+env
+data
+www/static/www/weavescope-src
