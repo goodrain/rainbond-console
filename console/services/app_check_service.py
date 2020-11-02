@@ -8,7 +8,7 @@ import logging
 from django.db import transaction
 
 from console.constants import AppConstants
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, ErrPath
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.repositories.oauth_repo import oauth_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -397,10 +397,8 @@ class AppCheckService(object):
                     try:
                         volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
                                                           volume_name, None, settings)
-                    except ServiceHandleException as e:
-                        logger.exception(e)
-                        if e.msg != "path error":
-                            raise e
+                    except ErrPath:
+                        logger.warning("Volume Path {0} error".format(volume["volume_path"]))
 
         return 200, "success"
 

@@ -8,7 +8,7 @@ import re
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.enum.component_enum import is_state
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, ErrPath
 from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import volume_repo
 from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
@@ -192,7 +192,7 @@ class AppVolumeService(object):
                 raise ServiceHandleException(msg="path error", msg_show="路径仅支持linux和windows")
         else:
             if not is_path_legal(volume_path):
-                raise ServiceHandleException(msg="path error", msg_show="请输入符合规范的路径（如：/tmp/volumes）", status_code=412)
+                raise ErrPath
         all_volumes = volume_repo.get_service_volumes(service.service_id).values("volume_path")
         for path in list(all_volumes):
             # volume_path不能重复
