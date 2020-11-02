@@ -394,8 +394,14 @@ class AppCheckService(object):
                 else:
                     settings = {}
                     settings["volume_capacity"] = volume["volume_capacity"]
-                    volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
-                                                      volume_name, None, settings)
+                    try:
+                        volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
+                                                          volume_name, None, settings)
+                    except ServiceHandleException as e:
+                        logger.exception(e)
+                        if e.msg != "path error":
+                            raise e
+
         return 200, "success"
 
     def wrap_service_check_info(self, service, data):
