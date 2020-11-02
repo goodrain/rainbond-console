@@ -21,6 +21,8 @@ def validate_endpoint_address(address):
         except ipaddress.AddressValueError:
             if validators.domain(address):
                 domain_ip = True
+            else:
+                raise ipaddress.AddressValueError
         return format_address, domain_ip
 
     errs = []
