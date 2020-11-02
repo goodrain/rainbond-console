@@ -421,7 +421,8 @@ class GroupService(object):
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "_" + str(port.container_port)
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "_" + str(
+                port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,
                 "service_cname": service_cnames[port.service_id],
