@@ -7,6 +7,7 @@ import re
 
 from rest_framework.response import Response
 
+from console.services.market_app_service import market_app_service
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
@@ -148,7 +149,8 @@ class TenantGroupOperationView(ApplicationView):
                 type: string
                 paramType: path
         """
-        app = group_service.get_app_detail(self.tenant, self.response_region, app_id)
+        app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
+        app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "success", bean=app)
         return Response(result, status=result["code"])
 

@@ -106,6 +106,9 @@ class AppConfigGroupService(object):
         app_config_group_service_repo.delete(cgroup.config_group_id)
         app_config_group_repo.delete(cgroup.region_name, app_id, config_group_name)
 
+    def count_by_app_id(self, region_name, app_id):
+        return app_config_group_repo.count(region_name, app_id)
+
 
 def convert_todict(cgroup_items, cgroup_services):
     # Convert application config group items to dict

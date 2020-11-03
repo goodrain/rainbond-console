@@ -7,6 +7,7 @@ import re
 
 from django.db import transaction
 
+from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.repositories.compose_repo import compose_repo
 from console.repositories.share_repo import share_repo
@@ -152,9 +153,7 @@ class GroupService(object):
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         res['share_num'] = share_repo.count_complete_by_app_id(app_id)
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
-        # TODO: upgradable_num
-        # app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(tenant, region_name, app_id)
-        # TODO: config_group_num
+        res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
 
         res["create_status"] = "complete"
         res["compose_id"] = None
@@ -411,6 +410,8 @@ class GroupService(object):
     def list_kubernetes_services(tenant_id, region_name, app_id):
         # list service_ids
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        if not service_ids:
+            return []
         # service_id to service_alias
         services = service_repo.list_by_ids(service_ids)
         service_aliases = {service.service_id: service.service_alias for service in services}
