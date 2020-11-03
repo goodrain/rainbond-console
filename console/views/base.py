@@ -464,6 +464,7 @@ def custom_exception_handler(exc, context):
 class ApplicationView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(ApplicationView, self).__init__(*args, **kwargs)
+        self.app = None
 
     def initial(self, request, *args, **kwargs):
         super(ApplicationView, self).initial(request, *args, **kwargs)

@@ -101,7 +101,7 @@ class TenantGroupOperationView(ApplicationView):
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request, app_id, *args, **kwargs):
         """
             删除应用
             ---
@@ -118,10 +118,9 @@ class TenantGroupOperationView(ApplicationView):
                   paramType: path
 
         """
-        group_id = int(kwargs.get("group_id", None))
-        service = group_service_relation_repo.get_service_by_group(group_id)
+        service = group_service_relation_repo.get_service_by_group(app_id)
         if not service:
-            code, msg, data = group_service.delete_group_no_service(group_id)
+            code, msg, data = group_service.delete_group_no_service(app_id)
         else:
             code = 400
             msg = '当前应用内存在组件，无法删除'
@@ -275,7 +274,7 @@ class AppKubernetesServiceView(ApplicationView):
         return Response(result)
 
 
-class AppStatusView(ApplicationView):
+class ApplicationStatusView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         status = group_service.get_app_status(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=status)
