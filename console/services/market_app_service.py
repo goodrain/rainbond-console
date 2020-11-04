@@ -784,7 +784,7 @@ class MarketAppService(object):
             app.dev_status = ""
             if versions_info:
                 # sort rainbond app versions by version
-                versions_info.sort(lambda x, y: cmp(x["version"], y["version"]))
+                versions_info = sorted(versions_info, key=lambda x: (x["dev_status"], x["version"]))
                 # If there is a version to release, set the application to release state
                 have_release = False
                 for v in versions_info:
