@@ -959,7 +959,6 @@ class ApplicationConfigGroup(BaseModel):
 class ConfigGroupItem(BaseModel):
     class Meta:
         db_table = "app_config_group_item"
-        unique_together = ('app_id', 'config_group_name', 'item_key')
 
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
@@ -973,7 +972,6 @@ class ConfigGroupItem(BaseModel):
 class ConfigGroupService(BaseModel):
     class Meta:
         db_table = "app_config_group_service"
-        unique_together = ('app_id', 'config_group_name')
 
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)

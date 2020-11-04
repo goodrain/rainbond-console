@@ -44,8 +44,7 @@ CREATE TABLE IF NOT EXISTS `app_config_group_item` (
   `item_key` varchar(255),
   `item_value` varchar(21000),
   `config_group_id` varchar(64) NOT NULL,
-  PRIMARY KEY (`ID`),
-  UNIQUE KEY `app_config_group_app_id_config_group_name_item_key_uniq` (`app_id`,`config_group_name`, `item_key`)
+  PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `app_config_group_service` (
@@ -56,8 +55,7 @@ CREATE TABLE IF NOT EXISTS `app_config_group_service` (
   `config_group_name` varchar(64),
   `service_id` varchar(32),
   `config_group_id` varchar(64) NOT NULL,
-  PRIMARY KEY (`ID`),
-  UNIQUE KEY `app_config_group_app_id_config_group_name_uniq` (`app_id`,`config_group_name`)
+  PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE console.service_group ADD `create_time` datetime DEFAULT NULL;
