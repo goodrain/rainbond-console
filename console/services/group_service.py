@@ -78,9 +78,6 @@ class GroupService(object):
             user_repo.get_user_by_username(username)
         # check app name
         self.check_app_name(tenant, region_name, app_name)
-        app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
-        if app and app.ID != app_id:
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
 
         data = {
             "note": note,
@@ -137,18 +134,12 @@ class GroupService(object):
         # app metadata
         app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
 
+        self.sync_app_services(tenant, region_name, app_id)
+
         res = app.to_dict()
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
-        self.sync_app_services(tenant, region_name, app_id)
-
-        # get principal by principal_id
-        if app.username:
-            try:
-                res['principal'] = user_repo.get_user_by_username(app.username)
-            except ErrUserNotFound:
-                pass
-
+        res['principal'] = app.username
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         res['share_num'] = share_repo.count_complete_by_app_id(app_id)
