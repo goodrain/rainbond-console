@@ -80,10 +80,11 @@ class AppConfigGroupService(object):
             })
         return self.get_config_group(region_name, app_id, config_group_name)
 
-    def list_config_groups(self, region_name, app_id, page, page_size):
+    def list_config_groups(self, region_name, app_id, page, page_size, query=None):
         cgroup_info = []
         config_groups = app_config_group_repo.list(region_name, app_id)
-
+        if query:
+            config_groups = config_groups.filter(config_group_name__contains=query)
         p = Paginator(config_groups, page_size)
         total = p.count
         for cgroup in p.page(page):
@@ -110,14 +111,16 @@ class AppConfigGroupService(object):
 def convert_todict(cgroup_items, cgroup_services):
     # Convert application config group items to dict
     config_group_items = []
-    for i in cgroup_items:
-        cgi = i.to_dict()
-        config_group_items.append(cgi)
+    if cgroup_items:
+        for i in cgroup_items:
+            cgi = i.to_dict()
+            config_group_items.append(cgi)
     # Convert application config group services to dict
     config_group_services = []
-    for s in cgroup_services:
-        cgs = s.to_dict()
-        config_group_services.append(cgs)
+    if cgroup_services:
+        for s in cgroup_services:
+            cgs = s.to_dict()
+            config_group_services.append(cgs)
     return config_group_items, config_group_services
 
 
@@ -134,16 +137,17 @@ def build_response(cgroup):
 
 def create_items_and_services(app_config_group, config_items, service_ids):
     # create application config group items
-    for item in config_items:
-        group_item = {
-            "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-            "app_id": app_config_group.app_id,
-            "config_group_name": app_config_group.config_group_name,
-            "item_key": item["item_key"],
-            "item_value": item["item_value"],
-            "config_group_id": app_config_group.config_group_id,
-        }
-        app_config_group_item_repo.create(**group_item)
+    if config_items:
+        for item in config_items:
+            group_item = {
+                "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                "app_id": app_config_group.app_id,
+                "config_group_name": app_config_group.config_group_name,
+                "item_key": item["item_key"],
+                "item_value": item["item_value"],
+                "config_group_id": app_config_group.config_group_id,
+            }
+            app_config_group_item_repo.create(**group_item)
 
     # create application config group services takes effect
     if service_ids is not None:
