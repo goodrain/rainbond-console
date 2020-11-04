@@ -513,7 +513,6 @@ class AppManageService(AppManageBase):
         code = 500
         msg = "系统异常"
         fail_service_name = []
-        group_service.sync_app_services(tenant, region_name, move_group_id)
         for service in services:
             try:
                 # 第三方组件不具备启动，停止，重启操作
@@ -524,6 +523,7 @@ class AppManageService(AppManageBase):
                 elif action == "restart" and service.service_source != "third_party":
                     self.restart(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "move":
+                    group_service.sync_app_services(tenant, region_name, move_group_id)
                     self.move(service, move_group_id)
                 elif action == "deploy" and service.service_source != "third_party":
                     self.deploy(tenant, service, user, group_version=None, oauth_instance=oauth_instance)
