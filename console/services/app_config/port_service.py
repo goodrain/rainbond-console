@@ -240,7 +240,7 @@ class AppPortService(object):
                 except Exception as e:
                     logger.exception(e)
 
-    def __check_params(self, action, protocol, port_alias, service_id):
+    def __check_params(self, action, container_port, protocol, port_alias, service_id):
         standard_actions = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
                             "change_port_alias")
         if not action:
@@ -250,7 +250,8 @@ class AppPortService(object):
         if action == "change_port_alias":
             if not port_alias:
                 return 400, u"端口别名不能为空"
-            if port_repo.get_service_port_by_alias(service_id, port_alias):
+            port = port_repo.get_service_port_by_alias(service_id, port_alias)
+            if port and port.container_port != container_port:
                 return 400, u"别名已存在"
         if action == "change_protocol":
             if not protocol:
@@ -266,7 +267,7 @@ class AppPortService(object):
         if port_alias:
             port_alias = str(port_alias).strip()
         region = region_repo.get_region_by_region_name(region_name)
-        code, msg = self.__check_params(action, protocol, port_alias, service.service_id)
+        code, msg = self.__check_params(action, container_port, protocol, port_alias, service.service_id)
         if code != 200:
             return code, msg, None
 
