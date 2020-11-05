@@ -1011,7 +1011,7 @@ class ServiceGroup(BaseModel):
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
     order_index = models.IntegerField(default=0, help_text=u"应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
-    username = models.IntegerField(null=True, blank=True, help_text="the identity of principal")
+    username = models.CharField(null=True, blank=True, help_text="the username of principal")
     governance_mode = models.CharField(
         choices=GovernanceModeEnum.choices(),
         default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name,

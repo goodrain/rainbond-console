@@ -7,6 +7,7 @@ import re
 
 from django.db import transaction
 
+from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.repositories.compose_repo import compose_repo
 from console.repositories.share_repo import share_repo
@@ -23,8 +24,7 @@ from console.repositories.user_repo import user_repo
 from console.utils.shortcuts import get_object_or_404
 from console.exception.main import ServiceHandleException
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
-from console.exception.main import AbortRequest
-from console.exception.exceptions import ErrUserNotFound
+from console.exception.main import AbortRequest, ErrK8sServiceNameExists
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
 
@@ -77,9 +77,6 @@ class GroupService(object):
             user_repo.get_user_by_username(username)
         # check app name
         self.check_app_name(tenant, region_name, app_name)
-        app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
-        if app and app.ID != app_id:
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
 
         data = {
             "note": note,
@@ -136,25 +133,17 @@ class GroupService(object):
         # app metadata
         app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
 
+        self.sync_app_services(tenant, region_name, app_id)
+
         res = app.to_dict()
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
-        self.sync_app_services(tenant, region_name, app_id)
-
-        # get principal by principal_id
-        if app.username:
-            try:
-                res['principal'] = user_repo.get_user_by_username(app.username)
-            except ErrUserNotFound:
-                pass
-
+        res['principal'] = app.username
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         res['share_num'] = share_repo.count_complete_by_app_id(app_id)
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
-        # TODO: upgradable_num
-        # app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(tenant, region_name, app_id)
-        # TODO: config_group_num
+        res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
 
         res["create_status"] = "complete"
         res["compose_id"] = None
@@ -411,18 +400,23 @@ class GroupService(object):
     def list_kubernetes_services(tenant_id, region_name, app_id):
         # list service_ids
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        if not service_ids:
+            return []
         # service_id to service_alias
-        services = {service.service_id: service.service_alias for service in service_repo.list_by_ids(service_ids)}
+        services = service_repo.list_by_ids(service_ids)
+        service_aliases = {service.service_id: service.service_alias for service in services}
+        service_cnames = {service.service_id: service.service_cname for service in services}
 
         ports = port_repo.list_by_service_ids(tenant_id, service_ids)
         # build response
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else services[port.service_id] + "_" + str(
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "_" + str(
                 port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,
+                "service_cname": service_cnames[port.service_id],
                 "port": port.container_port,
                 "port_alias": port.port_alias,
                 "k8s_service_name": k8s_service_name,
@@ -443,7 +437,7 @@ class GroupService(object):
                     port_repo.check_k8s_service_name(tenant.tenant_id, k8s_service["service_id"], k8s_service["port"],
                                                      k8s_service["k8s_service_name"])
                 except TenantServicesPort.DoesNotExist:
-                    raise AbortRequest("k8s_service_name '{}' already exits", k8s_service["k8s_service_name"])
+                    raise ErrK8sServiceNameExists
             except TenantServicesPort.DoesNotExist:
                 pass
 
@@ -458,7 +452,7 @@ class GroupService(object):
                     "port_alias": k8s_service["port_alias"],
                     "k8s_service_name": k8s_service["k8s_service_name"],
                 })
-        # TODO: sync k8s service name in the region
+            k8s_service["container_port"] = k8s_service["port"]
 
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
