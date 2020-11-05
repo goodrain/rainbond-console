@@ -25,7 +25,6 @@ from console.utils.shortcuts import get_object_or_404
 from console.exception.main import ServiceHandleException
 from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
 from console.exception.main import AbortRequest, ErrK8sServiceNameExists
-from console.exception.exceptions import ErrUserNotFound
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
 
