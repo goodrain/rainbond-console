@@ -8,11 +8,13 @@ from rest_framework.response import Response
 from console.exception.main import ServiceHandleException
 from console.repositories.perm_repo import perms_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.group import group_repo
+from console.services.group_service import group_service
 from console.services.config_service import platform_config_service
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import user_kind_role_service
 from console.views.base import AlowAnyApiView
-from console.views.base import BaseApiView
+from console.views.base import BaseApiView, JWTAuthApiView
 from www.models.main import Tenants
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -258,4 +260,16 @@ class InitPerms(AlowAnyApiView):
                         user_kind_role_service.update_user_roles(
                             kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
         result = general_message(msg="success", msg_show=u"初始化权限分配成功", code=200)
+        return Response(result, status=200)
+
+
+class SyncApp(JWTAuthApiView):
+    def post(self, request, *args, **kwargs):
+        teams = team_repo.get_all_have_region_tenant()
+        for team in teams:
+            apps = group_repo.get_tenant_region_groups(team.tenant_id, team.region)
+            for app in apps:
+                group_service.sync_app_services(team, team.region, app.ID)
+        platform_config_service.update_config_enable_by_key("SYNC_APP", False)
+        result = general_message(msg="success", msg_show=u"同步应用到数据中心成功", code=200)
         return Response(result, status=200)

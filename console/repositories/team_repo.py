@@ -325,6 +325,9 @@ class TeamRepo(object):
     def get_teams_by_create_user(self, enterprise_id, user_id):
         return Tenants.objects.filter(creater=user_id, enterprise_id=enterprise_id)
 
+    def get_all_have_region_tenant(self):
+        return Tenants.objects.exclude(region__isnull=True).exclude(region='')
+
 
 class TeamGitlabRepo(object):
     def get_team_gitlab_by_team_id(self, team_id):

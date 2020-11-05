@@ -268,7 +268,7 @@ class EnterpriseConfigService(ConfigService):
 class PlatformConfigService(ConfigService):
     def __init__(self):
         super(PlatformConfigService, self).__init__()
-        self.base_cfg_keys = ["IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"]
+        self.base_cfg_keys = ["IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER", "SYNC_APP"]
 
         self.cfg_keys = [
             "TITLE",
@@ -340,6 +340,11 @@ class PlatformConfigService(ConfigService):
                 "desc": u"开启/关闭OAuthServices功能",
                 "enable": True
             },
+            "SYNC_APP": {
+                "value": None,
+                "desc": u"是否同步应用数据",
+                "enable": self.get_sync_app_status('SYNC_APP')
+            },
         }
 
     def get_enterprise_center_oauth(self):
@@ -381,6 +386,21 @@ class PlatformConfigService(ConfigService):
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))
+
+    def get_sync_app_status(self, key):
+        config = ConsoleSysConfig.objects.filter(key=key)
+        if config:
+            return config[0].enable
+        return False
+
+    def update_config_enable_by_key(self, key, enable):
+        config = ConsoleSysConfig.objects.filter(key=key)
+        if config:
+            if config[0].enable != enable:
+                config[0].enable = enable
+                config[0].save()
+            return True
+        return False
 
 
 platform_config_service = PlatformConfigService()

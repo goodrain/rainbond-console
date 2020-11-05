@@ -127,6 +127,31 @@ def should_upgrade(current_version, new_version):
     return False
 
 
+def should_sync_app(new_version):
+    need_sync_version = "5.3.0"
+    need_sync_version = RainbondVersion(need_sync_version)
+    if new_version.max_version != need_sync_version.max_version:
+        return False
+    if new_version.median_version < need_sync_version.median_version:
+        return True
+    return False
+
+
+def set_sync_app_flag():
+    db = create_db_client()
+    cursor = db.cursor()
+    cursor.execute('select enable from console_sys_config where `key`="SYNC_APP"')
+    data = cursor.fetchone()
+    if data:
+        cursor.execute('update console_sys_config set enable=True where `key`="SYNC_APP";')
+    else:
+        cursor.execute('''insert into console_sys_config(`key`, `type`, `value`, `enable`, `create_time`, `enterprise_id`)
+            values("SYNC_APP", "string", NULL, True, "{0}", "");'''.format(datetime.now()))
+    db.commit()
+    cursor.close()
+    db.close()
+
+
 if __name__ == '__main__':
     print "Initialize rainbond console"
     new_version = get_current_version()
@@ -144,3 +169,5 @@ if __name__ == '__main__':
         print "upgrade console db from {0} to {1} success".format(current_version, new_version)
     else:
         print "{0} no need upgrade to {1}".format(current_version, new_version)
+    if new_version and should_sync_app(new_version):
+        set_sync_app_flag()
