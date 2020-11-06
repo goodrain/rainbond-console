@@ -957,7 +957,7 @@ class MarketAppService(object):
     def count_upgradeable_market_apps(self, tenant, region, app_id):
         service_group_keys = set(group_service.get_group_service_sources(app_id).values_list('group_key', flat=True))
         iterator = self.yield_app_info(service_group_keys, tenant, app_id)
-        market_apps = [market_app for market_app in iterator if len(market_app.upgrade_versions) > 0]
+        market_apps = [market_app for market_app in iterator if len(market_app['upgrade_versions']) > 0]
         return len(market_apps)
 
     def get_market_apps_in_app(self, region, tenant, group):

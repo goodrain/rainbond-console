@@ -393,8 +393,12 @@ class GroupService(object):
             group_repo.update_group_time(sg.ID)
 
     @staticmethod
-    def update_governance_mode(tenant_id, region_name, app_id, governance_mode):
-        group_repo.update_governance_mode(tenant_id, region_name, app_id, governance_mode)
+    def update_governance_mode(tenant, region_name, app_id, governance_mode):
+        group_repo.update_governance_mode(tenant.tenant_id, region_name, app_id, governance_mode)
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
+            "governance_mode": governance_mode
+        })
 
     @staticmethod
     def list_kubernetes_services(tenant_id, region_name, app_id):
@@ -412,7 +416,7 @@ class GroupService(object):
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "_" + str(
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "-" + str(
                 port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,

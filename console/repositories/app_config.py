@@ -159,7 +159,7 @@ class TenantServicePortRepository(object):
         TenantServicesPort.objects.filter(pk=pk).delete()
 
     def get_service_port_by_alias(self, service_id, alias):
-        return TenantServicesPort.objects.filter(service_id=service_id, port_alias=alias)
+        return TenantServicesPort.objects.get(service_id=service_id, port_alias=alias)
 
     def update_port(self, tenant_id, service_id, container_port, **update_params):
         TenantServicesPort.objects.filter(

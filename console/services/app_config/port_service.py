@@ -250,9 +250,12 @@ class AppPortService(object):
         if action == "change_port_alias":
             if not port_alias:
                 return 400, u"端口别名不能为空"
-            port = port_repo.get_service_port_by_alias(service_id, port_alias)
-            if port and port.container_port != container_port:
-                return 400, u"别名已存在"
+            try:
+                port = port_repo.get_service_port_by_alias(service_id, port_alias)
+                if port.container_port != container_port:
+                    return 400, u"别名已存在"
+            except TenantServicesPort.DoesNotExist:
+                pass
         if action == "change_protocol":
             if not protocol:
                 return 400, u"端口协议不能为空"
@@ -472,6 +475,7 @@ class AppPortService(object):
 
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
         # 添加环境变量
+        # TODO(huangrh): port alias value
         code, msg, data = env_var_service.add_service_env_var(
             tenant, service, deal_port.container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
         if code != 200:
@@ -562,10 +566,11 @@ class AppPortService(object):
             # make k8s_service_name unique
             try:
                 port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
-                if port.k8s_service_name != k8s_service_name:
+                if port.container_port != deal_port.container_port:
                     raise ErrK8sServiceNameExists
             except TenantServicesPort.DoesNotExist:
                 pass
+            deal_port.k8s_service_name = k8s_service_name
 
         if service.create_status == "complete":
             body = deal_port.to_dict()

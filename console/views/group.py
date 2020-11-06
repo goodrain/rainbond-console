@@ -241,7 +241,7 @@ class AppGovernanceModeView(ApplicationView):
         if governance_mode not in GovernanceModeEnum.names():
             raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
 
-        group_service.update_governance_mode(self.tenant.tenant_id, self.region_name, app_id, governance_mode)
+        group_service.update_governance_mode(self.tenant, self.region_name, app_id, governance_mode)
         result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
         return Response(result)
 
