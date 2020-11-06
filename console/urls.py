@@ -18,6 +18,7 @@ from console.views.app_config.app_port import (AppPortManageView, AppPortView, A
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView)
 from console.views.app_config.service_monitor import (ComponentServiceMonitorEditView, ComponentServiceMonitorView)
+from console.views.app_config.graph import ComponentGraphListView
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID)
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
@@ -521,6 +522,8 @@ urlpatterns = [
     # 应用资源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view(),
         perms.AppResourceQueryView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/graphs$', ComponentGraphListView.as_view()),
+
     # 获取当前可用全部数据中心
     url(r'^regions$', QyeryRegionView.as_view()),
 

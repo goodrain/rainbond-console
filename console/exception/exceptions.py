@@ -263,6 +263,11 @@ class ErrAppConfigGroupNotFound(ServiceHandleException):
 
 
 # 20200 ~ 20299 => component graph
+class ErrComponentGraphNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrComponentGraphNotFound, self).__init__("component graph not found", "组件监控图表不存在", 404, 20200)
+
+
 class ErrComponentGraphExists(ServiceHandleException):
     def __init__(self):
-        super(ErrComponentGraphExists, self).__init__("component graph already exists", "组件监控图表已存在", 409, 20200)
+        super(ErrComponentGraphExists, self).__init__("component graph already exists", "组件监控图表已存在", 409, 20201)
