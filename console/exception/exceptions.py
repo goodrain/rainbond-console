@@ -260,3 +260,9 @@ class ErrAppConfigGroupNotFound(ServiceHandleException):
         self.msg_show = u"应用配置组不存在"
         self.status_code = 404
         self.error_code = 20101
+
+
+# 20200 ~ 20299 => component graph
+class ErrComponentGraphExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrComponentGraphExists, self).__init__("component graph already exists", "组件监控图表已存在", 409, 20200)
