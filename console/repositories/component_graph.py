@@ -7,7 +7,16 @@ from console.exception.exceptions import ErrComponentGraphExists, ErrComponentGr
 class ComponentGraphRepository(object):
     @staticmethod
     def list(component_id):
-        return ComponentGraph.objects.filter(component_id=component_id)
+        return ComponentGraph.objects.filter(component_id=component_id).order_by("sequence")
+
+    @staticmethod
+    def list_gt_sequence(component_id, sequence):
+        return ComponentGraph.objects.filter(component_id=component_id, sequence__gt=sequence)
+
+    @staticmethod
+    def list_between_sequence(component_id, left_sequence, right_sequence):
+        return ComponentGraph.objects.filter(
+            component_id=component_id, sequence__gte=left_sequence, sequence__lt=right_sequence)
 
     @staticmethod
     def get(component_id, graph_id):
@@ -30,6 +39,14 @@ class ComponentGraphRepository(object):
             promql=promql,
             sequence=sequence,
         )
+
+    @staticmethod
+    def delete(component_id, graph_id):
+        ComponentGraph.objects.filter(component_id=component_id, graph_id=graph_id).delete()
+
+    @staticmethod
+    def update(component_id, graph_id, **data):
+        ComponentGraph.objects.filter(component_id=component_id, graph_id=graph_id).update(**data)
 
 
 component_graph_repo = ComponentGraphRepository()

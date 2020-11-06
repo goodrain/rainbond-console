@@ -38,8 +38,7 @@ class AppBaseView(RegionTenantHeaderView):
                 if team_info:
                     raise BusinessException(
                         response=Response(
-                            general_message(10403, "service team is not current team",
-                                            "组件{0}不属于当前团队".format(service_alias),
+                            general_message(10403, "service team is not current team", "组件{0}不属于当前团队".format(service_alias),
                                             {"service_team_name": team_info[0].tenant_name}),
                             status=404))
                 else:
