@@ -18,6 +18,7 @@ from console.views.base import BaseApiView, JWTAuthApiView
 from www.models.main import Tenants
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
+from upgrade import get_current_version, should_sync_app
 
 logger = logging.getLogger("default")
 
@@ -263,13 +264,31 @@ class InitPerms(AlowAnyApiView):
         return Response(result, status=200)
 
 
-class SyncApp(JWTAuthApiView):
+class Upgrade(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
-        teams = team_repo.get_all_have_region_tenant()
-        for team in teams:
-            apps = group_repo.get_tenant_region_groups(team.tenant_id, team.region)
-            for app in apps:
-                group_service.sync_app_services(team, team.region, app.ID)
-        platform_config_service.update_config_enable_by_key("SYNC_APP", False)
-        result = general_message(msg="success", msg_show=u"同步应用到数据中心成功", code=200)
-        return Response(result, status=200)
+        version = get_current_version()
+        sync_app = request.data.get("sync_app", False)
+        # When upgrading to version 5.3.0, applications need to be synchronized
+        if should_sync_app(version) or sync_app:
+            teams = team_repo.get_all_have_region_tenant()
+            err_regions = []
+            for team in teams:
+                if team.region in err_regions:
+                    continue
+                apps = group_repo.get_tenant_region_groups(team.tenant_id, team.region)
+                for app in apps:
+                    err_region = group_service.sync_app_services(team, team.region, app.ID)
+                    if err_region and err_region not in err_regions:
+                        err_regions.append(err_region)
+
+            platform_config_service.update_config_enable_by_key("UPGRADE", False)
+            if len(err_regions) > 0:
+                err_info = "/".join(err_regions)
+                result = general_message(
+                    msg="region {0} failed to upgrade synchronization data".format(err_info),
+                    msg_show=u"集群同步数据失败",
+                    code=500,
+                    list=err_regions)
+                return Response(result, status=result["code"])
+        result = general_message(msg="success", msg_show=u"升级成功", code=200)
+        return Response(result, status=result["code"])

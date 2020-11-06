@@ -117,20 +117,24 @@ class GroupService(object):
     def sync_app_services(self, tenant, region_name, app_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, app_id)
         service_ids = []
-        if group_services:
-            for service in group_services:
-                service_ids.append(service["service_id"])
 
         try:
-            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-            body = {"service_ids": service_ids}
-            region_api.batch_update_service_app_id(region_name, tenant, region_app_id, body)
+            region_app_repo.get_region_app_id(region_name, app_id)
         except RegionApp.DoesNotExist:
             app = group_repo.get_group_by_id(app_id)
+            if group_services:
+                service_ids = [service["service_id"] for service in group_services]
+                print(service_ids)
             create_body = {"app_name": app.group_name, "service_ids": service_ids}
-            bean = region_api.create_application(region_name, tenant, create_body)
-            req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
-            region_app_repo.create(**req)
+            try:
+                bean = region_api.create_application(region_name, tenant, create_body)
+                req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
+                region_app_repo.create(**req)
+            except Exception as e:
+                logger.exception(e)
+                if e.error_code != 404:
+                    return region_name
+        return None
 
     def get_app_detail(self, tenant, region_name, app_id):
         # app metadata

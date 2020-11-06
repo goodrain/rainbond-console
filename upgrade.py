@@ -137,16 +137,16 @@ def should_sync_app(new_version):
     return False
 
 
-def set_sync_app_flag():
+def set_upgrade_flag():
     db = create_db_client()
     cursor = db.cursor()
-    cursor.execute('select enable from console_sys_config where `key`="SYNC_APP"')
+    cursor.execute('select enable from console_sys_config where `key`="UPGRADE"')
     data = cursor.fetchone()
     if data:
-        cursor.execute('update console_sys_config set enable=True where `key`="SYNC_APP";')
+        cursor.execute('update console_sys_config set enable=True where `key`="UPGRADE";')
     else:
         cursor.execute('''insert into console_sys_config(`key`, `type`, `value`, `enable`, `create_time`, `enterprise_id`)
-            values("SYNC_APP", "string", NULL, True, "{0}", "");'''.format(datetime.now()))
+            values("UPGRADE", "string", NULL, True, "{0}", "");'''.format(datetime.now()))
     db.commit()
     cursor.close()
     db.close()
@@ -170,4 +170,4 @@ if __name__ == '__main__':
     else:
         print "{0} no need upgrade to {1}".format(current_version, new_version)
     if new_version and should_sync_app(new_version):
-        set_sync_app_flag()
+        set_upgrade_flag()

@@ -60,7 +60,7 @@ from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
                                  AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView)
 from console.views.jwt_token_view import JWTTokenView
-from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, SyncApp
+from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, Upgrade
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
@@ -117,7 +117,7 @@ urlpatterns = [
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigRUDView.as_view()),
     url(r'^init/perms$', InitPerms.as_view()),
-    url(r'^sync_app$', SyncApp.as_view()),
+    url(r'^upgrade$', Upgrade.as_view()),
     # 获取权限列表
     url(r'^perms$', PermsInfoLView.as_view()),
     # OAuth
