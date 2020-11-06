@@ -12,6 +12,11 @@ class ComponentGraphService(object):
         component_graph_repo.create(component_id, graph_id, title, promql, sequence)
         return component_graph_repo.get(component_id, graph_id).to_dict()
 
+    @staticmethod
+    def list_component_graphs(component_id):
+        graphs = component_graph_repo.list(component_id)
+        return [graph.to_dict() for graph in graphs]
+
     def add_or_update_label(self, component_id, promql):
         """
         Add service_id label, or replace illegal service_id label

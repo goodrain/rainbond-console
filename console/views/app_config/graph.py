@@ -19,7 +19,9 @@ class ComponentGraphListView(AppBaseView):
         return Response(result, status=result["code"])
 
     def get(self, request, *args, **kwargs):
-        pass
+        graphs = component_graph_service.list_component_graphs(self.service.service_id)
+        result = general_message(200, "success", "查询功", list=graphs)
+        return Response(result, status=result["code"])
 
 
 class ComponentGraphView(ComponentGraphBaseView):
