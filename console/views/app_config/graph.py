@@ -26,8 +26,8 @@ class ComponentGraphListView(AppBaseView):
 
 class ComponentGraphView(ComponentGraphBaseView):
     def get(self, request, *args, **kwargs):
-        serializer = UpdateComponentGraphReq(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        result = general_message(200, "success", "查询功", bean=self.graph.to_dict())
+        return Response(result, status=result["code"])
 
     def put(self, request, *args, **kwargs):
         serializer = UpdateComponentGraphReq(data=request.data)
