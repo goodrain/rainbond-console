@@ -53,9 +53,12 @@ class AppPortView(AppBaseView):
                     try:
                         inner_host, inner_port = "127.0.0.1", None
                         for pf in port_info["environment"]:
-                            if pf.get("name"):
-                                if pf.get("name").endswith("PORT"):
-                                    inner_port = pf.get("value")
+                            if not pf.get("name"):
+                                continue
+                            if pf.get("name").endswith("PORT"):
+                                inner_port = pf.get("value")
+                            if pf.get("name").endswith("HOST"):
+                                inner_host = pf.get("value")
                         inner_url = "{0}:{1}".format(inner_host, inner_port)
                     except Exception as se:
                         logger.exception(se)
