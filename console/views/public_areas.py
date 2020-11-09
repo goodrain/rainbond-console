@@ -12,6 +12,7 @@ from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
+from console.repositories.region_app import region_app_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.common_services import common_services
 from console.services.group_service import group_service
@@ -22,6 +23,7 @@ from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
+from www.models.main import RegionApp
 
 event_service = AppEventService()
 
@@ -94,11 +96,43 @@ class TeamOverView(RegionTenantHeaderView):
             # 获取分享应用数量
             groups = group_repo.get_tenant_region_groups(self.team.tenant_id, region.region_name)
             share_app_num = 0
+
+            batch_create_app_body = []
             if groups:
                 for group in groups:
                     share_record = share_repo.get_service_share_record_by_groupid(group_id=group.ID)
                     if share_record and share_record.step == 3:
                         share_app_num += 1
+
+                    try:
+                        region_app_repo.get_region_app_id(region.region_name, group.ID)
+                    except RegionApp.DoesNotExist:
+                        create_app_body = dict()
+                        group_services = base_service.get_group_services_list(self.team.tenant_id, region.region_name, group.ID)
+                        service_ids = []
+                        if group_services:
+                            service_ids = [service["service_id"] for service in group_services]
+                        create_app_body["app_name"] = group.group_name
+                        create_app_body["group_id"] = group.ID
+                        create_app_body["service_ids"] = service_ids
+                        batch_create_app_body.append(create_app_body)
+
+            if len(batch_create_app_body) > 0:
+                try:
+                    body = {"apps_info": batch_create_app_body}
+                    list = region_api.batch_create_application(region.region_name, self.tenant_name, body)
+                except Exception as e:
+                    logger.exception(e)
+                    raise e
+
+                app_list = []
+                if list:
+                    for app in list:
+                        data = RegionApp(
+                            app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
+                        app_list.append(data)
+                RegionApp.objects.bulk_create(app_list)
+
             team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
             overview_detail["share_app_num"] = share_app_num
             overview_detail["team_app_num"] = team_app_num
