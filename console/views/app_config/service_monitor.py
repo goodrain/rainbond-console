@@ -2,6 +2,7 @@
 from rest_framework.response import Response
 
 from console.services.app_config import component_service_monitor
+from console.services.monitor_service import monitor_service
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_data, general_message
 
@@ -47,3 +48,10 @@ class ComponentServiceMonitorEditView(AppBaseView):
     def get(self, request, name, *args, **kwargs):
         sm = component_service_monitor.get_component_service_monitor(self.tenant.tenant_id, self.service.service_id, name)
         return Response(status=200, data=general_data(bean=sm.to_dict()))
+
+
+class ComponentMetricsView(AppBaseView):
+    def get(self, request, *args, **kwargs):
+        metrics = monitor_service.get_monitor_metrics(
+            self.region_name, self.tenant, "component", component_id=self.service.service_id)
+        return Response(general_message(200, "OK", "获取成功", list=metrics), status=200)

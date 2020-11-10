@@ -17,8 +17,9 @@ from console.views.app_config.app_mnt import AppMntManageView, AppMntView
 from console.views.app_config.app_port import (AppPortManageView, AppPortView, AppTcpOuterManageView, TopologicalPortView)
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView)
-from console.views.app_config.service_monitor import (ComponentServiceMonitorEditView, ComponentServiceMonitorView)
 from console.views.app_config.graph import ComponentGraphListView, ComponentGraphView
+from console.views.app_config.service_monitor import (ComponentServiceMonitorEditView, ComponentServiceMonitorView,
+                                                      ComponentMetricsView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID)
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
@@ -159,6 +160,7 @@ urlpatterns = [
     url(r'^users/query$', UserFuzSerView.as_view()),
     url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
     url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
+
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
     # 团队角色权限管理
@@ -525,6 +527,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/graphs$', ComponentGraphListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/graphs/(?P<graph_id>[\w\-]+)$',
         ComponentGraphView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/metrics$', ComponentMetricsView.as_view(),
+        perms.AppServiceMonitor),
 
     # 获取当前可用全部数据中心
     url(r'^regions$', QyeryRegionView.as_view()),

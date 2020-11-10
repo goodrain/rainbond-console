@@ -1837,3 +1837,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
+
+    def get_monitor_metrics(self, region_name, tenant, target, app_id, component_id):
+        url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
+        url = url + "/v2/monitor/metrics?target={target}&tenant={tenant_id}&app={app_id}&component={component_id}".format(
+            target=target, tenant_id=tenant.tenant_id, app_id=app_id, component_id=component_id)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body.get("bean", None)
