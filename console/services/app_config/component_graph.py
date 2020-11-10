@@ -1,9 +1,17 @@
 # -*- coding: utf8 -*-
+import subprocess
+import os
+import logging
+import platform
 
 from django.db import transaction
 
+from goodrain_web.settings import BASE_DIR
+from console.exception.main import AbortRequest
 from console.repositories.component_graph import component_graph_repo
 from www.utils.crypt import make_uuid
+
+logger = logging.getLogger("default")
 
 
 class ComponentGraphService(object):
@@ -40,7 +48,16 @@ class ComponentGraphService(object):
         """
         Add service_id label, or replace illegal service_id label
         """
-        return promql
+        promql_parser = BASE_DIR + "/bin/" + platform.system().lower() + "/promql-parser"
+        c = subprocess.Popen([os.getenv("PROMQL_PARSER", promql_parser), "--promql", promql, "--component_id", component_id],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        new_promql, err = c.communicate()
+        if err != "":
+            logger.warning("ensure service id for promql({}): {}".format(promql, err))
+            raise AbortRequest("invalid promql", "非法的 prometheus 查询语句")
+
+        return new_promql
 
     @staticmethod
     def _next_sequence(component_id):

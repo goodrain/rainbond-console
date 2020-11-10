@@ -7,3 +7,4 @@ LICENSE
 Dockerfile.*
 sources.list
 .git/
+bin
