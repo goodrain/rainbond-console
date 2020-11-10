@@ -122,9 +122,7 @@ def convert_todict(cgroup_items, cgroup_services):
     config_group_services = []
     if cgroup_services:
         for s in cgroup_services:
-            service = service_repo.get_service_by_service_id(s.service_id)
             cgs = s.to_dict()
-            cgs["service_name"] = service.service_cname
             config_group_services.append(cgs)
     return config_group_items, config_group_services
 
@@ -137,6 +135,7 @@ def build_response(cgroup):
     config_group_info = cgroup.to_dict()
     config_group_info["services"] = config_group_services
     config_group_info["config_items"] = config_group_items
+    config_group_info["services_num"] = len(config_group_services)
     return config_group_info
 
 
