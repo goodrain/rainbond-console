@@ -113,7 +113,7 @@ class TeamOverView(RegionTenantHeaderView):
                         if group_services:
                             service_ids = [service["service_id"] for service in group_services]
                         create_app_body["app_name"] = group.group_name
-                        create_app_body["group_id"] = group.ID
+                        create_app_body["console_app_id"] = group.ID
                         create_app_body["service_ids"] = service_ids
                         batch_create_app_body.append(create_app_body)
 
