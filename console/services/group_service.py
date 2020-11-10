@@ -7,6 +7,8 @@ import re
 
 from django.db import transaction
 
+from console.enum.app import GovernanceModeEnum
+from console.repositories.app_config import env_var_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.repositories.compose_repo import compose_repo
@@ -393,12 +395,27 @@ class GroupService(object):
             group_repo.update_group_time(sg.ID)
 
     @staticmethod
+    @transaction.atomic
     def update_governance_mode(tenant, region_name, app_id, governance_mode):
+        # update the value of host env. eg. MYSQL_HOST
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
+        ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, service_ids)
+        for port in ports:
+            env = env_var_repo.get_service_host_env(tenant.tenant_id, port.service_id, port.container_port)
+            service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, port.service_id)
+            if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+                env.attr_value = port.k8s_service_name if port.k8s_service_name else service.service_alias + "-" + str(
+                    port.container_port)
+            else:
+                env.attr_value = "127.0.0.1"
+            env.save()
+            if service.create_status == "complete":
+                body = {"env_name": env.attr_name, "env_value": env.attr_value, "scope": env.scope}
+                region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
+
         group_repo.update_governance_mode(tenant.tenant_id, region_name, app_id, governance_mode)
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
-            "governance_mode": governance_mode
-        })
+        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {"governance_mode": governance_mode})
 
     @staticmethod
     def list_kubernetes_services(tenant_id, region_name, app_id):

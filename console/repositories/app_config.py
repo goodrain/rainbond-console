@@ -76,6 +76,10 @@ class TenantServiceEnvVarRepository(object):
     def get_service_env_by_port(self, tenant_id, service_id, port):
         return TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, container_port=port)
 
+    def get_service_host_env(self, tenant_id, service_id, port):
+        return TenantServiceEnvVar.objects.get(
+            tenant_id=tenant_id, service_id=service_id, container_port=port, attr_name__contains="HOST")
+
     def add_service_env(self, **tenant_service_env_var):
         env = TenantServiceEnvVar.objects.create(**tenant_service_env_var)
         return env
@@ -187,6 +191,10 @@ class TenantServicePortRepository(object):
     @staticmethod
     def list_by_service_ids(tenant_id, service_ids):
         return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
+
+    @staticmethod
+    def list_inner_ports_by_service_ids(tenant_id, service_ids):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, is_inner_service=True)
 
     @staticmethod
     def get_by_k8s_service_name(tenant_id, k8s_service_name):
