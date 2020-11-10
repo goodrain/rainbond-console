@@ -279,9 +279,9 @@ urlpatterns = [
         TenantGroupCommonOperationView.as_view(), perms.TenantGroupCommonOperationView),
     # Application Config Group
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups$', ListAppConfigGroupView.as_view(),
-        perms.TenantGroupCommonOperationView),
+        perms.AppConfigGroupView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
-        AppConfigGroupView.as_view(), perms.TenantGroupCommonOperationView),
+        AppConfigGroupView.as_view(), perms.AppConfigGroupView),
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),
