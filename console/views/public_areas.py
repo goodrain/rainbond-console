@@ -123,7 +123,6 @@ class TeamOverView(RegionTenantHeaderView):
                     list = region_api.batch_create_application(region.region_name, self.tenant_name, body)
                 except Exception as e:
                     logger.exception(e)
-                    raise e
 
                 app_list = []
                 if list:
