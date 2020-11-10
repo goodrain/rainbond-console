@@ -122,7 +122,9 @@ def convert_todict(cgroup_items, cgroup_services):
     config_group_services = []
     if cgroup_services:
         for s in cgroup_services:
+            service = service_repo.get_service_by_service_id(s.service_id)
             cgs = s.to_dict()
+            cgs["service_name"] = service.service_cname
             config_group_services.append(cgs)
     return config_group_items, config_group_services
 
