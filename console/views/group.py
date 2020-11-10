@@ -7,6 +7,7 @@ import re
 
 from rest_framework.response import Response
 
+from console.services.market_app_service import market_app_service
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
@@ -148,7 +149,8 @@ class TenantGroupOperationView(ApplicationView):
                 type: string
                 paramType: path
         """
-        app = group_service.get_app_detail(self.tenant, self.response_region, app_id)
+        app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
+        app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "success", bean=app)
         return Response(result, status=result["code"])
 
@@ -236,8 +238,8 @@ class GroupStatusView(RegionTenantHeaderView):
 class AppGovernanceModeView(ApplicationView):
     def put(self, request, app_id, *args, **kwargs):
         governance_mode = parse_item(request, "governance_mode", required=True)
-        if governance_mode not in GovernanceModeEnum.choices():
-            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.choices()))
+        if governance_mode not in GovernanceModeEnum.names():
+            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
 
         group_service.update_governance_mode(self.tenant.tenant_id, self.region_name, app_id, governance_mode)
         result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})

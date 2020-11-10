@@ -953,7 +953,7 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
 
 class TeamCheckKubernetesServiceName(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
-        k8s_service_name = parse_item("k8s_service_name", required=True)
+        k8s_service_name = parse_item(request, "k8s_service_name", required=True)
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
         if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):

@@ -99,6 +99,13 @@ class GroupRepository(object):
     def get_apps_in_multi_team(self, team_ids):
         return ServiceGroup.objects.filter(tenant_id__in=team_ids).order_by("-update_time", "-order_index")
 
+    def get_by_service_id(self, tenant_id, service_id):
+        try:
+            rel = ServiceGroupRelation.objects.get(tenant_id=tenant_id, service_id=service_id)
+            return ServiceGroup.objects.get(tenant_id=tenant_id, pk=rel.group_id)
+        except ServiceGroupRelation.DoesNotExist:
+            raise ServiceGroup.DoesNotExist
+
 
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):

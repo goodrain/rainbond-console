@@ -9,6 +9,8 @@ import re
 import validators
 from django.db import transaction
 
+from console.enum.app import GovernanceModeEnum
+from console.repositories.group import group_repo
 from console.constants import ServicePortConstants
 from console.exception.main import AbortRequest
 from console.exception.main import CheckThirdpartEndpointFailed
@@ -77,13 +79,18 @@ class AppPortService(object):
             return code, msg, None
         env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
 
+        app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+
         mapping_port = container_port
         if is_inner_service:
             if not port_alias:
                 return 400, u"端口别名不能为空", None
-
+            if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+                host_value = service.service_alias + "-" + container_port
+            else:
+                host_value = "127.0.0.1"
             code, msg, data = env_var_service.add_service_env_var(
-                tenant, service, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
+                tenant, service, container_port, u"连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
             if code != 200:
                 return code, msg, None
             code, msg, data = env_var_service.add_service_env_var(
@@ -240,7 +247,7 @@ class AppPortService(object):
                 except Exception as e:
                     logger.exception(e)
 
-    def __check_params(self, action, protocol, port_alias, service_id):
+    def __check_params(self, action, container_port, protocol, port_alias, service_id):
         standard_actions = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
                             "change_port_alias")
         if not action:
@@ -250,7 +257,8 @@ class AppPortService(object):
         if action == "change_port_alias":
             if not port_alias:
                 return 400, u"端口别名不能为空"
-            if port_repo.get_service_port_by_alias(service_id, port_alias):
+            port = port_repo.get_service_port_by_alias(service_id, port_alias)
+            if port and port.container_port != container_port:
                 return 400, u"别名已存在"
         if action == "change_protocol":
             if not protocol:
@@ -266,7 +274,7 @@ class AppPortService(object):
         if port_alias:
             port_alias = str(port_alias).strip()
         region = region_repo.get_region_by_region_name(region_name)
-        code, msg = self.__check_params(action, protocol, port_alias, service.service_id)
+        code, msg = self.__check_params(action, container_port, protocol, port_alias, service.service_id)
         if code != 200:
             return code, msg, None
 
@@ -460,6 +468,7 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
+    @transaction.atomic
     def __open_inner(self, tenant, service, deal_port):
         if not deal_port.port_alias:
             return 409, "请先为端口设置别名"
@@ -470,9 +479,16 @@ class AppPortService(object):
         env_var_service.delete_env_by_container_port(tenant, service, deal_port.container_port)
 
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
+
         # 添加环境变量
+        app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+        if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+            host_value = deal_port.k8s_service_name if deal_port.k8s_service_name else service.service_alias + "-" + str(
+                deal_port.container_port)
+        else:
+            host_value = "127.0.0.1"
         code, msg, data = env_var_service.add_service_env_var(
-            tenant, service, deal_port.container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
+            tenant, service, deal_port.container_port, u"连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
         if code != 200:
             return code, msg
         code, msg, data = env_var_service.add_service_env_var(
@@ -527,6 +543,8 @@ class AppPortService(object):
         return 200, "success"
 
     def __change_port_alias(self, tenant, service, deal_port, new_port_alias, k8s_service_name):
+        app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+
         old_port_alias = deal_port.port_alias
         deal_port.port_alias = new_port_alias
         envs = env_var_service.get_env_by_container_port(tenant, service, deal_port.container_port)
@@ -534,6 +552,11 @@ class AppPortService(object):
             old_env_attr_name = env.attr_name
             new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
             env.attr_name = new_attr_name
+            if env.attr_name.endswith("HOST"):
+                if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+                    env.attr_value = k8s_service_name
+                else:
+                    env.attr_value = "127.0.0.1"
             if service.create_status == "complete":
                 region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
                     "env_name": old_env_attr_name,
@@ -732,6 +755,17 @@ class AppPortService(object):
         validate_endpoints_info(endpoint_info)
         return "", "", 200
 
+    @staticmethod
+    def check_k8s_service_name(tenant_id, k8s_service_name):
+        is_valid = False
+        try:
+            port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+        except TenantServicesPort.DoesNotExist:
+            is_valid = True
+        return {
+            "is_valid": is_valid,
+        }
+
 
 class EndpointService(object):
     @transaction.atomic()
@@ -794,14 +828,3 @@ class EndpointService(object):
         if validators.domain(endpoint):
             return True
         raise CheckThirdpartEndpointFailed(msg="invalid endpoint")
-
-    @staticmethod
-    def check_k8s_service_name(tenant_id, k8s_service_name):
-        is_valid = False
-        try:
-            port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
-        except TenantServicesPort.DoesNotExist:
-            is_valid = True
-        return {
-            "is_valid": is_valid,
-        }
