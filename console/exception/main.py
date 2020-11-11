@@ -150,3 +150,15 @@ class NoPermissionsError(ServiceHandleException):
 class ErrK8sServiceNameExists(ServiceHandleException):
     def __init__(self):
         super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 20100)
+
+
+class StoreNoPermissionsError(ServiceHandleException):
+    def __init__(self, bean=None):
+        super(StoreNoPermissionsError, self).__init__(
+            msg="no store permissions", msg_show="没有云应用商店操作权限,去认证", status_code=403, error_code=10407)
+        self.bean = bean
+
+    @property
+    def response(self):
+        return MessageResponse(
+            self.msg, msg_show=self.msg_show, status_code=self.status_code, error_code=self.error_code, bean=self.bean)

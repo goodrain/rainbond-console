@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-import json
 import logging
 import os
 from functools import wraps
@@ -8,7 +7,7 @@ import market_client
 from market_client.configuration import Configuration
 
 import openapi_client as store_client
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, StoreNoPermissionsError
 from openapi_client.configuration import Configuration as storeConfiguration
 from openapi_client.rest import ApiException
 
@@ -26,7 +25,7 @@ def get_market_client(access_key, host=None):
     configuration = storeConfiguration()
     configuration.client_side_validation = False
     configuration.host = host if host else os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80')
-    configuration.api_key['api_key'] = access_key
+    configuration.api_key['Authorization'] = access_key
     return store_client.MarketOpenapiApi(store_client.ApiClient(configuration))
 
 
@@ -36,19 +35,11 @@ def apiException(func):
         try:
             return func(*args, **kwargs)
         except ApiException as e:
-            res = None
-            try:
-                res = json.loads(e.body)
-            except Exception:
-                pass
-            if res:
-                raise ServiceHandleException(
-                    msg=res.get("msg"), msg_show="资源不存在", status_code=e.status, error_code=res.get("code"))
             if e.status == 401:
                 raise ServiceHandleException(
                     msg="no store auth token", msg_show="缺少云应用市场token", status_code=401, error_code=10421)
             if e.status == 403:
-                raise ServiceHandleException(msg="no store permission", msg_show="未进行授权", status_code=403, error_code=10407)
+                raise StoreNoPermissionsError(bean={"name": args[1].name})
             if e.status == 404:
                 raise ServiceHandleException(msg=e.body, msg_show="资源不存在", status_code=404)
             if str(e.status)[0] == '4':

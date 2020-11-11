@@ -111,5 +111,10 @@ class AppStore(object):
         data = store_client.create_app_version(app_id=app_id, body=body, market_domain=store.domain)
         return data
 
+    @apiException
+    def list_bindable_markets(self, store):
+        store_client = get_market_client(store.access_key, store.url)
+        return store_client.bindable_markets()
+
 
 app_store = AppStore()

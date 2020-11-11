@@ -394,19 +394,24 @@ class AppTagRepository(object):
         apps = conn.query(sql)
         return apps
 
+    def get_tag_name(self, enterprise_id, tag_id):
+        return RainbondCenterAppTag.objects.get(enterprise_id=enterprise_id, ID=tag_id)
+
 
 class AppMarketRepository(object):
     def create_default_app_market_if_not_exists(self, eid):
-        markets = AppMarket.objects.filter(domain="rainbond", url="https://store.goodrain.com", enterprise_id=eid)
-        if markets:
+        access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
+        domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
+        url = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
+        name = os.getenv("DEFAULT_APP_MARKET_NAME", "RainbondMarket")
+
+        markets = AppMarket.objects.filter(domain=domain, url=url, enterprise_id=eid)
+        if markets or os.getenv("DISABLE_DEFAULT_APP_MARKET", False):
             return
-        access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY")
-        if not access_key:
-            access_key = "c8593c3049d7480db0d70680269973f2"
         AppMarket.objects.create(
-            name="RainbondMarket",
-            url="https://store.goodrain.com",
-            domain="rainbond",
+            name=name,
+            url=url,
+            domain=domain,
             type="rainstore",
             access_key=access_key,
             enterprise_id=eid,
@@ -439,8 +444,8 @@ class AppMarketRepository(object):
     def create_app_market(self, **kwargs):
         return AppMarket.objects.create(**kwargs)
 
-    def update_app_market(self, app_market, data):
-        app_market.update(**data)
+    def update_access_key(self, enterprise_id, name, access_key):
+        return AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).update(access_key=access_key)
 
 
 service_repo = TenantServiceInfoRepository()

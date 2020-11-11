@@ -138,6 +138,7 @@ class RainbondCenterAppVersion(BaseModel):
     is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     template_type = models.CharField(max_length=32, null=True, default=None, help_text=u"模板类型（ram、oam）")
+    release_user_id = models.IntegerField(help_text=u"版本release操作人id")
 
 
 class RainbondCenterAppInherit(BaseModel):
