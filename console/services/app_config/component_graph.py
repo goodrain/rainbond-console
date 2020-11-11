@@ -10,6 +10,7 @@ from goodrain_web.settings import BASE_DIR
 from console.exception.main import AbortRequest
 from console.repositories.component_graph import component_graph_repo
 from www.utils.crypt import make_uuid
+from console.models.main import ComponentGraph
 
 logger = logging.getLogger("default")
 
@@ -58,6 +59,18 @@ class ComponentGraphService(object):
             raise AbortRequest("invalid promql", "非法的 prometheus 查询语句")
 
         return new_promql
+
+    def bulk_create(self, component_id, graphs):
+        cgs = []
+        for graph in graphs:
+            cgs.append(ComponentGraph(
+                component_id=component_id,
+                graph_id=make_uuid(),
+                title=graph.get("title"),
+                promql=self.add_or_update_label(graph.get("promql"), component_id),
+                sequence=graph.get("sequence"),
+            ))
+        ComponentGraph.objects.bulk_create(cgs)
 
     @staticmethod
     def _next_sequence(component_id):

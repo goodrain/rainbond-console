@@ -14,6 +14,7 @@ from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.models.main import ServiceMonitor
 from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
 from console.repositories.base import BaseConnection
@@ -32,6 +33,7 @@ from console.services.group_service import group_service
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
+from console.services.app_config.component_graph import component_graph_service
 from console.utils import slug_util
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
@@ -119,6 +121,14 @@ class MarketAppService(object):
                         service_key_dep_key_map[ts.service_key] = dep_apps_key
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
+
+                # component monitors
+                component_monitors = app.get("component_monitors", {})
+                self.__save_monitors(ts.tenant_id, ts.service_id, component_monitors)
+
+                # component graphs
+                component_graphs = app.get("component_graphs", {})
+                component_graph_service.bulk_create(ts.service_id, component_graphs)
 
             # 保存依赖关系
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
@@ -552,7 +562,7 @@ class MarketAppService(object):
         for port in ports:
             code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
                                                                  port["port_alias"], port["is_inner_service"],
-                                                                 port["is_outer_service"])
+                                                                 port["is_outer_service"], k8s_service_name=port.get("k8s_service_name"))
             if code != 200:
                 logger.error("save market app port error: {}".format(msg))
                 return code, msg
@@ -596,6 +606,21 @@ class MarketAppService(object):
             "is_restart": extend_info["is_restart"]
         }
         extend_repo.create_extend_method(**params)
+
+    @staticmethod
+    def __save_monitors(tenant_id, component_id, monitors):
+        sms = []
+        for monitor in monitors:
+            sms.append(ServiceMonitor(
+                tenant_id=tenant_id,
+                service_id=component_id,
+                name=monitor.get("name"),
+                path=monitor.get("path"),
+                port=monitor.get("port"),
+                service_show_name=monitor.get("service_show_name"),
+                interval=monitor.get("interval"),
+            ))
+        ServiceMonitor.objects.bulk_create(sms)
 
     def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):
         """

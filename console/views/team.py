@@ -31,7 +31,7 @@ from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from console.utils.reqparse import parse_item
-from console.exception.main import AbortRequest
+from console.exception.main import ErrK8sServiceNameExists
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message, general_message
@@ -954,11 +954,12 @@ class TeamSortServiceQueryView(RegionTenantHeaderView):
 class TeamCheckKubernetesServiceName(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         k8s_service_name = parse_item(request, "k8s_service_name", required=True)
-        if len(k8s_service_name) > 63:
-            raise AbortRequest("k8s_service_name must be no more than 63 characters")
-        if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
-
-        res = port_service.check_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
-        result = general_message(200, "success", "检测成功", bean=res)
+        is_valid = True
+        try:
+            port_service.check_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+        except ErrK8sServiceNameExists:
+            is_valid = False
+        result = general_message(200, "success", "检测成功", bean={
+            "is_valid": is_valid,
+        })
         return Response(result)
