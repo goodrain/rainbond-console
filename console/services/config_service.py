@@ -297,11 +297,6 @@ class PlatformConfigService(ConfigService):
                 "desc": u"Rainbond web favicon url",
                 "enable": True
             },
-            "FAVICON": {
-                "value": None,
-                "desc": u"网站图标",
-                "enable": True
-            },
             "DOCUMENT": {
                 "value": {
                     "platform_url": "https://www.rainbond.com/",
