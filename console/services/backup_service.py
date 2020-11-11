@@ -34,7 +34,11 @@ from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.plugin.plugin_config import plugin_config_group_repo
 from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
+from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.component_graph import component_graph_repo
+from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupInProgress
 from console.services.exception import ErrBackupRecordNotFound
@@ -253,6 +257,14 @@ class GroupAppBackupService(object):
         all_data["plugin_info"]["plugin_build_versions"] = plugin_build_versions
         all_data["plugin_info"]["plugin_config_groups"] = plugin_config_groups
         all_data["plugin_info"]["plugin_config_items"] = plugin_config_items
+
+        # application config group
+        config_group_infos = app_config_group_repo.get_config_group_in_use(tenant.region, group_id)
+        app_config_groups = []
+        for cgroup_info in config_group_infos:
+            config_group = app_config_group_service.get_config_group(tenant.region, group_id, cgroup_info["config_group_name"])
+            app_config_groups.append(config_group)
+        all_data["app_config_group_info"] = app_config_groups
         return total_memory, all_data
 
     def get_service_details(self, tenant, service):
@@ -271,6 +283,8 @@ class GroupAppBackupService(object):
         service_config_file = volume_repo.get_service_config_files(service.service_id)
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
+        service_monitors = service_monitor_repo.get_component_service_monitors(tenant.tenant_id, service.service_id)
+        component_graphs = component_graph_repo.list(service.service_id)
         # plugin
         service_plugin_relation = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
@@ -297,9 +311,10 @@ class GroupAppBackupService(object):
             "service_volumes": [volume.to_dict() for volume in service_volumes],
             "service_config_file": [config_file.to_dict() for config_file in service_config_file],
             "service_ports": [port.to_dict() for port in service_ports],
-            "third_party_service_endpoints": [endpoint.to_dict() for endpoint in third_party_service_endpoints]
+            "third_party_service_endpoints": [endpoint.to_dict() for endpoint in third_party_service_endpoints],
+            "service_monitors": [monitor.to_dict() for monitor in service_monitors],
+            "component_graphs": [graph.to_dict() for graph in component_graphs]
         }
-
         plugin_ids = [pr.plugin_id for pr in service_plugin_relation]
 
         return app_info, plugin_ids
