@@ -409,10 +409,12 @@ class UpgradeService(object):
 
     def get_upgrade_info(self, team, services, app_model_id, app_model_version, market_name):
         # 查询某一个云市应用下的所有组件
-        upgrade_info = {
-            service.service_id: upgrade_service.get_service_changes(service, team, app_model_version)
-            for service in services
-        }
+        upgrade_info = {}
+        for service in services:
+            changes = upgrade_service.get_service_changes(service, team, app_model_version)
+            if not changes:
+                continue
+            upgrade_info[service.service_id] = changes
 
         add_info = {
             service_info['service_key']: service_info

@@ -5,3 +5,5 @@ format:
 	@yapf --exclude env --exclude venv --exclude static --exclude www/alipay_direct --exclude www/utils/mnssdk --exclude backends --style style.cfg  -r ./ -i
 check:
 	@flake8 --exclude venv,env,static,www/alipay_direct,www/utils/mnssdk,backends,migrations --extend-ignore=W605 --max-line-length 129 ./
+build-base:
+	docker build -t rainbond/rbd-ui-base:V5.2 -f Dockerfile.base .

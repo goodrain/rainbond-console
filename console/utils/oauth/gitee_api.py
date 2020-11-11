@@ -34,10 +34,12 @@ class Gitee(object):
                 if kwargs.get("get_tatol", False):
                     return data, rst.headers.get('total_count', 0)
             else:
+                logger.warning("get gitee api status is {0}".format(rst.status_code))
                 data = None
-        except Exception:
+        except Exception as e:
+            logger.exception(e)
             data = None
-        return data
+        return data, 0
 
     def _api_post(self, url_suffix, params=None, data=None):
         url = '/'.join([self._url, url_suffix])
@@ -254,9 +256,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         repo_list = []
         repos = [self.api.get_repo(full_name)]
         for repo in repos:
-            if repo is None:
-                pass
-            elif full_name == repo["full_name"]:
+            if repo and full_name == repo["full_name"]:
                 repo_list.append({
                     "project_id": repo["id"],
                     "project_full_name": repo["full_name"],

@@ -8,6 +8,7 @@ import logging
 
 from django.db import transaction
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -17,7 +18,7 @@ from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
-from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.market_app_repo import rainbond_app_repo, app_import_record_repo
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -33,7 +34,7 @@ from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
 from console.utils import slug_util
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo)
+from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -519,11 +520,9 @@ class MarketAppService(object):
                 dep_keys = service_key_dep_key_map[service_key]
                 for dep_key in dep_keys:
                     dep_service = key_service_map[dep_key["dep_service_key"]]
-                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id)
+                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id, True)
                     if code != 200:
-                        logger.error("compose add service error {0}".format(msg))
-                        return code, msg
-        return 200, "success"
+                        logger.error("save component dependency relation error {0}".format(msg))
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
@@ -767,15 +766,35 @@ class MarketAppService(object):
                 "is_complete": version.is_complete,
                 "version": version.version,
                 "version_alias": version.version_alias,
+                "dev_status": version.dev_status,
             }
+            # If the versions are the same, take the last version information
+            for info in app_with_versions[version.app_id]:
+                if version_info["version"] in info["version"]:
+                    info["is_complete"] = version_info["is_complete"]
+                    info["version_alias"] = version_info["version_alias"]
+                    info["dev_status"] = version_info["dev_status"]
             if version_info not in app_with_versions[version.app_id]:
                 app_with_versions[version.app_id].append(version_info)
+
         apps_min_memory = self._get_rainbond_app_min_memory(versions)
         for app in apps:
             versions_info = app_with_versions.get(app.app_id)
+            rainbond_app = rainbond_app_repo.get_rainbond_app_by_app_id(app["enterprise_id"], app["app_id"])
+            app.dev_status = ""
             if versions_info:
                 # sort rainbond app versions by version
-                versions_info.sort(lambda x, y: cmp(x["version"], y["version"]))
+                versions_info = sorted(versions_info, key=lambda x: (x["dev_status"], x["version"]))
+                # If there is a version to release, set the application to release state
+                have_release = False
+                for v in versions_info:
+                    if "release" in v["dev_status"]:
+                        have_release = True
+                if have_release:
+                    app.dev_status = "release"
+
+            rainbond_app.dev_status = app.dev_status
+            rainbond_app.save()
             app.versions_info = versions_info
             app.min_memory = apps_min_memory.get(app.app_id, 0)
 
@@ -1086,6 +1105,61 @@ class MarketAppService(object):
         # save app and tag relation
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
+
+    def update_rainbond_app_version_info(self, enterprise_id, app_id, version, **body):
+        version = rainbond_app_repo.update_app_version(enterprise_id, app_id, version, **body)
+        if not version:
+            raise ServiceHandleException(msg="can't get version", msg_show="应用下无该版本", status_code=404)
+        return version
+
+    def delete_rainbond_app_version(self, enterprise_id, app_id, version):
+        try:
+            rainbond_app_repo.delete_app_version_by_version(enterprise_id, app_id, version)
+        except Exception as e:
+            logger.exception(e)
+            raise e
+
+    def get_rainbond_app_and_versions(self, enterprise_id, app_id, page, page_size):
+        have_version = False
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        app_versions = rainbond_app_repo.get_rainbond_app_versions_by_id(enterprise_id, app_id)
+        if not app:
+            raise RbdAppNotFound("未找到该应用")
+
+        if app_versions is not None:
+            for version in app_versions:
+                if version["version"]:
+                    have_version = True
+                version["release_user"] = ""
+                version["share_user_id"] = version["share_user"]
+                version["share_user"] = ""
+                user = Users.objects.filter(user_id=version["release_user_id"]).first()
+                share_user = Users.objects.filter(user_id=version["share_user_id"]).first()
+
+                if user:
+                    version["release_user"] = user.nick_name
+                if share_user:
+                    version["share_user"] = share_user.nick_name
+                else:
+                    record = app_import_record_repo.get_import_record(version["record_id"])
+                    if record:
+                        version["share_user"] = record.user_name
+                version["dev_status"] = version.version_dev_status
+
+        tag_list = []
+        tags = app_tag_repo.get_app_tags(enterprise_id, app_id)
+        for t in tags:
+            tag = app_tag_repo.get_tag_name(enterprise_id, t.tag_id)
+            tag_list.append({"tag_id": t.tag_id, "name": tag.name})
+
+        app = app.to_dict()
+        app["tags"] = tag_list
+        app_versions.sort(lambda x, y: cmp(x["version"], y["version"]))
+        p = Paginator(app_versions, page_size)
+        total = p.count
+        if have_version:
+            return app, p.page(page).object_list, total
+        return app, None, 0
 
 
 market_app_service = MarketAppService()

@@ -145,3 +145,5 @@ Dockerfile.test
 
 static
 !www/static
+bin
+promql-parser

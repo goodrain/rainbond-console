@@ -138,6 +138,7 @@ class RainbondCenterAppVersion(BaseModel):
     is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     template_type = models.CharField(max_length=32, null=True, default=None, help_text=u"模板类型（ram、oam）")
+    release_user_id = models.IntegerField(help_text=u"版本release操作人id")
 
 
 class RainbondCenterAppInherit(BaseModel):
@@ -979,3 +980,14 @@ class ConfigGroupService(BaseModel):
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     service_id = models.CharField(max_length=32, help_text="service ID")
     config_group_id = models.CharField(max_length=32, help_text="config group id")
+
+
+class ComponentGraph(BaseModel):
+    class Meta:
+        db_table = "component_graphs"
+
+    component_id = models.CharField(max_length=32, help_text="the identity of the component")
+    graph_id = models.CharField(max_length=32, help_text="the identity of the graph")
+    title = models.CharField(max_length=255, help_text="the title of the graph")
+    promql = models.CharField(max_length=2047, help_text="the title of the graph")
+    sequence = models.IntegerField(help_text="the sequence number of the graph")
