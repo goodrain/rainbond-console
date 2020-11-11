@@ -979,3 +979,14 @@ class ConfigGroupService(BaseModel):
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     service_id = models.CharField(max_length=32, help_text="service ID")
     config_group_id = models.CharField(max_length=32, help_text="config group id")
+
+
+class ComponentGraph(BaseModel):
+    class Meta:
+        db_table = "component_graphs"
+
+    component_id = models.CharField(max_length=32, help_text="the identity of the component")
+    graph_id = models.CharField(max_length=32, help_text="the identity of the graph")
+    title = models.CharField(max_length=255, help_text="the title of the graph")
+    promql = models.CharField(max_length=2047, help_text="the title of the graph")
+    sequence = models.IntegerField(help_text="the sequence number of the graph")

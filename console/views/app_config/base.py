@@ -6,10 +6,11 @@ import logging
 
 from rest_framework.response import Response
 
-from console.exception.main import BusinessException
+from console.exception.main import BusinessException, AbortRequest
 from console.services.group_service import group_service
 from console.views.base import RegionTenantHeaderView
 from www.models.main import Tenants, TenantServiceInfo
+from console.models.main import ComponentGraph
 from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
@@ -52,3 +53,18 @@ class AppBaseView(RegionTenantHeaderView):
         else:
             raise BusinessException(
                 Response(general_message(404, "service not found", "组件{0}不存在".format(service_alias)), status=404))
+
+
+class ComponentGraphBaseView(AppBaseView):
+    def __init__(self, *args, **kwargs):
+        super(ComponentGraphBaseView, self).__init__(*args, **kwargs)
+        self.graph = None
+
+    def initial(self, request, *args, **kwargs):
+        super(ComponentGraphBaseView, self).initial(request, *args, **kwargs)
+        try:
+            graph_id = kwargs.get("graph_id", None)
+            graph = ComponentGraph.objects.get(component_id=self.service.service_id, graph_id=graph_id)
+        except ComponentGraph.DoesNotExist:
+            raise AbortRequest("graph not found", "监控图不存在", 404, 404)
+        self.graph = graph
