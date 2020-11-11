@@ -1853,4 +1853,4 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             target=target, tenant_id=tenant.tenant_id, app_id=app_id, component_id=component_id)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
-        return body.get("bean", None)
+        return body
