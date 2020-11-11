@@ -7,6 +7,7 @@ import time
 
 from django.db import transaction
 
+from console.repositories.app_config_group import app_config_group_repo, app_config_group_service_repo, app_config_group_item_repo
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
@@ -697,7 +698,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, share_record, share_team, share_user, share_info, use_force):
+    def create_share_info(self, region_name, share_record, share_team, share_user, share_info, use_force):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -732,6 +733,7 @@ class ShareService(object):
 
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
+
             app_templete = {}
             # 处理基本信息
             try:
@@ -745,6 +747,14 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 raise ServiceHandleException(msg="Basic information processing error", msg_show="基本信息处理错误")
+
+            # group config
+            # 1. list all config groups using by services
+            service_ids = [svc["service_id"] for svc in share_info["share_service_list"]]
+            config_groups, service_config_groups_relation = self.config_groups(region_name, service_ids)
+            app_templete["config_groups"] = config_groups
+
+            # plugins
             try:
                 # 确定分享的插件ID
                 plugins = share_info.get("share_plugin_list", None)
@@ -786,6 +796,8 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
+                        # config groups
+                        service["config_groups"] = service_config_groups_relation.get(service.service_id, None)
                         # slug组件
                         if delivered_type_map[service['service_id']] == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
@@ -872,6 +884,22 @@ class ShareService(object):
             if sid:
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
+
+    def config_groups(self, region_name, service_ids):
+        groups = app_config_group_repo.list_by_service_ids(region_name, service_ids)
+        cgs = []
+        for group in groups:
+            # list related items
+            cg = group.to_dict()
+            cg["items"] = app_config_group_item_repo.list()
+            cgs.append(cg)
+
+        sid_2_config_groups = {}
+        for sid in service_ids:
+            config_group_ids = app_config_group_service_repo.list_by_service_id(sid).values("config_group_id")
+            sid_2_config_groups[sid] = config_group_ids
+
+        return cgs, sid_2_config_groups
 
     @staticmethod
     def _handle_dependencies(service, dev_service_set, use_force):
