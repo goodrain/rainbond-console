@@ -36,6 +36,8 @@ from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.component_graph import component_graph_repo
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupInProgress
@@ -281,6 +283,8 @@ class GroupAppBackupService(object):
         service_config_file = volume_repo.get_service_config_files(service.service_id)
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         service_relation = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
+        service_monitors = service_monitor_repo.get_component_service_monitors(tenant.tenant_id, service.service_id)
+        component_graphs = component_graph_repo.list(service.service_id)
         # plugin
         service_plugin_relation = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service.service_id)
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
@@ -307,9 +311,10 @@ class GroupAppBackupService(object):
             "service_volumes": [volume.to_dict() for volume in service_volumes],
             "service_config_file": [config_file.to_dict() for config_file in service_config_file],
             "service_ports": [port.to_dict() for port in service_ports],
-            "third_party_service_endpoints": [endpoint.to_dict() for endpoint in third_party_service_endpoints]
+            "third_party_service_endpoints": [endpoint.to_dict() for endpoint in third_party_service_endpoints],
+            "service_monitors": [monitor.to_dict() for monitor in service_monitors],
+            "component_graphs": [graph.to_dict() for graph in component_graphs]
         }
-
         plugin_ids = [pr.plugin_id for pr in service_plugin_relation]
 
         return app_info, plugin_ids
