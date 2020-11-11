@@ -24,12 +24,6 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.filter(
             region_name=region_name, app_id=app_id, config_group_name=config_group_name).delete()
 
-    def get_by_config_group_id(self, config_group_id):
-        cgroup = ApplicationConfigGroup.objects.filter(config_group_id=config_group_id)
-        if cgroup:
-            return cgroup[0]
-        return None
-
     def get_config_group_in_use(self, region_name, app_id):
         cgroups = ApplicationConfigGroup.objects.filter(region_name=region_name, app_id=app_id, enable=True)
         cgroup_infos = []
