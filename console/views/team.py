@@ -959,7 +959,8 @@ class TeamCheckKubernetesServiceName(RegionTenantHeaderView):
             port_service.check_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
         except ErrK8sServiceNameExists:
             is_valid = False
-        result = general_message(200, "success", "检测成功", bean={
-            "is_valid": is_valid,
-        })
+        result = general_message(
+            200, "success", "检测成功", bean={
+                "is_valid": is_valid,
+            })
         return Response(result)

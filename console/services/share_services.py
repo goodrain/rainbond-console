@@ -26,6 +26,7 @@ from console.services.service_services import base_service
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceEvent, TenantServiceInfo, make_uuid
+from console.exception.exceptions import ErrAppConfigGroupExists
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -749,10 +750,8 @@ class ShareService(object):
                 raise ServiceHandleException(msg="Basic information processing error", msg_show="基本信息处理错误")
 
             # group config
-            # 1. list all config groups using by services
             service_ids = [svc["service_id"] for svc in share_info["share_service_list"]]
-            config_groups, service_config_groups_relation = self.config_groups(region_name, service_ids)
-            app_templete["config_groups"] = config_groups
+            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids)
 
             # plugins
             try:
@@ -796,8 +795,6 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
-                        # config groups
-                        service["config_groups"] = service_config_groups_relation.get(service.service_id, None)
                         # slug组件
                         if delivered_type_map[service['service_id']] == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
@@ -890,16 +887,17 @@ class ShareService(object):
         cgs = []
         for group in groups:
             # list related items
-            cg = group.to_dict()
-            cg["items"] = app_config_group_item_repo.list()
+            cg = {
+                "name": group.config_group_name,
+                "injection_type": group.deploy_type,
+                "config_items":
+                {item.item_key: item.item_value
+                 for item in app_config_group_item_repo.list(group.config_group_id)},
+                "component_ids": [service.service_id for service in app_config_group_service_repo.list(group.config_group_id)],
+            }
             cgs.append(cg)
 
-        sid_2_config_groups = {}
-        for sid in service_ids:
-            config_group_ids = app_config_group_service_repo.list_by_service_id(sid).values("config_group_id")
-            sid_2_config_groups[sid] = config_group_ids
-
-        return cgs, sid_2_config_groups
+        return cgs
 
     @staticmethod
     def _handle_dependencies(service, dev_service_set, use_force):

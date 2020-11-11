@@ -78,7 +78,7 @@ class AppPortService(object):
                          is_inner_service=False,
                          is_outer_service=False,
                          k8s_service_name=None):
-        k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias+"-"+str(container_port)
+        k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias + "-" + str(container_port)
         try:
             self.check_k8s_service_name(tenant.tenant_id, k8s_service_name)
         except ErrK8sServiceNameExists:

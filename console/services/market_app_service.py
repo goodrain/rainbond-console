@@ -10,6 +10,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.core.paginator import Paginator
 
+from console.services.app_config_group import app_config_group_service
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
@@ -40,6 +41,7 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.exception.exceptions import ErrAppConfigGroupExists
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -129,6 +131,25 @@ class MarketAppService(object):
                 # component graphs
                 component_graphs = app.get("component_graphs", {})
                 component_graph_service.bulk_create(ts.service_id, component_graphs)
+
+            # config groups
+            config_groups = app_templates.get("app_config_groups", [])
+            for config_group in config_groups:
+                component_ids = []
+                for sid in config_group.get("component_ids", []):
+                    if not old_new_id_map.get(sid):
+                        continue
+                    component_ids.append(old_new_id_map.get(sid).service_id)
+                config_items = config_group.get("config_items", {})
+                items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                try:
+                    app_config_group_service.create_config_group(group_id, config_group["name"], items,
+                                                                 config_group["injection_type"], True, component_ids, region,
+                                                                 tenant.tenant_name)
+                except ErrAppConfigGroupExists:
+                    app_config_group_service.create_config_group(group_id, config_group["name"] + "-" + make_uuid()[:4], items,
+                                                                 config_group["injection_type"], True, component_ids, region,
+                                                                 tenant.tenant_name)
 
             # 保存依赖关系
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
@@ -560,9 +581,15 @@ class MarketAppService(object):
         if not ports:
             return 200, "success"
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
-                                                                 port["port_alias"], port["is_inner_service"],
-                                                                 port["is_outer_service"], k8s_service_name=port.get("k8s_service_name"))
+            code, msg, port_data = port_service.add_service_port(
+                tenant,
+                service,
+                int(port["container_port"]),
+                port["protocol"],
+                port["port_alias"],
+                port["is_inner_service"],
+                port["is_outer_service"],
+                k8s_service_name=port.get("k8s_service_name"))
             if code != 200:
                 logger.error("save market app port error: {}".format(msg))
                 return code, msg
@@ -611,15 +638,24 @@ class MarketAppService(object):
     def __save_monitors(tenant_id, component_id, monitors):
         sms = []
         for monitor in monitors:
-            sms.append(ServiceMonitor(
-                tenant_id=tenant_id,
-                service_id=component_id,
-                name=monitor.get("name"),
-                path=monitor.get("path"),
-                port=monitor.get("port"),
-                service_show_name=monitor.get("service_show_name"),
-                interval=monitor.get("interval"),
-            ))
+            monitor_name = monitor.get("name")
+            # make monitor name unique
+            try:
+                ServiceMonitor.objects.get(tenant_id=tenant_id, name=monitor_name)
+                monitor_name += "-" + make_uuid()[0:4]
+            except ServiceMonitor.DoesNotExist:
+                pass
+
+            sms.append(
+                ServiceMonitor(
+                    tenant_id=tenant_id,
+                    service_id=component_id,
+                    name=monitor_name,
+                    path=monitor.get("path"),
+                    port=monitor.get("port"),
+                    service_show_name=monitor.get("service_show_name"),
+                    interval=monitor.get("interval"),
+                ))
         ServiceMonitor.objects.bulk_create(sms)
 
     def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):

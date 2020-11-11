@@ -63,13 +63,19 @@ class ComponentGraphService(object):
     def bulk_create(self, component_id, graphs):
         cgs = []
         for graph in graphs:
-            cgs.append(ComponentGraph(
-                component_id=component_id,
-                graph_id=make_uuid(),
-                title=graph.get("title"),
-                promql=self.add_or_update_label(graph.get("promql"), component_id),
-                sequence=graph.get("sequence"),
-            ))
+            try:
+                promql = self.add_or_update_label(component_id, graph.get("promql"))
+            except AbortRequest as e:
+                logger.warning("promql: {}, {}".format(graph.get("promql"), e))
+                continue
+            cgs.append(
+                ComponentGraph(
+                    component_id=component_id,
+                    graph_id=make_uuid(),
+                    title=graph.get("title"),
+                    promql=promql,
+                    sequence=graph.get("sequence"),
+                ))
         ComponentGraph.objects.bulk_create(cgs)
 
     @staticmethod
