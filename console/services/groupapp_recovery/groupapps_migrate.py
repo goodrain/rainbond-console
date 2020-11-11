@@ -25,6 +25,7 @@ from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.app_config import volume_repo
+from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
@@ -311,6 +312,10 @@ class GroupappsMigrateService(object):
                 self.__save_service_plugin_config(ts.service_id, app["service_plugin_config"])
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map)
+        # restore application config group
+        self.__save_app_config_groups(metadata["app_config_group_info"]["app_config_groups"], migrate_tenant, group_id)
+        self.__save_app_config_group_services(metadata["app_config_group_info"]["app_config_group_services"])
+        self.__save_app_config_group_items(metadata["app_config_group_info"]["app_config_group_items"])
 
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
         service_base_info.pop("ID")
@@ -702,6 +707,26 @@ class GroupappsMigrateService(object):
             }
             service_endpoint_list.append(ThirdPartyServiceEndpoints(**endpoint))
         ThirdPartyServiceEndpoints.objects.bulk_create(service_endpoint_list)
+
+    def __save_app_config_groups(self, config_groups, tenant, app_id):
+        if not config_groups:
+            return
+        config_group_ids = []
+        for cgroup in config_groups:
+            config_group = app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], [], cgroup["deploy_type"],
+                                                         cgroup["enable"], [], cgroup["region_name"], tenant.tenant_name)
+            config_group_ids.append(config_group["config_group_id"])
+        return config_group_ids
+
+
+    def __save_app_config_group_services(self, config_group_services):
+        if not config_group_services:
+            return
+        for cgroup_service in config_group_services:
+            app_config_group_service.create_config_group()
+
+    def __save_app_config_group_items(self, config_group_items):
+        pass
 
 
 migrate_service = GroupappsMigrateService()
