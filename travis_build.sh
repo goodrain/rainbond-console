@@ -4,16 +4,10 @@ set -xe
 
 image_name="rbd-app-ui"
 
-IMAGE_DOMAIN=docker.io
-if [ $BUILD_IMAGE_DOMAIN ]; 
-then 
-IMAGE_DOMAIN=${BUILD_IMAGE_DOMAIN}
-fi
-IMAGE_NAMESPACE=rainbond
-if [ $BUILD_IMAGE_NAMESPACE ]; 
-then 
-IMAGE_NAMESPACE=${BUILD_IMAGE_NAMESPACE}
-fi
+IMAGE_DOMAIN=${BUILD_IMAGE_DOMAIN:-docker.io}
+IMAGE_NAMESPACE=${BUILD_IMAGE_NAMESPACE:-rainbond}
+
+PROMQL_PARSER_URL=${PROMQL_PARSER_URL:-https://github.com/GLYASAI/promql-parser/releases/download/v0.1-alpha/promql-parser}
 
 if [ -z "$VERSION" ];then
   if [ -z "$TRAVIS_TAG" ]; then
@@ -29,6 +23,11 @@ function release(){
   buildTime=$(date +%F-%H)
   release_desc=${VERSION}-${git_commit}-${buildTime}
   sed "s/__RELEASE_DESC__/${release_desc}/" Dockerfile.release > Dockerfile.build
+
+  if [[ ! -f promql-parser ]] ; then
+    echo "Downloading ${PROMQL_PARSER_URL} to bin/linux/promql-parser"
+    time wget ${PROMQL_PARSER_URL}
+  fi
 
   docker build --network=host -t ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION} -f Dockerfile.build .
   rm -r ./Dockerfile.build
