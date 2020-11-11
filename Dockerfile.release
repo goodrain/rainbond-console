@@ -1,4 +1,7 @@
-FROM rainbond/rainbond-ui:VERSION
+ARG VERSION=V5.2-dev
+ARG RELEASE_DESC=
+
+FROM rainbond/rainbond-ui:${VERSION}
 
 LABEL author="zengqg@goodrain.com" 
 
@@ -19,20 +22,14 @@ RUN apk update -y && apk add -y git mysql-client && cp /app/ui/hack/Shanghai /us
       && rm -rf /dist \
       && mkdir /app/logs \
       && pip install -r requirements.txt \
-      && cp -a /usr/lib/libmysqlclient.so.18* /tmp/ \
-      && cp -a /usr/lib/libmemcached* /tmp/ \
-      && cp -a /usr/lib/libsas* /tmp/ \
-      && cp -a /usr/lib/libjpeg* /tmp/ \
-      && apk del .build-deps \
-      && cp -a /tmp/lib* /usr/lib/ \
-      && python manage.py collectstatic --noinput \
+      && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
       && rm -rf /root/.cache \
       && rm -rf /tmp/* \
       && rm -rf /app/ui/www/static/www/weavescope
 
 ENV PORT 7070
 ENV IS_OPEN_API=true
-ENV RELEASE_DESC=__RELEASE_DESC__
+ENV RELEASE_DESC=${RELEASE_DESC}
 
 VOLUME /initdata
 VOLUME /app/logs

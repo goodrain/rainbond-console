@@ -3,6 +3,7 @@
   Created on 18/3/5.
 """
 import logging
+import time
 
 from django.db.models import Q
 
@@ -332,7 +333,13 @@ class RainbondCenterAppRepository(object):
                     C.is_complete,
                     C.version_alias,
                     C.update_time,
-                    C.create_time
+                    C.create_time,
+                    C.app_version_info,
+                    C.share_user,
+                    C.share_team,
+                    C.release_user_id,
+                    C.record_id,
+                    C.dev_status as version_dev_status
                 FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
                       FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
                 LEFT JOIN rainbond_center_app_version C
@@ -504,6 +511,24 @@ class RainbondCenterAppRepository(object):
 
     def delete_app_by_id(self, enterprise_id, app_id):
         RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
+
+    def update_app_version(self, enterprise_id, app_id, version, **data):
+        version = RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id, version=version).last()
+        if version is not None:
+            if data["version_alias"] is not None:
+                version.version_alias = data["version_alias"]
+            if data["app_version_info"] is not None:
+                version.app_version_info = data["app_version_info"]
+            if data["dev_status"] == "release":
+                version.release_user_id = data["release_user_id"]
+            version.dev_status = data["dev_status"]
+            version.update_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            version.save()
+            return version
+        return None
+
+    def delete_app_version_by_version(self, enterprise_id, app_id, version):
+        RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id, version=version).delete()
 
 
 class AppExportRepository(object):

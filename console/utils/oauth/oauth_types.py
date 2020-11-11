@@ -4,6 +4,7 @@ from console.utils.oauth.dingtalk_api import DingtalkApiV1
 from console.utils.oauth.gitee_api import GiteeApiV5
 from console.utils.oauth.github_api import GithubApiV3
 from console.utils.oauth.gitlab_api import GitlabApiV4
+from console.utils.oauth.dbox_api import DboxApiV1
 
 support_oauth_type = {
     "github": GithubApiV3,
@@ -11,6 +12,7 @@ support_oauth_type = {
     "gitee": GiteeApiV5,
     "aliyun": AliYunApiV1,
     "dingtalk": DingtalkApiV1,
+    "dbox": DboxApiV1,
 }
 
 
