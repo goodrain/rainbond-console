@@ -35,9 +35,8 @@ from console.repositories.plugin.plugin_config import plugin_config_group_repo
 from console.repositories.plugin.plugin_config import plugin_config_items_repo
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.app_config_group import app_config_group_repo
-from console.repositories.app_config_group import app_config_group_service_repo
-from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.probe_repo import probe_repo
+from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupInProgress
 from console.services.exception import ErrBackupRecordNotFound
@@ -258,25 +257,12 @@ class GroupAppBackupService(object):
         all_data["plugin_info"]["plugin_config_items"] = plugin_config_items
 
         # application config group
-        config_group_ids = app_config_group_repo.get_config_group_in_use(tenant.region, group_id)
+        config_group_infos = app_config_group_repo.get_config_group_in_use(tenant.region, group_id)
         app_config_groups = []
-        app_config_group_services = []
-        app_config_group_items = []
-        for cgroup_id in config_group_ids:
-            config_group = app_config_group_repo.get_by_config_group_id(cgroup_id)
-            app_config_groups.append(config_group.to_dict())
-
-            cgroup_services = app_config_group_service_repo.list(cgroup_id)
-            if cgroup_services:
-                app_config_group_services.extend([cgs.to_dict() for cgs in cgroup_services])
-
-            cgroup_items = app_config_group_item_repo.list(cgroup_id)
-            if cgroup_items:
-                app_config_group_items.extend([cgi.to_dict() for cgi in cgroup_items])
-        all_data["app_config_group_info"] = {}
-        all_data["app_config_group_info"]["app_config_groups"] = app_config_groups
-        all_data["app_config_group_info"]["app_config_group_services"] = app_config_groups
-        all_data["app_config_group_info"]["app_config_group_items"] = app_config_groups
+        for cgroup_info in config_group_infos:
+            config_group = app_config_group_service.get_config_group(tenant.region, group_id, cgroup_info["config_group_name"])
+            app_config_groups.append(config_group)
+        all_data["app_config_group_info"] = app_config_groups
         return total_memory, all_data
 
     def get_service_details(self, tenant, service):

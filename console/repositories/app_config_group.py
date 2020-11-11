@@ -32,13 +32,17 @@ class ApplicationConfigGroupRepository(object):
 
     def get_config_group_in_use(self, region_name, app_id):
         cgroups = ApplicationConfigGroup.objects.filter(region_name=region_name, app_id=app_id, enable=True)
-        cgroup_ids = []
+        cgroup_infos = []
         if cgroups:
             for cgroup in cgroups:
                 cgroup_services = app_config_group_service_repo.list(cgroup.config_group_id)
                 if cgroup_services:
-                    cgroup_ids.append(cgroup.config_group_id)
-        return cgroup_ids
+                    cgroup_info = {"config_group_id": cgroup.config_group_id, "config_group_name": cgroup.config_group_name}
+                    cgroup_infos.append(cgroup_info)
+        return cgroup_infos
+
+    def is_exists(self, region_name, app_id, config_group_name):
+        pass
 
 class ApplicationConfigGroupServiceRepository(object):
     def create(self, **data):
