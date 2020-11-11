@@ -3680,16 +3680,16 @@ MavenSettingRUDView = {
 AppConfigGroupView = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [300017]
         },
         "post": {
-            "perms": [200015]
+            "perms": [300018]
         },
         "put": {
-            "perms": [200016]
+            "perms": [300019]
         },
         "delete": {
-            "perms": [200017]
+            "perms": [300020]
         }
     }
 }
