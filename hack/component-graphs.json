@@ -1,0 +1,20 @@
+{
+  "mysql-exportor": [
+    {
+      "title": "磁盘读速率",
+      "promql": "irate(mysql_global_status_innodb_data_reads[10m])"
+    },
+    {
+      "title": "磁盘写速率",
+      "promql": "irate(mysql_global_status_innodb_data_writes[10m])"
+    },
+    {
+      "title": "字节接收速率",
+      "promql": "irate(mysql_global_status_bytes_received[5m])"
+    },
+    {
+      "title": "字节发送速率",
+      "promql": "irate(mysql_global_status_bytes_sent[5m])"
+    }
+  ]
+}
