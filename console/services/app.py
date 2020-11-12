@@ -386,7 +386,7 @@ class AppService(object):
         # 端口
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         ports_info = ports.values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service',
-                                  'is_outer_service')
+                                  'is_outer_service', 'k8s_service_name')
 
         for port_info in ports_info:
             port_info["is_inner_service"] = False

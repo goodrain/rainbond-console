@@ -126,8 +126,9 @@ def convert_todict(cgroup_items, cgroup_services):
             if not service:
                 continue
             cgs = s.to_dict()
-            cgs["service_cname"] = service.service_cname
-            cgs["service_alias"] = service.service_alias
+            if service:
+                cgs["service_cname"] = service.service_cname
+                cgs["service_alias"] = service.service_alias
             config_group_services.append(cgs)
     return config_group_items, config_group_services
 
