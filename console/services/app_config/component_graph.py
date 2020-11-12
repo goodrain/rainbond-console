@@ -3,9 +3,13 @@ import subprocess
 import os
 import logging
 import platform
+import json
+import os
 
 from django.db import transaction
 
+from console.models.main import ComponentGraph
+from goodrain_web.settings import BASE_DIR
 from goodrain_web.settings import BASE_DIR
 from console.exception.main import AbortRequest
 from console.repositories.component_graph import component_graph_repo
@@ -15,6 +19,41 @@ logger = logging.getLogger("default")
 
 
 class ComponentGraphService(object):
+    def __init__(self):
+        path_to_graphs = BASE_DIR + "/hack/component-graphs.json"
+        with open(path_to_graphs) as f:
+            self.internal_graphs = json.load(f)
+
+    def list_internal_graphs(self):
+        graphs = []
+        for key in self.internal_graphs:
+            graphs.append(key)
+        return graphs
+
+    def create_internal_graphs(self, component_id, graph_name):
+        igraphs = self.internal_graphs.get(graph_name, None)
+        if igraphs is None:
+            raise AbortRequest("graph '{}' not found".format(graph_name), status_code=404, error_code=404)
+
+        graphs = []
+        seq = self._next_sequence(component_id)
+        for graph in igraphs:
+            try:
+                promql = self.add_or_update_label(component_id, graph["promql"])
+            except AbortRequest as e:
+                logger.warning("promql {}: {}".format(graph["promql"], e))
+                continue
+            graphs.append(ComponentGraph(
+                component_id=component_id,
+                graph_id=make_uuid(),
+                title=graph["title"],
+                promql=promql,
+                sequence=seq,
+            ))
+            seq += 1
+
+        ComponentGraph.objects.bulk_create(graphs)
+
     def create_component_graph(self, component_id, title, promql):
         promql = self.add_or_update_label(component_id, promql)
         graph_id = make_uuid()
