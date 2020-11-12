@@ -10,6 +10,10 @@ class ComponentGraphRepository(object):
         return ComponentGraph.objects.filter(component_id=component_id).order_by("sequence")
 
     @staticmethod
+    def list_by_component_ids(component_ids):
+        return ComponentGraph.objects.filter(component_id__in=component_ids)
+
+    @staticmethod
     def list_gt_sequence(component_id, sequence):
         return ComponentGraph.objects.filter(component_id=component_id, sequence__gt=sequence)
 

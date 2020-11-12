@@ -60,17 +60,23 @@ class ComponentGraphService(object):
 
         return new_promql
 
-    def bulk_create_component_graph(self, service, component_graphs):
-        graph_list = []
-        for graph in component_graphs:
-            data = ComponentGraph(
-                component_id=service.service_id,
-                graph_id=make_uuid(),
-                title=graph["title"],
-                promql=self.add_or_update_label(service.service_id, graph["promql"]),
-                sequence=self._next_sequence(service.service_id))
-            graph_list.append(data)
-        component_graph_repo.bulk_create(graph_list)
+    def bulk_create(self, component_id, graphs):
+        cgs = []
+        for graph in graphs:
+            try:
+                promql = self.add_or_update_label(component_id, graph.get("promql"))
+            except AbortRequest as e:
+                logger.warning("promql: {}, {}".format(graph.get("promql"), e))
+                continue
+            cgs.append(
+                ComponentGraph(
+                    component_id=component_id,
+                    graph_id=make_uuid(),
+                    title=graph.get("title"),
+                    promql=promql,
+                    sequence=graph.get("sequence"),
+                ))
+        ComponentGraph.objects.bulk_create(cgs)
 
     @staticmethod
     def _next_sequence(component_id):

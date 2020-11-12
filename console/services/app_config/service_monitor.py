@@ -16,6 +16,9 @@ logger = logging.getLogger("default")
 
 
 class ComponentServiceMonitor(object):
+    def list_by_service_ids(self, tenant_id, service_ids):
+        return ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
+
     def get_component_service_monitors(self, tenant_id, service_id):
         return ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id=service_id)
 

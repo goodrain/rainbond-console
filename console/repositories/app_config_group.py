@@ -24,6 +24,12 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.filter(
             region_name=region_name, app_id=app_id, config_group_name=config_group_name).delete()
 
+    def list_by_service_ids(self, region_name, service_ids):
+        config_group_ids = ConfigGroupService.objects.filter(
+            service_id__in=service_ids, ).values_list(
+                "config_group_id", flat=True)
+        return ApplicationConfigGroup.objects.filter(region_name=region_name, config_group_id__in=config_group_ids)
+
     def get_config_group_in_use(self, region_name, app_id):
         cgroups = ApplicationConfigGroup.objects.filter(region_name=region_name, app_id=app_id, enable=True)
         cgroup_infos = []
@@ -49,6 +55,9 @@ class ApplicationConfigGroupServiceRepository(object):
 
     def delete(self, config_group_id):
         return ConfigGroupService.objects.filter(config_group_id=config_group_id).delete()
+
+    def list_by_service_id(self, service_id):
+        return ConfigGroupService.objects.filter(service_id=service_id)
 
 
 class ApplicationConfigGroupItemRepository(object):
