@@ -18,9 +18,13 @@ logger = logging.getLogger("default")
 
 class ComponentGraphService(object):
     def __init__(self):
-        path_to_graphs = BASE_DIR + "/hack/component-graphs.json"
-        with open(path_to_graphs) as f:
-            self.internal_graphs = json.load(f)
+        self.internal_graphs = {}
+        path_to_graphs = BASE_DIR + "/hack/component-graphs"
+        for filename in os.listdir(path_to_graphs):
+            path = path_to_graphs + "/" + filename
+            with open(path) as f:
+                name, _ = os.path.splitext(filename)
+                self.internal_graphs[name] = json.load(f)
 
     def list_internal_graphs(self):
         graphs = []
