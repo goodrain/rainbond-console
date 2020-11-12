@@ -7,7 +7,8 @@ import time
 
 from django.db import transaction
 
-from console.repositories.app_config_group import app_config_group_repo, app_config_group_service_repo, app_config_group_item_repo
+from console.repositories.app_config_group import app_config_group_repo, app_config_group_service_repo
+from console.repositories.app_config_group import app_config_group_item_repo
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
@@ -26,7 +27,6 @@ from console.services.service_services import base_service
 from www.apiclient.baseclient import HttpClient
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceEvent, TenantServiceInfo, make_uuid
-from console.exception.exceptions import ErrAppConfigGroupExists
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
