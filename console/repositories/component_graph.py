@@ -52,5 +52,8 @@ class ComponentGraphRepository(object):
     def update(component_id, graph_id, **data):
         ComponentGraph.objects.filter(component_id=component_id, graph_id=graph_id).update(**data)
 
+    def bulk_create(self, component_graphs):
+        ComponentGraph.objects.bulk_create(component_graphs)
+
 
 component_graph_repo = ComponentGraphRepository()

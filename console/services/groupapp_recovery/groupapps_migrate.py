@@ -25,6 +25,11 @@ from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.app_config import volume_repo
+from console.repositories.app_config_group import app_config_group_repo
+from console.services.app_config_group import app_config_group_service
+from console.services.app_config.port_service import port_repo
+from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.app_config.component_graph import component_graph_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
@@ -251,6 +256,8 @@ class GroupappsMigrateService(object):
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
             self.__save_third_party_service_endpoints(ts, app.get("third_party_service_endpoints", []))
+            self.__save_service_monitors(migrate_tenant, ts, app["service_monitors"])
+            self.__save_component_graphs(ts, app["component_graphs"])
 
             if ts.service_source == "third_party":
                 app_service.create_third_party_service(migrate_tenant, ts, user.nick_name)
@@ -311,6 +318,8 @@ class GroupappsMigrateService(object):
                 self.__save_service_plugin_config(ts.service_id, app["service_plugin_config"])
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map)
+        # restore application config group
+        self.__save_app_config_groups(metadata["app_config_group_info"], migrate_tenant, group_id, changed_service_map)
 
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
         service_base_info.pop("ID")
@@ -392,9 +401,16 @@ class GroupappsMigrateService(object):
         port_list = []
         for port in tenant_service_ports:
             port.pop("ID")
+            if port["k8s_service_name"] != "":
+                try:
+                    port_repo.get_by_k8s_service_name(tenant.tenant_id, port["k8s_service_name"])
+                    port["k8s_service_name"] = "-".join([port["k8s_service_name"], make_uuid()[-4:]])
+                except TenantServicesPort.DoesNotExist:
+                    pass
             new_port = TenantServicesPort(**port)
             new_port.service_id = service.service_id
             new_port.tenant_id = tenant.tenant_id
+            new_port.k8s_service_name = port["k8s_service_name"]
             port_list.append(new_port)
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
@@ -702,6 +718,34 @@ class GroupappsMigrateService(object):
             }
             service_endpoint_list.append(ThirdPartyServiceEndpoints(**endpoint))
         ThirdPartyServiceEndpoints.objects.bulk_create(service_endpoint_list)
+
+    def __save_app_config_groups(self, config_groups, tenant, app_id, changed_service_map):
+        if not config_groups:
+            return
+        for cgroup in config_groups:
+            service_ids = []
+            is_exists = app_config_group_repo.is_exists(tenant.region, app_id, cgroup["config_group_name"])
+            if is_exists:
+                cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
+            for service in cgroup["services"]:
+                try:
+                    service_ids.append(changed_service_map[service["service_id"]]["ServiceID"])
+                except KeyError:
+                    continue
+
+            app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], cgroup["config_items"],
+                                                         cgroup["deploy_type"], cgroup["enable"], service_ids, tenant.region,
+                                                         tenant.tenant_name)
+
+    def __save_service_monitors(self, tenant, service, service_monitors):
+        if not service_monitors:
+            return
+        service_monitor_repo.bulk_create_component_service_monitors(tenant, service, service_monitors)
+
+    def __save_component_graphs(self, service, component_graphs):
+        if not component_graphs:
+            return
+        component_graph_service.bulk_create(service.service_id, component_graphs)
 
 
 migrate_service = GroupappsMigrateService()
