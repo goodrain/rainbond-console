@@ -745,7 +745,7 @@ class GroupappsMigrateService(object):
     def __save_component_graphs(self, service, component_graphs):
         if not component_graphs:
             return
-        component_graph_service.bulk_create_component_graph(service, component_graphs)
+        component_graph_service.bulk_create(service.service_id, component_graphs)
 
 
 migrate_service = GroupappsMigrateService()
