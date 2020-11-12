@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import subprocess
-import os
 import logging
 import platform
 import json
@@ -8,8 +7,6 @@ import os
 
 from django.db import transaction
 
-from console.models.main import ComponentGraph
-from goodrain_web.settings import BASE_DIR
 from goodrain_web.settings import BASE_DIR
 from console.exception.main import AbortRequest
 from console.repositories.component_graph import component_graph_repo
@@ -44,13 +41,14 @@ class ComponentGraphService(object):
             except AbortRequest as e:
                 logger.warning("promql {}: {}".format(graph["promql"], e))
                 continue
-            graphs.append(ComponentGraph(
-                component_id=component_id,
-                graph_id=make_uuid(),
-                title=graph["title"],
-                promql=promql,
-                sequence=seq,
-            ))
+            graphs.append(
+                ComponentGraph(
+                    component_id=component_id,
+                    graph_id=make_uuid(),
+                    title=graph["title"],
+                    promql=promql,
+                    sequence=seq,
+                ))
             seq += 1
 
         ComponentGraph.objects.bulk_create(graphs)
