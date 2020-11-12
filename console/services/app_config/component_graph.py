@@ -59,6 +59,14 @@ class ComponentGraphService(object):
 
         return new_promql
 
+    def bulk_create_component_graph(self, component_graphs):
+        if component_graphs:
+            for graph in component_graphs:
+                graph.promql = self.add_or_update_label(graph.component_id, graph.promql)
+                graph.graph_id = make_uuid()
+                graph.sequence = self._next_sequence(graph.component_id)
+            component_graph_repo.bulk_create(component_graphs)
+
     @staticmethod
     def _next_sequence(component_id):
         graphs = component_graph_repo.list(component_id=component_id)

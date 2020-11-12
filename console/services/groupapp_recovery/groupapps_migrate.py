@@ -12,7 +12,7 @@ from django.db import transaction
 from console.constants import AppMigrateType
 from console.models.main import ServiceRelPerms
 from console.models.main import ServiceSourceInfo
-from console.repositories.app_config import domain_repo, port_repo
+from console.repositories.app_config import domain_repo
 from console.repositories.app_config import tcp_domain
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
@@ -28,6 +28,8 @@ from console.repositories.app_config import volume_repo
 from console.repositories.app_config_group import app_config_group_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.app_config.port_service import port_repo
+from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.app_config.component_graph import component_graph_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
@@ -719,26 +721,21 @@ class GroupappsMigrateService(object):
         ThirdPartyServiceEndpoints.objects.bulk_create(service_endpoint_list)
 
     def __save_app_config_groups(self, config_groups, tenant, app_id, changed_service_map):
-        if not config_groups:
-            return
-        config_group_ids = []
+        if config_groups:
+            for cgroup in config_groups:
+                service_ids = []
+                is_exists = app_config_group_repo.is_exists(tenant.region, app_id, cgroup["config_group_name"])
+                if is_exists:
+                    cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
+                for service in cgroup["services"]:
+                    try:
+                        service_ids.append(changed_service_map[service["service_id"]]["ServiceID"])
+                    except KeyError:
+                        continue
 
-        for cgroup in config_groups:
-            service_ids = []
-            is_exists = app_config_group_repo.is_exists(tenant.region, app_id, cgroup["config_group_name"])
-            if is_exists:
-                cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
-            for service in cgroup["services"]:
-                try:
-                    service_ids.append(changed_service_map[service["service_id"]]["ServiceID"])
-                except KeyError:
-                    continue
-
-            config_group = app_config_group_service.create_config_group(
-                app_id, cgroup["config_group_name"], cgroup["config_items"], cgroup["deploy_type"], cgroup["enable"],
-                service_ids, tenant.region, tenant.tenant_name)
-            config_group_ids.append(config_group["config_group_id"])
-        return config_group_ids
+                app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], cgroup["config_items"],
+                                                             cgroup["deploy_type"], cgroup["enable"], service_ids,
+                                                             tenant.region, tenant.tenant_name)
 
     def __save_service_monitors(self, tenant, service, service_monitors):
         monitor_list = []
@@ -755,7 +752,7 @@ class GroupappsMigrateService(object):
                     service_show_name=monitor["service_show_name"],
                     interval=monitor["interval"])
                 monitor_list.append(data)
-        ServiceMonitor.objects.bulk_create(monitor_list)
+            service_monitor_repo.bulk_create_component_service_monitors(monitor_list)
 
     def __save_component_graphs(self, service, component_graphs):
         graph_list = []
@@ -768,7 +765,7 @@ class GroupappsMigrateService(object):
                     promql=graph["promql"],
                     sequence=graph["sequence"])
                 graph_list.append(data)
-        ComponentGraph.objects.bulk_create(graph_list)
+        component_graph_service.bulk_create_component_graph(graph_list)
 
 
 migrate_service = GroupappsMigrateService()
