@@ -59,6 +59,9 @@ class ApplicationConfigGroupServiceRepository(object):
     def list_by_service_id(self, service_id):
         return ConfigGroupService.objects.filter(service_id=service_id)
 
+    def delete_effective_service(self, service_id):
+        return ConfigGroupService.objects.filter(service_id=service_id).delete()
+
 
 class ApplicationConfigGroupItemRepository(object):
     def create(self, **data):

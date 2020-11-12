@@ -81,6 +81,7 @@ class ComponentServiceMonitor(object):
         ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id, name=name).delete()
         return sm
 
+<<<<<<< Updated upstream
     def bulk_create_component_service_monitors(self, tenant, service, service_monitors):
         monitor_list = []
         for monitor in service_monitors:
@@ -97,5 +98,7 @@ class ComponentServiceMonitor(object):
             monitor_list.append(data)
         ServiceMonitor.objects.bulk_create(monitor_list)
 
+    def delete_by_service_id(self, service_id):
+        return ServiceMonitor.objects.filter(service_id=service_id).delete()
 
 service_monitor_repo = ComponentServiceMonitor()
