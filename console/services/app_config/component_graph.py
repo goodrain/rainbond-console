@@ -67,8 +67,8 @@ class ComponentGraphService(object):
                 component_id=service.service_id,
                 graph_id=make_uuid(),
                 title=graph["title"],
-                promql=self.add_or_update_label(graph["component_id"], graph["promql"]),
-                sequence=self._next_sequence(graph["component_id"]))
+                promql=self.add_or_update_label(service.service_id, graph["promql"]),
+                sequence=self._next_sequence(service.service_id))
             graph_list.append(data)
         component_graph_repo.bulk_create(graph_list)
 
