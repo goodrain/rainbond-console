@@ -12,6 +12,7 @@ from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import label_service, port_service
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.backup_service import groupapp_backup_service
 from console.services.groupapp_recovery.groupapps_migrate import migrate_service
 from console.services.service_services import base_service
@@ -19,6 +20,7 @@ from console.services.plugin import app_plugin_service, plugin_service
 from console.services.team_services import team_services
 from www.utils.crypt import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
+from console.models.main import ServiceMonitor
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -265,6 +267,23 @@ class GroupAppCopyService(object):
                 if build_error_plugin_ids:
                     app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
                         service.service_id).filter(plugin_id__in=build_error_plugin_ids).delete()
+                # create service_monitor in region
+                service_monitors = service_monitor_repo.get_component_service_monitors(tenant.tenant_id, service.service_id)
+                for monitor in service_monitors:
+                    req = {
+                        "name": monitor.name,
+                        "path": monitor.path,
+                        "port": monitor.port,
+                        "service_show_name": monitor.service_show_name,
+                        "interval": monitor.interval
+                    }
+                    try:
+                        region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
+                                                          service.service_alias, req)
+                    except region_api.CallApiError as e:
+                        ServiceMonitor.objects.filter(
+                            tenant_id=tenant.tenant_id, service_id=service.service_id, name=monitor.name).delete()
+                        logger.debug(e)
         return result
 
 

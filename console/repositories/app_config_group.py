@@ -41,6 +41,10 @@ class ApplicationConfigGroupRepository(object):
                     cgroup_infos.append(cgroup_info)
         return cgroup_infos
 
+    def is_exists(self, region_name, app_id, config_group_name):
+        return ApplicationConfigGroup.objects.filter(
+            region_name=region_name, app_id=app_id, config_group_name=config_group_name).exists()
+
 
 class ApplicationConfigGroupServiceRepository(object):
     def create(self, **data):
