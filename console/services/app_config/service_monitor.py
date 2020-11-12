@@ -76,3 +76,6 @@ class ComponentServiceMonitor(object):
                 raise e
         ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id, name=name).delete()
         return sm
+
+
+service_monitor_repo = ComponentServiceMonitor()

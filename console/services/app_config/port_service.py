@@ -257,9 +257,12 @@ class AppPortService(object):
         if action == "change_port_alias":
             if not port_alias:
                 return 400, u"端口别名不能为空"
-            port = port_repo.get_service_port_by_alias(service_id, port_alias)
-            if port and port.container_port != container_port:
-                return 400, u"别名已存在"
+            try:
+                port = port_repo.get_service_port_by_alias(service_id, port_alias)
+                if port.container_port != container_port:
+                    return 400, u"别名已存在"
+            except TenantServicesPort.DoesNotExist:
+                pass
         if action == "change_protocol":
             if not protocol:
                 return 400, u"端口协议不能为空"
@@ -584,10 +587,11 @@ class AppPortService(object):
             # make k8s_service_name unique
             try:
                 port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
-                if port.k8s_service_name != k8s_service_name:
+                if port.container_port != deal_port.container_port:
                     raise ErrK8sServiceNameExists
             except TenantServicesPort.DoesNotExist:
                 pass
+            deal_port.k8s_service_name = k8s_service_name
 
         if service.create_status == "complete":
             body = deal_port.to_dict()
@@ -606,7 +610,7 @@ class AppPortService(object):
 
     def get_access_info(self, tenant, service):
         access_type = ""
-        data = {}
+        data = []
         service_ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         # ①是否有端口
         if not service_ports:
@@ -697,7 +701,7 @@ class AppPortService(object):
 
         if unopened_port:
             access_type = ServicePortConstants.NO_PORT
-            return access_type, {}
+            return access_type, []
 
     def __get_stream_outer_url(self, tenant, service, port):
         region = region_repo.get_region_by_region_name(service.service_region)

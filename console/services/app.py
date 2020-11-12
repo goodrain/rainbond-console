@@ -9,11 +9,12 @@ import random
 import string
 
 from addict import Dict
+from django.db import transaction
 from console.appstore.appstore import app_store
 from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppMarket
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, service_endpoints_repo,
                                              volume_repo)
@@ -720,6 +721,17 @@ class AppMarketService(object):
             raise ServiceHandleException(msg="name exist", msg_show=u"名称已存在", status_code=400)
         return app_market_repo.create_app_market(**data)
 
+    @transaction.atomic
+    def batch_create_app_market(self, eid, data):
+        if data is not None:
+            for dt in data:
+                exist_market = app_market_repo.get_app_market_by_name(enterprise_id=eid, name=dt["name"])
+                if exist_market:
+                    app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"])
+                    continue
+                app_market_repo.create_app_market(**dt)
+        return self.get_app_markets(eid, extend=True)
+
     def update_app_market(self, app_market, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
@@ -909,6 +921,18 @@ class AppMarketService(object):
 
     def create_market_app_model_version(self, market, app_id, body):
         app_store.create_app_version(market, app_id, body)
+
+    def list_bindable_markets(self, eid, market_name, market_url, access_key):
+        if market_name:
+            market = app_market_service.get_app_market_by_name(eid, market_name)
+        else:
+            market = AppMarket(url=market_url, access_key=access_key)
+
+        bindable_markets = app_store.list_bindable_markets(market)
+        if not bindable_markets:
+            return []
+
+        return [bm.to_dict() for bm in bindable_markets]
 
 
 app_service = AppService()

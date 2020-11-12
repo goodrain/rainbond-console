@@ -12,6 +12,7 @@ from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
 from goodrain_web.custom_config import custom_config as custom_settings
+from console.enum.system_config import ConfigKeyEnum
 
 logger = logging.getLogger("default")
 
@@ -25,6 +26,7 @@ class ConfigService(object):
         self.enterprise_id = ""
 
     def init_base_config_value(self):
+        # no need
         pass
 
     @property
@@ -37,12 +39,10 @@ class ConfigService(object):
                 enable = self.base_cfg_keys_value[key]["enable"]
                 value = self.base_cfg_keys_value[key]["value"]
                 desc = self.base_cfg_keys_value[key]["desc"]
-
+                config_type = "string"
                 if isinstance(value, (dict, list)):
-                    type = "json"
-                else:
-                    type = "string"
-                rst_key = self.add_config(key=key, default_value=value, type=type, enable=enable, desc=desc)
+                    config_type = "json"
+                rst_key = self.add_config(key=key, default_value=value, type=config_type, enable=enable, desc=desc)
 
                 value = rst_key.value
                 enable = rst_key.enable
@@ -63,12 +63,10 @@ class ConfigService(object):
                 enable = self.cfg_keys_value[key]["enable"]
                 value = self.cfg_keys_value[key]["value"]
                 desc = self.cfg_keys_value[key]["desc"]
-
+                config_type = "string"
                 if isinstance(value, (dict, list)):
-                    type = "json"
-                else:
-                    type = "string"
-                rst_key = self.add_config(key=key, default_value=value, type=type, enable=enable, desc=desc)
+                    config_type = "json"
+                rst_key = self.add_config(key=key, default_value=value, type=config_type, enable=enable, desc=desc)
 
                 value = rst_key.value
                 enable = rst_key.enable
@@ -81,6 +79,8 @@ class ConfigService(object):
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
+
+        rst_datas["default_market_url"] = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
         return rst_datas
 
     def update_config(self, key, value):
@@ -268,7 +268,9 @@ class EnterpriseConfigService(ConfigService):
 class PlatformConfigService(ConfigService):
     def __init__(self):
         super(PlatformConfigService, self).__init__()
-        self.base_cfg_keys = ["IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"]
+        self.base_cfg_keys = [
+            "IS_PUBLIC", "OAUTH_SERVICES", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"
+        ]
 
         self.cfg_keys = [
             "TITLE",
@@ -277,21 +279,22 @@ class PlatformConfigService(ConfigService):
             "IS_REGIST",
             "DOCUMENT",
             "OFFICIAL_DEMO",
+            ConfigKeyEnum.ENTERPRISE_EDITION.name,
         ]
         self.cfg_keys_value = {
             "TITLE": {
-                "value": "Rainbond-企业云应用操作系统，开发、交付云解决方案",
-                "desc": u"云帮title",
+                "value": "Rainbond",
+                "desc": u"Rainbond web tile",
                 "enable": True
             },
             "LOGO": {
                 "value": None,
-                "desc": u"云帮图标",
+                "desc": u"Rainbond Logo url",
                 "enable": True
             },
             "FAVICON": {
                 "value": None,
-                "desc": u"网站图标",
+                "desc": u"Rainbond web favicon url",
                 "enable": True
             },
             "DOCUMENT": {
@@ -311,13 +314,18 @@ class PlatformConfigService(ConfigService):
                 "desc": u"是否允许注册",
                 "enable": True
             },
+            ConfigKeyEnum.ENTERPRISE_EDITION.name: {
+                "value": "false",
+                "desc": u"是否是企业版",
+                "enable": True
+            },
         }
 
     def init_base_config_value(self):
         self.base_cfg_keys_value = {
             "IS_PUBLIC": {
                 "value": os.getenv('IS_PUBLIC', False),
-                "desc": u"是否是公有",
+                "desc": u"是否是Cloud",
                 "enable": True
             },
             "MARKET_URL": {
@@ -341,6 +349,12 @@ class PlatformConfigService(ConfigService):
                 "enable": True
             },
         }
+        if not os.getenv('IS_PUBLIC', False):
+            self.base_cfg_keys_value["OAUTH_SERVICES"] = {
+                "value": self.get_all_oauth_service(),
+                "desc": u"开启/关闭OAuthServices功能",
+                "enable": True
+            }
 
     def get_enterprise_center_oauth(self):
         try:
@@ -381,6 +395,30 @@ class PlatformConfigService(ConfigService):
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))
+
+    def get_all_oauth_service(self):
+        rst = []
+        oauth_services = OAuthServices.objects.filter(is_deleted=False, enable=True)
+        if oauth_services:
+            for oauth_service in oauth_services:
+                try:
+                    api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
+                    authorize_url = api.get_authorize_url()
+                    rst.append({
+                        "service_id": oauth_service.ID,
+                        "enable": oauth_service.enable,
+                        "name": oauth_service.name,
+                        "oauth_type": oauth_service.oauth_type,
+                        "is_console": oauth_service.is_console,
+                        "home_url": oauth_service.home_url,
+                        "eid": oauth_service.eid,
+                        "is_auto_login": oauth_service.is_auto_login,
+                        "is_git": oauth_service.is_git,
+                        "authorize_url": authorize_url,
+                    })
+                except NoSupportOAuthType:
+                    continue
+        return rst
 
 
 platform_config_service = PlatformConfigService()

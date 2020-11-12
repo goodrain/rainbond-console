@@ -6,3 +6,4 @@ class ConfigKeyEnum(AutoNumber):
     TITLE = ()
     LOGO = ()
     FAVICON = ()
+    ENTERPRISE_EDITION = ()

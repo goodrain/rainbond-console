@@ -95,6 +95,7 @@ class GroupAppCopyService(object):
         new_metadata["compose_group_info"] = metadata["compose_group_info"]
         new_metadata["group_info"] = metadata["group_info"]
         new_metadata["plugin_info"] = metadata["plugin_info"]
+        new_metadata["app_config_group_info"] = metadata["app_config_group_info"]
         new_metadata["service_group_relation"] = []
         new_metadata["apps"] = []
         new_metadata["compose_service_relation"] = []
