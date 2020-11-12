@@ -7,17 +7,21 @@ import time
 
 from django.db import transaction
 
+from console.repositories.app_config_group import app_config_group_repo, app_config_group_service_repo
+from console.repositories.app_config_group import app_config_group_item_repo
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
 from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo, volume_repo
+from console.repositories.component_graph import component_graph_repo
 from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.group_service import group_service
+from console.services.app_config import component_service_monitor
 from console.services.plugin import plugin_config_service, plugin_service
 from console.services.service_services import base_service
 from www.apiclient.baseclient import HttpClient
@@ -93,6 +97,30 @@ class ShareService(object):
             return dep_service_map
         else:
             return {}
+
+    @staticmethod
+    def list_service_monitors(tenant_id, service_ids):
+        monitors = component_service_monitor.list_by_service_ids(tenant_id, service_ids)
+        result = {}
+        for monitor in monitors:
+            if not result.get(monitor.service_id):
+                result[monitor.service_id] = []
+            m = monitor.to_dict()
+            del m["ID"]
+            result[monitor.service_id].append(m)
+        return result
+
+    @staticmethod
+    def list_component_graphs(component_ids):
+        graphs = component_graph_repo.list_by_component_ids(component_ids)
+        result = {}
+        for graph in graphs:
+            if not result.get(graph.component_id):
+                result[graph.component_id] = []
+            g = graph.to_dict()
+            del g["ID"]
+            result[graph.component_id].append(g)
+        return result
 
     def get_dep_mnts_by_ids(self, tenant_id, service_ids):
         mnt_relations = mnt_repo.list_mnt_relations_by_service_ids(tenant_id, service_ids)
@@ -207,168 +235,174 @@ class ShareService(object):
             if service_last_share_info:
                 service_last_share_info = {service["service_id"]: service for service in service_last_share_info}
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
-        if service_list:
-            array_ids = [x.service_id for x in service_list]
-            deploy_versions = self.get_team_service_deploy_version(service_list[0].service_region, team, array_ids)
-            array_keys = []
-            for x in service_list:
-                if x.service_key == "application" or x.service_key == "0000" or x.service_key == "":
-                    array_keys.append(x.service_key)
-            # 查询组件端口信息
-            service_port_map = self.get_service_ports_by_ids(array_ids)
-            # 查询组件依赖
-            dep_service_map = self.get_service_dependencys_by_ids(array_ids)
-            # 查询组件可变参数和不可变参数
-            # service_env_change_map, service_env_nochange_map = self.get_service_env_by_ids(array_ids)
-            service_env_map = self.get_service_env_by_ids(array_ids)
-            # 查询组件持久化信息
-            service_volume_map = self.get_service_volume_by_ids(array_ids)
-            # dependent volume
-            dep_mnt_map = self.get_dep_mnts_by_ids(team.tenant_id, array_ids)
-            # 获取组件的健康检测设置
-            probe_map = self.get_service_probes(array_ids)
-
-            all_data_map = dict()
-
-            for service in service_list:
-                data = dict()
-                data['service_id'] = service.service_id
-                data['tenant_id'] = service.tenant_id
-                data['service_cname'] = service.service_cname
-                data['service_key'] = service.service_key
-                if (service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql'):
-                    data['service_key'] = make_uuid()
-                    service.service_key = data['service_key']
-                    service.save()
-                #     data['need_share'] = True
-                # else:
-                #     data['need_share'] = False
-                data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
-                data['need_share'] = True
-                data['category'] = service.category
-                data['language'] = service.language
-                data['extend_method'] = service.extend_method
-                data['version'] = service.version
-                data['memory'] = service.min_memory - service.min_memory % 32
-                data['service_type'] = service.service_type
-                data['service_source'] = service.service_source
-                data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
-                data['image'] = service.image
-                data['service_alias'] = service.service_alias
-                data['service_name'] = service.service_name
-                data['service_region'] = service.service_region
-                data['creater'] = service.creater
-                data["cmd"] = service.cmd
-                data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
-                e_m = dict()
-                e_m['step_node'] = 1
-                e_m['min_memory'] = service.min_memory
-                e_m['max_memory'] = 65536
-                e_m['step_memory'] = 128
-                e_m['is_restart'] = 0
-                e_m['min_node'] = service.min_node
-                if is_singleton(service.extend_method):
-                    e_m['max_node'] = 1
-                else:
-                    e_m['max_node'] = 20
-                data['extend_method_map'] = e_m
-                data['port_map_list'] = list()
-                if service_port_map.get(service.service_id):
-                    for port in service_port_map.get(service.service_id):
-                        p = dict()
-                        # 写需要返回的port数据
-                        p['protocol'] = port.protocol
-                        p['tenant_id'] = port.tenant_id
-                        p['port_alias'] = port.port_alias
-                        p['container_port'] = port.container_port
-                        p['is_inner_service'] = port.is_inner_service
-                        p['is_outer_service'] = port.is_outer_service
-                        data['port_map_list'].append(p)
-
-                data['service_volume_map_list'] = list()
-                if service_volume_map.get(service.service_id):
-                    for volume in service_volume_map.get(service.service_id):
-                        s_v = dict()
-                        s_v['file_content'] = ''
-                        if volume.volume_type == "config-file":
-                            config_file = volume_repo.get_service_config_file(volume.ID)
-                            if config_file:
-                                s_v['file_content'] = config_file.file_content
-                        s_v['category'] = volume.category
-                        s_v['volume_capacity'] = volume.volume_capacity
-                        s_v['volume_provider_name'] = volume.volume_provider_name
-                        s_v['volume_type'] = volume.volume_type
-                        s_v['volume_path'] = volume.volume_path
-                        s_v['volume_name'] = volume.volume_name
-                        s_v['access_mode'] = volume.access_mode
-                        s_v['share_policy'] = volume.share_policy
-                        s_v['backup_policy'] = volume.backup_policy
-                        data['service_volume_map_list'].append(s_v)
-
-                data['service_env_map_list'] = list()
-                data['service_connect_info_map_list'] = list()
-                if service_env_map.get(service.service_id):
-                    for env_change in service_env_map.get(service.service_id):
-                        if env_change.container_port == 0:
-                            e_c = dict()
-                            e_c['name'] = env_change.name
-                            e_c['attr_name'] = env_change.attr_name
-                            e_c['attr_value'] = env_change.attr_value
-                            e_c['is_change'] = env_change.is_change
-                            if env_change.scope == "outer":
-                                e_c['container_port'] = env_change.container_port
-                                data['service_connect_info_map_list'].append(e_c)
-                            else:
-                                data['service_env_map_list'].append(e_c)
-
-                data['service_related_plugin_config'] = list()
-                # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
-                plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=[service.service_id])
-                for spr in plugins_relation_list:
-                    service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(
-                        spr.service_id, spr.plugin_id, spr.build_version)
-                    plugin_data = spr.to_dict()
-                    plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
-                    data['service_related_plugin_config'].append(plugin_data)
-                if service_last_share_info:
-                    service_data = service_last_share_info.get(service.service_id)
-                    if service_data:
-                        data["extend_method_map"] = self.service_last_share_cache(data["extend_method_map"],
-                                                                                  service_data["extend_method_map"])
-                        data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
-                                                                                     service_data["service_env_map_list"])
-                all_data_map[service.service_id] = data
-
-            all_data = list()
-            for service_id in all_data_map:
-                service = all_data_map[service_id]
-                service['dep_service_map_list'] = list()
-                if dep_service_map.get(service['service_id']):
-                    for dep in dep_service_map[service['service_id']]:
-                        d = dict()
-                        if all_data_map.get(dep.service_id):
-                            # 通过service_key和service_id来判断依赖关系
-                            d['dep_service_key'] = all_data_map[dep.service_id]["service_share_uuid"]
-                            service['dep_service_map_list'].append(d)
-
-                service["mnt_relation_list"] = list()
-
-                if dep_mnt_map.get(service_id):
-                    for dep_mnt in dep_mnt_map.get(service_id):
-                        if not all_data_map.get(dep_mnt.dep_service_id):
-                            continue
-                        service["mnt_relation_list"].append({
-                            "service_share_uuid":
-                            all_data_map[dep_mnt.dep_service_id]["service_share_uuid"],
-                            "mnt_name":
-                            dep_mnt.mnt_name,
-                            "mnt_dir":
-                            dep_mnt.mnt_dir
-                        })
-                all_data.append(service)
-            return all_data
-        else:
+        if not service_list:
             return []
+        array_ids = [x.service_id for x in service_list]
+        deploy_versions = self.get_team_service_deploy_version(service_list[0].service_region, team, array_ids)
+        array_keys = []
+        for x in service_list:
+            if x.service_key == "application" or x.service_key == "0000" or x.service_key == "":
+                array_keys.append(x.service_key)
+        # 查询组件端口信息
+        service_port_map = self.get_service_ports_by_ids(array_ids)
+        # 查询组件依赖
+        dep_service_map = self.get_service_dependencys_by_ids(array_ids)
+        # 查询组件可变参数和不可变参数
+        # service_env_change_map, service_env_nochange_map = self.get_service_env_by_ids(array_ids)
+        service_env_map = self.get_service_env_by_ids(array_ids)
+        # 查询组件持久化信息
+        service_volume_map = self.get_service_volume_by_ids(array_ids)
+        # dependent volume
+        dep_mnt_map = self.get_dep_mnts_by_ids(team.tenant_id, array_ids)
+        # 获取组件的健康检测设置
+        probe_map = self.get_service_probes(array_ids)
+        # service monitor
+        sid_2_monitors = self.list_service_monitors(team.tenant_id, array_ids)
+        # component graphs
+        sid_2_graphs = self.list_component_graphs(array_ids)
+
+        all_data_map = dict()
+
+        for service in service_list:
+            data = dict()
+            data['service_id'] = service.service_id
+            data['tenant_id'] = service.tenant_id
+            data['service_cname'] = service.service_cname
+            data['service_key'] = service.service_key
+            if (service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql'):
+                data['service_key'] = make_uuid()
+                service.service_key = data['service_key']
+                service.save()
+            data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
+            data['need_share'] = True
+            data['category'] = service.category
+            data['language'] = service.language
+            data['extend_method'] = service.extend_method
+            data['version'] = service.version
+            data['memory'] = service.min_memory - service.min_memory % 32
+            data['service_type'] = service.service_type
+            data['service_source'] = service.service_source
+            data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
+            data['image'] = service.image
+            data['service_alias'] = service.service_alias
+            data['service_name'] = service.service_name
+            data['service_region'] = service.service_region
+            data['creater'] = service.creater
+            data["cmd"] = service.cmd
+            data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
+            e_m = dict()
+            e_m['step_node'] = 1
+            e_m['min_memory'] = service.min_memory
+            e_m['max_memory'] = 65536
+            e_m['step_memory'] = 128
+            e_m['is_restart'] = 0
+            e_m['min_node'] = service.min_node
+            if is_singleton(service.extend_method):
+                e_m['max_node'] = 1
+            else:
+                e_m['max_node'] = 20
+            data['extend_method_map'] = e_m
+            data['port_map_list'] = list()
+            if service_port_map.get(service.service_id):
+                for port in service_port_map.get(service.service_id):
+                    p = dict()
+                    # 写需要返回的port数据
+                    p['protocol'] = port.protocol
+                    p['tenant_id'] = port.tenant_id
+                    p['port_alias'] = port.port_alias
+                    p['container_port'] = port.container_port
+                    p['k8s_service_name'] = port.k8s_service_name
+                    p['is_inner_service'] = port.is_inner_service
+                    p['is_outer_service'] = port.is_outer_service
+                    data['port_map_list'].append(p)
+
+            data['service_volume_map_list'] = list()
+            if service_volume_map.get(service.service_id):
+                for volume in service_volume_map.get(service.service_id):
+                    s_v = dict()
+                    s_v['file_content'] = ''
+                    if volume.volume_type == "config-file":
+                        config_file = volume_repo.get_service_config_file(volume.ID)
+                        if config_file:
+                            s_v['file_content'] = config_file.file_content
+                    s_v['category'] = volume.category
+                    s_v['volume_capacity'] = volume.volume_capacity
+                    s_v['volume_provider_name'] = volume.volume_provider_name
+                    s_v['volume_type'] = volume.volume_type
+                    s_v['volume_path'] = volume.volume_path
+                    s_v['volume_name'] = volume.volume_name
+                    s_v['access_mode'] = volume.access_mode
+                    s_v['share_policy'] = volume.share_policy
+                    s_v['backup_policy'] = volume.backup_policy
+                    data['service_volume_map_list'].append(s_v)
+
+            data['service_env_map_list'] = list()
+            data['service_connect_info_map_list'] = list()
+            if service_env_map.get(service.service_id):
+                for env_change in service_env_map.get(service.service_id):
+                    if env_change.container_port == 0:
+                        e_c = dict()
+                        e_c['name'] = env_change.name
+                        e_c['attr_name'] = env_change.attr_name
+                        e_c['attr_value'] = env_change.attr_value
+                        e_c['is_change'] = env_change.is_change
+                        if env_change.scope == "outer":
+                            e_c['container_port'] = env_change.container_port
+                            data['service_connect_info_map_list'].append(e_c)
+                        else:
+                            data['service_env_map_list'].append(e_c)
+
+            data['service_related_plugin_config'] = list()
+            # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
+            plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=[service.service_id])
+            for spr in plugins_relation_list:
+                service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(
+                    spr.service_id, spr.plugin_id, spr.build_version)
+                plugin_data = spr.to_dict()
+                plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
+                data['service_related_plugin_config'].append(plugin_data)
+            if service_last_share_info:
+                service_data = service_last_share_info.get(service.service_id)
+                if service_data:
+                    data["extend_method_map"] = self.service_last_share_cache(data["extend_method_map"],
+                                                                              service_data["extend_method_map"])
+                    data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
+                                                                                 service_data["service_env_map_list"])
+
+            # component moniotr
+            data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
+            data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
+
+            all_data_map[service.service_id] = data
+
+        all_data = list()
+        for service_id in all_data_map:
+            service = all_data_map[service_id]
+            service['dep_service_map_list'] = list()
+            if dep_service_map.get(service['service_id']):
+                for dep in dep_service_map[service['service_id']]:
+                    d = dict()
+                    if all_data_map.get(dep.service_id):
+                        # 通过service_key和service_id来判断依赖关系
+                        d['dep_service_key'] = all_data_map[dep.service_id]["service_share_uuid"]
+                        service['dep_service_map_list'].append(d)
+
+            service["mnt_relation_list"] = list()
+
+            if dep_mnt_map.get(service_id):
+                for dep_mnt in dep_mnt_map.get(service_id):
+                    if not all_data_map.get(dep_mnt.dep_service_id):
+                        continue
+                    service["mnt_relation_list"].append({
+                        "service_share_uuid":
+                        all_data_map[dep_mnt.dep_service_id]["service_share_uuid"],
+                        "mnt_name":
+                        dep_mnt.mnt_name,
+                        "mnt_dir":
+                        dep_mnt.mnt_dir
+                    })
+            all_data.append(service)
+        return all_data
 
     def service_last_share_cache(self, service_info, last_share_info):
         if service_info:
@@ -665,7 +699,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, share_record, share_team, share_user, share_info, use_force):
+    def create_share_info(self, region_name, share_record, share_team, share_user, share_info, use_force):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -700,6 +734,7 @@ class ShareService(object):
 
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
+
             app_templete = {}
             # 处理基本信息
             try:
@@ -713,6 +748,12 @@ class ShareService(object):
                     transaction.savepoint_rollback(sid)
                 logger.exception(e)
                 raise ServiceHandleException(msg="Basic information processing error", msg_show="基本信息处理错误")
+
+            # group config
+            service_ids = [svc["service_id"] for svc in share_info["share_service_list"]]
+            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids)
+
+            # plugins
             try:
                 # 确定分享的插件ID
                 plugins = share_info.get("share_plugin_list", None)
@@ -840,6 +881,23 @@ class ShareService(object):
             if sid:
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
+
+    def config_groups(self, region_name, service_ids):
+        groups = app_config_group_repo.list_by_service_ids(region_name, service_ids)
+        cgs = []
+        for group in groups:
+            # list related items
+            cg = {
+                "name": group.config_group_name,
+                "injection_type": group.deploy_type,
+                "config_items":
+                {item.item_key: item.item_value
+                 for item in app_config_group_item_repo.list(group.config_group_id)},
+                "component_ids": [service.service_id for service in app_config_group_service_repo.list(group.config_group_id)],
+            }
+            cgs.append(cg)
+
+        return cgs
 
     @staticmethod
     def _handle_dependencies(service, dev_service_set, use_force):
