@@ -12,7 +12,7 @@ from django.db import transaction
 from console.constants import AppMigrateType
 from console.models.main import ServiceRelPerms
 from console.models.main import ServiceSourceInfo
-from console.repositories.app_config import domain_repo
+from console.repositories.app_config import domain_repo, port_repo
 from console.repositories.app_config import tcp_domain
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
@@ -25,6 +25,9 @@ from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.app_config import volume_repo
+from console.repositories.app_config_group import app_config_group_repo
+from console.services.app_config_group import app_config_group_service
+from console.services.app_config.port_service import port_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.exception import ErrBackupRecordNotFound
 from console.services.exception import ErrNeedAllServiceCloesed
@@ -32,6 +35,7 @@ from console.services.exception import ErrObjectStorageInfoNotFound
 from console.services.group_service import group_service
 from console.services.app import app_service
 from www.apiclient.regionapi import RegionInvokeApi
+from console.models.main import ServiceMonitor, ComponentGraph
 from www.models.label import ServiceLabels
 from www.models.main import ImageServiceRelation
 from www.models.main import ServiceDomain
@@ -251,6 +255,8 @@ class GroupappsMigrateService(object):
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
             self.__save_third_party_service_endpoints(ts, app.get("third_party_service_endpoints", []))
+            self.__save_service_monitors(migrate_tenant, ts, app["service_monitors"])
+            self.__save_component_graphs(ts, app["component_graphs"])
 
             if ts.service_source == "third_party":
                 app_service.create_third_party_service(migrate_tenant, ts, user.nick_name)
@@ -311,6 +317,8 @@ class GroupappsMigrateService(object):
                 self.__save_service_plugin_config(ts.service_id, app["service_plugin_config"])
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map)
+        # restore application config group
+        self.__save_app_config_groups(metadata["app_config_group_info"], migrate_tenant, group_id, changed_service_map)
 
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
         service_base_info.pop("ID")
@@ -392,9 +400,16 @@ class GroupappsMigrateService(object):
         port_list = []
         for port in tenant_service_ports:
             port.pop("ID")
+            if port["k8s_service_name"] != "":
+                try:
+                    port_repo.get_by_k8s_service_name(tenant.tenant_id, port["k8s_service_name"])
+                    port["k8s_service_name"] = "-".join([port["k8s_service_name"], make_uuid()[-4:]])
+                except TenantServicesPort.DoesNotExist:
+                    pass
             new_port = TenantServicesPort(**port)
             new_port.service_id = service.service_id
             new_port.tenant_id = tenant.tenant_id
+            new_port.k8s_service_name = port["k8s_service_name"]
             port_list.append(new_port)
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
@@ -702,6 +717,58 @@ class GroupappsMigrateService(object):
             }
             service_endpoint_list.append(ThirdPartyServiceEndpoints(**endpoint))
         ThirdPartyServiceEndpoints.objects.bulk_create(service_endpoint_list)
+
+    def __save_app_config_groups(self, config_groups, tenant, app_id, changed_service_map):
+        if not config_groups:
+            return
+        config_group_ids = []
+
+        for cgroup in config_groups:
+            service_ids = []
+            is_exists = app_config_group_repo.is_exists(tenant.region, app_id, cgroup["config_group_name"])
+            if is_exists:
+                cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
+            for service in cgroup["services"]:
+                try:
+                    service_ids.append(changed_service_map[service["service_id"]]["ServiceID"])
+                except KeyError:
+                    continue
+
+            config_group = app_config_group_service.create_config_group(
+                app_id, cgroup["config_group_name"], cgroup["config_items"], cgroup["deploy_type"], cgroup["enable"],
+                service_ids, tenant.region, tenant.tenant_name)
+            config_group_ids.append(config_group["config_group_id"])
+        return config_group_ids
+
+    def __save_service_monitors(self, tenant, service, service_monitors):
+        monitor_list = []
+        if service_monitors:
+            for monitor in service_monitors:
+                if ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, name=monitor["name"]).count() > 0:
+                    monitor["name"] = "-".join([monitor["name"], make_uuid()[-4:]])
+                data = ServiceMonitor(
+                    name=monitor["name"],
+                    tenant_id=tenant.tenant_id,
+                    service_id=service.service_id,
+                    path=monitor["path"],
+                    port=monitor["port"],
+                    service_show_name=monitor["service_show_name"],
+                    interval=monitor["interval"])
+                monitor_list.append(data)
+        ServiceMonitor.objects.bulk_create(monitor_list)
+
+    def __save_component_graphs(self, service, component_graphs):
+        graph_list = []
+        if component_graphs:
+            for graph in component_graphs:
+                data = ComponentGraph(
+                    component_id=service.service_id,
+                    graph_id=make_uuid(),
+                    title=graph["title"],
+                    promql=graph["promql"],
+                    sequence=graph["sequence"])
+                graph_list.append(data)
+        ComponentGraph.objects.bulk_create(graph_list)
 
 
 migrate_service = GroupappsMigrateService()
