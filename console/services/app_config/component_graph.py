@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
 import subprocess
-import os
 import logging
 import platform
+import json
+import os
 
 from django.db import transaction
 
@@ -16,6 +17,56 @@ logger = logging.getLogger("default")
 
 
 class ComponentGraphService(object):
+    @staticmethod
+    def _load_internal_graphs():
+        filenames = []
+        internal_graphs = {}
+        path_to_graphs = BASE_DIR + "/hack/component-graphs"
+        try:
+            for filename in os.listdir(path_to_graphs):
+                path = path_to_graphs + "/" + filename
+                try:
+                    with open(path) as f:
+                        name, _ = os.path.splitext(filename)
+                        internal_graphs[name] = json.load(f)
+                        filenames.append(name)
+                except ValueError as e:
+                    # ignore wrong json file
+                    logger.warning(e)
+        except OSError as e:
+            # directory not found
+            logger.warning(e)
+        return filenames, internal_graphs
+
+    def list_internal_graphs(self):
+        graphs, _ = self._load_internal_graphs()
+        return graphs
+
+    def create_internal_graphs(self, component_id, graph_name):
+        _, internal_graphs = self._load_internal_graphs()
+        if not internal_graphs or not internal_graphs.get(graph_name):
+            raise AbortRequest("graph '{}' not found".format(graph_name), status_code=404, error_code=404)
+
+        graphs = []
+        seq = self._next_sequence(component_id)
+        for graph in internal_graphs.get(graph_name):
+            try:
+                promql = self.add_or_update_label(component_id, graph["promql"])
+            except AbortRequest as e:
+                logger.warning("promql {}: {}".format(graph["promql"], e))
+                continue
+            graphs.append(
+                ComponentGraph(
+                    component_id=component_id,
+                    graph_id=make_uuid(),
+                    title=graph["title"],
+                    promql=promql,
+                    sequence=seq,
+                ))
+            seq += 1
+
+        ComponentGraph.objects.bulk_create(graphs)
+
     def create_component_graph(self, component_id, title, promql):
         promql = self.add_or_update_label(component_id, promql)
         graph_id = make_uuid()
