@@ -1218,6 +1218,9 @@ class AppManageService(AppManageBase):
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
+        service_monitor_repo.delete_by_service_id(service.service_id)
+        component_graph_service.delete_all_component_graph(service.service_id)
+        app_config_group_service_repo.delete_effective_service(service.service_id)
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
