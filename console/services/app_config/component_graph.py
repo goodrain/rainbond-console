@@ -33,7 +33,7 @@ class ComponentGraphService(object):
         component_graph_repo.delete(graph.component_id, graph.graph_id)
         self._sequence_move_forward(graph.component_id, graph.sequence)
 
-    def delete_all_component_graph(self, component_id):
+    def delete_component_graph_by_id(self, component_id):
         return component_graph_repo.delete_by_component_id(component_id)
 
     @transaction.atomic()
