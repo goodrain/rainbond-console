@@ -49,6 +49,10 @@ class ComponentGraphRepository(object):
         ComponentGraph.objects.filter(component_id=component_id, graph_id=graph_id).delete()
 
     @staticmethod
+    def delete_by_component_id(component_id):
+        ComponentGraph.objects.filter(component_id=component_id).delete()
+
+    @staticmethod
     def update(component_id, graph_id, **data):
         ComponentGraph.objects.filter(component_id=component_id, graph_id=graph_id).update(**data)
 

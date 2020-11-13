@@ -30,11 +30,14 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.repositories.share_repo import share_repo
+from console.repositories.app_config_group import app_config_group_service_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
 from console.services.app_config import (AppEnvVarService, AppMntService, AppPortService, AppServiceRelationService,
                                          AppVolumeService)
+from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.service_services import base_service
 from console.utils import slug_util
@@ -924,6 +927,9 @@ class AppManageService(AppManageBase):
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
+        component_graph_service.delete_by_component_id(service.service_id)
+        app_config_group_service_repo.delete_effective_service(service.service_id)
+        service_monitor_repo.delete_by_service_id(service.service_id)
         # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
@@ -1212,6 +1218,9 @@ class AppManageService(AppManageBase):
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
+        service_monitor_repo.delete_by_service_id(service.service_id)
+        component_graph_service.delete_by_component_id(service.service_id)
+        app_config_group_service_repo.delete_effective_service(service.service_id)
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:

@@ -84,6 +84,9 @@ class ComponentGraphService(object):
         component_graph_repo.delete(graph.component_id, graph.graph_id)
         self._sequence_move_forward(graph.component_id, graph.sequence)
 
+    def delete_by_component_id(self, component_id):
+        return component_graph_repo.delete_by_component_id(component_id)
+
     @transaction.atomic()
     def update_component_graph(self, graph, title, promql, sequence):
         data = {
