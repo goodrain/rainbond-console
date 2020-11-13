@@ -933,12 +933,12 @@ class ServiceMonitor(BaseModel):
         db_table = "tenant_service_monitor"
         unique_together = ('name', 'tenant_id')
 
-    name = models.CharField(max_length=64, help_text="应用商店标识")
+    name = models.CharField(max_length=64, help_text="名称")
     tenant_id = models.CharField(max_length=32, help_text="团队ID")
     service_id = models.CharField(max_length=32, help_text="组件ID")
     path = models.CharField(max_length=32, help_text="组件ID")
     port = models.IntegerField(help_text="端口号")
-    service_show_name = models.CharField(max_length=64, help_text="组件ID")
+    service_show_name = models.CharField(max_length=64, help_text="展示名称")
     interval = models.CharField(max_length=10, help_text="收集指标时间间隔")
 
 
