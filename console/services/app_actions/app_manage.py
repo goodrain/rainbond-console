@@ -927,7 +927,7 @@ class AppManageService(AppManageBase):
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
         service_backup_repo.del_by_sid(service.tenant_id, service.service_id)
-        component_graph_service.delete_component_graph_by_id(service.service_id)
+        component_graph_service.delete_by_component_id(service.service_id)
         app_config_group_service_repo.delete_effective_service(service.service_id)
         service_monitor_repo.delete_by_service_id(service.service_id)
         # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
@@ -1219,7 +1219,7 @@ class AppManageService(AppManageBase):
         service_label_repo.delete_service_all_labels(service.service_id)
         share_repo.delete_tenant_service_plugin_relation(service.service_id)
         service_monitor_repo.delete_by_service_id(service.service_id)
-        component_graph_service.delete_component_graph_by_id(service.service_id)
+        component_graph_service.delete_by_component_id(service.service_id)
         app_config_group_service_repo.delete_effective_service(service.service_id)
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
