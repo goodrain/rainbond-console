@@ -1000,8 +1000,6 @@ class TenantServiceConfigurationFile(BaseModel):
 class ServiceGroup(BaseModel):
     """组件分组（应用）"""
 
-    from console.enum.app import GovernanceModeEnum
-
     class Meta:
         db_table = 'service_group'
 
@@ -1011,13 +1009,8 @@ class ServiceGroup(BaseModel):
     is_default = models.BooleanField(default=False, help_text=u"默认组件")
     order_index = models.IntegerField(default=0, help_text=u"应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
-    username = models.CharField(null=True, blank=True, help_text="the username of principal")
-    governance_mode = models.CharField(
-        choices=GovernanceModeEnum.choices(),
-        default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name,
-        null=True,
-        blank=True,
-        help_text="governance mode")
+    username = models.CharField(max_length=255, null=True, blank=True, help_text="the username of principal")
+    governance_mode = models.CharField(max_length=255, null=True, blank=True, help_text="governance mode")
     create_time = models.DateTimeField(help_text=u"创建时间")
     update_time = models.DateTimeField(help_text=u"更新时间")
 
