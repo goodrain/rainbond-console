@@ -7,11 +7,11 @@ import os
 
 from django.db import transaction
 
+from console.models.main import ComponentGraph
 from goodrain_web.settings import BASE_DIR
 from console.exception.main import AbortRequest
 from console.repositories.component_graph import component_graph_repo
 from www.utils.crypt import make_uuid
-from console.models.main import ComponentGraph
 
 logger = logging.getLogger("default")
 

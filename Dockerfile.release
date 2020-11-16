@@ -11,15 +11,13 @@ ADD . /app/ui
 
 WORKDIR /app/ui
 
-RUN apk update -y && apk add -y git mysql-client && cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai \
-      && chmod +x /app/ui/entrypoint.sh  \
-      && mkdir -p /app/ui/bin/linux \
-      && chmod +x promql-parser \
-      && mv promql-parser /app/ui/bin/linux \
-      && mv /dist/index.html /app/ui/www/templates/index.html \
-      && rm -rf /app/ui/www/static/dists/* \
-      && cp -a /dist/* /app/ui/www/static/dists/ \
-      && rm -rf /dist \
+RUN chmod +x /app/ui/entrypoint.sh &&  \
+      chmod +x promql-parser && \
+      mkdir -p /app/ui/bin/linux && mv promql-parser /app/ui/bin/linux && \
+      mv /dist/index.html /app/ui/www/templates/index.html && \
+      rm -rf /app/ui/www/static/dists/* && \
+      cp -a /dist/* /app/ui/www/static/dists/ && \
+      rm -rf /dist \
       && mkdir /app/logs \
       && pip install -r requirements.txt \
       && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
@@ -35,4 +33,3 @@ VOLUME /initdata
 VOLUME /app/logs
 
 ENTRYPOINT ["./entrypoint.sh"]
-
