@@ -3,7 +3,6 @@
   Created by leon on 18/1/5.
 """
 import logging
-import re
 
 from rest_framework.response import Response
 

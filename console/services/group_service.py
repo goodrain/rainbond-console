@@ -25,8 +25,8 @@ from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.user_repo import user_repo
 from console.utils.shortcuts import get_object_or_404
 from console.exception.main import ServiceHandleException
-from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
-from console.exception.main import AbortRequest, ErrK8sServiceNameExists
+from www.models.main import ServiceGroup, ServiceGroupRelation
+from console.exception.main import AbortRequest
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
 
