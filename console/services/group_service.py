@@ -48,16 +48,24 @@ class GroupService(object):
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
+    def create_app(self, tenant, region_name, app_name, note=""):
+        app = self.add_group(tenant, region_name, app_name, note)
+        self.create_region_app(tenant, region_name, app)
+        return app.to_dict()
+
+    def create_default_app(self, tenant, region_name):
+        app = group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
+        self.create_region_app(tenant, region_name, app)
+        return app.to_dict()
+
     @transaction.atomic()
     def add_group(self, tenant, region_name, app_name, note=""):
         self.check_app_name(tenant, region_name, app_name)
         return group_repo.add_group(tenant.tenant_id, region_name, app_name, note)
 
-    def create_app(self, tenant, region_name, app_name, note=""):
-        app = self.add_group(tenant, region_name, app_name, note)
-
+    def create_region_app(self, tenant, region_name, app):
         region_app = region_api.create_application(region_name, tenant.tenant_name, {
-            "app_name": app_name,
+            "app_name": app.group_name,
         })
 
         # record the dependencies between region app and console app
@@ -68,7 +76,7 @@ class GroupService(object):
         }
         region_app_repo.create(**data)
 
-        return app.to_dict()
+
 
     def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
         # check app id
