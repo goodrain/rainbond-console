@@ -257,12 +257,6 @@ class AppKubernetesServiceView(ApplicationView):
 
         # data validation
         for k8s_service in k8s_services:
-            # k8s_service_name
-            if len(k8s_service.get("k8s_service_name")) > 63 or len(k8s_service.get("k8s_service_name")) == 0:
-                raise AbortRequest("k8s_service_name must be no more than 63 characters")
-            if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service['k8s_service_name']):
-                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
-            # service_id
             if not k8s_service.get("service_id"):
                 raise AbortRequest("the field 'service_id' is required")
             if not k8s_service.get("port"):

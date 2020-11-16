@@ -76,8 +76,6 @@ class GroupService(object):
         }
         region_app_repo.create(**data)
 
-
-
     def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
         # check app id
         if not app_id or app_id < 0:
@@ -455,21 +453,10 @@ class GroupService(object):
 
     @transaction.atomic()
     def update_kubernetes_services(self, tenant, region_name, app_id, k8s_services):
+        from console.services.app_config import port_service
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
         for k8s_service in k8s_services:
-            # check k8s_service_name
-            try:
-                # whether k8s_service_name exists
-                port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service["k8s_service_name"])
-                try:
-                    # k8s_service_name belong to the current k8s_service?
-                    port_repo.check_k8s_service_name(tenant.tenant_id, k8s_service["service_id"], k8s_service["port"],
-                                                     k8s_service["k8s_service_name"])
-                except TenantServicesPort.DoesNotExist:
-                    raise ErrK8sServiceNameExists
-            except TenantServicesPort.DoesNotExist:
-                pass
-
+            port_service.check_k8s_service_name(tenant.tenant_id, k8s_service.get("k8s_service_name"), k8s_service["port"])
             # check if the given k8s_services belong to the app based on app_id
             if k8s_service["service_id"] not in service_ids:
                 raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app_id))
