@@ -159,5 +159,5 @@ class StoreNoPermissionsError(ServiceHandleException):
 
 
 class ErrVolumePath(ServiceHandleException):
-    def __init__(self):
-        super(ErrVolumePath, self).__init__(msg="path error", msg_show="请输入符合规范的路径（如：/tmp/volumes）", status_code=412)
+    def __init__(self, msg="path error", msg_show="路径错误", status_code=412):
+        super(ErrVolumePath, self).__init__(msg, msg_show, status_code)

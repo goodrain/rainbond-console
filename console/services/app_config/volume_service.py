@@ -33,19 +33,12 @@ class AppVolumeService(object):
         "/boot",
         "/dev",
         "/etc",
-        "/home",
         "/lib",
         "/lib64",
-        "/opt",
         "/proc",
-        "/root",
         "/sbin",
-        "/srv",
         "/sys",
-        "/tmp",
-        "/usr",
         "/var",
-        "/usr/local",
         "/usr/sbin",
         "/usr/bin",
     ]
@@ -189,10 +182,14 @@ class AppVolumeService(object):
             if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
                 volume_path_win = True
             if not volume_path.startswith("/") and not volume_path_win:
-                raise ServiceHandleException(msg="path error", msg_show="路径仅支持linux和windows")
+                raise ErrVolumePath(msg_show="路径仅支持linux和windows")
+            if volume_path in self.SYSDIRS:
+                raise ErrVolumePath(msg_show="路径{0}为系统路径".format(volume_path))
+            if volume_path_win and len(volume_path) == 3:
+                raise ErrVolumePath(msg_show="路径不能为系统路径")
         else:
             if not is_path_legal(volume_path):
-                raise ErrVolumePath
+                raise ErrVolumePath(msg_show="请输入符合规范的路径（如：/tmp/volumes）")
         all_volumes = volume_repo.get_service_volumes(service.service_id).values("volume_path")
         for path in list(all_volumes):
             # volume_path不能重复
