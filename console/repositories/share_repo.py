@@ -130,7 +130,7 @@ class ShareRepo(object):
     def get_last_app_versions_by_app_id(self, app_id):
         conn = BaseConnection()
         sql = """
-            SELECT B.version, B.version_alias, B.app_version_info as `describe`
+            SELECT B.version, B.version_alias, B.dev_status, B.app_version_info as `describe`
             FROM (SELECT app_id, version, max(upgrade_time) as upgrade_time
                 FROM rainbond_center_app_version
                 WHERE is_complete=1

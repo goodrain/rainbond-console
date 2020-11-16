@@ -72,14 +72,21 @@ class GroupAppCopyService(object):
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
-        services_metadata = self.pop_services_metadata(old_team, old_region_name, tar_team, tar_region_name, services_metadata,
-                                                       remove_service_ids, service_ids)
-        services_metadata = self.change_services_metadata_info(services_metadata, changes)
         change_services_map = self.change_services_map(service_ids)
+        services_metadata = self.pop_services_metadata(old_team, old_region_name, tar_team, tar_region_name, services_metadata,
+                                                       remove_service_ids, service_ids, change_services_map)
+        services_metadata = self.change_services_metadata_info(services_metadata, changes)
         return services_metadata, change_services_map
 
-    def pop_services_metadata(self, old_team, old_region_name, tar_team, tar_region_name, metadata, remove_service_ids,
-                              service_ids):
+    def pop_services_metadata(self,
+                              old_team,
+                              old_region_name,
+                              tar_team,
+                              tar_region_name,
+                              metadata,
+                              remove_service_ids,
+                              service_ids,
+                              change_service_map=None):
         if not remove_service_ids:
             for service in metadata["apps"]:
                 # 处理组件存储依赖关系
@@ -90,6 +97,12 @@ class GroupAppCopyService(object):
                             if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
                                 new_service_mnts.append(service_mnt)
                     service["service_mnts"] = new_service_mnts
+                # Handling plugin config
+                if change_service_map and service["service_plugin_config"]:
+                    for plugin in service["service_plugin_config"]:
+                        # Get the new next service ID pointed to by the plugin through the old service ID
+                        plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
+                        plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
             return metadata
         new_metadata = {}
         new_metadata["compose_group_info"] = metadata["compose_group_info"]
@@ -123,6 +136,12 @@ class GroupAppCopyService(object):
                         if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
                             new_service_mnts.append(service_mnt)
                 service["service_mnts"] = new_service_mnts
+            # Handling plugin config
+            if change_service_map and service["service_plugin_config"]:
+                for plugin in service["service_plugin_config"]:
+                    # Get the new next service ID pointed to by the plugin through the old service ID
+                    plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
+                    plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
 
         if metadata["compose_service_relation"] is not None:
             for service in metadata["compose_service_relation"]:
