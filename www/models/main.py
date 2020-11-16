@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 from enum import Enum
 
+from console.enum.app import GovernanceModeEnum
 from django.conf import settings
 from django.db import models
 from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
@@ -1010,7 +1011,12 @@ class ServiceGroup(BaseModel):
     order_index = models.IntegerField(default=0, help_text=u"应用排序")
     note = models.CharField(max_length=2048, null=True, blank=True, help_text=u"备注")
     username = models.CharField(max_length=255, null=True, blank=True, help_text="the username of principal")
-    governance_mode = models.CharField(max_length=255, null=True, blank=True, help_text="governance mode")
+    governance_mode = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name,
+        help_text="governance mode")
     create_time = models.DateTimeField(help_text=u"创建时间")
     update_time = models.DateTimeField(help_text=u"更新时间")
 
