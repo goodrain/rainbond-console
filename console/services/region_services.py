@@ -9,7 +9,6 @@ from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
 from console.models.main import ConsoleSysConfig, RegionConfig
 from console.repositories.app import service_repo
-from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
