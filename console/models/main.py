@@ -966,7 +966,7 @@ class ConfigGroupItem(BaseModel):
     app_id = models.IntegerField(help_text="application ID")
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     item_key = models.CharField(max_length=255, help_text="config item key")
-    item_value = models.CharField(max_length=65535, help_text="config item value")
+    item_value = models.TextField(max_length=65535, help_text="config item value")
     config_group_id = models.CharField(max_length=32, help_text="config group id")
 
 
