@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-
 import yaml
+
+from console.services.group_service import group_service
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
 from console.models.main import ConsoleSysConfig, RegionConfig
 from console.repositories.app import service_repo
-from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
@@ -257,7 +257,7 @@ class RegionService(object):
                 tenant_region.region_scope = region_config.scope
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
-        group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
+        _ = group_service.create_default_app(tenant, region_name)
         return tenant_region
 
     @transaction.atomic
