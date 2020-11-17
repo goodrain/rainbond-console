@@ -17,7 +17,7 @@ from console.views.app_config.app_mnt import AppMntManageView, AppMntView
 from console.views.app_config.app_port import (AppPortManageView, AppPortView, AppTcpOuterManageView, TopologicalPortView)
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView)
-from console.views.app_config.graph import ComponentGraphListView, ComponentGraphView
+from console.views.app_config.graph import ComponentGraphListView, ComponentGraphView, ComponentInternalGraphsView
 from console.views.app_config.service_monitor import (ComponentServiceMonitorEditView, ComponentServiceMonitorView,
                                                       ComponentMetricsView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
@@ -284,9 +284,9 @@ urlpatterns = [
         TenantGroupCommonOperationView.as_view(), perms.TenantGroupCommonOperationView),
     # Application Config Group
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups$', ListAppConfigGroupView.as_view(),
-        perms.TenantGroupCommonOperationView),
+        perms.AppConfigGroupView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
-        AppConfigGroupView.as_view(), perms.TenantGroupCommonOperationView),
+        AppConfigGroupView.as_view(), perms.AppConfigGroupView),
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),
@@ -526,6 +526,8 @@ urlpatterns = [
     # 应用资源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view(),
         perms.AppResourceQueryView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/internal-graphs$',
+        ComponentInternalGraphsView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/graphs$', ComponentGraphListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/graphs/(?P<graph_id>[\w\-]+)$',
         ComponentGraphView.as_view()),

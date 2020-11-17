@@ -54,6 +54,21 @@ class AppPortService(object):
             return 400, u"端口别名不合法"
         return 200, "success"
 
+    @staticmethod
+    def check_k8s_service_name(tenant_id, k8s_service_name, container_port=None):
+        if len(k8s_service_name) > 63:
+            raise AbortRequest("k8s_service_name must be no more than 63 characters")
+        if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
+            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
+
+        # make k8s_service_name unique
+        try:
+            port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+            if container_port is None or port.container_port != container_port:
+                raise ErrK8sServiceNameExists
+        except TenantServicesPort.DoesNotExist:
+            pass
+
     def add_service_port(self,
                          tenant,
                          service,
@@ -61,7 +76,16 @@ class AppPortService(object):
                          protocol='',
                          port_alias='',
                          is_inner_service=False,
-                         is_outer_service=False):
+                         is_outer_service=False,
+                         k8s_service_name=None):
+        k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias + "-" + str(container_port)
+        try:
+            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name)
+        except ErrK8sServiceNameExists:
+            k8s_service_name = k8s_service_name + make_uuid()[:4]
+        except AbortRequest:
+            k8s_service_name = service.service_alias + "-" + str(container_port)
+
         # 第三方组件暂时只允许添加一个端口
         tenant_service_ports = self.get_service_ports(service)
         logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
@@ -86,7 +110,7 @@ class AppPortService(object):
             if not port_alias:
                 return 400, u"端口别名不能为空", None
             if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
-                host_value = service.service_alias + "-" + container_port
+                host_value = k8s_service_name
             else:
                 host_value = "127.0.0.1"
             code, msg, data = env_var_service.add_service_env_var(
@@ -106,7 +130,8 @@ class AppPortService(object):
             "protocol": protocol,
             "port_alias": port_alias,
             "is_inner_service": bool(is_inner_service),
-            "is_outer_service": bool(is_outer_service)
+            "is_outer_service": bool(is_outer_service),
+            "k8s_service_name": k8s_service_name,
         }
 
         if service.create_status == "complete":
@@ -257,9 +282,12 @@ class AppPortService(object):
         if action == "change_port_alias":
             if not port_alias:
                 return 400, u"端口别名不能为空"
-            port = port_repo.get_service_port_by_alias(service_id, port_alias)
-            if port and port.container_port != container_port:
-                return 400, u"别名已存在"
+            try:
+                port = port_repo.get_service_port_by_alias(service_id, port_alias)
+                if port.container_port != container_port:
+                    return 400, u"别名已存在"
+            except TenantServicesPort.DoesNotExist:
+                pass
         if action == "change_protocol":
             if not protocol:
                 return 400, u"端口协议不能为空"
@@ -294,7 +322,7 @@ class AppPortService(object):
         elif action == "change_protocol":
             code, msg = self.__change_protocol(tenant, service, deal_port, protocol)
         elif action == "change_port_alias":
-            self.__change_port_alias(tenant, service, deal_port, port_alias, k8s_service_name)
+            self.change_port_alias(tenant, service, deal_port, port_alias, k8s_service_name)
 
         new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if code != 200:
@@ -542,7 +570,7 @@ class AppPortService(object):
 
         return 200, "success"
 
-    def __change_port_alias(self, tenant, service, deal_port, new_port_alias, k8s_service_name):
+    def change_port_alias(self, tenant, service, deal_port, new_port_alias, k8s_service_name):
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
 
         old_port_alias = deal_port.port_alias
@@ -576,18 +604,8 @@ class AppPortService(object):
             env.save()
 
         if k8s_service_name:
-            if len(k8s_service_name) > 63:
-                raise AbortRequest("k8s_service_name must be no more than 63 characters")
-            if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
-
-            # make k8s_service_name unique
-            try:
-                port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
-                if port.k8s_service_name != k8s_service_name:
-                    raise ErrK8sServiceNameExists
-            except TenantServicesPort.DoesNotExist:
-                pass
+            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.container_port)
+            deal_port.k8s_service_name = k8s_service_name
 
         if service.create_status == "complete":
             body = deal_port.to_dict()
@@ -754,17 +772,6 @@ class AppPortService(object):
         endpoint_info = [endpoint.address for endpoint in endpoint_list]
         validate_endpoints_info(endpoint_info)
         return "", "", 200
-
-    @staticmethod
-    def check_k8s_service_name(tenant_id, k8s_service_name):
-        is_valid = False
-        try:
-            port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
-        except TenantServicesPort.DoesNotExist:
-            is_valid = True
-        return {
-            "is_valid": is_valid,
-        }
 
 
 class EndpointService(object):

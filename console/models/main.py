@@ -138,7 +138,7 @@ class RainbondCenterAppVersion(BaseModel):
     is_ingerit = models.BooleanField(default=True, help_text=u"是否可被继承")
     is_complete = models.BooleanField(default=False, help_text=u"代码或镜像是否同步完成")
     template_type = models.CharField(max_length=32, null=True, default=None, help_text=u"模板类型（ram、oam）")
-    release_user_id = models.IntegerField(help_text=u"版本release操作人id")
+    release_user_id = models.IntegerField(null=True, default=None, help_text=u"版本release操作人id")
 
 
 class RainbondCenterAppInherit(BaseModel):
@@ -933,12 +933,12 @@ class ServiceMonitor(BaseModel):
         db_table = "tenant_service_monitor"
         unique_together = ('name', 'tenant_id')
 
-    name = models.CharField(max_length=64, help_text="应用商店标识")
+    name = models.CharField(max_length=64, help_text="名称")
     tenant_id = models.CharField(max_length=32, help_text="团队ID")
     service_id = models.CharField(max_length=32, help_text="组件ID")
     path = models.CharField(max_length=32, help_text="组件ID")
     port = models.IntegerField(help_text="端口号")
-    service_show_name = models.CharField(max_length=64, help_text="组件ID")
+    service_show_name = models.CharField(max_length=64, help_text="展示名称")
     interval = models.CharField(max_length=10, help_text="收集指标时间间隔")
 
 
@@ -966,7 +966,7 @@ class ConfigGroupItem(BaseModel):
     app_id = models.IntegerField(help_text="application ID")
     config_group_name = models.CharField(max_length=64, help_text="application config group name")
     item_key = models.CharField(max_length=255, help_text="config item key")
-    item_value = models.CharField(max_length=65535, help_text="config item value")
+    item_value = models.TextField(max_length=65535, help_text="config item value")
     config_group_id = models.CharField(max_length=32, help_text="config group id")
 
 

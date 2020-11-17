@@ -35,7 +35,7 @@ elif [ "$1" = "init" ];then
         echo -e "${RED}failed to makemigrations console${NC}"
         exit 1
     fi
-    if !(python manage.py migrate 2> /dev/null); then
+    if !(python manage.py migrate > /dev/null); then
         echo -e "${RED}failed to migrate${NC}"
         exit 1
     fi

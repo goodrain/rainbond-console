@@ -8,6 +8,7 @@ from console.exception.main import ServiceHandleException
 from console.models.main import ServiceMonitor
 from console.services.app_config.port_service import AppPortService
 from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.crypt import make_uuid
 
 port_service = AppPortService()
 region_api = RegionInvokeApi()
@@ -15,6 +16,9 @@ logger = logging.getLogger("default")
 
 
 class ComponentServiceMonitor(object):
+    def list_by_service_ids(self, tenant_id, service_ids):
+        return ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
+
     def get_component_service_monitors(self, tenant_id, service_id):
         return ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
@@ -76,3 +80,25 @@ class ComponentServiceMonitor(object):
                 raise e
         ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, service_id=service.service_id, name=name).delete()
         return sm
+
+    def bulk_create_component_service_monitors(self, tenant, service, service_monitors):
+        monitor_list = []
+        for monitor in service_monitors:
+            if ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, name=monitor["name"]).count() > 0:
+                monitor["name"] = "-".join([monitor["name"], make_uuid()[-4:]])
+            data = ServiceMonitor(
+                name=monitor["name"],
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                path=monitor["path"],
+                port=monitor["port"],
+                service_show_name=monitor["service_show_name"],
+                interval=monitor["interval"])
+            monitor_list.append(data)
+        ServiceMonitor.objects.bulk_create(monitor_list)
+
+    def delete_by_service_id(self, service_id):
+        return ServiceMonitor.objects.filter(service_id=service_id).delete()
+
+
+service_monitor_repo = ComponentServiceMonitor()

@@ -12,7 +12,10 @@ class MonitorService(object):
         region_app_id = ""
         if app_id:
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        return region_api.get_monitor_metrics(region_name, tenant, target, region_app_id, component_id)
+        data = region_api.get_monitor_metrics(region_name, tenant, target, region_app_id, component_id)
+        if not data:
+            return None
+        return data.get("list", [])
 
 
 monitor_service = MonitorService()

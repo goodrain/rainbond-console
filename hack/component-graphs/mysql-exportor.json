@@ -1,0 +1,55 @@
+[
+  {
+    "title": "正常运行时间",
+    "promql": "mysql_global_status_uptime"
+  },
+  {
+    "title": "慢查询",
+    "promql": "rate(mysql_global_status_slow_queries[5m]) or irate(mysql_global_status_slow_queries[5m])"
+  },
+  {
+    "title": "QPS",
+    "promql": "rate(mysql_global_status_queries[5m]) or irate(mysql_global_status_queries[5m])"
+  },
+  {
+    "title": "磁盘读速率",
+    "promql": "irate(mysql_global_status_innodb_data_reads[10m])"
+  },
+  {
+    "title": "磁盘写速率",
+    "promql": "irate(mysql_global_status_innodb_data_writes[10m])"
+  },
+  {
+    "title": "字节接收速率",
+    "promql": "irate(mysql_global_status_bytes_received[5m])"
+  },
+  {
+    "title": "字节发送速率",
+    "promql": "irate(mysql_global_status_bytes_sent[5m])"
+  },
+  {
+    "title": "InnoDB 缓存池大小",
+    "promql": "mysql_global_variables_innodb_buffer_pool_size"
+  },
+  {
+    "title": "连接线程峰值",
+    "promql": "max_over_time(mysql_global_status_threads_connected[5m]) or\nmax_over_time(mysql_global_status_threads_connected[5m])"
+  },
+  {
+    "title": "运行线程峰值",
+    "promql": "max_over_time(mysql_global_status_threads_running[5m]) or\nmax_over_time(mysql_global_status_threads_running[5m])"
+  },
+  {
+    "title": "平均运行线程",
+    "promql": "avg_over_time(mysql_global_status_threads_running[5m]) or \navg_over_time(mysql_global_status_threads_running[5m])"
+  },
+  {
+    "title": "Table Locks Immediate",
+    "promql": "rate(mysql_global_status_table_locks_immediate[5m]) or irate(mysql_global_status_table_locks_immediate[5m])"
+  },
+  {
+    "title": "Table Locks Waited",
+    "promql": "rate(mysql_global_status_table_locks_waited[5m]) or irate(mysql_global_status_table_locks_waited[5m])"
+  }
+]
+

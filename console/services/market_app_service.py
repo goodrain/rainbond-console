@@ -10,10 +10,12 @@ from django.db import transaction
 from django.db.models import Q
 from django.core.paginator import Paginator
 
+from console.services.app_config_group import app_config_group_service
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.models.main import ServiceMonitor
 from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
 from console.repositories.base import BaseConnection
@@ -32,12 +34,14 @@ from console.services.group_service import group_service
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
+from console.services.app_config.component_graph import component_graph_service
 from console.utils import slug_util
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.exception.exceptions import ErrAppConfigGroupExists
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -119,6 +123,33 @@ class MarketAppService(object):
                         service_key_dep_key_map[ts.service_key] = dep_apps_key
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
+
+                # component monitors
+                component_monitors = app.get("component_monitors", {})
+                self.__save_monitors(ts.tenant_id, ts.service_id, component_monitors)
+
+                # component graphs
+                component_graphs = app.get("component_graphs", {})
+                component_graph_service.bulk_create(ts.service_id, component_graphs)
+
+            # config groups
+            config_groups = app_templates.get("app_config_groups", [])
+            for config_group in config_groups:
+                component_ids = []
+                for sid in config_group.get("component_ids", []):
+                    if not old_new_id_map.get(sid):
+                        continue
+                    component_ids.append(old_new_id_map.get(sid).service_id)
+                config_items = config_group.get("config_items", {})
+                items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                try:
+                    app_config_group_service.create_config_group(group_id, config_group["name"], items,
+                                                                 config_group["injection_type"], True, component_ids, region,
+                                                                 tenant.tenant_name)
+                except ErrAppConfigGroupExists:
+                    app_config_group_service.create_config_group(group_id, config_group["name"] + "-" + make_uuid()[:4], items,
+                                                                 config_group["injection_type"], True, component_ids, region,
+                                                                 tenant.tenant_name)
 
             # 保存依赖关系
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
@@ -550,9 +581,15 @@ class MarketAppService(object):
         if not ports:
             return 200, "success"
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
-                                                                 port["port_alias"], port["is_inner_service"],
-                                                                 port["is_outer_service"])
+            code, msg, port_data = port_service.add_service_port(
+                tenant,
+                service,
+                int(port["container_port"]),
+                port["protocol"],
+                port["port_alias"],
+                port["is_inner_service"],
+                port["is_outer_service"],
+                k8s_service_name=port.get("k8s_service_name"))
             if code != 200:
                 logger.error("save market app port error: {}".format(msg))
                 return code, msg
@@ -596,6 +633,33 @@ class MarketAppService(object):
             "is_restart": extend_info["is_restart"]
         }
         extend_repo.create_extend_method(**params)
+
+    @staticmethod
+    def __save_monitors(tenant_id, component_id, monitors):
+        if not monitors:
+            return
+
+        sms = []
+        for monitor in monitors:
+            monitor_name = monitor.get("name")
+            # make monitor name unique
+            try:
+                ServiceMonitor.objects.get(tenant_id=tenant_id, name=monitor_name)
+                monitor_name += "-" + make_uuid()[0:4]
+            except ServiceMonitor.DoesNotExist:
+                pass
+
+            sms.append(
+                ServiceMonitor(
+                    tenant_id=tenant_id,
+                    service_id=component_id,
+                    name=monitor_name,
+                    path=monitor.get("path"),
+                    port=monitor.get("port"),
+                    service_show_name=monitor.get("service_show_name"),
+                    interval=monitor.get("interval"),
+                ))
+        ServiceMonitor.objects.bulk_create(sms)
 
     def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):
         """
@@ -976,7 +1040,7 @@ class MarketAppService(object):
     def count_upgradeable_market_apps(self, tenant, region, app_id):
         service_group_keys = set(group_service.get_group_service_sources(app_id).values_list('group_key', flat=True))
         iterator = self.yield_app_info(service_group_keys, tenant, app_id)
-        market_apps = [market_app for market_app in iterator if len(market_app.upgrade_versions) > 0]
+        market_apps = [market_app for market_app in iterator if len(market_app['upgrade_versions']) > 0]
         return len(market_apps)
 
     def get_market_apps_in_app(self, region, tenant, group):
