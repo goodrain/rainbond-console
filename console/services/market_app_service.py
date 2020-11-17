@@ -12,7 +12,7 @@ from django.core.paginator import Paginator
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
-from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
+from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException, ResourceNotEnoughException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
@@ -38,6 +38,7 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from www.apiclient.regionapibaseclient import resource_not_enough_message
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -503,12 +504,17 @@ class MarketAppService(object):
                 try:
                     _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
                     result = body["bean"]["batche_result"]
+                    for item in result:
+                        if item.err_message in resource_not_enough_message:
+                            raise ResourceNotEnoughException(item.err_message)
                     events = {item.event_id: item.service_id for item in result}
                     return events
                 except region_api.CallApiError as e:
                     logger.debug(data)
                     logger.exception(e)
                     return {}
+        except ResourceNotEnoughException as e:
+            raise e
         except Exception as e:
             logger.exception("batch deploy service error {0}".format(e))
             return {}
