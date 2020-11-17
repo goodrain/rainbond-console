@@ -322,7 +322,7 @@ class AppPortService(object):
         elif action == "change_protocol":
             code, msg = self.__change_protocol(tenant, service, deal_port, protocol)
         elif action == "change_port_alias":
-            self.__change_port_alias(tenant, service, deal_port, port_alias, k8s_service_name)
+            self.change_port_alias(tenant, service, deal_port, port_alias, k8s_service_name)
 
         new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if code != 200:
@@ -570,7 +570,7 @@ class AppPortService(object):
 
         return 200, "success"
 
-    def __change_port_alias(self, tenant, service, deal_port, new_port_alias, k8s_service_name):
+    def change_port_alias(self, tenant, service, deal_port, new_port_alias, k8s_service_name):
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
 
         old_port_alias = deal_port.port_alias
