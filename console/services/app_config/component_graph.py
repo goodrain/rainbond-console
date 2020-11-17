@@ -115,6 +115,8 @@ class ComponentGraphService(object):
         return new_promql
 
     def bulk_create(self, component_id, graphs):
+        if not graphs:
+            return
         cgs = []
         for graph in graphs:
             try:

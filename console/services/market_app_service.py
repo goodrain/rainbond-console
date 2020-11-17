@@ -636,6 +636,9 @@ class MarketAppService(object):
 
     @staticmethod
     def __save_monitors(tenant_id, component_id, monitors):
+        if not monitors:
+            return
+
         sms = []
         for monitor in monitors:
             monitor_name = monitor.get("name")
