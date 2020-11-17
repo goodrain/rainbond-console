@@ -63,4 +63,5 @@ ALTER TABLE console.service_group ADD `update_time` datetime DEFAULT NULL;
 
 ALTER TABLE `console`.`tenant_services_port` ADD COLUMN `k8s_service_name` varchar(63) NULL AFTER `is_outer_service`;
 ALTER TABLE `console`.`service_group` ADD COLUMN `username` varchar(255) NULL AFTER `note`;
-ALTER TABLE `console`.`service_group` ADD COLUMN `governance_mode` varchar(255) NULL;
+ALTER TABLE `console`.`service_group` ADD COLUMN `governance_mode` varchar(255) DEFAULT `BUILD_IN_SERVICE_MESH`;
+ALTER TABLE `console`.`rainbond_center_app_version` ADD COLUMN `release_user_id` varchar(255) DEFAULT NULL;
