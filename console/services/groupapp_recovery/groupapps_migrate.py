@@ -9,6 +9,7 @@ import logging
 
 from django.db import transaction
 
+from console.enum.app import GovernanceModeEnum
 from console.constants import AppMigrateType
 from console.models.main import ServiceRelPerms
 from console.models.main import ServiceSourceInfo
@@ -246,10 +247,10 @@ class GroupappsMigrateService(object):
             ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region, migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
-            self.__save_env(migrate_tenant, ts, app["service_env_vars"])
+            ports = self.__save_port(migrate_tenant, ts, app["service_ports"])
+            self.__save_env(migrate_tenant, group, ts, app["service_env_vars"], ports)
             self.__save_volume(migrate_tenant, ts, app["service_volumes"],
                                app["service_config_file"] if 'service_config_file' in app else None)
-            self.__save_port(migrate_tenant, ts, app["service_ports"])
             self.__save_compile_env(ts, app["service_compile_env"])
             self.__save_service_label(migrate_tenant, ts, migrate_region, app["service_labels"])
             self.__save_service_probes(ts, app["service_probes"])
@@ -341,9 +342,16 @@ class GroupappsMigrateService(object):
         ts.save()
         return ts
 
-    def __save_env(self, tenant, service, tenant_service_env_vars):
+    def __save_env(self, tenant, app, service, tenant_service_env_vars, ports):
+        port_2_service_name = {port["container_port"]: port["k8s_service_name"] for port in ports}
         env_list = []
         for env in tenant_service_env_vars:
+            if env["container_port"] and env["attr_name"].endswith("_HOST"):
+                if app.governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
+                    env["attr_value"] = "127.0.0.1"
+                elif app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+                    env["attr_value"] = port_2_service_name.get(env["container_port"])
+
             env.pop("ID")
             new_env = TenantServiceEnvVar(**env)
             new_env.tenant_id = tenant.tenant_id
@@ -502,6 +510,7 @@ class GroupappsMigrateService(object):
                                 logger.exception(e)
                                 tcp_domain.delete_tcp_domain(tcp_rule_id)
                                 continue
+        return port_list
 
     def __save_compile_env(self, service, compile_env):
         if compile_env:
