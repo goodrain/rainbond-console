@@ -112,7 +112,7 @@ class GroupappsMigrateService(object):
 
         new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
 
-        new_group = group_repo.add_group(tenant_id, region, new_group_name)
+        new_group = group_service.create_app(tenant_id, region, new_group_name)
         return new_group
 
     def create_new_group(self, tenant_id, region, old_group_id):
@@ -123,7 +123,7 @@ class GroupappsMigrateService(object):
         else:
             new_group_name = make_uuid()[:8]
 
-        new_group = group_repo.add_group(tenant_id, region, new_group_name)
+        new_group = group_service.create_app(tenant_id, region, new_group_name)
         return new_group
 
     def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type, event_id,
