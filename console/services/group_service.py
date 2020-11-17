@@ -428,7 +428,7 @@ class GroupService(object):
         service_aliases = {service.service_id: service.service_alias for service in services}
         service_cnames = {service.service_id: service.service_cname for service in services}
 
-        ports = port_repo.list_by_service_ids(tenant_id, service_ids)
+        ports = port_repo.list_inner_ports_by_service_ids(tenant_id, service_ids)
         # build response
         k8s_services = []
         for port in ports:
@@ -468,15 +468,16 @@ class GroupService(object):
 
         # bulk_update is only available after django 2.2
         for k8s_service in k8s_services:
-            port_repo.update_port(
-                tenant.tenant_id, k8s_service["service_id"], k8s_service["port"], **{
-                    "port_alias": k8s_service["port_alias"],
-                    "k8s_service_name": k8s_service["k8s_service_name"],
-                })
-            k8s_service["container_port"] = k8s_service["port"]
-
-        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
+            from console.services.app_config import port_service
+            service = service_repo.get_service_by_service_id(k8s_service["service_id"])
+            port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, k8s_service["port"])
+            port_service.change_port_alias(
+                tenant,
+                service,
+                port,
+                k8s_service["port_alias"],
+                k8s_service["k8s_service_name"],
+            )
 
     @staticmethod
     def get_app_status(tenant, region_name, app_id):
