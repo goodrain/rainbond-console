@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
+
 """
 - enterprise 100
     sub1 -- 101
@@ -14,7 +15,22 @@ from collections import Counter
 - plugin 700
 """
 
-ENTERPRISE = {"perms": []}
+# 100000 ~ 199999 for team
+ENTERPRISE = {
+    "perms": [],
+    "app_store": {
+        "perms": [
+            ["create_app", u"创建应用模板", 110000],
+            ["edit_app", u"编辑应用模板", 110001],
+            ["delete_app", u"删除应用模板", 110002],
+            ["import_app", u"导入应用模板", 110003],
+            ["export_app", u"导出应用模板", 110004],
+            ["create_app_store", u"添加应用商店", 110005],
+            ["edit_app_store", u"编辑应用商店", 110006],
+            ["delete_app_store", u"删除应用商店", 110007],
+        ]
+    }
+}
 
 TEAM = {
     "perms": [
@@ -210,7 +226,8 @@ def assemble_perms(perm, group, kind_name):
 def get_perms(kind, group, kind_name):
     if isinstance(kind, dict) and kind:
         perms_list = []
-        perms_list.extend(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
+        perms_list.extend(
+            map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
         kind_elements = kind.keys()
         kind_elements.remove("perms")
         if kind_elements:
