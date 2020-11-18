@@ -78,8 +78,7 @@ class GroupappsMigrateService(object):
             # restore on the original group
             new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
             if not new_group:
-                new_group = self.__create_new_group_by_group_name(migrate_team, migrate_region,
-                                                                  origin_backup_record.group_id)
+                new_group = self.__create_new_group_by_group_name(migrate_team, migrate_region, origin_backup_record.group_id)
         else:
             new_group = self.create_new_group(migrate_team, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
