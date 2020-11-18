@@ -134,6 +134,17 @@ class ComponentGraphService(object):
                 ))
         ComponentGraph.objects.bulk_create(cgs)
 
+    @transaction.atomic
+    def batch_delete(self, component_id, graph_ids):
+        component_graph_repo.batch_delete(component_id, graph_ids)
+        # rearrange
+        graphs = component_graph_repo.list(component_id)
+        sequence = 0
+        for graph in graphs:
+            graph.sequence = sequence
+            graph.save()
+            sequence += 1
+
     @staticmethod
     def _next_sequence(component_id):
         graphs = component_graph_repo.list(component_id=component_id)
