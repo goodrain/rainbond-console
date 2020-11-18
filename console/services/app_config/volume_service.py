@@ -5,7 +5,7 @@
 import logging
 import re
 
-from console.constants import AppConstants
+from console.constants import AppConstants, ServiceLanguageConstants
 from console.enum.component_enum import ComponentType
 from console.enum.component_enum import is_state
 from console.exception.main import ServiceHandleException, ErrVolumePath
@@ -13,6 +13,7 @@ from console.repositories.app_config import mnt_repo
 from console.repositories.app_config import volume_repo
 from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
 from console.services.exception import ErrVolumeTypeNotFound
+from console.services.app_config import label_service
 from console.utils import runner_util
 from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
@@ -167,26 +168,30 @@ class AppVolumeService(object):
         return volume_name
 
     def check_volume_path(self, service, volume_path, local_path=[]):
+        os_type = label_service.get_service_os_name(service)
+        if os_type == "windows":
+            if not runner_util.is_runner(service.image):
+                if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
+                    if len(volume_path) == 3:
+                        raise ErrVolumePath(msg_show="路径不能为系统路径")
+                return
+            else:
+                return
+
         for path in local_path:
             if volume_path.startswith(path + "/"):
-                raise ServiceHandleException(msg="path error", msg_show="持久化路径不能再挂载共享路径下")
+                raise ErrVolumePath(msg="path error", msg_show="持久化路径不能再挂载共享路径下")
         volume = volume_repo.get_service_volume_by_path(service.service_id, volume_path)
         if volume:
-            raise ServiceHandleException(
-                msg="path already exists", msg_show="持久化路径[{0}]已存在".format(volume_path), status_code=412)
-        if service.service_source == AppConstants.SOURCE_CODE:
-            if volume_path == "/app":
-                raise ServiceHandleException(msg="path error", msg_show="源码组件不能挂载/app目录", status_code=409)
+            raise ErrVolumePath(msg="path already exists", msg_show="持久化路径[{0}]已存在".format(volume_path), status_code=412)
+        if service.service_source == AppConstants.SOURCE_CODE and service.language != ServiceLanguageConstants.DOCKER_FILE:
+            if volume_path == "/app" or volume_path == "/tmp":
+                raise ErrVolumePath(msg="path error", msg_show="源码组件不能挂载/app或/tmp目录", status_code=409)
         if not runner_util.is_runner(service.image):
-            volume_path_win = False
-            if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
-                volume_path_win = True
-            if not volume_path.startswith("/") and not volume_path_win:
+            if not volume_path.startswith("/"):
                 raise ErrVolumePath(msg_show="路径仅支持linux和windows")
             if volume_path in self.SYSDIRS:
                 raise ErrVolumePath(msg_show="路径{0}为系统路径".format(volume_path))
-            if volume_path_win and len(volume_path) == 3:
-                raise ErrVolumePath(msg_show="路径不能为系统路径")
         else:
             if not is_path_legal(volume_path):
                 raise ErrVolumePath(msg_show="请输入符合规范的路径（如：/tmp/volumes）")
@@ -194,8 +199,7 @@ class AppVolumeService(object):
         for path in list(all_volumes):
             # volume_path不能重复
             if path["volume_path"].startswith(volume_path + "/") or volume_path.startswith(path["volume_path"] + "/"):
-                raise ServiceHandleException(
-                    msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]), status_code=412)
+                raise ErrVolumePath(msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]), status_code=412)
 
     def __setting_volume_access_mode(self, service, volume_type, settings):
         access_mode = settings.get("access_mode", "")

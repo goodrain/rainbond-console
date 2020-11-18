@@ -126,3 +126,21 @@ class DomainType(object):
 
 class PluginImage(object):
     RUNNER = settings.IMAGE_REPO + "/runner"
+
+
+class ServiceLanguageConstants(object):
+    DOCKER_FILE = "dockerfile"
+    STATIC = "static"
+    JAVA_MAVEN = "Java-maven"
+    JAVA_WAR = "Java-war"
+    JAVA_JAR = "Java-jar"
+    PHP = "PHP"
+    PYTHON = "Python"
+    NODE_JS = "Node.js"
+    RUBY = "Ruby"
+    CLOJURE = "Clojure"
+    GO = "Go"
+    GRADLE = "Gradle"
+    PLAY = "Play"
+    GRAILS = "Grails"
+    SCALA = "Scala"
