@@ -20,6 +20,8 @@ from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.user_repo import user_repo
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
@@ -200,10 +202,7 @@ class JWTAuthApiView(APIView):
     def initial(self, request, *args, **kwargs):
         self.user = request.user
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
-            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
-        if enterprise_user_perms:
-            self.is_enterprise_admin = True
+        self.is_enterprise_admin = enterprise_user_perm_repo.is_admin(self.user.enterprise_id, self.user.user_id)
         self.get_perms()
         self.check_perms(request, *args, **kwargs)
         self.tenant_name = kwargs.get("tenantName", None)
@@ -218,11 +217,18 @@ class JWTAuthApiView(APIView):
 class EnterpriseAdminView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
         super(EnterpriseAdminView, self).__init__(*args, **kwargs)
+        self.ent_user = None
 
     def initial(self, request, *args, **kwargs):
         super(EnterpriseAdminView, self).initial(request, *args, **kwargs)
         if not self.is_enterprise_admin:
             raise NoPermissionsError
+        user_id = kwargs.get("user_id")
+        if user_id:
+            user = user_repo.get_enterprise_user_by_id(self.enterprise.enterprise_id, user_id)
+            if not user:
+                raise ServiceHandleException("user not found", "用户不存在", status_code=404)
+            self.ent_user = user
 
 
 class CloudEnterpriseCenterView(JWTAuthApiView):
@@ -371,6 +377,20 @@ class EnterpriseHeaderView(JWTAuthApiView):
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
 
 
+class ApplicationView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(ApplicationView, self).__init__(*args, **kwargs)
+        self.app = None
+
+    def initial(self, request, *args, **kwargs):
+        super(ApplicationView, self).initial(request, *args, **kwargs)
+        app_id = kwargs.get("app_id")
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
+        self.app = app
+
+
 def custom_exception_handler(exc, context):
     """
         Returns the response that should be used for any given exception.
@@ -461,17 +481,3 @@ def custom_exception_handler(exc, context):
     else:
         logger.exception(exc)
         return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class ApplicationView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(ApplicationView, self).__init__(*args, **kwargs)
-        self.app = None
-
-    def initial(self, request, *args, **kwargs):
-        super(ApplicationView, self).initial(request, *args, **kwargs)
-        app_id = kwargs.get("app_id")
-        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
-        if not app:
-            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
-        self.app = app

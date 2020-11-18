@@ -202,7 +202,7 @@ class AdminUserLCView(JWTAuthApiView):
         return Response(general_message(201, "success", None), status=201)
 
 
-class AdminUserDView(JWTAuthApiView):
+class AdminUserView(EnterpriseAdminView):
     def delete(self, request, enterprise_id, user_id, *args, **kwargs):
         if str(request.user.user_id) == user_id:
             result = general_message(400, "fail", "不可删除自己")
@@ -219,6 +219,16 @@ class AdminUserDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(400, "fail", None)
             return Response(result, 400)
+
+    def put(self, request, enterprise_id, user_id, *args, **kwargs):
+        roles = parse_item(request, "roles", required=True, error="at least one role needs to be specified")
+        if not set(roles).issubset(EnterpriseRolesEnum.names()):
+            raise AbortRequest("invalid roles", msg_show="角色不正确")
+        if str(request.user.user_id) == user_id:
+            raise AbortRequest("changing your role is not allowed", "不可修改自己的角色")
+        user_services.update_roles(enterprise_id, user_id)
+        result = general_message(200, "success", None)
+        return Response(result, 200)
 
 
 class EnterPriseUsersCLView(JWTAuthApiView):

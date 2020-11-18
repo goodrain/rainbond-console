@@ -274,6 +274,9 @@ class TenantEnterpriseUserPermRepo(object):
             return EnterpriseUserPerm.objects.create(
                 user_id=user_id, enterprise_id=enterprise_id, identity=identity, token=token)
 
+    def update_roles(self, enterprise_id, user_id, identity):
+        EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id, user_id=user_id).update(identity=identity)
+
     def get_user_enterprise_perm(self, user_id, enterprise_id):
         return EnterpriseUserPerm.objects.filter(user_id=user_id, enterprise_id=enterprise_id)
 

@@ -300,20 +300,18 @@ class UserService(object):
         """判断用户在该企业下是否为管理员"""
         if current_user.enterprise_id != enterprise_id:
             return False
-        user_perms = enterprise_user_perm_repo.get_user_enterprise_perm(current_user.user_id, enterprise_id)
-        if not user_perms:
-            users = user_repo.get_enterprise_users(enterprise_id).order_by("user_id")
-            if users:
-                admin_user = users[0]
-                # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
-                if admin_user.user_id == current_user.user_id:
-                    token = self.generate_key()
-                    enterprise_user_perm_repo.create_enterprise_user_perm(current_user.user_id, enterprise_id, "admin", token)
-                    return True
-                else:
-                    return False
-        else:
+        is_admin = enterprise_user_perm_repo.is_admin(enterprise_id, current_user.user_id)
+        if is_admin:
             return True
+        users = user_repo.get_enterprise_users(enterprise_id).order_by("user_id")
+        if users:
+            admin_user = users[0]
+            # 如果有，判断用户最开始注册的用户和当前用户是否为同一人，如果是，添加数据返回true
+            if admin_user.user_id == current_user.user_id:
+                token = self.generate_key()
+                enterprise_user_perm_repo.create_enterprise_user_perm(current_user.user_id, enterprise_id, "admin", token)
+                return True
+        return False
 
     def get_user_in_enterprise_perm(self, user, enterprise_id):
         return enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
@@ -462,19 +460,20 @@ class UserService(object):
                     "create_time": user.create_time,
                     "client_ip": user.client_ip,
                     "enterprise_id": user.enterprise_id,
+                    "roles": item.identity.split(","),
                 })
             except UserNotExistError:
                 logger.warning("user_id: {}; user not found".format(item.user_id))
                 continue
         return users
 
-    def create_admin_user(self, user, ent):
+    def create_admin_user(self, user, ent, roles):
         # 判断用户是否为企业管理员
         if user_services.is_user_admin_in_current_enterprise(user, ent.enterprise_id):
             return
         # 添加企业管理员
         token = self.generate_key()
-        return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, "admin", token)
+        return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, ",".join(roles), token)
 
     def delete_admin_user(self, user_id):
         perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
@@ -484,6 +483,9 @@ class UserService(object):
         if count == 1:
             raise ErrCannotDelLastAdminUser("当前用户为最后一个企业管理员，无法删除")
         enterprise_user_perm_repo.delete_backend_enterprise_admin_by_user_id(user_id)
+
+    def update_roles(self, enterprise_id, user_id, roles):
+        enterprise_user_perm_repo.update_roles(enterprise_id, user_id, ",".join(roles))
 
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
