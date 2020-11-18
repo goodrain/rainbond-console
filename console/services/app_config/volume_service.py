@@ -171,13 +171,7 @@ class AppVolumeService(object):
     def check_volume_path(self, service, volume_path, local_path=[]):
         os_type = label_service.get_service_os_name(service)
         if os_type == "windows":
-            if not runner_util.is_runner(service.image):
-                if re.match('[a-zA-Z]', volume_path[0]) and volume_path[1] == ':':
-                    if len(volume_path) == 3:
-                        raise ErrVolumePath(msg_show="路径不能为系统路径")
-                return
-            else:
-                return
+            return
 
         for path in local_path:
             if volume_path.startswith(path + "/"):
@@ -188,7 +182,6 @@ class AppVolumeService(object):
         if service.service_source == AppConstants.SOURCE_CODE and service.language != ServiceLanguageConstants.DOCKER_FILE:
             if volume_path == "/app" or volume_path == "/tmp":
                 raise ErrVolumePath(msg="path error", msg_show="源码组件不能挂载/app或/tmp目录", status_code=409)
-        if not runner_util.is_runner(service.image):
             if not volume_path.startswith("/"):
                 raise ErrVolumePath(msg_show="路径仅支持linux和windows")
             if volume_path in self.SYSDIRS:
