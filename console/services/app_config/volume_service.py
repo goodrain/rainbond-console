@@ -14,7 +14,6 @@ from console.repositories.app_config import volume_repo
 from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
 from console.services.exception import ErrVolumeTypeNotFound
 from console.services.app_config.label_service import LabelService
-from console.utils import runner_util
 from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
