@@ -463,7 +463,6 @@ class GroupService(object):
 
         # bulk_update is only available after django 2.2
         for k8s_service in k8s_services:
-            from console.services.app_config import port_service
             service = service_repo.get_service_by_service_id(k8s_service["service_id"])
             port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, k8s_service["port"])
             port_service.change_port_alias(
