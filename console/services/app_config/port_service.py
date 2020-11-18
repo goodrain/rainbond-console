@@ -82,7 +82,7 @@ class AppPortService(object):
         try:
             self.check_k8s_service_name(tenant.tenant_id, k8s_service_name)
         except ErrK8sServiceNameExists:
-            k8s_service_name = k8s_service_name + make_uuid()[:4]
+            k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
         except AbortRequest:
             k8s_service_name = service.service_alias + "-" + str(container_port)
 
