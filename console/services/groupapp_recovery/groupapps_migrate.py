@@ -78,10 +78,9 @@ class GroupappsMigrateService(object):
             # restore on the original group
             new_group = group_repo.get_group_by_id(origin_backup_record.group_id)
             if not new_group:
-                new_group = self.__create_new_group_by_group_name(migrate_team.tenant_id, migrate_region,
-                                                                  origin_backup_record.group_id)
+                new_group = self.__create_new_group_by_group_name(migrate_team, migrate_region, origin_backup_record.group_id)
         else:
-            new_group = self.create_new_group(migrate_team.tenant_id, migrate_region, origin_backup_record.group_id)
+            new_group = self.create_new_group(migrate_team, migrate_region, origin_backup_record.group_id)
         if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
             # 获取原有数据中心数据
             original_data = region_api.get_backup_status_by_backup_id(current_region, current_team.tenant_name,
@@ -108,23 +107,22 @@ class GroupappsMigrateService(object):
             return new_group, new_backup_record
         return new_group, None
 
-    def __create_new_group_by_group_name(self, tenant_id, region, old_group_id):
-
+    def __create_new_group_by_group_name(self, tenant, region, old_group_id):
         new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
+        app = group_service.create_app(tenant, region, new_group_name)
+        new_app = group_repo.get_group_by_id(app["ID"])
+        return new_app
 
-        new_group = group_repo.add_group(tenant_id, region, new_group_name)
-        return new_group
-
-    def create_new_group(self, tenant_id, region, old_group_id):
-
+    def create_new_group(self, tenant, region, old_group_id):
         old_group = group_repo.get_group_by_id(old_group_id)
         if old_group:
             new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
         else:
             new_group_name = make_uuid()[:8]
 
-        new_group = group_repo.add_group(tenant_id, region, new_group_name)
-        return new_group
+        app = group_service.create_app(tenant, region, new_group_name)
+        new_app = group_repo.get_group_by_id(app["ID"])
+        return new_app
 
     def start_migrate(self, user, current_team, current_region, migrate_team, migrate_region, backup_id, migrate_type, event_id,
                       restore_id):
