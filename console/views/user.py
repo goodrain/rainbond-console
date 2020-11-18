@@ -226,7 +226,7 @@ class AdminUserView(EnterpriseAdminView):
             raise AbortRequest("invalid roles", msg_show="角色不正确")
         if str(request.user.user_id) == user_id:
             raise AbortRequest("changing your role is not allowed", "不可修改自己的角色")
-        user_services.update_roles(enterprise_id, user_id)
+        user_services.update_roles(enterprise_id, user_id, roles)
         result = general_message(200, "success", None)
         return Response(result, 200)
 
@@ -364,5 +364,5 @@ class AdminRolesView(JWTAuthApiView):
         roles = list()
         for role in ENTERPRISE:
             roles.append(role)
-        result = general_message(200, "success", list=roles)
+        result = general_message(200, "success", None, list=roles)
         return Response(result, status=200)

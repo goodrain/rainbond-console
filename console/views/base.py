@@ -29,7 +29,7 @@ from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, R
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.perms import get_enterprise_adminer_codes, list_enterprise_perm_codes_by_role
+from console.utils.perms import list_enterprise_perm_codes_by_role
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
