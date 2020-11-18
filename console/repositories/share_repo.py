@@ -239,9 +239,8 @@ class ShareRepo(object):
         return ServiceShareRecord.objects.filter(group_id=group_id, step=3).count()
 
     @staticmethod
-    def count_complete_by_app_id(app_id):
-        # step == 1, share complete
-        return ServiceShareRecord.objects.filter(app_id=app_id, step=1).count()
+    def count_by_app_id(app_id):
+        return ServiceShareRecord.objects.filter(group_id=app_id).count()
 
     def get_share_plugin(self, plugin_id):
         plugins = RainbondCenterPlugin.objects.filter(plugin_id=plugin_id).order_by('-ID')
