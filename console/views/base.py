@@ -20,6 +20,7 @@ from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
+from console.services.user_services import user_services
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.user_repo import user_repo
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
@@ -28,7 +29,7 @@ from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, R
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.perms import get_enterprise_adminer_codes
+from console.utils.perms import get_enterprise_adminer_codes, list_enterprise_perm_codes_by_role
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
@@ -186,17 +187,9 @@ class JWTAuthApiView(APIView):
 
     def get_perms(self):
         self.user_perms = []
-        if self.is_enterprise_admin:
-            self.user_perms = get_enterprise_adminer_codes()
-        roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
-        if roles:
-            role_ids = roles.values_list("ID", flat=True)
-            user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
-            if user_roles:
-                user_role_ids = user_roles.values_list("role_id", flat=True)
-                role_perms = RolePerms.objects.filter(role_id__in=user_role_ids)
-                if role_perms:
-                    self.user_perms = role_perms.values_list("perm_code", flat=True)
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        for role in admin_roles:
+            self.user_perms.extend(list_enterprise_perm_codes_by_role(role))
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
@@ -272,18 +265,9 @@ class RegionTenantHeaderView(JWTAuthApiView):
 
     def get_perms(self):
         self.user_perms = []
-        if self.is_enterprise_admin:
-            self.user_perms = get_enterprise_adminer_codes()
-        else:
-            ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
-            if ent_roles:
-                ent_role_ids = ent_roles.values_list("ID", flat=True)
-                ent_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=ent_role_ids)
-                if ent_user_roles:
-                    ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
-                    ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
-                    if ent_role_perms:
-                        self.user_perms = list(ent_role_perms.values_list("perm_code", flat=True))
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        for role in admin_roles:
+            self.user_perms.extend(list_enterprise_perm_codes_by_role(role))
 
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))

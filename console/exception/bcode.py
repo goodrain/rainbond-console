@@ -12,8 +12,7 @@ class ErrOauthServiceExists(ServiceHandleException):
 # 20200 ~ 20299 => user
 class ErrUserNotFound(ServiceHandleException):
     def __init__(self):
-        super(ErrUserNotFound, self).__init__(
-            "user not found", msg_show=u"用户不存在", status_code=404, error_code=20200)
+        super(ErrUserNotFound, self).__init__("user not found", msg_show=u"用户不存在", status_code=404, error_code=20200)
 
 
 # 20300 ~ 20399 => enterprise

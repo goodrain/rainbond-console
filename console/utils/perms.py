@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
-
+from console.enum.enterprise_enum import EnterpriseRolesEnum
 """
 - enterprise 100
     sub1 -- 101
@@ -17,7 +17,12 @@ from collections import Counter
 
 # 100000 ~ 199999 for team
 ENTERPRISE = {
-    "perms": [],
+    "admin": {
+        "perms": [
+            ["", "", 100000],
+            ["", "", 200000],
+        ]
+    },
     "app_store": {
         "perms": [
             ["create_app", u"创建应用模板", 110000],
@@ -26,8 +31,11 @@ ENTERPRISE = {
             ["import_app", u"导入应用模板", 110003],
             ["export_app", u"导出应用模板", 110004],
             ["create_app_store", u"添加应用商店", 110005],
-            ["edit_app_store", u"编辑应用商店", 110006],
-            ["delete_app_store", u"删除应用商店", 110007],
+            ["edit_app_store", u"获取应用商店", 110006],  # Can find access_key
+            ["edit_app_store", u"编辑应用商店", 110007],
+            ["delete_app_store", u"删除应用商店", 110008],
+            ["edit_app_version", u"编辑应用版本", 110009],
+            ["delete_app_version", u"删除应用版本", 110010],
         ]
     }
 }
@@ -224,10 +232,9 @@ def assemble_perms(perm, group, kind_name):
 
 
 def get_perms(kind, group, kind_name):
-    if isinstance(kind, dict) and kind:
+    if isinstance(kind, dict) and kind and kind.get("perms"):
         perms_list = []
-        perms_list.extend(
-            map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
+        perms_list.extend(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
         kind_elements = kind.keys()
         kind_elements.remove("perms")
         if kind_elements:
@@ -304,6 +311,15 @@ def get_perm_code(obj):
 def get_enterprise_adminer_codes():
     codes = get_perm_code(TEAM)
     codes.extend([100000, 200000])
+    return codes
+
+
+def list_enterprise_perm_codes_by_role(role):
+    if role == EnterpriseRolesEnum.admin.name:
+        return get_enterprise_adminer_codes()
+
+    perms = ENTERPRISE.get(role, [])
+    codes = [perm[2] for perm in perms["perms"]]
     return codes
 
 

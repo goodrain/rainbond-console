@@ -356,3 +356,13 @@ class AdministratorJoinTeamView(EnterpriseAdminView):
             team_services.add_user_role_to_team(tenant=team, user_ids=[self.user.user_id], role_ids=[])
         result = general_message(200, "success", None)
         return Response(result, status=200)
+
+
+class AdminRolesView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        from console.utils.perms import ENTERPRISE
+        roles = list()
+        for role in ENTERPRISE:
+            roles.append(role)
+        result = general_message(200, "success", list=roles)
+        return Response(result, status=200)
