@@ -345,6 +345,7 @@ class UserDetailsView(JWTAuthApiView):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
         user_detail["is_enterprise_active"] = enterprise.is_active
         user_detail["is_enterprise_admin"] = self.is_enterprise_admin
+        user_detail["roles"] = user_services.list_roles(user.enterprise_id, user.user_id)
         tenant_list = list()
         for tenant in tenants:
             tenant_info = dict()

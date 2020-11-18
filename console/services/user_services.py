@@ -487,6 +487,13 @@ class UserService(object):
     def update_roles(self, enterprise_id, user_id, roles):
         enterprise_user_perm_repo.update_roles(enterprise_id, user_id, ",".join(roles))
 
+    def list_roles(self, enterprise_id, user_id):
+        try:
+            perm = enterprise_user_perm_repo.get(enterprise_id, user_id)
+            return perm.identity.split(",")
+        except EnterpriseUserPerm.DoesNotExist:
+            return []
+
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 

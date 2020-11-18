@@ -316,6 +316,9 @@ class TenantEnterpriseUserPermRepo(object):
         except EnterpriseUserPerm.DoesNotExist:
             return False
 
+    def get(self, enterprise_id, user_id):
+        return EnterpriseUserPerm.objects.get(enterprise_id=enterprise_id, user_id=user_id)
+
 
 enterprise_repo = TenantEnterpriseRepo()
 enterprise_user_perm_repo = TenantEnterpriseUserPermRepo()
