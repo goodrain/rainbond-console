@@ -25,8 +25,8 @@ from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.user_repo import user_repo
 from console.utils.shortcuts import get_object_or_404
 from console.exception.main import ServiceHandleException
-from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServicesPort
-from console.exception.main import AbortRequest, ErrK8sServiceNameExists
+from www.models.main import ServiceGroup, ServiceGroupRelation
+from console.exception.main import AbortRequest
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
 
@@ -48,16 +48,29 @@ class GroupService(object):
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
+    def create_app(self, tenant, region_name, app_name, note=""):
+        app = self.add_group(tenant, region_name, app_name, note)
+        self.create_region_app(tenant, region_name, app)
+        res = app.to_dict()
+        # compatible with the old version
+        res["group_id"] = app.ID
+        res['app_id'] = app.ID
+        res['app_name'] = app.group_name
+        return res
+
+    def create_default_app(self, tenant, region_name):
+        app = group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
+        self.create_region_app(tenant, region_name, app)
+        return app.to_dict()
+
     @transaction.atomic()
     def add_group(self, tenant, region_name, app_name, note=""):
         self.check_app_name(tenant, region_name, app_name)
         return group_repo.add_group(tenant.tenant_id, region_name, app_name, note)
 
-    def create_app(self, tenant, region_name, app_name, note=""):
-        app = self.add_group(tenant, region_name, app_name, note)
-
+    def create_region_app(self, tenant, region_name, app):
         region_app = region_api.create_application(region_name, tenant.tenant_name, {
-            "app_name": app_name,
+            "app_name": app.group_name,
         })
 
         # record the dependencies between region app and console app
@@ -67,8 +80,6 @@ class GroupService(object):
             "app_id": app.ID,
         }
         region_app_repo.create(**data)
-
-        return app.to_dict()
 
     def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
         # check app id
@@ -143,7 +154,7 @@ class GroupService(object):
         res['principal'] = app.username
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
-        res['share_num'] = share_repo.count_complete_by_app_id(app_id)
+        res['share_num'] = share_repo.count_by_app_id(app_id)
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
 
@@ -428,7 +439,7 @@ class GroupService(object):
         service_aliases = {service.service_id: service.service_alias for service in services}
         service_cnames = {service.service_id: service.service_cname for service in services}
 
-        ports = port_repo.list_by_service_ids(tenant_id, service_ids)
+        ports = port_repo.list_inner_ports_by_service_ids(tenant_id, service_ids)
         # build response
         k8s_services = []
         for port in ports:
@@ -447,36 +458,25 @@ class GroupService(object):
 
     @transaction.atomic()
     def update_kubernetes_services(self, tenant, region_name, app_id, k8s_services):
+        from console.services.app_config import port_service
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
         for k8s_service in k8s_services:
-            # check k8s_service_name
-            try:
-                # whether k8s_service_name exists
-                port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service["k8s_service_name"])
-                try:
-                    # k8s_service_name belong to the current k8s_service?
-                    port_repo.check_k8s_service_name(tenant.tenant_id, k8s_service["service_id"], k8s_service["port"],
-                                                     k8s_service["k8s_service_name"])
-                except TenantServicesPort.DoesNotExist:
-                    raise ErrK8sServiceNameExists
-            except TenantServicesPort.DoesNotExist:
-                pass
-
+            port_service.check_k8s_service_name(tenant.tenant_id, k8s_service.get("k8s_service_name"), k8s_service["port"])
             # check if the given k8s_services belong to the app based on app_id
             if k8s_service["service_id"] not in service_ids:
                 raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app_id))
 
         # bulk_update is only available after django 2.2
         for k8s_service in k8s_services:
-            port_repo.update_port(
-                tenant.tenant_id, k8s_service["service_id"], k8s_service["port"], **{
-                    "port_alias": k8s_service["port_alias"],
-                    "k8s_service_name": k8s_service["k8s_service_name"],
-                })
-            k8s_service["container_port"] = k8s_service["port"]
-
-        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        region_api.update_app_ports(region_name, tenant.tenant_name, region_app_id, k8s_services)
+            service = service_repo.get_service_by_service_id(k8s_service["service_id"])
+            port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, k8s_service["port"])
+            port_service.change_port_alias(
+                tenant,
+                service,
+                port,
+                k8s_service["port_alias"],
+                k8s_service["k8s_service_name"],
+            )
 
     @staticmethod
     def get_app_status(tenant, region_name, app_id):
