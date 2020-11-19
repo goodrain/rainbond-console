@@ -19,6 +19,7 @@ from console.enum.enterprise_enum import EnterpriseRolesEnum
 ENTERPRISE = {
     "admin": {
         "perms": [
+            # what is What is 10000 and 20000?
             ["", "", 100000],
             ["", "", 200000],
         ]
@@ -31,7 +32,7 @@ ENTERPRISE = {
             ["import_app", u"导入应用模板", 110003],
             ["export_app", u"导出应用模板", 110004],
             ["create_app_store", u"添加应用商店", 110005],
-            ["edit_app_store", u"获取应用商店", 110006],  # Can find access_key
+            ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
             ["edit_app_store", u"编辑应用商店", 110007],
             ["delete_app_store", u"删除应用商店", 110008],
             ["edit_app_version", u"编辑应用版本", 110009],
@@ -39,6 +40,14 @@ ENTERPRISE = {
         ]
     }
 }
+
+common_perms = [
+    ["create_app", u"创建应用模板", 110000],
+    ["edit_app", u"编辑应用模板", 110001],
+    ["delete_app", u"删除应用模板", 110002],
+    ["import_app", u"导入应用模板", 110003],
+    ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
+]
 
 TEAM = {
     "perms": [
@@ -321,6 +330,29 @@ def list_enterprise_perm_codes_by_role(role):
     perms = ENTERPRISE.get(role, [])
     codes = [perm[2] for perm in perms["perms"]]
     return codes
+
+
+def list_enterprise_perms_by_role(role):
+    if role == EnterpriseRolesEnum.admin.name:
+        perms = set()
+        for r in ENTERPRISE:
+            if r == "admin":
+                # Special handling for admin role.
+                # No permissions have been set for admin before.
+                continue
+            perms.update([r + "." + perm[0] for perm in ENTERPRISE[r]["perms"]])
+        return perms
+
+    perms = ENTERPRISE.get(role, [])
+    return set([role + "." + perm[0] for perm in perms["perms"]])
+
+
+def list_enterprise_perms_by_roles(roles):
+    perms = set()
+    for role in roles:
+        perms.update(list_enterprise_perms_by_role(role))
+    perms.update(set(["app_store." + perm[0] for perm in common_perms]))
+    return perms
 
 
 if __name__ == '__main__':
