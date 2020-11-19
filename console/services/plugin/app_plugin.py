@@ -10,14 +10,17 @@ import os
 from addict import Dict
 from console.constants import (DefaultPluginConstants, PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
 from console.exception.main import ServiceHandleException
+from console.exception.bcode import ErrInternalGraphsNotFound, ErrRepeatMonitoringTarget, ErrServiceMonitorExists
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo
 from console.repositories.base import BaseConnection
 from console.repositories.plugin import (app_plugin_attr_repo, app_plugin_relation_repo, config_group_repo, config_item_repo,
                                          plugin_repo, plugin_version_repo, service_plugin_config_repo)
 from console.services.app import app_service
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
+from console.services.app_config.component_graph import component_graph_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from django.db import transaction
 from django.db.models import Q
@@ -41,13 +44,14 @@ dependency_service = AppServiceRelationService()
 has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
 allow_plugins = [
     PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
-    PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE
+    PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE,
+    PluginCategoryConstants.EXPORTER_TYPE
 ]
 
 default_plugins = [
     DefaultPluginConstants.DOWNSTREAM_NET_PLUGIN, DefaultPluginConstants.PERF_ANALYZE_PLUGIN,
     DefaultPluginConstants.INANDOUT_NET_PLUGIN, DefaultPluginConstants.FILEBEAT_LOG_PLUGIN,
-    DefaultPluginConstants.LOGTAIL_LOG_PLUGIN
+    DefaultPluginConstants.LOGTAIL_LOG_PLUGIN, DefaultPluginConstants.MYSQLD_EXPORTER_PLUGIN
 ]
 
 
@@ -182,6 +186,10 @@ class AppPluginService(object):
         self.save_default_plugin_config(tenant, service, plugin_id, plugin_version)
         # 2.从console数据库取数据生成region数据
         region_config = self.get_region_config_from_db(service, plugin_id, plugin_version)
+
+        # 3. create monitor resources, such as: service monitor, component graphs
+        plugin = plugin_repo.get_by_plugin_id(tenant.tenant_id, plugin_id)
+        self.create_monitor_resources(tenant, service, plugin.origin_share_id)
 
         data = dict()
         data["plugin_id"] = plugin_id
@@ -327,6 +335,40 @@ class AppPluginService(object):
         region_env_config["service_id"] = service.service_id
 
         return region_env_config
+
+    def create_monitor_resources(self, tenant, service, plugin_name):
+        # service monitor
+        try:
+            self.__create_service_monitor(tenant, service, plugin_name)
+        except ErrServiceMonitorExists:
+            # try again
+            self.__create_service_monitor(tenant, service, plugin_name)
+
+        # component graphs
+        self.__create_component_graphs(service.service_id, plugin_name)
+
+    @staticmethod
+    def __create_service_monitor(tenant, service, plugin_name):
+        path = "/metrics"
+        if plugin_name == "mysqld_exporter":
+            port = 9104
+            show_name = "MySQL-Metrics"
+        else:
+            return
+        try:
+            service_monitor_repo.create_component_service_monitor(
+                tenant, service, make_uuid(), path, port, show_name, "10s", check_port=False)
+        except ErrRepeatMonitoringTarget as e:
+            logger.debug(e)
+            return
+
+    @staticmethod
+    def __create_component_graphs(component_id, plugin_name):
+        try:
+            component_graph_service.create_internal_graphs(component_id, plugin_name)
+        except ErrInternalGraphsNotFound as e:
+            logger.warning("plugin name '{}': {}", plugin_name, e)
+            pass
 
     def delete_service_plugin_config(self, service, plugin_id):
         service_plugin_config_repo.delete_service_plugin_config_var(service.service_id, plugin_id)
@@ -742,7 +784,7 @@ class PluginService(object):
 
             plugin_config_meta_list = []
             config_items_list = []
-            config_group = needed_plugin_config["config_group"]
+            config_group = needed_plugin_config.get("config_group")
             if config_group:
                 for config in config_group:
                     options = config["options"]
@@ -771,15 +813,15 @@ class PluginService(object):
                 config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)
                 config_item_repo.bulk_create_items(config_items_list)
 
-                event_id = make_uuid()
-                plugin_build_version.event_id = event_id
-                plugin_build_version.plugin_version_status = "fixed"
+            event_id = make_uuid()
+            plugin_build_version.event_id = event_id
+            plugin_build_version.plugin_version_status = "fixed"
 
-                self.create_region_plugin(region, tenant, plugin_base_info)
+            self.create_region_plugin(region, tenant, plugin_base_info)
 
-                self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)
-                plugin_build_version.build_status = "build_success"
-                plugin_build_version.save()
+            self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)
+            plugin_build_version.build_status = "build_success"
+            plugin_build_version.save()
         except Exception as e:
             logger.exception(e)
             if plugin_base_info:

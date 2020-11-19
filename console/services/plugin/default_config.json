@@ -522,5 +522,13 @@
         ]
       }
     ]
+  },
+  "mysqld_exporter": {
+    "plugin_alias": "MySQL 指标插件",
+    "desc": "用于暴露 MySQL 的 Prometheus 指标",
+    "category": "exporter-plugin",
+    "code_repo": "",
+    "build_source": "image",
+    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/mysqld-exporter"
   }
 }

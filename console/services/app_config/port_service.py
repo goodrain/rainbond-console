@@ -15,7 +15,7 @@ from console.constants import ServicePortConstants
 from console.exception.main import AbortRequest
 from console.exception.main import CheckThirdpartEndpointFailed
 from console.exception.main import ServiceHandleException
-from console.exception.main import ErrK8sServiceNameExists
+from console.exception.bcode import ErrK8sServiceNameExists
 from console.repositories.app import service_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo

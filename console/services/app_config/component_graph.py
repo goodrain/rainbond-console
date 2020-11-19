@@ -10,6 +10,7 @@ from django.db import transaction
 from console.models.main import ComponentGraph
 from goodrain_web.settings import BASE_DIR
 from console.exception.main import AbortRequest
+from console.exception.bcode import ErrInternalGraphsNotFound
 from console.repositories.component_graph import component_graph_repo
 from www.utils.crypt import make_uuid
 
@@ -45,7 +46,7 @@ class ComponentGraphService(object):
     def create_internal_graphs(self, component_id, graph_name):
         _, internal_graphs = self._load_internal_graphs()
         if not internal_graphs or not internal_graphs.get(graph_name):
-            raise AbortRequest("graph '{}' not found".format(graph_name), status_code=404, error_code=404)
+            raise ErrInternalGraphsNotFound
 
         graphs = []
         seq = self._next_sequence(component_id)
@@ -55,6 +56,7 @@ class ComponentGraphService(object):
             except AbortRequest as e:
                 logger.warning("promql {}: {}".format(graph["promql"], e))
                 continue
+            # make sure there are no duplicate graph
             graphs.append(
                 ComponentGraph(
                     component_id=component_id,
@@ -64,7 +66,6 @@ class ComponentGraphService(object):
                     sequence=seq,
                 ))
             seq += 1
-
         ComponentGraph.objects.bulk_create(graphs)
 
     def create_component_graph(self, component_id, title, promql):
