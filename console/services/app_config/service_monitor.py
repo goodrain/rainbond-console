@@ -37,13 +37,12 @@ class ComponentServiceMonitor(object):
                                          port,
                                          service_show_name,
                                          interval,
-                                         user=None,
-                                         check_port=True):
+                                         user=None):
         if ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, name=name).count() > 0:
             raise ErrServiceMonitorExists
         if ServiceMonitor.objects.filter(service_id=service.service_id, port=port, path=path).count() > 0:
             raise ErrRepeatMonitoringTarget
-        if check_port and not port_service.get_service_port_by_port(service, port):
+        if not port_service.get_service_port_by_port(service, port):
             raise ServiceHandleException(msg="port not found", msg_show="配置的组件端口不存在", status_code=400, error_code=400)
         req = {"name": name, "path": path, "port": port, "service_show_name": service_show_name, "interval": interval}
         req["operator"] = user.get_name() if user else None

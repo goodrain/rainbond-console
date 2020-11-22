@@ -15,7 +15,7 @@ from console.constants import ServicePortConstants
 from console.exception.main import AbortRequest
 from console.exception.main import CheckThirdpartEndpointFailed
 from console.exception.main import ServiceHandleException
-from console.exception.bcode import ErrK8sServiceNameExists
+from console.exception.bcode import ErrK8sServiceNameExists, ErrComponentPortExists
 from console.repositories.app import service_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.app_config import port_repo
@@ -38,13 +38,13 @@ logger = logging.getLogger("default")
 
 
 class AppPortService(object):
-    def check_port(self, service, container_port):
+    @staticmethod
+    def check_port(service, container_port):
         port = port_repo.get_service_port_by_port(service.tenant_id, service.service_id, container_port)
         if port:
-            return 400, u"端口{0}已存在".format(container_port)
+            raise ErrComponentPortExists
         if not (1 <= container_port <= 65535):
-            return 412, u"端口必须为1到65535的整数"
-        return 200, "success"
+            raise AbortRequest("component port out of range", msg_show=u"端口必须为1到65535的整数", status_code=412, error_code=412)
 
     def check_port_alias(self, port_alias):
         logger.debug('-------------------11111111111111111111111----------')
@@ -68,6 +68,16 @@ class AppPortService(object):
                 raise ErrK8sServiceNameExists
         except TenantServicesPort.DoesNotExist:
             pass
+
+    def create_internal_port(self, tenant, component, container_port):
+        try:
+            self.add_service_port(tenant, component, container_port, protocol="http", is_inner_service=True)
+        except ErrComponentPortExists:
+            # make sure port is internal
+            code, msg = self.__open_inner(tenant, component, container_port)
+            if code == 200:
+                return
+            raise AbortRequest(msg, error_code=code)
 
     def add_service_port(self,
                          tenant,
@@ -93,9 +103,8 @@ class AppPortService(object):
             return 400, u"第三方组件只支持配置一个端口", None
 
         container_port = int(container_port)
-        code, msg = self.check_port(service, container_port)
-        if code != 200:
-            return code, msg, None
+        self.check_port(service, container_port)
+
         if not port_alias:
             port_alias = service.service_alias.upper() + str(container_port)
         code, msg = self.check_port_alias(port_alias)

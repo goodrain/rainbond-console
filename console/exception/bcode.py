@@ -68,3 +68,8 @@ class ErrOauthServiceExists(ServiceHandleException):
 class ErrK8sServiceNameExists(ServiceHandleException):
     def __init__(self):
         super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 20100)
+
+
+class ErrComponentPortExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrComponentPortExists, self).__init__("component port already exists", u"端口已存在", 409, 20101)
