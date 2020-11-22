@@ -32,6 +32,7 @@ from console.services.group_service import group_service
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
+from console.services.team_services import team_services
 from console.utils import slug_util
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
@@ -68,6 +69,17 @@ class MarketAppService(object):
         try:
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
+
+            # check resources
+            data = team_services.get_tenant_resource(tenant, region)
+            available_memory = data["total_memory"] - data["used_memory"]
+            request_memory = 0
+            if available_memory > 0:
+                for app in apps:
+                    request_memory += app.get("memory")
+                    if request_memory > available_memory:
+                        raise ResourceNotEnoughException(message=resource_not_enough_message["tenant_lack_of_memory"])
+
             tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.app_id,
                                                                       market_app_version.version, market_app.app_name)
             plugins = app_templates.get("plugins", [])
@@ -504,17 +516,12 @@ class MarketAppService(object):
                 try:
                     _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
                     result = body["bean"]["batche_result"]
-                    for item in result:
-                        if item.err_message in resource_not_enough_message:
-                            raise ResourceNotEnoughException(item.err_message)
                     events = {item.event_id: item.service_id for item in result}
                     return events
                 except region_api.CallApiError as e:
                     logger.debug(data)
                     logger.exception(e)
                     return {}
-        except ResourceNotEnoughException as e:
-            raise e
         except Exception as e:
             logger.exception("batch deploy service error {0}".format(e))
             return {}

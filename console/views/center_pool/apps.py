@@ -161,7 +161,7 @@ class CenterAppView(RegionTenantHeaderView):
         except ServiceHandleException as e:
             raise e
         except ResourceNotEnoughException as re:
-            raise re
+            return Response(general_message(412, "resource is not enough", re.message), status=412)
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10406, "resource is not enough", re.message), status=412)
