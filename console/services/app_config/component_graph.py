@@ -66,12 +66,26 @@ class ComponentGraphService(object):
 
         ComponentGraph.objects.bulk_create(graphs)
 
+    @transaction.atomic
     def create_component_graph(self, component_id, title, promql):
         promql = promql_service.add_or_update_label(component_id, promql)
         graph_id = make_uuid()
         sequence = self._next_sequence(component_id)
+        if sequence > 10000:
+            # rearrange to avoid overflow
+            self.rearrange(component_id)
+            sequence = self._next_sequence(component_id)
         component_graph_repo.create(component_id, graph_id, title, promql, sequence)
         return component_graph_repo.get(component_id, graph_id).to_dict()
+
+    @staticmethod
+    def rearrange(component_id):
+        graphs = component_graph_repo.list(component_id)
+        sequence = 0
+        for graph in graphs:
+            graph.sequence = sequence
+            graph.save()
+            sequence += 1
 
     @staticmethod
     def list_component_graphs(component_id):
@@ -117,6 +131,10 @@ class ComponentGraphService(object):
                     sequence=graph.get("sequence"),
                 ))
         ComponentGraph.objects.bulk_create(cgs)
+
+    @transaction.atomic
+    def batch_delete(self, component_id, graph_ids):
+        component_graph_repo.batch_delete(component_id, graph_ids)
 
     @staticmethod
     def _next_sequence(component_id):
