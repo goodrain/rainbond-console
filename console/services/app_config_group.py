@@ -9,8 +9,7 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app import service_repo
 from console.models.main import ApplicationConfigGroup
-from console.exception.exceptions import ErrAppConfigGroupNotFound
-from console.exception.exceptions import ErrAppConfigGroupExists
+from console.exception.bcode import ErrAppConfigGroupNotFound, ErrAppConfigGroupExists
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
 from www.utils.crypt import make_uuid
@@ -45,6 +44,7 @@ class AppConfigGroupService(object):
                     "deploy_type": deploy_type,
                     "service_ids": service_ids,
                     "config_items": config_items,
+                    "enable": enable,
                 })
         else:
             raise ErrAppConfigGroupExists
@@ -77,6 +77,7 @@ class AppConfigGroupService(object):
             region_api.update_app_config_group(cgroup.region_name, team_name, region_app_id, cgroup.config_group_name, {
                 "service_ids": service_ids,
                 "config_items": config_items,
+                "enable": enable,
             })
         return self.get_config_group(region_name, app_id, config_group_name)
 

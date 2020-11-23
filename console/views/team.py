@@ -31,7 +31,7 @@ from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from console.utils.reqparse import parse_item
-from console.exception.main import ErrK8sServiceNameExists
+from console.exception.bcode import ErrK8sServiceNameExists
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message, general_message

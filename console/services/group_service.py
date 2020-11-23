@@ -51,7 +51,12 @@ class GroupService(object):
     def create_app(self, tenant, region_name, app_name, note=""):
         app = self.add_group(tenant, region_name, app_name, note)
         self.create_region_app(tenant, region_name, app)
-        return app.to_dict()
+        res = app.to_dict()
+        # compatible with the old version
+        res["group_id"] = app.ID
+        res['app_id'] = app.ID
+        res['app_name'] = app.group_name
+        return res
 
     def create_default_app(self, tenant, region_name):
         app = group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
@@ -149,7 +154,7 @@ class GroupService(object):
         res['principal'] = app.username
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
-        res['share_num'] = share_repo.count_complete_by_app_id(app_id)
+        res['share_num'] = share_repo.count_by_app_id(app_id)
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
 
@@ -463,7 +468,6 @@ class GroupService(object):
 
         # bulk_update is only available after django 2.2
         for k8s_service in k8s_services:
-            from console.services.app_config import port_service
             service = service_repo.get_service_by_service_id(k8s_service["service_id"])
             port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, k8s_service["port"])
             port_service.change_port_alias(

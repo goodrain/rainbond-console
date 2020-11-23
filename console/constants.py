@@ -82,6 +82,7 @@ class PluginCategoryConstants(object):
     INIT_TYPE = "init-plugin"
     PERFORMANCE_ANALYSIS = "analyst-plugin:perf"
     COMMON_TYPE = "general-plugin"
+    EXPORTER_TYPE = "exporter-plugin"
 
 
 class DefaultPluginConstants(object):
@@ -90,6 +91,7 @@ class DefaultPluginConstants(object):
     INANDOUT_NET_PLUGIN = "inandout_net_plugin"
     FILEBEAT_LOG_PLUGIN = "filebeat_log_plugin"
     LOGTAIL_LOG_PLUGIN = "logtail_log_plugin"
+    MYSQLD_EXPORTER_PLUGIN = "mysqld_exporter"
 
 
 class PluginMetaType(object):
