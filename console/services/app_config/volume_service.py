@@ -182,7 +182,7 @@ class AppVolumeService(object):
             if volume_path == "/app" or volume_path == "/tmp":
                 raise ErrVolumePath(msg="path error", msg_show="源码组件不能挂载/app或/tmp目录", status_code=409)
             if not volume_path.startswith("/"):
-                raise ErrVolumePath(msg_show="路径仅支持linux和windows")
+                raise ErrVolumePath(msg_show="挂载路径需为标准的 Linux 路径")
             if volume_path in self.SYSDIRS:
                 raise ErrVolumePath(msg_show="路径{0}为系统路径".format(volume_path))
         else:
