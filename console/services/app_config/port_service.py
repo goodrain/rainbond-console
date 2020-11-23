@@ -74,7 +74,8 @@ class AppPortService(object):
             self.add_service_port(tenant, component, container_port, protocol="http", is_inner_service=True)
         except ErrComponentPortExists:
             # make sure port is internal
-            code, msg = self.__open_inner(tenant, component, container_port)
+            port = port_repo.get_service_port_by_port(tenant.tenant_id, component.service_id, container_port)
+            code, msg = self.__open_inner(tenant, component, port)
             if code == 200:
                 return
             raise AbortRequest(msg, error_code=code)
