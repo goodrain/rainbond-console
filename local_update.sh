@@ -4,7 +4,7 @@
 
 cp -a dist/* ./www/static/dists/
 
-mv dist/index.html www/templates/index.html
+cp dist/index.html www/templates/index.html
 
 rm -rf ./static
 

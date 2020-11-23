@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from console.models.main import ComponentGraph
-from console.exception.exceptions import ErrComponentGraphExists, ErrComponentGraphNotFound
+from console.exception.bcode import ErrComponentGraphExists, ErrComponentGraphNotFound
 
 
 class ComponentGraphRepository(object):
