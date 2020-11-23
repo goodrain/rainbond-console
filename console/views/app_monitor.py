@@ -7,6 +7,7 @@ from urllib import urlencode
 
 from rest_framework.response import Response
 
+from console.services.app_config.promql_service import promql_service
 from console.services.app_config import env_var_service
 from console.services.group_service import group_service
 from console.views.app_config.base import AppBaseView
@@ -18,12 +19,23 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-def get_sufix_path(full_url):
+def get_sufix_path(request, query=""):
     """获取get请求参数路径部分的数据"""
+    full_url = request.get_full_path()
     index = full_url.find("?")
     sufix = ""
     if index != -1:
         sufix = full_url[index:]
+
+    if query:
+        params = {
+            "query": query,
+            "start": request.GET.get("start"),
+            "end": request.GET.get("end"),
+            "step": request.GET.get("step"),
+        }
+        sufix = urlencode(params)
+
     return sufix
 
 
@@ -45,8 +57,11 @@ class AppMonitorQueryView(AppBaseView):
               paramType: path
 
         """
-        sufix = get_sufix_path(request.get_full_path())
         try:
+            query = request.GET.get("query", "")
+            if "service_id" not in query:
+                query = promql_service.add_or_update_label(self.service.service_id, query)
+            sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:
@@ -73,8 +88,11 @@ class AppMonitorQueryRangeView(AppBaseView):
               paramType: path
 
         """
-        sufix = get_sufix_path(request.get_full_path())
         try:
+            query = request.GET.get("query", "")
+            if "service_id" not in query:
+                query = promql_service.add_or_update_label(self.service.service_id, query)
+            sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
         except Exception as e:

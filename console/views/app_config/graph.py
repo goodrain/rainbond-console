@@ -23,6 +23,12 @@ class ComponentGraphListView(AppBaseView):
         result = general_message(200, "success", "查询成功", list=graphs)
         return Response(result, status=result["code"])
 
+    def delete(self, request, *args, **kwargs):
+        graph_ids = parse_item(request, "graph_ids", required=True)
+        component_graph_service.batch_delete(self.service.service_id, graph_ids)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result["code"])
+
 
 class ComponentGraphView(ComponentGraphBaseView):
     def get(self, request, *args, **kwargs):
