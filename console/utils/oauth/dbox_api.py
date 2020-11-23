@@ -51,13 +51,13 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
         }
 
     def get_auth_url(self, home_url=""):
-        return home_url + "/oauth/authorize"
+        return home_url.strip().strip("/") + "/oauth/authorize"
 
-    def get_access_token_url(self, home_url=None):
-        return home_url + "/oauth/token"
+    def get_access_token_url(self, home_url=""):
+        return home_url.strip().strip("/") + "/oauth/token"
 
     def get_user_url(self, home_url=""):
-        return home_url + "/oauth/userinfo"
+        return home_url.strip().strip("/") + "/oauth/userinfo"
 
     def _get_user_info(self):
         '''
