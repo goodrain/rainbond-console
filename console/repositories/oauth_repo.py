@@ -43,6 +43,7 @@ class OAuthRepo(object):
         querysetlist = []
         for value in values:
             instance = get_oauth_instance(value["oauth_type"])
+            value["home_url"] = value["home_url"].strip().strip("/")
             auth_url = instance.get_auth_url(home_url=value["home_url"])
             access_token_url = instance.get_access_token_url(home_url=value["home_url"])
             api_url = instance.get_user_url(home_url=value["home_url"])
