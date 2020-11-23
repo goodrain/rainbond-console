@@ -29,15 +29,7 @@ class ComponentServiceMonitor(object):
             return sms[0]
         return None
 
-    def create_component_service_monitor(self,
-                                         tenant,
-                                         service,
-                                         name,
-                                         path,
-                                         port,
-                                         service_show_name,
-                                         interval,
-                                         user=None):
+    def create_component_service_monitor(self, tenant, service, name, path, port, service_show_name, interval, user=None):
         if ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, name=name).count() > 0:
             raise ErrServiceMonitorExists
         if ServiceMonitor.objects.filter(service_id=service.service_id, port=port, path=path).count() > 0:
