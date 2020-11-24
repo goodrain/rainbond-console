@@ -61,15 +61,22 @@ class ErrRepeatMonitoringTarget(ServiceHandleException):
 class ErrOauthServiceExists(ServiceHandleException):
     def __init__(self):
         super(ErrOauthServiceExists, self).__init__(
-            "oauth service exists", msg_show=u"OAuth 名称已存在", status_code=409, error_code=20100)
+            "oauth service exists", msg_show=u"OAuth 名称已存在", status_code=409, error_code=20300)
 
 
-# 20400 ~ 20499 => service ports
+# 20400 ~ 20499 => enterprise
+class ErrEnterpriseNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrEnterpriseNotFound, self).__init__(
+            "enterprise not found", msg_show=u"企业不存在", status_code=404, error_code=20400)
+
+
+# 20500 ~ 20599 => service ports
 class ErrK8sServiceNameExists(ServiceHandleException):
     def __init__(self):
-        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 20100)
+        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 20500)
 
 
 class ErrComponentPortExists(ServiceHandleException):
     def __init__(self):
-        super(ErrComponentPortExists, self).__init__("component port already exists", u"端口已存在", 409, 20101)
+        super(ErrComponentPortExists, self).__init__("component port already exists", u"端口已存在", 409, 20501)
