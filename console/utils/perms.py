@@ -318,8 +318,9 @@ def get_perm_code(obj):
 
 
 def get_enterprise_adminer_codes():
-    codes = get_perm_code(TEAM)
-    codes.extend([100000, 200000])
+    codes = set()
+    codes.update(get_perm_code(TEAM))
+    codes.update(get_perm_code(ENTERPRISE))
     return codes
 
 
@@ -328,7 +329,16 @@ def list_enterprise_perm_codes_by_role(role):
         return get_enterprise_adminer_codes()
 
     perms = ENTERPRISE.get(role, [])
-    codes = [perm[2] for perm in perms["perms"]]
+    codes = set()
+    codes.update([perm[2] for perm in perms["perms"]])
+    codes.update([perm[2] for perm in common_perms])
+    return codes
+
+
+def list_enterprise_perm_codes_by_roles(roles):
+    codes = set()
+    for role in roles:
+        codes.update(list_enterprise_perm_codes_by_role(role))
     return codes
 
 

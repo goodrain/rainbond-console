@@ -7,6 +7,7 @@ import re
 
 from django.db import transaction
 
+from console.exception.bcode import ErrUserNotFound
 from console.enum.app import GovernanceModeEnum
 from console.repositories.app_config import env_var_repo
 from console.services.app_config_group import app_config_group_service
@@ -48,8 +49,8 @@ class GroupService(object):
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
-    def create_app(self, tenant, region_name, app_name, note=""):
-        app = self.add_group(tenant, region_name, app_name, note)
+    def create_app(self, tenant, region_name, app_name, note="", username=""):
+        app = self.add_group(tenant, region_name, app_name, note, username)
         self.create_region_app(tenant, region_name, app)
         res = app.to_dict()
         # compatible with the old version
@@ -64,9 +65,9 @@ class GroupService(object):
         return app.to_dict()
 
     @transaction.atomic()
-    def add_group(self, tenant, region_name, app_name, note=""):
+    def add_group(self, tenant, region_name, app_name, note="", username=""):
         self.check_app_name(tenant, region_name, app_name)
-        return group_repo.add_group(tenant.tenant_id, region_name, app_name, note)
+        return group_repo.add_group(tenant.tenant_id, region_name, app_name, group_note=note, username=username)
 
     def create_region_app(self, tenant, region_name, app):
         region_app = region_api.create_application(region_name, tenant.tenant_name, {
@@ -151,12 +152,17 @@ class GroupService(object):
         res = app.to_dict()
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
-        res['principal'] = app.username
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         res['share_num'] = share_repo.count_by_app_id(app_id)
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
+
+        try:
+            principal = user_repo.get_user_by_username(app.username)
+            res['principal'] = principal.get_name()
+        except ErrUserNotFound:
+            res['principal'] = app.username
 
         res["create_status"] = "complete"
         res["compose_id"] = None
