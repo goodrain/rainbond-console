@@ -193,7 +193,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
         user = self.api.get_user()
-        return OAuth2User(user["login"], user["id"], user["email"]), access_token, refresh_token
+        return OAuth2User(user[0]["login"], user[0]["id"], user[0]["email"]), access_token, refresh_token
 
     def get_authorize_url(self):
         if self.oauth_service:
