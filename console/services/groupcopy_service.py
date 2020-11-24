@@ -100,9 +100,10 @@ class GroupAppCopyService(object):
                 # Handling plugin config
                 if change_service_map and service["service_plugin_config"]:
                     for plugin in service["service_plugin_config"]:
-                        # Get the new next service ID pointed to by the plugin through the old service ID
-                        plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
-                        plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
+                        if plugin["dest_service_id"] != "":
+                            # Get the new next service ID pointed to by the plugin through the old service ID
+                            plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
+                            plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
             return metadata
         new_metadata = {}
         new_metadata["compose_group_info"] = metadata["compose_group_info"]
@@ -139,9 +140,10 @@ class GroupAppCopyService(object):
             # Handling plugin config
             if change_service_map and service["service_plugin_config"]:
                 for plugin in service["service_plugin_config"]:
-                    # Get the new next service ID pointed to by the plugin through the old service ID
-                    plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
-                    plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
+                    if plugin["dest_service_id"] != "":
+                        # Get the new next service ID pointed to by the plugin through the old service ID
+                        plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
+                        plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
 
         if metadata["compose_service_relation"] is not None:
             for service in metadata["compose_service_relation"]:
