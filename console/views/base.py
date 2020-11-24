@@ -262,6 +262,9 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.is_team_owner = False
 
     def get_perms(self):
+        self.user_perms = []
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        self.user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             self.user_perms.extend(team_perms)

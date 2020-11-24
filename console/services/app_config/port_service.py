@@ -575,7 +575,7 @@ class AppPortService(object):
         if service.create_status == "complete":
             body = deal_port.to_dict()
             body["protocol"] = protocol
-            self.__update_service_port(tenant, service.service_region, service.service_alias, body)
+            self.update_service_port(tenant, service.service_region, service.service_alias, body)
         deal_port.save()
 
         return 200, "success"
@@ -621,12 +621,12 @@ class AppPortService(object):
             body = deal_port.to_dict()
             body["port_alias"] = new_port_alias
             body["k8s_service_name"] = k8s_service_name
-            self.__update_service_port(tenant, service.service_region, service.service_alias, body)
+            self.update_service_port(tenant, service.service_region, service.service_alias, body)
 
         deal_port.save()
 
     @staticmethod
-    def __update_service_port(tenant, region_name, service_alias, body):
+    def update_service_port(tenant, region_name, service_alias, body):
         region_api.update_service_port(region_name, tenant.tenant_name, service_alias, {
             "port": [body],
             "enterprise_id": tenant.enterprise_id
