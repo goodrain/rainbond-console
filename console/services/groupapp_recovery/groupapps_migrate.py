@@ -309,11 +309,12 @@ class GroupappsMigrateService(object):
         versions = self.__save_plugin_build_versions(migrate_tenant, metadata["plugin_info"]["plugin_build_versions"])
         self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
         for app in apps:
+            new_service_id = old_new_service_id_map[app["service_base"]["service_id"]]
             # plugin
             if app.get("service_plugin_relation", None):
-                self.__save_plugin_relations(ts, app["service_plugin_relation"], versions)
+                self.__save_plugin_relations(new_service_id, app["service_plugin_relation"], versions)
             if app.get("service_plugin_config", None):
-                self.__save_service_plugin_config(ts.service_id, app["service_plugin_config"])
+                self.__save_service_plugin_config(new_service_id, app["service_plugin_config"])
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map)
         # restore application config group
@@ -633,14 +634,14 @@ class GroupappsMigrateService(object):
     #     if endpoints_list:
     #         ThirdPartyServiceEndpoints.objects.bulk_create(endpoints_list)
 
-    def __save_plugin_relations(self, service, plugin_relations, plugin_versions):
+    def __save_plugin_relations(self, service_id, plugin_relations, plugin_versions):
         if not plugin_relations:
             return
         new_plugin_relations = []
         for pr in plugin_relations:
             pr.pop("ID")
             new_pr = TenantServicePluginRelation(**pr)
-            new_pr.service_id = service.service_id
+            new_pr.service_id = service_id
             if not new_pr.min_memory:
                 for plugin_version in plugin_versions:
                     if new_pr.plugin_id == plugin_version.plugin_id:
