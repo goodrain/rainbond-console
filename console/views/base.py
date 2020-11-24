@@ -20,13 +20,16 @@ from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 
+from console.services.user_services import user_services
+from console.repositories.enterprise_repo import enterprise_user_perm_repo
+from console.repositories.user_repo import user_repo
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.perms import get_enterprise_adminer_codes
+from console.utils.perms import list_enterprise_perm_codes_by_role
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
@@ -184,26 +187,15 @@ class JWTAuthApiView(APIView):
 
     def get_perms(self):
         self.user_perms = []
-        if self.is_enterprise_admin:
-            self.user_perms = get_enterprise_adminer_codes()
-        roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
-        if roles:
-            role_ids = roles.values_list("ID", flat=True)
-            user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
-            if user_roles:
-                user_role_ids = user_roles.values_list("role_id", flat=True)
-                role_perms = RolePerms.objects.filter(role_id__in=user_role_ids)
-                if role_perms:
-                    self.user_perms = role_perms.values_list("perm_code", flat=True)
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        for role in admin_roles:
+            self.user_perms.extend(list_enterprise_perm_codes_by_role(role))
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
         self.user = request.user
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
-            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
-        if enterprise_user_perms:
-            self.is_enterprise_admin = True
+        self.is_enterprise_admin = enterprise_user_perm_repo.is_admin(self.user.enterprise_id, self.user.user_id)
         self.get_perms()
         self.check_perms(request, *args, **kwargs)
         self.tenant_name = kwargs.get("tenantName", None)
@@ -218,11 +210,18 @@ class JWTAuthApiView(APIView):
 class EnterpriseAdminView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
         super(EnterpriseAdminView, self).__init__(*args, **kwargs)
+        self.ent_user = None
 
     def initial(self, request, *args, **kwargs):
         super(EnterpriseAdminView, self).initial(request, *args, **kwargs)
         if not self.is_enterprise_admin:
             raise NoPermissionsError
+        user_id = kwargs.get("user_id")
+        if user_id:
+            user = user_repo.get_enterprise_user_by_id(self.enterprise.enterprise_id, user_id)
+            if not user:
+                raise ServiceHandleException("user not found", "用户不存在", status_code=404)
+            self.ent_user = user
 
 
 class CloudEnterpriseCenterView(JWTAuthApiView):
@@ -266,18 +265,9 @@ class RegionTenantHeaderView(JWTAuthApiView):
 
     def get_perms(self):
         self.user_perms = []
-        if self.is_enterprise_admin:
-            self.user_perms = get_enterprise_adminer_codes()
-        else:
-            ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
-            if ent_roles:
-                ent_role_ids = ent_roles.values_list("ID", flat=True)
-                ent_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=ent_role_ids)
-                if ent_user_roles:
-                    ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
-                    ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
-                    if ent_role_perms:
-                        self.user_perms = list(ent_role_perms.values_list("perm_code", flat=True))
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        for role in admin_roles:
+            self.user_perms.extend(list_enterprise_perm_codes_by_role(role))
 
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
@@ -371,6 +361,20 @@ class EnterpriseHeaderView(JWTAuthApiView):
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
 
 
+class ApplicationView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(ApplicationView, self).__init__(*args, **kwargs)
+        self.app = None
+
+    def initial(self, request, *args, **kwargs):
+        super(ApplicationView, self).initial(request, *args, **kwargs)
+        app_id = kwargs.get("app_id")
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
+        self.app = app
+
+
 def custom_exception_handler(exc, context):
     """
         Returns the response that should be used for any given exception.
@@ -461,17 +465,3 @@ def custom_exception_handler(exc, context):
     else:
         logger.exception(exc)
         return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class ApplicationView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(ApplicationView, self).__init__(*args, **kwargs)
-        self.app = None
-
-    def initial(self, request, *args, **kwargs):
-        super(ApplicationView, self).initial(request, *args, **kwargs)
-        app_id = kwargs.get("app_id")
-        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
-        if not app:
-            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
-        self.app = app
