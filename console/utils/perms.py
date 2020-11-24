@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
+from console.enum.enterprise_enum import EnterpriseRolesEnum
 """
 - enterprise 100
     sub1 -- 101
@@ -14,7 +15,39 @@ from collections import Counter
 - plugin 700
 """
 
-ENTERPRISE = {"perms": []}
+# 100000 ~ 199999 for team
+ENTERPRISE = {
+    "admin": {
+        "perms": [
+            # what is What is 10000 and 20000?
+            ["", "", 100000],
+            ["", "", 200000],
+        ]
+    },
+    "app_store": {
+        "perms": [
+            ["create_app", u"创建应用模板", 110000],
+            ["edit_app", u"编辑应用模板", 110001],
+            ["delete_app", u"删除应用模板", 110002],
+            ["import_app", u"导入应用模板", 110003],
+            ["export_app", u"导出应用模板", 110004],
+            ["create_app_store", u"添加应用商店", 110005],
+            ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
+            ["edit_app_store", u"编辑应用商店", 110007],
+            ["delete_app_store", u"删除应用商店", 110008],
+            ["edit_app_version", u"编辑应用版本", 110009],
+            ["delete_app_version", u"删除应用版本", 110010],
+        ]
+    }
+}
+
+common_perms = [
+    ["create_app", u"创建应用模板", 110000],
+    ["edit_app", u"编辑应用模板", 110001],
+    ["delete_app", u"删除应用模板", 110002],
+    ["import_app", u"导入应用模板", 110003],
+    ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
+]
 
 TEAM = {
     "perms": [
@@ -208,7 +241,7 @@ def assemble_perms(perm, group, kind_name):
 
 
 def get_perms(kind, group, kind_name):
-    if isinstance(kind, dict) and kind:
+    if isinstance(kind, dict) and kind and kind.get("perms"):
         perms_list = []
         perms_list.extend(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
         kind_elements = kind.keys()
@@ -285,9 +318,51 @@ def get_perm_code(obj):
 
 
 def get_enterprise_adminer_codes():
-    codes = get_perm_code(TEAM)
-    codes.extend([100000, 200000])
+    codes = set()
+    codes.update(get_perm_code(TEAM))
+    codes.update(get_perm_code(ENTERPRISE))
     return codes
+
+
+def list_enterprise_perm_codes_by_role(role):
+    if role == EnterpriseRolesEnum.admin.name:
+        return get_enterprise_adminer_codes()
+
+    perms = ENTERPRISE.get(role, [])
+    codes = set()
+    codes.update([perm[2] for perm in perms["perms"]])
+    codes.update([perm[2] for perm in common_perms])
+    return codes
+
+
+def list_enterprise_perm_codes_by_roles(roles):
+    codes = set()
+    for role in roles:
+        codes.update(list_enterprise_perm_codes_by_role(role))
+    return codes
+
+
+def list_enterprise_perms_by_role(role):
+    if role == EnterpriseRolesEnum.admin.name:
+        perms = set()
+        for r in ENTERPRISE:
+            if r == "admin":
+                # Special handling for admin role.
+                # No permissions have been set for admin before.
+                continue
+            perms.update([r + "." + perm[0] for perm in ENTERPRISE[r]["perms"]])
+        return perms
+
+    perms = ENTERPRISE.get(role, [])
+    return set([role + "." + perm[0] for perm in perms["perms"]])
+
+
+def list_enterprise_perms_by_roles(roles):
+    perms = set()
+    for role in roles:
+        perms.update(list_enterprise_perms_by_role(role))
+    perms.update(set(["app_store." + perm[0] for perm in common_perms]))
+    return perms
 
 
 if __name__ == '__main__':

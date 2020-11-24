@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
 
-from console.exception.exceptions import (UserFavoriteNotExistError, UserNotExistError, ErrUserNotFound)
+from console.exception.exceptions import UserFavoriteNotExistError, UserNotExistError
+from console.exception.bcode import ErrUserNotFound
 from console.models.main import UserFavorite
 from console.repositories.base import BaseConnection
 from www.models.main import Users

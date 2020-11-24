@@ -5,6 +5,7 @@ import logging
 from django.db.models import Q
 
 from console.exception.main import ServiceHandleException
+from console.exception.bcode import ErrServiceMonitorExists, ErrRepeatMonitoringTarget
 from console.models.main import ServiceMonitor
 from console.services.app_config.port_service import AppPortService
 from www.apiclient.regionapi import RegionInvokeApi
@@ -28,15 +29,15 @@ class ComponentServiceMonitor(object):
             return sms[0]
         return None
 
-    def create_component_service_monitor(self, tenant, service, user, name, path, port, service_show_name, interval):
+    def create_component_service_monitor(self, tenant, service, name, path, port, service_show_name, interval, user=None):
         if ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, name=name).count() > 0:
-            raise ServiceHandleException(msg="name is exist", msg_show="配置名称已存在", status_code=400, error_code=400)
+            raise ErrServiceMonitorExists
         if ServiceMonitor.objects.filter(service_id=service.service_id, port=port, path=path).count() > 0:
-            raise ServiceHandleException(msg="service monitor is exist", msg_show="重复的监控目标", status_code=400, error_code=400)
+            raise ErrRepeatMonitoringTarget
         if not port_service.get_service_port_by_port(service, port):
             raise ServiceHandleException(msg="port not found", msg_show="配置的组件端口不存在", status_code=400, error_code=400)
         req = {"name": name, "path": path, "port": port, "service_show_name": service_show_name, "interval": interval}
-        req["operator"] = user.get_name()
+        req["operator"] = user.get_name() if user else None
         region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
                                           service.service_alias, req)
         req.pop("operator")

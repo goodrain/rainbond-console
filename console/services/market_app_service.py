@@ -41,7 +41,7 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.exception.exceptions import ErrAppConfigGroupExists
+from console.exception.bcode import ErrAppConfigGroupExists
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()

@@ -3,6 +3,7 @@ import logging
 
 from django.db.models import Q
 
+from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
 from console.models.main import (Applicants, EnterpriseUserPerm, RainbondCenterApp)
 from console.repositories.base import BaseConnection
@@ -22,8 +23,7 @@ class TenantEnterpriseRepo(object):
         """判断用户在该企业下是否为管理员"""
         if user.enterprise_id != enterprise_id:
             return False
-        user_perms = enterprise_user_perm_repo.get_user_enterprise_perm(user.user_id, enterprise_id)
-        if not user_perms:
+        if not enterprise_user_perm_repo.is_admin(enterprise_id, user.user_id):
             users = user_repo.get_enterprise_users(enterprise_id).order_by("user_id")
             if users:
                 admin_user = users[0]
@@ -274,6 +274,9 @@ class TenantEnterpriseUserPermRepo(object):
             return EnterpriseUserPerm.objects.create(
                 user_id=user_id, enterprise_id=enterprise_id, identity=identity, token=token)
 
+    def update_roles(self, enterprise_id, user_id, identity):
+        EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id, user_id=user_id).update(identity=identity)
+
     def get_user_enterprise_perm(self, user_id, enterprise_id):
         return EnterpriseUserPerm.objects.filter(user_id=user_id, enterprise_id=enterprise_id)
 
@@ -304,6 +307,17 @@ class TenantEnterpriseUserPermRepo(object):
 
     def get_by_token(self, token):
         return EnterpriseUserPerm.objects.filter(token=token).first()
+
+    @staticmethod
+    def is_admin(eid, user_id):
+        try:
+            perm = EnterpriseUserPerm.objects.get(enterprise_id=eid, user_id=user_id)
+            return EnterpriseRolesEnum.admin.name in perm.identity
+        except EnterpriseUserPerm.DoesNotExist:
+            return False
+
+    def get(self, enterprise_id, user_id):
+        return EnterpriseUserPerm.objects.get(enterprise_id=enterprise_id, user_id=user_id)
 
 
 enterprise_repo = TenantEnterpriseRepo()

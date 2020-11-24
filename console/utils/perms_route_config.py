@@ -2737,23 +2737,6 @@ CenterAppImportingAppsView = {
     }
 }
 
-CenterAppImportView = {
-    "__message": {
-        "get": {
-            "perms": [200001]
-        },
-        "post": {
-            "perms": [300015]
-        },
-        "put": {
-            "perms": []
-        },
-        "delete": {
-            "perms": []
-        }
-    }
-}
-
 TeamAddUserView = {
     "__message": {
         "get": {
@@ -3691,5 +3674,91 @@ AppConfigGroupView = {
         "delete": {
             "perms": [300020]
         }
+    }
+}
+
+CenterAppCLView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [110000]
+        },
+    }
+}
+
+CenterAppExportView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [110004]
+        },
+    }
+}
+
+CenterAppUDView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [110001]
+        },
+        "delete": {
+            "perms": [110002]
+        },
+    }
+}
+
+CenterAppImportView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [110003]
+        },
+        "delete": {
+            "perms": [110003]
+        },
+    }
+}
+
+AppMarketCLView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [110005]
+        },
+    }
+}
+
+AppMarketRUDView = {
+    "__message": {
+        "get": {
+            "perms": [110006]
+        },
+        "put": {
+            "perms": [110007]
+        },
+        "delete": {
+            "perms": [110008]
+        },
+    }
+}
+
+AppVersionUDView = {
+    "__message": {
+        "put": {
+            "perms": [110009]
+        },
+        "delete": {
+            "perms": [110010]
+        },
     }
 }
