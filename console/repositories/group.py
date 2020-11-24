@@ -21,13 +21,14 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(
             tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
 
-    def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False):
+    def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False, username=""):
         group = ServiceGroup.objects.create(
             tenant_id=tenant_id,
             region_name=region_name,
             group_name=group_name,
             note=group_note,
             is_default=is_default,
+            username=username,
             update_time=datetime.now(),
             create_time=datetime.now())
         return group

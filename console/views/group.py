@@ -63,7 +63,7 @@ class TenantGroupView(RegionTenantHeaderView):
         if len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
 
-        data = group_service.create_app(self.tenant, self.response_region, app_name, note)
+        data = group_service.create_app(self.tenant, self.response_region, app_name, note, self.user.get_username())
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
 

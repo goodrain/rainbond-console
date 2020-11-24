@@ -29,7 +29,7 @@ from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, R
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.perms import list_enterprise_perm_codes_by_role
+from console.utils import perms
 from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
@@ -188,9 +188,7 @@ class JWTAuthApiView(APIView):
     def get_perms(self):
         self.user_perms = []
         admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
-        for role in admin_roles:
-            self.user_perms.extend(list_enterprise_perm_codes_by_role(role))
-        self.user_perms = list(set(self.user_perms))
+        self.user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
 
     def initial(self, request, *args, **kwargs):
         self.user = request.user
@@ -264,11 +262,6 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.is_team_owner = False
 
     def get_perms(self):
-        self.user_perms = []
-        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
-        for role in admin_roles:
-            self.user_perms.extend(list_enterprise_perm_codes_by_role(role))
-
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             self.user_perms.extend(team_perms)
