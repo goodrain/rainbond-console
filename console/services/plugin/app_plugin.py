@@ -359,7 +359,8 @@ class AppPluginService(object):
         # create internal port
         port_service.create_internal_port(tenant, service, port)
         try:
-            service_monitor_repo.create_component_service_monitor(tenant, service, "mysqldexporter-"+make_uuid()[0:4], path, port, show_name, "10s")
+            service_monitor_repo.create_component_service_monitor(tenant, service, "mysqldexporter-" + make_uuid()[0:4], path,
+                                                                  port, show_name, "10s")
         except ErrRepeatMonitoringTarget as e:
             logger.debug(e)
             return

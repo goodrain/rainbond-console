@@ -67,7 +67,7 @@ class GroupService(object):
     @transaction.atomic()
     def add_group(self, tenant, region_name, app_name, note="", username=""):
         self.check_app_name(tenant, region_name, app_name)
-        return group_repo.add_group(tenant.tenant_id, region_name, app_name, note, username)
+        return group_repo.add_group(tenant.tenant_id, region_name, app_name, group_note=note, username=username)
 
     def create_region_app(self, tenant, region_name, app):
         region_app = region_api.create_application(region_name, tenant.tenant_name, {
