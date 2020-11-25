@@ -13,7 +13,7 @@ from django.core.paginator import Paginator
 from console.services.app_config_group import app_config_group_service
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
-from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
+from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException, ErrVolumePath)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.models.main import ServiceMonitor
 from console.repositories.app import app_tag_repo, service_source_repo
@@ -427,8 +427,8 @@ class MarketAppService(object):
             "build_source": "image",
             "image": image,
             "code_repo": plugin_template["code_repo"],
-            "username": "",
-            "password": ""
+            "username": plugin_template["plugin_image"]["hub_user"],
+            "password": plugin_template["plugin_image"]["hub_password"]
         }
         status, msg, plugin_base_info = plugin_service.create_tenant_plugin(plugin_params)
         if status != 200:
@@ -599,24 +599,28 @@ class MarketAppService(object):
         if not volumes:
             return 200, "success"
         for volume in volumes:
-            if "file_content" in volume.keys() and volume["file_content"] != "":
-                volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
-                                                  volume["volume_name"], volume["file_content"])
-            else:
-                settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
-                                                                            volume.get("access_mode"),
-                                                                            volume.get("share_policy"),
-                                                                            volume.get("backup_policy"), None,
-                                                                            volume.get("volume_provider_name"))
-                if settings["changed"]:
-                    logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"], settings["volume_type"]))
-                    volume["volume_type"] = settings["volume_type"]
-                    if volume["volume_type"] == "share-file":
-                        volume["volume_capacity"] = 0
+            try:
+                if "file_content" in volume.keys() and volume["file_content"] != "":
+                    volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
+                                                      volume["volume_name"], volume["file_content"])
                 else:
-                    settings["volume_capacity"] = volume.get("volume_capacity", 0)
-                volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
-                                                  volume["volume_name"], None, settings)
+                    settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
+                                                                                volume.get("access_mode"),
+                                                                                volume.get("share_policy"),
+                                                                                volume.get("backup_policy"), None,
+                                                                                volume.get("volume_provider_name"))
+                    if settings["changed"]:
+                        logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"],
+                                                                                  settings["volume_type"]))
+                        volume["volume_type"] = settings["volume_type"]
+                        if volume["volume_type"] == "share-file":
+                            volume["volume_capacity"] = 0
+                    else:
+                        settings["volume_capacity"] = volume.get("volume_capacity", 0)
+                    volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
+                                                      volume["volume_name"], None, settings)
+            except ErrVolumePath:
+                logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
 
     def __save_extend_info(self, service, extend_info):
         if not extend_info:

@@ -162,3 +162,8 @@ class StoreNoPermissionsError(ServiceHandleException):
     def response(self):
         return MessageResponse(
             self.msg, msg_show=self.msg_show, status_code=self.status_code, error_code=self.error_code, bean=self.bean)
+
+
+class ErrVolumePath(ServiceHandleException):
+    def __init__(self, msg="path error", msg_show="路径错误", status_code=412):
+        super(ErrVolumePath, self).__init__(msg, msg_show, status_code)
