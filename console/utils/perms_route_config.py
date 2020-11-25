@@ -3704,7 +3704,7 @@ CenterAppUDView = {
         "get": {
             "perms": []
         },
-        "post": {
+        "put": {
             "perms": [110001]
         },
         "delete": {
