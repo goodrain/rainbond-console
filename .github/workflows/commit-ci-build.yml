@@ -28,6 +28,7 @@ jobs:
 
       - name: Build the Docker image
         env:
+          TRAVIS_PULL_REQUEST: false
           DISABLE_GOPROXY: true
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
