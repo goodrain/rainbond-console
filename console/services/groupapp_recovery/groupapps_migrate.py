@@ -217,7 +217,7 @@ class GroupappsMigrateService(object):
                 try:
                     with transaction.atomic():
                         self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata),
-                                       migrate_record.group_id)
+                                       migrate_record.group_id, True)
                         if migrate_record.migrate_type == "recover":
                             # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
                             backup_record_repo.get_record_by_group_id(
@@ -230,7 +230,7 @@ class GroupappsMigrateService(object):
                 migrate_record.save()
         return migrate_record
 
-    def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id):
+    def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id, sync_flag=False):
         from console.services.groupcopy_service import groupapp_copy_service
         group = group_repo.get_group_by_id(group_id)
         apps = metadata["apps"]
@@ -247,7 +247,7 @@ class GroupappsMigrateService(object):
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
             self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"], group.governance_mode,
-                             app["service_env_vars"])
+                             app["service_env_vars"], sync_flag)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
             self.__save_volume(migrate_tenant, ts, app["service_volumes"],
                                app["service_config_file"] if 'service_config_file' in app else None)
@@ -399,7 +399,14 @@ class GroupappsMigrateService(object):
                     config.volume_id = volume_id_relations.get(config.volume_id)
             TenantServiceConfigurationFile.objects.bulk_create(config_list)
 
-    def __save_port(self, region_name, tenant, service, tenant_service_ports, governance_mode, tenant_service_env_vars):
+    def __save_port(self,
+                    region_name,
+                    tenant,
+                    service,
+                    tenant_service_ports,
+                    governance_mode,
+                    tenant_service_env_vars,
+                    sync_flag=False):
         port_2_envs = dict()
         for env in tenant_service_env_vars:
             container_port = env.get("container_port")
@@ -413,7 +420,7 @@ class GroupappsMigrateService(object):
         for port in tenant_service_ports:
             port.pop("ID")
             k8s_service_name = port.get("k8s_service_name", "")
-            if k8s_service_name != "":
+            if k8s_service_name != "" and sync_flag:
                 try:
                     port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
                     k8s_service_name += "-" + make_uuid()[-4:]
@@ -431,7 +438,7 @@ class GroupappsMigrateService(object):
 
             # make sure the value of X_HOST env is correct
             envs = port_2_envs.get(port["container_port"])
-            if envs:
+            if envs and sync_flag:
                 for env in envs:
                     if not env.get("container_port") or not env["attr_name"].endswith("_HOST"):
                         continue
