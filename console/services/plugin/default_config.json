@@ -539,7 +539,7 @@
           {
             "attr_name": "DATA_SOURCE_NAME",
             "attr_type": "string",
-            "attr_default_value": "${MYSQL_USERNAME}:${MYSQL_PASSWORD}@(127.0.0.1:${MYSQL_PORT:3306})/",
+            "attr_default_value": "root:${MYSQL_ROOT_PASSWORD}@(127.0.0.1:${MYSQL_PORT:3306})/",
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "MySQL 连接信息",
