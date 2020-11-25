@@ -58,10 +58,20 @@ CREATE TABLE IF NOT EXISTS `app_config_group_service` (
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `component_graphs` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `component_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `graph_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `promql` varchar(2047) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sequence` int NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=315 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 ALTER TABLE console.service_group ADD `create_time` datetime DEFAULT NULL;
 ALTER TABLE console.service_group ADD `update_time` datetime DEFAULT NULL;
 
 ALTER TABLE `console`.`tenant_services_port` ADD COLUMN `k8s_service_name` varchar(63) NULL AFTER `is_outer_service`;
 ALTER TABLE `console`.`service_group` ADD COLUMN `username` varchar(255) NULL AFTER `note`;
-ALTER TABLE `console`.`service_group` ADD COLUMN `governance_mode` varchar(255) DEFAULT `BUILD_IN_SERVICE_MESH`;
+ALTER TABLE `console`.`service_group` ADD COLUMN `governance_mode` varchar(255) DEFAULT "BUILD_IN_SERVICE_MESH";
 ALTER TABLE `console`.`rainbond_center_app_version` ADD COLUMN `release_user_id` varchar(255) DEFAULT NULL;
