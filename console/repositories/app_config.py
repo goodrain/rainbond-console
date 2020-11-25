@@ -194,6 +194,8 @@ class TenantServicePortRepository(object):
 
     @staticmethod
     def list_inner_ports_by_service_ids(tenant_id, service_ids):
+        if not service_ids:
+            return []
         return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, is_inner_service=True)
 
     @staticmethod

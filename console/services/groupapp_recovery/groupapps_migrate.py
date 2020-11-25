@@ -9,6 +9,8 @@ import logging
 
 from django.db import transaction
 
+from console.services.app_config import port_service
+from console.enum.app import GovernanceModeEnum
 from console.constants import AppMigrateType
 from console.models.main import ServiceRelPerms
 from console.models.main import ServiceSourceInfo
@@ -244,10 +246,11 @@ class GroupappsMigrateService(object):
             ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region, migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
+            self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"], group.governance_mode,
+                             app["service_env_vars"])
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
             self.__save_volume(migrate_tenant, ts, app["service_volumes"],
                                app["service_config_file"] if 'service_config_file' in app else None)
-            self.__save_port(migrate_tenant, ts, app["service_ports"])
             self.__save_compile_env(ts, app["service_compile_env"])
             self.__save_service_label(migrate_tenant, ts, migrate_region, app["service_labels"])
             self.__save_service_probes(ts, app["service_probes"])
@@ -395,14 +398,28 @@ class GroupappsMigrateService(object):
                     config.volume_id = volume_id_relations.get(config.volume_id)
             TenantServiceConfigurationFile.objects.bulk_create(config_list)
 
-    def __save_port(self, tenant, service, tenant_service_ports):
+    def __save_port(self, region_name, tenant, service, tenant_service_ports, governance_mode, tenant_service_env_vars):
+        port_2_envs = dict()
+        for env in tenant_service_env_vars:
+            container_port = env.get("container_port")
+            if not container_port:
+                continue
+            envs = port_2_envs.get(container_port) if port_2_envs.get(container_port) else []
+            envs.append(env)
+            port_2_envs[container_port] = envs
+
         port_list = []
         for port in tenant_service_ports:
             port.pop("ID")
-            if port["k8s_service_name"] != "":
+            k8s_service_name = port.get("k8s_service_name", "")
+            if k8s_service_name != "":
                 try:
-                    port_repo.get_by_k8s_service_name(tenant.tenant_id, port["k8s_service_name"])
-                    port["k8s_service_name"] = "-".join([port["k8s_service_name"], make_uuid()[-4:]])
+                    port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
+                    k8s_service_name += "-" + make_uuid()[-4:]
+                    # update port if k8s_service_name has changed.
+                    body = port
+                    body["k8s_service_name"] = k8s_service_name
+                    port_service.update_service_port(tenant, region_name, service.service_alias, body)
                 except TenantServicesPort.DoesNotExist:
                     pass
             new_port = TenantServicesPort(**port)
@@ -410,6 +427,25 @@ class GroupappsMigrateService(object):
             new_port.tenant_id = tenant.tenant_id
             new_port.k8s_service_name = port["k8s_service_name"]
             port_list.append(new_port)
+
+            # make sure the value of X_HOST env is correct
+            envs = port_2_envs.get(port["container_port"])
+            if envs:
+                for env in envs:
+                    if not env.get("container_port") or not env["attr_name"].endswith("_HOST"):
+                        continue
+                    origin_attr_value = env["attr_value"]
+                    if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
+                        env["attr_value"] = "127.0.0.1"
+                    else:
+                        env["attr_value"] = k8s_service_name
+                    # update env if attr_value has changed.
+                    if origin_attr_value != env["attr_value"]:
+                        region_api.update_service_env(region_name, tenant.tenant_name, service.service_alias, {
+                            "env_name": env["attr_name"],
+                            "env_value": env["attr_value"]
+                        })
+
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
             region = region_repo.get_region_by_region_name(service.service_region)

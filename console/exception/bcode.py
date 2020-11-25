@@ -4,7 +4,7 @@ from console.exception.main import ServiceHandleException
 
 # 20000 ~ 20099 => user
 class ErrUserNotFound(ServiceHandleException):
-    def __init__(self, message):
+    def __init__(self, message=""):
         msg = "user not found"
         super(ErrUserNotFound, self).__init__(msg)
         self.msg_show = u"用户不存在"
