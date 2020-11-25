@@ -51,7 +51,7 @@ class BaseOpenAPIView(APIView):
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = get_enterprise_adminer_codes()
+            self.user_perms = list(get_enterprise_adminer_codes())
         roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
         if roles:
             role_ids = roles.values_list("ID", flat=True)
@@ -95,7 +95,7 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
     def get_perms(self):
         self.user_perms = []
         if self.is_enterprise_admin:
-            self.user_perms = get_enterprise_adminer_codes()
+            self.user_perms = list(get_enterprise_adminer_codes())
         else:
             ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
             if ent_roles:

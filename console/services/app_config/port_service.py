@@ -55,7 +55,7 @@ class AppPortService(object):
         return 200, "success"
 
     @staticmethod
-    def check_k8s_service_name(tenant_id, k8s_service_name, container_port=None):
+    def check_k8s_service_name(tenant_id, k8s_service_name, component_id="", container_port=None):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
         if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
@@ -64,7 +64,9 @@ class AppPortService(object):
         # make k8s_service_name unique
         try:
             port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
-            if container_port is None or port.container_port != container_port:
+            if not component_id or not container_port:
+                raise ErrK8sServiceNameExists
+            if port.service_id != component_id or port.container_port != container_port:
                 raise ErrK8sServiceNameExists
         except TenantServicesPort.DoesNotExist:
             pass
@@ -614,7 +616,7 @@ class AppPortService(object):
             env.save()
 
         if k8s_service_name:
-            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.container_port)
+            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.service_id, deal_port.container_port)
             deal_port.k8s_service_name = k8s_service_name
 
         if service.create_status == "complete":
