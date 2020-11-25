@@ -120,17 +120,16 @@ class TeamOverView(RegionTenantHeaderView):
             if len(batch_create_app_body) > 0:
                 try:
                     body = {"apps_info": batch_create_app_body}
-                    list = region_api.batch_create_application(region.region_name, self.tenant_name, body)
+                    applist = region_api.batch_create_application(region.region_name, self.tenant_name, body)
+                    app_list = []
+                    if applist:
+                        for app in applist:
+                            data = RegionApp(
+                                app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
+                            app_list.append(data)
+                    RegionApp.objects.bulk_create(app_list)
                 except Exception as e:
                     logger.exception(e)
-
-                app_list = []
-                if list:
-                    for app in list:
-                        data = RegionApp(
-                            app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
-                        app_list.append(data)
-                RegionApp.objects.bulk_create(app_list)
 
             team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
             overview_detail["share_app_num"] = share_app_num
