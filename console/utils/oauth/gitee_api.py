@@ -3,7 +3,7 @@ import logging
 
 import requests
 
-from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
+from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr, GetOAuthUserErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.urlutil import set_get_url
@@ -193,7 +193,9 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
         user = self.api.get_user()
-        return OAuth2User(user["login"], user["id"], user["email"]), access_token, refresh_token
+        if not user:
+            raise GetOAuthUserErr("No OAuth user was obtained")
+        return OAuth2User(user[0]["login"], user[0]["id"], user[0]["email"]), access_token, refresh_token
 
     def get_authorize_url(self):
         if self.oauth_service:
