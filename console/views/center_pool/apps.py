@@ -391,7 +391,7 @@ class TagUDView(JWTAuthApiView):
 
 
 class AppTagCDView(JWTAuthApiView):
-    def post(self, request, enterprise_id, app_id):
+    def post(self, request, enterprise_id, app_id, *args, **kwargs):
         tag_id = request.data.get("tag_id", None)
         result = general_message(200, "success", u"创建成功")
         if not tag_id:
@@ -406,7 +406,7 @@ class AppTagCDView(JWTAuthApiView):
             result = general_message(404, "fail", u"创建失败")
         return Response(result, status=result.get("code", 200))
 
-    def delete(self, request, enterprise_id, app_id):
+    def delete(self, request, enterprise_id, app_id, *args, **kwargs):
         tag_id = request.data.get("tag_id", None)
         result = general_message(200, "success", u"删除成功")
         if not tag_id:
@@ -423,7 +423,7 @@ class AppTagCDView(JWTAuthApiView):
 
 
 class AppVersionUDView(JWTAuthApiView):
-    def put(self, request, enterprise_id, app_id, version):
+    def put(self, request, enterprise_id, app_id, version, *args, **kwargs):
         dev_status = request.data.get("dev_status", "")
         version_alias = request.data.get("version_alias", None)
         app_version_info = request.data.get("app_version_info", None)
@@ -438,7 +438,7 @@ class AppVersionUDView(JWTAuthApiView):
         result = general_message(200, "success", u"更新成功", bean=version.to_dict())
         return Response(result, status=result.get("code", 200))
 
-    def delete(self, request, enterprise_id, app_id, version):
+    def delete(self, request, enterprise_id, app_id, version, *args, **kwargs):
         result = general_message(200, "success", u"删除成功")
         market_app_service.delete_rainbond_app_version(enterprise_id, app_id, version)
         return Response(result, status=result.get("code", 200))
