@@ -118,10 +118,12 @@ def get_current_version():
 
 
 def should_upgrade(current_version, new_version):
+    if current_version == "5.2.2" and new_version == "5.3.0":
+        return True
     if new_version.max_version != current_version.max_version:
         return False
-    if new_version.median_version > current_version.median_version:
-        return True
+    if new_version.median_version != current_version.median_version:
+        return False
     if new_version.min_version > current_version.min_version:
         return True
     return False
@@ -139,8 +141,12 @@ if __name__ == '__main__':
         while True:
             if current_version.equal(new_version):
                 break
-            upgrade(current_version, new_version)
-            current_version = RainbondVersion(new_version)
+            if current_version == "5.2.2" and new_version == "5.3.0":
+                upgrade(current_version, new_version)
+                current_version = RainbondVersion(new_version)
+            else:
+                upgrade(current_version, current_version.next_min_version())
+                current_version = RainbondVersion(current_version.next_min_version())
         print "upgrade console db from {0} to {1} success".format(current_version, new_version)
     else:
         print "{0} no need upgrade to {1}".format(current_version, new_version)
