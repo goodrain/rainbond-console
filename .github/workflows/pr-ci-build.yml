@@ -24,4 +24,4 @@ jobs:
       - name: Build the Docker image
         env:
           TRAVIS_PULL_REQUEST: true
-        run: VERSION=${{ github.base_ref }}-dev ./travis_build.sh
+        run: VERSION=${{ github.base_ref }}-dev ./release.sh
