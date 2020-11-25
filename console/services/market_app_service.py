@@ -396,8 +396,8 @@ class MarketAppService(object):
             "build_source": "image",
             "image": image,
             "code_repo": plugin_template["code_repo"],
-            "username": "",
-            "password": ""
+            "username": plugin_template["plugin_image"]["hub_user"],
+            "password": plugin_template["plugin_image"]["hub_password"]
         }
         status, msg, plugin_base_info = plugin_service.create_tenant_plugin(plugin_params)
         if status != 200:
