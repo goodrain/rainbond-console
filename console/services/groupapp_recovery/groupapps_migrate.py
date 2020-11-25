@@ -420,14 +420,15 @@ class GroupappsMigrateService(object):
         for port in tenant_service_ports:
             port.pop("ID")
             k8s_service_name = port.get("k8s_service_name", "")
-            if k8s_service_name != "" and sync_flag:
+            if k8s_service_name != "":
                 try:
                     port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
                     k8s_service_name += "-" + make_uuid()[-4:]
                     # update port if k8s_service_name has changed.
                     body = port
                     body["k8s_service_name"] = k8s_service_name
-                    port_service.update_service_port(tenant, region_name, service.service_alias, body)
+                    if sync_flag:
+                        port_service.update_service_port(tenant, region_name, service.service_alias, body)
                 except TenantServicesPort.DoesNotExist:
                     pass
             new_port = TenantServicesPort(**port)
@@ -438,7 +439,7 @@ class GroupappsMigrateService(object):
 
             # make sure the value of X_HOST env is correct
             envs = port_2_envs.get(port["container_port"])
-            if envs and sync_flag:
+            if envs:
                 for env in envs:
                     if not env.get("container_port") or not env["attr_name"].endswith("_HOST"):
                         continue
@@ -448,7 +449,7 @@ class GroupappsMigrateService(object):
                     else:
                         env["attr_value"] = k8s_service_name
                     # update env if attr_value has changed.
-                    if origin_attr_value != env["attr_value"]:
+                    if origin_attr_value != env["attr_value"] and sync_flag:
                         region_api.update_service_env(region_name, tenant.tenant_name, service.service_alias, {
                             "env_name": env["attr_name"],
                             "env_value": env["attr_value"]
