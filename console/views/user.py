@@ -2,8 +2,12 @@
 import json
 import logging
 
+from console.exception.main import AbortRequest
+from console.enum.enterprise_enum import EnterpriseRolesEnum
+from console.utils.reqparse import parse_item
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
+from console.exception.bcode import ErrUserNotFound, ErrEnterpriseNotFound
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -180,21 +184,25 @@ class AdminUserLCView(JWTAuthApiView):
         return Response(result)
 
     def post(self, request, enterprise_id, *args, **kwargs):
+        roles = parse_item(request, "roles", required=True, error="at least one role needs to be specified")
+        if not set(roles).issubset(EnterpriseRolesEnum.names()):
+            raise AbortRequest("invalid roles", msg_show="角色不正确")
+
         user_id = request.data.get("user_id")
         try:
             user = user_services.get_user_by_user_id(user_id)
-            ent = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
-            if ent is None:
-                result = general_message(404, "no found", "未找到该企业")
-            else:
-                user_services.create_admin_user(user, ent)
-                result = general_message(201, "success", None)
         except UserNotExistError:
-            result = general_message(404, "no found", "未找到该用户")
-        return Response(result, status=201)
+            raise ErrUserNotFound
+
+        ent = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+        if ent is None:
+            raise ErrEnterpriseNotFound
+
+        user_services.create_admin_user(user, ent, roles)
+        return Response(general_message(201, "success", None), status=201)
 
 
-class AdminUserDView(JWTAuthApiView):
+class AdminUserView(EnterpriseAdminView):
     def delete(self, request, enterprise_id, user_id, *args, **kwargs):
         if str(request.user.user_id) == user_id:
             result = general_message(400, "fail", "不可删除自己")
@@ -211,6 +219,16 @@ class AdminUserDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(400, "fail", None)
             return Response(result, 400)
+
+    def put(self, request, enterprise_id, user_id, *args, **kwargs):
+        roles = parse_item(request, "roles", required=True, error="at least one role needs to be specified")
+        if not set(roles).issubset(EnterpriseRolesEnum.names()):
+            raise AbortRequest("invalid roles", msg_show="角色不正确")
+        if str(request.user.user_id) == user_id:
+            raise AbortRequest("changing your role is not allowed", "不可修改自己的角色")
+        user_services.update_roles(enterprise_id, user_id, roles)
+        result = general_message(200, "success", None)
+        return Response(result, 200)
 
 
 class EnterPriseUsersCLView(JWTAuthApiView):
@@ -337,4 +355,14 @@ class AdministratorJoinTeamView(EnterpriseAdminView):
         if self.user.user_id not in nojoin_user_ids:
             team_services.add_user_role_to_team(tenant=team, user_ids=[self.user.user_id], role_ids=[])
         result = general_message(200, "success", None)
+        return Response(result, status=200)
+
+
+class AdminRolesView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        from console.utils.perms import ENTERPRISE
+        roles = list()
+        for role in ENTERPRISE:
+            roles.append(role)
+        result = general_message(200, "success", None, list=roles)
         return Response(result, status=200)

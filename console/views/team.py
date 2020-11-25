@@ -31,7 +31,7 @@ from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from goodrain_web.tools import JuncheePaginator
 from console.utils.reqparse import parse_item
-from console.exception.main import ErrK8sServiceNameExists
+from console.exception.bcode import ErrK8sServiceNameExists
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message, general_message
@@ -488,42 +488,31 @@ class ApplicantsView(RegionTenantHeaderView):
 
 class RegisterStatusView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
-        try:
-            register_config = platform_config_service.get_config_by_key("IS_REGIST")
-            if register_config.enable is False:
-                return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
-            else:
-                return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=result["code"])
+        register_config = platform_config_service.get_config_by_key("IS_REGIST")
+        if register_config.enable is False:
+            return Response(general_message(200, "status is close", "注册关闭状态", bean={"is_regist": False}), status=200)
+        else:
+            return Response(general_message(200, "status is open", "注册开启状态", bean={"is_regist": True}), status=200)
 
     def put(self, request, *args, **kwargs):
         """
         修改开启、关闭注册状态
         """
-        try:
-            user_id = request.user.user_id
-            enterprise_id = request.user.enterprise_id
-            admin = enterprise_user_perm_repo.get_user_enterprise_perm(user_id=user_id, enterprise_id=enterprise_id)
-            is_regist = request.data.get("is_regist")
-            if admin:
+        user_id = request.user.user_id
+        enterprise_id = request.user.enterprise_id
+        admin = enterprise_user_perm_repo.is_admin(user_id=user_id, eid=enterprise_id)
+        is_regist = request.data.get("is_regist")
+        if admin:
+            if is_regist is False:
+                # 修改全局配置
+                platform_config_service.update_config("IS_REGIST", {"enable": False, "value": None})
 
-                if is_regist is False:
-                    # 修改全局配置
-                    platform_config_service.update_config("IS_REGIST", {"enable": False, "value": None})
-
-                    return Response(general_message(200, "close register", "关闭注册"), status=200)
-                else:
-                    platform_config_service.update_config("IS_REGIST", {"enable": True, "value": None})
-                    return Response(general_message(200, "open register", "开启注册"), status=200)
+                return Response(general_message(200, "close register", "关闭注册"), status=200)
             else:
-                return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=result["code"])
+                platform_config_service.update_config("IS_REGIST", {"enable": True, "value": None})
+                return Response(general_message(200, "open register", "开启注册"), status=200)
+        else:
+            return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
 
 
 class EnterpriseInfoView(RegionTenantHeaderView):

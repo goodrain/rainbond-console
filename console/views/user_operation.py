@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework_jwt.settings import api_settings
 from console.forms.users_operation import RegisterForm
 
+from console.utils.perms import list_enterprise_perms_by_roles
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.repositories.perm_repo import perms_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -345,6 +346,10 @@ class UserDetailsView(JWTAuthApiView):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
         user_detail["is_enterprise_active"] = enterprise.is_active
         user_detail["is_enterprise_admin"] = self.is_enterprise_admin
+        # enterprise roles
+        user_detail["roles"] = user_services.list_roles(user.enterprise_id, user.user_id)
+        # enterprise permissions
+        user_detail["permissions"] = list_enterprise_perms_by_roles(user_detail["roles"])
         tenant_list = list()
         for tenant in tenants:
             tenant_info = dict()

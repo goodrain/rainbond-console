@@ -114,15 +114,15 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         if code != 200:
             return Response(general_message(code, "parse yaml error", msg), status=code)
         # 创建组
-        group_info = group_service.add_group(self.tenant, self.response_region, group_name, group_note)
-        code, msg, group_compose = compose_service.create_group_compose(self.tenant, self.response_region, group_info.ID,
-                                                                        yaml_content, hub_user, hub_pass)
+        group_info = group_service.create_app(self.tenant, self.response_region, group_name, group_note)
+        code, msg, group_compose = compose_service.create_group_compose(
+            self.tenant, self.response_region, group_info["group_id"], yaml_content, hub_user, hub_pass)
         if code != 200:
             return Response(general_message(code, "create group compose error", msg), status=code)
         bean = dict()
         bean["group_id"] = group_compose.group_id
         bean["compose_id"] = group_compose.compose_id
-        bean["group_name"] = group_info.group_name
+        bean["app_name"] = group_info["app_name"]
         result = general_message(200, "operation success", "compose组创建成功", bean=bean)
         return Response(result, status=result["code"])
 

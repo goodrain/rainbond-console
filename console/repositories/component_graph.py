@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from console.models.main import ComponentGraph
-from console.exception.exceptions import ErrComponentGraphExists, ErrComponentGraphNotFound
+from console.exception.bcode import ErrComponentGraphExists, ErrComponentGraphNotFound
 
 
 class ComponentGraphRepository(object):
@@ -58,6 +58,9 @@ class ComponentGraphRepository(object):
 
     def bulk_create(self, component_graphs):
         ComponentGraph.objects.bulk_create(component_graphs)
+
+    def batch_delete(self, component_id, graph_ids):
+        ComponentGraph.objects.filter(component_id=component_id, graph_id__in=graph_ids).delete()
 
 
 component_graph_repo = ComponentGraphRepository()

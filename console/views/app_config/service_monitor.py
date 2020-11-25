@@ -18,8 +18,8 @@ class ComponentServiceMonitorView(AppBaseView):
             return Response(status=400, data=general_message(400, "port or name or service_show_name must be set", "参数不全"))
         if not path.startswith("/"):
             return Response(status=400, data=general_message(400, "path must start with /", "参数错误"))
-        sm = component_service_monitor.create_component_service_monitor(self.tenant, self.service, self.user, name, path, port,
-                                                                        service_show_name, interval)
+        sm = component_service_monitor.create_component_service_monitor(self.tenant, self.service, name, path, port,
+                                                                        service_show_name, interval, self.user)
         return Response(status=200, data=general_data(bean=sm.to_dict()))
 
     def get(self, request, *args, **kwargs):

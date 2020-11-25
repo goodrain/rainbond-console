@@ -146,12 +146,6 @@ class NoPermissionsError(ServiceHandleException):
         super(NoPermissionsError, self).__init__(msg, msg_show, status_code, error_code)
 
 
-# 20100 ~ 20199 => service ports
-class ErrK8sServiceNameExists(ServiceHandleException):
-    def __init__(self):
-        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 20100)
-
-
 class StoreNoPermissionsError(ServiceHandleException):
     def __init__(self, bean=None):
         super(StoreNoPermissionsError, self).__init__(
