@@ -246,7 +246,8 @@ class GroupappsMigrateService(object):
             ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region, migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
-            self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"], group.governance_mode, app["service_env_vars"])
+            self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"], group.governance_mode,
+                             app["service_env_vars"])
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
             self.__save_volume(migrate_tenant, ts, app["service_volumes"],
                                app["service_config_file"] if 'service_config_file' in app else None)
@@ -440,7 +441,10 @@ class GroupappsMigrateService(object):
                         env["attr_value"] = k8s_service_name
                     # update env if attr_value has changed.
                     if origin_attr_value != env["attr_value"]:
-                        region_api.update_service_env(region_name, tenant.tenant_name, service.service_alias, {"env_name": env["attr_name"], "env_value": env["attr_value"]})
+                        region_api.update_service_env(region_name, tenant.tenant_name, service.service_alias, {
+                            "env_name": env["attr_name"],
+                            "env_value": env["attr_value"]
+                        })
 
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
