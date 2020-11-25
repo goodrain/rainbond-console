@@ -137,7 +137,9 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
         repo_list = []
         total = 0
         try:
-            meta = self.api.search_repositories(query=full_name + ' in:name')
+            user = full_name.split('/')[0]
+            query = full_name.split('/')[1]
+            meta = self.api.search_repositories(query=query + " user:" + user + " fork:true")
             total = meta.totalCount
             for repo in meta.get_page(page=int(page) - 1):
                 if repo:
