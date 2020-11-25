@@ -936,7 +936,10 @@ class TenantServicesPort(BaseModel):
     class Meta:
         db_table = 'tenant_services_port'
         unique_together = ('service_id', 'container_port')
-        unique_together = ('tenant_id', 'k8s_service_name',)
+        unique_together = (
+            'tenant_id',
+            'k8s_service_name',
+        )
 
     tenant_id = models.CharField(max_length=32, null=True, blank=True, help_text=u'租户id')
     service_id = models.CharField(max_length=32, db_index=True, help_text=u"组件ID")
