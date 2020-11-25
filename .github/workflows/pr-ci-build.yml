@@ -1,0 +1,27 @@
+name: pr-ci-build
+
+on:
+  pull_request:
+    branches: [master, V5.2, V5.3]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 2.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 yapf==0.26.0
+
+      - name: check-code
+        run: ./check_code.sh
+
+      - name: Build the Docker image
+        env:
+          TRAVIS_PULL_REQUEST: true
+        run: VERSION=${{ github.base_ref }}-dev ./release.sh
