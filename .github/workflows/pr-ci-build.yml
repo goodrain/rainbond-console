@@ -21,12 +21,7 @@ jobs:
       - name: check-code
         run: ./check_code.sh
 
-      - name: Extract branch name
-        shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-        id: extract_branch
-
       - name: Build the Docker image
         env:
           TRAVIS_PULL_REQUEST: true
-        run: VERSION=${{ steps.extract_branch.outputs.branch }}-dev ./travis_build.sh
+        run: VERSION=${{ github.base_ref }}-dev ./release.sh
