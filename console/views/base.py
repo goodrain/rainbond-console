@@ -343,6 +343,33 @@ class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudE
         CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
 
 
+class ApplicationView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(ApplicationView, self).__init__(*args, **kwargs)
+        self.app = None
+
+    def initial(self, request, *args, **kwargs):
+        super(ApplicationView, self).initial(request, *args, **kwargs)
+        app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
+        self.app = app
+
+        # update update_time if the http method is not a get.
+        if request.method != 'GET':
+            group_repo.update_group_time(app_id)
+
+
+class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        ApplicationView.initial(self, request, *args, **kwargs)
+        CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
+
+
 class TeamOwnerView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(TeamOwnerView, self).__init__(*args, **kwargs)
@@ -366,24 +393,6 @@ class EnterpriseHeaderView(JWTAuthApiView):
         self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
         if not self.enterprise:
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
-
-
-class ApplicationView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(ApplicationView, self).__init__(*args, **kwargs)
-        self.app = None
-
-    def initial(self, request, *args, **kwargs):
-        super(ApplicationView, self).initial(request, *args, **kwargs)
-        app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
-        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
-        if not app:
-            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
-        self.app = app
-
-        # update update_time if the http method is not a get.
-        if request.method != 'GET':
-            group_repo.update_group_time(app_id)
 
 
 def custom_exception_handler(exc, context):
