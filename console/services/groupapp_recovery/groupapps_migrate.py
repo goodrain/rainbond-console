@@ -257,8 +257,8 @@ class GroupappsMigrateService(object):
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
             self.__save_third_party_service_endpoints(ts, app.get("third_party_service_endpoints", []))
-            self.__save_service_monitors(migrate_tenant, ts, app["service_monitors"])
-            self.__save_component_graphs(ts, app["component_graphs"])
+            self.__save_service_monitors(migrate_tenant, ts, app.get("service_monitors"))
+            self.__save_component_graphs(ts, app.get("component_graphs"))
 
             if ts.service_source == "third_party":
                 app_service.create_third_party_service(migrate_tenant, ts, user.nick_name)
@@ -321,7 +321,7 @@ class GroupappsMigrateService(object):
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map)
         # restore application config group
-        self.__save_app_config_groups(metadata["app_config_group_info"], migrate_tenant, group_id, changed_service_map)
+        self.__save_app_config_groups(metadata.get("app_config_group_info"), migrate_tenant, group_id, changed_service_map)
 
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
         service_base_info.pop("ID")
@@ -434,7 +434,7 @@ class GroupappsMigrateService(object):
             new_port = TenantServicesPort(**port)
             new_port.service_id = service.service_id
             new_port.tenant_id = tenant.tenant_id
-            new_port.k8s_service_name = port["k8s_service_name"]
+            new_port.k8s_service_name = port.get("k8s_service_name")
             port_list.append(new_port)
 
             # make sure the value of X_HOST env is correct
