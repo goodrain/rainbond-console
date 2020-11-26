@@ -364,11 +364,15 @@ class ApplicationView(RegionTenantHeaderView):
 
     def initial(self, request, *args, **kwargs):
         super(ApplicationView, self).initial(request, *args, **kwargs)
-        app_id = kwargs.get("app_id")
+        app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
         app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
         if not app:
             raise ServiceHandleException("app not found", "应用不存在", status_code=404)
         self.app = app
+
+        # update update_time if the http method is not a get.
+        if request.method != 'GET':
+            group_repo.update_group_time(app_id)
 
 
 def custom_exception_handler(exc, context):

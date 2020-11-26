@@ -6,6 +6,7 @@ import logging
 
 from rest_framework.response import Response
 
+from urllib3.exceptions import MaxRetryError
 from console.services.market_app_service import market_app_service
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
@@ -149,13 +150,17 @@ class TenantGroupOperationView(ApplicationView):
                 paramType: path
         """
         app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
-        app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
+        try:
+            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
+        except MaxRetryError as e:
+            logger.warning("get the number of upgradable app: {}".format(e))
+            app['upgradable_num'] = 0
         result = general_message(200, "success", "success", bean=app)
         return Response(result, status=result["code"])
 
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
-class TenantGroupCommonOperationView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView):
     def post(self, request, *args, **kwargs):
         """
         ---
