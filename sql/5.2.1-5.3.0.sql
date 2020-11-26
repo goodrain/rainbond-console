@@ -65,3 +65,4 @@ ALTER TABLE `console`.`tenant_services_port` ADD COLUMN `k8s_service_name` varch
 ALTER TABLE `console`.`service_group` ADD COLUMN `username` varchar(255) NULL AFTER `note`;
 ALTER TABLE `console`.`service_group` ADD COLUMN `governance_mode` varchar(255) DEFAULT `BUILD_IN_SERVICE_MESH`;
 ALTER TABLE `console`.`rainbond_center_app_version` ADD COLUMN `release_user_id` varchar(255) DEFAULT NULL;
+ALTER TABLE user_oauth_service modify COLUMN access_token varchar(2047);
