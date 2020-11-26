@@ -796,7 +796,11 @@ class PluginService(object):
         data["plugin_name"] = tenant_plugin.plugin_name
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
 
+    @transaction.atomic
     def delete_plugin(self, region, team, plugin_id, ignore_cluster_resource=False):
+        services = app_plugin_relation_repo.get_used_plugin_services(plugin_id)
+        if services:
+            raise ServiceHandleException(msg="plugin is used by the service", msg_show="该插件被组件使用，无法删除")
         if not ignore_cluster_resource:
             try:
                 region_api.delete_plugin(region, team.tenant_name, plugin_id)
