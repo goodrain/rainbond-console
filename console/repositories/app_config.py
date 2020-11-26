@@ -200,6 +200,8 @@ class TenantServicePortRepository(object):
 
     @staticmethod
     def get_by_k8s_service_name(tenant_id, k8s_service_name):
+        if not k8s_service_name:
+            return
         return TenantServicesPort.objects.get(tenant_id=tenant_id, k8s_service_name=k8s_service_name)
 
     @staticmethod
