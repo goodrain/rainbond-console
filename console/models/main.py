@@ -892,7 +892,7 @@ class UserOAuthServices(BaseModel):
     is_auto_login = models.NullBooleanField(null=True, default=False, help_text=u"is_auto_login")
     is_authenticated = models.NullBooleanField(null=True, default=False, help_text=u"is_authenticated")
     is_expired = models.NullBooleanField(null=True, default=False, help_text=u"is_expired")
-    access_token = models.CharField(max_length=255, null=True, help_text=u"access_token_url")
+    access_token = models.CharField(max_length=2047, null=True, help_text=u"access_token_url")
     refresh_token = models.CharField(max_length=64, null=True, help_text=u"refresh_token")
     user_id = models.IntegerField(null=True, default=None, help_text=u"user_id")
     code = models.CharField(max_length=256, null=True, help_text=u"user_id")
