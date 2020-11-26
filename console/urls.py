@@ -17,7 +17,8 @@ from console.views.app_config.app_mnt import AppMntManageView, AppMntView
 from console.views.app_config.app_port import (AppPortManageView, AppPortView, AppTcpOuterManageView, TopologicalPortView)
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView)
-from console.views.app_config.graph import ComponentGraphListView, ComponentGraphView, ComponentInternalGraphsView, ComponentExchangeGraphsView
+from console.views.app_config.graph import ComponentGraphListView, ComponentGraphView, \
+    ComponentInternalGraphsView, ComponentExchangeGraphsView
 from console.views.app_config.service_monitor import (ComponentServiceMonitorEditView, ComponentServiceMonitorView,
                                                       ComponentMetricsView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView

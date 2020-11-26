@@ -67,6 +67,6 @@ class ComponentExchangeGraphsView(AppBaseView):
         serializer = ExchangeComponentGraphsReq(data=request.data)
         serializer.is_valid(raise_exception=True)
         graph_ids = serializer.data["graph_ids"]
-        code, msg, msg_show = component_graph_service.exchange_graphs(graph_ids)
-        result = general_message(code, msg, msg_show)
+        component_graph_service.exchange_graphs(self.service.service_id, graph_ids)
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
