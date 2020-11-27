@@ -3,7 +3,7 @@
 from rest_framework.response import Response
 
 from console.views.app_config.base import AppBaseView, ComponentGraphBaseView
-from console.serializers.component_graph import CreateComponentGraphReq, UpdateComponentGraphReq
+from console.serializers.component_graph import CreateComponentGraphReq, UpdateComponentGraphReq, ExchangeComponentGraphsReq
 from console.services.app_config.component_graph import component_graph_service
 from www.utils.return_message import general_message
 from console.utils.reqparse import parse_item
@@ -59,4 +59,14 @@ class ComponentInternalGraphsView(AppBaseView):
     def get(self, request, *args, **kwargs):
         graphs = component_graph_service.list_internal_graphs()
         result = general_message(200, "success", "查询成功", list=graphs)
+        return Response(result, status=result["code"])
+
+
+class ComponentExchangeGraphsView(AppBaseView):
+    def put(self, request, *args, **kwargs):
+        serializer = ExchangeComponentGraphsReq(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        graph_ids = serializer.data["graph_ids"]
+        component_graph_service.exchange_graphs(self.service.service_id, graph_ids)
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])

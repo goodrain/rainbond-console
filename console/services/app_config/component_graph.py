@@ -161,5 +161,17 @@ class ComponentGraphService(object):
             graph.sequence += 1
             graph.save()
 
+    def exchange_graphs(self, component_id, graph_ids):
+        if not graph_ids or len(graph_ids) != 2:
+            raise AbortRequest(msg="No graph_ids or wrong number of graph_ids", msg_show="没有图表ID或图表ID数量有误")
+        graphs = []
+        for graph_id in graph_ids:
+            graph = component_graph_repo.get(component_id, graph_id)
+            graphs.append(graph)
+        # exchange graph sequence
+        graphs[0].sequence, graphs[1].sequence = graphs[1].sequence, graphs[0].sequence
+        for graph in graphs:
+            graph.save()
+
 
 component_graph_service = ComponentGraphService()
