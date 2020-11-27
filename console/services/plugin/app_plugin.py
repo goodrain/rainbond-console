@@ -11,6 +11,7 @@ from addict import Dict
 from console.constants import (DefaultPluginConstants, PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrInternalGraphsNotFound, ErrRepeatMonitoringTarget, ErrServiceMonitorExists
+from console.exception.bcode import ErrPluginIsUsed
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo
 from console.services.app_config import port_service
@@ -828,7 +829,7 @@ class PluginService(object):
         except Exception as e:
             logger.exception(e)
             if plugin_base_info:
-                self.delete_plugin(region, tenant, plugin_base_info.plugin_id)
+                self.delete_plugin(region, tenant, plugin_base_info.plugin_id, is_force=True)
             raise e
 
     def update_region_plugin_info(self, region, tenant, tenant_plugin, plugin_build_version):
@@ -841,7 +842,11 @@ class PluginService(object):
         data["plugin_name"] = tenant_plugin.plugin_name
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
 
-    def delete_plugin(self, region, team, plugin_id, ignore_cluster_resource=False):
+    @transaction.atomic
+    def delete_plugin(self, region, team, plugin_id, ignore_cluster_resource=False, is_force=False):
+        services = app_plugin_relation_repo.get_used_plugin_services(plugin_id)
+        if services and not is_force:
+            raise ErrPluginIsUsed
         if not ignore_cluster_resource:
             try:
                 region_api.delete_plugin(region, team.tenant_name, plugin_id)

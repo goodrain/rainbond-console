@@ -63,7 +63,8 @@ class PluginBaseInfoView(PluginBaseView):
               paramType: path
 
         """
-        plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id)
+        is_force = request.data.get("is_force", False)
+        plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id, is_force=is_force)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 

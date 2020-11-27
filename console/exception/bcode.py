@@ -80,3 +80,10 @@ class ErrK8sServiceNameExists(ServiceHandleException):
 class ErrComponentPortExists(ServiceHandleException):
     def __init__(self):
         super(ErrComponentPortExists, self).__init__("component port already exists", u"端口已存在", 409, 20501)
+
+
+# 20600 ~ 20699 => service plugin
+class ErrPluginIsUsed(ServiceHandleException):
+    def __init__(self):
+        super(ErrPluginIsUsed, self).__init__(
+            msg="plugin is used by the service", msg_show=u"该插件被组件使用，无法删除", status_code=409, error_code=20600)
