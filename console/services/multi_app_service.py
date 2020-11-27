@@ -2,6 +2,8 @@
 import logging
 
 from django.db import transaction
+
+from console.exception.main import AbortRequest
 from console.services.app_check_service import app_check_service
 from console.services.app_actions import app_manage_service
 from console.services.app import app_service
@@ -18,22 +20,19 @@ class MultiAppService(object):
         # first result(code) is always 200
         code, msg, data = app_check_service.get_service_check_info(tenant, region_name, check_uuid)
         if code != 200:
-            return 11006, "error listing service check info", msg, None
+            raise AbortRequest("error listing service check info", msg, status_code=400, error_code=11006)
         if not data["check_status"] or data["check_status"].lower() != "success":
-            return 11001, "not finished", "检测尚未完成", None
-
+            raise AbortRequest("not finished", "检测尚未完成", status_code=400, error_code=11001)
         if data["service_info"] and len(data["service_info"]) < 2:
-            return 11002, "not multiple services", "不是多组件项目", None
+            raise AbortRequest("not multiple services", "不是多组件项目", status_code=400, error_code=11002)
 
-        bean = data["service_info"]
-
-        return 200, "success", "", bean
+        return data["service_info"]
 
     def create_services(self, region_name, tenant, user, service_alias, service_infos):
         # get temporary service
         temporary_service = service_repo.get_service_by_tenant_and_alias(tenant.tenant_id, service_alias)
         if not temporary_service:
-            return 11005, "service not found", "组件不存在", -1
+            raise AbortRequest("service not found", "组件不存在", status_code=404, error_code=11005)
 
         group_id = service_group_relation_repo.get_group_id_by_service(temporary_service)
 
@@ -46,14 +45,17 @@ class MultiAppService(object):
             user=user,
             service_infos=service_infos)
         if code != 200:
-            return code, msg, "创建多组件应用失败", -1
+            raise AbortRequest(msg, "创建多组件应用失败", status_code=400, error_code=code)
 
         code, msg = app_manage_service.delete(user, tenant, temporary_service, True)
         if code != 200:
-            return code, "Service id: " + temporary_service.service_id + ";error \
-                deleting temporary service", msg, -1
+            raise AbortRequest(
+                "Service id: " + temporary_service.service_id + "; error deleting temporary service",
+                msg,
+                status_code=400,
+                error_code=code)
 
-        return 200, "successfully create the multi-services", "成功创建多组件应用", group_id
+        return group_id
 
     def save_multi_services(self, region_name, tenant, group_id, service, user, service_infos):
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
