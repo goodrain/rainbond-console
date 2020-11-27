@@ -695,8 +695,7 @@ class AppPortService(object):
                 port_and_url = self.__get_stream_outer_url(tenant, service, p)
                 associate_info = self.get_port_associated_env(tenant, service, p.container_port)
                 port_dict = p.to_dict()
-                # associate_info[0:0] = port_and_url
-                port_dict["access_urls"] = [port_and_url]
+                port_dict["access_urls"] = [port_and_url] if port_and_url else []
                 port_dict["connect_info"] = associate_info
                 port_dict["service_cname"] = service.service_cname
                 port_info_list.append(port_dict)
