@@ -258,6 +258,7 @@ class UserOAuthRepo(object):
                     "redirect_uri": service.redirect_uri,
                     "is_git": service.is_git,
                     "authorize_url": authorize_url,
+                    "oauth_user_name": user_service.oauth_user_name,
                 })
             else:
                 oauth_services.append({
@@ -271,6 +272,7 @@ class UserOAuthRepo(object):
                     "redirect_uri": service.redirect_uri,
                     "is_git": service.is_git,
                     "authorize_url": authorize_url,
+                    "oauth_user_name": "",
                 })
         return oauth_services
 
