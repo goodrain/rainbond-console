@@ -244,6 +244,8 @@ class UserOAuthRepo(object):
         services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True)
         for service in services:
             user_service = self.get_user_oauth_by_user_id(service_id=service.ID, user_id=user_id)
+            api = get_oauth_instance(service.oauth_type, service, None)
+            authorize_url = api.get_authorize_url()
             if user_service:
                 oauth_services.append({
                     "service_id": service.ID,
@@ -255,6 +257,7 @@ class UserOAuthRepo(object):
                     "client_id": service.client_id,
                     "redirect_uri": service.redirect_uri,
                     "is_git": service.is_git,
+                    "authorize_url": authorize_url,
                 })
             else:
                 oauth_services.append({
@@ -267,6 +270,7 @@ class UserOAuthRepo(object):
                     "client_id": service.client_id,
                     "redirect_uri": service.redirect_uri,
                     "is_git": service.is_git,
+                    "authorize_url": authorize_url,
                 })
         return oauth_services
 
