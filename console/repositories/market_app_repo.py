@@ -64,11 +64,11 @@ class RainbondCenterAppRepository(object):
             select
                 distinct app.*
             from
-                console.rainbond_center_app app
-            left join console.rainbond_center_app_tag_relation apr on
+                rainbond_center_app app
+            left join rainbond_center_app_tag_relation apr on
                 app.app_id = apr.app_id
                 and app.enterprise_id = apr.enterprise_id
-            left join console.rainbond_center_app_tag tag on
+            left join rainbond_center_app_tag tag on
                 apr.tag_id = tag.ID
                 and tag.enterprise_id = app.enterprise_id
             where
@@ -104,14 +104,14 @@ class RainbondCenterAppRepository(object):
             select
                 count(distinct app.app_id) as total
             from
-                console.rainbond_center_app app
+                rainbond_center_app app
             left join (
                 select
                     app_id,
                     tag.name
                 from
-                    console.rainbond_center_app_tag_relation rcatr
-                join console.rainbond_center_app_tag tag on
+                    rainbond_center_app_tag_relation rcatr
+                join rainbond_center_app_tag tag on
                     rcatr.tag_id = tag.iD) tag on app.app_id = tag.app_id
             where
                 app.enterprise_id = '{eid}'

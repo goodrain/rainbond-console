@@ -27,12 +27,8 @@ class MultiAppCheckView(RegionTenantHeaderView):
         if not check_uuid:
             return Response(general_message(400, "params error", "the field 'check_uuid' is required"), status=400)
 
-        code, msg, msg_show, services = multi_app_service.list_services(self.response_region, self.tenant, check_uuid)
-        if code != 200:
-            result = general_message(code, msg, msg_show)
-        else:
-            result = general_message(
-                code, "successfully entered the multi-service creation process", "成功进入多组件创建流程", list=services)
+        services = multi_app_service.list_services(self.response_region, self.tenant, check_uuid)
+        result = general_message(200, "successfully entered the multi-service creation process", "成功进入多组件创建流程", list=services)
         return Response(data=result, status=200)
 
 
@@ -65,14 +61,14 @@ class MultiAppCreateView(RegionTenantHeaderView):
         if resp:
             return resp
 
-        code, msg, msg_show, group_id = multi_app_service.create_services(
+        group_id = multi_app_service.create_services(
             region_name=self.response_region,
             tenant=self.tenant,
             user=self.user,
             service_alias=service_alias,
             service_infos=service_infos)
 
-        result = general_message(code, msg, msg_show, bean=group_id)
+        result = general_message(200, "successfully create the multi-services", "成功创建多组件应用", bean=group_id)
 
         return Response(result, status=result["code"])
 
