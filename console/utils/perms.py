@@ -185,11 +185,14 @@ def get_structure(kind, kind_name):
                 "name": x[0],
                 "desc": x[1],
                 "code": x[2]
-            }, kind["perms"])
+            }, kind.get("perms", []))
         }
     }
     subs = kind.keys()
-    subs.remove("perms")
+    try:
+        subs.remove("perms")
+    except ValueError:
+        pass
     if subs:
         for sub in subs:
             sub_structure = get_structure(kind[sub], sub)
