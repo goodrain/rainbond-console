@@ -571,6 +571,11 @@ class AppService(object):
 
     def create_third_party_service(self, tenant, service, user_name):
         data = self.__init_third_party_data(tenant, service, user_name)
+        # env var
+        envs_info = env_var_repo.get_service_env(tenant.tenant_id, service.service_id).values(
+            'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+        if envs_info:
+            data["envs_info"] = list(envs_info)
         # 端口
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         ports_info = ports.values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service',
