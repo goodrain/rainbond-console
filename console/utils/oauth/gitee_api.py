@@ -156,8 +156,8 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             if self.oauth_user:
                 self.set_api(self.oauth_service.home_url, self.oauth_user.access_token)
                 try:
-                    user = self.api.get_user()
-                    if user[0]["login"]:
+                    user, _ = self.api.get_user()
+                    if user["login"]:
                         return self.oauth_user.access_token, self.oauth_user.refresh_token
                 except Exception:
                     if self.oauth_user.refresh_token:
@@ -275,16 +275,18 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
     def get_branches(self, full_name):
         access_token, _ = self._get_access_token()
         rst_list = []
-        if self.api.get_tags(full_name=full_name) is not None:
-            for branch in self.api.get_branches(full_name=full_name)[0]:
+        branches, _ = self.api.get_branches(full_name=full_name)
+        if branches is not None:
+            for branch in branches:
                 rst_list.append(branch["name"])
         return rst_list
 
     def get_tags(self, full_name):
         access_token, _ = self._get_access_token()
         rst_list = []
-        if self.api.get_tags(full_name=full_name) is not None:
-            for branch in self.api.get_tags(full_name=full_name)[0]:
+        tags, _ = self.api.get_tags(full_name=full_name)
+        if tags is not None:
+            for branch in tags:
                 rst_list.append(branch["name"])
         return rst_list
 
