@@ -455,6 +455,8 @@ class DomainService(object):
         domain_info["domain_cookie"] = domain_info["domain_cookie"] if domain_info["domain_cookie"] else ""
         domain_info["domain_heander"] = domain_info["domain_heander"] if domain_info["domain_heander"] else ""
         domain_info["container_port"] = int(domain_info["container_port"])
+        domain_info["service_id"] = service.service_id
+        domain_info["service_name"] = service.service_alias
         model_data = ServiceDomain(**domain_info)
         model_data.save()
         if re_model:
