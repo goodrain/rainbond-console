@@ -157,7 +157,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
                 self.set_api(self.oauth_service.home_url, self.oauth_user.access_token)
                 try:
                     user = self.api.get_user()
-                    if user["login"]:
+                    if user[0]["login"]:
                         return self.oauth_user.access_token, self.oauth_user.refresh_token
                 except Exception:
                     if self.oauth_user.refresh_token:
@@ -187,7 +187,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             self.access_token = data.get("access_token")
             self.refresh_token = data.get("refresh_token")
             self.set_api(self.oauth_service.home_url, self.oauth_user.access_token)
-            self.oauth_user = self.oauth_user.save()
+            self.oauth_user.save()
         return
 
     def get_user_info(self, code=None):
@@ -276,7 +276,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         access_token, _ = self._get_access_token()
         rst_list = []
         if self.api.get_tags(full_name=full_name) is not None:
-            for branch in self.api.get_branches(full_name=full_name):
+            for branch in self.api.get_branches(full_name=full_name)[0]:
                 rst_list.append(branch["name"])
         return rst_list
 
@@ -284,7 +284,7 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         access_token, _ = self._get_access_token()
         rst_list = []
         if self.api.get_tags(full_name=full_name) is not None:
-            for branch in self.api.get_tags(full_name=full_name):
+            for branch in self.api.get_tags(full_name=full_name)[0]:
                 rst_list.append(branch["name"])
         return rst_list
 
