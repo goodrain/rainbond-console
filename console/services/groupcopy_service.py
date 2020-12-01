@@ -140,10 +140,13 @@ class GroupAppCopyService(object):
             # Handling plugin config
             if change_service_map and service["service_plugin_config"]:
                 for plugin in service["service_plugin_config"]:
-                    if plugin["dest_service_id"] != "":
+                    if plugin["dest_service_id"] != "" and plugin["dest_service_id"] not in remove_service_ids:
                         # Get the new next service ID pointed to by the plugin through the old service ID
                         plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
                         plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
+                    else:
+                        plugin["dest_service_alias"] = ""
+                        plugin["dest_service_id"] = ""
 
         if metadata["compose_service_relation"] is not None:
             for service in metadata["compose_service_relation"]:
