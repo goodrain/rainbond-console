@@ -112,8 +112,7 @@ class PropertiesChanges(object):
                 current_version_time = time.mktime(self.service_source.create_time.timetuple())
                 same, max_version = self.checkVersionG2(self.current_version.version, version.version)
                 if not same and max_version != self.current_version.version:
-                    if self.have_upgrade_info(self.tenant, services, version.version):
-                        upgradeble_versions.append(version.version)
+                    upgradeble_versions.append(version.version)
                 elif same and new_version_time > current_version_time:
                     if self.have_upgrade_info(self.tenant, services, version.version):
                         upgradeble_versions.append(version.version)
@@ -127,8 +126,7 @@ class PropertiesChanges(object):
                 current_version_time = time.mktime(self.current_version.update_time.timetuple())
                 same, max_version = self.checkVersionG2(self.current_version.version, version.version)
                 if not same and max_version != self.current_version.version:
-                    if self.have_upgrade_info(self.tenant, services, version.version):
-                        upgradeble_versions.append(version.version)
+                    upgradeble_versions.append(version.version)
                 elif same and new_version_time > current_version_time:
                     if self.have_upgrade_info(self.tenant, services, version.version):
                         upgradeble_versions.append(version.version)
