@@ -1223,7 +1223,7 @@ class MarketAppService(object):
 
         app = app.to_dict()
         app["tags"] = tag_list
-        app_versions.sort(lambda x, y: cmp(x["version"], y["version"]))
+        app_versions.sort(lambda x, y: cmp(y["version"], x["version"]))
         p = Paginator(app_versions, page_size)
         total = p.count
         if have_version:

@@ -92,7 +92,7 @@ class GroupAppBackupService(object):
             service_list[service.service_id] = service.service_cname
 
         service_ids = [service.service_id for service in services]
-        volumes = volume_repo.get_multi_service_volumes(service_ids)
+        volumes = volume_repo.list_custom_volumes(service_ids)
 
         use_custom_svc = []
         for volume in volumes:

@@ -74,6 +74,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
             # if service use custom service, can't backup
             use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id)
             if use_custom_svc:
+                logger.info("use custom volume: {}".format(use_custom_svc))
                 return Response(
                     general_message(code=4122, msg="use custom volume", msg_show="组件使用了自定义存储", list=use_custom_svc), status=412)
 
