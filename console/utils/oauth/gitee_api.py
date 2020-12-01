@@ -286,8 +286,8 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         rst_list = []
         tags, _ = self.api.get_tags(full_name=full_name)
         if tags is not None:
-            for branch in tags:
-                rst_list.append(branch["name"])
+            for tag in tags:
+                rst_list.append(tag["name"])
         return rst_list
 
     def get_branches_or_tags(self, type, full_name):
