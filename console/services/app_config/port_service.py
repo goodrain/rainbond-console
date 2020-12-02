@@ -73,7 +73,8 @@ class AppPortService(object):
 
     def create_internal_port(self, tenant, component, container_port, user_name=''):
         try:
-            self.add_service_port(tenant, component, container_port, protocol="http", is_inner_service=True, user_name=user_name)
+            self.add_service_port(
+                tenant, component, container_port, protocol="http", is_inner_service=True, user_name=user_name)
         except ErrComponentPortExists:
             # make sure port is internal
             port = port_repo.get_service_port_by_port(tenant.tenant_id, component.service_id, container_port)
@@ -314,7 +315,16 @@ class AppPortService(object):
         return 200, u"检测成功"
 
     @transaction.atomic
-    def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias, k8s_service_name="", user_name=''):
+    def manage_port(self,
+                    tenant,
+                    service,
+                    region_name,
+                    container_port,
+                    action,
+                    protocol,
+                    port_alias,
+                    k8s_service_name="",
+                    user_name=''):
         if port_alias:
             port_alias = str(port_alias).strip()
         region = region_repo.get_region_by_region_name(region_name)
@@ -586,7 +596,7 @@ class AppPortService(object):
         if service.create_status == "complete":
             body = deal_port.to_dict()
             body["protocol"] = protocol
-            body["operator"]= user_name
+            body["operator"] = user_name
             self.update_service_port(tenant, service.service_region, service.service_alias, body)
         deal_port.save()
 

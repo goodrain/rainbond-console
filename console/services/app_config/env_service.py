@@ -54,7 +54,16 @@ class AppEnvVarService(object):
         tenantServiceEnvVar["scope"] = scope
         return env_var_repo.add_service_env(**tenantServiceEnvVar)
 
-    def add_service_env_var(self, tenant, service, container_port, name, attr_name, attr_value, is_change, scope="outer", user_name=''):
+    def add_service_env_var(self,
+                            tenant,
+                            service,
+                            container_port,
+                            name,
+                            attr_name,
+                            attr_value,
+                            is_change,
+                            scope="outer",
+                            user_name=''):
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
         is_pass, msg = self.check_env_attr_name(attr_name)
@@ -164,7 +173,7 @@ class AppEnvVarService(object):
         envs = env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
         if service.create_status == "complete":
             for env in envs:
-                data = {"env_name": env.attr_name, "enterprise_id": tenant.enterprise_id, "operator":user_name}
+                data = {"env_name": env.attr_name, "enterprise_id": tenant.enterprise_id, "operator": user_name}
                 region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, data)
         env_var_repo.delete_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
 

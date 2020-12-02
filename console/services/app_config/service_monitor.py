@@ -38,7 +38,6 @@ class ComponentServiceMonitor(object):
             raise ServiceHandleException(msg="port not found", msg_show="配置的组件端口不存在", status_code=400, error_code=400)
         req = {"name": name, "path": path, "port": port, "service_show_name": service_show_name, "interval": interval}
         req["operator"] = user.get_name() if user else None
-        print(req["operator"])
         region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
                                           service.service_alias, req)
         req.pop("operator")

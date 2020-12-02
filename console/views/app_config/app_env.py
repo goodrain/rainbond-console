@@ -335,7 +335,8 @@ class AppEnvManageView(AppBaseView):
         name = request.data.get("name", None)
         attr_value = request.data.get("attr_value", None)
 
-        code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value, self.user.nick_name)
+        code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value,
+                                                              self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "update value error", msg))
         result = general_message(200, "success", u"更新成功", bean=model_to_dict(env))

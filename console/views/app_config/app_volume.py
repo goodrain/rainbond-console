@@ -161,7 +161,8 @@ class AppVolumeManageView(AppBaseView):
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", u"未指定需要删除的持久化路径"), status=400)
-        code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id), self.user.nick_name)
+        code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id),
+                                                                       self.user.nick_name)
         result = general_message(200, "success", u"删除成功")
         if code != 200:
             result = general_message(code=code, msg="delete volume error", msg_show=msg)
