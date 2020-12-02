@@ -38,7 +38,7 @@ class LabelService(object):
         }
         return result
 
-    def add_service_labels(self, tenant, service, label_ids):
+    def add_service_labels(self, tenant, service, label_ids, user_name=''):
         labels = label_repo.get_labels_by_label_ids(label_ids)
         labels_list = list()
         body = dict()
@@ -56,6 +56,7 @@ class LabelService(object):
                 label_dict["label_value"] = label_name
                 labels_list.append(label_dict)
             body["labels"] = labels_list
+            body["operator"] = user_name
             try:
                 region_api.addServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)
             except region_api.CallApiError as e:
@@ -74,7 +75,7 @@ class LabelService(object):
 
         return 200, u"操作成功", data["list"]
 
-    def delete_service_label(self, tenant, service, label_id):
+    def delete_service_label(self, tenant, service, label_id, user_name=''):
 
         label = label_repo.get_label_by_label_id(label_id)
         if not label:
@@ -87,6 +88,7 @@ class LabelService(object):
         label_dict["label_value"] = label.label_name
         label_list.append(label_dict)
         body["labels"] = label_list
+        body["operator"] = user_name
         logger.debug('-------------------->{0}'.format(body))
         try:
             region_api.deleteServiceNodeLabel(service.service_region, tenant.tenant_name, service.service_alias, body)

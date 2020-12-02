@@ -57,7 +57,8 @@ class AppPortService(object):
                          protocol='',
                          port_alias='',
                          is_inner_service=False,
-                         is_outer_service=False):
+                         is_outer_service=False,
+                         user_name=''):
         # 第三方组件暂时只允许添加一个端口
         tenant_service_ports = self.get_service_ports(service)
         logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
@@ -103,7 +104,8 @@ class AppPortService(object):
         if service.create_status == "complete":
             region_api.add_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
                 "port": [service_port],
-                "enterprise_id": tenant.enterprise_id
+                "enterprise_id": tenant.enterprise_id,
+                "operator": user_name
             })
 
         new_port = port_repo.add_service_port(**service_port)
@@ -181,7 +183,7 @@ class AppPortService(object):
         return data
 
     @transaction.atomic
-    def delete_port_by_container_port(self, tenant, service, container_port):
+    def delete_port_by_container_port(self, tenant, service, container_port, user_name=''):
         service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
 
         if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
@@ -195,15 +197,17 @@ class AppPortService(object):
         if port_info.is_outer_service:
             return 409, u"请关闭对外服务", None
         if service.create_status == "complete":
+            body = dict()
+            body["operator"] = user_name
             # 删除数据中心端口
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias, container_port,
-                                           tenant.enterprise_id)
+                                           tenant.enterprise_id, body)
 
         # 删除端口时禁用相关组件
         self.disable_service_when_delete_port(tenant, service, container_port)
 
         # 删除env
-        env_var_service.delete_env_by_container_port(tenant, service, container_port)
+        env_var_service.delete_env_by_container_port(tenant, service, container_port, user_name)
         # 删除端口
         port_repo.delete_serivce_port_by_port(tenant.tenant_id, service.service_id, container_port)
         # 删除端口绑定的域名
@@ -259,7 +263,7 @@ class AppPortService(object):
                 return code, msg
         return 200, u"检测成功"
 
-    def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias):
+    def manage_port(self, tenant, service, region_name, container_port, action, protocol, port_alias, user_name=''):
         if port_alias:
             port_alias = str(port_alias).strip()
         region = region_repo.get_region_by_region_name(region_name)
@@ -268,25 +272,25 @@ class AppPortService(object):
             return code, msg, None
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if action == "open_outer":
-            code, msg = self.__open_outer(tenant, service, region, deal_port)
+            code, msg = self.__open_outer(tenant, service, region, deal_port, user_name)
         elif action == "only_open_outer":
-            code, msg = self.__only_open_outer(tenant, service, region, deal_port)
+            code, msg = self.__only_open_outer(tenant, service, region, deal_port, user_name)
         elif action == "close_outer":
-            code, msg = self.__close_outer(tenant, service, deal_port)
+            code, msg = self.__close_outer(tenant, service, deal_port, user_name)
         elif action == "open_inner":
-            code, msg = self.__open_inner(tenant, service, deal_port)
+            code, msg = self.__open_inner(tenant, service, deal_port, user_name)
         elif action == "close_inner":
-            code, msg = self.__close_inner(tenant, service, deal_port)
+            code, msg = self.__close_inner(tenant, service, deal_port, user_name)
         elif action == "change_protocol":
-            code, msg = self.__change_protocol(tenant, service, deal_port, protocol)
+            code, msg = self.__change_protocol(tenant, service, deal_port, protocol, user_name)
         elif action == "change_port_alias":
             code, msg = self.__change_port_alias(tenant, service, deal_port, port_alias)
-        new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
+        new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port, user_name)
         if code != 200:
             return code, msg, None
         return 200, u"操作成功", new_port
 
-    def __open_outer(self, tenant, service, region, deal_port):
+    def __open_outer(self, tenant, service, region, deal_port, user_name=''):
         if deal_port.protocol == "http":
             service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
             # 在domain表中保存数据
@@ -371,7 +375,8 @@ class AppPortService(object):
             body = region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
                                                 deal_port.container_port, {
                                                     "operation": "open",
-                                                    "enterprise_id": tenant.enterprise_id
+                                                    "enterprise_id": tenant.enterprise_id,
+                                                    "operator": user_name
                                                 })
             logger.debug("open outer port body {}".format(body))
             lb_mapping_port = body["bean"]["port"]
@@ -384,13 +389,14 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __only_open_outer(self, tenant, service, region, deal_port):
+    def __only_open_outer(self, tenant, service, region, deal_port, user_name=''):
         deal_port.is_outer_service = True
         if service.create_status == "complete":
             body = region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
                                                 deal_port.container_port, {
                                                     "operation": "open",
-                                                    "enterprise_id": tenant.enterprise_id
+                                                    "enterprise_id": tenant.enterprise_id,
+                                                    "operator": user_name
                                                 })
             logger.debug("open outer port body {}".format(body))
             lb_mapping_port = body["bean"]["port"]
@@ -422,13 +428,14 @@ class AppPortService(object):
             logger.exception(e)
             raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
 
-    def __close_outer(self, tenant, service, deal_port):
+    def __close_outer(self, tenant, service, deal_port, user_name=''):
         deal_port.is_outer_service = False
         if service.create_status == "complete":
             region_api.manage_outer_port(service.service_region, tenant.tenant_name, service.service_alias,
                                          deal_port.container_port, {
                                              "operation": "close",
-                                             "enterprise_id": tenant.enterprise_id
+                                             "enterprise_id": tenant.enterprise_id,
+                                             "operator": user_name
                                          })
 
         deal_port.save()
@@ -453,7 +460,7 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __open_inner(self, tenant, service, deal_port):
+    def __open_inner(self, tenant, service, deal_port, user_name=''):
         if not deal_port.port_alias:
             return 409, "请先为端口设置别名"
         deal_port.is_inner_service = True
@@ -477,7 +484,8 @@ class AppPortService(object):
             body = region_api.manage_inner_port(service.service_region, tenant.tenant_name, service.service_alias,
                                                 deal_port.container_port, {
                                                     "operation": "open",
-                                                    "enterprise_id": tenant.enterprise_id
+                                                    "enterprise_id": tenant.enterprise_id,
+                                                    "operator": user_name
                                                 })
             logger.debug("open inner port {0}".format(body))
 
@@ -488,13 +496,14 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __close_inner(self, tenant, service, deal_port):
+    def __close_inner(self, tenant, service, deal_port, user_name=''):
         deal_port.is_inner_service = False
         if service.create_status == "complete":
             region_api.manage_inner_port(service.service_region, tenant.tenant_name, service.service_alias,
                                          deal_port.container_port, {
                                              "operation": "close",
-                                             "enterprise_id": tenant.enterprise_id
+                                             "enterprise_id": tenant.enterprise_id,
+                                             "operator": user_name
                                          })
         deal_port.save()
         # component port change, will change entrance network governance plugin configuration
@@ -503,7 +512,7 @@ class AppPortService(object):
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
         return 200, "success"
 
-    def __change_protocol(self, tenant, service, deal_port, protocol):
+    def __change_protocol(self, tenant, service, deal_port, protocol, user_name=''):
         if deal_port.protocol == protocol:
             return 200, u"协议未发生变化"
         deal_port.protocol = protocol
@@ -524,13 +533,14 @@ class AppPortService(object):
             }
             region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
                 "port": [body],
-                "enterprise_id": tenant.enterprise_id
+                "enterprise_id": tenant.enterprise_id,
+                "operator": user_name
             })
         deal_port.save()
 
         return 200, "success"
 
-    def __change_port_alias(self, tenant, service, deal_port, new_port_alias):
+    def __change_port_alias(self, tenant, service, deal_port, new_port_alias, user_name=''):
         old_port_alias = deal_port.port_alias
         deal_port.port_alias = new_port_alias
         envs = env_var_service.get_env_by_container_port(tenant, service, deal_port.container_port)
@@ -541,7 +551,8 @@ class AppPortService(object):
             if service.create_status == "complete":
                 region_api.delete_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
                     "env_name": old_env_attr_name,
-                    "enterprise_id": tenant.enterprise_id
+                    "enterprise_id": tenant.enterprise_id,
+                    "operator": user_name
                 })
                 # step 2 添加新的
                 add_env = {
@@ -551,7 +562,8 @@ class AppPortService(object):
                     "is_change": env.is_change,
                     "name": env.name,
                     "scope": env.scope,
-                    "enterprise_id": tenant.enterprise_id
+                    "enterprise_id": tenant.enterprise_id,
+                    "operator": user_name
                 }
                 region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, add_env)
             env.save()
@@ -568,7 +580,8 @@ class AppPortService(object):
         if service.create_status == "complete":
             region_api.update_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
                 "port": [body],
-                "enterprise_id": tenant.enterprise_id
+                "enterprise_id": tenant.enterprise_id,
+                "operator": user_name
             })
         deal_port.save()
         return 200, "success"
