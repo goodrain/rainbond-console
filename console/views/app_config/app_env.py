@@ -226,7 +226,7 @@ class AppEnvView(AppBaseView):
         if scope not in ("inner", "outer"):
             return Response(general_message(400, "params error", "scope范围只能是inner或outer"), status=400)
         code, msg, data = env_var_service.add_service_env_var(self.tenant, self.service, 0, name, attr_name, attr_value,
-                                                              is_change, scope)
+                                                              is_change, scope, self.user.nick_name)
         if code != 200:
             result = general_message(code, "add env error", msg)
             return Response(result, status=code)
@@ -261,7 +261,7 @@ class AppEnvManageView(AppBaseView):
         env_id = kwargs.get("env_id", None)
         if not env_id:
             return Response(general_message(400, "env_id not specify", u"环境变量ID未指定"))
-        env_var_service.delete_env_by_env_id(self.tenant, self.service, env_id)
+        env_var_service.delete_env_by_env_id(self.tenant, self.service, env_id, self.user.nick_name)
         result = general_message(200, "success", u"删除成功")
         return Response(result, status=result["code"])
 
@@ -335,7 +335,7 @@ class AppEnvManageView(AppBaseView):
         name = request.data.get("name", None)
         attr_value = request.data.get("attr_value", None)
 
-        code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value)
+        code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value, self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "update value error", msg))
         result = general_message(200, "success", u"更新成功", bean=model_to_dict(env))
@@ -345,7 +345,7 @@ class AppEnvManageView(AppBaseView):
     def patch(self, request, env_id, *args, **kwargs):
         """变更环境变量范围"""
         scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
-        env = env_var_service.patch_env_scope(self.tenant, self.service, env_id, scope)
+        env = env_var_service.patch_env_scope(self.tenant, self.service, env_id, scope, self.user.nick_name)
         if env:
             return MessageResponse(msg="success", msg_show=u"更新成功", bean=env.to_dict())
         else:

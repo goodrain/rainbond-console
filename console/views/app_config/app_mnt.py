@@ -103,7 +103,7 @@ class AppMntView(AppBaseView):
         """
         dep_vol_data = request.data["body"]
         dep_vol_data = json.loads(dep_vol_data)
-        code, msg = mnt_service.batch_mnt_serivce_volume(self.tenant, self.service, dep_vol_data)
+        code, msg = mnt_service.batch_mnt_serivce_volume(self.tenant, self.service, dep_vol_data, self.user.nick_name)
 
         if code != 200:
             return Response(general_message(code, "add error", msg), status=code)
@@ -137,7 +137,7 @@ class AppMntManageView(AppBaseView):
 
         """
         dep_vol_id = kwargs.get("dep_vol_id", None)
-        code, msg = mnt_service.delete_service_mnt_relation(self.tenant, self.service, dep_vol_id)
+        code, msg = mnt_service.delete_service_mnt_relation(self.tenant, self.service, dep_vol_id, self.user.nick_name)
 
         if code != 200:
             return Response(general_message(code, "add error", msg), status=code)

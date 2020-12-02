@@ -89,6 +89,6 @@ class AppProbeView(AppBaseView):
         """
         data = request.data
 
-        probe = probe_service.update_service_probea(tenant=self.tenant, service=self.service, data=data)
+        probe = probe_service.update_service_probea(tenant=self.tenant, service=self.service, data=data, user_name=self.user.nick_name)
         result = general_message(200, u"success", "修改成功", bean=(probe.to_dict() if probe else probe))
         return Response(result, status=result["code"])

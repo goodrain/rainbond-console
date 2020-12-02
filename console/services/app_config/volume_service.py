@@ -278,7 +278,7 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None):
+    def add_service_volume(self, tenant, service, volume_path, volume_type, volume_name, file_content=None, settings=None, user_name=''):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         volume_name = self.check_volume_name(service, volume_name)
@@ -319,6 +319,7 @@ class AppVolumeService(object):
                 "backup_policy": settings['backup_policy'],
                 "reclaim_policy": settings['reclaim_policy'],
                 "allow_expansion": settings['allow_expansion'],
+                "operator": user_name,
             }
             if volume_type == "config-file":
                 data["file_content"] = file_content
@@ -331,7 +332,7 @@ class AppVolumeService(object):
             volume_repo.add_service_config_file(**file_data)
         return volume
 
-    def delete_service_volume_by_id(self, tenant, service, volume_id):
+    def delete_service_volume_by_id(self, tenant, service, volume_id, user_name=''):
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
             return 404, u"需要删除的路径不存在", None
@@ -341,9 +342,11 @@ class AppVolumeService(object):
         if mnt:
             return 403, u"当前路径被共享,无法删除", None
         if service.create_status == "complete":
+            data = dict()
+            data["operator"] = user_name
             try:
                 res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
-                                                              volume.volume_name, tenant.enterprise_id)
+                                                              volume.volume_name, tenant.enterprise_id, data)
                 logger.debug("service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name,
                                                                                 body))
             except region_api.CallApiError as e:
