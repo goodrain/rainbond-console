@@ -152,7 +152,7 @@ class AppServiceRelationService(object):
             app_plugin_service.update_config_if_have_export_plugin(tenant, service)
         return 200, u"success", dep_relation
 
-    def patch_add_dependency(self, tenant, service, dep_service_ids):
+    def patch_add_dependency(self, tenant, service, dep_service_ids, user_name=''):
         dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(tenant.tenant_id, service.service_id,
                                                                                     dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]
@@ -161,12 +161,12 @@ class AppServiceRelationService(object):
             service_cnames = [s.service_cname for s in services]
             return 412, u"组件{0}已被关联".format(service_cnames)
         for dep_id in dep_service_ids:
-            code, msg, relation = self.add_service_dependency(tenant, service, dep_id)
+            code, msg, relation = self.add_service_dependency(tenant, service, dep_id, user_name=user_name)
             if code != 200:
                 return code, msg
         return 200, u"success"
 
-    def delete_service_dependency(self, tenant, service, dep_service_id):
+    def delete_service_dependency(self, tenant, service, dep_service_id, user_name=''):
         dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id, service.service_id,
                                                                                     dep_service_id)
         if not dependency:
@@ -177,6 +177,7 @@ class AppServiceRelationService(object):
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = "v"
             task["enterprise_id"] = tenant.enterprise_id
+            task["operator"] = user_name
 
             region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias, task)
 
