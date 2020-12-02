@@ -129,7 +129,7 @@ class DomainService(object):
                 continue
         return cert
 
-    def __check_domain_name(self, team_id, domain_name, domain_type, certificate_id):
+    def __check_domain_name(self, team_id, domain_name, certificate_id=None):
         if not domain_name:
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty", msg_show="域名不能为空")
         zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
@@ -182,7 +182,7 @@ class DomainService(object):
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     rule_extensions):
-        self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
+        self.__check_domain_name(tenant.tenant_id, domain_name, certificate_id)
         certificate_info = None
         http_rule_id = make_uuid(domain_name)
         if certificate_id:
@@ -294,7 +294,7 @@ class DomainService(object):
         auto_ssl_config = httpdomain["auto_ssl_config"]
 
         # 校验域名格式
-        self.__check_domain_name(tenant.tenant_id, domain_name, domain_type, certificate_id)
+        self.__check_domain_name(tenant.tenant_id, domain_name, certificate_id)
         http_rule_id = make_uuid(domain_name)
         domain_info = dict()
         certificate_info = None
@@ -390,9 +390,13 @@ class DomainService(object):
             raise ServiceHandleException(msg="no found", status_code=404)
         domain_info = service_domain.to_dict()
         domain_info.update(update_data)
+
+        self.__check_domain_name(tenant.tenant_id, domain_info["domain_name"], certificate_id=domain_info["certificate_id"])
+
         certificate_info = None
         if domain_info["certificate_id"]:
             certificate_info = domain_repo.get_certificate_by_pk(int(domain_info["certificate_id"]))
+
         data = dict()
         data["domain"] = domain_info["domain_name"]
         data["service_id"] = service.service_id
