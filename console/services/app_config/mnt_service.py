@@ -153,7 +153,7 @@ class AppMntService(object):
             })
         return un_mount_dependencies, total
 
-    def batch_mnt_serivce_volume(self, tenant, service, dep_vol_data):
+    def batch_mnt_serivce_volume(self, tenant, service, dep_vol_data, user_name=''):
         local_path = []
         tenant_service_volumes = volume_service.get_service_volumes(tenant=tenant, service=service)
         local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
@@ -164,7 +164,7 @@ class AppMntService(object):
             source_path = dep_vol['path'].strip()
             dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
             try:
-                code, msg = self.add_service_mnt_relation(tenant, service, source_path, dep_volume)
+                code, msg = self.add_service_mnt_relation(tenant, service, source_path, dep_volume, user_name)
             except Exception as e:
                 logger.exception(e)
                 code, msg = 500, "添加异常"
@@ -189,7 +189,7 @@ class AppMntService(object):
         return mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
                                                  dep_volume.volume_name, source_path)
 
-    def add_service_mnt_relation(self, tenant, service, source_path, dep_volume):
+    def add_service_mnt_relation(self, tenant, service, source_path, dep_volume, user_name=''):
         if service.create_status == "complete":
             if dep_volume.volume_type != "config-file":
                 data = {
@@ -209,6 +209,7 @@ class AppMntService(object):
                     "file_content": config_file.file_content,
                     "enterprise_id": tenant.enterprise_id
                 }
+            data["operator"] = user_name
             res, body = region_api.add_service_dep_volumes(service.service_region, tenant.tenant_name, service.service_alias,
                                                            data)
             logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
@@ -219,7 +220,7 @@ class AppMntService(object):
                                                                         mnt_relation.mnt_dir))
         return 200, "success"
 
-    def delete_service_mnt_relation(self, tenant, service, dep_vol_id):
+    def delete_service_mnt_relation(self, tenant, service, dep_vol_id, user_name=''):
         dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
 
         try:
@@ -227,7 +228,8 @@ class AppMntService(object):
                 data = {
                     "depend_service_id": dep_volume.service_id,
                     "volume_name": dep_volume.volume_name,
-                    "enterprise_id": tenant.tenant_name
+                    "enterprise_id": tenant.tenant_name,
+                    "operator": user_name
                 }
                 res, body = region_api.delete_service_dep_volumes(service.service_region, tenant.tenant_name,
                                                                   service.service_alias, data)

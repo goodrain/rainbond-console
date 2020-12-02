@@ -439,6 +439,7 @@ class AppManageService(AppManageBase):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         body = dict()
         body["service_id"] = service.service_id
+        body["operator"] = str(user.nick_name)
         try:
             body = region_api.upgrade_service(service.service_region, tenant.tenant_name, service.service_alias, body)
             event_id = body["bean"].get("event_id", "")
@@ -1208,7 +1209,7 @@ class AppManageService(AppManageBase):
         service.delete()
         return ignore_delete_from_cluster
 
-    def change_service_type(self, tenant, service, extend_method):
+    def change_service_type(self, tenant, service, extend_method, user_name=''):
         # 存储限制
         tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
         if tenant_service_volumes:
@@ -1235,6 +1236,7 @@ class AppManageService(AppManageBase):
 
         data = dict()
         data["extend_method"] = extend_method
+        data["operator"] = user_name
         try:
             region_api.update_service(service.service_region, tenant.tenant_name, service.service_alias, data)
             service.extend_method = extend_method

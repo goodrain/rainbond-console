@@ -135,7 +135,7 @@ class AppPortView(AppBaseView):
         if not port_alias:
             port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
         code, msg, port_info = port_service.add_service_port(self.tenant, self.service, port, protocol, port_alias,
-                                                             is_inner_service, is_outer_service)
+                                                             is_inner_service, is_outer_service, self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
 
@@ -205,7 +205,8 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             return Response(general_message(400, "container_port not specify", u"端口变量名未指定"), status=400)
-        code, msg, data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port))
+        code, msg, data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port),
+                                                                     self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "delete port fail", msg), status=code)
         result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
@@ -262,7 +263,7 @@ class AppPortManageView(AppBaseView):
                 return Response(general_message(code, msg, msg_show), status=code)
 
         code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
-                                                   protocol, port_alias)
+                                                   protocol, port_alias, self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "change port fail", msg), status=code)
         result = general_message(200, "success", "操作成功", bean=model_to_dict(data))

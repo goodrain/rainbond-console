@@ -85,7 +85,8 @@ class ServicePluginInstallView(AppBaseView):
         if not plugin_id:
             return Response(general_message(400, "not found plugin_id", "参数错误"), status=400)
         app_plugin_service.check_the_same_plugin(plugin_id, self.tenant.tenant_id, self.service.service_id)
-        app_plugin_service.install_new_plugin(self.response_region, self.tenant, self.service, plugin_id, build_version)
+        app_plugin_service.install_new_plugin(self.response_region, self.tenant, self.service, plugin_id, build_version,
+                                              self.user)
 
         result = general_message(200, "success", "安装成功")
         return Response(result, status=result["code"])
@@ -111,8 +112,10 @@ class ServicePluginInstallView(AppBaseView):
               type: string
               paramType: path
         """
+        body = dict()
+        body["operator"] = self.user.nick_name
         region_api.uninstall_service_plugin(self.response_region, self.tenant.tenant_name, plugin_id,
-                                            self.service.service_alias)
+                                            self.service.service_alias, body)
         app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
         app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
         return Response(general_message(200, "success", "卸载成功"))
