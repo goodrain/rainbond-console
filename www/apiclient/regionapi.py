@@ -397,7 +397,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def delete_service_port(self, region, tenant_name, service_alias, port, enterprise_id):
+    def delete_service_port(self, region, tenant_name, service_alias, port, enterprise_id, body={}):
         """删除组件端口"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -406,7 +406,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             port) + "?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def manage_inner_port(self, region, tenant_name, service_alias, port, body):
@@ -580,14 +580,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         return self._post(url, self.default_headers, json.dumps(body), region=region)
 
-    def delete_service_volumes(self, region, tenant_name, service_alias, volume_name, enterprise_id):
+    def delete_service_volumes(self, region, tenant_name, service_alias, volume_name, enterprise_id, body={}):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         tenant_name = tenant_region.region_tenant_name
         url = uri_prefix + "/v2/tenants/{0}/services/{1}/volumes/{2}?enterprise_id={3}".format(
             tenant_name, service_alias, volume_name, enterprise_id)
         self._set_headers(token)
-        return self._delete(url, self.default_headers, region=region)
+        return self._delete(url, self.default_headers, json.dumps(body), region=region)
 
     def upgrade_service_volumes(self, region, tenant_name, service_alias, body):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
@@ -1238,13 +1238,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         return self._post(url, self.default_headers, json.dumps(body), region=region)
 
-    def uninstall_service_plugin(self, region, tenant_name, plugin_id, service_alias):
+    def uninstall_service_plugin(self, region, tenant_name, plugin_id, service_alias, body={}):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id
         self._set_headers(token)
-        return self._delete(url, self.default_headers, None, region=region)
+        return self._delete(url, self.default_headers, json.dumps(body), region=region)
 
     def update_plugin_service_relation(self, region, tenant_name, service_alias, body):
         url, token = self.__get_region_access_info(tenant_name, region)

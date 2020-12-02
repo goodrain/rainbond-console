@@ -90,7 +90,7 @@ class AppServiceRelationService(object):
         }
         return dep_relation_repo.add_service_dependency(**tenant_service_relation)
 
-    def __open_port(self, tenant, dep_service, container_port):
+    def __open_port(self, tenant, dep_service, container_port, user_name=''):
         open_service_ports = []
         if container_port:
             tenant_service_port = port_service.get_service_port_by_port(dep_service, int(container_port))
@@ -102,13 +102,13 @@ class AppServiceRelationService(object):
         for tenant_service_port in open_service_ports:
             code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
                                                        int(tenant_service_port.container_port), "open_inner",
-                                                       tenant_service_port.protocol, tenant_service_port.port_alias)
+                                                       tenant_service_port.protocol, tenant_service_port.port_alias, user_name)
             if code != 200:
                 logger.warning("auto open depend service inner port faliure {}".format(msg))
             else:
                 logger.debug("auto open depend service inner port success ")
 
-    def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None):
+    def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
             tenant.tenant_id, service.service_id, dep_service_id)
         if dep_service_relation:
@@ -117,7 +117,7 @@ class AppServiceRelationService(object):
         dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, dep_service_id)
         # 开启对内端口
         if open_inner:
-            self.__open_port(tenant, dep_service, container_port)
+            self.__open_port(tenant, dep_service, container_port, user_name)
         else:
             # 校验要依赖的组件是否开启了对内端口
             open_inner_services = port_repo.get_service_ports(tenant.tenant_id,
@@ -136,6 +136,7 @@ class AppServiceRelationService(object):
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = dep_service.service_type
             task["enterprise_id"] = tenant.enterprise_id
+            task["operator"] = user_name
             region_api.add_service_dependency(service.service_region, tenant.tenant_name, service.service_alias, task)
         tenant_service_relation = {
             "tenant_id": tenant.tenant_id,

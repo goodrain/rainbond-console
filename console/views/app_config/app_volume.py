@@ -128,7 +128,7 @@ class AppVolumeView(AppBaseView):
         settings['allow_expansion'] = allow_expansion
 
         data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type, volume_name, file_content,
-                                                 settings)
+                                                 settings, self.user.nick_name)
         result = general_message(200, "success", u"持久化路径添加成功", bean=data.to_dict())
 
         return Response(result, status=result["code"])
@@ -161,7 +161,8 @@ class AppVolumeManageView(AppBaseView):
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", u"未指定需要删除的持久化路径"), status=400)
-        code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id))
+        code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id),
+                                                                       self.user.nick_name)
         result = general_message(200, "success", u"删除成功")
         if code != 200:
             result = general_message(code=code, msg="delete volume error", msg_show=msg)
@@ -198,7 +199,8 @@ class AppVolumeManageView(AppBaseView):
             "volume_name": volume.volume_name,
             "volume_path": new_volume_path,
             "volume_type": volume.volume_type,
-            "file_content": new_file_content
+            "file_content": new_file_content,
+            "operator": self.user.nick_name
         }
         res, body = region_api.upgrade_service_volumes(self.service.service_region, self.tenant.tenant_name,
                                                        self.service.service_alias, data)
