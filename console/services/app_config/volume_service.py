@@ -113,11 +113,14 @@ class AppVolumeService(object):
             # TODO fanyangyang more access_mode support, if no rwo, use rwx
             for opt in opts:
                 if access_mode == opt.get("access_mode", ""):
-                    settings["volume_type"] = access_mode
+                    settings["volume_type"] = opt["volume_type"]
                     settings["changed"] = True
                     return settings
-        # raise volume type not found error, if no suitable volume type
-        raise ErrVolumeTypeNotFound
+
+        logger.info("volume_type: {}; access mode: {}. use 'share-file'".format(volume_type, access_mode))
+        settings["volume_type"] = "share-file"
+        settings["changed"] = True
+        return settings
 
     def get_service_volumes(self, tenant, service, is_config_file=False):
         volumes = []
