@@ -3762,3 +3762,5 @@ AppVersionUDView = {
         },
     }
 }
+
+EnterpriseTeams = {"__message": {"get": {"perms": [120000]}}}

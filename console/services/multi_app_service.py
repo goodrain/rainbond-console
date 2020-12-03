@@ -53,7 +53,7 @@ class MultiAppService(object):
                 status_code=400,
                 error_code=code)
 
-        return service_ids
+        return group_id, service_ids
 
     @transaction.atomic
     def save_multi_services(self, region_name, tenant, group_id, service, user, service_infos):

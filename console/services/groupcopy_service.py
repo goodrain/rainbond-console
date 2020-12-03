@@ -104,8 +104,10 @@ class GroupAppCopyService(object):
                     for plugin in service["service_plugin_config"]:
                         if plugin["dest_service_id"] != "":
                             # Get the new next service ID pointed to by the plugin through the old service ID
-                            plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
-                            plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
+                            plugin["dest_service_alias"] = change_service_map.get(plugin["dest_service_id"], {}).get(
+                                "ServiceAlias", "")
+                            plugin["dest_service_id"] = change_service_map.get(plugin["dest_service_id"], {}).get(
+                                "ServiceID", "")
             return metadata
         new_metadata = {}
         new_metadata["compose_group_info"] = metadata["compose_group_info"]
@@ -145,8 +147,9 @@ class GroupAppCopyService(object):
                 for plugin in service["service_plugin_config"]:
                     if plugin["dest_service_id"] != "" and plugin["dest_service_id"] not in remove_service_ids:
                         # Get the new next service ID pointed to by the plugin through the old service ID
-                        plugin["dest_service_alias"] = change_service_map[plugin["dest_service_id"]]["ServiceAlias"]
-                        plugin["dest_service_id"] = change_service_map[plugin["dest_service_id"]]["ServiceID"]
+                        plugin["dest_service_alias"] = change_service_map.get(plugin["dest_service_id"], {}).get(
+                            "ServiceAlias", "")
+                        plugin["dest_service_id"] = change_service_map.get(plugin["dest_service_id"], {}).get("ServiceID", "")
                     else:
                         plugin["dest_service_alias"] = ""
                         plugin["dest_service_id"] = ""
