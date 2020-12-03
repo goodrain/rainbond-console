@@ -107,7 +107,7 @@ class AppDependencyView(AppBaseView):
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
         code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
-                                                                    container_port)
+                                                                    container_port, self.user.nick_name)
         if code == 201:
             result = general_message(code, "add dependency success", msg, list=data, bean={"is_inner": False})
             return Response(result, status=code)

@@ -292,7 +292,7 @@ class AppTagRepository(object):
 
     def create_tags(self, enterprise_id, names):
         tag_list = []
-        old_tag = RainbondCenterAppTag.objects.filter(name__in=names)
+        old_tag = RainbondCenterAppTag.objects.filter(enterprise_id=enterprise_id, name__in=names)
         if old_tag:
             return False
         for name in names:

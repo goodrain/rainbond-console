@@ -14,6 +14,7 @@ from console.services.app import app_market_service, app_service
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
+from console.services.group_service import group_service
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -96,6 +97,8 @@ class PropertiesChanges(object):
         if not self.current_version:
             return None
         upgradeble_versions = []
+        group_id = service_group_relation_repo.get_group_id_by_service(self.service)
+        services = group_service.get_rainbond_services(group_id, self.service_source.group_key)
         if not self.install_from_cloud:
             # 获取最新的时间列表, 判断版本号大小，TODO 确认版本号大小
             # 直接查出当前版本，对比时间，对比版本号大小
@@ -111,7 +114,8 @@ class PropertiesChanges(object):
                 if not same and max_version != self.current_version.version:
                     upgradeble_versions.append(version.version)
                 elif same and new_version_time > current_version_time:
-                    upgradeble_versions.append(version.version)
+                    if self.have_upgrade_info(self.tenant, services, version.version):
+                        upgradeble_versions.append(version.version)
 
         else:
             app_version_list = app_market_service.get_market_app_model_versions(self.market, self.service_source.group_key)
@@ -124,8 +128,19 @@ class PropertiesChanges(object):
                 if not same and max_version != self.current_version.version:
                     upgradeble_versions.append(version.version)
                 elif same and new_version_time > current_version_time:
-                    upgradeble_versions.append(version.version)
+                    if self.have_upgrade_info(self.tenant, services, version.version):
+                        upgradeble_versions.append(version.version)
         return upgradeble_versions
+
+    def have_upgrade_info(self, tenant, services, version):
+        from console.services.upgrade_services import upgrade_service
+        if not services:
+            return False
+        for service in services:
+            upgrade_info = upgrade_service.get_service_changes(service, tenant, version)
+            if upgrade_info:
+                return True
+        return False
 
     def checkVersionG2(self, currentversion, expectedversion):
         same = False
