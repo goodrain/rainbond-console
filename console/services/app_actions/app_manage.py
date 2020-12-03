@@ -523,6 +523,8 @@ class AppManageService(AppManageBase):
                     self.move(service, move_group_id)
                 elif action == "deploy" and service.service_source != "third_party":
                     self.deploy(tenant, service, user, group_version=None, oauth_instance=oauth_instance)
+                elif action == "upgrade" and service.service_source != "third_party":
+                    self.upgrade(tenant, service, user, oauth_instance=oauth_instance)
                 code = 200
                 msg = "success"
             except ServiceHandleException as e:
