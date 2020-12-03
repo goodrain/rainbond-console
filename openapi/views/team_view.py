@@ -251,7 +251,7 @@ class ListRegionsView(TeamNoRegionAPIView):
         },
         tags=['openapi-team-region'],
     )
-    def post(self, request, team_id):
+    def post(self, request, team_id, *args, **kwargs):
         serializer = TeamRegionReqSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         team_data = serializer.data

@@ -37,6 +37,6 @@ urlpatterns = [
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/vertical$',
         AppServiceTelescopicVerticalView.as_view(), perms.AppServiceTelescopicVerticalView),
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/horizontal$',
-        AppServiceTelescopicHorizontalView.as_view(), perms.AppServiceTelescopicHorizontalView, perms.AppServiceEventsView),
+        AppServiceTelescopicHorizontalView.as_view(), perms.AppServiceTelescopicHorizontalView),
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/envs$', ComponentEnvsUView.as_view()),
 ]
