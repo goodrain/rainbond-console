@@ -489,5 +489,8 @@ class TeamService(object):
             logger.exception(e)
             raise ServiceHandleException(status_code=500, msg="", msg_show=u"设置租户限额失败")
 
+    def update(self, tenant_id, data):
+        team_repo.update_by_tenant_id(tenant_id, **data)
+
 
 team_services = TeamService()
