@@ -203,7 +203,8 @@ def get_structure(kind, kind_name):
 def get_model(kind, kind_name):
     structure = {kind_name: {"sub_models": [], "perms": map(lambda x: {x[0]: False, "code": x[2]}, kind["perms"])}}
     subs = kind.keys()
-    subs.remove("perms")
+    if "perms" in subs:
+        subs.remove("perms")
     if subs:
         for sub in subs:
             sub_structure = get_model(kind[sub], sub)
@@ -248,7 +249,8 @@ def get_perms(kind, group, kind_name):
         perms_list = []
         perms_list.extend(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
         kind_elements = kind.keys()
-        kind_elements.remove("perms")
+        if "perms" in kind_elements:
+            kind_elements.remove("perms")
         if kind_elements:
             for kind_element in kind_elements:
                 kid_perms_list = get_perms(kind[kind_element], kind_element, kind_name)
@@ -293,7 +295,8 @@ def check_perms_metadata():
 def get_perms_name_code(perms_model, kind_name):
     perms = {}
     sub_models = perms_model.keys()
-    sub_models.remove("perms")
+    if "perms" in sub_models:
+        sub_models.remove("perms")
     for perm in perms_model["perms"]:
         perms.update({'_'.join([kind_name, perm[0]]): perm[2]})
     if sub_models:
