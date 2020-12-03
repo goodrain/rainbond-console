@@ -718,7 +718,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user$', AdminUserLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/roles', AdminRolesView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view(), perms.EnterpriseTeams),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),

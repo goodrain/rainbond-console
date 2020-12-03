@@ -47,6 +47,8 @@ common_perms = [
     ["delete_app", u"删除应用模板", 110002],
     ["import_app", u"导入应用模板", 110003],
     ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
+    # 120000 ~ 129999 enterprise teams
+    ["get_ent_teams", u"获取企业的团队列表", 120000],
 ]
 
 TEAM = {
@@ -345,6 +347,7 @@ def list_enterprise_perm_codes_by_roles(roles):
     codes = set()
     for role in roles:
         codes.update(list_enterprise_perm_codes_by_role(role))
+    codes.update([perm[2] for perm in common_perms])
     return codes
 
 
