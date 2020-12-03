@@ -37,15 +37,13 @@ class MultiAppService(object):
         group_id = service_group_relation_repo.get_group_id_by_service(temporary_service)
 
         # save services
-        code, msg = self.save_multi_services(
+        service_ids = self.save_multi_services(
             region_name=region_name,
             tenant=tenant,
             group_id=group_id,
             service=temporary_service,
             user=user,
             service_infos=service_infos)
-        if code != 200:
-            raise AbortRequest(msg, "创建多组件应用失败", status_code=400, error_code=code)
 
         code, msg = app_manage_service.delete(user, tenant, temporary_service, True)
         if code != 200:
@@ -55,11 +53,12 @@ class MultiAppService(object):
                 status_code=400,
                 error_code=code)
 
-        return group_id
+        return service_ids
 
+    @transaction.atomic
     def save_multi_services(self, region_name, tenant, group_id, service, user, service_infos):
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
-        tx = transaction.savepoint()
+        service_ids = []
         for service_info in service_infos:
             code, msg_show, new_service = app_service \
                 .create_source_code_app(region_name, tenant, user,
@@ -72,9 +71,8 @@ class MultiAppService(object):
                                         oauth_service_id=service.oauth_service_id,
                                         git_full_name=service.git_full_name)
             if code != 200:
-                logger.error("Multiple services; Service alias: {}; error creating service".format(service.service_alias))
-                transaction.savepoint_rollback(tx)
-                return code, msg_show
+                raise AbortRequest("Multiple services; Service alias: {}; error creating service".format(service.service_alias),
+                                   "创建多组件应用失败")
             # add username and password
             if service_source:
                 git_password = service_source.password
@@ -86,21 +84,18 @@ class MultiAppService(object):
             if code != 200:
                 logger.debug("Group ID: {0}; Service ID: {1}; error adding service to group".format(
                     group_id, new_service.service_id))
-                transaction.savepoint_rollback(tx)
-                return code, msg_show
+                raise AbortRequest("app not found", "创建多组件应用失败", 404, 404)
             # save service info, such as envs, ports, etc
             code, msg = app_check_service.save_service_info(tenant, new_service, service_info)
             if code != 200:
                 logger.debug("Group ID: {0}; Service ID: {1}; error saving services".format(group_id, new_service.service_id))
-                transaction.savepoint_rollback(tx)
-                return code, msg
+                raise AbortRequest(msg, "创建多组件应用失败")
             new_service = app_service.create_region_service(tenant, new_service, user.nick_name)
             new_service.create_status = "complete"
             new_service.save()
+            service_ids.append(new_service.service_id)
 
-        transaction.savepoint_commit(tx)
-
-        return 200, "success"
+        return service_ids
 
 
 multi_app_service = MultiAppService()

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
+import logging
 
 from django.db import transaction
 from django.core.paginator import Paginator
@@ -14,6 +15,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
 from www.utils.crypt import make_uuid
 
+logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 

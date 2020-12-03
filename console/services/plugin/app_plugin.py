@@ -179,7 +179,7 @@ class AppPluginService(object):
         app_plugin_relation_repo.update_service_plugin_status(service_id, plugin_id, is_active, cpu, memory)
 
     @transaction.atomic
-    def install_new_plugin(self, region, tenant, service, plugin_id, plugin_version=None):
+    def install_new_plugin(self, region, tenant, service, plugin_id, plugin_version=None, user=None):
         if not plugin_version:
             plugin_version = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin_id)
             plugin_version = plugin_version.build_version
@@ -187,16 +187,17 @@ class AppPluginService(object):
         # 1.生成console数据，存储
         self.save_default_plugin_config(tenant, service, plugin_id, plugin_version)
         # 2.从console数据库取数据生成region数据
-        region_config = self.get_region_config_from_db(service, plugin_id, plugin_version)
+        region_config = self.get_region_config_from_db(service, plugin_id, plugin_version, user)
 
         # 3. create monitor resources, such as: service monitor, component graphs
         plugin = plugin_repo.get_by_plugin_id(tenant.tenant_id, plugin_id)
-        self.create_monitor_resources(tenant, service, plugin.origin_share_id)
+        self.create_monitor_resources(tenant, service, plugin.origin_share_id, user)
 
         data = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = True
         data["version_id"] = plugin_version
+        data["operator"] = user.nick_name if user else None
         data.update(region_config)
         self.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id, plugin_version)
         try:
@@ -289,7 +290,7 @@ class AppPluginService(object):
                         return True
         return False
 
-    def get_region_config_from_db(self, service, plugin_id, build_version):
+    def get_region_config_from_db(self, service, plugin_id, build_version, user=None):
         attrs = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id, build_version)
         normal_envs = []
         base_normal = dict()
@@ -335,22 +336,24 @@ class AppPluginService(object):
         region_env_config["tenant_id"] = service.tenant_id
         region_env_config["config_envs"] = config_envs
         region_env_config["service_id"] = service.service_id
+        region_env_config["operator"] = user.nick_name if user else None
 
         return region_env_config
 
-    def create_monitor_resources(self, tenant, service, plugin_name):
+    def create_monitor_resources(self, tenant, service, plugin_name, user=None):
         # service monitor
         try:
-            self.__create_service_monitor(tenant, service, plugin_name)
+            self.__create_service_monitor(tenant, service, plugin_name, user)
         except ErrServiceMonitorExists:
             # try again
-            self.__create_service_monitor(tenant, service, plugin_name)
+            self.__create_service_monitor(tenant, service, plugin_name, user)
 
         # component graphs
         self.__create_component_graphs(service.service_id, plugin_name)
 
     @staticmethod
-    def __create_service_monitor(tenant, service, plugin_name):
+    def __create_service_monitor(tenant, service, plugin_name, user=None):
+        user_name = user.nick_name if user else ''
         path = "/metrics"
         if plugin_name == "mysqld_exporter":
             port = 9104
@@ -358,10 +361,10 @@ class AppPluginService(object):
         else:
             return
         # create internal port
-        port_service.create_internal_port(tenant, service, port)
+        port_service.create_internal_port(tenant, service, port, user_name)
         try:
             service_monitor_repo.create_component_service_monitor(tenant, service, "mysqldexporter-" + make_uuid()[0:4], path,
-                                                                  port, show_name, "10s")
+                                                                  port, show_name, "10s", user)
         except ErrRepeatMonitoringTarget as e:
             logger.debug(e)
             return

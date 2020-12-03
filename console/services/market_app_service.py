@@ -132,6 +132,12 @@ class MarketAppService(object):
                 component_graphs = app.get("component_graphs", {})
                 component_graph_service.bulk_create(ts.service_id, component_graphs)
 
+            # 保存依赖关系
+            self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
+
+            # 数据中心创建组件
+            new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
+
             # config groups
             config_groups = app_templates.get("app_config_groups", [])
             for config_group in config_groups:
@@ -151,11 +157,6 @@ class MarketAppService(object):
                                                                  config_group["injection_type"], True, component_ids, region,
                                                                  tenant.tenant_name)
 
-            # 保存依赖关系
-            self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
-
-            # 数据中心创建组件
-            new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
             # 创建组件插件
             self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
 
@@ -1222,7 +1223,7 @@ class MarketAppService(object):
 
         app = app.to_dict()
         app["tags"] = tag_list
-        app_versions.sort(lambda x, y: cmp(x["version"], y["version"]))
+        app_versions.sort(lambda x, y: cmp(y["version"], x["version"]))
         p = Paginator(app_versions, page_size)
         total = p.count
         if have_version:

@@ -204,6 +204,7 @@ class TeamUserView(RegionTenantHeaderView):
                 users_list.append({
                     "user_id": user.user_id,
                     "user_name": user.get_name(),
+                    "nick_name": user.nick_name,
                     "email": user.email,
                     "role_info": role_info_list["roles"]
                 })
