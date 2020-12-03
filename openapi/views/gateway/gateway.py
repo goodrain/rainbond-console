@@ -288,6 +288,8 @@ class ListAppGatewayRuleView(TeamAppAPIView):
                 if code != 200:
                     return Response({"msg": "change port fail"}, status=code)
             tenant_service_port = port_service.get_service_port_by_port(service, httpdomain["container_port"])
+            if not tenant_service_port:
+                raise ServiceHandleException("port not found", "端口不存在", 404, 404)
             if not tenant_service_port.is_outer_service:
                 return Response({"msg": "没有开启对外端口"}, status=status.HTTP_400_BAD_REQUEST)
             domain_service.bind_httpdomain(self.team, self.request.user, service, httpdomain, True)
