@@ -40,7 +40,7 @@ class RegionInfoSerializer(serializers.ModelSerializer, RegionReqValidate):
         model = RegionConfig
         fields = [
             "region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope",
-            "ssl_ca_cert", "cert_file", "key_file", "status", "desc"
+            "ssl_ca_cert", "cert_file", "key_file", "status", "desc", "enterprise_id"
         ]
 
 

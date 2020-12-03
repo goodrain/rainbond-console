@@ -357,6 +357,10 @@ class RegionService(object):
         return RegionConfig.objects.filter(enterprise_id=enterprise_id)
 
     def add_region(self, region_data):
+        ent = enterprise_services.get_enterprise_by_enterprise_id(region_data.get("enterprise_id"))
+        if not ent:
+            raise ServiceHandleException(status_code=404, msg="enterprise not found", msg_show="企业不存在")
+
         region = region_repo.get_region_by_region_name(region_data["region_name"])
         if region:
             raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
