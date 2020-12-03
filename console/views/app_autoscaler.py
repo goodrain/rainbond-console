@@ -83,7 +83,7 @@ class AppAutoscalerView(AppBaseView):
         validate_parameter(req.data)
 
         res = autoscaler_service.update_autoscaler_rule(self.region_name, self.tenant.tenant_name, self.service.service_alias,
-                                                        rule_id, req.data)
+                                                        rule_id, req.data, self.user.nick_name)
 
         result = general_message(200, "success", "创建成功", bean=res)
         return Response(data=result, status=200)

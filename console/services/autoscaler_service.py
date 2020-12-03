@@ -86,7 +86,7 @@ class AutoscalerService(object):
         return autoscaler_rule
 
     @transaction.atomic
-    def update_autoscaler_rule(self, region_name, tenant_name, service_alias, rule_id, data):
+    def update_autoscaler_rule(self, region_name, tenant_name, service_alias, rule_id, data, user_name=''):
         # create autoscaler rule
         autoscaler_rule = {
             "xpa_type": data["xpa_type"],
@@ -119,6 +119,7 @@ class AutoscalerService(object):
             raise ErrDuplicateMetrics
 
         autoscaler_rule["metrics"] = metrics
+        autoscaler_rule["operator"] = user_name
 
         region_api.update_xpa_rule(region_name, tenant_name, service_alias, data=autoscaler_rule)
 

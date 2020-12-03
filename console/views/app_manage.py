@@ -442,7 +442,7 @@ class ChangeServiceTypeView(AppBaseView):
             if not is_support(extend_method):
                 raise AbortRequest(msg="do not support service type", msg_show="组件类型非法")
             logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
-            app_manage_service.change_service_type(self.tenant, self.service, extend_method)
+            app_manage_service.change_service_type(self.tenant, self.service, extend_method, self.user.nick_name)
             result = general_message(200, "success", "操作成功")
         except CallRegionAPIException as e:
             result = general_message(e.code, "failure", e.message)

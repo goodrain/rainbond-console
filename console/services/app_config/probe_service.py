@@ -115,7 +115,7 @@ class ProbeService(object):
         new_probe = probe_repo.add_service_probe(**console_prob)
         return 200, "success", new_probe
 
-    def update_service_probea(self, tenant, service, data):
+    def update_service_probea(self, tenant, service, data, user_name=''):
         code, msg = self.__check_probe_data(data)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg_show=msg, msg="error")
@@ -156,6 +156,7 @@ class ProbeService(object):
         }
         console_probe = copy.deepcopy(prob_data)
         prob_data["enterprise_id"] = tenant.enterprise_id
+        prob_data["operator"] = user_name
         if service.create_status == "complete":
             try:
                 res, body = region_api.update_service_probec(service.service_region, tenant.tenant_name, service.service_alias,
