@@ -5,6 +5,7 @@ import os
 from rest_framework import generics
 from rest_framework.views import APIView
 
+from console.services.user_services import user_services
 from console.exception.main import NoPermissionsError, ServiceHandleException
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 from console.repositories.group import group_service_relation_repo
@@ -14,11 +15,11 @@ from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils.perms import get_enterprise_adminer_codes
 from openapi.auth.authentication import (OpenAPIAuthentication, OpenAPIManageAuthentication)
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.exceptions import ErrEnterpriseNotFound, ErrRegionNotFound
 from www.models.main import TenantEnterprise, TenantServiceInfo
+from console.utils import perms
 
 
 class ListAPIView(generics.ListAPIView):
@@ -36,7 +37,6 @@ class BaseOpenAPIView(APIView):
         self.region_name = None
         self.regions = None
         self.user = None
-        self.is_enterprise_admin = None
 
     def check_perms(self, request, *args, **kwargs):
         if kwargs.get("__message"):
@@ -50,8 +50,9 @@ class BaseOpenAPIView(APIView):
 
     def get_perms(self):
         self.user_perms = []
-        if self.is_enterprise_admin:
-            self.user_perms = list(get_enterprise_adminer_codes())
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        self.user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
+
         roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
         if roles:
             role_ids = roles.values_list("ID", flat=True)
@@ -94,18 +95,8 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
 
     def get_perms(self):
         self.user_perms = []
-        if self.is_enterprise_admin:
-            self.user_perms = list(get_enterprise_adminer_codes())
-        else:
-            ent_roles = RoleInfo.objects.filter(kind="enterprise", kind_id=self.user.enterprise_id)
-            if ent_roles:
-                ent_role_ids = ent_roles.values_list("ID", flat=True)
-                ent_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=ent_role_ids)
-                if ent_user_roles:
-                    ent_user_role_ids = ent_user_roles.values_list("role_id", flat=True)
-                    ent_role_perms = RolePerms.objects.filter(role_id__in=ent_user_role_ids)
-                    if ent_role_perms:
-                        self.user_perms = list(ent_role_perms.values_list("perm_code", flat=True))
+        admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
+        self.user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
 
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
