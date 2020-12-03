@@ -345,6 +345,7 @@ def list_enterprise_perm_codes_by_roles(roles):
     codes = set()
     for role in roles:
         codes.update(list_enterprise_perm_codes_by_role(role))
+    codes.update([perm[2] for perm in common_perms])
     return codes
 
 
