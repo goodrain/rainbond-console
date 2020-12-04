@@ -70,7 +70,7 @@ class ListAppsView(TeamAPIView):
         serializer = AppPostInfoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        group_info = group_service.add_group(self.team, self.region_name, data["app_name"], data.get("app_note"))
+        group_info = group_service.create_app(self.team, self.region_name, data["app_name"], data.get("app_note"))
         re = AppBaseInfoSerializer(group_info)
         return Response(re.data, status=status.HTTP_201_CREATED)
 
