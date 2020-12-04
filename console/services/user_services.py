@@ -176,6 +176,8 @@ class UserService(object):
             return False
 
     def create(self, data):
+        # no re-password
+        self.check_params(data["nick_name"], data["email"], data["password"], data["password"])
         # check nick name
         try:
             user_repo.get_enterprise_user_by_username(data["eid"], data["nick_name"])
