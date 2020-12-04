@@ -299,7 +299,7 @@ def get_perms_name_code(perms_model, kind_name):
     sub_models = perms_model.keys()
     if "perms" in sub_models:
         sub_models.remove("perms")
-    for perm in perms_model["perms"]:
+    for perm in perms_model.get("perms", []):
         perms.update({'_'.join([kind_name, perm[0]]): perm[2]})
     if sub_models:
         for sub_model in sub_models:
