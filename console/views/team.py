@@ -797,10 +797,7 @@ class AdminAddUserView(JWTAuthApiView):
             if not team:
                 raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
             # 校验用户信息
-            is_pass, msg = user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
-            if not is_pass:
-                result = general_message(403, "user information is not passed", msg)
-                return Response(result)
+            user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
             client_ip = user_services.get_client_ip(request)
             enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
             # 创建用户
