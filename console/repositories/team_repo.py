@@ -214,7 +214,7 @@ class TeamRepo(object):
         return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name)
 
     def update_by_tenant_id(self, tenant_id, **data):
-        return Tenants.objects.filter(tenant_id=tenant_id).update(*data)
+        return Tenants.objects.filter(tenant_id=tenant_id).update(**data)
 
     def list_teams_v2(self, query="", page=None, page_size=None):
         where = "WHERE t.creater = u.user_id"

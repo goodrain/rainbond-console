@@ -14,7 +14,6 @@ from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.services.user_services import user_services
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
 from rest_framework import status
 from rest_framework.response import Response
@@ -134,9 +133,6 @@ class EnterpriseTeams(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         name = request.GET.get("name", None)
-        if not user_services.is_user_admin_in_current_enterprise(request.user, enterprise_id):
-            result = general_message(401, "is not admin", "用户'{}'不是企业管理员".format(request.user.nick_name))
-            return Response(result, status=status.HTTP_200_OK)
         teams, total = team_services.get_enterprise_teams(
             enterprise_id, query=name, page=page, page_size=page_size, user=self.user)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}

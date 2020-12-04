@@ -144,7 +144,8 @@ class AppDependencyView(AppBaseView):
         if not dep_service_ids:
             return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
         dep_service_list = dep_service_ids.split(",")
-        code, msg = dependency_service.patch_add_dependency(self.tenant, self.service, dep_service_list)
+        code, msg = dependency_service.patch_add_dependency(
+            self.tenant, self.service, dep_service_list, user_name=self.user.nick_name)
         if code != 200:
             result = general_message(code, "add dependency error", msg)
             return Response(result, status=code)
@@ -257,7 +258,8 @@ class AppDependencyManageView(AppBaseView):
         dep_service_id = kwargs.get("dep_service_id", None)
         if not dep_service_id:
             return Response(general_message(400, "attr_name not specify", u"未指定需要删除的依赖组件"))
-        code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id)
+        code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id,
+                                                                             self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "delete dependency error", msg))
 

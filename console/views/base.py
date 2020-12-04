@@ -179,10 +179,12 @@ class JWTAuthApiView(APIView):
         if kwargs.get("__message"):
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
             if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
+                logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
                 raise NoPermissionsError
 
     def has_perms(self, request_perms):
         if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
+            logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
             raise NoPermissionsError
 
     def get_perms(self):

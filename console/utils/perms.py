@@ -47,6 +47,8 @@ common_perms = [
     ["delete_app", u"删除应用模板", 110002],
     ["import_app", u"导入应用模板", 110003],
     ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
+    # 120000 ~ 129999 enterprise teams
+    ["get_ent_teams", u"获取企业的团队列表", 120000],
 ]
 
 TEAM = {
@@ -297,7 +299,7 @@ def get_perms_name_code(perms_model, kind_name):
     sub_models = perms_model.keys()
     if "perms" in sub_models:
         sub_models.remove("perms")
-    for perm in perms_model["perms"]:
+    for perm in perms_model.get("perms", []):
         perms.update({'_'.join([kind_name, perm[0]]): perm[2]})
     if sub_models:
         for sub_model in sub_models:
@@ -345,6 +347,7 @@ def list_enterprise_perm_codes_by_roles(roles):
     codes = set()
     for role in roles:
         codes.update(list_enterprise_perm_codes_by_role(role))
+    codes.update([perm[2] for perm in common_perms])
     return codes
 
 
