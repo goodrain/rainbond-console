@@ -5,16 +5,9 @@ import os
 import re
 from datetime import datetime
 
-from console.exception.exceptions import (
-    AccountNotExistError,
-    EmailExistError,
-    PasswordTooShortError,
-    PhoneExistError,
-    ServiceHandleException,
-    TenantNotExistError,
-    UserExistError,
-    UserNotExistError,
-)
+from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
+                                          TenantNotExistError, UserExistError, UserNotExistError)
+from console.exception.main import AbortRequest
 from console.models.main import EnterpriseUserPerm, UserRole
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -179,6 +172,8 @@ class UserService(object):
             return False
 
     def create(self, data):
+        # no re-password
+        self.check_params(data["nick_name"], data["email"], data["password"], data["password"])
         # check nick name
         try:
             user_repo.get_enterprise_user_by_username(data["eid"], data["nick_name"])
@@ -498,37 +493,30 @@ class UserService(object):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
     def check_params(self, user_name, email, password, re_password, eid=None):
-        is_pass, msg = self.__check_user_name(user_name, eid)
-        if not is_pass:
-            raise ServiceHandleException(error_code=3000, msg="user name is exist", msg_show=msg)
-        is_pass, msg = self.__check_email(email)
-        if not is_pass:
-            raise ServiceHandleException(error_code=3003, msg="email name is exist", msg_show=msg)
+        self.__check_user_name(user_name, eid)
+        self.__check_email(email)
         if password != re_password:
-            return False, "两次输入的密码不一致"
-        return True, "success"
+            raise AbortRequest("The two passwords do not match", "两次输入的密码不一致")
 
     def __check_user_name(self, user_name, eid=None):
         if not user_name:
-            return False, "用户名不能为空"
+            raise AbortRequest("empty username", "用户名不能为空")
         if self.is_user_exist(user_name, eid):
-            return False, "用户{0}已存在".format(user_name)
+            raise AbortRequest("username already exists", "用户{0}已存在".format(user_name), status_code=409, error_code=409)
         r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
         if not r.match(user_name.decode("utf-8")):
-            return False, "用户名称只支持中英文下划线和中划线"
-        return True, "success"
+            raise AbortRequest("invalid username", "用户名称只支持中英文下划线和中划线")
 
     def __check_email(self, email):
         if not email:
-            return False, "邮箱不能为空"
+            raise AbortRequest("empty email", "邮箱不能为空")
         if self.get_user_by_email(email):
-            return False, "邮箱{0}已存在".format(email)
+            raise AbortRequest("email already exists", "邮箱{0}已存在".format(email))
         r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
         if not r.match(email):
-            return False, "邮箱地址不合法"
+            raise AbortRequest("invalid email", "邮箱地址不合法")
         if self.get_user_by_email(email):
-            return False, "邮箱已存在"
-        return True, "success"
+            raise AbortRequest("username already exists", "邮箱已存在", status_code=409, error_code=409)
 
     def init_webhook_user(self, service, hook_type, committer_name=None):
         nick_name = hook_type

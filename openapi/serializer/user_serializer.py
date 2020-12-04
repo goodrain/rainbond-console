@@ -25,7 +25,7 @@ class ListUsersRespView(serializers.Serializer):
 
 class CreateUserSerializer(serializers.Serializer):
     nick_name = serializers.CharField(max_length=24, required=True, help_text=u"用户昵称")
-    password = serializers.CharField(max_length=16, required=True, min_length=8, help_text=u"用户昵称")
+    password = serializers.CharField(max_length=16, required=True, min_length=8, help_text=u"密码")
     enterprise_id = serializers.CharField(max_length=32, required=True, help_text=u"enterprise_id")
     email = serializers.EmailField(max_length=35, required=False, help_text=u"邮件地址")
     phone = serializers.CharField(max_length=11, required=False, help_text=u"手机号码")
@@ -34,7 +34,7 @@ class CreateUserSerializer(serializers.Serializer):
 
 
 class UpdateUserSerializer(serializers.Serializer):
-    password = serializers.CharField(max_length=16, required=False, min_length=8, help_text=u"用户昵称")
+    password = serializers.CharField(max_length=16, required=False, min_length=8, help_text=u"密码")
     enterprise_id = serializers.CharField(max_length=32, required=False, help_text=u"enterprise_id")
     email = serializers.EmailField(max_length=35, required=False, help_text=u"邮件地址")
     phone = serializers.CharField(max_length=11, required=False, allow_blank=True, help_text=u"手机号码")
