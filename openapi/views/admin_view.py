@@ -9,6 +9,7 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.exceptions import UserNotExistError
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrAdminUserDoesNotExist
@@ -71,7 +72,7 @@ class ListAdminsView(BaseOpenAPIView):
         if ent is None:
             raise serializers.ValidationError("企业'{}'不存在".format(req.data["eid"]), status.HTTP_404_NOT_FOUND)
 
-        user_services.create_admin_user(user, ent)
+        user_services.create_admin_user(user, ent, [EnterpriseRolesEnum.admin.name])
 
         return Response(None, status.HTTP_201_CREATED)
 

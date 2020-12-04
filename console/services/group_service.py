@@ -49,8 +49,9 @@ class GroupService(object):
         if not r.match(group_name.decode("utf-8")):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
+    @transaction.atomic
     def create_app(self, tenant, region_name, app_name, note="", username=""):
-        app = self.add_group(tenant, region_name, app_name, note, username)
+        app = self.__add_group(tenant, region_name, app_name, note, username)
         self.create_region_app(tenant, region_name, app)
         res = app.to_dict()
         # compatible with the old version
@@ -64,8 +65,7 @@ class GroupService(object):
         self.create_region_app(tenant, region_name, app)
         return app.to_dict()
 
-    @transaction.atomic()
-    def add_group(self, tenant, region_name, app_name, note="", username=""):
+    def __add_group(self, tenant, region_name, app_name, note="", username=""):
         self.check_app_name(tenant, region_name, app_name)
         return group_repo.add_group(tenant.tenant_id, region_name, app_name, group_note=note, username=username)
 
