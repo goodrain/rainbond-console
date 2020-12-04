@@ -325,7 +325,8 @@ class AppService(object):
                             "protocol": protocol,
                             "port_alias": port_alias,
                             "is_inner_service": False,
-                            "is_outer_service": False
+                            "is_outer_service": False,
+                            "k8s_service_name": new_service.service_alias + "-" + str(port),
                         }
                         port_repo.add_service_port(**service_port)
                 service_endpoints_repo.update_or_create_endpoints(tenant, new_service, endpoints)
@@ -579,7 +580,7 @@ class AppService(object):
         # 端口
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         ports_info = ports.values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service',
-                                  'is_outer_service')
+                                  'is_outer_service', 'k8s_service_name')
 
         for port_info in ports_info:
             port_info["is_inner_service"] = False
