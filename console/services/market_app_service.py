@@ -6,21 +6,16 @@ import datetime
 import json
 import logging
 
-from django.db import transaction
-from django.db.models import Q
-from django.core.paginator import Paginator
-
-from console.services.app_config_group import app_config_group_service
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
-from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException, ErrVolumePath)
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
-from console.models.main import ServiceMonitor
+from console.exception.bcode import ErrAppConfigGroupExists
+from console.exception.main import (ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
+from console.models.main import (RainbondCenterApp, RainbondCenterAppVersion, ServiceMonitor)
 from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
-from console.repositories.market_app_repo import rainbond_app_repo, app_import_record_repo
+from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -30,18 +25,21 @@ from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.app_config import (AppMntService, env_var_service, port_service, probe_service, volume_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
+from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config_group import app_config_group_service
 from console.services.group_service import group_service
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
-from console.services.app_config.component_graph import component_graph_service
 from console.utils import slug_util
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.exception.bcode import ErrAppConfigGroupExists
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -849,7 +847,6 @@ class MarketAppService(object):
         apps_min_memory = self._get_rainbond_app_min_memory(versions)
         for app in apps:
             versions_info = app_with_versions.get(app.app_id)
-            rainbond_app = rainbond_app_repo.get_rainbond_app_by_app_id(app["enterprise_id"], app["app_id"])
             app.dev_status = ""
             if versions_info:
                 # sort rainbond app versions by version
@@ -861,9 +858,6 @@ class MarketAppService(object):
                         have_release = True
                 if have_release:
                     app.dev_status = "release"
-
-            rainbond_app.dev_status = app.dev_status
-            rainbond_app.save()
             app.versions_info = versions_info
             app.min_memory = apps_min_memory.get(app.app_id, 0)
 
@@ -1194,7 +1188,7 @@ class MarketAppService(object):
         app_versions = rainbond_app_repo.get_rainbond_app_versions_by_id(enterprise_id, app_id)
         if not app:
             raise RbdAppNotFound("未找到该应用")
-
+        app_release = False
         if app_versions is not None:
             for version in app_versions:
                 if version["version"]:
@@ -1214,6 +1208,8 @@ class MarketAppService(object):
                     if record:
                         version["share_user"] = record.user_name
                 version["dev_status"] = version.version_dev_status
+                if version["dev_status"] == "release":
+                    app_release = True
 
         tag_list = []
         tags = app_tag_repo.get_app_tags(enterprise_id, app_id)
@@ -1223,6 +1219,10 @@ class MarketAppService(object):
 
         app = app.to_dict()
         app["tags"] = tag_list
+        if app_release:
+            app["dev_status"] = 'release'
+        else:
+            app["dev_status"] = ''
         app_versions.sort(key=lambda x: tuple(int(v) for v in x["version"].split(".")), reverse=True)
         p = Paginator(app_versions, page_size)
         total = p.count

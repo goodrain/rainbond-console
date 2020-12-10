@@ -5,25 +5,15 @@
 import logging
 import time
 
+from console.models.main import (AppExportRecord, AppImportRecord, RainbondCenterApp, RainbondCenterAppTagsRelation,
+                                 RainbondCenterAppVersion)
 from django.db.models import Q
-
-from console.models.main import AppExportRecord
-from console.models.main import AppImportRecord
-from console.models.main import RainbondCenterApp
-from console.models.main import RainbondCenterAppTagsRelation
-from console.models.main import RainbondCenterAppVersion
 from www.db.base import BaseConnection
 
 logger = logging.getLogger("default")
 
 
 class RainbondCenterAppRepository(object):
-    # def get_rainbond_app_by_id(self, id):
-    #     rain_bond_apps = RainbondCenterApp.objects.filter(ID=id)
-    #     if rain_bond_apps:
-    #         return rain_bond_apps[0]
-    #     return None
-
     def get_all_rainbond_apps(self):
         return RainbondCenterApp.objects.all()
 
@@ -62,7 +52,7 @@ class RainbondCenterAppRepository(object):
             extend_where += " and scope='" + scope + "'"
         sql = """
             select
-                distinct app.*
+                app.*
             from
                 rainbond_center_app app
             left join rainbond_center_app_tag_relation apr on
@@ -74,6 +64,7 @@ class RainbondCenterAppRepository(object):
             where
                 app.enterprise_id = '{eid}'
                 {extend_where}
+            order by app.update_time desc
             limit {offset}, {rows}
             """.format(
             eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size)
