@@ -52,7 +52,7 @@ class RainbondCenterAppRepository(object):
             extend_where += " and scope='" + scope + "'"
         sql = """
             select
-                app.*
+                distinct app.*
             from
                 rainbond_center_app app
             left join rainbond_center_app_tag_relation apr on
