@@ -4,18 +4,17 @@
 """
 import logging
 
-from django.db import transaction
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
-from console.exception.main import BusinessException, ResourceNotEnoughException, AccountOverdueException
+from console.exception.main import (AccountOverdueException, BusinessException, ResourceNotEnoughException)
+from console.repositories.compose_repo import compose_repo
+from console.repositories.group import group_repo
 from console.services.app_check_service import app_check_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.views.base import RegionTenantHeaderView
+from django.db import transaction
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.utils.return_message import general_message
-from console.repositories.group import group_repo
-from console.repositories.compose_repo import compose_repo
 
 logger = logging.getLogger("default")
 
@@ -114,7 +113,8 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         if code != 200:
             return Response(general_message(code, "parse yaml error", msg), status=code)
         # 创建组
-        group_info = group_service.create_app(self.tenant, self.response_region, group_name, group_note)
+        group_info = group_service.create_app(self.tenant, self.response_region, group_name, group_note,
+                                              self.user.get_username())
         code, msg, group_compose = compose_service.create_group_compose(
             self.tenant, self.response_region, group_info["group_id"], yaml_content, hub_user, hub_pass)
         if code != 200:

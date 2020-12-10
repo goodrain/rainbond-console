@@ -122,7 +122,7 @@ class GroupappsMigrateService(object):
         else:
             new_group_name = make_uuid()[:8]
 
-        app = group_service.create_app(tenant, region, new_group_name)
+        app = group_service.create_app(tenant, region, new_group_name, "备份创建")
         new_app = group_repo.get_group_by_id(app["ID"])
         return new_app
 
