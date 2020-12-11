@@ -309,17 +309,15 @@ class ShareService(object):
                 data['service_connect_info_map_list'] = list()
                 if service_env_map.get(service.service_id):
                     for env_change in service_env_map.get(service.service_id):
-                        if env_change.container_port == 0:
-                            e_c = dict()
-                            e_c['name'] = env_change.name
-                            e_c['attr_name'] = env_change.attr_name
-                            e_c['attr_value'] = env_change.attr_value
-                            e_c['is_change'] = env_change.is_change
-                            if env_change.scope == "outer":
-                                e_c['container_port'] = env_change.container_port
-                                data['service_connect_info_map_list'].append(e_c)
-                            else:
-                                data['service_env_map_list'].append(e_c)
+                        e_c = dict()
+                        e_c['name'] = env_change.name
+                        e_c['attr_name'] = env_change.attr_name
+                        e_c['attr_value'] = env_change.attr_value
+                        e_c['is_change'] = env_change.is_change
+                        if env_change.scope == "outer":
+                            data['service_connect_info_map_list'].append(e_c)
+                        else:
+                            data['service_env_map_list'].append(e_c)
 
                 data['service_related_plugin_config'] = list()
                 # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
