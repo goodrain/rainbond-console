@@ -16,7 +16,6 @@ from console.services.config_service import EnterpriseConfigService
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.reqparse import parse_item
-from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import connection
@@ -24,7 +23,6 @@ from django.views.decorators.cache import never_cache
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceDomain, TenantServiceInfo
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 
