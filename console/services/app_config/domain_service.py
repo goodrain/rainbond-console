@@ -4,23 +4,27 @@
 """
 import base64
 import datetime
+import json
 import logging
 import re
 
-from django.db import connection, transaction
-from django.forms.models import model_to_dict
-
 from console.constants import DomainType
 from console.exception.main import ServiceHandleException
-from console.repositories.app_config import domain_repo, port_repo, tcp_domain
+from console.repositories.app_config import (configuration_repo, domain_repo,
+                                             port_repo, tcp_domain)
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
+from console.services.app_config.exceptoin import (err_cert_name_exists,
+                                                   err_cert_not_found,
+                                                   err_still_has_http_rules)
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
+from console.utils.shortcuts import get_object_or_404
+from django.db import connection, transaction
+from django.forms.models import model_to_dict
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceDomain
+from www.models.main import ServiceDomain, TenantServiceInfo
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
@@ -812,3 +816,35 @@ class DomainService(object):
             if rule["region_name"] and rule["app_id"]:
                 re_rules.append(rule)
         return re_rules
+
+    def update_http_rule_config(self, team, region_name, rule_id, configs):
+        self.check_set_header(configs["set_headers"])
+        service_domain = get_object_or_404(ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
+        service = get_object_or_404(
+            TenantServiceInfo, msg="no service", msg_show=u"组件不存在", service_id=service_domain.service_id)
+        cf = configuration_repo.get_configuration_by_rule_id(rule_id)
+        gcc_dict = dict()
+        gcc_dict["body"] = configs
+        gcc_dict["rule_id"] = rule_id
+        try:
+            res, data = region_api.upgrade_configuration(region_name, team, service.service_alias, gcc_dict)
+            if res.status == 200:
+                if cf:
+                    cf.value = json.dumps(configs)
+                    cf.save()
+                else:
+                    cf_dict = dict()
+                    cf_dict["rule_id"] = rule_id
+                    cf_dict["value"] = json.dumps(configs)
+                    configuration_repo.add_configuration(**cf_dict)
+        except region_api.CallApiFrequentError as e:
+            logger.exception(e)
+            raise ServiceHandleException(
+                msg="update http rule configuration failure", msg_show="更新HTTP策略的参数发生异常", status_code=500, error_code=500)
+
+    def check_set_header(self, set_headers):
+        r = re.compile('([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
+        for header in set_headers:
+            if header["key"] and not r.match(header["key"]):
+                raise ServiceHandleException(
+                    msg="forbidden key: {0}".format(header["key"]), msg_show="Header Key不合法", status_code=400, error_code=400)

@@ -6,6 +6,7 @@ from console.utils import perms_route_config as perms
 from django.conf.urls import include, url
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
+
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView

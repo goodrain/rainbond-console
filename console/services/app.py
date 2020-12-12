@@ -9,15 +9,15 @@ import random
 import string
 
 from addict import Dict
-from django.db import transaction
 from console.appstore.appstore import app_store
 from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppMarket
+from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion)
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, service_endpoints_repo,
                                              volume_repo)
+from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.services.app_config import label_service
@@ -25,6 +25,7 @@ from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.utils.validation import validate_endpoints_info
+from django.db import transaction
 from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
@@ -33,7 +34,6 @@ from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesSe
                                            TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
-from console.repositories.region_app import region_app_repo
 
 tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
@@ -276,7 +276,7 @@ class AppService(object):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
-            return 412, msg, None
+            raise ServiceHandleException(msg=msg, msg_show="组件名称不合法", status_code=400, error_code=400)
         # 初始化
         new_service = self.__init_third_party_app(region, endpoints)
         new_service.tenant_id = tenant.tenant_id
@@ -292,7 +292,8 @@ class AppService(object):
         if endpoints_type == "static":
             # 如果只有一个端口，就设定为默认端口，没有或有多个端口，不设置默认端口
             if endpoints:
-                from console.views.app_create.source_outer import check_endpoints
+                from console.views.app_create.source_outer import \
+                    check_endpoints
                 errs, isDomain = check_endpoints(endpoints)
                 if errs:
                     return 400, u"组件地址不合法", None
@@ -332,7 +333,7 @@ class AppService(object):
                 service_endpoints_repo.update_or_create_endpoints(tenant, new_service, endpoints)
 
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
-        return 200, u"创建成功", ts
+        return ts
 
     def get_app_list(self, tenant_id, region, query=""):
         q = Q(tenant_id=tenant_id, service_region=region)

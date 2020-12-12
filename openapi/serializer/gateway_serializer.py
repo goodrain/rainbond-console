@@ -4,9 +4,7 @@ import json
 
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
-
-from www.models.main import ServiceDomain
-from www.models.main import ServiceTcpDomain
+from www.models.main import ServiceDomain, ServiceTcpDomain
 
 
 class HTTPGatewayRuleSerializer(serializers.ModelSerializer):
@@ -49,6 +47,22 @@ class EnterpriseHTTPGatewayRuleSerializer(serializers.ModelSerializer):
     auto_ssl_config = serializers.CharField(max_length=32, help_text=u"自动签发方式")
 
 
+class HTTPHeaderSerializer(serializers.Serializer):
+    key = serializers.CharField(help_text=u"请求头Key")
+    value = serializers.CharField(help_text=u"请求头Value")
+
+
+class HTTPConfiguration(serializers.Serializer):
+    proxy_body_size = serializers.IntegerField(help_text=u"请求主体大小", default=0)
+    proxy_buffer_numbers = serializers.IntegerField(help_text=u"缓冲区数量", default=4)
+    proxy_buffer_size = serializers.IntegerField(help_text=u"缓冲区大小", default=4)
+    proxy_buffering = serializers.CharField(help_text=u"是否开启ProxyBuffer", default="off")
+    proxy_connect_timeout = serializers.IntegerField(help_text=u"连接超时时间", default=75)
+    proxy_read_timeout = serializers.IntegerField(help_text=u"读超时时间", default=60)
+    proxy_send_timeout = serializers.IntegerField(help_text=u"发送超时时间", default=60)
+    set_headers = HTTPHeaderSerializer(many=True)
+
+
 class PostHTTPGatewayRuleSerializer(serializers.Serializer):
     service_id = serializers.CharField(help_text=u"应用组件id")
     container_port = serializers.IntegerField(help_text=u"绑定端口")
@@ -62,6 +76,7 @@ class PostHTTPGatewayRuleSerializer(serializers.Serializer):
     whether_open = serializers.BooleanField(help_text=u"是否开放", default=False)
     auto_ssl = serializers.BooleanField(help_text=u"是否自动匹配证书，升级为https，如果开启，由外部服务完成升级", default=False)
     auto_ssl_config = serializers.CharField(help_text=u"自动分发证书配置", required=False, default=None)
+    configuration = HTTPConfiguration(help_text=u"高级参数配置", required=False, default=None)
 
 
 class PostTCPGatewayRuleExtensionsSerializer(serializers.Serializer):

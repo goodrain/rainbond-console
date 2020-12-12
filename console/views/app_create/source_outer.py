@@ -7,23 +7,19 @@ import logging
 import os
 import pickle
 
-from django.views.decorators.cache import never_cache
-from django.db.transaction import atomic
-from rest_framework.response import Response
-
-from console.repositories.deploy_repo import deploy_repo
 from console.repositories.app_config import service_endpoints_repo
+from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
-from console.services.app_config import port_service
-from console.services.app_config import endpoint_service
+from console.services.app_config import endpoint_service, port_service
 from console.services.group_service import group_service
-from console.utils.validation import validate_endpoints_info, validate_endpoint_address
+from console.utils.validation import (validate_endpoint_address, validate_endpoints_info)
 from console.views.app_config.base import AppBaseView
-from console.views.base import AlowAnyApiView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import AlowAnyApiView, RegionTenantHeaderView
+from django.db.transaction import atomic
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants
-from www.models.main import TenantServiceInfo
+from www.models.main import Tenants, TenantServiceInfo
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -49,10 +45,8 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         validate_endpoints_info(endpoints)
 
-        code, msg_show, new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user,
-                                                                         service_cname, endpoints, endpoints_type)
-        if code != 200:
-            return Response(general_message(code, "service create fail", msg_show), status=code)
+        new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user, service_cname, endpoints,
+                                                         endpoints_type)
 
         # 添加组件所在组
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, new_service.service_id)

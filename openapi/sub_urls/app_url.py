@@ -1,27 +1,24 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from django.conf.urls import url
-
 from console.utils import perms_route_config as perms
-from openapi.views.apps.apps import AppInfoView
-from openapi.views.apps.apps import ListAppsView
-from openapi.views.apps.apps import APPOperationsView
-from openapi.views.gateway.gateway import ListAppGatewayRuleView
-from openapi.views.gateway.gateway import (UpdateAppGatewayRuleView, ListAppGatewayHTTPRuleView, UpdateAppGatewayHTTPRuleView)
-from openapi.views.apps.apps import (ListAppServicesView, AppServicesView, AppServiceEventsView, TeamAppsCloseView,
-                                     AppServiceTelescopicVerticalView, AppServiceTelescopicHorizontalView,
-                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView, ComponentEnvsUView)
+from django.conf.urls import url
+from openapi.views.apps.apps import (AppInfoView, APPOperationsView, AppServiceEventsView, AppServicesView,
+                                     AppServiceTelescopicHorizontalView, AppServiceTelescopicVerticalView, ComponentEnvsUView,
+                                     CreateThirdComponentView, ListAppServicesView, ListAppsView, TeamAppsCloseView,
+                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView)
 from openapi.views.apps.market import AppInstallView, AppUpgradeView
+from openapi.views.gateway.gateway import (ListAppGatewayHTTPRuleView, ListAppGatewayRuleView, UpdateAppGatewayHTTPRuleView,
+                                           UpdateAppGatewayRuleView)
 from openapi.views.groupapp import GroupAppsCopyView
 
 urlpatterns = [
     url(r'^$', ListAppsView.as_view()),
     url(r'^/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
-    url(r'^/(?P<app_id>[\w\-]+)$', AppInfoView.as_view(), perms.AppInfoView),
-    url(r'^/(?P<app_id>[\w\-]+)/monitor/query$', TeamAppsMonitorQueryView.as_view(), perms.AppInfoView),
-    url(r'^/(?P<app_id>[\w\-]+)/monitor/query_range$', TeamAppsMonitorQueryRangeView.as_view(), perms.AppInfoView),
-    url(r'^/(?P<app_id>[\w\-]+)/install$', AppInstallView.as_view(), perms.AppInstallView),
-    url(r'^/(?P<app_id>[\w\-]+)/upgrade$', AppUpgradeView.as_view(), perms.AppUpgradeView),
+    url(r'^/(?P<app_id>[\d\-]+)$', AppInfoView.as_view(), perms.AppInfoView),
+    url(r'^/(?P<app_id>[\d\-]+)/monitor/query$', TeamAppsMonitorQueryView.as_view(), perms.AppInfoView),
+    url(r'^/(?P<app_id>[\d\-]+)/monitor/query_range$', TeamAppsMonitorQueryRangeView.as_view(), perms.AppInfoView),
+    url(r'^/(?P<app_id>[\d\-]+)/install$', AppInstallView.as_view(), perms.AppInstallView),
+    url(r'^/(?P<app_id>[\d\-]+)/upgrade$', AppUpgradeView.as_view(), perms.AppUpgradeView),
     url(r'^/(?P<app_id>[\d\-]+)/copy$', GroupAppsCopyView.as_view(), perms.GroupAppsCopyView),
     url(r'^/(?P<app_id>[\d\-]+)/operations$', APPOperationsView.as_view(), perms.APPOperationsView),
     url(r'^/(?P<app_id>[\d\-]+)/httpdomains$', ListAppGatewayHTTPRuleView.as_view(), perms.ListAppGatewayHTTPRuleView),
@@ -39,4 +36,5 @@ urlpatterns = [
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/horizontal$',
         AppServiceTelescopicHorizontalView.as_view(), perms.AppServiceTelescopicHorizontalView),
     url(r'^/(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/envs$', ComponentEnvsUView.as_view()),
+    url(r'^/(?P<app_id>[\d\-]+)/third-components$', CreateThirdComponentView.as_view()),
 ]

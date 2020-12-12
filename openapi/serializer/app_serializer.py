@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import re
-from rest_framework import serializers, validators
 
-from www.models.main import ServiceGroup, TenantServiceInfo
 from openapi.serializer.utils import DateCharField
+from rest_framework import serializers, validators
+from www.models.main import ServiceGroup, TenantServiceInfo
 
 ACTION_CHOICE = (
     ("stop", ("stop")),
@@ -18,6 +18,12 @@ APP_STATUS_CHOICE = (
     ("part_running", ("part_running")),
     ("closed", ("closed")),
 )
+
+THIRD_COMPONENT_SOURCE_CHOICE = (
+    ("static", ("static")),
+    ("api", ("api")),
+)
+
 NAME_FORMAT = re.compile("^[a-zA-Z]")
 NAME_LETTER = re.compile("^(?!\d+$)[\da-zA-Z_]+$")
 FIRST_LETTER = re.compile("^[a-zA-Z]")
@@ -202,3 +208,14 @@ class ComponentEnvsBaseSerializers(serializers.Serializer):
 
 class ComponentEnvsSerializers(serializers.Serializer):
     envs = ComponentEnvsBaseSerializers(many=True)
+
+
+class CreateThirdComponentSerializer(serializers.Serializer):
+    endpoints_type = serializers.ChoiceField(choices=THIRD_COMPONENT_SOURCE_CHOICE, help_text=u"Endpoint 注册方式")
+    endpoints = serializers.ListField(help_text=u"Endpoint 列表")
+    component_name = serializers.CharField(max_length=64, help_text=u"组件名称")
+
+
+class CreateThirdComponentResponseSerializer(ServiceBaseInfoSerializer):
+    api_service_key = serializers.CharField(help_text=u"API 授权Key, 类型为api时有效")
+    url = serializers.CharField(help_text=u"API地址, 类型为api时有效")

@@ -1,25 +1,31 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+import base64
 import logging
+import os
+import pickle
 
 from console.constants import PluginCategoryConstants
 from console.exception.main import ServiceHandleException
+from console.repositories import deploy_repo
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
+from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service, event_service
 from console.services.app_config import port_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
 from console.services.service_services import base_service
+from console.utils.validation import validate_endpoints_info
 from django.forms.models import model_to_dict
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentEnvsSerializers,
-    ComponentMonitorSerializers, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
-    TeamAppsCloseSerializers)
+    ComponentMonitorSerializers, CreateThirdComponentResponseSerializer, CreateThirdComponentSerializer,
+    ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer, TeamAppsCloseSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
@@ -85,7 +91,7 @@ class AppInfoView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="应用详情",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         responses={200: AppInfoSerializer()},
         tags=['openapi-apps'],
@@ -119,7 +125,7 @@ class AppInfoView(TeamAppAPIView):
         operation_description="删除应用",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         responses={},
         tags=['openapi-apps'],
@@ -175,7 +181,7 @@ class APPOperationsView(TeamAppAPIView):
         operation_description="操作应用",
         request_body=ServiceGroupOperationsSerializer(),
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         responses={
             status.HTTP_200_OK: SuccessSerializer,
@@ -220,7 +226,7 @@ class ListAppServicesView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="查询应用下组件列表",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         responses={200: ServiceBaseInfoSerializer(many=True)},
         tags=['openapi-apps'],
@@ -232,11 +238,49 @@ class ListAppServicesView(TeamAppAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class CreateThirdComponentView(TeamAppAPIView):
+    @swagger_auto_schema(
+        operation_description="创建第三方组件",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=CreateThirdComponentSerializer(),
+        responses={200: CreateThirdComponentResponseSerializer()},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, app_id, *args, **kwargs):
+        ctcs = CreateThirdComponentSerializer(data=request.data)
+        ctcs.is_valid(raise_exception=True)
+        req_date = ctcs.data
+        validate_endpoints_info(req_date["endpoints"])
+        new_component = console_app_service.create_third_party_app(self.region_name, self.team, self.user,
+                                                                   req_date["component_name"], req_date["endpoints"],
+                                                                   req_date["endpoints_type"])
+        # add component to app
+        code, msg_show = group_service.add_service_to_group(self.team, self.region_name, app_id, new_component.service_id)
+        if code != 200:
+            raise ServiceHandleException(
+                msg="add component to app failure", msg_show=msg_show, status_code=code, error_code=code)
+        endpoints_type = req_date["endpoints_type"]
+        bean = new_component.to_dict()
+        if endpoints_type == "api":
+            # 生成秘钥
+            deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=new_component.service_id)
+            api_secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
+            # 从环境变量中获取域名，没有在从请求中获取
+            host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
+            api_url = host + "/console/" + "third_party/{0}".format(new_component.service_id)
+            bean["api_service_key"] = api_secret_key
+            bean["url"] = api_url
+        console_app_service.create_third_party_service(self.team, new_component, self.user.nick_name)
+        return Response(bean, status=status.HTTP_200_OK)
+
+
 class AppServicesView(TeamAppServiceAPIView):
     @swagger_auto_schema(
         operation_description="查询组件信息",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         responses={200: ServiceBaseInfoSerializer()},
         tags=['openapi-apps'],
@@ -256,7 +300,7 @@ class AppServicesView(TeamAppServiceAPIView):
         operation_description="删除组件",
         manual_parameters=[
             openapi.Parameter("force", openapi.IN_QUERY, description="强制删除", type=openapi.TYPE_INTEGER, enum=[0, 1]),
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         responses={},
         tags=['openapi-apps'],
@@ -285,7 +329,7 @@ class AppServiceEventsView(TeamAppServiceAPIView):
         manual_parameters=[
             openapi.Parameter("page", openapi.IN_QUERY, description="页码", type=openapi.TYPE_INTEGER),
             openapi.Parameter("page_size", openapi.IN_QUERY, description="每页数量", type=openapi.TYPE_INTEGER),
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         responses={200: ListServiceEventsResponse()},
         tags=['openapi-apps'],
@@ -307,7 +351,7 @@ class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceO
     @swagger_auto_schema(
         operation_description="组件垂直伸缩",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         request_body=AppServiceTelescopicVerticalSerializer,
         responses={},
@@ -328,7 +372,7 @@ class AppServiceTelescopicHorizontalView(TeamAppServiceAPIView, EnterpriseServic
     @swagger_auto_schema(
         operation_description="组件水平伸缩",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
         ],
         request_body=AppServiceTelescopicHorizontalSerializer,
         responses={},
@@ -371,7 +415,7 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="应用下组件实时监控",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
             openapi.Parameter(
                 "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
         ],
@@ -432,7 +476,7 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
         manual_parameters=[
             openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
             openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
             openapi.Parameter("start", openapi.IN_PATH, description="起始时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("end", openapi.IN_PATH, description="结束时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("step", openapi.IN_PATH, description="步长（默认60）", type=openapi.TYPE_NUMBER),

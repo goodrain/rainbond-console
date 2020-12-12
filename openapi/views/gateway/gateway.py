@@ -6,23 +6,22 @@
 
 import logging
 
+from console.constants import DomainType
+from console.exception.main import ServiceHandleException
+from console.repositories.app import service_repo
+from console.services.app_config import domain_service, port_service
+from console.services.app_config.domain_service import (ErrNotFoundDomain, tcp_domain)
+from console.services.group_service import group_service
 from django.forms.models import model_to_dict
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
-from rest_framework.response import Response
-
-from console.exception.main import ServiceHandleException
-from console.constants import DomainType
-from console.repositories.app import service_repo
-from console.services.app_config import domain_service, port_service
-from console.services.app_config.domain_service import ErrNotFoundDomain, tcp_domain
-from console.services.group_service import group_service
-from openapi.serializer.gateway_serializer import (EnterpriseHTTPGatewayRuleSerializer, HTTPGatewayRuleSerializer,
-                                                   PostHTTPGatewayRuleSerializer, UpdatePostHTTPGatewayRuleSerializer,
-                                                   GatewayRuleSerializer, PostGatewayRuleSerializer)
+from openapi.serializer.gateway_serializer import (EnterpriseHTTPGatewayRuleSerializer, GatewayRuleSerializer,
+                                                   HTTPGatewayRuleSerializer, PostGatewayRuleSerializer,
+                                                   PostHTTPGatewayRuleSerializer, UpdatePostHTTPGatewayRuleSerializer)
 from openapi.views.base import BaseOpenAPIView, TeamAppAPIView
 from openapi.views.exceptions import ErrAppNotFound
+from rest_framework import status
+from rest_framework.response import Response
 
 logger = logging.getLogger("default")
 
@@ -31,7 +30,7 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="获取应用http访问策略列表",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用ID", type=openapi.TYPE_INTEGER),
         ],
         responses={200: HTTPGatewayRuleSerializer(many=True)},
         tags=['openapi-gateway'],
@@ -46,6 +45,9 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
 
     @swagger_auto_schema(
         operation_description="创建HTTP网关策略",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用ID", type=openapi.TYPE_INTEGER),
+        ],
         request_body=PostHTTPGatewayRuleSerializer(),
         responses={200: HTTPGatewayRuleSerializer()},
         tags=['openapi-gateway'],
@@ -90,6 +92,9 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
         if not tenant_service_port.is_outer_service:
             return Response({"msg": "没有开启对外端口"}, status=status.HTTP_400_BAD_REQUEST)
         data = domain_service.bind_httpdomain(self.team, self.request.user, service, httpdomain, True)
+        configuration = httpdomain.get("configuration", None)
+        if configuration:
+            domain_service.update_http_rule_config(self.team, self.region_name, data.http_rule_id, configuration)
         serializer = HTTPGatewayRuleSerializer(data=data.to_dict())
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -122,7 +127,7 @@ class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="获取应用http访问策略详情",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter("rule_id", openapi.IN_PATH, description="网关策略id", type=openapi.TYPE_STRING),
         ],
         responses={200: HTTPGatewayRuleSerializer()},
@@ -136,7 +141,7 @@ class UpdateAppGatewayHTTPRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="更新HTTP访问策略",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter("rule_id", openapi.IN_PATH, description="网关策略id", type=openapi.TYPE_STRING),
         ],
         request_body=UpdatePostHTTPGatewayRuleSerializer(),
@@ -180,7 +185,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="获取应用访问策略列表",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用ID", type=openapi.TYPE_INTEGER),
         ],
         responses={200: GatewayRuleSerializer()},
         tags=['openapi-gateway'],
@@ -204,13 +209,12 @@ class ListAppGatewayRuleView(TeamAppAPIView):
         return Response(re.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="创建HTTP网关策略",
+        operation_description="创建网关策略",
         request_body=PostGatewayRuleSerializer(),
         responses={200: GatewayRuleSerializer()},
         tags=['openapi-apps'],
     )
     def post(self, request, app_id, *args, **kwargs):
-        print request.data
         ads = PostGatewayRuleSerializer(data=request.data)
         ads.is_valid(raise_exception=True)
         if ads.data.get("protocol") == "tcp":
@@ -245,8 +249,9 @@ class ListAppGatewayRuleView(TeamAppAPIView):
                                                            tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="change port fail", msg_show=msg)
-            except Exception:
-                raise
+            except Exception as e:
+                logger.exception(e)
+                raise ServiceHandleException(status_code=code, msg="change port fail", msg_show="open port failure")
             # 添加tcp策略
             code, msg, data = domain_service.bind_tcpdomain(self.team, self.user, service, end_point, container_port,
                                                             default_port, rule_extensions, default_ip)
@@ -308,7 +313,7 @@ class UpdateAppGatewayRuleView(TeamAppAPIView):
     @swagger_auto_schema(
         operation_description="更新访问策略",
         manual_parameters=[
-            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用ID", type=openapi.TYPE_INTEGER),
         ],
         request_body=UpdatePostHTTPGatewayRuleSerializer(),
         responses={200: HTTPGatewayRuleSerializer()},

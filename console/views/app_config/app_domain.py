@@ -6,21 +6,12 @@ import json
 import logging
 import re
 
-from django.db import connection
-from django.views.decorators.cache import never_cache
-from rest_framework import status
-from rest_framework.response import Response
-
 from console.constants import DomainType
 from console.repositories.app import service_repo
-from console.repositories.app_config import configuration_repo
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import tcp_domain
-from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
+from console.repositories.app_config import (configuration_repo, domain_repo, tcp_domain)
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
-from console.services.app_config import domain_service
-from console.services.app_config import port_service
+from console.services.app_config import domain_service, port_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -28,9 +19,12 @@ from console.utils.reqparse import parse_item
 from console.utils.shortcuts import get_object_or_404
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from django.db import connection
+from django.views.decorators.cache import never_cache
+from rest_framework import status
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import ServiceDomain
-from www.models.main import TenantServiceInfo
+from www.models.main import ServiceDomain, TenantServiceInfo
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 
@@ -1193,45 +1187,4 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     @never_cache
     def put(self, request, rule_id, *args, **kwargs):
         value = parse_item(request, 'value', required=True, error='value is a required parameter')
-        try:
-            self.check_set_header(value["set_headers"])
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(400, "forbidden custom header name", FORBIDDEN_MESSAGE)
-            return Response(result, status=400)
-        service_domain = get_object_or_404(ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
-        service = get_object_or_404(
-            TenantServiceInfo, msg="no service", msg_show=u"组件不存在", service_id=service_domain.service_id)
-
-        cf = configuration_repo.get_configuration_by_rule_id(rule_id)
-        gcc_dict = dict()
-        gcc_dict["body"] = value
-        gcc_dict["rule_id"] = rule_id
-        try:
-            res, data = region_api.upgrade_configuration(self.response_region, self.tenant, service.service_alias, gcc_dict)
-            if res.status == 200:
-                if cf:
-                    cf.value = json.dumps(value)
-                    cf.save()
-                else:
-                    cf_dict = dict()
-                    cf_dict["rule_id"] = rule_id
-                    cf_dict["value"] = json.dumps(value)
-                    configuration_repo.add_configuration(**cf_dict)
-                result = general_message(200, "success", "修改成功")
-                return Response(result, status=200)
-        except region_api.CallApiFrequentError as e:
-            logger.exception(e)
-            result = general_message(409, "upgrade configuration failed", "操作过于频繁，请稍后再试")
-            return Response(result, status=409)
-
-    def check_set_header(self, set_headers):
-        r = re.compile('([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
-        for header in set_headers:
-            if header["key"] and not r.match(header["key"]):
-                raise Exception("forbidden key: {0}".format(header["key"]))
-
-
-FORBIDDEN_MESSAGE = "自定义请求头只可以使用小写英文字母、数字、下划线、中划线，并以英文字母开头结尾"
-# name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character
-# (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
+        domain_service.update_http_rule_config(self.tenant, self.response_region, rule_id, value)

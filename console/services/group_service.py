@@ -115,7 +115,6 @@ class GroupService(object):
         return 200, u"删除成功", group_id
 
     def add_service_to_group(self, tenant, region_name, group_id, service_id):
-
         if group_id:
             group_id = int(group_id)
             if group_id > 0:
