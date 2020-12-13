@@ -4,21 +4,19 @@
 """
 import logging
 
-from rest_framework.response import Response
-
-from urllib3.exceptions import MaxRetryError
-from console.services.market_app_service import market_app_service
-from console.exception.main import ServiceHandleException
+from console.enum.app import GovernanceModeEnum
+from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView, ApplicationView)
+from console.services.market_app_service import market_app_service
+from console.utils.reqparse import parse_item
+from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderView)
+from rest_framework.response import Response
+from urllib3.exceptions import MaxRetryError
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
-from console.utils.reqparse import parse_item
-from console.enum.app import GovernanceModeEnum
-from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -63,8 +61,10 @@ class TenantGroupView(RegionTenantHeaderView):
         note = request.data.get("note", "")
         if len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-
-        data = group_service.create_app(self.tenant, self.response_region, app_name, note, self.user.get_username())
+        region_name = self.response_region
+        if request.data.get("region_name", None):
+            region_name = request.data.get("region_name", None)
+        data = group_service.create_app(self.tenant, region_name, app_name, note, self.user.get_username())
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
 
