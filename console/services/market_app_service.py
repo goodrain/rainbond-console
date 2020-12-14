@@ -1207,7 +1207,7 @@ class MarketAppService(object):
                     record = app_import_record_repo.get_import_record(version["record_id"])
                     if record:
                         version["share_user"] = record.user_name
-                version["dev_status"] = version.version_dev_status
+                version["dev_status"] = version.dev_status
                 if version["dev_status"] == "release":
                     app_release = True
 
