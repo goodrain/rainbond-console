@@ -344,9 +344,12 @@ class RainbondCenterAppRepository(object):
                 SELECT *
                 FROM ({0}) AS V
                 ORDER BY
-                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1), LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
-                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2) , LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
-                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3), LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1),
+                    LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2),
+                    LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3),
+                    LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
             """.format(sql)
         conn = BaseConnection()
         result = conn.query(sql)
