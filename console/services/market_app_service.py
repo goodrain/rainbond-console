@@ -1223,7 +1223,6 @@ class MarketAppService(object):
             app["dev_status"] = 'release'
         else:
             app["dev_status"] = ''
-        app_versions.sort(key=lambda x: tuple(int(v) for v in x["version"].split(".")), reverse=True)
         p = Paginator(app_versions, page_size)
         total = p.count
         if have_version:

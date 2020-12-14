@@ -312,8 +312,6 @@ class RainbondCenterAppRepository(object):
                     BB.describe,
                     BB.details,
                     BB.enterprise_id,
-                    BB.create_time,
-                    BB.update_time,
                     BB.is_ingerit,
                     BB.is_official,
                     BB.install_number,
@@ -340,6 +338,16 @@ class RainbondCenterAppRepository(object):
                 ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
             """
         sql += where
+        # Sort in reverse order of version number
+        sql = sql.strip(";")
+        sql = """
+                SELECT *
+                FROM ({0}) AS V
+                ORDER BY
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1), LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2) , LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3), LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
+            """.format(sql)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
