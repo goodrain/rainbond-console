@@ -298,48 +298,29 @@ class RainbondCenterAppRepository(object):
         return result
 
     def get_rainbond_app_versions_by_id(self, eid, app_id):
-        where = 'WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND BB.app_id="{app_id}";'.format(
-            eid=eid, app_id=app_id)
+        where = 'WHERE (C.enterprise_id="{eid}") AND C.app_id="{app_id}"'.format(eid=eid, app_id=app_id)
         sql = """
                 SELECT
-                    BB.ID,
-                    BB.app_id,
-                    BB.app_name,
-                    BB.create_user,
-                    BB.create_team,
-                    BB.pic,
-                    BB.dev_status,
-                    BB.describe,
-                    BB.details,
-                    BB.enterprise_id,
-                    BB.create_time,
-                    BB.update_time,
-                    BB.is_ingerit,
-                    BB.is_official,
-                    BB.install_number,
-                    BB.source,
-                    BB.scope,
-                    C.app_template,
-                    C.version,
-                    C.is_complete,
-                    C.version_alias,
-                    C.update_time,
-                    C.create_time,
-                    C.app_version_info,
-                    C.share_user,
-                    C.share_team,
-                    C.release_user_id,
-                    C.record_id,
-                    C.dev_status as version_dev_status
+                    C.*
                 FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
                       FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
                 LEFT JOIN rainbond_center_app_version C
                 ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
                 C.version=B.version AND C.update_time=B.update_time
-                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
-                ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
             """
         sql += where
+        # Sort in reverse order of version number
+        sql = """
+                SELECT V.*
+                FROM ({0}) AS V
+                ORDER BY
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1),
+                    LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2),
+                    LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
+                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3),
+                    LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
+            """.format(sql)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
