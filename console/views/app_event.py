@@ -4,18 +4,14 @@
 """
 import logging
 
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
 from console.constants import LogConstants
-from console.services.app_actions import event_service
-from console.services.app_actions import log_service
-from console.services.app_actions import ws_service
+from console.services.app_actions import event_service, log_service, ws_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.models.main import TenantServiceInfo
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 
@@ -251,8 +247,9 @@ class AppEventsView(RegionTenantHeaderView):
                 result = general_message(200, "success", "查询成功", list=[], total=0, has_next=False)
         elif target == "tenant":
             target_id = self.tenant.tenant_id
-            events, total, has_next = event_service.get_target_events(target, target_id, self.tenant, self.tenant.region,
-                                                                      int(page), int(page_size))
+            region = self.response_region
+            events, total, has_next = event_service.get_target_events(target, target_id, self.tenant, region, int(page),
+                                                                      int(page_size))
             result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
         return Response(result, status=result["code"])
 
