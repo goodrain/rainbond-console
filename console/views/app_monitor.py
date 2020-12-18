@@ -89,8 +89,8 @@ class AppMonitorQueryRangeView(AppBaseView):
         """
         try:
             query = request.GET.get("query", "")
-            disable_auto_label = request.GET.get("disable_auto_label", False)
-            if "service_id" not in query and not disable_auto_label:
+            disable_auto_label = request.GET.get("disable_auto_label", "false")
+            if "service_id" not in query and disable_auto_label == "false":
                 query = promql_service.add_or_update_label(self.service.service_id, query)
             sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
