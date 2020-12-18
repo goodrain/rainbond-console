@@ -8,7 +8,8 @@ import re
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
-from console.repositories.app_config import (configuration_repo, domain_repo, tcp_domain)
+from console.repositories.app_config import (configuration_repo, domain_repo,
+                                             tcp_domain)
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import domain_service, port_service
@@ -1186,3 +1187,5 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     def put(self, request, rule_id, *args, **kwargs):
         value = parse_item(request, 'value', required=True, error='value is a required parameter')
         domain_service.update_http_rule_config(self.tenant, self.response_region, rule_id, value)
+        result = general_message(200, "success", "更新成功")
+        return Response(result, status=200)
