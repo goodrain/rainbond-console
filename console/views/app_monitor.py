@@ -5,13 +5,12 @@
 import logging
 from urllib import urlencode
 
-from rest_framework.response import Response
-
-from console.services.app_config.promql_service import promql_service
 from console.services.app_config import env_var_service
+from console.services.app_config.promql_service import promql_service
 from console.services.group_service import group_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -90,7 +89,8 @@ class AppMonitorQueryRangeView(AppBaseView):
         """
         try:
             query = request.GET.get("query", "")
-            if "service_id" not in query:
+            disable_auto_label = request.GET.get("disable_auto_label", False)
+            if "service_id" not in query and not disable_auto_label:
                 query = promql_service.add_or_update_label(self.service.service_id, query)
             sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
