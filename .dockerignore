@@ -11,3 +11,5 @@ bin
 env
 data
 www/static/www/weavescope-src
+www/migrations
+console/migrations

@@ -19,6 +19,7 @@ RUN chmod +x /app/ui/entrypoint.sh &&  \
       cp -a /dist/* /app/ui/www/static/dists/ && \
       rm -rf /dist \
       && mkdir /app/logs \
+      && mkdir /app/data \
       && pip install -r requirements.txt \
       && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
       && rm -rf /root/.cache \
@@ -28,8 +29,9 @@ RUN chmod +x /app/ui/entrypoint.sh &&  \
 ENV PORT 7070
 ENV IS_OPEN_API=true
 ENV RELEASE_DESC=${RELEASE_DESC}
+ENV HOME_DIR=/app
 
-VOLUME /initdata
+VOLUME /app/data
 VOLUME /app/logs
 
 ENTRYPOINT ["./entrypoint.sh"]

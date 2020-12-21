@@ -5,7 +5,7 @@
 import logging
 
 from www.db.base import BaseConnection
-from www.models.main import ServiceGroupRelation, ServiceGroup
+from www.models.main import ServiceGroup, ServiceGroupRelation
 
 logger = logging.getLogger("default")
 
@@ -34,7 +34,7 @@ class ServiceGroupRepository(object):
         WHERE
             a.tenant_id = b.tenant_id
             AND a.region_name = b.region
-            AND a.is_default = FALSE
+            AND a.is_default = 0
             AND b.enterprise_id = "{eid}"
         LIMIT 1;
         """.format(eid=eid)
