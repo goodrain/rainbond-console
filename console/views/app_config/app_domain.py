@@ -8,8 +8,7 @@ import re
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
-from console.repositories.app_config import (configuration_repo, domain_repo,
-                                             tcp_domain)
+from console.repositories.app_config import (configuration_repo, domain_repo, tcp_domain)
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import domain_service, port_service
