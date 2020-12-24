@@ -6,10 +6,8 @@ from datetime import datetime
 from enum import IntEnum
 
 from addict import Dict
-from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound,
-                                    ErrInvalidVolume, InnerPortNotFound,
-                                    InvalidEnvName, ServiceHandleException,
-                                    ServiceRelationAlreadyExist)
+from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound, ErrInvalidVolume, InnerPortNotFound, InvalidEnvName,
+                                    ServiceHandleException, ServiceRelationAlreadyExist)
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo, volume_repo
 from console.repositories.probe_repo import probe_repo
@@ -17,10 +15,8 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (
-    PropertiesChanges, get_upgrade_app_version_template_app)
-from console.services.app_config import (AppPortService, env_var_service,
-                                         mnt_service)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app)
+from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.backup_service import \
