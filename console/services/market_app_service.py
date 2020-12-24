@@ -624,8 +624,8 @@ class MarketAppService(object):
     def __save_extend_info(self, service, extend_info):
         if not extend_info:
             return 200, "success"
-        if len(service.version) > 64:
-            service.version = service.version[:64]
+        if len(service.version) > 255:
+            service.version = service.version[:255]
         params = {
             "service_key": service.service_key,
             "app_version": service.version,
