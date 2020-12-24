@@ -137,7 +137,7 @@ class MarketAppService(object):
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
 
             # config groups
-            config_groups = app_templates.get("app_config_groups", [])
+            config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
             for config_group in config_groups:
                 component_ids = []
                 for sid in config_group.get("component_ids", []):
@@ -624,6 +624,8 @@ class MarketAppService(object):
     def __save_extend_info(self, service, extend_info):
         if not extend_info:
             return 200, "success"
+        if len(service.version) > 255:
+            service.version = service.version[:255]
         params = {
             "service_key": service.service_key,
             "app_version": service.version,

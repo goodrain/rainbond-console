@@ -22,7 +22,7 @@ class ServiceExtendMethod(BaseModel):
         db_table = 'app_service_extend_method'
 
     service_key = models.CharField(max_length=32, help_text=u"组件key")
-    app_version = models.CharField(max_length=64, null=False, help_text=u"当前最新版本")
+    app_version = models.CharField(max_length=255, null=False, help_text=u"当前最新版本")
     min_node = models.IntegerField(default=1, help_text=u"最小节点")
     max_node = models.IntegerField(default=20, help_text=u"最大节点")
     step_node = models.IntegerField(default=1, help_text=u"节点步长")
