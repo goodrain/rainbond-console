@@ -148,8 +148,9 @@ class UserOAuthRepo(object):
             user = UserOAuthServices.objects.get(
                 oauth_user_id=kwargs.get("oauth_user_id"),
                 service_id=kwargs.get("service_id"),
+                user_id=kwargs.get("user_id")
             )
-        except Exception:
+        except UserOAuthServices.DoesNotExist:
             user = UserOAuthServices.objects.create(
                 oauth_user_id=kwargs.get("oauth_user_id"),
                 oauth_user_name=kwargs.get("oauth_user_name"),
@@ -162,6 +163,8 @@ class UserOAuthRepo(object):
                 refresh_token=kwargs.get("refresh_token"),
                 user_id=kwargs.get("user_id"),
                 code=kwargs.get("code"))
+        except Exception as e:
+            logger.exception(e)
         return user
 
     def update_oauth(self, *args, **kwargs):
