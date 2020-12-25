@@ -176,6 +176,7 @@ class UserService(object):
         self.check_params(data["nick_name"], data["email"], data["password"], data["password"])
         # check nick name
         try:
+            data["eid"] = data["enterprise_id"]
             user_repo.get_enterprise_user_by_username(data["eid"], data["nick_name"])
             raise UserExistError("{} already exists.".format(data["nick_name"]))
         except Users.DoesNotExist:
