@@ -550,10 +550,15 @@ class MarketService(object):
     def update_port_data(self, port):
         container_port = int(port["container_port"])
         port_alias = self.service.service_alias.upper()
+        k8s_service_name = port.get("k8s_service_name")
+        if k8s_service_name:
+            port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+            k8s_service_name += "-" + make_uuid()[-4:]
         port["tenant_id"] = self.tenant.tenant_id
         port["service_id"] = self.service.service_id
         port["mapping_port"] = container_port
         port["port_alias"] = port_alias
+        port["k8s_service_name"] = k8s_service_name
 
     def _update_ports(self, ports):
         if ports is None:
@@ -584,6 +589,7 @@ class MarketService(object):
         add = ports.get("add", [])
         envs = {"add": []}
         for port in add:
+            print(port)
             self.update_port_data(port)
             if not port["is_inner_service"]:
                 continue
