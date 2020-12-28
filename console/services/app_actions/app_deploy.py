@@ -30,6 +30,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from www.models.main import TenantServicesPort
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -550,15 +551,18 @@ class MarketService(object):
     def update_port_data(self, port):
         container_port = int(port["container_port"])
         port_alias = self.service.service_alias.upper()
-        k8s_service_name = port.get("k8s_service_name")
+        k8s_service_name = port.get("k8s_service_name", self.service.service_alias + "-" + str(container_port))
         if k8s_service_name:
-            port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
-            k8s_service_name += "-" + make_uuid()[-4:]
+            try:
+                port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+                k8s_service_name += "-" + make_uuid()[-4:]
+            except TenantServicesPort.DoesNotExist:
+                pass
+            port["k8s_service_name"] = k8s_service_name
         port["tenant_id"] = self.tenant.tenant_id
         port["service_id"] = self.service.service_id
         port["mapping_port"] = container_port
         port["port_alias"] = port_alias
-        port["k8s_service_name"] = k8s_service_name
 
     def _update_ports(self, ports):
         if ports is None:
