@@ -589,7 +589,6 @@ class MarketService(object):
         add = ports.get("add", [])
         envs = {"add": []}
         for port in add:
-            print(port)
             self.update_port_data(port)
             if not port["is_inner_service"]:
                 continue
