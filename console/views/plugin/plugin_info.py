@@ -174,7 +174,9 @@ class PluginVersionInfoView(PluginBaseView):
         """
         base_info = self.plugin
         if base_info.image and base_info.build_source == "image":
-            base_info.image = base_info.image + ":" + self.plugin_version.image_tag
+            base_info.image = base_info.image
+            if self.plugin_version.image_tag:
+                base_info.image = base_info.image + ":" + self.plugin_version.image_tag
         data = base_info.to_dict()
         data.update(self.plugin_version.to_dict())
         update_status_thread = threading.Thread(
