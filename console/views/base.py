@@ -248,11 +248,9 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
             raise AuthenticationInfoHasExpiredError(msg)
 
 
-class RegionTenantHeaderView(JWTAuthApiView):
+class TenantHeaderView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
-        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
-        self.response_region = None
-        self.region_name = None
+        super(TenantHeaderView, self).__init__(*args, **kwargs)
         self.tenant_name = None
         self.team_name = None
         self.tenant = None
@@ -289,7 +287,6 @@ class RegionTenantHeaderView(JWTAuthApiView):
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.tenant_name = kwargs.get("tenantName", None)
-        self.response_region = kwargs.get("region_name", None)
 
         if not self.tenant_name:
             self.tenant_name = kwargs.get("team_name", None)
@@ -303,17 +300,6 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.tenant_name = self.request.GET.get('team_name', None)
         self.team_name = self.tenant_name
 
-        if not self.response_region:
-            self.response_region = request.GET.get("region_name", None)
-        if not self.response_region:
-            self.response_region = request.GET.get("region", None)
-        if not self.response_region:
-            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
-        if not self.response_region:
-            self.response_region = self.request.COOKIES.get('region_name', None)
-        self.region_name = self.response_region
-        if not self.response_region:
-            raise ImportError("region_name not found !")
         if not self.tenant_name:
             raise ImportError("team_name not found !")
         try:
@@ -332,6 +318,28 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.is_enterprise_admin = True
         self.get_perms()
         self.check_perms(request, *args, **kwargs)
+
+
+class RegionTenantHeaderView(TenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
+        self.response_region = None
+        self.region_name = None
+
+    def initial(self, request, *args, **kwargs):
+        super(RegionTenantHeaderView, self).initial(request, *args, **kwargs)
+        self.response_region = kwargs.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region", None)
+        if not self.response_region:
+            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
+        if not self.response_region:
+            self.response_region = self.request.COOKIES.get('region_name', None)
+        self.region_name = self.response_region
+        if not self.response_region:
+            raise ImportError("region_name not found !")
 
 
 class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudEnterpriseCenterView):
