@@ -146,10 +146,7 @@ class UserOAuthRepo(object):
     def save_oauth(self, *args, **kwargs):
         try:
             user = UserOAuthServices.objects.get(
-                oauth_user_id=kwargs.get("oauth_user_id"),
-                service_id=kwargs.get("service_id"),
-                user_id=kwargs.get("user_id")
-            )
+                oauth_user_id=kwargs.get("oauth_user_id"), service_id=kwargs.get("service_id"), user_id=kwargs.get("user_id"))
         except UserOAuthServices.DoesNotExist:
             user = UserOAuthServices.objects.create(
                 oauth_user_id=kwargs.get("oauth_user_id"),
