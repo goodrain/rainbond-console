@@ -15,7 +15,7 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app, get_upgrade_app_template)
 from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
@@ -260,7 +260,8 @@ class MarketService(object):
     def set_changes(self):
         pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
         app = get_upgrade_app_version_template_app(self.tenant, self.version, pc)
-        changes = pc.get_property_changes(app)
+        template = get_upgrade_app_template(self.tenant, self.version, pc)
+        changes = pc.get_property_changes(app, template=template)
         logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
         self.changes = changes
         logger.info("upgrade from cloud do not support.")

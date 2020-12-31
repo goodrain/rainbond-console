@@ -15,6 +15,7 @@ from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.services.group_service import group_service
+from console.services.share_services import share_service
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -153,7 +154,7 @@ class PropertiesChanges(object):
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
-    def get_property_changes(self, component=None, plugins=None, level="svc"):
+    def get_property_changes(self, component=None, plugins=None, level="svc", template=None):
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
         if not component:
@@ -203,7 +204,41 @@ class PropertiesChanges(object):
             logger.debug("plugin changes: {}".format(json.dumps(plugins)))
             result["plugins"] = plugins
 
+        app_config_groups = self.app_config_group_changes(component, template)
+        if app_config_groups:
+            logger.debug("app_config_groups changes: {}".format(json.dumps(app_config_groups)))
+            result["app_config_groups"] = app_config_groups
         return result
+
+    def app_config_group_changes(self, component, template):
+        if not template.get("app_config_groups"):
+            return None
+        add = []
+        # 从数据库获取对当前组件生效的配置组
+        old_cgroups = share_service.config_groups(self.service.service_region, [self.service.service_id])
+        old_cgroups_name_items = {cgroup["name"]: cgroup["config_items"] for cgroup in old_cgroups}
+        for app_config_group in template["app_config_groups"]:
+            # 如果当前组件模版中的组件ID不在应用配置组模版包含的生效组件中,跳过该配置组
+            if component["service_id"] not in app_config_group["component_ids"]:
+                continue
+            # 如果模版中的配置组名不存在，记录下变更信息, 修改生效组件ID
+            app_config_group["component_ids"] = []
+            if not old_cgroups_name_items.get(app_config_group["name"]):
+                app_config_group["component_ids"].append(self.service.service_id)
+                add.append(app_config_group)
+                continue
+            # 配置组存在，则比较配置项
+            new_items = {}
+            for item_key in app_config_group["config_items"]:
+                if not old_cgroups_name_items[app_config_group["name"]].get(item_key, ""):
+                    new_items.update({item_key: app_config_group["config_items"][item_key]})
+            if new_items:
+                app_config_group["component_ids"].append(self.service.service_id)
+                app_config_group["config_items"] = new_items
+                add.append(app_config_group)
+        if not add:
+            return None
+        return {"add": add}
 
     def env_changes(self, envs):
         """
@@ -480,3 +515,13 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
     else:
         app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)
     return app
+
+
+def get_upgrade_app_template(tenant, version, pc):
+    if pc.install_from_cloud:
+        data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, get_template=True)
+        template = json.loads(data.template)
+    else:
+        data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key, version)
+        template = json.loads(data.app_template)
+    return template

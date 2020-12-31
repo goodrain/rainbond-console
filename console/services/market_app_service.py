@@ -266,6 +266,32 @@ class MarketAppService(object):
 
             # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
+
+            # config groups
+            config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
+            for config_group in config_groups:
+                component_ids = []
+                for sid in config_group.get("component_ids", []):
+                    if not old_new_id_map.get(sid):
+                        continue
+                    component_ids.append(old_new_id_map.get(sid).service_id)
+                config_items = config_group.get("config_items", {})
+                items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                try:
+                    app_config_group_service.create_config_group(group_id, config_group["name"], items,
+                                                                 config_group["injection_type"], True, component_ids, region,
+                                                                 tenant.tenant_name)
+                except ErrAppConfigGroupExists:
+                    old_cgroup = app_config_group_service.get_config_group(region, group_id, config_group["name"])
+                    old_cgroup_service_ids = [old_service["service_id"] for old_service in old_cgroup["services"] if old_service["service_id"] not in component_ids]
+                    old_cgroup_items = [{"item_key": old_item["item_key"], "item_value": old_item["item_value"]} for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
+
+                    component_ids.extend(old_cgroup_service_ids)
+                    items.extend(old_cgroup_items)
+
+                    app_config_group_service.update_config_group(region, group_id, config_group["name"], items, True,
+                                                                 component_ids, tenant.tenant_name)
+
             # 创建组件插件
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
@@ -300,6 +326,55 @@ class MarketAppService(object):
         self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
         # dependent volume
         self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
+
+    def save_app_config_groups_when_upgrade_app(self, region_name, tenant, app_id, upgrade_service_infos):
+        if not upgrade_service_infos:
+            return
+        # 数据库中当前应用下的所有配置组
+        old_app_config_groups = app_config_group_service.list(region_name, app_id)
+
+        new_config_groups = {}  # 需要被新创建的应用配置组
+        need_update_config_groups = {}  # 需要被更新的应用配置组
+        for service_id in upgrade_service_infos:
+            if not upgrade_service_infos[service_id].get("app_config_groups"):
+                continue
+            for app_config_group in upgrade_service_infos[service_id]["app_config_groups"]["add"]:
+                if not old_app_config_groups.get(app_config_group["name"]):
+                    # 如果应用配置组不在数据库中，但是已存在于待创建配置组中，则只追加生效组件ID
+                    if new_config_groups.get(app_config_group["name"]):
+                        new_config_groups[app_config_group["name"]]["component_ids"].append(service_id)
+                        continue
+                    # 如果应用配置组不在数据库也不在待创建的配置组中，则将其加入待创建配置组
+                    new_config_groups.update({app_config_group["name"]: app_config_group})
+                    continue
+                need_update_config_groups.update({app_config_group["name"]: app_config_group})
+
+        # 创建新的应用配置组
+        if new_config_groups:
+            for new_cgroup_name in new_config_groups:
+                config_items = new_config_groups[new_cgroup_name]["config_items"]
+                items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                app_config_group_service.create_config_group(app_id, new_cgroup_name, items,
+                                                             new_config_groups[new_cgroup_name]["injection_type"], True,
+                                                             new_config_groups[new_cgroup_name]["component_ids"],
+                                                             region_name, tenant.tenant_name)
+        # 更新已有应用配置组
+        if need_update_config_groups:
+            for update_cgroup_name in need_update_config_groups:
+                config_items = need_update_config_groups[update_cgroup_name]["config_items"]
+                new_service_ids = need_update_config_groups[update_cgroup_name]["component_ids"]
+                # 获取原有配置组的配置项和生效组件
+                old_cgroup = app_config_group_service.get_config_group(region_name, app_id, update_cgroup_name)
+                old_cgroup_service_ids = [old_service["service_id"] for old_service in old_cgroup["services"] if old_service["service_id"] not in new_service_ids]
+                old_cgroup_items = [{"item_key": old_item["item_key"], "item_value": old_item["item_value"]} for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
+
+                # 将需要升级的生效组件ID与原有配置组生效组件ID连接起来，构成更新配置组需要的组件ID列表
+                new_service_ids.extend(old_cgroup_service_ids)
+                # 将需要升级的配置项与原有配置组配置项连接起来，构成更新配置组需要的配置项列表
+                new_items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                new_items.extend(old_cgroup_items)
+                app_config_group_service.update_config_group(region_name, app_id, update_cgroup_name, new_items, True,
+                                                             new_service_ids, tenant.tenant_name)
 
     def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
         for app in apps:

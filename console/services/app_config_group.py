@@ -96,6 +96,17 @@ class AppConfigGroupService(object):
 
         return cgroup_info, total
 
+    def list(self, region_name, app_id):
+        cgroup_info = {}
+        config_groups = app_config_group_repo.list(region_name, app_id)
+        for cgroup in config_groups:
+            items = app_config_group_item_repo.list(cgroup.config_group_id)
+            config_items = {item.item_key: item.item_value for item in items}
+            cgroup_services = app_config_group_service_repo.list(cgroup.config_group_id)
+            cgroup_service_ids = [cgroup_service.service_id for cgroup_service in cgroup_services]
+            cgroup_info.update({cgroup.config_group_name: {"config_items": config_items, "component_ids": cgroup_service_ids}})
+        return cgroup_info
+
     @transaction.atomic
     def delete_config_group(self, region_name, team_name, app_id, config_group_name):
         cgroup = app_config_group_repo.get(region_name, app_id, config_group_name)
