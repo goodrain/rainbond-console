@@ -31,6 +31,7 @@ from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from www.models.main import TenantServicesPort
+from console.services.app_config.component_graph import component_graph_service
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -162,7 +163,7 @@ class MarketService(object):
         all_sync_funcs = self._create_sync_funcs()
         m = {
             PropertyType.ORDINARY.value:
-            ["deploy_version", "app_version", "image", "slug_path", "envs", "connect_infos", "ports", "volumes", "probe"],
+            ["deploy_version", "app_version", "image", "slug_path", "envs", "connect_infos", "ports", "volumes", "probe", "component_graphs"],
             PropertyType.DEPENDENT.value: ["dep_services", "dep_volumes", "plugins"]
         }
         keys = m.get(typ3, None)
@@ -187,6 +188,7 @@ class MarketService(object):
             "dep_services": self._update_dep_services,
             "dep_volumes": self._update_dep_volumes,
             "plugins": self._update_plugins,
+            "component_graphs": self._update_component_graphs,
         }
 
     def _create_sync_funcs(self):
@@ -455,6 +457,12 @@ class MarketService(object):
                                                env["is_change"], scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
+
+    def _update_component_graphs(self, component_graphs):
+        if not component_graphs:
+            return
+        add = component_graphs.get("add", [])
+        component_graph_service.bulk_create(self.service.service_id, add)
 
     def _sync_inner_envs(self, envs):
         self._sync_envs(envs, "inner")

@@ -3,6 +3,7 @@ import json
 import logging
 import time
 
+from console.exception.main import AbortRequest
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, volume_repo)
 from console.repositories.group import group_service_relation_repo
@@ -16,6 +17,8 @@ from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.services.group_service import group_service
 from console.services.share_services import share_service
+from console.services.app_config.promql_service import promql_service
+from console.repositories.component_graph import component_graph_repo
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -208,6 +211,11 @@ class PropertiesChanges(object):
         if app_config_groups:
             logger.debug("app_config_groups changes: {}".format(json.dumps(app_config_groups)))
             result["app_config_groups"] = app_config_groups
+
+        component_graphs = self.component_graph_changes(component.get("component_graphs", []))
+        if component_graphs:
+            result["component_graphs"] = component_graphs
+
         return result
 
     def app_config_group_changes(self, component, template):
@@ -236,6 +244,28 @@ class PropertiesChanges(object):
                 app_config_group["component_ids"].append(self.service.service_id)
                 app_config_group["config_items"] = new_items
                 add.append(app_config_group)
+        if not add:
+            return None
+        return {"add": add}
+
+    def component_graph_changes(self, component_graphs):
+        print(component_graphs)
+        if not component_graphs:
+            return None
+
+        old_graphs = component_graph_repo.list(self.service.service_id)
+        old_promqls = [graph.promql for graph in old_graphs]
+        add = []
+        for graph in component_graphs:
+            try:
+                new_promql = promql_service.add_or_update_label(self.service.service_id, graph.get("promql"))
+            except AbortRequest as e:
+                logger.warning("promql: {}, {}".format(graph.get("promql"), e))
+                continue
+            print(old_promqls, new_promql)
+            if new_promql not in old_promqls:
+                add.append(graph)
+
         if not add:
             return None
         return {"add": add}
