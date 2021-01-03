@@ -23,6 +23,9 @@ class ComponentServiceMonitor(object):
     def get_component_service_monitors(self, tenant_id, service_id):
         return ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
+    def get_tenant_service_monitor(self, tenant_id, name):
+        return ServiceMonitor.objects.filter(tenant_id=tenant_id, name=name)
+
     def get_component_service_monitor(self, tenant_id, service_id, name):
         sms = ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id=service_id, name=name)
         if sms:

@@ -40,6 +40,7 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -122,10 +123,6 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
-                # component monitors
-                component_monitors = app.get("component_monitors", {})
-                self.__save_monitors(ts.tenant_id, ts.service_id, component_monitors)
-
                 # component graphs
                 component_graphs = app.get("component_graphs", {})
                 component_graph_service.bulk_create(ts.service_id, component_graphs)
@@ -160,6 +157,10 @@ class MarketAppService(object):
 
             # dependent volume
             self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
+
+            # component monitors
+            component_monitors = app.get("component_monitors", {})
+            self.__create_component_monitor(tenant, new_service_list, component_monitors)
 
             events = []
             if is_deploy:
@@ -264,6 +265,10 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
+                # component graphs
+                component_graphs = app.get("component_graphs", {})
+                component_graph_service.bulk_create(ts.service_id, component_graphs)
+
             # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
 
@@ -303,6 +308,10 @@ class MarketAppService(object):
                 service = old_new_id_map[app["service_id"]]
                 plugins = app_plugin_map[service.service_id]
                 self.__create_service_pluginsv2(tenant, service, market_app.version, plugins)
+
+            # component monitors
+            component_monitors = app.get("component_monitors", {})
+            self.__create_component_monitor(tenant, new_service_list, component_monitors)
 
             events = {}
             if is_deploy:
@@ -386,6 +395,12 @@ class MarketAppService(object):
                 new_items.extend(old_cgroup_items)
                 app_config_group_service.update_config_group(region_name, app_id, update_cgroup_name, new_items, True,
                                                              new_service_ids, tenant.tenant_name)
+
+    def __create_component_monitor(self, tenant, service_list, component_monitors):
+        if not service_list:
+            return
+        for service in service_list:
+            self.__save_monitors(tenant, service, component_monitors)
 
     def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
         for app in apps:
@@ -726,31 +741,21 @@ class MarketAppService(object):
         extend_repo.create_extend_method(**params)
 
     @staticmethod
-    def __save_monitors(tenant_id, component_id, monitors):
+    def __save_monitors(tenant, service, monitors):
         if not monitors:
             return
 
-        sms = []
         for monitor in monitors:
             monitor_name = monitor.get("name")
             # make monitor name unique
             try:
-                ServiceMonitor.objects.get(tenant_id=tenant_id, name=monitor_name)
+                ServiceMonitor.objects.get(tenant_id=tenant.tenant_id, name=monitor_name)
                 monitor_name += "-" + make_uuid()[0:4]
             except ServiceMonitor.DoesNotExist:
                 pass
-
-            sms.append(
-                ServiceMonitor(
-                    tenant_id=tenant_id,
-                    service_id=component_id,
-                    name=monitor_name,
-                    path=monitor.get("path"),
-                    port=monitor.get("port"),
-                    service_show_name=monitor.get("service_show_name"),
-                    interval=monitor.get("interval"),
-                ))
-        ServiceMonitor.objects.bulk_create(sms)
+            service_monitor_repo.create_component_service_monitor(tenant, service, monitor_name, monitor.get("path"),
+                                                                  monitor.get("port"), monitor.get("service_show_name"),
+                                                                  monitor.get("interval"))
 
     def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):
         """

@@ -275,10 +275,14 @@ class PropertiesChanges(object):
     def component_monitor_changes(self, service_monitors):
         if not service_monitors:
             return None
+        add = []
         old_monitors = service_monitor_repo.list_by_service_ids(self.tenant.tenant_id, [self.service.service_id])
         old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
+        for monitor in service_monitors:
+            tenant_monitor = service_monitor_repo.get_tenant_service_monitor(self.tenant.tenant_id, monitor["name"])
+            if not tenant_monitor and monitor["name"] not in old_monitor_names:
+                add.append(monitor)
 
-        add = [monitor for monitor in service_monitors if monitor["name"] not in old_monitor_names]
         if not add:
             return None
         return {"add": add}
