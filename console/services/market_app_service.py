@@ -283,8 +283,14 @@ class MarketAppService(object):
                                                                  tenant.tenant_name)
                 except ErrAppConfigGroupExists:
                     old_cgroup = app_config_group_service.get_config_group(region, group_id, config_group["name"])
-                    old_cgroup_service_ids = [old_service["service_id"] for old_service in old_cgroup["services"] if old_service["service_id"] not in component_ids]
-                    old_cgroup_items = [{"item_key": old_item["item_key"], "item_value": old_item["item_value"]} for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
+                    old_cgroup_service_ids = [
+                        old_service["service_id"] for old_service in old_cgroup["services"]
+                        if old_service["service_id"] not in component_ids
+                    ]
+                    old_cgroup_items = [{
+                        "item_key": old_item["item_key"],
+                        "item_value": old_item["item_value"]
+                    } for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
 
                     component_ids.extend(old_cgroup_service_ids)
                     items.extend(old_cgroup_items)
@@ -354,10 +360,9 @@ class MarketAppService(object):
             for new_cgroup_name in new_config_groups:
                 config_items = new_config_groups[new_cgroup_name]["config_items"]
                 items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
-                app_config_group_service.create_config_group(app_id, new_cgroup_name, items,
-                                                             new_config_groups[new_cgroup_name]["injection_type"], True,
-                                                             new_config_groups[new_cgroup_name]["component_ids"],
-                                                             region_name, tenant.tenant_name)
+                app_config_group_service.create_config_group(
+                    app_id, new_cgroup_name, items, new_config_groups[new_cgroup_name]["injection_type"], True,
+                    new_config_groups[new_cgroup_name]["component_ids"], region_name, tenant.tenant_name)
         # 更新已有应用配置组
         if need_update_config_groups:
             for update_cgroup_name in need_update_config_groups:
@@ -365,8 +370,14 @@ class MarketAppService(object):
                 new_service_ids = need_update_config_groups[update_cgroup_name]["component_ids"]
                 # 获取原有配置组的配置项和生效组件
                 old_cgroup = app_config_group_service.get_config_group(region_name, app_id, update_cgroup_name)
-                old_cgroup_service_ids = [old_service["service_id"] for old_service in old_cgroup["services"] if old_service["service_id"] not in new_service_ids]
-                old_cgroup_items = [{"item_key": old_item["item_key"], "item_value": old_item["item_value"]} for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
+                old_cgroup_service_ids = [
+                    old_service["service_id"] for old_service in old_cgroup["services"]
+                    if old_service["service_id"] not in new_service_ids
+                ]
+                old_cgroup_items = [{
+                    "item_key": old_item["item_key"],
+                    "item_value": old_item["item_value"]
+                } for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
 
                 # 将需要升级的生效组件ID与原有配置组生效组件ID连接起来，构成更新配置组需要的组件ID列表
                 new_service_ids.extend(old_cgroup_service_ids)

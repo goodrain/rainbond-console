@@ -261,7 +261,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             if service['service']['type'] == UpgradeType.UPGRADE.value and service['upgrade_info']
         }
         # 升级应用配置组
-        market_app_service.save_app_config_groups_when_upgrade_app(self.region_name, self.tenant, group_id, upgrade_service_infos)
+        market_app_service.save_app_config_groups_when_upgrade_app(self.region_name, self.tenant, group_id,
+                                                                   upgrade_service_infos)
 
         app_record.version = version
         app_record.old_version = pc.current_version.version

@@ -15,7 +15,8 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app, get_upgrade_app_template)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app,
+                                                             get_upgrade_app_template)
 from console.services.group_service import group_service
 from django.db import DatabaseError, transaction
 from django.db.models import Q

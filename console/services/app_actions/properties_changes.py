@@ -19,6 +19,7 @@ from console.services.group_service import group_service
 from console.services.share_services import share_service
 from console.services.app_config.promql_service import promql_service
 from console.repositories.component_graph import component_graph_repo
+from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -216,6 +217,10 @@ class PropertiesChanges(object):
         if component_graphs:
             result["component_graphs"] = component_graphs
 
+        component_monitors = self.component_monitor_changes(component.get("component_monitors", []))
+        if component_monitors:
+            result["component_monitors"] = component_monitors
+
         return result
 
     def app_config_group_changes(self, component, template):
@@ -249,12 +254,11 @@ class PropertiesChanges(object):
         return {"add": add}
 
     def component_graph_changes(self, component_graphs):
-        print(component_graphs)
         if not component_graphs:
             return None
 
         old_graphs = component_graph_repo.list(self.service.service_id)
-        old_promqls = [graph.promql for graph in old_graphs]
+        old_promqls = [graph.promql for graph in old_graphs if old_graphs]
         add = []
         for graph in component_graphs:
             try:
@@ -262,10 +266,19 @@ class PropertiesChanges(object):
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
-            print(old_promqls, new_promql)
             if new_promql not in old_promqls:
                 add.append(graph)
+        if not add:
+            return None
+        return {"add": add}
 
+    def component_monitor_changes(self, service_monitors):
+        if not service_monitors:
+            return None
+        old_monitors = service_monitor_repo.list_by_service_ids(self.tenant.tenant_id, [self.service.service_id])
+        old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
+
+        add = [monitor for monitor in service_monitors if monitor["name"] not in old_monitor_names]
         if not add:
             return None
         return {"add": add}
@@ -552,6 +565,7 @@ def get_upgrade_app_template(tenant, version, pc):
         data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, get_template=True)
         template = json.loads(data.template)
     else:
-        data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key, version)
+        data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key,
+                                                                       version)
         template = json.loads(data.app_template)
     return template
