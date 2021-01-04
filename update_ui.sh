@@ -16,7 +16,8 @@ else
     mkdir -p ./www/static/dists
 fi
 
-pushd $ui_dir && yarn install && yarn build
+pushd $ui_dir yarn install && yarn build || exit 1
+popd || exit 1
 
 mkdir ./www/static/dists/
 cp -a $ui_dir/dist/* ./www/static/dists/
