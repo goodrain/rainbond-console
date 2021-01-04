@@ -5,7 +5,9 @@
 import base64
 import json
 import logging
-import urllib.request, urllib.error, urllib.parse
+import urllib.error
+import urllib.parse
+import urllib.request
 
 from console.appstore.appstore import app_store
 from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)

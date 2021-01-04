@@ -1,7 +1,5 @@
 # -*- coding: utf8 -*-
-import importlib
 import re
-import sys
 
 from console.views.index import IndexTemplateView
 from django.conf.urls import include, url

@@ -413,8 +413,7 @@ class ServiceRelationRecycleBin(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_id = models.CharField(max_length=32, help_text="服务id")
     dep_service_id = models.CharField(max_length=32, help_text="依赖服务id")
-    dep_service_type = models.CharField(
-        max_length=50, null=True, blank=True, help_text="服务类型:web,mysql,redis,mongodb,phpadmin")
+    dep_service_type = models.CharField(max_length=50, null=True, blank=True, help_text="服务类型:web,mysql,redis,mongodb,phpadmin")
     dep_order = models.IntegerField(help_text="依赖顺序")
 
 

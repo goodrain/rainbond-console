@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 from abc import ABCMeta, abstractmethod
+
 import requests
 from requests.adapters import HTTPAdapter
 

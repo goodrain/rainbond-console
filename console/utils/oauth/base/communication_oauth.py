@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 from abc import ABCMeta, abstractmethod
+
 from .oauth import OAuth2Interface
 
 

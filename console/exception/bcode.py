@@ -67,8 +67,7 @@ class ErrOauthServiceExists(ServiceHandleException):
 # 20400 ~ 20499 => enterprise
 class ErrEnterpriseNotFound(ServiceHandleException):
     def __init__(self):
-        super(ErrEnterpriseNotFound, self).__init__(
-            "enterprise not found", msg_show="企业不存在", status_code=404, error_code=20400)
+        super(ErrEnterpriseNotFound, self).__init__("enterprise not found", msg_show="企业不存在", status_code=404, error_code=20400)
 
 
 # 20500 ~ 20599 => service ports

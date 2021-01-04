@@ -5,16 +5,14 @@
 import json
 import logging
 
-from rest_framework.response import Response
-
 from console.services.app_config.plugin_service import app_plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.app_config.base import AppBaseView
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import HasNoDownStreamService
 from www.services import plugin_svc
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -170,7 +168,7 @@ class APPPluginInstallView(AppBaseView):
                 region_api.delPluginServiceRelation(self.service.service_region, self.tenant.tenant_name, plugin_id,
                                                     self.service.service_alias)
             except Exception as e:
-                pass
+                logger.exception(e)
             result = general_message(400, "havs no downstream services", '缺少关联组件，不能使用该类型插件')
             logger.exception(e)
             return Response(result, status=400)
@@ -353,7 +351,7 @@ class APPPluginConfigView(AppBaseView):
             result["msg"] = "操作成功"
             result = general_message(200, "success", "操作成功", result["build_version"], result["config_group"])
             return Response(result, status=200)
-        except HasNoDownStreamService as e:
+        except HasNoDownStreamService:
             logger.error("service has no dependence services operation suspend")
             return Response(general_message(409, "service has no dependence", "组件没有依赖其他组件，配置无效"), status=409)
         except Exception as e:

@@ -8,8 +8,7 @@ from console.enum.app import GovernanceModeEnum
 from console.utils import runner_util
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import (AutoField, BooleanField, CharField,
-                                     DateTimeField, DecimalField, IntegerField)
+from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
@@ -638,8 +637,7 @@ class TenantServiceRelation(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_id = models.CharField(max_length=32, help_text="组件id")
     dep_service_id = models.CharField(max_length=32, help_text="依赖组件id")
-    dep_service_type = models.CharField(
-        max_length=50, null=True, blank=True, help_text="组件类型:web,mysql,redis,mongodb,phpadmin")
+    dep_service_type = models.CharField(max_length=50, null=True, blank=True, help_text="组件类型:web,mysql,redis,mongodb,phpadmin")
     dep_order = models.IntegerField(help_text="依赖顺序")
 
 
@@ -984,8 +982,7 @@ class TenantServiceVolume(BaseModel):
     share_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="共享模式")
     backup_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="备份策略")
     reclaim_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="回收策略")
-    allow_expansion = models.NullBooleanField(
-        max_length=100, null=True, default=0, blank=True, help_text="只是支持控制扩展，0：不支持；1：支持")
+    allow_expansion = models.NullBooleanField(max_length=100, null=True, default=0, blank=True, help_text="只是支持控制扩展，0：不支持；1：支持")
 
 
 class TenantServiceConfigurationFile(BaseModel):

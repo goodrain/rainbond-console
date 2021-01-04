@@ -1,12 +1,13 @@
 # -*- coding: utf8 -*-
-import logging
 import abc  # Python's built-in abstract class library
+import logging
 
-from www.db.service_group_repository import svc_grop_repo as svc_group_repo
-from console.repositories.service_repo import service_repo
-from console.repositories.app_config import dep_relation_repo, domain_repo as http_rule_repo
-from console.repositories.share_repo import share_repo
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import domain_repo as http_rule_repo
 from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.service_repo import service_repo
+from console.repositories.share_repo import share_repo
+from www.db.service_group_repository import svc_grop_repo as svc_group_repo
 
 logger = logging.getLogger("default")
 

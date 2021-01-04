@@ -16,6 +16,7 @@ from console.repositories.app import (delete_service_repo, recycle_bin_repo, rel
 from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
                                              extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
                                              tcp_domain, volume_repo)
+from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
 from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo)
@@ -25,12 +26,13 @@ from console.repositories.migration_repo import migrate_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.repositories.share_repo import share_repo
-from console.repositories.app_config_group import app_config_group_service_repo
+from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
@@ -39,6 +41,7 @@ from console.services.app_config import (AppEnvVarService, AppMntService, AppPor
 from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
+from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
@@ -49,9 +52,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.utils.crypt import make_uuid
-from console.repositories.team_repo import team_repo
-from console.repositories.region_app import region_app_repo
-from console.services.group_service import group_service
 
 tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
@@ -186,7 +186,7 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 raise ServiceHandleException(msg_show="从集群关闭组件受阻，请稍后重试", msg="check console log", status_code=500)
-            except region_api.CallApiFrequentError as e:
+            except region_api.CallApiFrequentError:
                 raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试", msg="wait a moment please", status_code=409)
 
     def restart(self, tenant, service, user, oauth_instance):
@@ -249,7 +249,7 @@ class AppManageService(AppManageBase):
                     return 400, "该组件构建源代码仓库类型不正确", ""
                 try:
                     git_url = instance.get_clone_url(service.git_url)
-                except NoAccessKeyErr as e:
+                except NoAccessKeyErr:
                     return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
                 body["code_info"] = {
                     "repo_url": git_url,

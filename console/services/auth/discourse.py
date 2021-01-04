@@ -1,7 +1,9 @@
-import hmac
-import hashlib
-import urllib.request, urllib.parse, urllib.error
 import base64
+import hashlib
+import hmac
+import urllib.error
+import urllib.parse
+import urllib.request
 from urllib.parse import parse_qs
 
 

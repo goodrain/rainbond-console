@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
+
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 """
 - enterprise 100
@@ -249,7 +250,8 @@ def assemble_perms(perm, group, kind_name):
 def get_perms(kind, group, kind_name):
     if isinstance(kind, dict) and kind and kind.get("perms"):
         perms_list = []
-        perms_list.extend(list(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"]))))
+        perms_list.extend(
+            list(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"]))))
         kind_elements = list(kind.keys())
         if "perms" in kind_elements:
             kind_elements.remove("perms")

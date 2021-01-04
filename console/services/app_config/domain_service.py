@@ -817,8 +817,7 @@ class DomainService(object):
     def update_http_rule_config(self, team, region_name, rule_id, configs):
         self.check_set_header(configs["set_headers"])
         service_domain = get_object_or_404(ServiceDomain, msg="no domain", msg_show="策略不存在", http_rule_id=rule_id)
-        service = get_object_or_404(
-            TenantServiceInfo, msg="no service", msg_show="组件不存在", service_id=service_domain.service_id)
+        service = get_object_or_404(TenantServiceInfo, msg="no service", msg_show="组件不存在", service_id=service_domain.service_id)
         cf = configuration_repo.get_configuration_by_rule_id(rule_id)
         gcc_dict = dict()
         gcc_dict["body"] = configs

@@ -6,15 +6,12 @@ import logging
 import os
 
 from console.exception.main import ServiceHandleException
-from console.models.main import (AppMarket, RainbondCenterAppTag,
-                                 RainbondCenterAppTagsRelation,
-                                 ServiceRecycleBin, ServiceRelationRecycleBin,
-                                 ServiceSourceInfo)
+from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenterAppTagsRelation, ServiceRecycleBin,
+                                 ServiceRelationRecycleBin, ServiceSourceInfo)
 from console.repositories.base import BaseConnection
 from django.db import transaction
 from docker_image import reference
-from www.models.main import (ServiceWebhooks, TenantServiceInfo,
-                             TenantServiceInfoDelete)
+from www.models.main import (ServiceWebhooks, TenantServiceInfo, TenantServiceInfoDelete)
 
 logger = logging.getLogger('default')
 
