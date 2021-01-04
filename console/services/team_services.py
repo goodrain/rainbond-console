@@ -63,11 +63,11 @@ class TeamService(object):
     def add_user_to_team(self, tenant, user_id, role_ids=None):
         user = user_repo.get_by_user_id(user_id)
         if not user:
-            raise ServiceHandleException(msg="user not found", msg_show=u"用户不存在", status_code=404)
+            raise ServiceHandleException(msg="user not found", msg_show="用户不存在", status_code=404)
         exist_team_user = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if exist_team_user:
-            raise ServiceHandleException(msg="user exist", msg_show=u"用户已经加入此团队")
+            raise ServiceHandleException(msg="user exist", msg_show="用户已经加入此团队")
         PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="", enterprise_id=enterprise.ID)
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
@@ -245,11 +245,11 @@ class TeamService(object):
             user = user_repo.get_by_user_id(user_id)
             user_kind_role_service.delete_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
             transaction.savepoint_commit(s_id)
-            return 200, u"退出团队成功"
+            return 200, "退出团队成功"
         except Exception as e:
             logger.exception(e)
             transaction.savepoint_rollback(s_id)
-            return 400, u"退出团队失败"
+            return 400, "退出团队失败"
 
     def get_team_by_team_id(self, team_id):
         team = team_repo.get_team_by_team_id(team_id=team_id)
@@ -298,7 +298,7 @@ class TeamService(object):
         team_repo.create_team_perms(**create_perm_param)
         # init default roles
         role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-        admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
+        admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="管理员")
         user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])
         return team
 
@@ -361,7 +361,7 @@ class TeamService(object):
             owner_name = None
         if request_user:
             user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
-            roles = map(lambda x: x["role_name"], user_role_list["roles"])
+            roles = [x["role_name"] for x in user_role_list["roles"]]
             if tenant.creater == request_user.user_id:
                 roles.append("owner")
         region_info_map = []
@@ -487,7 +487,7 @@ class TeamService(object):
             region_api.set_tenant_limit_memory(eid, tenant_name, region_id, body=limit)
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
-            raise ServiceHandleException(status_code=500, msg="", msg_show=u"设置租户限额失败")
+            raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
 
     def update(self, tenant_id, data):
         team_repo.update_by_tenant_id(tenant_id, **data)

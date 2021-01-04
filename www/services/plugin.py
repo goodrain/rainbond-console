@@ -524,7 +524,7 @@ class PluginService(object):
         listp = []
         for pdict in pList:
             strdict = ""
-            for (k, v) in pdict.items():
+            for (k, v) in list(pdict.items()):
                 strmm = "{0}^-^{1}".format(str(k), str(v))
                 if strdict:
                     strdict = "{0}^_^{1}".format(strdict, strmm)
@@ -698,21 +698,21 @@ class PluginService(object):
                 service_meta_type = config["service_meta_type"]
                 if injection == "env":
                     if service_meta_type == "port" or service_meta_type == "downstream_port":
-                        return False, u"基于上游端口或下游端口的配置只能使用主动发现"
+                        return False, "基于上游端口或下游端口的配置只能使用主动发现"
                 if service_meta_type in temp_list:
-                    return False, u"配置组配置类型不能重复"
+                    return False, "配置组配置类型不能重复"
                 else:
                     temp_list.append(service_meta_type)
-            return True, u"检测成功"
+            return True, "检测成功"
 
     def check_group_config(self, service_meta_type, injection, config_groups):
         if injection == "env":
             if service_meta_type == ConstKey.UPSTREAM_PORT or service_meta_type == ConstKey.DOWNSTREAM_PORT:
-                return False, u"基于上游端口或下游端口的配置只能使用主动发现"
+                return False, "基于上游端口或下游端口的配置只能使用主动发现"
         for config_group in config_groups:
             if config_group.service_meta_type == service_meta_type:
-                return False, u"配置组配置类型不能重复"
-        return True, u"检测成功"
+                return False, "配置组配置类型不能重复"
+        return True, "检测成功"
 
     def create_config_group(self, plugin_id, build_version, config_group):
         """创建配置组信息"""
@@ -753,9 +753,9 @@ class PluginService(object):
     def update_plugin_version_by_unique_key(self, tenant, plugin_id, build_version, **params):
         """更新构建版本信息"""
         pbv = self.get_tenant_plugin_version_by_plugin_id_and_version(tenant, plugin_id, build_version)
-        for k, v in params.items():
+        for k, v in list(params.items()):
             setattr(pbv, k, v)
-        pbv.save(update_fields=params.keys())
+        pbv.save(update_fields=list(params.keys()))
         return pbv
 
     def bulk_create_plugin_config_group(self, plugin_config_meta_list):

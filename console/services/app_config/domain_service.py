@@ -70,12 +70,12 @@ class DomainService(object):
             certificate.delete()
             return 200, "success"
         else:
-            return 404, u"证书不存在"
+            return 404, "证书不存在"
 
     def get_certificate_by_pk(self, pk):
         certificate = domain_repo.get_certificate_by_pk(pk)
         if not certificate:
-            return 404, u"证书不存在", None
+            return 404, "证书不存在", None
         data = dict()
         data["alias"] = certificate.alias
         data["certificate_type"] = certificate.certificate_type
@@ -83,7 +83,7 @@ class DomainService(object):
         data["tenant_id"] = certificate.tenant_id
         data["certificate"] = base64.b64decode(certificate.certificate)
         data["private_key"] = certificate.private_key
-        return 200, u"success", data
+        return 200, "success", data
 
     def delete_certificate_by_pk(self, pk):
         cert = domain_repo.get_certificate_by_pk(pk)
@@ -133,7 +133,7 @@ class DomainService(object):
     def __check_domain_name(self, team_id, domain_name, certificate_id=None):
         if not domain_name:
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty", msg_show="域名不能为空")
-        zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
+        zh_pattern = re.compile('[\\u4e00-\\u9fa5]+')
         match = zh_pattern.search(domain_name.decode('utf-8'))
         if match:
             raise ServiceHandleException(
@@ -274,9 +274,9 @@ class DomainService(object):
                 if e.status != 404:
                     raise e
             domain_repo.delete_service_domain_by_id(domain_id)
-            return True, u"success"
+            return True, "success"
         else:
-            return False, u"do not delete this domain id {0} service_id {1}".format(domain_id, service.service_id)
+            return False, "do not delete this domain id {0} service_id {1}".format(domain_id, service.service_id)
 
     def bind_siample_http_domain(self, tenant, user, service, domain_name, container_port):
         self.bind_domain(tenant, user, service, domain_name, container_port, "http", None, DomainType.WWW, None)
@@ -410,7 +410,7 @@ class DomainService(object):
         data["cookie"] = domain_info["domain_cookie"] if domain_info["domain_cookie"] else None
         data["header"] = domain_info["domain_heander"] if domain_info["domain_heander"] else None
         data["weight"] = int(domain_info["the_weight"])
-        if "rule_extensions" in update_data.keys():
+        if "rule_extensions" in list(update_data.keys()):
             if domain_info["rule_extensions"]:
                 data["rule_extensions"] = domain_info["rule_extensions"]
         else:
@@ -437,7 +437,7 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-        if "rule_extensions" in update_data.keys():
+        if "rule_extensions" in list(update_data.keys()):
             rule_extensions_str = ""
             # 拼接字符串，存入数据库
             for rule in update_data["rule_extensions"]:
@@ -589,7 +589,7 @@ class DomainService(object):
         domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
         tcp_domain.add_service_tcpdomain(**domain_info)
-        return 200, u"success"
+        return 200, "success"
 
     def unbind_tcpdomain(self, tenant, region, tcp_rule_id):
         service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
@@ -816,9 +816,9 @@ class DomainService(object):
 
     def update_http_rule_config(self, team, region_name, rule_id, configs):
         self.check_set_header(configs["set_headers"])
-        service_domain = get_object_or_404(ServiceDomain, msg="no domain", msg_show=u"策略不存在", http_rule_id=rule_id)
+        service_domain = get_object_or_404(ServiceDomain, msg="no domain", msg_show="策略不存在", http_rule_id=rule_id)
         service = get_object_or_404(
-            TenantServiceInfo, msg="no service", msg_show=u"组件不存在", service_id=service_domain.service_id)
+            TenantServiceInfo, msg="no service", msg_show="组件不存在", service_id=service_domain.service_id)
         cf = configuration_repo.get_configuration_by_rule_id(rule_id)
         gcc_dict = dict()
         gcc_dict["body"] = configs

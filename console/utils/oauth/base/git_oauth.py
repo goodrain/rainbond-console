@@ -2,12 +2,10 @@
 
 from abc import ABCMeta, abstractmethod
 
-from oauth import OAuth2Interface
+from .oauth import OAuth2Interface
 
 
-class GitOAuth2Interface(OAuth2Interface):
-    __metaclass__ = ABCMeta
-
+class GitOAuth2Interface(OAuth2Interface, metaclass=ABCMeta):
     def is_git_oauth(self):
         '''
         Identifies whether the code repository class is serviced

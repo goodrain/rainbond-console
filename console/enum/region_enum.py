@@ -10,10 +10,10 @@ class RegionStatusEnum(IntEnum):
 
     @classmethod
     def names(self):
-        names = [name for name, item in self.__members__.items()]
+        names = [name for name, item in list(self.__members__.items())]
         return names
 
     @classmethod
     def to_dict(self):
-        d = {name: item.value for name, item in self.__members__.items()}
+        d = {name: item.value for name, item in list(self.__members__.items())}
         return d

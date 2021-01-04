@@ -21,7 +21,7 @@ class SyncTenantServiceManager(object):
     def sync_service_info(self):
         try:
             # count = self.get_services_counts()
-            print "start process ..."
+            print("start process ...")
             pos = 0
             NUMBER_OF_SERVICES = 300
             flag = True
@@ -37,11 +37,11 @@ class SyncTenantServiceManager(object):
                     if not s.service_source:
                         self.process_service(s)
                 logger.debug("finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1)))
-                print "finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1))
+                print(("finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1))))
                 pos += 1
-            print "process finished"
+            print("process finished")
         except Exception as e:
-            print e
+            print(e)
             logger.exception(e)
 
     def process_service(self, service):

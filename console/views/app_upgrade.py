@@ -87,7 +87,7 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
             'status__lt': Q(status__lt=qs_args.get('status__lt')),
         }
         q = Q()
-        for arg_key in qs_args.keys():
+        for arg_key in list(qs_args.keys()):
             q &= switch[arg_key]
 
         record_qs = AppUpgradeRecord.objects.filter(
@@ -237,7 +237,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             new_app = deepcopy(old_app)
             # mock app信息
             template = json.loads(new_app.template)
-            template['apps'] = add_service_infos.values()
+            template['apps'] = list(add_service_infos.values())
             new_app.template = json.dumps(template)
 
             # 查询某一个云市应用下的所有组件
@@ -265,7 +265,7 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         app_record.old_version = pc.current_version.version
         app_record.save()
 
-        services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], upgrade_service_infos.keys())
+        services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], list(upgrade_service_infos.keys()))
 
         market_services = [
             upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version) for service in services
@@ -303,7 +303,7 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
                         UpgradeStatus.ROLLBACK_FAILED.value)).order_by('-create_time').first()
 
         if not app_record or app_record.ID != int(record_id):
-            raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show=u"本次升级无法回滚")
+            raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show="本次升级无法回滚")
 
         service_records = app_record.service_upgrade_records.filter(
             status__in=(UpgradeStatus.UPGRADED.value, UpgradeStatus.ROLLBACK.value, UpgradeStatus.UPGRADE_FAILED.value,

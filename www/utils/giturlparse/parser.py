@@ -21,10 +21,10 @@ def parse(url, check_domain=True):
     parsed_info['port'] = ''
 
     # Defaults to all attributes
-    map(parsed_info.setdefault, SUPPORTED_ATTRIBUTES)
+    list(map(parsed_info.setdefault, SUPPORTED_ATTRIBUTES))
 
     for name, platform in PLATFORMS:
-        for protocol, regex in platform.COMPILED_PATTERNS.items():
+        for protocol, regex in list(platform.COMPILED_PATTERNS.items()):
             # Match current regex against URL
             match = regex.match(url)
 

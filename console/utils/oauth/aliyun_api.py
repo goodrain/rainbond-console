@@ -23,7 +23,7 @@ class AliYun(object):
         url = '/'.join([self._url, url_suffix])
         try:
             rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
-            print rst.json()
+            print((rst.json()))
             if rst.status_code == 200:
                 data = rst.json()
                 if not isinstance(data, (list, dict)):

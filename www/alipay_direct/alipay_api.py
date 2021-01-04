@@ -3,9 +3,9 @@
 # Note:
 #     支付宝 API
 
-from alipay_config import *
-from alipay_submit import *
-from alipay_notify import *
+from .alipay_config import *
+from .alipay_submit import *
+from .alipay_notify import *
 
 
 class Alipay_API(object):

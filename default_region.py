@@ -20,7 +20,7 @@ def create_db_client():
 def make_uuid(key=None):
     random_uuid = str(uuid.uuid4()).replace('-', '')
     if key is not None:
-        if isinstance(key, unicode):
+        if isinstance(key, str):
             merged_str = random_uuid + key.encode('utf8')
         elif isinstance(key, str):
             merged_str = random_uuid + key

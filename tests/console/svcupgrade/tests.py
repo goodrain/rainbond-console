@@ -64,13 +64,13 @@ def test_envs_changes():
     envs = [
         {
             "is_change": True,
-            "name": "\u65e5\u5fd7\u8f93\u51fa\u65b9\u5f0f",
+            "name": "\\u65e5\\u5fd7\\u8f93\\u51fa\\u65b9\\u5f0f",
             "attr_value": "file",
             "attr_name": "DESTINATION"
         },
         {
             "is_change": True,
-            "name": "\u8be6\u7ec6\u9519\u8bef\u65e5\u5fd7",
+            "name": "\\u8be6\\u7ec6\\u9519\\u8bef\\u65e5\\u5fd7",
             "attr_value": "true",
             "attr_name": "TRACEALLEXCEPTIONS"
         },
@@ -86,7 +86,7 @@ def test_envs_changes():
     service.service_id = service_id
     properties_changes = PropertiesChanges(service, Tenants())
     env_changes = properties_changes.env_changes(envs)
-    print env_changes
+    print(env_changes)
     assert 2 == len(env_changes["add"])
-    assert next(iter(filter(lambda x: x["attr_name"] == "DESTINATION", env_changes["add"])), None)
-    assert next(iter(filter(lambda x: x["attr_name"] == "TRACEALLEXCEPTIONS", env_changes["add"])), None)
+    assert next(iter([x for x in env_changes["add"] if x["attr_name"] == "DESTINATION"]), None)
+    assert next(iter([x for x in env_changes["add"] if x["attr_name"] == "TRACEALLEXCEPTIONS"]), None)

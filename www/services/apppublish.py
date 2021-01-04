@@ -23,7 +23,7 @@ class PublishAppService(object):
         for port in port_list:
             service_id = port.service_id
             tmp_list = []
-            if service_id in service_port_map.keys():
+            if service_id in list(service_port_map.keys()):
                 tmp_list = service_port_map.get(service_id)
             tmp_list.append(port)
             service_port_map[service_id] = tmp_list
@@ -40,7 +40,7 @@ class PublishAppService(object):
         for dep_service in relation_list:
             service_id = dep_service.service_id
             tmp_list = []
-            if service_id in dep_service_map.keys():
+            if service_id in list(dep_service_map.keys()):
                 tmp_list = dep_service_map.get(service_id)
             dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id)[0]
             tmp_list.append(dep_service_info)
@@ -60,7 +60,7 @@ class PublishAppService(object):
         for env in env_change_list:
             service_id = env.service_id
             tmp_list = []
-            if service_id in service_env_change_map.keys():
+            if service_id in list(service_env_change_map.keys()):
                 tmp_list = service_env_change_map.get(service_id)
             tmp_list.append(env)
             service_env_change_map[service_id] = tmp_list
@@ -68,7 +68,7 @@ class PublishAppService(object):
         for env in env_nochange_list:
             service_id = env.service_id
             tmp_list = []
-            if service_id in service_env_nochange_map.keys():
+            if service_id in list(service_env_nochange_map.keys()):
                 tmp_list = service_env_nochange_map.get(service_id)
             tmp_list.append(env)
             service_env_nochange_map[service_id] = tmp_list
@@ -80,7 +80,7 @@ class PublishAppService(object):
         for volume in volume_list:
             service_id = volume.service_id
             tmp_list = []
-            if service_id in service_volume_map.keys():
+            if service_id in list(service_volume_map.keys()):
                 tmp_list = service_volume_map.get(service_id)
             tmp_list.append(volume)
             service_volume_map[service_id] = tmp_list
@@ -90,7 +90,7 @@ class PublishAppService(object):
 
         logger.debug(
             "group.publish",
-            u'group.share.service. now add group shared service extend method for service {0} ok'.format(service.service_id))
+            'group.share.service. now add group shared service extend method for service {0} ok'.format(service.service_id))
         count = ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).count()
         if count == 0:
             extend_method = ServiceExtendMethod(
@@ -112,7 +112,7 @@ class PublishAppService(object):
         return ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version)
 
     def update_or_create_group_service_relation(self, app_service_map, app_service_group):
-        for s_id, app in app_service_map.items():
+        for s_id, app in list(app_service_map.items()):
             pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID, service_id=s_id)
             if not pgsr_list:
                 PublishedGroupServiceRelation.objects.create(

@@ -9,8 +9,8 @@
 
 import time
 import socket
-from httplib import HTTPConnection, BadStatusLine, HTTPSConnection
-from mns_exception import *
+from http.client import HTTPConnection, BadStatusLine, HTTPSConnection
+from .mns_exception import *
 
 
 class MNSHTTPConnection(HTTPConnection):
@@ -35,18 +35,18 @@ class MNSHTTPConnection(HTTPConnection):
                 self.sock = socket.socket(af, socktype, proto)
                 self.sock.settimeout(self.connection_timeout)
                 if self.debuglevel > 0:
-                    print "connect: (%s, %s)" % (self.host, self.port)
+                    print("connect: (%s, %s)" % (self.host, self.port))
                 self.sock.connect(sa)
-            except socket.error, msg:
+            except socket.error as msg:
                 if self.debuglevel > 0:
-                    print 'connect fail:', (self.host, self.port)
+                    print('connect fail:', (self.host, self.port))
                 if self.sock:
                     self.sock.close()
                 self.sock = None
                 continue
             break
         if not self.sock:
-            raise socket.error, msg
+            raise socket.error(msg)
 
 
 class MNSHTTPSConnection(HTTPSConnection):
@@ -123,7 +123,7 @@ class MNSHttp:
             if self.logger:
                 self.logger.debug("GetResponse %s" % resp_inter)
             return resp_inter
-        except Exception, e:
+        except Exception as e:
             self.conn.close()
             raise MNSClientNetworkException("NetWorkException", str(e), req_inter.get_req_id())  #raise netException
 
@@ -142,7 +142,7 @@ class RequestInternal:
 
     def __str__(self):
         return "Method: %s\nUri: %s\nHeader: %s\nData: %s\n" % \
-                (self.method, self.uri, "\n".join(["%s: %s" % (k,v) for k,v in self.header.items()]), self.data)
+                (self.method, self.uri, "\n".join(["%s: %s" % (k,v) for k,v in list(self.header.items())]), self.data)
 
 
 class ResponseInternal:
@@ -155,4 +155,4 @@ class ResponseInternal:
 
     def __str__(self):
         return "Status: %s\nHeader: %s\nData: %s\n" % \
-            (self.status, "\n".join(["%s: %s" % (k,v) for k,v in self.header.items()]), self.data)
+            (self.status, "\n".join(["%s: %s" % (k,v) for k,v in list(self.header.items())]), self.data)

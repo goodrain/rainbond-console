@@ -216,7 +216,7 @@ class UserRepo(object):
                 if custom_sort < user_favorite.custom_sort:
                     operate_user_favorites = user_favorites[custom_sort:user_favorite.custom_sort]
                     for operate_user_favorite in operate_user_favorites:
-                        print operate_user_favorite.ID
+                        print((operate_user_favorite.ID))
                         operate_user_favorite.custom_sort += 1
                         operate_user_favorite.save()
                 elif custom_sort > user_favorite.custom_sort:

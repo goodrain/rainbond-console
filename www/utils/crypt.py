@@ -1,13 +1,13 @@
 # -*- coding: utf8 -*-
-import time
-import uuid
 import base64
 import hashlib
+import time
+import uuid
 
 
 def encrypt_passwd(string):
     new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(ord(string[2]) / 7)
-    password = hashlib.sha224(new_word).hexdigest()[0:16]
+    password = hashlib.sha224(new_word.encode("utf-8")).hexdigest()[0:16]
     return password
 
 
@@ -18,12 +18,8 @@ def make_tenant_id():
 def make_uuid(key=None):
     random_uuid = str(uuid.uuid4()).replace('-', '')
     if key is not None:
-        if isinstance(key, unicode):
-            merged_str = random_uuid + key.encode('utf8')
-        elif isinstance(key, str):
-            merged_str = random_uuid + key
-
-        return hashlib.md5(merged_str).hexdigest()
+        merged_str = random_uuid + key
+        return hashlib.md5(merged_str.encode("utf-8")).hexdigest()
     else:
         return random_uuid
 
@@ -94,14 +90,14 @@ class AuthCode(object):
             handled_string = '%010d' % expiration_time + cls._md5(input_string + key_b)[:16] + input_string
 
         rand_key = list()
-        for i in xrange(256):
+        for i in range(256):
             rand_key.append(ord(crypt_key[i % len(crypt_key)]))
 
         # ----------------------------------------------------------
 
-        box = range(256)
+        box = list(range(256))
         j = 0
-        for i in xrange(256):
+        for i in range(256):
             j = (j + box[i] + rand_key[i]) % 256
             tmp = box[i]
             box[i] = box[j]
@@ -115,7 +111,7 @@ class AuthCode(object):
         result = ''
         a = 0
         j = 0
-        for i in xrange(len(handled_string)):
+        for i in range(len(handled_string)):
             a = (a + 1) % 256
             j = (j + box[a]) % 256
             tmp = box[a]

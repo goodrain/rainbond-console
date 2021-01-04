@@ -4,20 +4,18 @@ import os
 import random
 import re
 import string
-from django.core.paginator import Paginator
-from django.db.transaction import atomic
+
 from console.exception.main import ServiceHandleException
-from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
 from console.repositories.enterprise_repo import enterprise_repo
-from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantEnterprise
-from www.models.main import TenantEnterpriseToken
-from www.models.main import Tenants
-from www.utils.crypt import make_uuid
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from django.core.paginator import Paginator
+from django.db.transaction import atomic
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
 
@@ -102,7 +100,7 @@ class EnterpriseServices(object):
         """
         enterprise = TenantEnterprise()
 
-        # 处理企业英文名
+        # Deal with enterprise English name, discard logic.
         if enterprise_name:
             enterprise_name_regx = re.compile(r'^[a-z0-9-]*$')
             if enterprise_name and not enterprise_name_regx.match(enterprise_name):
@@ -118,12 +116,14 @@ class EnterpriseServices(object):
         enterprise.enterprise_name = enter_name
 
         # 根据企业英文名确认UUID
+        is_first_ent = TenantEnterprise.objects.count() == 0
         eid = os.environ.get('ENTERPRISE_ID')
-        if not eid:
+        if not eid or not is_first_ent:
             eid = make_uuid(enter_name)
         region = region_repo.get_all_regions().first()
-        region.enterprise_id = eid
-        region.save()
+        if region:
+            region.enterprise_id = eid
+            region.save()
         enterprise.enterprise_id = eid
 
         # 处理企业别名

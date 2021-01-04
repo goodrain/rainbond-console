@@ -545,7 +545,7 @@ class MarketAppService(object):
 
     def __save_service_deps(self, tenant, service_key_dep_key_map, key_service_map):
         if service_key_dep_key_map:
-            for service_key in service_key_dep_key_map.keys():
+            for service_key in list(service_key_dep_key_map.keys()):
                 ts = key_service_map[service_key]
                 dep_keys = service_key_dep_key_map[service_key]
                 for dep_key in dep_keys:
@@ -599,7 +599,7 @@ class MarketAppService(object):
             return 200, "success"
         for volume in volumes:
             try:
-                if "file_content" in volume.keys() and volume["file_content"] != "":
+                if "file_content" in list(volume.keys()) and volume["file_content"] != "":
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
                                                       volume["volume_name"], volume["file_content"])
                 else:
@@ -993,7 +993,7 @@ class MarketAppService(object):
                          or x.get("service_key", None) == service_source.service_share_uuid
                 return result
 
-            app = next(iter(filter(lambda x: func(x), apps)), None)
+            app = next(iter([x for x in apps if func(x)]), None)
         if app is None:
             fmt = "Group key: {0}; version: {1}; service_share_uuid: {2}; Rainbond app not found."
             raise RbdAppNotFound(fmt.format(service_source.group_key, group_version, service_source.service_share_uuid))
@@ -1143,11 +1143,12 @@ class MarketAppService(object):
         app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
         app.scope = app_info.get("scope")
         if app.scope == "team":
+            # update create team
             create_team = app_info.get("create_team")
             if create_team:
-              team = team_repo.get_team_by_team_name(create_team)
-              if team:
-                app.create_team = create_team
+                team = team_repo.get_team_by_team_name(create_team)
+                if team:
+                    app.create_team = create_team
         app.save()
 
     @transaction.atomic

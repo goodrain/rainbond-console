@@ -10,7 +10,7 @@ import time
 import hmac
 import base64
 import hashlib
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 
 class Dingtalk(object):
@@ -28,7 +28,7 @@ class Dingtalk(object):
         url = '/'.join([self._url, url_suffix])
         try:
             rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
-            print rst.json()
+            print((rst.json()))
             if rst.status_code == 200:
                 data = rst.json()
                 if not isinstance(data, (list, dict)):
@@ -100,7 +100,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
                 "accessKey": self.oauth_service.client_id,
                 "signature": signature,
             }
-            query_str = urllib.urlencode(query)
+            query_str = urllib.parse.urlencode(query)
             params = {
                 "tmp_auth_code": code,
             }
@@ -134,7 +134,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
             params = {
                 "appid": self.oauth_service.client_id,
                 "scope": "snsapi_login",
-                "redirect_uri": urllib.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
+                "redirect_uri": urllib.parse.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)

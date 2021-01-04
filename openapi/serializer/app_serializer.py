@@ -36,8 +36,8 @@ class AppBaseInfoSerializer(serializers.ModelSerializer):
 
 
 class AppPostInfoSerializer(serializers.Serializer):
-    app_name = serializers.CharField(max_length=128, help_text=u"应用名称")
-    app_note = serializers.CharField(max_length=2048, allow_blank=True, default="", help_text=u"应用备注")
+    app_name = serializers.CharField(max_length=128, help_text="应用名称")
+    app_note = serializers.CharField(max_length=2048, allow_blank=True, default="", help_text="应用备注")
 
 
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
@@ -50,26 +50,26 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
         ]
 
     # component status
-    status = serializers.CharField(max_length=32, allow_blank=True, default="", help_text=u"组件状态")
+    status = serializers.CharField(max_length=32, allow_blank=True, default="", help_text="组件状态")
 
 
 class AppInfoSerializer(AppBaseInfoSerializer):
-    enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
-    service_count = serializers.IntegerField(help_text=u"组件数量")
-    running_service_count = serializers.IntegerField(help_text=u"正在运行的组件数量")
-    used_momory = serializers.IntegerField(help_text=u"分配的内存")
-    used_cpu = serializers.IntegerField(help_text=u"分配的cpu")
-    app_id = serializers.IntegerField(help_text=u"应用id")
-    team_name = serializers.CharField(max_length=32, help_text=u"团队名")
-    status = serializers.ChoiceField(choices=APP_STATUS_CHOICE, help_text=u"应用状态")
+    enterprise_id = serializers.CharField(max_length=32, help_text="企业ID(联合云ID)")
+    service_count = serializers.IntegerField(help_text="组件数量")
+    running_service_count = serializers.IntegerField(help_text="正在运行的组件数量")
+    used_momory = serializers.IntegerField(help_text="分配的内存")
+    used_cpu = serializers.IntegerField(help_text="分配的cpu")
+    app_id = serializers.IntegerField(help_text="应用id")
+    team_name = serializers.CharField(max_length=32, help_text="团队名")
+    status = serializers.ChoiceField(choices=APP_STATUS_CHOICE, help_text="应用状态")
 
 
 class MarketInstallSerializer(serializers.Serializer):
-    enterprise_id = serializers.CharField(max_length=32, help_text=u"企业ID(联合云ID)")
-    team_id = serializers.CharField(max_length=32, help_text=u"团队id")
-    note = serializers.CharField(max_length=1024, help_text=u"备注")
-    ID = serializers.IntegerField(help_text=u"应用id")
-    region_name = serializers.CharField(max_length=64, help_text=u"数据中心名")
+    enterprise_id = serializers.CharField(max_length=32, help_text="企业ID(联合云ID)")
+    team_id = serializers.CharField(max_length=32, help_text="团队id")
+    note = serializers.CharField(max_length=1024, help_text="备注")
+    ID = serializers.IntegerField(help_text="应用id")
+    region_name = serializers.CharField(max_length=64, help_text="数据中心名")
     service_list = ServiceBaseInfoSerializer(many=True)
 
     def to_internal_value(self, data):
@@ -77,29 +77,29 @@ class MarketInstallSerializer(serializers.Serializer):
 
 
 class InstallSerializer(serializers.Serializer):
-    market_url = serializers.CharField(max_length=255, help_text=u"应用商店路由")
-    market_domain = serializers.CharField(max_length=64, help_text=u"应用商店domain")
-    market_type = serializers.CharField(max_length=64, help_text=u"应用商店类型")
-    market_access_key = serializers.CharField(max_length=64, allow_null=True, help_text=u"应用商店令牌")
-    app_model_id = serializers.CharField(max_length=64, help_text=u"应用id")
-    app_model_version = serializers.CharField(max_length=64, help_text=u"应用版本")
+    market_url = serializers.CharField(max_length=255, help_text="应用商店路由")
+    market_domain = serializers.CharField(max_length=64, help_text="应用商店domain")
+    market_type = serializers.CharField(max_length=64, help_text="应用商店类型")
+    market_access_key = serializers.CharField(max_length=64, allow_null=True, help_text="应用商店令牌")
+    app_model_id = serializers.CharField(max_length=64, help_text="应用id")
+    app_model_version = serializers.CharField(max_length=64, help_text="应用版本")
 
 
 class ListUpgradeSerializer(serializers.Serializer):
-    market_name = serializers.CharField(max_length=64, help_text=u"应用商店名称")
-    app_model_id = serializers.CharField(max_length=32, help_text=u"应用模型id")
-    app_model_name = serializers.CharField(max_length=64, help_text=u"应用模型名称")
-    current_version = serializers.CharField(max_length=64, help_text=u"当前版本")
-    enterprise_id = serializers.CharField(max_length=64, help_text=u"企业id")
-    can_upgrade = serializers.BooleanField(help_text=u"可升级")
-    upgrade_versions = serializers.ListField(help_text=u"可升级的版本列表")
-    source = serializers.CharField(max_length=32, help_text=u"应用模型来源")
+    market_name = serializers.CharField(max_length=64, help_text="应用商店名称")
+    app_model_id = serializers.CharField(max_length=32, help_text="应用模型id")
+    app_model_name = serializers.CharField(max_length=64, help_text="应用模型名称")
+    current_version = serializers.CharField(max_length=64, help_text="当前版本")
+    enterprise_id = serializers.CharField(max_length=64, help_text="企业id")
+    can_upgrade = serializers.BooleanField(help_text="可升级")
+    upgrade_versions = serializers.ListField(help_text="可升级的版本列表")
+    source = serializers.CharField(max_length=32, help_text="应用模型来源")
 
 
 class UpgradeBaseSerializer(serializers.Serializer):
-    market_name = serializers.CharField(max_length=64, allow_null=True, help_text=u"应用商店名称")
-    app_model_id = serializers.CharField(max_length=32, help_text=u"应用模型id")
-    app_model_version = serializers.CharField(max_length=64, help_text=u"当前版本")
+    market_name = serializers.CharField(max_length=64, allow_null=True, help_text="应用商店名称")
+    app_model_id = serializers.CharField(max_length=32, help_text="应用模型id")
+    app_model_version = serializers.CharField(max_length=64, help_text="当前版本")
 
 
 class UpgradeSerializer(serializers.Serializer):
@@ -107,33 +107,33 @@ class UpgradeSerializer(serializers.Serializer):
 
 
 class ServiceGroupOperationsSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=ACTION_CHOICE, help_text=u"操作类型")
-    service_ids = serializers.ListField(help_text=u"组件ID列表，不传值则操作应用下所有组件", required=False, default=None)
+    action = serializers.ChoiceField(choices=ACTION_CHOICE, help_text="操作类型")
+    service_ids = serializers.ListField(help_text="组件ID列表，不传值则操作应用下所有组件", required=False, default=None)
 
 
 class AppServiceEventsSerializer(serializers.Serializer):
-    EventID = serializers.CharField(max_length=64, help_text=u"事件id")
-    UserName = serializers.CharField(max_length=64, help_text=u"操作人")
-    EndTime = serializers.CharField(max_length=64, help_text=u"结束事件")
-    Target = serializers.CharField(max_length=64, help_text=u"操作目标类型")
-    OptType = serializers.CharField(max_length=64, help_text=u"事件类型")
-    TargetID = serializers.CharField(max_length=64, help_text=u"操作目标id")
-    ServiceID = serializers.CharField(max_length=64, help_text=u"服务id")
-    Status = serializers.CharField(max_length=64, help_text=u"状态")
-    RequestBody = serializers.CharField(max_length=64, help_text=u"请求参数")
-    create_time = DateCharField(max_length=64, help_text=u"创建时间")
-    FinalStatus = serializers.CharField(max_length=64, help_text=u"最终状态")
-    StartTime = serializers.CharField(max_length=64, help_text=u"开始时间")
-    SynType = serializers.CharField(max_length=64, help_text=u"同步状态")
-    Message = serializers.CharField(max_length=64, help_text=u"日志")
-    TenantID = serializers.CharField(max_length=64, help_text=u"团队id")
-    ID = serializers.CharField(max_length=64, help_text=u"记录id")
+    EventID = serializers.CharField(max_length=64, help_text="事件id")
+    UserName = serializers.CharField(max_length=64, help_text="操作人")
+    EndTime = serializers.CharField(max_length=64, help_text="结束事件")
+    Target = serializers.CharField(max_length=64, help_text="操作目标类型")
+    OptType = serializers.CharField(max_length=64, help_text="事件类型")
+    TargetID = serializers.CharField(max_length=64, help_text="操作目标id")
+    ServiceID = serializers.CharField(max_length=64, help_text="服务id")
+    Status = serializers.CharField(max_length=64, help_text="状态")
+    RequestBody = serializers.CharField(max_length=64, help_text="请求参数")
+    create_time = DateCharField(max_length=64, help_text="创建时间")
+    FinalStatus = serializers.CharField(max_length=64, help_text="最终状态")
+    StartTime = serializers.CharField(max_length=64, help_text="开始时间")
+    SynType = serializers.CharField(max_length=64, help_text="同步状态")
+    Message = serializers.CharField(max_length=64, help_text="日志")
+    TenantID = serializers.CharField(max_length=64, help_text="团队id")
+    ID = serializers.CharField(max_length=64, help_text="记录id")
 
 
 class ListServiceEventsResponse(serializers.Serializer):
-    page = serializers.IntegerField(help_text=u"当前页数")
-    page_size = serializers.IntegerField(help_text=u"每页数量")
-    total = serializers.IntegerField(help_text=u"数据总数")
+    page = serializers.IntegerField(help_text="当前页数")
+    page_size = serializers.IntegerField(help_text="每页数量")
+    total = serializers.IntegerField(help_text="数据总数")
     events = AppServiceEventsSerializer(many=True)
 
 
@@ -154,11 +154,11 @@ def new_node_validator(value):
 
 
 class AppServiceTelescopicVerticalSerializer(serializers.Serializer):
-    new_memory = serializers.IntegerField(help_text=u"组件内存", allow_null=False, validators=[new_memory_validator])
+    new_memory = serializers.IntegerField(help_text="组件内存", allow_null=False, validators=[new_memory_validator])
 
 
 class AppServiceTelescopicHorizontalSerializer(serializers.Serializer):
-    new_node = serializers.IntegerField(help_text=u"组件节点", allow_null=False, validators=[new_node_validator])
+    new_node = serializers.IntegerField(help_text="组件节点", allow_null=False, validators=[new_node_validator])
 
 
 class TeamAppsCloseSerializers(serializers.Serializer):
@@ -173,7 +173,7 @@ class MonitorDataSerializers(serializers.Serializer):
 
 
 class ComponentMonitorBaseSerializers(serializers.Serializer):
-    resultType = serializers.CharField(max_length=64, required=False, help_text=u"返回类型")
+    resultType = serializers.CharField(max_length=64, required=False, help_text="返回类型")
     result = MonitorDataSerializers(many=True)
 
     def to_internal_value(self, data):
@@ -182,28 +182,28 @@ class ComponentMonitorBaseSerializers(serializers.Serializer):
 
 class ComponentMonitorItemsSerializers(serializers.Serializer):
     data = ComponentMonitorBaseSerializers(required=False)
-    monitor_item = serializers.CharField(max_length=32, help_text=u"监控项")
-    status = serializers.CharField(max_length=32, required=False, help_text=u"监控状态")
+    monitor_item = serializers.CharField(max_length=32, help_text="监控项")
+    status = serializers.CharField(max_length=32, required=False, help_text="监控状态")
 
 
 class ComponentMonitorSerializers(serializers.Serializer):
     monitors = ComponentMonitorItemsSerializers(many=True, required=False, allow_null=True)
-    service_id = serializers.CharField(max_length=32, help_text=u"组件id")
-    service_cname = serializers.CharField(max_length=64, help_text=u"组件名")
-    service_alias = serializers.CharField(max_length=64, help_text=u"组件昵称")
+    service_id = serializers.CharField(max_length=32, help_text="组件id")
+    service_cname = serializers.CharField(max_length=64, help_text="组件名")
+    service_alias = serializers.CharField(max_length=64, help_text="组件昵称")
 
 
 def name_validator(value):
     if not NAME_LETTER.search(value) or not FIRST_LETTER.search(value):
-        raise validators.ValidationError(code=400, detail=u"变量名不合法， 请输入以字母开头且为数字、大小写字母、'_'、'-'的组合")
+        raise validators.ValidationError(code=400, detail="变量名不合法， 请输入以字母开头且为数字、大小写字母、'_'、'-'的组合")
 
 
 class ComponentEnvsBaseSerializers(serializers.Serializer):
-    note = serializers.CharField(max_length=100, required=False, help_text=u"备注")
-    name = serializers.CharField(max_length=100, validators=[name_validator], help_text=u"环境变量名")
-    value = serializers.CharField(max_length=1024, help_text=u"环境变量值")
-    is_change = serializers.BooleanField(default=True, help_text=u"是否可改变")
-    scope = serializers.CharField(max_length=32, default=u"inner", help_text=u"范围")
+    note = serializers.CharField(max_length=100, required=False, help_text="备注")
+    name = serializers.CharField(max_length=100, validators=[name_validator], help_text="环境变量名")
+    value = serializers.CharField(max_length=1024, help_text="环境变量值")
+    is_change = serializers.BooleanField(default=True, help_text="是否可改变")
+    scope = serializers.CharField(max_length=32, default="inner", help_text="范围")
 
 
 class ComponentEnvsSerializers(serializers.Serializer):
@@ -211,11 +211,11 @@ class ComponentEnvsSerializers(serializers.Serializer):
 
 
 class CreateThirdComponentSerializer(serializers.Serializer):
-    endpoints_type = serializers.ChoiceField(choices=THIRD_COMPONENT_SOURCE_CHOICE, help_text=u"Endpoint 注册方式")
-    endpoints = serializers.ListField(help_text=u"Endpoint 列表")
-    component_name = serializers.CharField(max_length=64, help_text=u"组件名称")
+    endpoints_type = serializers.ChoiceField(choices=THIRD_COMPONENT_SOURCE_CHOICE, help_text="Endpoint 注册方式")
+    endpoints = serializers.ListField(help_text="Endpoint 列表")
+    component_name = serializers.CharField(max_length=64, help_text="组件名称")
 
 
 class CreateThirdComponentResponseSerializer(ServiceBaseInfoSerializer):
-    api_service_key = serializers.CharField(help_text=u"API 授权Key, 类型为api时有效")
-    url = serializers.CharField(help_text=u"API地址, 类型为api时有效")
+    api_service_key = serializers.CharField(help_text="API 授权Key, 类型为api时有效")
+    url = serializers.CharField(help_text="API地址, 类型为api时有效")

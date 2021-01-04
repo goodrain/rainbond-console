@@ -4,7 +4,7 @@
 """
 import datetime
 import logging
-from StringIO import StringIO
+from io import StringIO
 
 import yaml
 from django.db import transaction
@@ -154,7 +154,7 @@ class ComposeService(object):
 
     def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
         if service_dep_map:
-            for key in service_dep_map.keys():
+            for key in list(service_dep_map.keys()):
                 dep_services_names = service_dep_map[key]
                 s = name_service_map[key]
                 for dep_name in dep_services_names:

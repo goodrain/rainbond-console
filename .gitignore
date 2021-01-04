@@ -5,6 +5,7 @@ Desktop.ini
 logs/
 .gitattributes
 *.pyc
+*.py.bak
 /.settings/
 /.project
 /.pydevproject

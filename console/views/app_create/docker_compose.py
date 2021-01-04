@@ -135,9 +135,9 @@ class GetComposeCheckUUID(ComposeGroupBaseView):
             return Response(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status=400)
         group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
         if group_compose:
-            result = general_message(200, u"success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
+            result = general_message(200, "success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
         else:
-            result = general_message(404, u"success", "compose不存在", bean={"check_uuid": ""})
+            result = general_message(404, "success", "compose不存在", bean={"check_uuid": ""})
         return Response(result, status=200)
 
 
@@ -281,7 +281,7 @@ class ComposeCheckUpdate(ComposeGroupBaseView):
             code, msg, new_compose = compose_service.update_compose(group_id, json_data)
             if code != 200:
                 return Response(general_message(code, "save yaml content error", msg), status=code)
-        result = general_message(200, u"success", "修改成功")
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
 

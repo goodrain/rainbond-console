@@ -54,8 +54,8 @@ def validate_endpoints_info(endpoints_info):
             total_domain += 1
         if errs:
             if len(errs) > 0:
-                raise ServiceHandleException(msg=errs, msg_show=u"ip地址不合法")
+                raise ServiceHandleException(msg=errs, msg_show="ip地址不合法")
     if total_domain > 1:
-        raise ServiceHandleException(msg="do not support multi domain endpoint", msg_show=u"不允许多实例域名地址")
+        raise ServiceHandleException(msg="do not support multi domain endpoint", msg_show="不允许多实例域名地址")
     elif total_domain > 0 and len(endpoints_info) > 1:
-        raise ServiceHandleException(msg="do not support multi domain endpoint", msg_show=u"不允许多实例域名、ip混合地址")
+        raise ServiceHandleException(msg="do not support multi domain endpoint", msg_show="不允许多实例域名、ip混合地址")

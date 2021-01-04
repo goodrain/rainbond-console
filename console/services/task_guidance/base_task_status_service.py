@@ -11,11 +11,8 @@ from console.repositories.plugin import app_plugin_relation_repo
 logger = logging.getLogger("default")
 
 
-class BaseTaskStatusStrategy(object):
+class BaseTaskStatusStrategy(object, metaclass=abc.ABCMeta):
     """Abstract class: confirm the status of the base task"""
-
-    # define abstract classes
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def confirm_status(self, tenants):

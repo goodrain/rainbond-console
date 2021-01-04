@@ -17,7 +17,7 @@ class JuncheePaginator(Paginator):
     def _page_range_ext(self):
         num_count = 2 * self.range_num + 1
         if self.num_pages <= num_count:
-            return range(1, self.num_pages + 1)
+            return list(range(1, self.num_pages + 1))
         num_list = []
         num_list.append(self.page_num)
         for i in range(1, self.range_num + 1):

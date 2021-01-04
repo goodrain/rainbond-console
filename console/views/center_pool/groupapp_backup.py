@@ -3,7 +3,7 @@
   Created on 18/5/23.
 """
 import logging
-import StringIO
+import io
 
 from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
@@ -318,7 +318,7 @@ class GroupAppsBackupExportView(AlowAnyApiView):
             if code != 200:
                 return Response(general_message(code, "export backup failed", msg), status=code)
             file_name = group.group_name + ".bak"
-            output = StringIO.StringIO()
+            output = io.StringIO()
             output.write(data_str)
             res = StreamingHttpResponse(output.getvalue())
             res['Content-Type'] = 'application/octet-stream'

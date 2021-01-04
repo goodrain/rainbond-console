@@ -34,11 +34,11 @@ class SyncTenantServiceManager(object):
                     # if s.tenant_id=="775194376af44bd89d835aa2241c821b":
                     self.process(s)
                 logger.debug("finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1)))
-                print "finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1))
+                print(("finish process {0} data".format(NUMBER_OF_SERVICES * (pos + 1))))
                 pos += 1
-            print "process finished"
+            print("process finished")
         except Exception as e:
-            print e
+            print(e)
             logger.exception(e)
 
     def process(self, service):

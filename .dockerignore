@@ -1,4 +1,5 @@
 *.pyc
+*.py.bak
 Procfile
 *.md
 console.py
@@ -11,3 +12,5 @@ bin
 env
 data
 www/static/www/weavescope-src
+www/migrations
+console/migrations

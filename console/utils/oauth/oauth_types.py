@@ -26,7 +26,7 @@ def get_support_oauth_servers():
     '''
     get the supported oauth server type
     '''
-    return support_oauth_type.keys()
+    return list(support_oauth_type.keys())
 
 
 def get_oauth_instance(type_str=None, oauth_service=None, oauth_user=None):

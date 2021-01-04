@@ -5,31 +5,26 @@
 import logging
 import re
 
-from django.db import transaction
-
-from console.exception.bcode import ErrUserNotFound
 from console.enum.app import GovernanceModeEnum
-from console.repositories.app_config import env_var_repo
+from console.exception.bcode import ErrUserNotFound
+from console.exception.main import AbortRequest, ServiceHandleException
+from console.repositories.app import service_repo, service_source_repo
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
+from console.repositories.backup_repo import backup_record_repo
+from console.repositories.compose_repo import compose_repo
+from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.region_app import region_app_repo
+from console.repositories.region_repo import region_repo
+from console.repositories.share_repo import share_repo
+from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.user_repo import user_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
-from console.repositories.compose_repo import compose_repo
-from console.repositories.share_repo import share_repo
-from console.repositories.region_repo import region_repo
-from console.repositories.app_config import domain_repo, tcp_domain, port_repo
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.backup_repo import backup_record_repo
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.region_app import region_app_repo
-from console.repositories.upgrade_repo import upgrade_repo
-from console.repositories.plugin import app_plugin_relation_repo
-from console.repositories.user_repo import user_repo
 from console.utils.shortcuts import get_object_or_404
-from console.exception.main import ServiceHandleException
-from www.models.main import ServiceGroup, ServiceGroupRelation
-from console.exception.main import AbortRequest
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import RegionApp
+from www.models.main import RegionApp, ServiceGroup, ServiceGroupRelation
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -45,8 +40,8 @@ class GroupService(object):
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称最多支持128个字符")
-        r = re.compile(u'^[a-zA-Z0-9_\\.\\-\u4e00-\u9fa5]+$')
-        if not r.match(group_name.decode("utf-8")):
+        r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
+        if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
     @transaction.atomic
@@ -84,7 +79,7 @@ class GroupService(object):
 
     def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
         # check app id
-        if not app_id or app_id < 0:
+        if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
         # check username
         if username:
@@ -103,16 +98,16 @@ class GroupService(object):
         group_repo.update(app_id, **data)
 
     def delete_group(self, group_id, default_group_id):
-        if not group_id or group_id < 0:
-            return 400, u"需要删除的应用不合法", None
+        if not group_id or not str.isdigit(group_id) or group_id < 0:
+            return 400, "需要删除的应用不合法", None
         backups = backup_record_repo.get_record_by_group_id(group_id)
         if backups:
-            return 409, u"当前应用有备份记录，暂无法删除", None
+            return 409, "当前应用有备份记录，暂无法删除", None
         # 删除应用
         group_repo.delete_group_by_pk(group_id)
         # 删除应用与应用的关系
         group_service_relation_repo.update_service_relation(group_id, default_group_id)
-        return 200, u"删除成功", group_id
+        return 200, "删除成功", group_id
 
     def add_service_to_group(self, tenant, region_name, group_id, service_id):
         if group_id:
@@ -120,9 +115,9 @@ class GroupService(object):
             if group_id > 0:
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
-                    return 404, u"应用不存在"
+                    return 404, "应用不存在"
                 group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
-        return 200, u"success"
+        return 200, "success"
 
     def sync_app_services(self, tenant, region_name, app_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, app_id)
@@ -134,7 +129,7 @@ class GroupService(object):
         try:
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             body = {"service_ids": service_ids}
-            region_api.batch_update_service_app_id(region_name, tenant, region_app_id, body)
+            region_api.batch_update_service_app_id(region_name, tenant.tenant_name, region_app_id, body)
         except RegionApp.DoesNotExist:
             app = group_repo.get_group_by_id(app_id)
             create_body = {"app_name": app.group_name, "service_ids": service_ids}
@@ -192,7 +187,7 @@ class GroupService(object):
         return get_object_or_404(
             ServiceGroup,
             msg="Group does not exist",
-            msg_show=u"应用不存在",
+            msg_show="应用不存在",
             tenant_id=tenant.tenant_id,
             region_name=response_region,
             pk=group_id)
@@ -228,7 +223,7 @@ class GroupService(object):
         service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
-        for k, v in service_group_map.iteritems():
+        for k, v in list(service_group_map.items()):
             service_list = group_services_map.get(v, None)
             service_info = service_id_map.get(k, None)
             if service_info:
@@ -357,7 +352,7 @@ class GroupService(object):
     @transaction.atomic
     def delete_group_no_service(self, group_id):
         if not group_id or group_id < 0:
-            return 400, u"需要删除的应用不合法", None
+            return 400, "需要删除的应用不合法", None
         # backups = backup_record_repo.get_record_by_group_id(group_id)
         # if backups:
         #     return 409, u"当前应用有备份记录，暂无法删除", None
@@ -366,7 +361,7 @@ class GroupService(object):
         # 删除升级记录
         upgrade_repo.delete_app_record_by_group_id(group_id)
 
-        return 200, u"删除成功", group_id
+        return 200, "删除成功", group_id
 
     def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""

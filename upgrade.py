@@ -55,14 +55,13 @@ def get_upgrade_sql(current_version, new_version):
         return None
     with open(sql_file_name) as f:
         sql_list = f.read().split(';')[:-1]  # sql文件最后一行加上;
-        # sql_list = [x.replace('\n', ' ') if '\n' in x else x for x in sql_list]  # 将每段sql里的换行符改成空格
         return sql_list
     return None
 
 
 def upgrade(current_version, new_version):
-    print("current console db version is {}".format(current_version))
-    print("update  console db version to {}".format(new_version))
+    print(("current console db version is {}".format(current_version)))
+    print(("update  console db version to {}".format(new_version)))
     db = create_db_client()
     cursor = db.cursor()
     try:
@@ -70,7 +69,7 @@ def upgrade(current_version, new_version):
         if sql_list:
             for sql_item in sql_list:
                 try:
-                    print "exec sql: {0}".format(sql_item)
+                    print(("exec sql: {0}".format(sql_item)))
                     cursor.execute(sql_item)
                 except MySQLdb.Error as err:
                     # 1060: Duplicate column name
@@ -79,7 +78,7 @@ def upgrade(current_version, new_version):
                         raise err
         update_or_create_rainbond_version(cursor, new_version)
         db.commit()
-        print("update console db version to {} success".format(new_version))
+        print(("update console db version to {} success".format(new_version)))
     except Exception as e:
         print(e)
     cursor.close()
@@ -128,19 +127,19 @@ def should_upgrade(current_version, new_version):
 
 
 if __name__ == '__main__':
-    print "Initialize rainbond console"
+    print("Initialize rainbond console")
     new_version = get_current_version()
     current_version = get_version()
     if not current_version:
-        print "Cannot upgrade because the current version cannot be read."
+        print("Cannot upgrade because the current version cannot be read.")
         sys.exit(1)
     if current_version and should_upgrade(current_version, new_version):
-        print "Start upgrade console db from {0} to {1}".format(current_version, new_version)
+        print(("Start upgrade console db from {0} to {1}".format(current_version, new_version)))
         while True:
             if current_version.equal(new_version):
                 break
             upgrade(current_version, current_version.next_min_version())
             current_version = RainbondVersion(current_version.next_min_version())
-        print "upgrade console db from {0} to {1} success".format(current_version, new_version)
+        print(("upgrade console db from {0} to {1} success".format(current_version, new_version)))
     else:
-        print "{0} no need upgrade to {1}".format(current_version, new_version)
+        print(("{0} no need upgrade to {1}".format(current_version, new_version)))

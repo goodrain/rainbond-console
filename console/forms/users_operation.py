@@ -14,23 +14,23 @@ standard_regex_string_extend = "^[a-z0-9][a-z0-9\-]+[a-z0-9]$"
 def is_standard_word(value):
     r = re.compile(standard_regex_string)
     if not r.match(value):
-        raise forms.ValidationError(u"用户名只可以使用小写英文字母、数字、下划线、中划线。")
+        raise forms.ValidationError("用户名只可以使用小写英文字母、数字、下划线、中划线。")
 
 
 def is_standard_word_extend(value):
     r = re.compile(standard_regex_string_extend)
     if not r.match(value):
-        raise forms.ValidationError(u"用户名只可以使用小写英文字母、数字、中划线。")
+        raise forms.ValidationError("用户名只可以使用小写英文字母、数字、中划线。")
 
 
 def is_sensitive(value):
     if value in SENSITIVE_WORDS:
-        raise forms.ValidationError(u"不允许的用户名")
+        raise forms.ValidationError("不允许的用户名")
 
 
 def password_len(value):
     if len(value) < 8:
-        raise forms.ValidationError(u"密码长度至少为8位")
+        raise forms.ValidationError("密码长度至少为8位")
 
 
 class RegisterForm(Form):
@@ -54,16 +54,16 @@ class RegisterForm(Form):
     )
 
     error_messages = {
-        'nick_name_used': u"该用户名已存在",
-        'email_used': u"邮件地址已被注册",
-        'tenant_used': u"团队名已存在",
-        'password_repeat': u"两次输入的密码不一致",
-        'phone_used': u"手机号已存在",
-        'phone_empty': u"手机号为空",
-        'phone_captch_error': u"手机验证码已失效",
-        'phone_code_error': u"手机验证码错误",
-        'captcha_code_error': u"验证码有误",
-        'machine_region_error': u"请选择数据中心",
+        'nick_name_used': "该用户名已存在",
+        'email_used': "邮件地址已被注册",
+        'tenant_used': "团队名已存在",
+        'password_repeat': "两次输入的密码不一致",
+        'phone_used': "手机号已存在",
+        'phone_empty': "手机号为空",
+        'phone_captch_error': "手机验证码已失效",
+        'phone_code_error': "手机验证码错误",
+        'captcha_code_error': "验证码有误",
+        'machine_region_error': "请选择数据中心",
     }
 
     def clean(self):

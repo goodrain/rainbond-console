@@ -8,8 +8,8 @@ class EnterpriseRolesEnum(IntEnum):
 
     @classmethod
     def names(cls):
-        return [name for name, item in cls.__members__.items()]
+        return [name for name, item in list(cls.__members__.items())]
 
     @classmethod
     def to_dict(cls):
-        return {name: item.value for name, item in cls.__members__.items()}
+        return {name: item.value for name, item in list(cls.__members__.items())}

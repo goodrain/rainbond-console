@@ -330,7 +330,7 @@ class RegionApiBaseHttpClient(object):
             # should be.
             'content-length',
         ])
-        for key, value in response.headers.items():
+        for key, value in list(response.headers.items()):
             if key.lower() in excluded_headers:
                 continue
             elif key.lower() == 'location':
@@ -348,7 +348,7 @@ class RegionApiBaseHttpClient(object):
         https://docs.djangoproject.com/en/dev/ref/request-response/#django.http.HttpRequest.META
         """
         headers = {}
-        for key, value in environ.items():
+        for key, value in list(environ.items()):
             # Sometimes, things don't like when you send the requesting host through.
             if key.startswith('HTTP_') and key != 'HTTP_HOST':
                 headers[key[5:].replace('_', '-')] = value

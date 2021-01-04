@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/1.7/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.7/ref/settings/
 """
+import datetime
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 import sys
@@ -16,9 +17,13 @@ import sys
 from corsheaders.defaults import default_headers
 
 SETTING_DIR = os.path.dirname(__file__)
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+HOME_DIR = os.getenv("HOME_DIR", BASE_DIR)
+
+DATA_DIR = os.path.join(HOME_DIR, 'data')
 # Create log directory
-LOG_PATH = os.getenv("LOG_PATH", '/app/logs')
+LOG_PATH = os.getenv("LOG_PATH", os.path.join(HOME_DIR, 'logs'))
 folder = os.path.exists(LOG_PATH)
 if not folder:
     os.makedirs(LOG_PATH)
@@ -27,15 +32,136 @@ DEFAULT_HANDLERS = ['file_handler', 'console']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
-IS_OPEN_API = os.getenv("IS_OPEN_API", False)
+IS_OPEN_API = os.getenv("IS_OPEN_API", True)
 
-DEBUG = os.getenv("DEBUG", False)
-
-conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, 'www_com')
-if os.path.exists(conf_file):
-    execfile(conf_file)
+debug = os.environ.get('DEBUG')
+if debug:
+    DEBUG = (debug.lower() == "true")
 else:
-    raise Exception("config file not found: {}".format(conf_file))
+    DEBUG = False
+
+TEMPLATE_DEBUG = os.environ.get('TEMPLATE_DEBUG') or False
+
+SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
+
+DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'file_handler']
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="*").split(",", -1)
+
+MANAGE_SECRET_KEY = os.environ.get('MANAGE_SECRET_KEY', "")
+
+EMAIL_HOST = '***'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = '***'
+EMAIL_HOST_PASSWORD = '***'
+EMAIL_USE_SSL = True
+
+GITLAB_ADMIN_NAME = "app"
+GITLAB_ADMIN_ID = 2
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated', ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+    'EXCEPTION_HANDLER':
+    'console.views.base.custom_exception_handler',
+}
+
+DATABASE_TYPE = os.environ.get('DB_TYPE') or 'sqlite3'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(DATA_DIR, 'db.sqlite3'),
+    }
+}
+if DATABASE_TYPE == 'mysql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('MYSQL_DB') or "console",
+            'USER': os.environ.get('MYSQL_USER') or "root",
+            'PASSWORD': os.environ.get('MYSQL_PASS') or "",
+            'HOST': os.environ.get('MYSQL_HOST') or "127.0.0.1",
+            'PORT': os.environ.get('MYSQL_PORT') or "3306",
+        }
+    }
+
+APP_SERVICE_API = {'url': os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80'), 'apitype': 'app service'}
+
+SSO_LOGIN = os.getenv("SSO_LOGIN", "").upper()
+MODULES = {
+    "Owned_Fee": True,
+    "Memory_Limit": True,
+    "Finance_Center": True,
+    "Team_Invite": True,
+    "Monitor_Control": True,
+    "User_Register": True,
+    "Sms_Check": True,
+    "Email_Invite": True,
+    "Package_Show": True,
+    "RegionToken": True,
+    "Add_Port": False,
+    "License_Center": True,
+    "WeChat_Module": False,
+    "Docker_Console": True,
+    "Publish_YunShi": True,
+    "Publish_Service": False,
+    "Privite_Github": False,
+    "SSO_LOGIN": SSO_LOGIN == "TRUE",
+}
+
+if os.getenv("MEMCACHED_HOST") and os.getenv("MEMCACHED_PORT"):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+            'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
+        },
+        'session': {
+            'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+            'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
+        }
+    }
+
+TENANT_VALID_TIME = 7
+
+JWT_AUTH = {
+    'JWT_ENCODE_HANDLER': 'rest_framework_jwt.utils.jwt_encode_handler',
+    'JWT_DECODE_HANDLER': 'rest_framework_jwt.utils.jwt_decode_handler',
+    'JWT_PAYLOAD_HANDLER': 'rest_framework_jwt.utils.jwt_payload_handler',
+    'JWT_PAYLOAD_GET_USER_ID_HANDLER': 'rest_framework_jwt.utils.jwt_get_user_id_from_payload_handler',
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'rest_framework_jwt.utils.jwt_response_payload_handler',
+    'JWT_SECRET_KEY': SECRET_KEY,
+    'JWT_GET_USER_SECRET_KEY': None,
+    'JWT_PUBLIC_KEY': None,
+    'JWT_PRIVATE_KEY': None,
+    'JWT_ALGORITHM': 'HS256',
+    'JWT_VERIFY': True,
+    'JWT_VERIFY_EXPIRATION': True,
+    'JWT_LEEWAY': 0,
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=15),
+    'JWT_AUDIENCE': None,
+    'JWT_ISSUER': None,
+    'JWT_ALLOW_REFRESH': False,
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=15),
+    'JWT_AUTH_HEADER_PREFIX': 'GRJWT',
+    'JWT_AUTH_COOKIE': "token",
+}
+
+# 以下参数待去除
+LICENSE = ""
+
+WILD_PORTS = {}
+
+WILD_DOMAINS = {}
+
+REGION_RULE = {}
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
@@ -196,8 +322,6 @@ LOGGING = {
     }
 }
 
-# LICENSE = ""
-
 # original is True
 CORS_ORIGIN_ALLOW_ALL = True
 # add this for solve cross domain
@@ -210,13 +334,6 @@ CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW'
 CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken', 'user_id', 'X_SSO_USER_ID', 'X_SSO_USER_TOKEN',
                                         'X_REGION_NAME', 'X_TEAM_NAME')
 SWAGGER_SETTINGS = {'SECURITY_DEFINITIONS': {'Bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'}}}
-
-conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))
-
-if os.path.exists(conf_file):
-    execfile(conf_file)
-else:
-    raise Exception("config file not found: {}".format(conf_file))
 
 DEF_IMAGE_REPO = "goodrain.me"
 

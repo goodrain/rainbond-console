@@ -204,7 +204,7 @@ class GroupAppCopyService(object):
 
     def build_services(self, user, tenant, region_name, group_id, change_services_map):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, group_id)
-        change_service_ids = [change_service["ServiceID"] for change_service in change_services_map.values()]
+        change_service_ids = [change_service["ServiceID"] for change_service in list(change_services_map.values())]
         if not group_services:
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]

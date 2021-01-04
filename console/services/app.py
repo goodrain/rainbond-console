@@ -13,9 +13,13 @@ from console.appstore.appstore import app_store
 from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion)
-from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
-from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, service_endpoints_repo,
+from console.models.main import (AppMarket, RainbondCenterApp,
+                                 RainbondCenterAppVersion)
+from console.repositories.app import (app_market_repo, service_repo,
+                                      service_source_repo)
+from console.repositories.app_config import (dep_relation_repo, env_var_repo,
+                                             mnt_repo, port_repo,
+                                             service_endpoints_repo,
                                              volume_repo)
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -30,7 +34,9 @@ from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume, TenantServiceInfo
-from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource,
+from www.tenantservice.baseservice import (BaseTenantService,
+                                           CodeRepositoriesService,
+                                           ServicePluginResource,
                                            TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
@@ -49,10 +55,10 @@ probe_service = ProbeService()
 class AppService(object):
     def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:
-            return False, u"组件名称不能为空"
+            return False, "组件名称不能为空"
         if len(service_cname) > 100:
-            return False, u"组件名称最多支持100个字符"
-        return True, u"success"
+            return False, "组件名称最多支持100个字符"
+        return True, "success"
 
     def __init_source_code_app(self, region):
         """
@@ -121,7 +127,7 @@ class AppService(object):
             return code, msg, new_service
         logger.debug("service.create", "user:{0} create service from source code".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
-        return 200, u"创建成功", ts
+        return 200, "创建成功", ts
 
     def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
                           check_uuid, event_id, oauth_service_id, git_full_name):
@@ -130,7 +136,7 @@ class AppService(object):
 
         if service_code_from in (SourceCodeType.GITLAB_EXIT, SourceCodeType.GITLAB_MANUAL, SourceCodeType.GITLAB_DEMO):
             if not service_code_clone_url or not service_code_id:
-                return 403, u"代码信息不全"
+                return 403, "代码信息不全"
             service.git_project_id = service_code_id
             service.git_url = service_code_clone_url
             service.code_from = service_code_from
@@ -138,7 +144,7 @@ class AppService(object):
             service.save()
         elif service_code_from == SourceCodeType.GITHUB:
             if not service_code_clone_url:
-                return 403, u"代码信息不全"
+                return 403, "代码信息不全"
             service.git_project_id = service_code_id
             service.git_url = service_code_clone_url
             service.code_from = service_code_from
@@ -147,10 +153,10 @@ class AppService(object):
             code_user = service_code_clone_url.split("/")[3]
             code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
             gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
-        elif service_code_from.split("oauth_")[-1] in support_oauth_type.keys():
+        elif service_code_from.split("oauth_")[-1] in list(support_oauth_type.keys()):
 
             if not service_code_clone_url:
-                return 403, u"代码信息不全"
+                return 403, "代码信息不全"
             if check_uuid:
                 service.check_uuid = check_uuid
             if event_id:
@@ -163,7 +169,7 @@ class AppService(object):
             service.git_full_name = git_full_name
             service.save()
 
-        return 200, u"success"
+        return 200, "success"
 
     def create_service_source_info(self, tenant, service, user_name, password):
         params = {
@@ -238,7 +244,7 @@ class AppService(object):
         logger.debug("service.create", "user:{0} create service from docker run command !".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
 
-        return 200, u"创建成功", ts
+        return 200, "创建成功", ts
 
     def __init_third_party_app(self, region, end_point):
         """
@@ -296,7 +302,7 @@ class AppService(object):
                     check_endpoints
                 errs, isDomain = check_endpoints(endpoints)
                 if errs:
-                    return 400, u"组件地址不合法", None
+                    return 400, "组件地址不合法", None
                 port_list = []
                 prefix = ""
                 protocol = "tcp"
@@ -447,8 +453,8 @@ class AppService(object):
         data["service_key"] = service.service_key
         data["comment"] = service.desc
         data["image_name"] = service.image
-        data["container_cpu"] = service.min_cpu
-        data["container_memory"] = service.min_memory
+        data["container_cpu"] = int(service.min_cpu)
+        data["container_memory"] = int(service.min_memory)
         data["volume_path"] = "vol" + service.service_id[0:10]
         data["extend_method"] = service.extend_method
         data["status"] = 0
@@ -707,7 +713,7 @@ class AppMarketService(object):
                 market.access_actions = []
             if raise_exception:
                 if market.status == 0:
-                    raise ServiceHandleException(msg="call market error", msg_show=u"应用商店状态异常")
+                    raise ServiceHandleException(msg="call market error", msg_show="应用商店状态异常")
             dt.update({
                 "description": market.description,
                 "alias": market.alias,
@@ -725,7 +731,7 @@ class AppMarketService(object):
     def create_app_market(self, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
-            raise ServiceHandleException(msg="name exist", msg_show=u"名称已存在", status_code=400)
+            raise ServiceHandleException(msg="name exist", msg_show="名称已存在", status_code=400)
         return app_market_repo.create_app_market(**data)
 
     @transaction.atomic
@@ -743,7 +749,7 @@ class AppMarketService(object):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
             if exit_market.ID != app_market.ID:
-                raise ServiceHandleException(msg="name exist", msg_show=u"名称已存在", status_code=400)
+                raise ServiceHandleException(msg="name exist", msg_show="名称已存在", status_code=400)
         app_market.name = data["name"]
         app_market.type = data["type"]
         app_market.enterprise_id = data["enterprise_id"]

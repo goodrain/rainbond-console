@@ -1,8 +1,8 @@
 #coding=utf-8
 
-from alipay_config import *
-from alipay_core import *
-from alipay_md5 import *
+from .alipay_config import *
+from .alipay_core import *
+from .alipay_md5 import *
 
 
 class AlipaySubmit:
@@ -50,7 +50,7 @@ class AlipaySubmit:
         para = self.buildRequestPara(para_temp)
         sHtml = "<form id='alipaysubmit' name='alipaysubmit' action='" + AlipaySubmit.alipay_gateway_new + \
                 "_input_charset=" + self.input_charset + "' method='" + method + "'>"
-        keys = para.keys()
+        keys = list(para.keys())
         keys.sort()
         for key in keys:
             sHtml = sHtml + "<input type='hidden' name='" + key + "' value='" + para[key] + "'/>"

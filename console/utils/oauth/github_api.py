@@ -84,7 +84,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                             self.oauth_user.delete()
                             raise NoAccessKeyErr("refresh key is expired, please reauthorize")
                     elif isinstance(e, (SSLError, MaxRetryError, ReadTimeoutError)):
-                        raise ServiceHandleException(msg=e.message, msg_show=u"连接github不稳定, 请刷新后重试")
+                        raise ServiceHandleException(msg=e.message, msg_show="连接github不稳定, 请刷新后重试")
                     else:
                         self.oauth_user.delete()
                         raise NoAccessKeyErr("access key is expired, please reauthorize")

@@ -7,15 +7,21 @@ import time
 
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
-from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
-from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
+from console.exception.main import (AbortRequest, RbdAppNotFound,
+                                    ServiceHandleException)
+from console.models.main import (PluginShareRecordEvent, RainbondCenterApp,
+                                 RainbondCenterAppVersion,
+                                 ServiceShareRecordEvent)
 from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo, volume_repo
-from console.repositories.app_config_group import (app_config_group_item_repo, app_config_group_repo,
-                                                   app_config_group_service_repo)
+from console.repositories.app_config_group import (
+    app_config_group_item_repo, app_config_group_repo,
+    app_config_group_service_repo)
 from console.repositories.component_graph import component_graph_repo
-from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
-from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
+from console.repositories.market_app_repo import (app_export_record_repo,
+                                                  rainbond_app_repo)
+from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo,
+                                         service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
@@ -69,7 +75,7 @@ class ShareService(object):
             for port in port_list:
                 service_id = port.service_id
                 tmp_list = []
-                if service_id in service_port_map.keys():
+                if service_id in list(service_port_map.keys()):
                     tmp_list = service_port_map.get(service_id)
                 tmp_list.append(port)
                 service_port_map[service_id] = tmp_list
@@ -128,7 +134,7 @@ class ShareService(object):
         result = {}
         for mnt_relation in mnt_relations:
             service_id = mnt_relation.service_id
-            if service_id in result.keys():
+            if service_id in list(result.keys()):
                 values = result.get(service_id)
             else:
                 values = []
@@ -152,7 +158,7 @@ class ShareService(object):
                     continue
                 service_id = env.service_id
                 tmp_list = []
-                if service_id in service_env_map.keys():
+                if service_id in list(service_env_map.keys()):
                     tmp_list = service_env_map.get(service_id)
                 tmp_list.append(env)
                 service_env_map[service_id] = tmp_list
@@ -170,7 +176,7 @@ class ShareService(object):
             for volume in volume_list:
                 service_id = volume.service_id
                 tmp_list = []
-                if service_id in service_volume_map.keys():
+                if service_id in list(service_volume_map.keys()):
                     tmp_list = service_volume_map.get(service_id)
                 tmp_list.append(volume)
                 service_volume_map[service_id] = tmp_list
@@ -206,7 +212,7 @@ class ShareService(object):
             for probe in probe_list:
                 service_id = probe.service_id
                 tmp_list = []
-                if service_id in service_probe_map.keys():
+                if service_id in list(service_probe_map.keys()):
                     tmp_list = service_probe_map.get(service_id)
                 tmp_list.append(probe)
                 service_probe_map[service_id] = tmp_list
@@ -264,14 +270,9 @@ class ShareService(object):
                 data['service_id'] = service.service_id
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
-                data['service_key'] = service.service_key
-                if (service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql'):
-                    data['service_key'] = make_uuid()
-                    service.service_key = data['service_key']
-                    service.save()
-                #     data['need_share'] = True
-                # else:
-                #     data['need_share'] = False
+                # The component is redistributed without the key from the installation source, which would cause duplication.
+                # service_id  can be thought of as following a component lifecycle.
+                data['service_key'] = service.service_id
                 data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
                 data['need_share'] = True
                 data['category'] = service.category
@@ -408,7 +409,7 @@ class ShareService(object):
             if isinstance(service_info, dict):
                 service_info.update(last_share_info)
             elif isinstance(service_info, list):
-                for i in xrange(len(service_info)):
+                for i in range(len(service_info)):
                     for last_info in last_share_info:
                         if not service_info[i].get("attr_name"):
                             service_info[i].update(last_info)
@@ -534,6 +535,7 @@ class ShareService(object):
                             raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
                     except region_api.CallApiFrequentError as e:
                         logger.exception(e)
+                        transaction.savepoint_rollback(sid)
                         raise ServiceHandleException(msg="wait a moment please", msg_show="操作过于频繁，请稍后再试", status_code=409)
                     except Exception as e:
                         logger.exception(e)
@@ -549,6 +551,11 @@ class ShareService(object):
             app_version.save()
             transaction.savepoint_commit(sid)
             return record_event
+        except ServiceHandleException as e:
+            logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
+            raise e
         except Exception as e:
             logger.exception(e)
             if sid:
@@ -911,7 +918,7 @@ class ShareService(object):
                 raise AbortRequest(
                     error_code=10501,
                     msg="{} service is missing dependencies".format(service['service_cname']),
-                    msg_show=u"{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
+                    msg_show="{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
                 return True
 
@@ -1032,7 +1039,7 @@ class ShareService(object):
                     "versions":
                     sorted(
                         app_versions,
-                        key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
+                        key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
                         reverse=True),
                     "scope":
                     app.scope,
@@ -1067,7 +1074,7 @@ class ShareService(object):
                         "versions":
                         sorted(
                             versions,
-                            key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
+                            key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
                             reverse=True),
                         "pic":
                         app.logo,

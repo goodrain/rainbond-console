@@ -79,14 +79,14 @@ class BaseHttpClient(object):
                     'request', '''{0} "{1}" body={2} response: {3} \nand content is {4}'''.format(
                         method, url, record_body, response, record_content))
                 return response, content
-            except socket.timeout, e:
+            except socket.timeout as e:
                 logger.error('client_error', "timeout: %s" % url)
                 logger.exception('client_error', e)
                 raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                     "type": "request time out",
                     "error": str(e)
                 })
-            except socket.error, e:
+            except socket.error as e:
                 retry_count -= 1
                 if retry_count:
                     logger.error("client_error", "retry request: %s" % url)

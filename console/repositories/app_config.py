@@ -5,29 +5,21 @@
 import datetime
 import json
 import logging
-
-from django.db.models import Q
+import os
 
 from console.exception.main import AbortRequest
 from console.utils.shortcuts import get_object_or_404
+from django.db.models import Q
 from www.db.base import BaseConnection
-from www.models.main import GatewayCustomConfiguration
-from www.models.main import ImageServiceRelation
-from www.models.main import ServiceAttachInfo
-from www.models.main import ServiceCreateStep
-from www.models.main import ServiceDomain
-from www.models.main import ServiceDomainCertificate
-from www.models.main import ServicePaymentNotify
-from www.models.main import ServiceTcpDomain
-from www.models.main import TenantServiceAuth
-from www.models.main import TenantServiceConfigurationFile
-from www.models.main import TenantServiceEnv
-from www.models.main import TenantServiceEnvVar
-from www.models.main import TenantServiceMountRelation
-from www.models.main import TenantServiceRelation
-from www.models.main import TenantServicesPort
-from www.models.main import TenantServiceVolume
-from www.models.main import ThirdPartyServiceEndpoints
+from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation,
+                             ServiceAttachInfo, ServiceCreateStep,
+                             ServiceDomain, ServiceDomainCertificate,
+                             ServicePaymentNotify, ServiceTcpDomain,
+                             TenantServiceAuth, TenantServiceConfigurationFile,
+                             TenantServiceEnv, TenantServiceEnvVar,
+                             TenantServiceMountRelation, TenantServiceRelation,
+                             TenantServicesPort, TenantServiceVolume,
+                             ThirdPartyServiceEndpoints)
 from www.models.service_publish import ServiceExtendMethod
 
 logger = logging.getLogger("default")
@@ -56,7 +48,7 @@ class TenantServiceEnvVarRepository(object):
         return get_object_or_404(
             TenantServiceEnvVar,
             msg="Environment variable with ID {} not found".format(env_id),
-            msg_show=u"环境变量`{}`不存在".format(env_id),
+            msg_show="环境变量`{}`不存在".format(env_id),
             tenant_id=tenant_id,
             service_id=service_id,
             ID=env_id)
@@ -603,6 +595,9 @@ class ServiceDomainRepository(object):
         check if there is a custom gateway rule
         """
         conn = BaseConnection()
+        team_name_query = "'%' || b.tenant_name || '%'"
+        if os.environ.get('DB_TYPE') == 'mysql':
+            team_name_query = "concat('%',b.tenant_name,'%')"
         sql = """
             SELECT
                 *
@@ -618,9 +613,10 @@ class ServiceDomainRepository(object):
                     OR a.domain_cookie <> ""
                     OR a.domain_heander <> ""
                     OR a.the_weight <> 100
-                    OR a.domain_name NOT LIKE concat('%',b.tenant_name,'%')
+                    OR a.domain_name NOT LIKE {team_name}
                 )
-                LIMIT 1""".format(eid=eid)
+                LIMIT 1""".format(
+            eid=eid, team_name=team_name_query)
         result = conn.query(sql)
         return True if len(result) > 0 else False
 

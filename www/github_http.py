@@ -19,18 +19,18 @@ class GitHubApi(BaseHttpClient):
         self.base_url = 'https://api.github.com'
 
     def _reload(self):
-        if isinstance(custom_config.GITHUB, (unicode, str)):
+        if isinstance(custom_config.GITHUB, str):
             github_service_info = eval(custom_config.GITHUB)
         else:
             github_service_info = custom_config.GITHUB
-        for k, v in github_service_info.items():
+        for k, v in list(github_service_info.items()):
             setattr(self, k, v)
 
     def _encode_params(self, kw):
         args = []
-        for k, v in kw.items():
+        for k, v in list(kw.items()):
             try:
-                qv = v.encode('utf-8') if isinstance(v, unicode) else str(v)
+                qv = v.encode('utf-8') if isinstance(v, str) else str(v)
             except Exception:
                 qv = v
             args.append('%s=%s' % (k, qv))

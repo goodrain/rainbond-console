@@ -184,7 +184,7 @@ class BaseService(object):
         service_source = service_source_repo.get_service_source(team_id=service.tenant_id, service_id=service.service_id)
 
         code_from = service.code_from
-        oauth_type = support_oauth_type.keys()
+        oauth_type = list(support_oauth_type.keys())
         if code_from in oauth_type:
             result_url = re_split("[:,@]", service.git_url)
             service.git_url = result_url[0] + '//' + result_url[-1]

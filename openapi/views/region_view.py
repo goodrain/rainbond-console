@@ -100,7 +100,7 @@ class RegionInfo(BaseOpenAPIView):
         if extend_info:
             extend_info = "yes"
         if not self.region:
-            raise ServiceHandleException(msg="no found region", msg_show=u"数据中心不存在", status_code=404)
+            raise ServiceHandleException(msg="no found region", msg_show="数据中心不存在", status_code=404)
 
         data = region_services.get_enterprise_region(
             self.enterprise.enterprise_id, self.region.region_id, check_status=extend_info)

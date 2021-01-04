@@ -11,11 +11,11 @@ from openapi.views.base import BaseOpenAPIView
 
 
 class UploadFileReqSerializer(serializers.Serializer):
-    file = serializers.FileField(help_text=u"需要上传的文件")
+    file = serializers.FileField(help_text="需要上传的文件")
 
 
 class UploadFileRespSerializer(serializers.Serializer):
-    file_url = serializers.CharField(max_length=1024, required=True, help_text=u"访问文件的URL")
+    file_url = serializers.CharField(max_length=1024, required=True, help_text="访问文件的URL")
 
 
 class UploadView(BaseOpenAPIView):

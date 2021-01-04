@@ -303,7 +303,7 @@ class AppPluginService(object):
             if attr.service_meta_type == PluginMetaType.UNDEFINE:
                 if attr.injection == PluginInjection.EVN:
                     attr_map = json.loads(attr.attrs)
-                    for k, v in attr_map.iteritems():
+                    for k, v in list(attr_map.items()):
                         normal_envs.append({"env_name": k, "env_value": v})
                 else:
                     base_normal["options"] = json.loads(attr.attrs)

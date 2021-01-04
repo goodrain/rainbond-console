@@ -5,7 +5,7 @@ import requests
 from django.http import HttpResponse
 from django.http import QueryDict
 try:
-    from urlparse import urlparse
+    from urllib.parse import urlparse
 except Exception:
     from urllib.parse import urlparse
 from rest_framework.response import Response
@@ -145,7 +145,7 @@ class ProxyView(CloudEnterpriseCenterView):
             # should be.
             'content-length',
         ])
-        for key, value in response.headers.items():
+        for key, value in list(response.headers.items()):
             if key.lower() in excluded_headers:
                 continue
             elif key.lower() == 'location':
@@ -185,7 +185,7 @@ class ProxyView(CloudEnterpriseCenterView):
         https://docs.djangoproject.com/en/dev/ref/request-response/#django.http.HttpRequest.META
         """
         headers = {}
-        for key, value in environ.items():
+        for key, value in list(environ.items()):
             # Sometimes, things don't like when you send the requesting host through.
             if key.startswith('HTTP_') and key != 'HTTP_HOST':
                 headers[key[5:].replace('_', '-')] = value

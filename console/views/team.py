@@ -2,12 +2,7 @@
 import logging
 import re
 
-from django.conf import settings
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db import transaction
-from django.db.models import Q
-from rest_framework.response import Response
-
+from console.exception.bcode import ErrK8sServiceNameExists
 from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.models.main import UserMessage
@@ -17,8 +12,8 @@ from console.repositories.enterprise_repo import (enterprise_repo, enterprise_us
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
-from console.services.apply_service import apply_service
 from console.services.app_config import port_service
+from console.services.apply_service import apply_service
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import \
     enterprise_services as console_enterprise_service
@@ -27,11 +22,15 @@ from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.utils.reqparse import parse_item
 from console.utils.timeutil import time_to_str
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from django.conf import settings
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import transaction
+from django.db.models import Q
 from goodrain_web.tools import JuncheePaginator
-from console.utils.reqparse import parse_item
-from console.exception.bcode import ErrK8sServiceNameExists
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message, general_message
@@ -387,8 +386,8 @@ class TeamRegionInitView(JWTAuthApiView):
                 return Response(general_message(400, "team alias is null", "团队名称不能为空"), status=400)
             if not region_name:
                 return Response(general_message(400, "region name is null", "请选择数据中心"), status=400)
-            r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
-            if not r.match(team_alias.decode("utf-8")):
+            r = re.compile('^[a-zA-Z0-9_\\-\\u4e00-\\u9fa5]+$')
+            if not r.match(team_alias):
                 return Response(general_message(400, "team alias is not allow", "组名称只支持中英文下划线和中划线"), status=400)
             team = team_services.get_team_by_team_alias(team_alias)
             if team:
@@ -790,7 +789,7 @@ class AdminAddUserView(JWTAuthApiView):
         if role_ids and tenant_name:
             team = team_services.get_tenant_by_tenant_name(tenant_name)
             if not team:
-                raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
+                raise ServiceHandleException(msg_show="团队不存在", msg="no found team", status_code=404)
             # 校验用户信息
             user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
             client_ip = user_services.get_client_ip(request)

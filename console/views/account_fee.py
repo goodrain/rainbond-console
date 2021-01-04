@@ -198,7 +198,7 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
                                 rt["region"] = region.region_alias
                                 enter_total[rt['time']] = rt
 
-                    total_list[0:0] = [v for v in enter_total.values() if v["total_fee"] > 0]
+                    total_list[0:0] = [v for v in list(enter_total.values()) if v["total_fee"] > 0]
 
                 except Exception as e:
                     logger.exception(e)

@@ -358,67 +358,67 @@ class TagCLView(JWTAuthApiView):
 
     def post(self, request, enterprise_id, *args, **kwargs):
         name = request.data.get("name", None)
-        result = general_message(200, "success", u"创建成功")
+        result = general_message(200, "success", "创建成功")
         if not name:
-            result = general_message(400, "fail", u"参数不正确")
+            result = general_message(400, "fail", "参数不正确")
         try:
             rst = app_tag_repo.create_tag(enterprise_id, name)
             if not rst:
-                result = general_message(400, "fail", u"标签已存在")
+                result = general_message(400, "fail", "标签已存在")
         except Exception as e:
             logger.debug(e)
-            result = general_message(400, "fail", u"创建失败")
+            result = general_message(400, "fail", "创建失败")
         return Response(result, status=result.get("code", 200))
 
 
 class TagUDView(JWTAuthApiView):
     def put(self, request, enterprise_id, tag_id, *args, **kwargs):
         name = request.data.get("name", None)
-        result = general_message(200, "success", u"更新成功")
+        result = general_message(200, "success", "更新成功")
         if not name:
-            result = general_message(400, "fail", u"参数不正确")
+            result = general_message(400, "fail", "参数不正确")
         rst = app_tag_repo.update_tag_name(enterprise_id, tag_id, name)
         if not rst:
-            result = general_message(400, "fail", u"更新失败")
+            result = general_message(400, "fail", "更新失败")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, tag_id, *args, **kwargs):
-        result = general_message(200, "success", u"删除成功")
+        result = general_message(200, "success", "删除成功")
         rst = app_tag_repo.delete_tag(enterprise_id, tag_id)
         if not rst:
-            result = general_message(400, "fail", u"删除失败")
+            result = general_message(400, "fail", "删除失败")
         return Response(result, status=result.get("code", 200))
 
 
 class AppTagCDView(JWTAuthApiView):
     def post(self, request, enterprise_id, app_id, *args, **kwargs):
         tag_id = request.data.get("tag_id", None)
-        result = general_message(200, "success", u"创建成功")
+        result = general_message(200, "success", "创建成功")
         if not tag_id:
-            result = general_message(400, "fail", u"请求参数错误")
+            result = general_message(400, "fail", "请求参数错误")
         app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         if not app:
-            result = general_message(404, "fail", u"该应用不存在")
+            result = general_message(404, "fail", "该应用不存在")
         try:
             app_tag_repo.create_app_tag_relation(app, tag_id)
         except Exception as e:
             logger.debug(e)
-            result = general_message(404, "fail", u"创建失败")
+            result = general_message(404, "fail", "创建失败")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, app_id, *args, **kwargs):
         tag_id = request.data.get("tag_id", None)
-        result = general_message(200, "success", u"删除成功")
+        result = general_message(200, "success", "删除成功")
         if not tag_id:
-            result = general_message(400, "fail", u"请求参数错误")
+            result = general_message(400, "fail", "请求参数错误")
         app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         if not app:
-            result = general_message(404, "fail", u"该应用不存在")
+            result = general_message(404, "fail", "该应用不存在")
         try:
             app_tag_repo.delete_app_tag_relation(app, tag_id)
         except Exception as e:
             logger.debug(e)
-            result = general_message(404, "fail", u"删除失败")
+            result = general_message(404, "fail", "删除失败")
         return Response(result, status=result.get("code", 200))
 
 
@@ -435,10 +435,10 @@ class AppVersionUDView(JWTAuthApiView):
             "app_version_info": app_version_info
         }
         version = market_app_service.update_rainbond_app_version_info(enterprise_id, app_id, version, **body)
-        result = general_message(200, "success", u"更新成功", bean=version.to_dict())
+        result = general_message(200, "success", "更新成功", bean=version.to_dict())
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, app_id, version, *args, **kwargs):
-        result = general_message(200, "success", u"删除成功")
+        result = general_message(200, "success", "删除成功")
         market_app_service.delete_rainbond_app_version(enterprise_id, app_id, version)
         return Response(result, status=result.get("code", 200))

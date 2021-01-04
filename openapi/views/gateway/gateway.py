@@ -220,7 +220,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
         if ads.data.get("protocol") == "tcp":
             tcpdomain = ads.data.get("tcp")
             if not tcpdomain:
-                raise ServiceHandleException(msg="Missing parameters: tcp", msg_show=u"缺少参数: tcp")
+                raise ServiceHandleException(msg="Missing parameters: tcp", msg_show="缺少参数: tcp")
 
             container_port = tcpdomain.get("container_port", None)
             service_id = tcpdomain.get("service_id", None)
@@ -230,12 +230,12 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             default_ip = tcpdomain.get("default_ip", None)
             service = service_repo.get_service_by_service_id(service_id)
             if not service:
-                raise ServiceHandleException(msg="not service", msg_show=u"组件不存在")
+                raise ServiceHandleException(msg="not service", msg_show="组件不存在")
 
             # Check if the given endpoint exists.
             service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(self.region.region_id, end_point)
             if service_tcpdomain:
-                raise ServiceHandleException(msg="exist", msg_show=u"策略已存在")
+                raise ServiceHandleException(msg="exist", msg_show="策略已存在")
 
             if service.service_source == "third_party":
                 msg, msg_show, code = port_service.check_domain_thirdpart(self.team, service)
@@ -262,7 +262,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
         elif ads.data.get("protocol") == "http":
             httpdomain = ads.data.get("http")
             if not httpdomain:
-                raise ServiceHandleException(msg="Missing parameters: tcp", msg_show=u"缺少参数: http")
+                raise ServiceHandleException(msg="Missing parameters: tcp", msg_show="缺少参数: http")
             httpdomain["domain_heander"] = httpdomain.get("domain_header", None)
             httpdomain["domain_type"] = DomainType.WWW
             protocol = "http"
@@ -299,7 +299,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
                 return Response({"msg": "没有开启对外端口"}, status=status.HTTP_400_BAD_REQUEST)
             domain_service.bind_httpdomain(self.team, self.request.user, service, httpdomain, True)
         else:
-            raise ServiceHandleException(msg="error parameters: protocol", msg_show=u"错误参数: protocol")
+            raise ServiceHandleException(msg="error parameters: protocol", msg_show="错误参数: protocol")
         data = {}
         http_rules = domain_service.get_http_rules_by_app_id(app_id)
         tcp_rules = domain_service.get_tcp_rules_by_app_id(app_id)

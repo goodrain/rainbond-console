@@ -186,6 +186,6 @@ if __name__ == '__main__':
     build_version = "buildversion123123"
     configMaps = buildConf
     _complex, normal, rc = ps.postStoreAttrs(service_id, service_alias, plugin_id, build_version, configMaps)
-    print _complex
-    print normal
-    print rc
+    print(_complex)
+    print(normal)
+    print(rc)

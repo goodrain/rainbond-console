@@ -129,7 +129,7 @@ class AppVolumeView(AppBaseView):
 
         data = volume_service.add_service_volume(self.tenant, self.service, volume_path, volume_type, volume_name, file_content,
                                                  settings, self.user.nick_name)
-        result = general_message(200, "success", u"持久化路径添加成功", bean=data.to_dict())
+        result = general_message(200, "success", "持久化路径添加成功", bean=data.to_dict())
 
         return Response(result, status=result["code"])
 
@@ -160,10 +160,10 @@ class AppVolumeManageView(AppBaseView):
         """
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
-            return Response(general_message(400, "attr_name not specify", u"未指定需要删除的持久化路径"), status=400)
+            return Response(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status=400)
         code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id),
                                                                        self.user.nick_name)
-        result = general_message(200, "success", u"删除成功")
+        result = general_message(200, "success", "删除成功")
         if code != 200:
             result = general_message(code=code, msg="delete volume error", msg_show=msg)
         return Response(result, status=result["code"])
@@ -182,19 +182,19 @@ class AppVolumeManageView(AppBaseView):
         new_volume_path = request.data.get("new_volume_path", None)
         new_file_content = request.data.get("new_file_content", None)
         if not volume_id:
-            return Response(general_message(400, "volume_id is null", u"未指定需要编辑的配置文件存储"), status=400)
+            return Response(general_message(400, "volume_id is null", "未指定需要编辑的配置文件存储"), status=400)
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
-            return Response(general_message(400, "volume is null", u"存储不存在"), status=400)
+            return Response(general_message(400, "volume is null", "存储不存在"), status=400)
         service_config = volume_repo.get_service_config_file(volume_id)
         if volume.volume_type == 'config-file':
             if not service_config:
-                return Response(general_message(400, "file_content is null", u"配置文件内容不存在"), status=400)
+                return Response(general_message(400, "file_content is null", "配置文件内容不存在"), status=400)
             if new_volume_path == volume.volume_path and new_file_content == service_config.file_content:
-                return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
+                return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
         else:
             if new_volume_path == volume.volume_path:
-                return Response(general_message(400, "no change", u"没有变化，不需要修改"), status=400)
+                return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
         data = {
             "volume_name": volume.volume_name,
             "volume_path": new_volume_path,
@@ -210,6 +210,6 @@ class AppVolumeManageView(AppBaseView):
             if volume.volume_type == 'config-file':
                 service_config.file_content = new_file_content
                 service_config.save()
-            result = general_message(200, "success", u"修改成功")
+            result = general_message(200, "success", "修改成功")
             return Response(result, status=result["code"])
-        return Response(general_message(405, "success", u"修改失败"), status=405)
+        return Response(general_message(405, "success", "修改失败"), status=405)

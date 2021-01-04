@@ -293,7 +293,7 @@ class MarketService(object):
         self._update_service_source(app, self.version)
         changes = deepcopy(self.changes)
         if changes:
-            for k, v in changes.items():
+            for k, v in list(changes.items()):
                 func = self.update_funcs.get(k, None)
                 if func is None:
                     continue
@@ -338,7 +338,7 @@ class MarketService(object):
         """
         changes = deepcopy(self.changes)
         if changes:
-            for k, v in changes.items():
+            for k, v in list(changes.items()):
                 func = self.sync_funcs.get(k, None)
                 if func is None:
                     continue
@@ -361,7 +361,7 @@ class MarketService(object):
         self._update_changed()
 
         async_action = AsyncAction.NOTHING.value
-        for k, v in self.changed.items():
+        for k, v in list(self.changed.items()):
             func = self.restore_func.get(k, None)
             if func is None:
                 continue
@@ -534,13 +534,13 @@ class MarketService(object):
         container_port = int(port["container_port"])
         port_alias = self.service.service_alias.upper()
         host_env = {
-            "name": u"连接地址",
+            "name": "连接地址",
             "attr_name": port_alias + str(port["container_port"]) + "_HOST",
             "attr_value": "127.0.0.1",
             "is_change": False,
         }
         port_env = {
-            "name": u"端口",
+            "name": "端口",
             "attr_name": port_alias + str(port["container_port"]) + "_PORT",
             "attr_value": container_port,
             "is_change": False,

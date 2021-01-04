@@ -60,7 +60,7 @@ class FileUploadService(object):
             prefix_file_path = '{0}/uploads'.format(settings.MEDIA_ROOT)
 
             if not os.path.exists(prefix_file_path):
-                os.makedirs(prefix_file_path, 0777)
+                os.makedirs(prefix_file_path, 0o777)
         except Exception as e:
             logger.exception(e)
 
