@@ -16,6 +16,7 @@ import sys
 
 from corsheaders.defaults import default_headers
 
+APPEND_SLASH = False
 SETTING_DIR = os.path.dirname(__file__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
