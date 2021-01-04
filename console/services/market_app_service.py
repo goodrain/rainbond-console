@@ -67,6 +67,7 @@ class MarketAppService(object):
         service_probe_map = {}
         app_plugin_map = {}  # 新装组件对应的安装的插件映射
         old_new_id_map = {}  # 新旧组件映射关系
+        svc_key_id_map = {}  # service_key与组件映射关系
         try:
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
@@ -95,6 +96,7 @@ class MarketAppService(object):
                 group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
+                svc_key_id_map[app["service_key"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
                 code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
@@ -137,10 +139,10 @@ class MarketAppService(object):
             config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
             for config_group in config_groups:
                 component_ids = []
-                for sid in config_group.get("component_ids", []):
-                    if not old_new_id_map.get(sid):
+                for service_key in config_group.get("component_keys", []):
+                    if not svc_key_id_map.get(service_key):
                         continue
-                    component_ids.append(old_new_id_map.get(sid).service_id)
+                    component_ids.append(svc_key_id_map.get(service_key).service_id)
                 config_items = config_group.get("config_items", {})
                 items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
                 try:
@@ -751,11 +753,14 @@ class MarketAppService(object):
             try:
                 ServiceMonitor.objects.get(tenant_id=tenant.tenant_id, name=monitor_name)
                 monitor_name += "-" + make_uuid()[0:4]
-            except ServiceMonitor.DoesNotExist:
-                pass
-            service_monitor_repo.create_component_service_monitor(tenant, service, monitor_name, monitor.get("path"),
+                service_monitor_repo.create_component_service_monitor(tenant, service, monitor_name, monitor.get("path"),
                                                                   monitor.get("port"), monitor.get("service_show_name"),
                                                                   monitor.get("interval"))
+            except ServiceMonitor.DoesNotExist:
+                pass
+            except ServiceHandleException as e:
+                logger.exception("create component monitor failed: {0}".format(e))
+                continue
 
     def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):
         """
