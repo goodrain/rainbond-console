@@ -208,7 +208,7 @@ class PropertiesChanges(object):
             logger.debug("plugin changes: {}".format(json.dumps(plugins)))
             result["plugins"] = plugins
 
-        app_config_groups = self.app_config_group_changes(component, template)
+        app_config_groups = self.app_config_group_changes(template)
         if app_config_groups:
             logger.debug("app_config_groups changes: {}".format(json.dumps(app_config_groups)))
             result["app_config_groups"] = app_config_groups
@@ -223,16 +223,18 @@ class PropertiesChanges(object):
 
         return result
 
-    def app_config_group_changes(self, component, template):
+    def app_config_group_changes(self, template):
         if not template.get("app_config_groups"):
             return None
         add = []
+        service_key = self.service_source.service_share_uuid.split('+')[0]
+        service_ids_keys_map = {self.service.service_id: service_key}
         # 从数据库获取对当前组件生效的配置组
-        old_cgroups = share_service.config_groups(self.service.service_region, [self.service.service_id])
+        old_cgroups = share_service.config_groups(self.service.service_region, service_ids_keys_map)
         old_cgroups_name_items = {cgroup["name"]: cgroup["config_items"] for cgroup in old_cgroups}
         for app_config_group in template["app_config_groups"]:
-            # 如果当前组件模版中的组件ID不在应用配置组模版包含的生效组件中,跳过该配置组
-            if component["service_id"] not in app_config_group["component_ids"]:
+            # 如果当前组件中的service_key不在应用配置组模版包含的生效组件中,跳过该配置组
+            if service_key not in app_config_group["component_keys"]:
                 continue
             # 如果模版中的配置组名不存在，记录下变更信息, 修改生效组件ID
             app_config_group["component_ids"] = []

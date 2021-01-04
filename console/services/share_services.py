@@ -888,12 +888,17 @@ class ShareService(object):
         for group in groups:
             # list related items
             cg = {
-                "name": group.config_group_name,
-                "injection_type": group.deploy_type,
+                "name":
+                group.config_group_name,
+                "injection_type":
+                group.deploy_type,
                 "config_items":
                 {item.item_key: item.item_value
                  for item in app_config_group_item_repo.list(group.config_group_id)},
-                "component_keys": [service_ids_keys_map.get(service.service_id) for service in app_config_group_service_repo.list(group.config_group_id)]
+                "component_keys": [
+                    service_ids_keys_map.get(service.service_id)
+                    for service in app_config_group_service_repo.list(group.config_group_id)
+                ]
             }
             cgs.append(cg)
 
