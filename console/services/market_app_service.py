@@ -1235,10 +1235,10 @@ class MarketAppService(object):
         app.scope = app_info.get("scope")
         if app.scope == "team":
             create_team = app_info.get("create_team")
-            team = team_repo.get_team_by_team_name(create_team)
-            if not team:
-                raise ServiceHandleException(msg="can't get create team", msg_show="找不到团队")
-            app.create_team = create_team
+            if create_team:
+              team = team_repo.get_team_by_team_name(create_team)
+              if team:
+                app.create_team = create_team
         app.save()
 
     @transaction.atomic
