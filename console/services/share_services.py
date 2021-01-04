@@ -749,8 +749,8 @@ class ShareService(object):
                 raise ServiceHandleException(msg="Basic information processing error", msg_show="基本信息处理错误")
 
             # group config
-            service_ids = [svc["service_id"] for svc in share_info["share_service_list"]]
-            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids)
+            service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
+            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
 
             # plugins
             try:
@@ -860,6 +860,7 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
             )
+            # print(json.dumps(app_templete))
             app_version.save()
             share_record.step = 2
             share_record.scope = scope
@@ -881,18 +882,23 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
 
-    def config_groups(self, region_name, service_ids):
-        groups = app_config_group_repo.list_by_service_ids(region_name, service_ids)
+    def config_groups(self, region_name, service_ids_keys_map):
+        groups = app_config_group_repo.list_by_service_ids(region_name, service_ids_keys_map.keys())
         cgs = []
         for group in groups:
             # list related items
             cg = {
-                "name": group.config_group_name,
-                "injection_type": group.deploy_type,
+                "name":
+                group.config_group_name,
+                "injection_type":
+                group.deploy_type,
                 "config_items":
                 {item.item_key: item.item_value
                  for item in app_config_group_item_repo.list(group.config_group_id)},
-                "component_ids": [service.service_id for service in app_config_group_service_repo.list(group.config_group_id)],
+                "component_keys": [
+                    service_ids_keys_map.get(service.service_id)
+                    for service in app_config_group_service_repo.list(group.config_group_id)
+                ]
             }
             cgs.append(cg)
 

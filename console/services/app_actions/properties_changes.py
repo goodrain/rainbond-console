@@ -3,6 +3,7 @@ import json
 import logging
 import time
 
+from console.exception.main import AbortRequest
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, volume_repo)
 from console.repositories.group import group_service_relation_repo
@@ -15,6 +16,10 @@ from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.services.group_service import group_service
+from console.services.share_services import share_service
+from console.services.app_config.promql_service import promql_service
+from console.repositories.component_graph import component_graph_repo
+from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -153,7 +158,7 @@ class PropertiesChanges(object):
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
-    def get_property_changes(self, component=None, plugins=None, level="svc"):
+    def get_property_changes(self, component=None, plugins=None, level="svc", template=None):
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
         if not component:
@@ -203,7 +208,86 @@ class PropertiesChanges(object):
             logger.debug("plugin changes: {}".format(json.dumps(plugins)))
             result["plugins"] = plugins
 
+        app_config_groups = self.app_config_group_changes(template)
+        if app_config_groups:
+            logger.debug("app_config_groups changes: {}".format(json.dumps(app_config_groups)))
+            result["app_config_groups"] = app_config_groups
+
+        component_graphs = self.component_graph_changes(component.get("component_graphs", []))
+        if component_graphs:
+            result["component_graphs"] = component_graphs
+
+        component_monitors = self.component_monitor_changes(component.get("component_monitors", []))
+        if component_monitors:
+            result["component_monitors"] = component_monitors
+
         return result
+
+    def app_config_group_changes(self, template):
+        if not template.get("app_config_groups"):
+            return None
+        add = []
+        service_key = self.service_source.service_share_uuid.split('+')[0]
+        service_ids_keys_map = {self.service.service_id: service_key}
+        # 从数据库获取对当前组件生效的配置组
+        old_cgroups = share_service.config_groups(self.service.service_region, service_ids_keys_map)
+        old_cgroups_name_items = {cgroup["name"]: cgroup["config_items"] for cgroup in old_cgroups}
+        for app_config_group in template["app_config_groups"]:
+            # 如果当前组件中的service_key不在应用配置组模版包含的生效组件中,跳过该配置组
+            if service_key not in app_config_group["component_keys"]:
+                continue
+            # 如果模版中的配置组名不存在，记录下变更信息, 修改生效组件ID
+            app_config_group["component_ids"] = []
+            if not old_cgroups_name_items.get(app_config_group["name"]):
+                app_config_group["component_ids"].append(self.service.service_id)
+                add.append(app_config_group)
+                continue
+            # 配置组存在，则比较配置项
+            new_items = {}
+            for item_key in app_config_group["config_items"]:
+                if not old_cgroups_name_items[app_config_group["name"]].get(item_key, ""):
+                    new_items.update({item_key: app_config_group["config_items"][item_key]})
+            if new_items:
+                app_config_group["component_ids"].append(self.service.service_id)
+                app_config_group["config_items"] = new_items
+                add.append(app_config_group)
+        if not add:
+            return None
+        return {"add": add}
+
+    def component_graph_changes(self, component_graphs):
+        if not component_graphs:
+            return None
+
+        old_graphs = component_graph_repo.list(self.service.service_id)
+        old_promqls = [graph.promql for graph in old_graphs if old_graphs]
+        add = []
+        for graph in component_graphs:
+            try:
+                new_promql = promql_service.add_or_update_label(self.service.service_id, graph.get("promql"))
+            except AbortRequest as e:
+                logger.warning("promql: {}, {}".format(graph.get("promql"), e))
+                continue
+            if new_promql not in old_promqls:
+                add.append(graph)
+        if not add:
+            return None
+        return {"add": add}
+
+    def component_monitor_changes(self, service_monitors):
+        if not service_monitors:
+            return None
+        add = []
+        old_monitors = service_monitor_repo.list_by_service_ids(self.tenant.tenant_id, [self.service.service_id])
+        old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
+        for monitor in service_monitors:
+            tenant_monitor = service_monitor_repo.get_tenant_service_monitor(self.tenant.tenant_id, monitor["name"])
+            if not tenant_monitor and monitor["name"] not in old_monitor_names:
+                add.append(monitor)
+
+        if not add:
+            return None
+        return {"add": add}
 
     def env_changes(self, envs):
         """
@@ -480,3 +564,14 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
     else:
         app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)
     return app
+
+
+def get_upgrade_app_template(tenant, version, pc):
+    if pc.install_from_cloud:
+        data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, get_template=True)
+        template = json.loads(data.template)
+    else:
+        data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key,
+                                                                       version)
+        template = json.loads(data.app_template)
+    return template

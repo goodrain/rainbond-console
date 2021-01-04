@@ -40,6 +40,7 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -66,6 +67,7 @@ class MarketAppService(object):
         service_probe_map = {}
         app_plugin_map = {}  # 新装组件对应的安装的插件映射
         old_new_id_map = {}  # 新旧组件映射关系
+        svc_key_id_map = {}  # service_key与组件映射关系
         try:
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
@@ -94,6 +96,7 @@ class MarketAppService(object):
                 group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
+                svc_key_id_map[app["service_key"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
                 code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
@@ -122,10 +125,6 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
-                # component monitors
-                component_monitors = app.get("component_monitors", {})
-                self.__save_monitors(ts.tenant_id, ts.service_id, component_monitors)
-
                 # component graphs
                 component_graphs = app.get("component_graphs", {})
                 component_graph_service.bulk_create(ts.service_id, component_graphs)
@@ -140,10 +139,10 @@ class MarketAppService(object):
             config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
             for config_group in config_groups:
                 component_ids = []
-                for sid in config_group.get("component_ids", []):
-                    if not old_new_id_map.get(sid):
+                for service_key in config_group.get("component_keys", []):
+                    if not svc_key_id_map.get(service_key):
                         continue
-                    component_ids.append(old_new_id_map.get(sid).service_id)
+                    component_ids.append(svc_key_id_map.get(service_key).service_id)
                 config_items = config_group.get("config_items", {})
                 items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
                 try:
@@ -160,6 +159,10 @@ class MarketAppService(object):
 
             # dependent volume
             self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
+
+            # component monitors
+            component_monitors = app.get("component_monitors", {})
+            self.__create_component_monitor(tenant, new_service_list, component_monitors)
 
             events = []
             if is_deploy:
@@ -195,6 +198,7 @@ class MarketAppService(object):
         service_probe_map = {}
         app_plugin_map = {}  # 新装组件对应的安装的插件映射
         old_new_id_map = {}  # 新旧组件映射关系
+        svc_key_id_map = {}  # service_key与组件映射关系
 
         for service in services:
             service_share_uuid = service.service_source_info.service_share_uuid
@@ -236,6 +240,7 @@ class MarketAppService(object):
                 group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
+                svc_key_id_map[app["service_key"]] = ts
 
                 # 先保存env,再保存端口，因为端口需要处理env
                 code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
@@ -264,13 +269,53 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
+                # component graphs
+                component_graphs = app.get("component_graphs", {})
+                component_graph_service.bulk_create(ts.service_id, component_graphs)
+
             # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
+
+            # config groups
+            config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
+            for config_group in config_groups:
+                component_ids = []
+                for service_key in config_group.get("component_keys", []):
+                    if not svc_key_id_map.get(service_key):
+                        continue
+                    component_ids.append(svc_key_id_map.get(service_key).service_id)
+                config_items = config_group.get("config_items", {})
+                items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                try:
+                    app_config_group_service.create_config_group(group_id, config_group["name"], items,
+                                                                 config_group["injection_type"], True, component_ids, region,
+                                                                 tenant.tenant_name)
+                except ErrAppConfigGroupExists:
+                    old_cgroup = app_config_group_service.get_config_group(region, group_id, config_group["name"])
+                    old_cgroup_service_ids = [
+                        old_service["service_id"] for old_service in old_cgroup["services"]
+                        if old_service["service_id"] not in component_ids
+                    ]
+                    old_cgroup_items = [{
+                        "item_key": old_item["item_key"],
+                        "item_value": old_item["item_value"]
+                    } for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
+
+                    component_ids.extend(old_cgroup_service_ids)
+                    items.extend(old_cgroup_items)
+
+                    app_config_group_service.update_config_group(region, group_id, config_group["name"], items, True,
+                                                                 component_ids, tenant.tenant_name)
+
             # 创建组件插件
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
                 plugins = app_plugin_map[service.service_id]
                 self.__create_service_pluginsv2(tenant, service, market_app.version, plugins)
+
+            # component monitors
+            component_monitors = app.get("component_monitors", {})
+            self.__create_component_monitor(tenant, new_service_list, component_monitors)
 
             events = {}
             if is_deploy:
@@ -300,6 +345,66 @@ class MarketAppService(object):
         self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
         # dependent volume
         self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
+
+    def save_app_config_groups_when_upgrade_app(self, region_name, tenant, app_id, upgrade_service_infos):
+        if not upgrade_service_infos:
+            return
+        # 数据库中当前应用下的所有配置组
+        old_app_config_groups = app_config_group_service.list(region_name, app_id)
+
+        new_config_groups = {}  # 需要被新创建的应用配置组
+        need_update_config_groups = {}  # 需要被更新的应用配置组
+        for service_id in upgrade_service_infos:
+            if not upgrade_service_infos[service_id].get("app_config_groups"):
+                continue
+            for app_config_group in upgrade_service_infos[service_id]["app_config_groups"]["add"]:
+                if not old_app_config_groups.get(app_config_group["name"]):
+                    # 如果应用配置组不在数据库中，但是已存在于待创建配置组中，则只追加生效组件ID
+                    if new_config_groups.get(app_config_group["name"]):
+                        new_config_groups[app_config_group["name"]]["component_ids"].append(service_id)
+                        continue
+                    # 如果应用配置组不在数据库也不在待创建的配置组中，则将其加入待创建配置组
+                    new_config_groups.update({app_config_group["name"]: app_config_group})
+                    continue
+                need_update_config_groups.update({app_config_group["name"]: app_config_group})
+
+        # 创建新的应用配置组
+        if new_config_groups:
+            for new_cgroup_name in new_config_groups:
+                config_items = new_config_groups[new_cgroup_name]["config_items"]
+                items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                app_config_group_service.create_config_group(
+                    app_id, new_cgroup_name, items, new_config_groups[new_cgroup_name]["injection_type"], True,
+                    new_config_groups[new_cgroup_name]["component_ids"], region_name, tenant.tenant_name)
+        # 更新已有应用配置组
+        if need_update_config_groups:
+            for update_cgroup_name in need_update_config_groups:
+                config_items = need_update_config_groups[update_cgroup_name]["config_items"]
+                new_service_ids = need_update_config_groups[update_cgroup_name]["component_ids"]
+                # 获取原有配置组的配置项和生效组件
+                old_cgroup = app_config_group_service.get_config_group(region_name, app_id, update_cgroup_name)
+                old_cgroup_service_ids = [
+                    old_service["service_id"] for old_service in old_cgroup["services"]
+                    if old_service["service_id"] not in new_service_ids
+                ]
+                old_cgroup_items = [{
+                    "item_key": old_item["item_key"],
+                    "item_value": old_item["item_value"]
+                } for old_item in old_cgroup["config_items"] if not config_items.get(old_item["item_key"])]
+
+                # 将需要升级的生效组件ID与原有配置组生效组件ID连接起来，构成更新配置组需要的组件ID列表
+                new_service_ids.extend(old_cgroup_service_ids)
+                # 将需要升级的配置项与原有配置组配置项连接起来，构成更新配置组需要的配置项列表
+                new_items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
+                new_items.extend(old_cgroup_items)
+                app_config_group_service.update_config_group(region_name, app_id, update_cgroup_name, new_items, True,
+                                                             new_service_ids, tenant.tenant_name)
+
+    def __create_component_monitor(self, tenant, service_list, component_monitors):
+        if not service_list:
+            return
+        for service in service_list:
+            self.__save_monitors(tenant, service, component_monitors)
 
     def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
         for app in apps:
@@ -640,31 +745,24 @@ class MarketAppService(object):
         extend_repo.create_extend_method(**params)
 
     @staticmethod
-    def __save_monitors(tenant_id, component_id, monitors):
+    def __save_monitors(tenant, service, monitors):
         if not monitors:
             return
 
-        sms = []
         for monitor in monitors:
             monitor_name = monitor.get("name")
             # make monitor name unique
             try:
-                ServiceMonitor.objects.get(tenant_id=tenant_id, name=monitor_name)
+                ServiceMonitor.objects.get(tenant_id=tenant.tenant_id, name=monitor_name)
                 monitor_name += "-" + make_uuid()[0:4]
+                service_monitor_repo.create_component_service_monitor(tenant, service, monitor_name, monitor.get("path"),
+                                                                      monitor.get("port"), monitor.get("service_show_name"),
+                                                                      monitor.get("interval"))
             except ServiceMonitor.DoesNotExist:
                 pass
-
-            sms.append(
-                ServiceMonitor(
-                    tenant_id=tenant_id,
-                    service_id=component_id,
-                    name=monitor_name,
-                    path=monitor.get("path"),
-                    port=monitor.get("port"),
-                    service_show_name=monitor.get("service_show_name"),
-                    interval=monitor.get("interval"),
-                ))
-        ServiceMonitor.objects.bulk_create(sms)
+            except ServiceHandleException as e:
+                logger.exception("create component monitor failed: {0}".format(e))
+                continue
 
     def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):
         """
@@ -1145,9 +1243,9 @@ class MarketAppService(object):
         if app.scope == "team":
             create_team = app_info.get("create_team")
             if create_team:
-              team = team_repo.get_team_by_team_name(create_team)
-              if team:
-                app.create_team = create_team
+                team = team_repo.get_team_by_team_name(create_team)
+                if team:
+                    app.create_team = create_team
         app.save()
 
     @transaction.atomic

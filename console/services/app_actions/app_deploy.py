@@ -15,7 +15,8 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app,
+                                                             get_upgrade_app_template)
 from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
@@ -30,6 +31,9 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from www.models.main import TenantServicesPort
+from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -160,8 +164,10 @@ class MarketService(object):
         all_update_funcs = self._create_update_funcs()
         all_sync_funcs = self._create_sync_funcs()
         m = {
-            PropertyType.ORDINARY.value:
-            ["deploy_version", "app_version", "image", "slug_path", "envs", "connect_infos", "ports", "volumes", "probe"],
+            PropertyType.ORDINARY.value: [
+                "deploy_version", "app_version", "image", "slug_path", "envs", "connect_infos", "ports", "volumes", "probe",
+                "component_graphs", "component_monitors"
+            ],
             PropertyType.DEPENDENT.value: ["dep_services", "dep_volumes", "plugins"]
         }
         keys = m.get(typ3, None)
@@ -186,6 +192,8 @@ class MarketService(object):
             "dep_services": self._update_dep_services,
             "dep_volumes": self._update_dep_volumes,
             "plugins": self._update_plugins,
+            "component_graphs": self._update_component_graphs,
+            "component_monitors": self._update_component_monitors,
         }
 
     def _create_sync_funcs(self):
@@ -202,6 +210,7 @@ class MarketService(object):
             "dep_services": self._sync_dep_services,
             "dep_volumes": self._sync_dep_volumes,
             "plugins": self._sync_plugins,
+            "component_monitors": self._sync_component_monitors,
         }
 
     def _create_restore_funcs(self):
@@ -259,7 +268,8 @@ class MarketService(object):
     def set_changes(self):
         pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
         app = get_upgrade_app_version_template_app(self.tenant, self.version, pc)
-        changes = pc.get_property_changes(app)
+        template = get_upgrade_app_template(self.tenant, self.version, pc)
+        changes = pc.get_property_changes(app, template=template)
         logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
         self.changes = changes
         logger.info("upgrade from cloud do not support.")
@@ -454,6 +464,18 @@ class MarketService(object):
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
 
+    def _update_component_graphs(self, component_graphs):
+        if not component_graphs:
+            return
+        add = component_graphs.get("add", [])
+        component_graph_service.bulk_create(self.service.service_id, add)
+
+    def _update_component_monitors(self, component_monitors):
+        if not component_monitors:
+            return
+        add = component_monitors.get("add", [])
+        service_monitor_repo.bulk_create_component_service_monitors(self.tenant, self.service, add)
+
     def _sync_inner_envs(self, envs):
         self._sync_envs(envs, "inner")
 
@@ -550,6 +572,14 @@ class MarketService(object):
     def update_port_data(self, port):
         container_port = int(port["container_port"])
         port_alias = self.service.service_alias.upper()
+        k8s_service_name = port.get("k8s_service_name", self.service.service_alias + "-" + str(container_port))
+        if k8s_service_name:
+            try:
+                port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+                k8s_service_name += "-" + make_uuid()[-4:]
+            except TenantServicesPort.DoesNotExist:
+                pass
+            port["k8s_service_name"] = k8s_service_name
         port["tenant_id"] = self.tenant.tenant_id
         port["service_id"] = self.service.service_id
         port["mapping_port"] = container_port
@@ -878,6 +908,23 @@ class MarketService(object):
         for plugin in delete:
             region_api.uninstall_service_plugin(self.service.service_region, self.tenant.tenant_name, plugin["plugin_id"],
                                                 self.service.service_alias)
+
+    def _sync_component_monitors(self, component_monitors):
+        logger.debug("start syncing component_monitors; component_monitors datas: {}".format(component_monitors))
+        monitors = service_monitor_repo.list_by_service_ids(self.tenant.tenant_id, [self.service.service_id])
+        for monitor in monitors:
+            req = {
+                "name": monitor.name,
+                "path": monitor.path,
+                "port": monitor.port,
+                "service_show_name": monitor.service_show_name,
+                "interval": monitor.interval,
+            }
+            try:
+                region_api.create_service_monitor(self.tenant.enterprise_id, self.service.service_region,
+                                                  self.tenant.tenant_name, self.service.service_alias, req)
+            except RegionApiBaseHttpClient.CallApiError as e:
+                logger.error("failed to create_component_monitor: {}".format(e))
 
     def _restore_plugins(self, backup):
         backup_data = json.loads(backup.backup_data)
