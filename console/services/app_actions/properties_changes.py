@@ -12,9 +12,9 @@ from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_config.volume_service import AppVolumeService
+from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
-from console.services.group_service import group_service
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -54,16 +54,7 @@ class PropertiesChanges(object):
         service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
         versions = service_sources.exclude(version=None).values_list("version", flat=True)
         if versions:
-
-            def foobar(y):
-                try:
-                    s = filter(str.isdigit, str(y))
-                    return int(s)
-                except ValueError:
-                    # compatible with old version like 'RELEASE.2018-04-19T2'
-                    return -1
-
-            sorted_versions = sorted(versions, key=lambda x: map(foobar, x.split(".")))
+            sorted_versions = sorted(versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")])
             current_version = sorted_versions[-1]
             current_version_source = service_sources.filter(version=current_version).first()
         else:
@@ -145,7 +136,7 @@ class PropertiesChanges(object):
     def checkVersionG2(self, currentversion, expectedversion):
         same = False
         versions = [currentversion, expectedversion]
-        sort_versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x.split(".")))
+        sort_versions = sorted(versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")])
         max_version = sort_versions.pop()
         if currentversion == expectedversion:
             same = True
@@ -401,14 +392,14 @@ class PropertiesChanges(object):
         new_probe = new_probes[0]
         # remove redundant keys
         for key in ["ID", "probe_id", "service_id"]:
-            if key in new_probe.keys():
+            if key in list(new_probe.keys()):
                 new_probe.pop(key)
         old_probe = probe_repo.get_probe(self.service.service_id)
         if not old_probe:
             return {"add": new_probe, "upd": []}
         old_probe = old_probe.to_dict()
-        for k, v in new_probe.items():
-            if key in new_probe.keys() and old_probe[k] != v:
+        for k, v in list(new_probe.items()):
+            if key in list(new_probe.keys()) and old_probe[k] != v:
                 logger.debug("found a change in the probe; key: {}; \
                     old value: {}; new value: {}".format(k, v, old_probe[k]))
                 return {"add": [], "upd": new_probe}
@@ -455,7 +446,7 @@ def has_changes(changes):
     a = ["deploy_version", "app_version"]
     b = ["envs", "connect_infos", "ports", "probe", "volumes", "dep_services", "dep_volumes", "plugins"]
 
-    for k, v in changes.items():
+    for k, v in list(changes.items()):
         if k in a and alpha(v):
             logger.debug("found a change; key: {}; value: {}".format(k, v))
             return True
@@ -476,7 +467,7 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
                      or x.get("service_key", None) == pc.service_source.service_share_uuid
             return result
 
-        app = next(iter(filter(lambda x: func(x), apps)), None)
+        app = next(iter([x for x in apps if func(x)]), None)
     else:
         app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)
     return app

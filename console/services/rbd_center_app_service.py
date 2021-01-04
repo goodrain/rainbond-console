@@ -40,7 +40,7 @@ class RbdCenterAppService(object):
                 or x.get("service_key", None) == service_source.service_share_uuid
             return result
 
-        app = next(iter(filter(lambda x: func(x), apps)), None)
+        app = next(iter([x for x in apps if func(x)]), None)
         if app is None:
             fmt = "Group key: {0}; version: {1}; service_share_uuid: {2}; Rainbond app not found."
             raise RbdAppNotFound(fmt.format(service_source.group_key, version, service_source.service_share_uuid))

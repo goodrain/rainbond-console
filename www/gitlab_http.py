@@ -2,7 +2,7 @@
 import json
 import logging
 import os
-from urllib import urlencode
+from urllib.parse import urlencode
 
 import httplib2
 
@@ -30,7 +30,7 @@ class GitlabApi(BaseHttpClient):
     def _reload(self):
         gitlab_service_info = custom_config.GITLAB
         if gitlab_service_info is not None:
-            for k, v in gitlab_service_info.items():
+            for k, v in list(gitlab_service_info.items()):
                 setattr(self, k, v)
 
     def get_private_token(self):
@@ -60,7 +60,7 @@ class GitlabApi(BaseHttpClient):
             data = kwargs
             res, body = self._put(url, headers, json.dumps(data))
             return body
-        except Exception, e:
+        except Exception as e:
             raise e
 
     def createUser(self, email, password, username, name):
@@ -101,7 +101,7 @@ class GitlabApi(BaseHttpClient):
             res, body = self._delete(url, headers)
             logger.debug(git_user_id)
             return body
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
 
     def createProject(self, appname):
@@ -239,7 +239,7 @@ class GitlabApi(BaseHttpClient):
             data = {"access_level": level}
             res, body = self._put(url, headers, json.dumps(data))
             return True
-        except Exception, e:
+        except Exception as e:
             logger.exception("gitlab.members", e)
             return False
 

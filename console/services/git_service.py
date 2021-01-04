@@ -5,10 +5,9 @@
 import json
 import logging
 
-from django.conf import settings
-
 from console.constants import AppConstants
 from console.repositories.team_repo import team_gitlab_repo
+from django.conf import settings
 from goodrain_web.custom_config import custom_config
 from www.gitlab_http import GitlabApi
 from www.tenantservice.baseservice import CodeRepositoriesService
@@ -80,7 +79,7 @@ class GitCodeService(object):
             for reposJson in reposList:
                 ref = reposJson["ref"]
                 branchs.append(ref.split("/")[2])
-        except Exception, e:
+        except Exception as e:
             logger.error('client_error', e)
         return branchs
 
@@ -144,9 +143,9 @@ class GitCodeService(object):
         project_id = 0
         rt_data = {}
         import re
-        r = re.compile(u'^[a-zA-Z0-9_\\-]+$')
-        if not r.match(project_name.decode("utf-8")):
-            return 400, u"项目名称只支持英文下划线和中划线", None
+        r = re.compile('^[a-zA-Z0-9_\\-]+$')
+        if not r.match(project_name):
+            return 400, "项目名称只支持英文下划线和中划线", None
         namespace = settings.GITLAB_ADMIN_NAME
         is_project_exist = self.is_gitlab_project_exist(namespace, tenant, project_name)
         if is_project_exist:

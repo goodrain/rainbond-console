@@ -5,7 +5,7 @@
 import base64
 import json
 import logging
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from console.appstore.appstore import app_store
 from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
@@ -114,7 +114,7 @@ class AppExportService(object):
         if not image_url:
             return None
         if image_url.startswith("http"):
-            response = urllib2.urlopen(image_url)
+            response = urllib.request.urlopen(image_url)
         else:
             response = open(image_url)
         image_base64_string = base64.encodestring(response.read())

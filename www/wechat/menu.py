@@ -38,5 +38,5 @@ class AccessTokenApi:
                 jd = res.json()
                 return jd.access_token
             except Exception as e:
-                print e
+                print(e)
         return None

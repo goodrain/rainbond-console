@@ -4,11 +4,10 @@ import logging
 import os
 
 import httplib2
-from django import http
-from django.conf import settings
-
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from django import http
+from django.conf import settings
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -54,7 +53,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 logger.error("tenant {0} is not init in region {1}".format(tenant_name, region))
                 raise http.Http404
         else:
-            logger.error("tenant {0} is not found!".format(tenant_name))
+            logger.error("team {0} is not found!".format(tenant_name))
             raise http.Http404
         return tenant_regions[0]
 
@@ -438,7 +437,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 raise ServiceHandleException(
                     status_code=400,
                     msg="do not allow operate outer port for thirdpart domain endpoints",
-                    msg_show=u"该第三方组件具有域名类实例，暂不支持开放网关访问")
+                    msg_show="该第三方组件具有域名类实例，暂不支持开放网关访问")
             else:
                 raise e
 

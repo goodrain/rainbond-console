@@ -7,11 +7,8 @@ import socket
 import httplib2
 from addict import Dict
 from django.conf import settings
-
 from goodrain_web.decorator import method_perf_time
-from www.models.main import TenantEnterprise
-from www.models.main import TenantEnterpriseToken
-from www.models.main import Tenants
+from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
 
 logger = logging.getLogger('default')
 
@@ -94,14 +91,14 @@ class HttpClient(object):
                 # else:
                 #     record_body = body
                 return response, content
-            except socket.timeout, e:
+            except socket.timeout as e:
                 logger.error('client_error', "timeout: %s" % url)
                 logger.exception('client_error', e)
                 raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                     "type": "request time out",
                     "error": str(e)
                 })
-            except socket.error, e:
+            except socket.error as e:
                 retry_count -= 1
                 if retry_count:
                     logger.error("client_error", "retry request: %s" % url)
@@ -268,10 +265,10 @@ class ClientAuthService(object):
         return token.access_url, token.access_id, token.access_token
 
     def get_region_access_token_by_tenant(self, tenant_name, region_name):
-        tenant = Tenants.objects.get(tenant_name=tenant_name)
+        tenant = Tenants.objects.filter(tenant_name=tenant_name)
         if not tenant:
             return None, None
-
+        tenant = tenant[0]
         token = self.__get_cached_access_token(tenant.enterprise_id, region_name)
         if not token:
             token = self.reflush_access_token(tenant.enterprise_id, region_name)

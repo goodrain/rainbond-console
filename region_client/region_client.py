@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
-from region_client.regionapibaseclient import RegionApiBaseHttpClient
+from .region_client.regionapibaseclient import RegionApiBaseHttpClient
 from .api.tenants import Tenant
 
 logger = logging.getLogger('default')

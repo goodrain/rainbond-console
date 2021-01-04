@@ -4,6 +4,15 @@ import os
 
 import jwt
 from addict import Dict
+from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
+from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
+from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
+from console.repositories.group import group_repo
+from console.repositories.user_repo import user_repo
+from console.services.user_services import user_services
+from console.utils import perms
+from console.utils.oauth.oauth_types import get_oauth_instance
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
@@ -11,6 +20,7 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
+from goodrain_web import errors
 from rest_framework import exceptions, status
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import NotFound, ValidationError
@@ -19,18 +29,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
-
-from console.services.user_services import user_services
-from console.repositories.enterprise_repo import enterprise_user_perm_repo
-from console.repositories.user_repo import user_repo
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
-from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
-from console.repositories.enterprise_repo import enterprise_repo
-from console.repositories.group import group_repo
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils import perms
-from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
 
@@ -400,9 +398,9 @@ def custom_exception_handler(exc, context):
         return Response(data, status=409)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiError):
         if exc.message.get("httpcode") == 404:
-            data = {"code": 404, "msg": "region no found this resource", "msg_show": u"数据中心资源不存在"}
+            data = {"code": 404, "msg": "region no found this resource", "msg_show": "数据中心资源不存在"}
         else:
-            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作故障，请稍后重试"}
+            data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障，请稍后重试"}
         return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
@@ -462,8 +460,17 @@ def custom_exception_handler(exc, context):
         return exc.get_response()
     elif isinstance(exc, ImportError):
         # 处理数据为标准返回格式
-        data = {"code": status.HTTP_400_BAD_REQUEST, "msg": exc.message, "msg_show": "{0}".format("请求参数不全")}
+        data = {
+            "code": status.HTTP_400_BAD_REQUEST,
+            "msg": exc.message if hasattr(exc, 'message') else '',
+            "msg_show": "{0}".format("请求参数不全")
+        }
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "code": 10401,
+            "msg": exc.message if hasattr(exc, 'message') else '',
+            "msg_show": "服务端异常"
+        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)

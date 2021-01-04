@@ -145,7 +145,7 @@ class Json2WordCase(TestCase):
         self.init()
         document = Document()
         for source in self.sources:
-            print(json.dumps(source.to_json(), encoding="UTF-8", ensure_ascii=False))
+            print((json.dumps(source.to_json(), encoding="UTF-8", ensure_ascii=False)))
             data = source.to_json()
             document.add_heading(source._meta.db_table, level=1)
             table = document.add_table(rows=1, cols=4, style='Medium Shading 1')

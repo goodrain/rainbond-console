@@ -15,7 +15,7 @@ def test_update_changed(mocker):
     service.service_id = "dummy service_id"
     market_service = MarketService(None, service, "dummy version")
     market_service._update_changed()
-    for k, v in market_service.changed.items():
+    for k, v in list(market_service.changed.items()):
         continue
 
 

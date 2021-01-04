@@ -13,12 +13,12 @@ import hmac
 import base64
 import string
 import platform
-import pkg_info
-from mns_xml_handler import *
-from mns_exception import *
-from mns_request import *
-from mns_tool import *
-from mns_http import *
+from . import pkg_info
+from .mns_xml_handler import *
+from .mns_exception import *
+from .mns_request import *
+from .mns_tool import *
+from .mns_http import *
 
 URISEC_QUEUE = "queues"
 URISEC_MESSAGE = "messages"
@@ -695,7 +695,7 @@ class MNSClient:
             resp.topic_name = subscription_attr["TopicName"]
             resp.subscription_name = subscription_attr["SubscriptionName"]
             resp.endpoint = subscription_attr["Endpoint"]
-            resp.filter_tag = subscription_attr["FilterTag"] if subscription_attr.has_key("FilterTag") else ""
+            resp.filter_tag = subscription_attr["FilterTag"] if "FilterTag" in subscription_attr else ""
             resp.notify_strategy = subscription_attr["NotifyStrategy"]
             resp.notify_content_format = subscription_attr["NotifyContentFormat"]
             resp.create_time = string.atoi(subscription_attr["CreateTime"])
@@ -732,7 +732,7 @@ class MNSClient:
         canonicalized_resource = resource
         canonicalized_mns_headers = ""
         if len(headers) > 0:
-            x_header_list = headers.keys()
+            x_header_list = list(headers.keys())
             x_header_list.sort()
             for k in x_header_list:
                 if k.startswith('x-mns-'):
@@ -740,7 +740,7 @@ class MNSClient:
         string_to_sign = "%s\n%s\n%s\n%s\n%s%s" % (method, content_md5, content_type, date, canonicalized_mns_headers,
                                                    canonicalized_resource)
         #hmac only support str in python2.7
-        tmp_key = self.access_key.encode('utf-8') if isinstance(self.access_key, unicode) else self.access_key
+        tmp_key = self.access_key.encode('utf-8') if isinstance(self.access_key, str) else self.access_key
         h = hmac.new(tmp_key, string_to_sign, hashlib.sha1)
         signature = base64.b64encode(h.digest())
         signature = "MNS " + self.access_id + ":" + signature

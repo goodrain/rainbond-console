@@ -1,18 +1,15 @@
 # -*- coding: utf8 -*-
+import importlib
 import re
 import sys
 
-from django.conf.urls import include
-from django.conf.urls import url
+from console.views.index import IndexTemplateView
+from django.conf.urls import include, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic.base import RedirectView
 from django.views.static import serve
 
-from console.views.index import IndexTemplateView
 from goodrain_web import settings
-
-reload(sys)  # Python2.5 初始化后会删除 sys.setdefaultencoding 这个方法，我们需要重新载入
-sys.setdefaultencoding('utf-8')
 
 kwargs = {"document_root": settings.MEDIA_ROOT}
 

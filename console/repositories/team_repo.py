@@ -158,7 +158,7 @@ class TeamRepo(object):
                 return None
         except Exception as e:
             logger.exception(e)
-            return u"测试Region"
+            return "测试Region"
 
     def get_team_by_team_name(self, team_name):
         try:

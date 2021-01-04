@@ -60,23 +60,23 @@ class AppCheckService(object):
                         service_id=service.oauth_service_id, user_id=user.user_id)
                 except Exception as e:
                     logger.debug(e)
-                    return 400, u"未找到oauth服务, 请检查该服务是否存在且属于开启状态", None
+                    return 400, "未找到oauth服务, 请检查该服务是否存在且属于开启状态", None
                 if oauth_user is None:
-                    return 400, u"未成功获取第三方用户信息", None
+                    return 400, "未成功获取第三方用户信息", None
 
                 try:
                     instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
                 except Exception as e:
                     logger.debug(e)
-                    return 400, u"未找到OAuth服务", None
+                    return 400, "未找到OAuth服务", None
                 if not instance.is_git_oauth():
-                    return 400, u"该OAuth服务不是代码仓库类型", None
+                    return 400, "该OAuth服务不是代码仓库类型", None
                 tenant = Tenants.objects.get(tenant_name=tenant.tenant_name)
                 try:
                     service_code_clone_url = instance.get_clone_url(service.git_url)
                 except Exception as e:
                     logger.debug(e)
-                    return 400, u"Access Token 已过期", None
+                    return 400, "Access Token 已过期", None
             else:
                 service_code_clone_url = service.git_url
 
@@ -113,7 +113,7 @@ class AppCheckService(object):
         bean.update(service.to_dict())
         bean.update({"user_name": user_name, "password": password})
         bean.update(self.__wrap_check_service(service))
-        return 200, u"success", bean
+        return 200, "success", bean
 
     def __get_service_source(self, service):
         if service.service_source:
@@ -388,7 +388,7 @@ class AppCheckService(object):
             for volume in volumes:
                 index += 1
                 volume_name = service.service_alias.upper() + "_" + str(index)
-                if "file_content" in volume.keys():
+                if "file_content" in list(volume.keys()):
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
                                                       volume_name, volume["file_content"])
                 else:

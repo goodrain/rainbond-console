@@ -87,6 +87,7 @@ class UpgradeService(object):
     def get_app_upgrade_versions(self, tenant, group_id, group_key):
         """获取云市组件可升级版本列表"""
         from console.services.group_service import group_service
+
         # 查询某一个云市组件下的所有组件
         services = group_service.get_rainbond_services(group_id, group_key)
         versions = set()
@@ -104,7 +105,8 @@ class UpgradeService(object):
         add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
         versions |= add_versions
         versions = [str(version) for version in versions]
-        versions = sorted(versions, key=lambda x: map(lambda y: int(filter(str.isdigit, y)), x.split(".")), reverse=True)
+        versions = sorted(
+            versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")], reverse=True)
         return versions
 
     def get_old_version(self, group_key, service_ids, cloud_version):
@@ -133,7 +135,7 @@ class UpgradeService(object):
         version_app_template_mapping = {app.version: self.parse_app_template(app.app_template) for app in app_qs}
         return {
             version
-            for version, parse_app_template in version_app_template_mapping.items()
+            for version, parse_app_template in list(version_app_template_mapping.items())
             if self.get_new_services(parse_app_template, service_keys)
         }
 
@@ -155,7 +157,8 @@ class UpgradeService(object):
     @staticmethod
     def get_service_changes(service, tenant, version):
         """获取组件更新信息"""
-        from console.services.app_actions.properties_changes import PropertiesChanges
+        from console.services.app_actions.properties_changes import \
+            PropertiesChanges
         try:
             pc = PropertiesChanges(service, tenant)
             app = get_upgrade_app_version_template_app(tenant, version, pc)
@@ -181,7 +184,7 @@ class UpgradeService(object):
                 if app:
                     app_template = app.template
             if app_template:
-                return self.get_new_services(self.parse_app_template(app_template), service_keys).values()
+                return list(self.get_new_services(self.parse_app_template(app_template), service_keys).values())
         else:
             return []
 
@@ -206,7 +209,7 @@ class UpgradeService(object):
             record.event_id: record
             for record in service_records if record.status in synchronization_type and record.event_id
         }
-        event_ids = event_service_mapping.keys()
+        event_ids = list(event_service_mapping.keys())
         body = region_api.get_tenant_events(tenant.region, tenant.tenant_name, event_ids)
         events = body.get("list", [])
 
@@ -230,7 +233,8 @@ class UpgradeService(object):
     def create_add_service_record(app_record, events, add_service_infos):
         """创建新增组件升级记录"""
         service_id_event_mapping = {events[key]: key for key in events}
-        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key, service_id_event_mapping.keys())
+        services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key,
+                                                                          list(service_id_event_mapping.keys()))
         for service in services:
             upgrade_repo.create_service_upgrade_record(
                 app_record,
@@ -459,7 +463,7 @@ class UpgradeService(object):
                 new_app = deepcopy(old_app)
                 # mock app信息
                 template = json.loads(new_app.template)
-                template['apps'] = add_info.values()
+                template['apps'] = list(add_info.values())
                 new_app.template = json.dumps(template)
 
                 # 查询某一个云市应用下的所有组件
@@ -479,7 +483,7 @@ class UpgradeService(object):
             app_record.old_version = pc.current_version.version
             app_record.save()
             # 处理升级组件
-            upgrade_services = service_repo.get_services_by_service_ids_and_group_key(app_model_id, upgrade_info.keys())
+            upgrade_services = service_repo.get_services_by_service_ids_and_group_key(app_model_id, list(upgrade_info.keys()))
             market_services = [
                 self.market_service_and_create_backup(team, service, app_record.version) for service in upgrade_services
             ]

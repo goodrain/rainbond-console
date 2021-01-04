@@ -3,7 +3,7 @@
   Created on 18/1/29.
 """
 import logging
-from urllib import urlencode
+from urllib.parse import urlencode
 
 from console.services.app_config import env_var_service
 from console.services.app_config.promql_service import promql_service

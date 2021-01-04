@@ -77,7 +77,7 @@ class AppProbeView(AppBaseView):
         code, msg, probe = probe_service.add_service_probe(self.tenant, self.service, params)
         if code != 200:
             return Response(general_message(code, "add probe error", msg))
-        result = general_message(200, u"success", "添加成功", bean=(probe.to_dict() if probe else probe))
+        result = general_message(200, "success", "添加成功", bean=(probe.to_dict() if probe else probe))
         return Response(result, status=result["code"])
 
     @never_cache
@@ -91,5 +91,5 @@ class AppProbeView(AppBaseView):
 
         probe = probe_service.update_service_probea(
             tenant=self.tenant, service=self.service, data=data, user_name=self.user.nick_name)
-        result = general_message(200, u"success", "修改成功", bean=(probe.to_dict() if probe else probe))
+        result = general_message(200, "success", "修改成功", bean=(probe.to_dict() if probe else probe))
         return Response(result, status=result["code"])

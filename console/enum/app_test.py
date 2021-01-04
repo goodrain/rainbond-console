@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from app import GovernanceModeEnum
+from .app import GovernanceModeEnum
 
 
 def test_governance_mode_choices():

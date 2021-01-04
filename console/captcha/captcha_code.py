@@ -2,25 +2,14 @@
 import hashlib
 import logging
 import random
-import uuid
 import re
-
-from django.conf import settings
-from django.http import HttpResponse
+import uuid
+from io import BytesIO
 
 from console.views.base import BaseApiView
-
-try:
-    from PIL import Image, ImageDraw, ImageFont
-except ImportError:
-    import Image
-    import ImageDraw
-    import ImageFont
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import BytesIO as StringIO
+from django.conf import settings
+from django.http import HttpResponse
+from PIL import Image, ImageDraw, ImageFont
 
 from_top = 4
 logger = logging.getLogger('default')
@@ -86,7 +75,7 @@ class CaptchaView(BaseApiView):
 
         ImageDraw.Draw(image)
 
-        out = StringIO()
+        out = BytesIO()
         image.save(out, "PNG")
         out.seek(0)
 

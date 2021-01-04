@@ -57,51 +57,51 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent = enter.to_dict()
         if ent:
             ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
-        result = general_message(200, "success", u"查询成功", bean=ent)
+        result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
     def put(self, request, enterprise_id, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, "no found config key {0}".format(key), u"更新失败")
+            result = general_message(404, "no found config key {0}".format(key), "更新失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key)
         if not value:
-            result = general_message(404, "no found config value", u"更新失败")
+            result = general_message(404, "no found config value", "更新失败")
             return Response(result, status=result.get("code", 200))
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
             data = ent_config_servier.update_config(key, value)
             try:
-                result = general_message(200, "success", u"更新成功", bean=data)
+                result = general_message(200, "success", "更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg="update enterprise config failed", msg_show=u"更新失败")
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
         else:
-            result = general_message(404, "no found config key", u"更新失败")
+            result = general_message(404, "no found config key", "更新失败")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, "no found config key", u"重置失败")
+            result = general_message(404, "no found config key", "重置失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key)
         if not value:
-            result = general_message(404, "no found config value", u"重置失败")
+            result = general_message(404, "no found config value", "重置失败")
             return Response(result, status=result.get("code", 200))
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.cfg_keys:
             data = ent_config_servier.delete_config(key)
             try:
-                result = general_message(200, "success", u"重置成功", bean=data)
+                result = general_message(200, "success", "重置成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg="update enterprise config failed", msg_show=u"重置失败")
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show="重置失败")
         else:
-            result = general_message(404, "can not delete key value", u"该配置不可重置")
+            result = general_message(404, "can not delete key value", "该配置不可重置")
         return Response(result, status=result.get("code", 200))
 
 
@@ -176,7 +176,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         region_name_list = region_list.values_list("region_name", flat=True)
                     user_role_list = user_kind_role_service.get_user_roles(
                         kind="team", kind_id=tenant.tenant_id, user=request.user)
-                    roles = map(lambda x: x["role_name"], user_role_list["roles"])
+                    roles = [x["role_name"] for x in user_role_list["roles"]]
                     if tenant.creater == request.user.user_id:
                         roles.append("owner")
                     owner = user_repo.get_by_user_id(tenant.creater)

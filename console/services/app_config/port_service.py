@@ -44,14 +44,14 @@ class AppPortService(object):
         if port:
             raise ErrComponentPortExists
         if not (1 <= container_port <= 65535):
-            raise AbortRequest("component port out of range", msg_show=u"端口必须为1到65535的整数", status_code=412, error_code=412)
+            raise AbortRequest("component port out of range", msg_show="端口必须为1到65535的整数", status_code=412, error_code=412)
 
     def check_port_alias(self, port_alias):
         logger.debug('-------------------11111111111111111111111----------')
         if not port_alias:
-            return 400, u"端口别名不能为空"
+            return 400, "端口别名不能为空"
         if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
-            return 400, u"端口别名不合法"
+            return 400, "端口别名不合法"
         return 200, "success"
 
     @staticmethod
@@ -105,7 +105,7 @@ class AppPortService(object):
         tenant_service_ports = self.get_service_ports(service)
         logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
         if tenant_service_ports and service.service_source == "third_party":
-            return 400, u"第三方组件只支持配置一个端口", None
+            return 400, "第三方组件只支持配置一个端口", None
 
         container_port = int(container_port)
         self.check_port(service, container_port)
@@ -122,17 +122,17 @@ class AppPortService(object):
         mapping_port = container_port
         if is_inner_service:
             if not port_alias:
-                return 400, u"端口别名不能为空", None
+                return 400, "端口别名不能为空", None
             if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
                 host_value = k8s_service_name
             else:
                 host_value = "127.0.0.1"
             code, msg, data = env_var_service.add_service_env_var(
-                tenant, service, container_port, u"连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
+                tenant, service, container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
             if code != 200:
                 return code, msg, None
             code, msg, data = env_var_service.add_service_env_var(
-                tenant, service, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
+                tenant, service, container_port, "端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
             if code != 200:
                 return code, msg, None
 
@@ -234,15 +234,15 @@ class AppPortService(object):
         service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
 
         if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
-            return 412, u"该端口有自定义域名，请先解绑域名", None
+            return 412, "该端口有自定义域名，请先解绑域名", None
 
         port_info = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if not port_info:
-            return 404, u"端口{0}不存在".format(container_port), None
+            return 404, "端口{0}不存在".format(container_port), None
         if port_info.is_inner_service:
-            return 409, u"请关闭对内服务", None
+            return 409, "请关闭对内服务", None
         if port_info.is_outer_service:
-            return 409, u"请关闭对外服务", None
+            return 409, "请关闭对外服务", None
         if service.create_status == "complete":
             body = dict()
             body["operator"] = user_name
@@ -259,7 +259,7 @@ class AppPortService(object):
         port_repo.delete_serivce_port_by_port(tenant.tenant_id, service.service_id, container_port)
         # 删除端口绑定的域名
         domain_repo.delete_service_domain_by_port(service.service_id, container_port)
-        return 200, u"删除成功", port_info
+        return 200, "删除成功", port_info
 
     def disable_service_when_delete_port(self, tenant, service, container_port):
         """删除端口时禁用相关组件"""
@@ -293,26 +293,26 @@ class AppPortService(object):
         standard_actions = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
                             "change_port_alias")
         if not action:
-            return 400, u"操作类型不能为空"
+            return 400, "操作类型不能为空"
         if action not in standard_actions:
-            return 400, u"不允许的操作类型"
+            return 400, "不允许的操作类型"
         if action == "change_port_alias":
             if not port_alias:
-                return 400, u"端口别名不能为空"
+                return 400, "端口别名不能为空"
             try:
                 port = port_repo.get_service_port_by_alias(service_id, port_alias)
                 if port.container_port != container_port:
-                    return 400, u"别名已存在"
+                    return 400, "别名已存在"
             except TenantServicesPort.DoesNotExist:
                 pass
         if action == "change_protocol":
             if not protocol:
-                return 400, u"端口协议不能为空"
+                return 400, "端口协议不能为空"
         if port_alias:
             code, msg = self.check_port_alias(port_alias)
             if code != 200:
                 return code, msg
-        return 200, u"检测成功"
+        return 200, "检测成功"
 
     @transaction.atomic
     def manage_port(self,
@@ -353,7 +353,7 @@ class AppPortService(object):
         new_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if code != 200:
             return code, msg, None
-        return 200, u"操作成功", new_port
+        return 200, "操作成功", new_port
 
     def __open_outer(self, tenant, service, region, deal_port, user_name=''):
         if deal_port.protocol == "http":
@@ -392,7 +392,7 @@ class AppPortService(object):
                 except Exception as e:
                     logger.exception(e)
                     domain_repo.delete_http_domains(http_rule_id)
-                    return 412, u"数据中心添加策略失败"
+                    return 412, "数据中心添加策略失败"
 
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
@@ -407,7 +407,7 @@ class AppPortService(object):
                 # 在service_tcp_domain表中保存数据
                 res, data = region_api.get_port(region.region_name, tenant.tenant_name)
                 if int(res.status) != 200:
-                    return 400, u"请求数据中心异常"
+                    return 400, "请求数据中心异常"
                 end_point = "0.0.0.0:{0}".format(data["bean"])
                 service_id = service.service_id
                 service_name = service.service_alias
@@ -433,7 +433,7 @@ class AppPortService(object):
                 except Exception as e:
                     logger.exception(e)
                     tcp_domain.delete_tcp_domain(tcp_rule_id)
-                    return 412, u"数据中心添加策略失败"
+                    return 412, "数据中心添加策略失败"
 
         deal_port.is_outer_service = True
         if service.create_status == "complete":
@@ -545,11 +545,11 @@ class AppPortService(object):
         else:
             host_value = "127.0.0.1"
         code, msg, data = env_var_service.add_service_env_var(
-            tenant, service, deal_port.container_port, u"连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
+            tenant, service, deal_port.container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
         if code != 200:
             return code, msg
         code, msg, data = env_var_service.add_service_env_var(
-            tenant, service, deal_port.container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
+            tenant, service, deal_port.container_port, "端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
         if code != 200:
             return code, msg
 
@@ -587,11 +587,11 @@ class AppPortService(object):
 
     def __change_protocol(self, tenant, service, deal_port, protocol, user_name=''):
         if deal_port.protocol == protocol:
-            return 200, u"协议未发生变化"
+            return 200, "协议未发生变化"
         deal_port.protocol = protocol
         if protocol != "http":
             if deal_port.is_outer_service:
-                return 400, u"请关闭外部访问"
+                return 400, "请关闭外部访问"
 
         if service.create_status == "complete":
             body = deal_port.to_dict()

@@ -129,10 +129,10 @@ class EnterpriseConfigView(BaseOpenAPIView):
         ent_config = EnterpriseConfigService(self.enterprise.enterprise_id).initialization_or_get_config
         if key is None:
             serializer = EnterpriseConfigSeralizer(data=ent_config)
-        elif key in ent_config.keys():
+        elif key in list(ent_config.keys()):
             serializer = EnterpriseConfigSeralizer(data={key: ent_config[key]})
         else:
             raise ServiceHandleException(
-                status_code=404, msg="no found config key {}".format(key), msg_show=u"企业没有 {} 配置".format(key))
+                status_code=404, msg="no found config key {}".format(key), msg_show="企业没有 {} 配置".format(key))
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

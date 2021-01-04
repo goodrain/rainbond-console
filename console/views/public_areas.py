@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 import logging
-
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db import connection
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
+from functools import cmp_to_key
 
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.group import group_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
-from console.repositories.region_app import region_app_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.common_services import common_services
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import connection
+from django.views.decorators.cache import never_cache
 from goodrain_web.tools import JuncheePaginator
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import RegionApp
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
-from www.models.main import RegionApp
 
 event_service = AppEventService()
 
@@ -316,9 +316,9 @@ class ServiceEventsView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 3)
         total = 0
-        regionsList = region_repo.get_team_opened_region(self.tenant)
+        region_list = region_repo.get_team_opened_region(self.tenant)
         event_service_dynamic_list = []
-        for region in regionsList:
+        for region in region_list:
             try:
                 events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id, self.tenant,
                                                                                 region.region_name, int(page), int(page_size))
@@ -327,7 +327,7 @@ class ServiceEventsView(RegionTenantHeaderView):
             except Exception as e:
                 logger.error("Region api return error {0}, ignore it".format(e))
 
-        event_service_dynamic_list = sorted(event_service_dynamic_list, self.__sort_events)
+        event_service_dynamic_list = sorted(event_service_dynamic_list, key=cmp_to_key(self.__sort_events))
 
         service_ids = []
         for event in event_service_dynamic_list:

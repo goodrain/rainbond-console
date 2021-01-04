@@ -5,14 +5,16 @@
 import logging
 import os
 
+from console.exception.main import ServiceHandleException
+from console.models.main import (AppMarket, RainbondCenterAppTag,
+                                 RainbondCenterAppTagsRelation,
+                                 ServiceRecycleBin, ServiceRelationRecycleBin,
+                                 ServiceSourceInfo)
+from console.repositories.base import BaseConnection
 from django.db import transaction
 from docker_image import reference
-
-from console.exception.main import ServiceHandleException
-from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenterAppTagsRelation, ServiceRecycleBin,
-                                 ServiceRelationRecycleBin, ServiceSourceInfo)
-from console.repositories.base import BaseConnection
-from www.models.main import (ServiceWebhooks, TenantServiceInfo, TenantServiceInfoDelete)
+from www.models.main import (ServiceWebhooks, TenantServiceInfo,
+                             TenantServiceInfoDelete)
 
 logger = logging.getLogger('default')
 
@@ -144,7 +146,7 @@ class TenantServiceInfoRepository(object):
         TenantServiceInfo(**service_base).save()
 
     def get_app_list(self, tenant_ids, name, page, page_size):
-        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
+        where = 'WHERE A.tenant_id in ({}) '.format(','.join(['"' + x + '"' for x in tenant_ids]))
         if name:
             where += 'AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%") '.format(name, name)
         limit = "LIMIT {page}, {page_size}".format(page=page - 1, page_size=page_size)
@@ -173,7 +175,7 @@ class TenantServiceInfoRepository(object):
         return result
 
     def get_app_count(self, tenant_ids, name):
-        where = 'WHERE A.tenant_id in ({}) '.format(','.join(map(lambda x: '"' + x + '"', tenant_ids)))
+        where = 'WHERE A.tenant_id in ({}) '.format(','.join(['"' + x + '"' for x in tenant_ids]))
         if name:
             where += ' AND (A.group_name LIKE "{}%" OR C.service_cname LIKE "{}%")'.format(name, name)
         conn = BaseConnection()
@@ -363,8 +365,8 @@ class AppTagRepository(object):
         select
             atr.app_id, tag.*
         from
-            console.rainbond_center_app_tag_relation atr
-        left join console.rainbond_center_app_tag tag on
+            rainbond_center_app_tag_relation atr
+        left join rainbond_center_app_tag tag on
             atr.enterprise_id = tag.enterprise_id
             and atr.tag_id = tag.ID
         where
@@ -381,8 +383,8 @@ class AppTagRepository(object):
                 select
                      tag.*
                 from
-                    console.rainbond_center_app_tag_relation atr
-                left join console.rainbond_center_app_tag tag on
+                    rainbond_center_app_tag_relation atr
+                left join rainbond_center_app_tag tag on
                     atr.enterprise_id = tag.enterprise_id
                     and atr.tag_id = tag.ID
                 where
@@ -424,21 +426,21 @@ class AppMarketRepository(object):
         market = AppMarket.objects.filter(enterprise_id=enterprise_id, ID=market_id).first()
         if raise_exception:
             if not market:
-                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
     def get_app_market_by_name(self, enterprise_id, name, raise_exception=False):
         market = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).first()
         if raise_exception:
             if not market:
-                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
     def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
         market = AppMarket.objects.filter(enterprise_id=enterprise_id, domain=domain, url=url).first()
         if raise_exception:
             if not market:
-                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show=u"应用商店不存在")
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
     def create_app_market(self, **kwargs):

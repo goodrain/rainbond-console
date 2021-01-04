@@ -97,7 +97,7 @@ class ConsoleTest(TestCase):
 "is_restart": 0, "max_node": 20, "min_memory": 128}, "version": "0.1", "service_source": "docker_image",
 "memory": 512, "service_type": "application", "service_env_map_list": [],
 "service_related_plugin_config": [], "service_alias": "gr6ec5ac",
-"service_cname": "\u76d1\u63a7\u53ef\u89c6\u5316\u4ee3\u7406",
+"service_cname": "\\u76d1\\u63a7\\u53ef\\u89c6\\u5316\\u4ee3\\u7406",
 "port_map_list": [{"port_alias": "GR6EC5AC8080", "protocol": "http",
 "tenant_id": "f614a5eddea546c2bbaeb67d381599ee", "container_port": 8080, "is_outer_service": true,
 "is_inner_service": false}],
@@ -123,7 +123,7 @@ class ConsoleTest(TestCase):
 "name": "GF_PATHS_PLUGINS"}, {"attr_name": "GF_PATHS_PROVISIONING",
 "attr_value": "/etc/grafana/provisioning", "is_change": true, "name": "GF_PATHS_PROVISIONING"}],
 "service_related_plugin_config": [], "service_alias": "gr1a43fd",
-"service_cname": "\u76d1\u63a7\u53ef\u89c6\u5316", "port_map_list": [{"port_alias": "GR1A43FD3000",
+"service_cname": "\\u76d1\\u63a7\\u53ef\\u89c6\\u5316", "port_map_list": [{"port_alias": "GR1A43FD3000",
 "protocol": "tcp", "tenant_id": "f614a5eddea546c2bbaeb67d381599ee", "container_port": 3000,
 "is_outer_service": false, "is_inner_service": true}],
 "share_image": "goodrain.me/amgi9wsp/13844b20fac6b41b5daccbfae71a43fd:20190818215346",
@@ -146,7 +146,7 @@ class ConsoleTest(TestCase):
 {"attr_name": "GRAFANA_TOKEN",
 "attr_value": "eyJrIjoiaE04MnBsSkxPYnQ0Nlp3RldodVFxR1hsaFVSbzR2bkYiLCJuIjoiZm9vYmFyIiwiaWQiOjF9",
 "is_change": true, "name": ""}], "service_related_plugin_config": [],
-"service_alias": "gre957c9", "service_cname": "\u7ba1\u7406\u540e\u53f0",
+"service_alias": "gre957c9", "service_cname": "\\u7ba1\\u7406\\u540e\\u53f0",
 "port_map_list": [{"port_alias": "GRE957C94999", "protocol": "http",
 "tenant_id": "f614a5eddea546c2bbaeb67d381599ee", "container_port": 4999, "is_outer_service": true,
 "is_inner_service": false}], "share_image": "goodrain.me/amgi9wsp/4f4669fa04930ad10108a82019e957c9:20190819012900",
@@ -158,7 +158,7 @@ class ConsoleTest(TestCase):
 "service_share_uuid": "ee2b03efc3a64786b7122a25a123e8ff+4f4669fa04930ad10108a82019e957c9",
 "service_image": {"hub_user": "", "namespace": "amgi9wsp", "hub_url": "goodrain.me", "hub_password": ""},
 "service_connect_info_map_list": [], "service_id": "4f4669fa04930ad10108a82019e957c9"}],
-"group_name": "\u7ba1\u7406\u540e\u53f0", "group_key": "055c60f993324ef583e22f853d280259",
+"group_name": "\\u7ba1\\u7406\\u540e\\u53f0", "group_key": "055c60f993324ef583e22f853d280259",
 "suffix": ""}
             """,
             is_complete=1,
@@ -241,7 +241,7 @@ class ConsoleTest(TestCase):
 "step_memory": 128, "max_memory": 65536, "step_node": 1, "is_restart": 0, "max_node": 20, "min_memory": 128},
 "version": "0.1", "service_source": "docker_image", "memory": 512, "service_type": "application",
 "service_env_map_list": [], "service_related_plugin_config": [], "service_alias": "gr6ec5ac",
-"service_cname": "\u76d1\u63a7\u53ef\u89c6\u5316\u4ee3\u7406", "port_map_list": [{"port_alias": "GR6EC5AC8080",
+"service_cname": "\\u76d1\\u63a7\\u53ef\\u89c6\\u5316\\u4ee3\\u7406", "port_map_list": [{"port_alias": "GR6EC5AC8080",
 "protocol": "http", "tenant_id": "f614a5eddea546c2bbaeb67d381599ee", "container_port": 8080,
 "is_outer_service": true, "is_inner_service": false}],
 "share_image": "goodrain.me/amgi9wsp/476ea3c915bf29e4bd529626b86ec5ac:20190818215605",
@@ -265,7 +265,7 @@ class ConsoleTest(TestCase):
 "attr_value": "/var/lib/grafana/plugins", "is_change": true, "name": "GF_PATHS_PLUGINS"},
 {"attr_name": "GF_PATHS_PROVISIONING", "attr_value": "/etc/grafana/provisioning",
 "is_change": true, "name": "GF_PATHS_PROVISIONING"}], "service_related_plugin_config": [],
-"service_alias": "gr1a43fd", "service_cname": "\u76d1\u63a7\u53ef\u89c6\u5316",
+"service_alias": "gr1a43fd", "service_cname": "\\u76d1\\u63a7\\u53ef\\u89c6\\u5316",
 "port_map_list": [{"port_alias": "GR1A43FD3000", "protocol": "tcp",
 "tenant_id": "f614a5eddea546c2bbaeb67d381599ee", "container_port": 3000, "is_outer_service": false,
 "is_inner_service": true}],
@@ -289,7 +289,7 @@ class ConsoleTest(TestCase):
 {"attr_name": "GRAFANA_TOKEN",
 "attr_value": "eyJrIjoiaE04MnBsSkxPYnQ0Nlp3RldodVFxR1hsaFVSbzR2bkYiLCJuIjoiZm9vYmFyIiwiaWQiOjF9",
 "is_change": true, "name": ""}], "service_related_plugin_config": [], "service_alias": "gre957c9",
-"service_cname": "\u7ba1\u7406\u540e\u53f0", "port_map_list": [{"port_alias": "GRE957C94999",
+"service_cname": "\\u7ba1\\u7406\\u540e\\u53f0", "port_map_list": [{"port_alias": "GRE957C94999",
 "protocol": "http", "tenant_id": "f614a5eddea546c2bbaeb67d381599ee", "container_port": 4999,
 "is_outer_service": true, "is_inner_service": false}],
 "share_image": "goodrain.me/amgi9wsp/4f4669fa04930ad10108a82019e957c9:20190819012900",
@@ -301,7 +301,7 @@ class ConsoleTest(TestCase):
 "service_share_uuid": "ee2b03efc3a64786b7122a25a123e8ff+4f4669fa04930ad10108a82019e957c9",
 "service_image": {"hub_user": "", "namespace": "amgi9wsp", "hub_url": "goodrain.me", "hub_password": ""},
 "service_connect_info_map_list": [], "service_id": "4f4669fa04930ad10108a82019e957c9"}],
-"group_name": "\u7ba1\u7406\u540e\u53f0", "group_key": "055c60f993324ef583e22f853d280259", "suffix": ""
+"group_name": "\\u7ba1\\u7406\\u540e\\u53f0", "group_key": "055c60f993324ef583e22f853d280259", "suffix": ""
             """,
             is_complete=1,
             create_time=now,
@@ -1068,7 +1068,7 @@ services:
 "tenant_id": "b73e01d3b83546cc8d33d60a1618a79f", "start_time": "2019-05-26 10:59:55",
 "region": "rainbond", "old_deploy_version": "", "end_time": null, "type": "truncate", "old_code_version": "",
 "service_id": "b7992f6a242b48dab0783b0a8b49374b", "message": "MySQL5.7", "final_status": "complete",
-"user_name": "\u609f\u7a7a", "ID": 12893}], "service_plugin_relation": [], "service_source": null,
+"user_name": "\\u609f\\u7a7a", "ID": 12893}], "service_plugin_relation": [], "service_source": null,
 "service_env_vars": [], "service_plugin_config": [], "service_auths": [], "service_domains": [],
 "service_tcpdomains": []}
              """,
@@ -1108,7 +1108,7 @@ services:
 "tenant_id": "b73e01d3b83546cc8d33d60a1618a79f", "start_time": "2019-05-26 10:59:55", "region": "rainbond",
 "old_deploy_version": "", "end_time": null, "type": "truncate", "old_code_version": "",
 "service_id": "b7992f6a242b48dab0783b0a8b49374b", "message": "MySQL5.7", "final_status": "complete",
-"user_name": "\u609f\u7a7a", "ID": 12893}]}
+"user_name": "\\u609f\\u7a7a", "ID": 12893}]}
         """)
 
         updated = TenantServiceBackup.objects.get(
@@ -1139,7 +1139,7 @@ services:
 "tenant_id": "b73e01d3b83546cc8d33d60a1618a79f", "start_time": "2019-05-26 10:59:55", "region": "rainbond",
 "old_deploy_version": "", "end_time": null, "type": "truncate", "old_code_version": "",
 "service_id": "b7992f6a242b48dab0783b0a8b49374b", "message": "MySQL5.7", "final_status": "complete",
-"user_name": "\u609f\u7a7a", "ID": 12893}]}
+"user_name": "\\u609f\\u7a7a", "ID": 12893}]}
         """
 
         # 删除

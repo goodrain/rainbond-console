@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from functools import reduce
 
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
@@ -46,7 +47,7 @@ class TopologicalService(object):
                                                                          [service.service_id for service in service_list])
             dynamic_services_list = dynamic_services_info["list"]
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             dynamic_services_list = []
 
         for service_info in service_list:
@@ -109,7 +110,7 @@ class TopologicalService(object):
                 # 依赖组件的cname
                 if tmp_dep_info:
                     tmp_info_relation = []
-                    if tmp_info.service_id in json_svg.keys():
+                    if tmp_info.service_id in list(json_svg.keys()):
                         tmp_info_relation = json_svg.get(tmp_info.service_id)
                     tmp_info_relation.append(tmp_dep_info.service_id)
                     json_svg[tmp_info.service_id] = tmp_info_relation
@@ -213,7 +214,7 @@ class TopologicalService(object):
 
         for relation_port in relation_port_list:
             tmp_service_id = relation_port.service_id
-            if tmp_service_id in relation_service_map.keys():
+            if tmp_service_id in list(relation_service_map.keys()):
                 tmp_service = relation_service_map.get(tmp_service_id)
                 relation_info = relation_map.get(tmp_service_id)
                 if relation_info is None:

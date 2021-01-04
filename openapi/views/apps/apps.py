@@ -135,7 +135,7 @@ class AppInfoView(TeamAppAPIView):
         try:
             force = int(req.GET.get("force", 0))
         except ValueError:
-            raise ServiceHandleException(msg='force value error', msg_show=u"参数错误")
+            raise ServiceHandleException(msg='force value error', msg_show="参数错误")
         service_ids = app_service.get_group_services_by_id(self.app.ID)
         services = service_repo.get_services_by_service_ids(service_ids)
         if services:
@@ -144,10 +144,10 @@ class AppInfoView(TeamAppAPIView):
                 tenant_name=self.team.tenant_name,
                 service_ids=service_ids,
                 enterprise_id=self.team.enterprise_id)
-            status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
+            status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
             if len(status_list) > 0:
                 raise ServiceHandleException(
-                    msg="There are running components under the current application", msg_show=u"当前应用下有运行态的组件，不可删除")
+                    msg="There are running components under the current application", msg_show="当前应用下有运行态的组件，不可删除")
             else:
                 code_status = 200
                 for service in services:
@@ -164,15 +164,15 @@ class AppInfoView(TeamAppAPIView):
                             code_status = 200
                             app_manage_service.delete_again(self.user, self.team, service, is_force=True)
                 if code_status != 200:
-                    raise ServiceHandleException(msg=msg_list, msg_show=u"请求错误")
+                    raise ServiceHandleException(msg=msg_list, msg_show="请求错误")
                 else:
                     code, msg, data = group_service.delete_group_no_service(self.app.ID)
                     if code != 200:
-                        raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
+                        raise ServiceHandleException(msg=msg, msg_show="请求错误")
                     return Response(None, status=code)
         code, msg, data = group_service.delete_group_no_service(self.app.ID)
         if code != 200:
-            raise ServiceHandleException(msg=msg, msg_show=u"请求错误")
+            raise ServiceHandleException(msg=msg, msg_show="请求错误")
         return Response(None, status=code)
 
 
@@ -309,7 +309,7 @@ class AppServicesView(TeamAppServiceAPIView):
         try:
             force = int(req.GET.get("force", 0))
         except ValueError:
-            raise ServiceHandleException(msg='force value error', msg_show=u"参数错误")
+            raise ServiceHandleException(msg='force value error', msg_show="参数错误")
         code, msg = app_manage_service.delete(self.user, self.team, self.service, True)
         if code != 200 and force:
             app_manage_service.delete_again(self.user, self.team, self.service, is_force=True)
@@ -452,7 +452,7 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
                         "service_alias": service.service_alias,
                         "monitors": []
                     }
-                    for k, v in monitor_query_items.items():
+                    for k, v in list(monitor_query_items.items()):
                         monitor = {"monitor_item": k}
                         res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
                         if body.get("data"):
@@ -495,7 +495,7 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
         end = request.GET.get("end")
         step = request.GET.get("step", 60)
         if not start or not end:
-            raise ServiceHandleException(msg="params error", msg_show=u"缺少query参数")
+            raise ServiceHandleException(msg="params error", msg_show="缺少query参数")
         services_relation = group_service_relation_repo.get_services_by_group(self.app.ID)
         service_ids = services_relation.values_list('service_id', flat=True)
         if service_ids:
@@ -521,7 +521,7 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
                         "service_alias": service.service_alias,
                         "monitors": []
                     }
-                    for k, v in monitor_query_range_items.items():
+                    for k, v in list(monitor_query_range_items.items()):
                         monitor = {"monitor_item": k}
                         body = {}
                         try:

@@ -23,7 +23,7 @@ class BasePlatform(object):
 
     def __init__(self):
         # Precompile PATTERNS
-        self.COMPILED_PATTERNS = dict((proto, re.compile(regex)) for proto, regex in self.PATTERNS.items())
+        self.COMPILED_PATTERNS = dict((proto, re.compile(regex)) for proto, regex in list(self.PATTERNS.items()))
 
         # Supported protocols
-        self.PROTOCOLS = self.PATTERNS.keys()
+        self.PROTOCOLS = list(self.PATTERNS.keys())

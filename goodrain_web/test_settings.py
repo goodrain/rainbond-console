@@ -196,7 +196,7 @@ SWAGGER_SETTINGS = {'SECURITY_DEFINITIONS': {'Bearer': {'type': 'apiKey', 'name'
 conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, os.environ.get('REGION_TAG', 'www_com').replace('-', '_'))
 
 if os.path.exists(conf_file):
-    execfile(conf_file)
+    exec(compile(open(conf_file, "rb").read(), conf_file, 'exec'))
 else:
     raise Exception("config file not found: {}".format(conf_file))
 

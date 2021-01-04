@@ -99,7 +99,7 @@ class OAuthRepo(object):
     def create_or_update_console_oauth_services(self, values, eid):
         old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True).first()
         for value in values[:1]:
-            if value["oauth_type"] in support_oauth_type.keys():
+            if value["oauth_type"] in list(support_oauth_type.keys()):
                 instance = get_oauth_instance(value["oauth_type"])
                 auth_url = instance.get_auth_url(home_url=value["home_url"])
                 access_token_url = instance.get_access_token_url(home_url=value["home_url"])
@@ -134,7 +134,7 @@ class OAuthRepo(object):
                         is_auto_login=value["is_auto_login"],
                         is_console=value["is_console"])
             else:
-                raise Exception(u"未找到该OAuth类型")
+                raise Exception("未找到该OAuth类型")
             rst = OAuthServices.objects.filter(eid=eid, is_console=True)
             return rst
 

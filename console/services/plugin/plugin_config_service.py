@@ -26,11 +26,11 @@ class PluginConfigService(object):
     def check_group_config(self, service_meta_type, injection, config_groups):
         if injection == "env":
             if service_meta_type == PluginMetaType.UPSTREAM_PORT or service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
-                return False, u"基于上游端口或下游端口的配置只能使用主动发现"
+                return False, "基于上游端口或下游端口的配置只能使用主动发现"
         for config_group in config_groups:
             if config_group.service_meta_type == service_meta_type:
-                return False, u"配置组配置类型不能重复"
-        return True, u"检测成功"
+                return False, "配置组配置类型不能重复"
+        return True, "检测成功"
 
     def get_config_group_by_pk(self, config_group_pk):
         return config_group_repo.get_config_group_by_pk(config_group_pk)

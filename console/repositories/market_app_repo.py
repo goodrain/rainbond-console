@@ -3,6 +3,7 @@
   Created on 18/3/5.
 """
 import logging
+import os
 import time
 
 from console.models.main import (AppExportRecord, AppImportRecord, RainbondCenterApp, RainbondCenterAppTagsRelation,
@@ -310,17 +311,24 @@ class RainbondCenterAppRepository(object):
             """
         sql += where
         # Sort in reverse order of version number
-        sql = """
-                SELECT V.*
-                FROM ({0}) AS V
-                ORDER BY
-                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1),
-                    LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
-                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2),
-                    LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
-                    REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3),
-                    LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
-            """.format(sql)
+        if os.environ.get('DB_TYPE') == 'mysql':
+            sql = """
+                    SELECT V.*
+                    FROM ({0}) AS V
+                    ORDER BY
+                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1),
+                        LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
+                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2),
+                        LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
+                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3),
+                        LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
+                """.format(sql)
+        else:
+            sql = """
+                    SELECT V.*
+                    FROM ({0}) AS V
+                    ORDER BY V.update_time
+                """.format(sql)
         conn = BaseConnection()
         result = conn.query(sql)
         return result

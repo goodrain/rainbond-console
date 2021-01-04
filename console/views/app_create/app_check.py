@@ -73,7 +73,7 @@ class AppCheck(AppBaseView):
                     data["error_infos"] = [save_error]
         check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
         code_from = self.service.code_from
-        if code_from in support_oauth_type.keys():
+        if code_from in list(support_oauth_type.keys()):
             for i in check_brief_info["service_info"]:
                 if i["type"] == "source_from":
                     result_url = re_spilt("[:,@]", i["value"])
@@ -113,7 +113,7 @@ class AppCheck(AppBaseView):
 class GetCheckUUID(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
-        result = general_message(200, u"success", "获取成功", bean={"check_uuid": self.service.check_uuid})
+        result = general_message(200, "success", "获取成功", bean={"check_uuid": self.service.check_uuid})
         return Response(result, status=200)
 
 
@@ -136,5 +136,5 @@ class AppCheckUpdate(AppBaseView):
         code, msg = app_service.update_check_app(self.tenant, self.service, params)
         if code != 200:
             return Response(general_message(code, "update service info error", msg), status=code)
-        result = general_message(200, u"success", "修改成功")
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])

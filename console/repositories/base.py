@@ -9,7 +9,7 @@ class BaseConnection(object):
 
     def _dict_fetch_all(self, cursor):
         desc = cursor.description
-        return [Dict(zip([col[0] for col in desc], row)) for row in cursor.fetchall()]
+        return [Dict(list(zip([col[0] for col in desc], row))) for row in cursor.fetchall()]
 
     def query(self, sql, args=None):
         cursor = connections[self.db_alias].cursor()

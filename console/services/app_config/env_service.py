@@ -23,11 +23,11 @@ class AppEnvVarService(object):
 
     def check_env_attr_name(self, attr_name):
         if attr_name in self.SENSITIVE_ENV_NAMES:
-            return False, u"不允许的变量名{0}".format(attr_name)
+            return False, "不允许的变量名{0}".format(attr_name)
 
         if not re.match(r"^[-._a-zA-Z][-._a-zA-Z0-9]*$", attr_name):
-            return False, u"变量名称{0}不符合规范".format(attr_name)
-        return True, u"success"
+            return False, "变量名称{0}不符合规范".format(attr_name)
+        return True, "success"
 
     def create_env_var(self, service, container_port, name, attr_name, attr_value, is_change=False, scope="outer"):
         """
@@ -82,7 +82,7 @@ class AppEnvVarService(object):
         tenantServiceEnvVar["scope"] = scope
         env = env_var_repo.get_service_env_by_attr_name(service.tenant_id, service.service_id, attr_name)
         if env:
-            return 412, u"环境变量{0}已存在".format(attr_name), None
+            return 412, "环境变量{0}已存在".format(attr_name), None
         # 判断是否需要再region端添加
         if service.create_status == "complete":
             attr = {
@@ -229,7 +229,7 @@ class AppEnvVarService(object):
         has_envs = env_var_repo.get_service_env(service.tenant_id, service.service_id)
         env_attr_names = {env.attr_name: env for env in has_envs}
         for env in envs:
-            if env["name"] in env_attr_names.keys():
+            if env["name"] in list(env_attr_names.keys()):
                 code, msg, env = self.update_env_by_env_id(team, service, str(env_attr_names[env["name"]].ID), env["note"],
                                                            env["value"])
                 if code != 200:

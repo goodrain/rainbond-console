@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import requests
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import logging
 from console.utils.oauth.base.oauth import OAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
@@ -151,7 +151,7 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
             params = {
                 "client_id": self.oauth_service.client_id,
                 "scope": "snsapi_login",
-                "redirect_uri": urllib.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
+                "redirect_uri": urllib.parse.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)

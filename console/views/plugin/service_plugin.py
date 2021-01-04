@@ -210,7 +210,7 @@ class ServicePluginConfigView(AppBaseView):
         """
         build_version = request.GET.get("build_version", None)
         if not plugin_id or not build_version:
-            logger.error("plugin.relation", u'参数错误，plugin_id and version_id')
+            logger.error("plugin.relation", '参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "请指定插件版本"), status=400)
         result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
         svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)

@@ -136,11 +136,11 @@ class UserService(object):
             tenant = tenants[0]
             user_id_list = PermRelTenant.objects.filter(tenant_id=tenant.ID).values_list("user_id", flat=True)
             user_list = Users.objects.filter(user_id__in=user_id_list)
-            user_name_list = map(lambda x: x.nick_name.lower(), user_list)
+            user_name_list = [x.nick_name.lower() for x in user_list]
 
         else:
             user_name_map = list(Users.objects.values("nick_name"))
-            user_name_list = map(lambda x: x.get("nick_name").lower(), user_name_map)
+            user_name_list = [x.get("nick_name").lower() for x in user_name_map]
 
         find_user_name = list(fuzzyfinder(user_name.lower(), user_name_list))
         user_query = Q(nick_name__in=find_user_name)
@@ -503,8 +503,8 @@ class UserService(object):
             raise AbortRequest("empty username", "用户名不能为空")
         if self.is_user_exist(user_name, eid):
             raise AbortRequest("username already exists", "用户{0}已存在".format(user_name), status_code=409, error_code=409)
-        r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
-        if not r.match(user_name.decode("utf-8")):
+        r = re.compile('^[a-zA-Z0-9_\\-\\u4e00-\\u9fa5]+$')
+        if not r.match(user_name):
             raise AbortRequest("invalid username", "用户名称只支持中英文下划线和中划线")
 
     def __check_email(self, email):

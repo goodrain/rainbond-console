@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-import yaml
 
-from console.services.group_service import group_service
+import yaml
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
@@ -14,6 +13,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
+from console.services.group_service import group_service
 from console.services.service_services import base_service
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -283,7 +283,7 @@ class RegionService(object):
             service_ids = [service.service_id for service in services]
             status_list = base_service.status_multi_service(
                 region=region_name, tenant_name=tenant.tenant_name, service_ids=service_ids, enterprise_id=tenant.enterprise_id)
-            status_list = filter(lambda x: x not in ["closed", "undeploy"], map(lambda x: x["status"], status_list))
+            status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
             if len(status_list) > 0:
                 raise ServiceHandleException(
                     msg="There are running components under the current application",
@@ -528,7 +528,7 @@ class RegionService(object):
                 _, rbd_version = region_api.get_enterprise_api_version_v2(
                     enterprise_id=region.enterprise_id, region=region.region_name)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
-                rbd_version = rbd_version["raw"].decode("utf-8")
+                rbd_version = rbd_version["raw"]
                 if res.get("status") == 200:
                     region_resource["total_memory"] = body["bean"]["cap_mem"]
                     region_resource["used_memory"] = body["bean"]["req_mem"]

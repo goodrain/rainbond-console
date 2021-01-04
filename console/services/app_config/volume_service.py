@@ -159,7 +159,7 @@ class AppVolumeService(object):
         return vos
 
     def check_volume_name(self, service, volume_name):
-        r = re.compile(u'^[a-zA-Z0-9_]+$')
+        r = re.compile('^[a-zA-Z0-9_]+$')
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
                 raise ServiceHandleException(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
@@ -346,12 +346,12 @@ class AppVolumeService(object):
     def delete_service_volume_by_id(self, tenant, service, volume_id, user_name=''):
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
-            return 404, u"需要删除的路径不存在", None
+            return 404, "需要删除的路径不存在", None
         # if volume.volume_type == volume.SHARE:
         # 判断当前共享目录是否被使用
         mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
         if mnt:
-            return 403, u"当前路径被共享,无法删除", None
+            return 403, "当前路径被共享,无法删除", None
         if service.create_status == "complete":
             data = dict()
             data["operator"] = user_name
@@ -367,7 +367,7 @@ class AppVolumeService(object):
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume_id(volume_id)
 
-        return 200, u"success", volume
+        return 200, "success", volume
 
     def delete_service_volumes(self, service):
         volume_repo.delete_service_volumes(service.service_id)

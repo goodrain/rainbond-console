@@ -205,7 +205,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                     return Response(result, status=200)
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            return 409, u"操作过于频繁，请稍后再试"
+            return 409, "操作过于频繁，请稍后再试"
 
     # 删除实例endpoint
     def delete(self, request, service_id, *args, **kwargs):

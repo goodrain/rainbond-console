@@ -1,11 +1,9 @@
-import md5
 import hashlib
 
 
 def md5fun(digest):
-    m1 = md5.new()
-    m1.update(digest)
-    return m1.hexdigest()
+    m = hashlib.md5(bytes(digest, "ascii"))
+    return m.hexdigest()
 
 
 def get_md5(fname):

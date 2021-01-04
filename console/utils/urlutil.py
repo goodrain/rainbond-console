@@ -13,4 +13,4 @@ def is_path_legal(path):
 
 
 def set_get_url(url, params):
-    return "?".join([url, "&".join(map(lambda x: "=".join(x), params.items()))])
+    return "?".join([url, "&".join(["=".join(x) for x in list(params.items())])])

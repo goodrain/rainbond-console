@@ -130,7 +130,7 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
         if not self.team:
             self.team = team_services.get_enterprise_tenant_by_tenant_name(self.enterprise.enterprise_id, team_id)
         if not self.team:
-            raise ServiceHandleException(msg_show=u"团队不存在", msg="no found team", status_code=404)
+            raise ServiceHandleException(msg_show="团队不存在", msg="no found team", status_code=404)
         self.team_regions = region_services.get_team_usable_regions(self.team.tenant_name, self.enterprise.enterprise_id)
         if self.user.user_id == self.team.creater:
             self.is_team_owner = True
@@ -173,7 +173,7 @@ class TeamAppAPIView(TeamAPIView):
         if app_id:
             self.app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         if not self.app:
-            raise ServiceHandleException(msg_show=u"应用不存在", msg="no found app", status_code=404)
+            raise ServiceHandleException(msg_show="应用不存在", msg="no found app", status_code=404)
 
 
 class TeamAppServiceAPIView(TeamAppAPIView):
@@ -190,12 +190,12 @@ class TeamAppServiceAPIView(TeamAppAPIView):
             self.service = TenantServiceInfo.objects.filter(
                 tenant_id=self.team.tenant_id, service_region=self.region_name, service_alias=service_id).first()
         if not self.service:
-            raise ServiceHandleException(msg_show=u"组件不存在", msg="no found component", status_code=404)
+            raise ServiceHandleException(msg_show="组件不存在", msg="no found component", status_code=404)
         gsr = group_service_relation_repo.get_services_by_group(self.app.ID)
         if gsr:
             service_ids = gsr.values_list("service_id", flat=True)
             if self.service.service_id not in service_ids:
-                raise ServiceHandleException(msg_show=u"组件不属于指定应用", msg="component not belong to this app", status_code=404)
+                raise ServiceHandleException(msg_show="组件不属于指定应用", msg="component not belong to this app", status_code=404)
 
 
 class EnterpriseServiceOauthView(APIView):
@@ -215,9 +215,9 @@ class EnterpriseServiceOauthView(APIView):
             oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=request.user.user_id)
         except OAuthServices.DoesNotExist:
             raise ServiceHandleException(
-                msg="not found enterprise center oauth server config", msg_show=u"未找到企业中心OAuth配置", status_code=404)
+                msg="not found enterprise center oauth server config", msg_show="未找到企业中心OAuth配置", status_code=404)
         except UserOAuthServices.DoesNotExist:
-            raise ServiceHandleException(msg="user not authorize in enterprise center oauth", msg_show=u"用户身份未在企业中心认证")
+            raise ServiceHandleException(msg="user not authorize in enterprise center oauth", msg_show="用户身份未在企业中心认证")
         self.oauth_instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
         if not self.oauth_instance:
-            raise ServiceHandleException(msg="no found enterprise service OAuth", msg_show=u"未找到企业中心OAuth服务类型", status_code=404)
+            raise ServiceHandleException(msg="no found enterprise service OAuth", msg_show="未找到企业中心OAuth服务类型", status_code=404)

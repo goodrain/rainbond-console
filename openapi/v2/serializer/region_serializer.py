@@ -57,37 +57,37 @@ class RegionTypesField(serializers.ListField):
 
 
 class RegionInfoAndStatusRespSerializer(serializers.Serializer):
-    region_id = serializers.CharField(max_length=36, help_text=u"region id")
-    enterprise_id = serializers.CharField(max_length=36, help_text=u"企业ID")
-    enterprise_alias = serializers.CharField(max_length=256, help_text=u"企业别名")
-    region_name = serializers.CharField(max_length=32, help_text=u"集群名称")
-    region_alias = serializers.CharField(max_length=32, help_text=u"集群别名")
-    region_type = RegionTypesField(help_text=u"集群类型")
-    url = serializers.CharField(max_length=256, help_text=u"集群API url")
-    wsurl = serializers.CharField(max_length=256, help_text=u"集群Websocket url")
-    httpdomain = serializers.CharField(max_length=256, help_text=u"集群http应用访问根域名")
-    tcpdomain = serializers.CharField(max_length=256, help_text=u"集群tcp应用访问根域名")
-    status = serializers.CharField(max_length=2, help_text=u"集群状态 0：编辑中 1:启用 2：停用 3:维护中")
-    desc = serializers.CharField(max_length=128, allow_blank=True, help_text=u"集群描述")
-    ssl_ca_cert = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api ca file")
-    cert_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api cert file")
-    key_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text=u"api cert key file")
-    total_memory = serializers.IntegerField(help_text=u"调度内存总和MB")
-    used_memory = serializers.IntegerField(help_text=u"调度内存使用量MB")
-    total_cpu = serializers.IntegerField(help_text=u"调度CPU总和")
-    used_cpu = serializers.FloatField(help_text=u"调度CPU使用量")
-    total_disk = serializers.IntegerField(help_text=u"全局共享存储总量GB")
-    used_disk = serializers.IntegerField(help_text=u"全局共享存储使用量GB")
-    rbd_version = serializers.CharField(help_text=u"集群版本", allow_blank=True, allow_null=True)
+    region_id = serializers.CharField(max_length=36, help_text="region id")
+    enterprise_id = serializers.CharField(max_length=36, help_text="企业ID")
+    enterprise_alias = serializers.CharField(max_length=256, help_text="企业别名")
+    region_name = serializers.CharField(max_length=32, help_text="集群名称")
+    region_alias = serializers.CharField(max_length=32, help_text="集群别名")
+    region_type = RegionTypesField(help_text="集群类型")
+    url = serializers.CharField(max_length=256, help_text="集群API url")
+    wsurl = serializers.CharField(max_length=256, help_text="集群Websocket url")
+    httpdomain = serializers.CharField(max_length=256, help_text="集群http应用访问根域名")
+    tcpdomain = serializers.CharField(max_length=256, help_text="集群tcp应用访问根域名")
+    status = serializers.CharField(max_length=2, help_text="集群状态 0：编辑中 1:启用 2：停用 3:维护中")
+    desc = serializers.CharField(max_length=128, allow_blank=True, help_text="集群描述")
+    ssl_ca_cert = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text="api ca file")
+    cert_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text="api cert file")
+    key_file = serializers.CharField(max_length=65535, allow_blank=True, allow_null=True, help_text="api cert key file")
+    total_memory = serializers.IntegerField(help_text="调度内存总和MB")
+    used_memory = serializers.IntegerField(help_text="调度内存使用量MB")
+    total_cpu = serializers.IntegerField(help_text="调度CPU总和")
+    used_cpu = serializers.FloatField(help_text="调度CPU使用量")
+    total_disk = serializers.IntegerField(help_text="全局共享存储总量GB")
+    used_disk = serializers.IntegerField(help_text="全局共享存储使用量GB")
+    rbd_version = serializers.CharField(help_text="集群版本", allow_blank=True, allow_null=True)
 
 
 class ListRegionsRespSerializer(serializers.Serializer):
-    total = serializers.IntegerField(help_text=u"总数")
+    total = serializers.IntegerField(help_text="总数")
     data = RegionInfoAndStatusRespSerializer(many=True)
 
 
 class UpdateRegionStatusReqSerializer(serializers.Serializer):
-    status = serializers.CharField(help_text=u"需要设置的集群状态, 可选值为: 'ONLINE', 'OFFLINE', 'MAINTAIN'(大小写不敏感)")
+    status = serializers.CharField(help_text="需要设置的集群状态, 可选值为: 'ONLINE', 'OFFLINE', 'MAINTAIN'(大小写不敏感)")
 
     def validate_status(self, status):
         status = status.upper()

@@ -178,22 +178,22 @@ class EnterpriseConfigService(ConfigService):
                     "namespace": None,
                     "hub_password": None
                 },
-                "desc": u"AppStore镜像仓库配置",
+                "desc": "AppStore镜像仓库配置",
                 "enable": True
             },
             "NEWBIE_GUIDE": {
                 "value": None,
-                "desc": u"开启/关闭新手引导",
+                "desc": "开启/关闭新手引导",
                 "enable": True
             },
             "EXPORT_APP": {
                 "value": None,
-                "desc": u"开启/关闭导出应用",
+                "desc": "开启/关闭导出应用",
                 "enable": False
             },
             "CLOUD_MARKET": {
                 "value": None,
-                "desc": u"开启/关闭云应用市场",
+                "desc": "开启/关闭云应用市场",
                 "enable": True
             },
             "OBJECT_STORAGE": {
@@ -204,12 +204,12 @@ class EnterpriseConfigService(ConfigService):
                     "secret_key": "",
                     "bucket_name": "",
                 },
-                "desc": u"云端备份使用的对象存储信息",
+                "desc": "云端备份使用的对象存储信息",
                 "enable": False
             },
             "AUTO_SSL": {
                 "value": None,
-                "desc": u"证书自动签发",
+                "desc": "证书自动签发",
                 "enable": False
             }
         }
@@ -218,7 +218,7 @@ class EnterpriseConfigService(ConfigService):
         self.base_cfg_keys_value = {
             "OAUTH_SERVICES": {
                 "value": self.get_oauth_services(),
-                "desc": u"开启/关闭OAuthServices功能",
+                "desc": "开启/关闭OAuthServices功能",
                 "enable": True
             },
         }
@@ -284,39 +284,39 @@ class PlatformConfigService(ConfigService):
         self.cfg_keys_value = {
             "TITLE": {
                 "value": "Rainbond",
-                "desc": u"Rainbond web tile",
+                "desc": "Rainbond web tile",
                 "enable": True
             },
             "LOGO": {
                 "value": None,
-                "desc": u"Rainbond Logo url",
+                "desc": "Rainbond Logo url",
                 "enable": True
             },
             "FAVICON": {
                 "value": None,
-                "desc": u"Rainbond web favicon url",
+                "desc": "Rainbond web favicon url",
                 "enable": True
             },
             "DOCUMENT": {
                 "value": {
                     "platform_url": "https://www.rainbond.com/",
                 },
-                "desc": u"开启/关闭文档",
+                "desc": "开启/关闭文档",
                 "enable": True
             },
             "OFFICIAL_DEMO": {
                 "value": None,
-                "desc": u"开启/关闭官方Demo",
+                "desc": "开启/关闭官方Demo",
                 "enable": True
             },
             "IS_REGIST": {
                 "value": None,
-                "desc": u"是否允许注册",
+                "desc": "是否允许注册",
                 "enable": True
             },
             ConfigKeyEnum.ENTERPRISE_EDITION.name: {
                 "value": "false",
-                "desc": u"是否是企业版",
+                "desc": "是否是企业版",
                 "enable": True
             },
         }
@@ -325,34 +325,34 @@ class PlatformConfigService(ConfigService):
         self.base_cfg_keys_value = {
             "IS_PUBLIC": {
                 "value": os.getenv('IS_PUBLIC', False),
-                "desc": u"是否是Cloud",
+                "desc": "是否是Cloud",
                 "enable": True
             },
             "MARKET_URL": {
                 "value": os.getenv('GOODRAIN_APP_API', settings.APP_SERVICE_API["url"]),
-                "desc": u"商店路由",
+                "desc": "商店路由",
                 "enable": True
             },
             "ENTERPRISE_CENTER_OAUTH": {
                 "value": self.get_enterprise_center_oauth(),
-                "desc": u"enterprise center oauth 配置",
+                "desc": "enterprise center oauth 配置",
                 "enable": True
             },
             "VERSION": {
                 "value": os.getenv("RELEASE_DESC", "public-cloud"),
-                "desc": u"平台版本",
+                "desc": "平台版本",
                 "enable": True
             },
             "IS_USER_REGISTER": {
                 "value": self.is_user_register(),
-                "desc": u"开启/关闭OAuthServices功能",
+                "desc": "开启/关闭OAuthServices功能",
                 "enable": True
             },
         }
         if not os.getenv('IS_PUBLIC', False):
             self.base_cfg_keys_value["OAUTH_SERVICES"] = {
                 "value": self.get_all_oauth_service(),
-                "desc": u"开启/关闭OAuthServices功能",
+                "desc": "开启/关闭OAuthServices功能",
                 "enable": True
             }
 

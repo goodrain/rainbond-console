@@ -113,16 +113,16 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
             except Exception as e:
                 logger.debug(e)
-                rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
                 return Response(rst, status=200)
             try:
                 git_service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
             except Exception as e:
                 logger.debug(e)
-                rst = {"data": {"bean": None}, "status": 400, "msg_show": u"未找到OAuth服务"}
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
                 return Response(rst, status=200)
             if not git_service.is_git_oauth():
-                rst = {"data": {"bean": None}, "status": 400, "msg_show": u"该OAuth服务不是代码仓库类型"}
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
                 return Response(rst, status=200)
 
             service_code_from = "oauth_" + oauth_service.oauth_type
@@ -203,7 +203,7 @@ class AppCompileEnvView(AppBaseView):
             user_dependency = {}
             if compile_env.user_dependency:
                 user_dependency = json.loads(compile_env.user_dependency)
-                selected_dependency = [key.replace("ext-", "") for key in user_dependency.get("dependencies", {}).keys()]
+                selected_dependency = [key.replace("ext-", "") for key in list(user_dependency.get("dependencies", {}).keys())]
             bean["check_dependency"] = check_dependency
             bean["user_dependency"] = user_dependency
             bean["service_id"] = compile_env.service_id

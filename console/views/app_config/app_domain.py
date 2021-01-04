@@ -135,7 +135,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         """
         certificate_id = kwargs.get("certificate_id", None)
         domain_service.delete_certificate_by_pk(certificate_id)
-        result = general_message(200, "success", u"证书删除成功")
+        result = general_message(200, "success", "证书删除成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -436,7 +436,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(result, status=400)
 
             else:
-                if auto_ssl_config not in auto_ssl_configs.keys():
+                if auto_ssl_config not in list(auto_ssl_configs.keys()):
                     result = general_message(400, "failed", "未找到该自动分发方式")
                     return Response(result, status=400)
 

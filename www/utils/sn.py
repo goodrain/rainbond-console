@@ -5,7 +5,7 @@ import json
 
 from django.conf import settings
 
-from crypt import AuthCode
+from .crypt import AuthCode
 
 
 class SNUtil:

@@ -146,10 +146,10 @@ class AppManageBase(object):
 
     def check_resource(self, tenant, service, new_add_memory=0, is_check_status=False):
         if self.isExpired(tenant, service):
-            return 400, u"该应用试用已到期"
+            return 400, "该应用试用已到期"
         # if self.is_over_resource(tenant, service):
         if self.is_operate_over_resource(tenant, service, new_add_memory, is_check_status):
-            return 400, u"资源已达上限，您最多使用{0}G内存".format(tenant.limit_memory / 1024)
+            return 400, "资源已达上限，您最多使用{0}G内存".format(tenant.limit_memory / 1024)
         return 200, "pass"
 
 
@@ -166,14 +166,14 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                return 507, "组件异常"
             except region_api.ResourceNotEnoughError as e:
                 logger.exception(e)
                 return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                return 409, "操作过于频繁，请稍后再试"
+        return 200, "操作成功"
 
     def stop(self, tenant, service, user):
         if service.create_status == "complete":
@@ -204,14 +204,14 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} retart app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                return 507, "组件异常"
             except region_api.ResourceNotEnoughError as e:
                 logger.exception(e)
                 return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                return 409, "操作过于频繁，请稍后再试"
+        return 200, "操作成功"
 
     def deploy(self, tenant, service, user, group_version, committer_name=None, oauth_instance=None):
         status_info_map = app_service.get_service_status(tenant, service)
@@ -308,7 +308,7 @@ class AppManageService(AppManageBase):
             return 412, e.msg, ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            return 409, u"操作过于频繁，请稍后再试", ""
+            return 409, "操作过于频繁，请稍后再试", ""
         return 200, "操作成功", event_id
 
     def __delete_envs(self, tenant, service):
@@ -409,7 +409,7 @@ class AppManageService(AppManageBase):
                         tenant,
                         service,
                         int(port["container_port"]),
-                        u"连接地址",
+                        "连接地址",
                         env_prefix + "_HOST",
                         "127.0.0.1",
                         False,
@@ -420,7 +420,7 @@ class AppManageService(AppManageBase):
                         tenant,
                         service,
                         int(port["container_port"]),
-                        u"端口",
+                        "端口",
                         env_prefix + "_PORT",
                         mapping_port,
                         False,
@@ -458,7 +458,7 @@ class AppManageService(AppManageBase):
             return 412, e.msg, ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            return 409, u"操作过于频繁，请稍后再试", ""
+            return 409, "操作过于频繁，请稍后再试", ""
 
     def __get_service_kind(self, service):
         """获取组件种类，兼容老的逻辑"""
@@ -492,7 +492,7 @@ class AppManageService(AppManageBase):
                                                                    service.service_alias, deploy_version)
             is_version_exist = data['bean']['status']
             if not is_version_exist:
-                return 404, u"当前版本可能已被系统清理或删除"
+                return 404, "当前版本可能已被系统清理或删除"
             body = dict()
             body["operator"] = str(user.nick_name)
             body["upgrade_version"] = deploy_version
@@ -502,14 +502,14 @@ class AppManageService(AppManageBase):
                 region_api.rollback(service.service_region, tenant.tenant_name, service.service_alias, body)
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                return 507, "组件异常"
             except region_api.ResourceNotEnoughError as e:
                 logger.exception(e)
                 return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                return 409, "操作过于频繁，请稍后再试"
+        return 200, "操作成功"
 
     @transaction.atomic()
     def batch_action(self, region_name, tenant, user, action, service_ids, move_group_id, oauth_instance):
@@ -791,14 +791,14 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, u"组件异常"
+                return 507, "组件异常"
             except region_api.ResourceNotEnoughError as e:
                 logger.exception(e)
                 return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
-                return 409, u"操作过于频繁，请稍后再试"
-        return 200, u"操作成功"
+                return 409, "操作过于频繁，请稍后再试"
+        return 200, "操作成功"
 
     def horizontal_upgrade(self, tenant, service, user, new_node, oauth_instance):
         """组件水平升级"""
@@ -838,7 +838,7 @@ class AppManageService(AppManageBase):
     def delete(self, user, tenant, service, is_force):
         # 判断组件是否是运行状态
         if self.__is_service_running(tenant, service) and service.service_source != "third_party":
-            msg = u"组件可能处于运行状态,请先关闭组件"
+            msg = "组件可能处于运行状态,请先关闭组件"
             return 409, msg
         # 判断组件是否被依赖
         is_related, msg = self.__is_service_related(tenant, service)
@@ -863,7 +863,7 @@ class AppManageService(AppManageBase):
                     return code, "success"
             except Exception as e:
                 logger.exception(e)
-                return 507, u"删除异常"
+                return 507, "删除异常"
 
     def get_etcd_keys(self, tenant, service):
         logger.debug("ready delete etcd data while delete service")

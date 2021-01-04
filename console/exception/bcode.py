@@ -7,7 +7,7 @@ class ErrUserNotFound(ServiceHandleException):
     def __init__(self, message=""):
         msg = "user not found"
         super(ErrUserNotFound, self).__init__(msg)
-        self.msg_show = u"用户不存在"
+        self.msg_show = "用户不存在"
         self.status_code = 404
         self.error_code = 20000
 
@@ -17,7 +17,7 @@ class ErrAppConfigGroupExists(ServiceHandleException):
     def __init__(self):
         msg = "app config group exists"
         super(ErrAppConfigGroupExists, self).__init__(msg)
-        self.msg_show = u"应用配置组已存在"
+        self.msg_show = "应用配置组已存在"
         self.status_code = 409
         self.error_code = 20100
 
@@ -26,7 +26,7 @@ class ErrAppConfigGroupNotFound(ServiceHandleException):
     def __init__(self):
         msg = "app config group not found"
         super(ErrAppConfigGroupNotFound, self).__init__(msg)
-        self.msg_show = u"应用配置组不存在"
+        self.msg_show = "应用配置组不存在"
         self.status_code = 404
         self.error_code = 20101
 
@@ -61,29 +61,29 @@ class ErrRepeatMonitoringTarget(ServiceHandleException):
 class ErrOauthServiceExists(ServiceHandleException):
     def __init__(self):
         super(ErrOauthServiceExists, self).__init__(
-            "oauth service exists", msg_show=u"OAuth 名称已存在", status_code=409, error_code=20300)
+            "oauth service exists", msg_show="OAuth 名称已存在", status_code=409, error_code=20300)
 
 
 # 20400 ~ 20499 => enterprise
 class ErrEnterpriseNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrEnterpriseNotFound, self).__init__(
-            "enterprise not found", msg_show=u"企业不存在", status_code=404, error_code=20400)
+            "enterprise not found", msg_show="企业不存在", status_code=404, error_code=20400)
 
 
 # 20500 ~ 20599 => service ports
 class ErrK8sServiceNameExists(ServiceHandleException):
     def __init__(self):
-        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", u"内部域名已存在", 409, 20500)
+        super(ErrK8sServiceNameExists, self).__init__("k8s service name already exists", "内部域名已存在", 409, 20500)
 
 
 class ErrComponentPortExists(ServiceHandleException):
     def __init__(self):
-        super(ErrComponentPortExists, self).__init__("component port already exists", u"端口已存在", 409, 20501)
+        super(ErrComponentPortExists, self).__init__("component port already exists", "端口已存在", 409, 20501)
 
 
 # 20600 ~ 20699 => service plugin
 class ErrPluginIsUsed(ServiceHandleException):
     def __init__(self):
         super(ErrPluginIsUsed, self).__init__(
-            msg="plugin is used by the service", msg_show=u"该插件被组件使用，无法删除", status_code=409, error_code=20600)
+            msg="plugin is used by the service", msg_show="该插件被组件使用，无法删除", status_code=409, error_code=20600)

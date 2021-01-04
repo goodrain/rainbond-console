@@ -153,11 +153,11 @@ class AppVersionManageView(AppBaseView):
         """
         version_id = kwargs.get("version_id", None)
         if not version_id:
-            return Response(general_message(400, "attr_name not specify", u"请指定需要删除的具体版本"))
+            return Response(general_message(400, "attr_name not specify", "请指定需要删除的具体版本"))
         region_api.delete_service_build_version(self.response_region, self.tenant.tenant_name, self.service.service_alias,
                                                 version_id)
         # event_repo.delete_event_by_build_version(self.service.service_id, version_id)
-        result = general_message(200, "success", u"删除成功")
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -185,11 +185,11 @@ class AppVersionManageView(AppBaseView):
         """
         version_id = kwargs.get("version_id", None)
         if not version_id:
-            return Response(general_message(400, "attr_name not specify", u"请指定需要查询的具体版本"))
+            return Response(general_message(400, "attr_name not specify", "请指定需要查询的具体版本"))
 
         res, body = region_api.get_service_build_version_by_id(self.response_region, self.tenant.tenant_name,
                                                                self.service.service_alias, version_id)
         data = body['bean']
 
-        result = general_message(200, "success", u"查询成功", bean={"is_exist": data["status"]})
+        result = general_message(200, "success", "查询成功", bean={"is_exist": data["status"]})
         return Response(result, status=result["code"])

@@ -48,7 +48,7 @@ class TenantServiceEnvVarRepository(object):
         return get_object_or_404(
             TenantServiceEnvVar,
             msg="Environment variable with ID {} not found".format(env_id),
-            msg_show=u"环境变量`{}`不存在".format(env_id),
+            msg_show="环境变量`{}`不存在".format(env_id),
             tenant_id=tenant_id,
             service_id=service_id,
             ID=env_id)
