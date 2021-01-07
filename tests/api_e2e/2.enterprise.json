@@ -1,0 +1,75 @@
+[
+    {
+        "id": "get_en_regions",
+        "name": "获取企业集群信息",
+        "request": {
+            "path": "/console/enterprise/{eid}/regions",
+            "query": {
+                "check_status": "no"
+            },
+            "params": [
+                {
+                    "key": "eid",
+                    "value_from": "get_enterprise_info.response.data.list[0].enterprise_id"
+                }
+            ]
+        }
+    },
+    {
+        "id": "get_en_info",
+        "name": "获取企业集群信息",
+        "request": {
+            "path": "/console/enterprise/{eid}/info",
+            "params": [
+                {
+                    "key": "eid",
+                    "value_from": "get_enterprise_info.response.data.list[0].enterprise_id"
+                }
+            ]
+        }
+    },
+    {
+        "id": "get_en_user_favorite",
+        "name": "获取企业用户信息",
+        "request": {
+            "path": "/console/enterprise/{eid}/user/favorite",
+            "params": [
+                {
+                    "key": "eid",
+                    "value_from": "get_enterprise_info.response.data.list[0].enterprise_id"
+                }
+            ]
+        }
+    },
+    {
+        "id": "get_en_user_teams",
+        "name": "获取企业用户所在团队信息",
+        "request": {
+            "path": "/console/enterprise/{eid}/user/{uid}/teams",
+            "params": [
+                {
+                    "key": "eid",
+                    "value_from": "get_enterprise_info.response.data.list[0].enterprise_id"
+                },
+                {
+                    "key": "uid",
+                    "value_from": "get_user_info.response.data.bean.user_id"
+                }
+            ],
+            "query": {
+                "page": 1,
+                "page_size": 2
+            }
+        },
+        "response": [
+            {
+                "key": "status",
+                "value": 200
+            },
+            {
+                "key": "response",
+                "value": 200
+            }
+        ]
+    }
+]

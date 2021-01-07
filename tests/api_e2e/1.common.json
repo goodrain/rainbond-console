@@ -1,0 +1,81 @@
+[
+    {
+        "id": "get_system_info",
+        "name": "获取平台信息",
+        "env": "local",
+        "request": {
+            "path": "/console/config/info",
+            "method": "GET"
+        },
+        "response": [
+            {
+                "key": "status",
+                "value": 200
+            }
+        ]
+    },
+    {
+        "id": "regist",
+        "name": "注册用户",
+        "disable": true,
+        "request": {
+            "path": "/console/users/register",
+            "method": "POST",
+            "body": {
+                "user_name": "test_user1",
+                "email": "5765010571@qq.com",
+                "password": "gr123465!",
+                "password_repeat": "gr123465!",
+                "captcha_code": "3f18"
+            }
+        }
+    },
+    {
+        "id": "login",
+        "name": "登录",
+        "request": {
+            "path": "/console/users/login",
+            "method": "POST",
+            "body_type": "form",
+            "body": {
+                "nick_name": "gradmin",
+                "password": "gr123465!"
+            }
+        }
+    },
+    {
+        "id": "get_user_info",
+        "name": "获取用户信息",
+        "request": {
+            "path": "/console/users/details",
+            "headers": {
+                "Authorization": "GRJWT {token}"
+            },
+            "params": [
+                {
+                    "key": "token",
+                    "value_from": "login.response.data.bean.token"
+                }
+            ]
+        },
+        "response": [
+            {
+                "key": "status",
+                "value": 200
+            }
+        ]
+    },
+    {
+        "id": "get_enterprise_info",
+        "name": "获取用户所在企业信息",
+        "request": {
+            "path": "/console/enterprises"
+        },
+        "response": [
+            {
+                "key": "status",
+                "value": 200
+            }
+        ]
+    }
+]
