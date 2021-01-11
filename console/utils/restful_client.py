@@ -3,22 +3,12 @@ import logging
 import os
 from functools import wraps
 
-import market_client
-from market_client.configuration import Configuration
-
 import openapi_client as store_client
 from console.exception.main import ServiceHandleException, StoreNoPermissionsError
 from openapi_client.configuration import Configuration as storeConfiguration
 from openapi_client.rest import ApiException
 
 logger = logging.getLogger("default")
-
-
-def get_default_market_client():
-    configuration = Configuration()
-    configuration.host = os.environ.get('APP_CLOUD_API', 'http://api.goodrain.com:80')
-    # create an instance of the API class
-    return market_client.AppsApi(market_client.ApiClient(configuration))
 
 
 def get_market_client(access_key, host=None):
