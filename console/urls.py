@@ -53,10 +53,11 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.enterprise import (
-    EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseOverview,
-    EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
-    EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams, EnterpriseUserTeams)
+from console.views.enterprise import (EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView,
+                                      EnterpriseMonitor, EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView,
+                                      EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView,
+                                      EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams,
+                                      EnterpriseUserTeams, EnterpriseMigrateView)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView, EnterpriseConfigView)
 from console.views.errlog import ErrLogView
@@ -706,6 +707,7 @@ urlpatterns = [
     url(r'^enterprises$', Enterprises.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/active/optimiz$', BindMarketEnterpriseOptimizAccessTokenView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info$', EnterpriseRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/info/migrate$', EnterpriseMigrateView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview$', EnterpriseOverview.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),

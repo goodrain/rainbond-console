@@ -4,7 +4,9 @@ import os
 import random
 import re
 import string
+import subprocess
 
+from goodrain_web.settings import BASE_DIR
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo, group_service_relation_repo
@@ -295,6 +297,36 @@ class EnterpriseServices(object):
             }
         }
         return data
+
+    def migrate_data(self, name, user, password, host, port):
+        # Package current data
+        dump_command = "python3 manage.py dumpdata > db.json"
+        dump_resp = subprocess.run(dump_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
+        if dump_resp.returncode == 1:
+            logger.error(msg=dump_resp.stderr)
+            raise ServiceHandleException(msg="export sqlite data failed", msg_show="导出sqlite数据失败")
+
+        # Set environment vars
+        os.environ["DB_TYPE"] = "mysql"
+        os.environ["MYSQL_DB"] = name
+        os.environ["MYSQL_USER"] = user
+        os.environ["MYSQL_PASS"] = password
+        os.environ["MYSQL_HOST"] = host
+        os.environ["MYSQL_PORT"] = port
+
+        # Migrate model
+        migrate_cmd = "python3 manage.py migrate"
+        migrate_resp = subprocess.run(migrate_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
+        if migrate_resp.returncode == 1:
+            logger.error(msg=migrate_resp.stderr)
+            raise ServiceHandleException(msg="migrate model failed", msg_show="迁移数据表结构失败")
+
+        # Recover data
+        load_command = "python3 manage.py loaddata db.json"
+        load_resp = subprocess.run(load_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
+        if load_resp.returncode == 1:
+            logger.error(msg=load_resp.stderr)
+            raise ServiceHandleException(msg="import data failed", msg_show="导入数据失败")
 
 
 enterprise_services = EnterpriseServices()

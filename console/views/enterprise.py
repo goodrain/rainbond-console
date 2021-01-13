@@ -19,6 +19,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
+from console.exception.main import AbortRequest
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -49,6 +50,21 @@ class Enterprises(JWTAuthApiView):
         else:
             data = general_message(404, "no found enterprise", "未找到企业")
             return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+
+class EnterpriseMigrateView(JWTAuthApiView):
+    def post(self, request, *args, **kwargs):
+        name = request.data.get("mysql_name")
+        user = request.data.get("mysql_user")
+        password = request.data.get("mysql_pass")
+        host = request.data.get("mysql_host")
+        port = request.data.get("mysql_port")
+        if not name or not user or not password or not host or not port:
+            raise AbortRequest(msg="incomplete param!", msg_show="请求参数不全")
+
+        enterprise_services.migrate_data(name, user, password, host, port)
+        result = general_message(200, "success", "迁移成功")
+        return Response(result, status=result["code"])
 
 
 class EnterpriseRUDView(JWTAuthApiView):
