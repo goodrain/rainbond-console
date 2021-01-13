@@ -6,7 +6,6 @@ import re
 import string
 import subprocess
 
-from goodrain_web.settings import BASE_DIR
 from console.exception.main import ServiceHandleException
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo, group_service_relation_repo
