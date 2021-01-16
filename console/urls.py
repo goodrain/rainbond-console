@@ -115,8 +115,11 @@ from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWe
 from console.views.app_config_group import ListAppConfigGroupView
 from console.views.app_config_group import AppConfigGroupView
 from console.views.app_market import BindableMarketsView
+from console.views.data import PlatDataCView, PlatDataUView
 
 urlpatterns = [
+    url(r'^backup-data$', PlatDataCView.as_view()),
+    url(r'^recover-data$', PlatDataUView.as_view()),
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),
     # 获取云帮Logo、标题、github、gitlab配置信息
