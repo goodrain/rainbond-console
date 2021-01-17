@@ -45,17 +45,15 @@ class PlatformDataServices(object):
                 self.recover_adaptor_data(file_path, file)
 
     def recover_console_data(self, file_path, file_name):
-        load_command = "python3 manage.py loaddata {}".format(file_path+"/{}".format(file_name))
+        load_command = "python3 manage.py loaddata {}".format(file_path + "/{}".format(file_name))
         load_resp = subprocess.run(load_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
         if load_resp.returncode == 1:
             logger.error(msg=load_resp.stderr)
             raise ServiceHandleException(msg="recover data failed", msg_show="恢复控制台数据失败")
 
     def recover_adaptor_data(self, file_path, file_name):
-        dump_command = "{}/cloud-adaptor data import --fileName {}".format(
-            settings.BASE_DIR,
-            file_path.split('/')[-1] + "/{}".format(file_name)
-        )
+        dump_command = "{}/cloud-adaptor data import --fileName {}".format(settings.BASE_DIR,
+                                                                           file_path.split('/')[-1] + "/{}".format(file_name))
         dump_resp = subprocess.run(dump_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
         if dump_resp.returncode == 1:
             logger.error(msg=dump_resp.stderr)
