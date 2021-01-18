@@ -20,6 +20,7 @@ RUN chmod +x /app/ui/entrypoint.sh &&  \
       rm -rf /dist \
       && mkdir /app/logs \
       && mkdir /app/data \
+      && python -m pip install --upgrade pip \
       && pip install -r requirements.txt \
       && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
       && rm -rf /root/.cache \
