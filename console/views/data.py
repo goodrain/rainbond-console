@@ -9,7 +9,7 @@ from www.utils.return_message import general_message
 class PlatDataCView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         data_path = platform_data_services.get_or_create_path()
-        file_path = platform_data_services.export_platform_data(data_path=data_path, data_type="origin", is_deleted=True)
+        file_path = platform_data_services.export_platform_data(data_path=data_path, data_type="origin")
         return platform_data_services.download_file(file_path)
 
 
@@ -28,7 +28,7 @@ class PlatDataUView(JWTAuthApiView):
         extract_dir = platform_data_services.upzip_file(file_path)
 
         # backup platform data
-        platform_data_services.export_platform_data(data_path=data_path, data_type="backup", is_deleted=True)
+        platform_data_services.export_platform_data(data_path=data_path, data_type="backup")
         # recover platform data
         platform_data_services.recover_platform_data(extract_dir)
 

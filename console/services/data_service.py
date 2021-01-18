@@ -20,10 +20,10 @@ class PlatformDataServices(object):
             os.makedirs(data_path, 0o777)
         return data_path
 
-    def export_platform_data(self, data_path, data_type="origin", is_deleted=False):
+    def export_platform_data(self, data_path, data_type="origin"):
         console_name = self.export_console_data(data_path)
         adaptor_name = self.export_adaptor_data()
-        return self.compressed_file(data_path, console_name, adaptor_name, data_type, is_deleted)
+        return self.compressed_file(data_path, console_name, adaptor_name, data_type)
 
     def upload_file(self, data_path, upload_file, suffix):
         try:
@@ -47,7 +47,7 @@ class PlatformDataServices(object):
     def recover_console_data(self, file_path, file_name):
         load_command = "python3 manage.py loaddata {}".format(file_path + "/{}".format(file_name))
         load_resp = subprocess.run(load_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
-        if load_resp.returncode == 1:
+        if load_resp.returncode != 0:
             logger.error(msg=load_resp.stderr)
             raise ServiceHandleException(msg="recover data failed", msg_show="恢复控制台数据失败")
 
@@ -55,7 +55,7 @@ class PlatformDataServices(object):
         dump_command = "{}/cloud-adaptor data import --fileName {}".format(settings.BASE_DIR,
                                                                            file_path.split('/')[-1] + "/{}".format(file_name))
         dump_resp = subprocess.run(dump_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
-        if dump_resp.returncode == 1:
+        if dump_resp.returncode != 0:
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="恢复adaptor数据失败")
 
@@ -63,7 +63,7 @@ class PlatformDataServices(object):
         console_data_name = "console_data_{}.json".format(make_uuid()[:6])
         dump_command = "python3 manage.py dumpdata > {}".format(data_path + "/{}".format(console_data_name))
         dump_resp = subprocess.run(dump_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
-        if dump_resp.returncode == 1:
+        if dump_resp.returncode != 0:
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export console data failed", msg_show="导出控制台数据失败")
         return console_data_name
@@ -72,20 +72,21 @@ class PlatformDataServices(object):
         adaptor_data_name = "adaptor_data_{}.json".format(make_uuid()[:6])
         dump_command = "{}/cloud-adaptor data export --fileName {}".format(settings.BASE_DIR, adaptor_data_name)
         dump_resp = subprocess.run(dump_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
-        if dump_resp.returncode == 1:
+        if dump_resp.returncode != 0:
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="导出adaptor数据失败")
         return adaptor_data_name
 
-    def compressed_file(self, data_path, console_file, adaptor_file, data_type="origin", is_delete=False):
+    def compressed_file(self, data_path, console_file, adaptor_file, data_type="origin"):
         file_path = data_path + "/platform_data_{}_{}.zip".format(data_type, make_uuid()[:6])
         zip = zipfile.ZipFile(file_path, "w")
         zip.write(data_path + "/" + console_file, arcname=console_file)
         zip.write(data_path + "/" + adaptor_file, arcname=adaptor_file)
         zip.close()
-        if is_delete:
-            os.remove(data_path + "/" + console_file)
-            os.remove(data_path + "/" + adaptor_file)
+
+        # delete source file
+        os.remove(data_path + "/" + console_file)
+        os.remove(data_path + "/" + adaptor_file)
         return file_path
 
     def upzip_file(self, file_path):
