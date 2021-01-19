@@ -70,6 +70,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             api_url = host + "/console/" + "third_party/{0}".format(new_service.service_id)
             bean["api_service_key"] = api_secret_key
             bean["url"] = api_url
+            service_endpoints_repo.create_api_endpoints(self.tenant, new_service)
 
         result = general_message(200, "success", "创建成功", bean=bean)
         return Response(result, status=result["code"])

@@ -784,6 +784,19 @@ class TenantServiceEndpoints(object):
             endpoints = ThirdPartyServiceEndpoints.objects.create(**data)
         return endpoints
 
+    def create_api_endpoints(self, tenant, service):
+        endpoints = self.get_service_endpoints_by_service_id(service.service_id)
+        if endpoints:
+            return
+        data = {
+            "tenant_id": tenant.tenant_id,
+            "service_id": service.service_id,
+            "service_cname": service.service_cname,
+            "endpoints_info": "",
+            "endpoints_type": "api"
+        }
+        return ThirdPartyServiceEndpoints.objects.create(**data)
+
 
 class GatewayCustom(object):
     def get_configuration_by_rule_id(self, rule_id):
