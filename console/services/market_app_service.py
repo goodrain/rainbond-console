@@ -1145,9 +1145,9 @@ class MarketAppService(object):
         if app.scope == "team":
             create_team = app_info.get("create_team")
             if create_team:
-              team = team_repo.get_team_by_team_name(create_team)
-              if team:
-                app.create_team = create_team
+                team = team_repo.get_team_by_team_name(create_team)
+                if team:
+                    app.create_team = create_team
         app.save()
 
     @transaction.atomic
