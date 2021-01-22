@@ -9,7 +9,7 @@ try:
 except Exception:
     from urllib.parse import urlparse
 from rest_framework.response import Response
-from console.views.base import CloudEnterpriseCenterView
+from console.views.base import CloudEnterpriseCenterView, JWTAuthApiView
 from www.utils.return_message import general_message
 import os
 
@@ -56,7 +56,7 @@ class BankInfoView(CloudEnterpriseCenterView):
 
 
 # proxy api to enterprise api
-class ProxyView(CloudEnterpriseCenterView):
+class ProxyView(JWTAuthApiView):
     def dispatch(self, request, path, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -65,18 +65,9 @@ class ProxyView(CloudEnterpriseCenterView):
         self.headers = self.default_response_headers
         try:
             self.initial(request, *args, **kwargs)
-            token, _ = self.oauth_instance._get_access_token()
-            extra_requests_args = {
-                "headers": {
-                    "Authorization": token
-                },
-            }
-            if self.oauth_instance.oauth_service.home_url:
-                remoteurl = "{0}/{1}".format(self.oauth_instance.oauth_service.home_url, path)
-            else:
-                remoteurl = "http://{0}:{1}/{2}".format(
-                    os.getenv("ENTERPRISE_HOST", "127.0.0.1"), os.getenv("ENTERPRISE_PORT", "8080"), path)
-            response = self.proxy_view(request, remoteurl, extra_requests_args)
+            remoteurl = "http://{0}:{1}/{2}".format(
+                os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), path)
+            response = self.proxy_view(request, remoteurl)
         except Exception as exc:
             response = self.handle_exception(exc)
         self.response = self.finalize_response(request, response, *args, **kwargs)
