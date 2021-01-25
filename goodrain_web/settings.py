@@ -29,6 +29,9 @@ folder = os.path.exists(LOG_PATH)
 if not folder:
     os.makedirs(LOG_PATH)
 
+MEDIA_URL = '/data/media/'
+MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
+
 DEFAULT_HANDLERS = ['file_handler', 'console']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
@@ -260,11 +263,7 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static/'
-MEDIA_URL = '/data/media/'
-MEDIA_ROOT = '/data/media'
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
-
-# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 LOGGING = {
     'version': 1,

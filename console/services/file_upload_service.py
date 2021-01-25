@@ -63,12 +63,13 @@ class FileUploadService(object):
                 os.makedirs(prefix_file_path, 0o777)
         except Exception as e:
             logger.exception(e)
-
-        filename = '{0}/uploads/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
-        with open(filename, 'wb+') as destination:
+        filename = 'uploads/{0}.{1}'.format(make_uuid(), suffix)
+        savefilename = os.path.join(settings.MEDIA_ROOT, filename)
+        queryfilename = os.path.join(settings.MEDIA_URL, filename)
+        with open(savefilename, 'wb+') as destination:
             for chunk in upload_file.chunks():
                 destination.write(chunk)
-            return filename
+            return queryfilename
 
 
 upload_service = FileUploadService()

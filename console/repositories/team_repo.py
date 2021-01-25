@@ -138,14 +138,14 @@ class TeamRepo(object):
         tenant = Tenants.objects.get(tenant_name=tenant_name)
         PermRelTenant.objects.filter(tenant_id=tenant.ID).delete()
         row = Tenants.objects.filter(ID=tenant.ID).delete()
-        return row > 0
+        return len(row) > 0
 
     def delete_by_tenant_id(self, tenant_id):
         # TODO: use transaction
         tenant = Tenants.objects.get(tenant_id=tenant_id)
         PermRelTenant.objects.filter(tenant_id=tenant.ID).delete()
         row = Tenants.objects.filter(ID=tenant.ID).delete()
-        return row > 0
+        return len(row) > 0
 
     def get_region_alias(self, region_name):
         try:

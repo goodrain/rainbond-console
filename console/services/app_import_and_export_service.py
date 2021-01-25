@@ -3,12 +3,13 @@
   Created on 18/5/15.
 """
 import base64
+import os
 import json
 import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-
+from goodrain_web import settings
 from console.appstore.appstore import app_store
 from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
@@ -485,11 +486,12 @@ class AppImportService(object):
         if not image_base64_string:
             return ""
         try:
-            file_name = make_uuid() + "." + suffix
-            file_path = "{0}/{1}".format("/data/media/uploads", file_name)
-            with open(file_path, "wb") as f:
+            filename = 'uploads/{0}.{1}'.format(make_uuid(), suffix)
+            savefilename = os.path.join(settings.MEDIA_ROOT, filename)
+            queryfilename = os.path.join(settings.MEDIA_URL, filename)
+            with open(savefilename, "wb") as f:
                 f.write(image_base64_string.decode("base64"))
-            return file_path
+            return queryfilename
         except Exception as e:
             logger.exception(e)
         return ""

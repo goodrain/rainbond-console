@@ -19,6 +19,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
+from console.models.main import RegionConfig
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -371,7 +372,10 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
-        region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
+        try:
+            region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
+        except RegionConfig.DoesNotExist:
+            raise ServiceHandleException(status_code=404, msg="集群已不存在")
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
 
