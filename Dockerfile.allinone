@@ -1,0 +1,60 @@
+ARG VERSION=V5.3-dev
+ARG RELEASE_DESC=
+
+FROM golang:1.13 as builder
+ENV CGO_ENABLED=0
+ENV GOPATH=/go
+ENV GOPROXY=https://goproxy.cn
+RUN git clone --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+WORKDIR /go/src/goodrain.com/cloud-adaptor/
+ARG LDFLAGS
+RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor
+
+
+FROM rainbond/rainbond-ui:${VERSION}
+
+LABEL author="zengqg@goodrain.com" 
+
+RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
+    apt-get update && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/* && \
+    wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \
+    mkdir -p /var/log/supervisor
+
+COPY --from=builder ./chart /app/chart
+COPY --from=builder /cloud-adaptor /app/cloudadaptor
+ADD . /app/ui
+WORKDIR /app/ui
+RUN chmod +x /app/ui/entrypoint.sh &&  \
+      chmod +x promql-parser && \
+      mkdir -p /app/ui/bin/linux && mv promql-parser /app/ui/bin/linux && \
+      mv /app/ui/cloudadaptor-x86.linux /app/cloudadaptor && \
+      mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
+      mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
+      chmod +x /app/cloudadaptor && \
+      mv /dist/index.html /app/ui/www/templates/index.html && \
+      rm -rf /app/ui/www/static/dists/* && \
+      cp -a /dist/* /app/ui/www/static/dists/ && \
+      rm -rf /dist \
+      && mkdir /app/logs \
+      && mkdir /app/data \
+      && python -m pip install --upgrade pip \
+      && pip install -r requirements.txt \
+      && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
+      && rm -rf /root/.cache \
+      && rm -rf /tmp/* \
+      && rm -rf /app/ui/www/static/www/weavescope
+
+ENV PORT 7070
+ENV IS_OPEN_API=true
+ENV RELEASE_DESC=${RELEASE_DESC}
+ENV HOME_DIR=/app
+# cloud adaptor
+ENV DB_PATH=/app/data/cloudadaptor
+ENV CHART_PATH=/app/chart
+ENV CONFIG_DIR=/app/data/cloudadaptor
+ENV HELM_PATH=/usr/local/bin/helm
+
+VOLUME /app/data
+VOLUME /app/logs
+
+CMD ["/usr/bin/supervisord"]
