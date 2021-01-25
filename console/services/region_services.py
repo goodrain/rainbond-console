@@ -491,6 +491,8 @@ class RegionService(object):
         region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
         region_resource["scope"] = region.scope
+        region_resource["provider"] = region.provider
+        region_resource["provider_cluster_id"] = region.provider_cluster_id
         if level == "open":
             region_resource["wsurl"] = region.wsurl
             region_resource["httpdomain"] = region.httpdomain

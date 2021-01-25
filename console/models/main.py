@@ -7,7 +7,6 @@ from enum import Enum, IntEnum
 from django.db import models
 from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
-
 from goodrain_web import settings
 from www.models.main import TenantServiceInfo
 from www.utils.crypt import make_uuid
@@ -798,6 +797,8 @@ class RegionConfig(BaseModel):
     cert_file = models.TextField(blank=True, null=True, help_text="验证文件")
     key_file = models.TextField(blank=True, null=True, help_text="验证的key")
     enterprise_id = models.CharField(max_length=36, null=True, blank=True, help_text="enterprise id")
+    provider = models.CharField(max_length=24, null=True, default='', help_text="底层集群供应类型")
+    provider_cluster_id = models.CharField(max_length=64, null=True, default='', help_text="底层集群ID")
 
 
 def logo_path(instance, filename):

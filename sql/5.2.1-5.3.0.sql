@@ -67,3 +67,6 @@ ALTER TABLE `console`.`service_group` ADD COLUMN `governance_mode` varchar(255) 
 ALTER TABLE `console`.`rainbond_center_app_version` ADD COLUMN `release_user_id` varchar(255) DEFAULT NULL;
 ALTER TABLE user_oauth_service modify COLUMN access_token varchar(2047);
 ALTER TABLE console.app_service_extend_method modify column `app_version` varchar(255) NOT NULL;
+
+ALTER TABLE region_info add column `provider` varchar(24) DEFAULT '';
+ALTER TABLE region_info add column `provider_cluster_id` varchar(64) DEFAULT '';

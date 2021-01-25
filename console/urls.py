@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
-from django.conf.urls import include, url
+from django.conf.urls import url
 
 import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
+from console.cloud.views import ProxyView
 from console.views import app_upgrade
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView)
@@ -17,10 +18,11 @@ from console.views.app_config.app_mnt import AppMntManageView, AppMntView
 from console.views.app_config.app_port import (AppPortManageView, AppPortView, AppTcpOuterManageView, TopologicalPortView)
 from console.views.app_config.app_probe import AppProbeView
 from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView)
-from console.views.app_config.graph import ComponentGraphListView, ComponentGraphView, \
-    ComponentInternalGraphsView, ComponentExchangeGraphsView
-from console.views.app_config.service_monitor import (ComponentServiceMonitorEditView, ComponentServiceMonitorView,
-                                                      ComponentMetricsView)
+from console.views.app_config.graph import (ComponentExchangeGraphsView, ComponentGraphListView, ComponentGraphView,
+                                            ComponentInternalGraphsView)
+from console.views.app_config.service_monitor import (ComponentMetricsView, ComponentServiceMonitorEditView,
+                                                      ComponentServiceMonitorView)
+from console.views.app_config_group import (AppConfigGroupView, ListAppConfigGroupView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID)
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
@@ -37,32 +39,34 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView)
+from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
-                                        AppKeywordView, AppPluginsBriefView, AppVisitView, BuildSourceinfo, ImageAppView,
-                                        ListAppPodsView, AppStatusView)
+                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
+                                        ImageAppView, ListAppPodsView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
                                                   EnterpriseAppImportInitView, ImportingRecordView)
-from console.views.center_pool.apps import (AppTagCDView, CenterAppCLView, CenterAppUDView, CenterAppView, TagCLView, TagUDView,
-                                            AppVersionUDView)
+from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
+                                            TagCLView, TagUDView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
+from console.views.data import PlatDataCView, PlatDataUView
 from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseOverview,
     EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
     EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams, EnterpriseUserTeams)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
-from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView, EnterpriseConfigView)
+from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseConfigView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (GroupStatusView, TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView)
+from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
+                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -93,29 +97,25 @@ from console.views.region import (GetRegionPublicKeyView, MavenSettingRUDView, M
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import (
-    AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView, AppMarketCLView,
-    AppMarketBatchCView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
+    AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView, AppMarketBatchCView,
+    AppMarketCLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
     ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
     ServiceShareRecordView, ShareRecordHistoryView, ShareRecordView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
 from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView,
-                                JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamDelView, TeamExitView,
-                                TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView, TeamSortServiceQueryView,
-                                TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView, UserDelView,
-                                UserFuzSerView, TeamCheckKubernetesServiceName)
-from console.views.user import (AdministratorJoinTeamView, AdminUserView, AdminUserLCView, CheckSourceView,
-                                EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView, AdminRolesView)
+                                JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamCheckKubernetesServiceName,
+                                TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
+                                TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
+                                UserApplyStatusView, UserDelView, UserFuzSerView)
+from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
+                                EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
 from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegin, SendResetEmail, TenantServiceView,
                                           UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
-from console.views.app_config_group import ListAppConfigGroupView
-from console.views.app_config_group import AppConfigGroupView
-from console.views.app_market import BindableMarketsView
-from console.views.data import PlatDataCView, PlatDataUView
 
 urlpatterns = [
     url(r'^backup-data$', PlatDataCView.as_view()),
@@ -817,6 +817,4 @@ urlpatterns += [
 ]
 
 # ONLINE 业务相关接口
-urlpatterns += [
-    url(r'', include('console.cloud.urls')),
-]
+urlpatterns += [url(r"proxy/(?P<path>.*)", ProxyView.as_view())]

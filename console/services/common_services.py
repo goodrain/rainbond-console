@@ -2,7 +2,6 @@
 import logging
 
 from django.conf import settings
-
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantRegionInfo
 
@@ -38,7 +37,7 @@ class CommonServices(object):
                 resource = d_list[0]
                 return resource
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             return None
 
     def calculate_cpu(self, region, memory):

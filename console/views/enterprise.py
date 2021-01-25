@@ -346,6 +346,8 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         region_data = region_services.parse_token(token, region_name, region_alias, region_type)
         region_data["enterprise_id"] = enterprise_id
         region_data["desc"] = desc
+        region_data["provider"] = request.data.get("provider", "")
+        region_data["provider_cluster_id"] = request.data.get("provider_cluster_id", "")
         region_data["status"] = "1"
         region = region_services.add_region(region_data)
         if region:
