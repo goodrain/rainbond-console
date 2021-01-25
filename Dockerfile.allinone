@@ -26,7 +26,6 @@ WORKDIR /app/ui
 RUN chmod +x /app/ui/entrypoint.sh &&  \
       chmod +x promql-parser && \
       mkdir -p /app/ui/bin/linux && mv promql-parser /app/ui/bin/linux && \
-      mv /app/ui/cloudadaptor-x86.linux /app/cloudadaptor && \
       mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
       mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
       chmod +x /app/cloudadaptor && \
