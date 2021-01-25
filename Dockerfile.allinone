@@ -4,7 +4,6 @@ ARG RELEASE_DESC=
 FROM golang:1.13 as builder
 ENV CGO_ENABLED=0
 ENV GOPATH=/go
-ENV GOPROXY=https://goproxy.cn
 RUN git clone --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 ARG LDFLAGS
@@ -20,7 +19,7 @@ RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
     wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \
     mkdir -p /var/log/supervisor
 
-COPY --from=builder ./chart /app/chart
+COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
