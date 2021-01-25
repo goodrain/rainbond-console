@@ -35,6 +35,7 @@ RUN chmod +x /app/ui/entrypoint.sh &&  \
       rm -rf /dist \
       && mkdir /app/logs \
       && mkdir /app/data \
+      && mkdir /root/.ssh \
       && python -m pip install --upgrade pip \
       && pip install -r requirements.txt \
       && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
@@ -54,5 +55,6 @@ ENV HELM_PATH=/usr/local/bin/helm
 
 VOLUME /app/data
 VOLUME /app/logs
+VOLUME /root/.ssh
 
 CMD ["/usr/bin/supervisord"]
