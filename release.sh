@@ -47,17 +47,19 @@ function release_allinone() {
     echo "Downloading ${PROMQL_PARSER_URL} to bin/linux/promql-parser"
     time wget "${PROMQL_PARSER_URL}"
   fi
-  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg RELEASE_DESC="${release_desc}" -t "${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}-allinone" -f Dockerfile.allinone .
+  imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}-allinone
+  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg RELEASE_DESC="${release_desc}" -t "${imageName}" -f Dockerfile.allinone .
   if [ $? -ne 0 ]; then
     exit 1
   fi
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-    docker push "${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-app-ui:${VERSION}"
+    docker push "${imageName}"
     if [ ${DOMESTIC_BASE_NAME} ]; then
-      docker tag "${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-app-ui:${VERSION}" "${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rbd-app-ui:${VERSION}"
+      domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rbd-app-ui:${VERSION}
+      docker tag "${imageName}" "${domestcName}"
       docker login -u "$DOMESTIC_DOCKER_USERNAME" -p "$DOMESTIC_DOCKER_PASSWORD" "${DOMESTIC_BASE_NAME}"
-      docker push "${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rbd-app-ui:${VERSION}"
+      docker push "${domestcName}"
     fi
   fi
 }
