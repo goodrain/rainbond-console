@@ -9,14 +9,10 @@ import re
 import validators
 from console.constants import ServicePortConstants
 from console.enum.app import GovernanceModeEnum
-from console.exception.bcode import (ErrComponentPortExists,
-                                     ErrK8sServiceNameExists)
-from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed,
-                                    ServiceHandleException)
+from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameExists)
+from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
 from console.repositories.app import service_repo
-from console.repositories.app_config import (domain_repo, port_repo,
-                                             service_endpoints_repo,
-                                             tcp_domain)
+from console.repositories.app_config import (domain_repo, port_repo, service_endpoints_repo, tcp_domain)
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
