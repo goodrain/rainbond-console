@@ -26,6 +26,7 @@ from console.services.app_config import (AppMntService, env_var_service, port_se
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.group_service import group_service
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
@@ -40,7 +41,6 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -803,16 +803,22 @@ class MarketAppService(object):
 
         tenant_service.env = ","
         tenant_service.min_node = app["extend_method_map"]["min_node"]
-        tenant_service.min_memory = app["extend_method_map"]["min_memory"]
+        if app["extend_method_map"].get("init_memory"):
+            tenant_service.min_memory = app["extend_method_map"].get("init_memory")
+        else:
+            tenant_service.min_memory = app["extend_method_map"]["min_memory"]
         tenant_service.min_cpu = baseService.calculate_service_cpu(region, tenant_service.min_memory)
         tenant_service.inner_port = 0
         tenant_service.version = app["version"]
+        # deprecated
         if is_slug:
             if app.get("service_slug", None):
                 tenant_service.namespace = app["service_slug"]["namespace"]
         else:
-            if app.get("service_image", None):
+            if app.get("service_image", None) and app["service_image"]["namespace"]:
                 tenant_service.namespace = app["service_image"]["namespace"]
+            else:
+                tenant_service.namespace = "default"
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
         tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

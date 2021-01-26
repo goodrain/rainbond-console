@@ -7,15 +7,21 @@ import time
 
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
-from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
-from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
+from console.exception.main import (AbortRequest, RbdAppNotFound,
+                                    ServiceHandleException)
+from console.models.main import (PluginShareRecordEvent, RainbondCenterApp,
+                                 RainbondCenterAppVersion,
+                                 ServiceShareRecordEvent)
 from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo, volume_repo
-from console.repositories.app_config_group import (app_config_group_item_repo, app_config_group_repo,
-                                                   app_config_group_service_repo)
+from console.repositories.app_config_group import (
+    app_config_group_item_repo, app_config_group_repo,
+    app_config_group_service_repo)
 from console.repositories.component_graph import component_graph_repo
-from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
-from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
+from console.repositories.market_app_repo import (app_export_record_repo,
+                                                  rainbond_app_repo)
+from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo,
+                                         service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
@@ -45,10 +51,10 @@ class ShareService(object):
                 status_list = base_service.status_multi_service(
                     region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
                 for status in status_list:
-                    if status["status"] != "running":
-                        data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(), "bean": dict()}
+                    if status["status"] == "running":
+                        data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
                         return data
-                data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(), "bean": dict()}
+                data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
                 return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
@@ -260,6 +266,8 @@ class ShareService(object):
             all_data_map = dict()
 
             for service in service_list:
+                if not deploy_versions or not deploy_versions.get(service.service_id):
+                    continue
                 data = dict()
                 data['service_id'] = service.service_id
                 data['tenant_id'] = service.tenant_id
@@ -286,15 +294,16 @@ class ShareService(object):
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 e_m = dict()
                 e_m['step_node'] = 1
-                e_m['min_memory'] = service.min_memory
+                e_m['min_memory'] = 64
+                e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
-                e_m['step_memory'] = 128
+                e_m['step_memory'] = 64
                 e_m['is_restart'] = 0
                 e_m['min_node'] = service.min_node
                 if is_singleton(service.extend_method):
                     e_m['max_node'] = 1
                 else:
-                    e_m['max_node'] = 20
+                    e_m['max_node'] = 64
                 data['extend_method_map'] = e_m
                 data['port_map_list'] = list()
                 if service_port_map.get(service.service_id):

@@ -6,20 +6,21 @@ import datetime
 import json
 import logging
 
-from django.db import transaction
-from django.views.decorators.cache import never_cache
-from rest_framework import status
-from rest_framework.response import Response
-
 from console.exception.main import (AccountOverdueException, ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import app_tag_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.app import app_market_service
+from console.services.config_service import EnterpriseConfigService
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.region_services import region_services
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from django.db import transaction
+from django.views.decorators.cache import never_cache
+from rest_framework import status
+from rest_framework.response import Response
 from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger('default')
@@ -441,4 +442,23 @@ class AppVersionUDView(JWTAuthApiView):
     def delete(self, request, enterprise_id, app_id, version, *args, **kwargs):
         result = general_message(200, "success", "删除成功")
         market_app_service.delete_rainbond_app_version(enterprise_id, app_id, version)
+        return Response(result, status=result.get("code", 200))
+
+
+# Whether you need to be reminded to configure mirror repositories
+class LocalComponentLibraryConfigCheck(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        regions = region_services.get_regions_by_enterprise_id(enterprise_id)
+        remind = False
+        if regions and len(regions) > 1:
+            ent_cfg_svc = EnterpriseConfigService(enterprise_id)
+            data = ent_cfg_svc.get_config_by_key("APPSTORE_IMAGE_HUB")
+            if data and data.enable:
+                image_config_dict = eval(data.value)
+                hub_url = image_config_dict.get("hub_url", None)
+                if not hub_url:
+                    remind = True
+            else:
+                remind = True
+        result = general_message(200, "success", "检测成功", bean={"remind": remind})
         return Response(result, status=result.get("code", 200))

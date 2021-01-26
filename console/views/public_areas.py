@@ -84,8 +84,6 @@ class TeamOverView(RegionTenantHeaderView):
             source = common_services.get_current_region_used_resource(self.team, self.response_region)
             # 获取tcp和http策略数量
             region = region_repo.get_region_by_region_name(self.response_region)
-            logger.info(self.response_region)
-            logger.info(region)
             if not region:
                 overview_detail["region_health"] = False
                 return Response(general_message(200, "success", "查询成功", bean=overview_detail))

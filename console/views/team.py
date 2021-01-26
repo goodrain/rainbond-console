@@ -638,7 +638,7 @@ class TeamUserCanJoin(JWTAuthApiView):
         can_join_team_list = []
         for join_team in team_list:
             if join_team.tenant_name not in applied_team and join_team.tenant_name not in team_name_list:
-                can_join_team_list.append(join_team)
+                can_join_team_list.append(join_team.tenant_name)
         join_list = [{
             "team_name": j_team.tenant_name,
             "team_alias": j_team.tenant_alias,

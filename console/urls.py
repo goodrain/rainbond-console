@@ -49,7 +49,7 @@ from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
                                                   EnterpriseAppImportInitView, ImportingRecordView)
 from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
-                                            TagCLView, TagUDView)
+                                            LocalComponentLibraryConfigCheck, TagCLView, TagUDView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -737,6 +737,8 @@ urlpatterns = [
         MavenSettingRUDView.as_view(), perms.MavenSettingRUDView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$', EnterpriseAppComponentsLView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/storehub-check$', LocalComponentLibraryConfigCheck.as_view(),
+        perms.CenterAppCLView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view(), perms.CenterAppCLView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view(),
         perms.CenterAppUDView),

@@ -7,28 +7,26 @@ import logging
 import re
 
 import validators
-from django.db import transaction
-
-from console.enum.app import GovernanceModeEnum
-from console.repositories.group import group_repo
 from console.constants import ServicePortConstants
-from console.exception.main import AbortRequest
-from console.exception.main import CheckThirdpartEndpointFailed
-from console.exception.main import ServiceHandleException
-from console.exception.bcode import ErrK8sServiceNameExists, ErrComponentPortExists
+from console.enum.app import GovernanceModeEnum
+from console.exception.bcode import (ErrComponentPortExists,
+                                     ErrK8sServiceNameExists)
+from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed,
+                                    ServiceHandleException)
 from console.repositories.app import service_repo
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import service_endpoints_repo
-from console.repositories.app_config import tcp_domain
+from console.repositories.app_config import (domain_repo, port_repo,
+                                             service_endpoints_repo,
+                                             tcp_domain)
+from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
 from console.services.region_services import region_services
-from www.models.main import TenantServicesPort
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models.main import TenantServicesPort
 from www.utils.crypt import make_uuid
 
 pros = ProbeService()
@@ -47,7 +45,6 @@ class AppPortService(object):
             raise AbortRequest("component port out of range", msg_show="端口必须为1到65535的整数", status_code=412, error_code=412)
 
     def check_port_alias(self, port_alias):
-        logger.debug('-------------------11111111111111111111111----------')
         if not port_alias:
             return 400, "端口别名不能为空"
         if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
@@ -103,7 +100,6 @@ class AppPortService(object):
 
         # 第三方组件暂时只允许添加一个端口
         tenant_service_ports = self.get_service_ports(service)
-        logger.debug('======tenant_service_ports======>{0}'.format(type(tenant_service_ports)))
         if tenant_service_ports and service.service_source == "third_party":
             return 400, "第三方组件只支持配置一个端口", None
 

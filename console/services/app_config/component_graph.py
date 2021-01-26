@@ -1,16 +1,15 @@
 # -*- coding: utf8 -*-
-import logging
 import json
+import logging
 import os
 
-from django.db import transaction
-
-from console.models.main import ComponentGraph
-from goodrain_web.settings import BASE_DIR
-from console.exception.main import AbortRequest
 from console.exception.bcode import ErrInternalGraphsNotFound
+from console.exception.main import AbortRequest
+from console.models.main import ComponentGraph
 from console.repositories.component_graph import component_graph_repo
 from console.services.app_config.promql_service import promql_service
+from django.db import transaction
+from goodrain_web.settings import BASE_DIR
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")

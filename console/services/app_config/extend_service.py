@@ -13,7 +13,8 @@ class AppExtendService(object):
         min_node = sem.min_node if sem else 1
         step_node = sem.step_node if sem else 1
         max_node = sem.max_node if sem else 100
-        min_memory = sem.min_memory if sem else 64
+        # The minimum value is fixed at 32.
+        min_memory = 32
         max_memory = sem.max_memory if sem else 65536
 
         node_list = []
