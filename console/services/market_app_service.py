@@ -1129,7 +1129,7 @@ class MarketAppService(object):
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
     def list_upgradeable_versions(self, tenant, service):
-        pc = PropertiesChanges(service, tenant)
+        pc = PropertiesChanges(service, tenant, only_one_component=True)
         upgradeable_versions = pc.get_upgradeable_versions
         if not upgradeable_versions:
             upgradeable_versions = []

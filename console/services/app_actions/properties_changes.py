@@ -7,7 +7,6 @@ from console.exception.main import AbortRequest
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, volume_repo)
 from console.repositories.component_graph import component_graph_repo
-from console.repositories.group import group_service_relation_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.service_group_relation_repo import \
@@ -27,7 +26,7 @@ volume_service = AppVolumeService()
 
 class PropertiesChanges(object):
     # install_from_cloud do not need any more
-    def __init__(self, service, tenant, all_component_one_model=None, install_from_cloud=False):
+    def __init__(self, service, tenant, all_component_one_model=None, only_one_component=False, install_from_cloud=False):
         self.service = service
         self.tenant = tenant
         self.current_version = None
@@ -36,6 +35,7 @@ class PropertiesChanges(object):
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         self.install_from_cloud = False
         self.market_name = None
+        self.only_one_component = only_one_component
         self.market = None
         self.all_component_one_model = all_component_one_model
         if self.service_source and self.service_source.extend_info:
@@ -57,11 +57,14 @@ class PropertiesChanges(object):
         """
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
         service_ids = []
-        if self.all_component_one_model:
-            service_ids = self.all_component_one_model.values_list("service_id", flat=True)
+        if not self.only_one_component:
+            if self.all_component_one_model:
+                service_ids = self.all_component_one_model.values_list("service_id", flat=True)
+            else:
+                services = group_service.get_rainbond_services(group_id, self.service_source.group_key)
+                service_ids = services.values_list("service_id", flat=True)
         else:
-            services = group_service.get_rainbond_services(group_id, self.service_source.group_key)
-            service_ids = services.values_list("service_id", flat=True)
+            service_ids = [self.service.service_id]
         service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
         versions = service_sources.exclude(version=None).values_list("version", flat=True)
         if versions:
