@@ -27,7 +27,7 @@ volume_service = AppVolumeService()
 
 class PropertiesChanges(object):
     # install_from_cloud do not need any more
-    def __init__(self, service, tenant, install_from_cloud=False):
+    def __init__(self, service, tenant, all_component_one_model=None, install_from_cloud=False):
         self.service = service
         self.tenant = tenant
         self.current_version = None
@@ -37,6 +37,7 @@ class PropertiesChanges(object):
         self.install_from_cloud = False
         self.market_name = None
         self.market = None
+        self.all_component_one_model = all_component_one_model
         if self.service_source and self.service_source.extend_info:
             self.current_version_str = self.service_source.version
             extend_info = json.loads(self.service_source.extend_info)
@@ -55,7 +56,12 @@ class PropertiesChanges(object):
         app_version object
         """
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
-        service_ids = group_service_relation_repo.get_services_by_group(group_id).values_list("service_id", flat=True)
+        service_ids = []
+        if self.all_component_one_model:
+            service_ids = self.all_component_one_model.values_list("service_id", flat=True)
+        else:
+            services = group_service.get_rainbond_services(group_id, self.service_source.group_key)
+            service_ids = services.values_list("service_id", flat=True)
         service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
         versions = service_sources.exclude(version=None).values_list("version", flat=True)
         if versions:
@@ -133,7 +139,7 @@ class PropertiesChanges(object):
         if not services:
             return False
         for service in services:
-            upgrade_info = upgrade_service.get_service_changes(service, tenant, version)
+            upgrade_info = upgrade_service.get_service_changes(service, tenant, version, services)
             if upgrade_info:
                 return True
         return False
@@ -484,14 +490,11 @@ class PropertiesChanges(object):
         old_probe = old_probe.to_dict()
         for k, v in list(new_probe.items()):
             if key in list(new_probe.keys()) and old_probe[k] != v:
-                logger.debug("found a change in the probe; key: {}; \
-                    old value: {}; new value: {}".format(k, v, old_probe[k]))
                 return {"add": [], "upd": new_probe}
         return None
 
     def dep_volumes_changes(self, new_dep_volumes):
         def key(sid, mnt_name):
-            logger.debug("sid: {}; mnt_name: {}".format(sid, mnt_name))
             return sid + "-" + mnt_name
 
         old_dep_volumes = mnt_repo.get_service_mnts(self.service.tenant_id, self.service.service_id)

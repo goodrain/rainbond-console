@@ -15,8 +15,8 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app,
-                                                             get_upgrade_app_template)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template,
+                                                             get_upgrade_app_version_template_app)
 from console.services.group_service import group_service
 from django.db import DatabaseError, transaction
 from django.db.models import Q
@@ -95,7 +95,7 @@ class UpgradeService(object):
 
         # 查询可升级的组件
         for service in services:
-            pc = PropertiesChanges(service, tenant)
+            pc = PropertiesChanges(service, tenant, all_component_one_model=services)
             service_version = pc.get_upgradeable_versions
             versions |= set(service_version or [])
 
@@ -156,12 +156,12 @@ class UpgradeService(object):
         return {app['service_key']: app for app in json.loads(app_template)['apps']}
 
     @staticmethod
-    def get_service_changes(service, tenant, version):
+    def get_service_changes(service, tenant, version, services):
         """获取组件更新信息"""
         from console.services.app_actions.properties_changes import \
             PropertiesChanges
         try:
-            pc = PropertiesChanges(service, tenant)
+            pc = PropertiesChanges(service, tenant, all_component_one_model=services)
             app = get_upgrade_app_version_template_app(tenant, version, pc)
             upgrade_template = get_upgrade_app_template(tenant, version, pc)
             return pc.get_property_changes(app, level="app", template=upgrade_template)
@@ -246,11 +246,11 @@ class UpgradeService(object):
                 upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value)
 
     @staticmethod
-    def market_service_and_create_backup(tenant, service, version):
+    def market_service_and_create_backup(tenant, service, version, all_component_one_model=None):
         """创建组件升级接口并创建备份"""
         from console.services.app_actions.app_deploy import MarketService
 
-        market_service = MarketService(tenant, service, version)
+        market_service = MarketService(tenant, service, version, all_component_one_model)
         market_service.create_backup()
         return market_service
 
@@ -417,7 +417,7 @@ class UpgradeService(object):
         # 查询某一个云市应用下的所有组件
         upgrade_info = {}
         for service in services:
-            changes = upgrade_service.get_service_changes(service, team, app_model_version)
+            changes = upgrade_service.get_service_changes(service, team, app_model_version, services)
             if not changes:
                 continue
             upgrade_info[service.service_id] = changes
@@ -440,7 +440,7 @@ class UpgradeService(object):
             services = group_service.get_rainbond_services(int(app_id), app_model_id)
             if not services:
                 continue
-            pc = PropertiesChanges(services.first(), team)
+            pc = PropertiesChanges(services.first(), team, all_component_one_model=services)
             recode_kwargs = {
                 "tenant_id": team.tenant_id,
                 "group_id": int(app_id),
@@ -487,7 +487,8 @@ class UpgradeService(object):
             # 处理升级组件
             upgrade_services = service_repo.get_services_by_service_ids_and_group_key(app_model_id, list(upgrade_info.keys()))
             market_services = [
-                self.market_service_and_create_backup(team, service, app_record.version) for service in upgrade_services
+                self.market_service_and_create_backup(team, service, app_record.version, upgrade_services)
+                for service in upgrade_services
             ]
             # 处理依赖关系
             if add_info:

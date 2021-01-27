@@ -3,33 +3,24 @@
 import json
 import logging
 from copy import deepcopy
-
-from django.core.paginator import Paginator
-from django.db.models import Q
 from enum import Enum
 
-from console.exception.main import AbortRequest
-from console.exception.main import AccountOverdueException
-from console.exception.main import ResourceNotEnoughException
-from console.models.main import AppUpgradeRecord
-from console.models.main import ServiceUpgradeRecord
-from console.models.main import UpgradeStatus
+from console.exception.main import (AbortRequest, AccountOverdueException, ResourceNotEnoughException)
+from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
 from console.repositories.app import service_repo
-from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_market_service
+from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
-from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.upgrade_services import upgrade_service
-from console.utils.reqparse import parse_args
-from console.utils.reqparse import parse_argument
-from console.utils.reqparse import parse_date
-from console.utils.reqparse import parse_item
+from console.utils.reqparse import (parse_args, parse_argument, parse_date, parse_item)
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
-from console.views.base import RegionTenantHeaderView
-from console.views.base import CloudEnterpriseCenterView
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from django.core.paginator import Paginator
+from django.db.models import Q
 
 logger = logging.getLogger('default')
 
@@ -163,7 +154,7 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
                 'service_key': service.service_key,
                 'type': UpgradeType.UPGRADE.value
             },
-            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version),
+            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version, services),
         } for service in services]
 
         add_info = [{
@@ -217,9 +208,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             status=UpgradeStatus.NOT.value,
             pk=data['upgrade_record_id'],
         )
-        old_service = group_service.get_rainbond_services(group_id, group_key).first()
-        pc = PropertiesChanges(old_service, self.tenant)
-
+        old_services = group_service.get_rainbond_services(group_id, group_key)
+        pc = PropertiesChanges(old_services.first(), self.tenant, all_component_one_model=old_services)
         # 处理新增的组件
         add_service_infos = {
             service['service']['service_key']: service['upgrade_info']
@@ -271,7 +261,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], list(upgrade_service_infos.keys()))
 
         market_services = [
-            upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version) for service in services
+            upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version, services)
+            for service in services
         ]
 
         # 处理依赖关系

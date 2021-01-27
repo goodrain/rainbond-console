@@ -15,11 +15,13 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app,
-                                                             get_upgrade_app_template)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template,
+                                                             get_upgrade_app_version_template_app)
 from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
+from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.backup_service import \
     groupapp_backup_service as backup_service
 from console.services.exception import ErrDepServiceNotFound
@@ -29,11 +31,9 @@ from console.services.rbd_center_app_service import rbd_center_app_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models.main import TenantServicesPort
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from www.models.main import TenantServicesPort
-from console.services.app_config.component_graph import component_graph_service
-from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -119,10 +119,11 @@ class MarketService(object):
     Define some methods for upgrading market services.
     """
 
-    def __init__(self, tenant, service, version):
+    def __init__(self, tenant, service, version, all_component_one_model=None):
         self.tenant = tenant
         self.service = service
         self.market_name = None
+        self.all_component_one_model = all_component_one_model
         self.service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         if self.service_source.extend_info:
             extend_info = json.loads(self.service_source.extend_info)
@@ -266,7 +267,11 @@ class MarketService(object):
             self.async_action = AsyncAction.NOTHING.value
 
     def set_changes(self):
-        pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
+        pc = PropertiesChanges(
+            self.service,
+            self.tenant,
+            all_component_one_model=self.all_component_one_model,
+            install_from_cloud=self.install_from_cloud)
         app = get_upgrade_app_version_template_app(self.tenant, self.version, pc)
         template = get_upgrade_app_template(self.tenant, self.version, pc)
         changes = pc.get_property_changes(app, template=template)

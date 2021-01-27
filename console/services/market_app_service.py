@@ -1173,7 +1173,7 @@ class MarketAppService(object):
             pc = None
             for service in services:
                 try:
-                    pc = PropertiesChanges(service, tenant)
+                    pc = PropertiesChanges(service, tenant, all_component_one_model=services)
                     if not pc.current_app:
                         continue
                     if pc.current_app.app_id == services_app_model_id:
