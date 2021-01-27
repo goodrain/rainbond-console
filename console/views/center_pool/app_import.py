@@ -4,7 +4,7 @@
 """
 import logging
 
-from console.exception.main import AbortRequest
+from console.exception.main import AbortRequest, RegionNotFound
 from console.services.app_import_and_export_service import import_service
 from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
@@ -57,10 +57,19 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
         """
         eid = kwargs.get("enterprise_id", "")
         unfinished_records = import_service.get_user_not_finish_import_record_in_enterprise(eid, self.user)
+        new = False
         if unfinished_records:
             r = unfinished_records[0]
+            region = region_services.get_region_by_region_name(r.region)
+            if not region:
+                new = True
         else:
-            r = import_service.create_app_import_record_2_enterprise(eid, self.user.nick_name)
+            new = True
+        if new:
+            try:
+                r = import_service.create_app_import_record_2_enterprise(eid, self.user.nick_name)
+            except RegionNotFound:
+                return Response(general_message(200, "success", "查询成功", bean={"region_name": ''}), status=200)
         upload_url = import_service.get_upload_url(r.region, r.event_id)
         region = region_services.get_region_by_region_name(r.region)
         data = {
@@ -70,7 +79,6 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
             "upload_url": upload_url,
             "region_name": region.region_alias if region else '',
         }
-
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 
 

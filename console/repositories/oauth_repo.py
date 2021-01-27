@@ -2,11 +2,9 @@
 import logging
 import os
 
-from console.models.main import OAuthServices
-from console.models.main import UserOAuthServices
-from console.utils.oauth.oauth_types import support_oauth_type
-from console.utils.oauth.oauth_types import get_oauth_instance
 from console.exception.bcode import ErrOauthServiceExists
+from console.models.main import OAuthServices, UserOAuthServices
+from console.utils.oauth.oauth_types import (get_oauth_instance, support_oauth_type)
 
 logger = logging.getLogger('default')
 

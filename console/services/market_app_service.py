@@ -9,27 +9,33 @@ import logging
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.exception.bcode import ErrAppConfigGroupExists
-from console.exception.main import (ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
-from console.models.main import (RainbondCenterApp, RainbondCenterAppVersion, ServiceMonitor)
+from console.exception.main import (ErrVolumePath, MarketAppLost,
+                                    RbdAppNotFound, ServiceHandleException)
+from console.models.main import (RainbondCenterApp, RainbondCenterAppVersion,
+                                 ServiceMonitor)
 from console.repositories.app import app_tag_repo, service_source_repo
 from console.repositories.app_config import extend_repo, volume_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
-from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
+from console.repositories.market_app_repo import (app_import_record_repo,
+                                                  rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.properties_changes import PropertiesChanges
-from console.services.app_config import (AppMntService, env_var_service, port_service, probe_service, volume_service)
+from console.services.app_config import (AppMntService, env_var_service,
+                                         port_service, probe_service,
+                                         volume_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.group_service import group_service
-from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
+from console.services.plugin import (app_plugin_service, plugin_config_service,
+                                     plugin_service, plugin_version_service)
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
 from console.utils import slug_util
@@ -37,7 +43,8 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
+from www.models.main import (TenantEnterprise, TenantEnterpriseToken,
+                             TenantServiceInfo, Users)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -875,7 +882,7 @@ class MarketAppService(object):
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
             if is_admin:
-                teams = team_repo.get_team_by_enterprise_id(eid)
+                teams = None
             else:
                 teams = team_repo.get_tenants_by_user_id(user.user_id)
             if teams:

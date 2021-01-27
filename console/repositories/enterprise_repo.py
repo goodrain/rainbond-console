@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.db.models import Q
-
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
 from console.models.main import (Applicants, EnterpriseUserPerm, RainbondCenterApp)
@@ -12,6 +10,7 @@ from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import (UserRoleNotFoundException, user_role_repo)
+from django.db.models import Q
 from www.models.main import (PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise, TenantRegionInfo, Tenants,
                              Users)
 
@@ -87,7 +86,7 @@ class TenantEnterpriseRepo(object):
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
     def get_enterprise_shared_app_nums(self, enterprise_id):
-        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, source="local")
+        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id)
         if not apps:
             return 0
         return len(set(apps.values_list("app_id", flat=True)))

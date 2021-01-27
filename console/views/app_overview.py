@@ -9,14 +9,11 @@ import logging
 import os
 import pickle
 
-from django.db import transaction
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
-from console.exception.main import ServiceHandleException
 from console.constants import AppConstants, PluginCategoryConstants
-from console.exception.main import MarketAppLost, RbdAppNotFound
-from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
+from console.exception.main import (MarketAppLost, RbdAppNotFound,
+                                    ServiceHandleException)
+from console.repositories.app import (service_repo, service_source_repo,
+                                      service_webhooks_repo)
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -32,6 +29,9 @@ from console.services.team_services import team_services
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from django.db import transaction
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import error_message, general_message
 
@@ -593,7 +593,13 @@ class BuildSourceinfo(AppBaseView):
                             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
+                            rst = {
+                                "data": {
+                                    "bean": None
+                                },
+                                "status": 400,
+                                "msg_show": "Oauth服务可能已被删除，请重新配置"
+                            }
                             return Response(rst, status=200)
                         try:
                             instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)

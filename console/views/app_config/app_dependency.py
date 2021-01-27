@@ -4,14 +4,12 @@
 """
 import logging
 
+from console.services.app_config import dependency_service, port_service
+from console.services.group_service import group_service
+from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.services.app_config import dependency_service
-from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message
-from console.services.group_service import group_service
-from console.services.app_config import port_service
 
 logger = logging.getLogger("default")
 
@@ -45,6 +43,8 @@ class AppDependencyView(AppBaseView):
               paramType: query
         """
         page_num = int(request.GET.get("page", 1))
+        if page_num < 1:
+            page_num = 1
         page_size = int(request.GET.get("page_size", 25))
         dependencies = dependency_service.get_service_dependencies(self.tenant, self.service)
         service_ids = [s.service_id for s in dependencies]
@@ -66,14 +66,19 @@ class AppDependencyView(AppBaseView):
                 "ports_list": ports_list
             }
             dep_list.append(dep_service_info)
-        rt_list = dep_list[(page_num - 1) * page_size:page_num * page_size]
+        start = (page_num - 1) * page_size
+        end = page_num * page_size
+        if start >= len(dep_list):
+            start = len(dep_list) - 1
+            end = len(dep_list) - 1
+        rt_list = dep_list[start:end]
 
         service_ports = port_service.get_service_ports(self.service)
         port_list = []
         if service_ports:
             for port in service_ports:
                 port_list.append(port.container_port)
-        bean = {"port_list": port_list}
+        bean = {"port_list": port_list, 'total': len(dep_list)}
         result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
         return Response(result, status=result["code"])
 
