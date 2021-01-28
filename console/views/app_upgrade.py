@@ -5,8 +5,11 @@ import logging
 from copy import deepcopy
 from enum import Enum
 
-from console.exception.main import (AbortRequest, AccountOverdueException, ResourceNotEnoughException)
-from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
+from console.exception.main import (AbortRequest, AccountOverdueException,
+                                    ResourceNotEnoughException,
+                                    ServiceHandleException)
+from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord,
+                                 UpgradeStatus)
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -15,10 +18,12 @@ from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.upgrade_services import upgrade_service
-from console.utils.reqparse import (parse_args, parse_argument, parse_date, parse_item)
+from console.utils.reqparse import (parse_args, parse_argument, parse_date,
+                                    parse_item)
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView,
+                                RegionTenantHeaderView)
 from django.core.paginator import Paginator
 from django.db.models import Q
 
@@ -210,23 +215,31 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         )
         old_services = group_service.get_rainbond_services(group_id, group_key)
         pc = PropertiesChanges(old_services.first(), self.tenant, all_component_one_model=old_services)
+        if not pc.template:
+            raise ServiceHandleException(msg="can not get app template", msg_show="无法获取应用模版，升级无法继续进行", status_code=400)
+        if pc.install_from_cloud:
+            old_app_model, old_app = app_market_service.cloud_app_model_to_db_model(pc.market, group_key, version)
+        else:
+            old_app_model, old_app = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id, group_key,
+                                                                                    version)
+        old_app.template = old_app.app_template
+        old_app.app_name = old_app_model.app_name
+        new_app = deepcopy(old_app)
+        template = json.loads(new_app.template)
         # 处理新增的组件
         add_service_infos = {
             service['service']['service_key']: service['upgrade_info']
             for service in data['services'] if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
         }
+        # 安装插件
+        plugins = template.get("plugins", None)
+        if plugins:
+            market_app_service.create_plugin_for_tenant(self.response_region, self.user, self.tenant, plugins)
+        else:
+            logger.debug(plugins)
         install_info = {}
         if add_service_infos:
-            if pc.install_from_cloud:
-                old_app_model, old_app = app_market_service.cloud_app_model_to_db_model(pc.market, group_key, version)
-            else:
-                old_app_model, old_app = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id, group_key,
-                                                                                        version)
-            old_app.template = old_app.app_template
-            old_app.app_name = old_app_model.app_name
-            new_app = deepcopy(old_app)
             # mock app信息
-            template = json.loads(new_app.template)
             template['apps'] = list(add_service_infos.values())
             new_app.template = json.dumps(template)
 

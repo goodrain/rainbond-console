@@ -272,12 +272,10 @@ class MarketService(object):
             self.tenant,
             all_component_one_model=self.all_component_one_model,
             install_from_cloud=self.install_from_cloud)
-        app = get_upgrade_app_version_template_app(self.tenant, self.version, pc)
         template = get_upgrade_app_template(self.tenant, self.version, pc)
-        changes = pc.get_property_changes(app, template=template)
+        changes = pc.get_property_changes(template=template)
         logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
         self.changes = changes
-        logger.info("upgrade from cloud do not support.")
 
     def create_backup(self):
         """create_backup
@@ -662,6 +660,7 @@ class MarketService(object):
             file_content = volume.get("file_content", None)
             if file_content is not None:
                 volume.pop("file_content")
+            logger.debug("add volume {} for component {}".format(volume["volume_name"], self.service.service_id))
             v = volume_repo.add_service_volume(**volume)
             if not file_content and volume["volume_type"] != "config-file":
                 continue
@@ -677,6 +676,7 @@ class MarketService(object):
             if not v:
                 logger.warning("service id: {}; volume name: {}; failed to update volume: \
                     volume not found.".format(self.service.service_id, volume["volume_name"]))
+            logger.debug("update volume {} for component {}".format(v.volume_name, self.service.service_id))
             cfg = volume_repo.get_service_config_file(v.ID)
             cfg.file_content = file_content
             cfg.save()
@@ -687,8 +687,13 @@ class MarketService(object):
         """
         for volume in volumes.get("add"):
             volume["enterprise_id"] = self.tenant.enterprise_id
-            region_api.add_service_volumes(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                           volume)
+            try:
+                region_api.add_service_volumes(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                               volume)
+            except RegionApiBaseHttpClient.CallApiError as e:
+                if not e.body or "is exist" not in e.body.msg:
+                    logger.exception(e)
+                    raise e
 
     def _restore_volumes(self, backup):
         backup_data = json.loads(backup.backup_data)
@@ -888,8 +893,8 @@ class MarketService(object):
         logger.debug("start updating plugins; plugin datas: {}".format(plugins))
         add = plugins.get("add", [])
         try:
-            app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service, self.version,
-                                                        add)
+            app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service,
+                                                        self.all_component_one_model, self.version, add)
         except ServiceHandleException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
 
@@ -906,8 +911,9 @@ class MarketService(object):
         add = plugins.get("add", [])
         for plugin in add:
             data = app_plugin_service.build_plugin_data_4marketsvc(self.tenant, self.service, plugin)
-            region_api.install_service_plugin(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                              data)
+            if data:
+                region_api.install_service_plugin(self.service.service_region, self.tenant.tenant_name,
+                                                  self.service.service_alias, data)
 
         delete = plugins.get("delete", [])
         for plugin in delete:

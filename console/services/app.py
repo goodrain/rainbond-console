@@ -411,7 +411,6 @@ class AppService(object):
                 config_file = volume_repo.get_service_config_file(volume_id)
                 if config_file:
                     volume.update({"file_content": config_file.file_content})
-            logger.debug('--------volume_info22222----->{0}'.format(volume_info))
             data["volumes_info"] = list(volume_info)
 
         logger.debug(tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))

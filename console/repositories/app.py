@@ -23,6 +23,7 @@ class TenantServiceInfoRepository(object):
         sql = """
             SELECT
                 a.service_id,
+                a.service_alias,
                 a.service_cname,
                 b.service_share_uuid
             FROM

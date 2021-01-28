@@ -8,21 +8,27 @@ import logging
 import os
 
 from addict import Dict
-from console.constants import (DefaultPluginConstants, PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
+from console.constants import (DefaultPluginConstants, PluginCategoryConstants,
+                               PluginImage, PluginInjection, PluginMetaType)
+from console.exception.bcode import (ErrInternalGraphsNotFound,
+                                     ErrPluginIsUsed,
+                                     ErrRepeatMonitoringTarget,
+                                     ErrServiceMonitorExists)
 from console.exception.main import ServiceHandleException
-from console.exception.bcode import ErrInternalGraphsNotFound, ErrRepeatMonitoringTarget, ErrServiceMonitorExists
-from console.exception.bcode import ErrPluginIsUsed
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo
-from console.services.app_config import port_service
 from console.repositories.base import BaseConnection
-from console.repositories.plugin import (app_plugin_attr_repo, app_plugin_relation_repo, config_group_repo, config_item_repo,
-                                         plugin_repo, plugin_version_repo, service_plugin_config_repo)
+from console.repositories.plugin import (app_plugin_attr_repo,
+                                         app_plugin_relation_repo,
+                                         config_group_repo, config_item_repo,
+                                         plugin_repo, plugin_version_repo,
+                                         service_plugin_config_repo)
 from console.services.app import app_service
-from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.app_config import port_service
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.rbd_center_app_service import rbd_center_app_service
 from django.db import transaction
 from django.db.models import Q
@@ -31,7 +37,8 @@ from goodrain_web import settings
 from goodrain_web.settings import IMAGE_REPO
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.plugin import (PluginConfigGroup, PluginConfigItems, ServicePluginConfigVar)
+from www.models.plugin import (PluginConfigGroup, PluginConfigItems,
+                               ServicePluginConfigVar)
 from www.utils.crypt import make_uuid
 
 from .plugin_config_service import PluginConfigService
@@ -367,7 +374,6 @@ class AppPluginService(object):
                                                                   port, show_name, "10s", user)
         except ErrRepeatMonitoringTarget as e:
             logger.debug(e)
-            return
 
     @staticmethod
     def __create_component_graphs(component_id, plugin_name):
@@ -375,7 +381,6 @@ class AppPluginService(object):
             component_graph_service.create_internal_graphs(component_id, plugin_name)
         except ErrInternalGraphsNotFound as e:
             logger.warning("plugin name '{}': {}", plugin_name, e)
-            pass
 
     def delete_service_plugin_config(self, service, plugin_id):
         service_plugin_config_repo.delete_service_plugin_config_var(service.service_id, plugin_id)
@@ -566,21 +571,23 @@ class AppPluginService(object):
 
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
-    def create_plugin_4marketsvc(self, region_name, tenant, service, version, plugins):
+    def create_plugin_4marketsvc(self, region_name, tenant, service, version, components, plugins):
         plugin_version_service.update_plugin_build_status(region_name, tenant)
         plugins = plugins if plugins is not None else []
         for plugin in plugins:
             data = self.build_plugin_data_4marketsvc(tenant, service, plugin)
-
-            service_plugin_config_vars = plugin["attr"]
-            self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"], data["version_id"],
-                                              service_plugin_config_vars)
-
-            self.create_service_plugin_relation(tenant.tenant_id, service.service_id, data["plugin_id"], data["version_id"])
+            if data:
+                service_plugin_config_vars = plugin["attr"]
+                self.create_plugin_cfg_4marketsvc(tenant, service, version, data["plugin_id"], data["version_id"], components,
+                                                  service_plugin_config_vars)
+                self.create_service_plugin_relation(tenant.tenant_id, service.service_id, data["plugin_id"], data["version_id"])
 
     def build_plugin_data_4marketsvc(self, tenant, service, plugin):
         plugin_key = plugin["plugin_key"]
         p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
+        if not p:
+            logger.warning("open plugin failure , plugin {} not found in tenant {}".format(plugin_key, tenant.tenant_id))
+            return
         plugin_id = p[0].plugin_id
         plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
         build_version = plugin_version.build_version
@@ -593,17 +600,21 @@ class AppPluginService(object):
         data.update(region_config)
         return data
 
-    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id, build_version, service_plugin_config_vars):
-        service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
+    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id, build_version, components,
+                                     service_plugin_config_vars):
         config_list = []
+        component_id_key_map = {}
+        for com in components:
+            component_id_key_map[com["service_d"]] = com["service_share_uuid"]
         for config in service_plugin_config_vars:
             dest_service_id, dest_service_alias = "", ""
             if config["service_meta_type"] == "downstream_port":
-                service_key = rbd_center_app_service.get_service_key_by_service_id(tenant, service_source, version,
-                                                                                   config["dest_service_id"])
-                dest_service = app_service.get_service_by_service_key(service, service_key)
-                dest_service_id = dest_service.service_id
-                dest_service_alias = dest_service.service_alias
+                # step1: get dep component key
+                dep_service_key = component_id_key_map.get(config["dest_service_id"])
+                dest_service = app_service.get_service_by_service_key(service, dep_service_key)
+                if dest_service:
+                    dest_service_id = dest_service.get("service_id", "")
+                    dest_service_alias = dest_service.get("service_alias", "")
 
             config_list.append(
                 ServicePluginConfigVar(
@@ -617,8 +628,8 @@ class AppPluginService(object):
                     container_port=config["container_port"],
                     attrs=config["attrs"],
                     protocol=config["protocol"]))
-
-        ServicePluginConfigVar.objects.bulk_create(config_list)
+        if config_list and len(config_list) > 0:
+            ServicePluginConfigVar.objects.bulk_create(config_list)
 
     def check_the_same_plugin(self, plugin_id, tenant_id, service_id):
         plugin_ids = []
@@ -699,8 +710,7 @@ class PluginService(object):
         plugin_data["plugin_model"] = tenant_plugin.category
         plugin_data["plugin_name"] = tenant_plugin.plugin_name
         plugin_data["tenant_id"] = tenant.tenant_id
-        res, body = region_api.create_plugin(region, tenant.tenant_name, plugin_data)
-        logger.debug("plugin.create", "create region plugin {0}".format(body))
+        region_api.create_plugin(region, tenant.tenant_name, plugin_data)
         return 200, "success"
 
     def delete_console_tenant_plugin(self, tenant_id, plugin_id):
@@ -724,8 +734,8 @@ class PluginService(object):
 
         build_data["operator"] = user.nick_name
         build_data["plugin_cmd"] = plugin_version.build_cmd
-        build_data["plugin_memory"] = plugin_version.min_memory
-        build_data["plugin_cpu"] = plugin_version.min_cpu
+        build_data["plugin_memory"] = int(plugin_version.min_memory)
+        build_data["plugin_cpu"] = int(plugin_version.min_cpu)
         build_data["repo_url"] = plugin_version.code_version
         build_data["username"] = plugin.username  # git username
         build_data["password"] = plugin.password  # git password

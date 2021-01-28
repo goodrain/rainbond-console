@@ -103,11 +103,7 @@ class AppMntView(AppBaseView):
         """
         dep_vol_data = request.data["body"]
         dep_vol_data = json.loads(dep_vol_data)
-        code, msg = mnt_service.batch_mnt_serivce_volume(self.tenant, self.service, dep_vol_data, self.user.nick_name)
-
-        if code != 200:
-            return Response(general_message(code, "add error", msg), status=code)
-
+        mnt_service.batch_mnt_serivce_volume(self.tenant, self.service, dep_vol_data, self.user.nick_name)
         result = general_message(200, "success", "操作成功")
         return Response(result, status=result["code"])
 

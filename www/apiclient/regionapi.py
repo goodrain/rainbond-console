@@ -1275,7 +1275,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             + enterprise_id + "&service_ids=" + service_ids
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, None, region=region)
+        res, body = self._get(url, self.default_headers, None, region=region, timeout=10)
         return body
 
     def export_app(self, region, enterprise_id, data):

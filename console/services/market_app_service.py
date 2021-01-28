@@ -75,9 +75,7 @@ class MarketAppService(object):
                                                                       market_app_version.version, market_app.app_name)
             plugins = app_templates.get("plugins", [])
             if plugins:
-                status, msg = self._create_plugin_for_tenant(region, user, tenant, plugins)
-                if status != 200:
-                    raise Exception(msg)
+                self.create_plugin_for_tenant(region, user, tenant, plugins)
 
             app_map = {}
             for app in apps:
@@ -215,9 +213,7 @@ class MarketAppService(object):
             tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.app_id,
                                                                       market_app.version, market_app.app_name)
 
-            status, msg = self._create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
-            if status != 200:
-                raise Exception(msg)
+            self.create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
 
             for app in apps:
                 ts = self.__init_market_app(
@@ -307,11 +303,11 @@ class MarketAppService(object):
                     app_config_group_service.update_config_group(region, group_id, config_group["name"], items, True,
                                                                  component_ids, tenant.tenant_name)
 
-            # 创建组件插件
+            # open plugin for component
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
-                plugins = app_plugin_map[service.service_id]
-                self.__create_service_pluginsv2(tenant, service, market_app.version, plugins)
+                plugin_component_configs = app_plugin_map[service.service_id]
+                self.__create_service_pluginsv2(tenant, service, market_app.version, plugin_component_configs)
 
             # component monitors
             component_monitors = app.get("component_monitors", {})
@@ -426,9 +422,8 @@ class MarketAppService(object):
                         for volume in volume_list:
                             if volume["volume_name"] == item["mnt_name"]:
                                 dep_volume = volume_repo.get_by_sid_name(dep_service.service_id, item["mnt_name"])
-                                code, msg = mnt_service.add_service_mnt_relation(tenant, service, item["mnt_dir"], dep_volume)
-                                if code != 200:
-                                    logger.info("fail to mount relative volume: {}".format(msg))
+                                if dep_volume:
+                                    mnt_service.add_service_mnt_relation(tenant, service, item["mnt_dir"], dep_volume)
 
     def __create_service_plugins(self, region, tenant, service_list, app_plugin_map, old_new_id_map):
         try:
@@ -465,9 +460,9 @@ class MarketAppService(object):
         except Exception as e:
             logger.exception(e)
 
-    def __create_service_pluginsv2(self, tenant, service, version, plugins):
+    def __create_service_pluginsv2(self, tenant, service, version, components, plugins):
         try:
-            app_plugin_service.create_plugin_4marketsvc(tenant.region, tenant, service, version, plugins)
+            app_plugin_service.create_plugin_4marketsvc(tenant.region, tenant, service, version, components, plugins)
         except ServiceHandleException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
 
@@ -494,20 +489,23 @@ class MarketAppService(object):
                     protocol=config["protocol"]))
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
-    def _create_plugin_for_tenant(self, region_name, user, tenant, plugins):
+    def create_plugin_for_tenant(self, region_name, user, tenant, plugins):
         for plugin in plugins:
             # 对需要安装的插件查看本地是否有安装
             tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin["plugin_key"])
             # 如果本地没有安装，进行安装操作
             if not tenant_plugin:
                 try:
+                    logger.info("start install plugin {} for tenant {}".format(plugin["plugin_key"], tenant.tenant_id))
                     status, msg = self.__install_plugin(region_name, user, tenant, plugin)
                     if status != 200:
-                        return status, msg
+                        raise ServiceHandleException(
+                            msg="install plugin failure {}".format(msg), msg_show="创建插件失败", status_code=status)
                 except Exception as e:
                     logger.exception(e)
-                    return 500, "create plugin error"
-        return 200, "success"
+                    raise ServiceHandleException(msg="install plugin failure", msg_show="创建插件失败", status_code=500)
+            else:
+                logger.debug("plugin {} is exist in tenant {}".format(plugin["plugin_key"], tenant.tenant_id))
 
     def __install_plugin(self, region_name, user, tenant, plugin_template):
         image = None

@@ -15,13 +15,11 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template,
-                                                             get_upgrade_app_version_template_app)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
 from console.services.group_service import group_service
-from django.db import DatabaseError, transaction
+from django.db import transaction
 from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
-from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
 
 region_api = RegionInvokeApi()
@@ -162,9 +160,8 @@ class UpgradeService(object):
             PropertiesChanges
         try:
             pc = PropertiesChanges(service, tenant, all_component_one_model=services)
-            app = get_upgrade_app_version_template_app(tenant, version, pc)
             upgrade_template = get_upgrade_app_template(tenant, version, pc)
-            return pc.get_property_changes(app, level="app", template=upgrade_template)
+            return pc.get_property_changes(template=upgrade_template, level="app")
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:
@@ -270,7 +267,8 @@ class UpgradeService(object):
                     market_service.set_properties(PropertyType.DEPENDENT.value)
                     market_service.modify_property()
                     market_service.sync_region_property()
-        except (DatabaseError, RegionApiBaseHttpClient.CallApiError) as e:
+        except Exception as e:
+            logger.exception(e)
             for market_service in market_services:
                 market_service.restore_backup()
             raise AbortRequest(msg=str(e))

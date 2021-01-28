@@ -158,15 +158,17 @@ class PropertiesChanges(object):
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
-    def get_property_changes(self, component=None, plugins=None, level="svc", template=None):
+    def get_property_changes(self, template, level="svc"):
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
-        if not component:
-            return None
+        component = get_template_component(template, self)
+        component_names = {}
+        for com in template.get("apps"):
+            component_names[com.get("service_share_uuid")] = com.get("service_cname")
         # not found current version
         if not self.current_version:
             return None
-        self.plugins = plugins
+        self.plugins = get_template_plugins(template)
         result = {}
         deploy_version = self.deploy_version_changes(component.get("deploy_version"))
         if deploy_version:
@@ -196,17 +198,17 @@ class PropertiesChanges(object):
         dep_uuids = []
         if component.get("dep_service_map_list", []):
             dep_uuids = [item["dep_service_key"] for item in component.get("dep_service_map_list")]
-        dep_services = self.dep_services_changes(component, dep_uuids, level)
+        dep_services = self.dep_services_changes(component, dep_uuids, component_names, level)
         if dep_services:
             result["dep_services"] = dep_services
         dep_volumes = self.dep_volumes_changes(component.get("mnt_relation_list", []))
         if dep_volumes:
             result["dep_volumes"] = dep_volumes
 
-        plugins = self.plugin_changes(component.get("service_related_plugin_config", []))
-        if plugins:
-            logger.debug("plugin changes: {}".format(json.dumps(plugins)))
-            result["plugins"] = plugins
+        plugin_component_configs = self.plugin_changes(component.get("service_related_plugin_config", []))
+        if plugin_component_configs:
+            logger.debug("plugin changes: {}".format(json.dumps(plugin_component_configs)))
+            result["plugins"] = plugin_component_configs
 
         app_config_groups = self.app_config_group_changes(template)
         if app_config_groups:
@@ -348,7 +350,7 @@ class PropertiesChanges(object):
             return None
         return {"old": old_slug_path, "new": new, "is_change": old_slug_path != new}
 
-    def dep_services_changes(self, apps, dep_uuids, level="svc"):
+    def dep_services_changes(self, component, dep_uuids, component_names={}, level="svc"):
         """
         find out the dependencies that need to be created and
         the dependencies that need to be removed
@@ -367,7 +369,7 @@ class PropertiesChanges(object):
             exist_uuids = [svc["service_share_uuid"] for svc in new_dep_services]
             # dep services from apps
             # combine two types of dep_services
-            for new_dep_service in self.new_dep_services_from_apps(apps, dep_uuids):
+            for new_dep_service in self.new_dep_services_from_apps(component, dep_uuids, component_names):
                 if new_dep_service["service_share_uuid"] not in exist_uuids:
                     new_dep_services.append(new_dep_service)
 
@@ -384,15 +386,15 @@ class PropertiesChanges(object):
             "add": add,
         }
 
-    def new_dep_services_from_apps(self, apps, dep_uuids):
+    def new_dep_services_from_apps(self, component, dep_uuids, component_names={}):
         result = []
-        if not apps:
+        if not component:
             return None
-        for dep_service in apps["dep_service_map_list"]:
+        for dep_service in component.get("dep_service_map_list", []):
             service_share_uuid = dep_service.get("dep_service_key")
             if service_share_uuid not in dep_uuids:
                 continue
-            result.append({"service_share_uuid": service_share_uuid, "service_cname": apps["service_cname"]})
+            result.append({"service_share_uuid": service_share_uuid, "service_cname": component_names.get(service_share_uuid)})
         return result
 
     def port_changes(self, new_ports):
@@ -448,36 +450,23 @@ class PropertiesChanges(object):
             return None
         old_plugins, _ = app_plugin_service.get_plugins_by_service_id(self.service.service_region, self.service.tenant_id,
                                                                       self.service.service_id, "")
-        if not old_plugins:
-            return None
-        old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
-        new_plugin_keys = {item["plugin_key"]: item for item in new_plugins}
+        old_plugin_keys = {}
+        if old_plugins:
+            old_plugin_keys = {item.origin_share_id: item for item in old_plugins}
 
         plugin_names = {}
         if self.plugins:
             plugin_names = {plugin["plugin_key"]: plugin["plugin_alias"] for plugin in self.plugins}
 
         add = []
-        delete = []
         for new_plugin in new_plugins:
             if new_plugin["plugin_key"] in old_plugin_keys:
                 continue
             new_plugin["plugin_alias"] = plugin_names.get(new_plugin["plugin_key"], new_plugin["plugin_key"])
             add.append(new_plugin)
-        for old_plugin in old_plugins:
-            if old_plugin.origin_share_id in new_plugin_keys:
-                continue
-            delete.append({
-                "plugin_key": old_plugin.origin_share_id,
-                "plugin_id": old_plugin.plugin_id,
-            })
-        # TODO: if add and delete:
         if not add:
             return None
-        return {
-            "add": add,
-            # "del": delete,
-        }
+        return {"add": add}
 
     def probe_changes(self, new_probes):
         if not new_probes:
@@ -572,3 +561,18 @@ def get_upgrade_app_template(tenant, version, pc):
                                                                        version)
         template = json.loads(data.app_template)
     return template
+
+
+def get_template_component(template, pc):
+    apps = template.get("apps")
+
+    def func(x):
+        result = x.get("service_share_uuid", None) == pc.service_source.service_share_uuid \
+                    or x.get("service_key", None) == pc.service_source.service_share_uuid
+        return result
+
+    return next(iter([x for x in apps if func(x)]), None)
+
+
+def get_template_plugins(template):
+    return template.get("plugins")
