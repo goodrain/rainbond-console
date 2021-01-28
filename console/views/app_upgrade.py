@@ -5,11 +5,8 @@ import logging
 from copy import deepcopy
 from enum import Enum
 
-from console.exception.main import (AbortRequest, AccountOverdueException,
-                                    ResourceNotEnoughException,
-                                    ServiceHandleException)
-from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord,
-                                 UpgradeStatus)
+from console.exception.main import (AbortRequest, AccountOverdueException, ResourceNotEnoughException, ServiceHandleException)
+from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -18,12 +15,10 @@ from console.services.app_actions.properties_changes import PropertiesChanges
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.upgrade_services import upgrade_service
-from console.utils.reqparse import (parse_args, parse_argument, parse_date,
-                                    parse_item)
+from console.utils.reqparse import (parse_args, parse_argument, parse_date, parse_item)
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
-from console.views.base import (CloudEnterpriseCenterView,
-                                RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
 from django.core.paginator import Paginator
 from django.db.models import Q
 

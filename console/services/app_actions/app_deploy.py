@@ -15,8 +15,7 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template,
-                                                             get_upgrade_app_version_template_app)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
 from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
