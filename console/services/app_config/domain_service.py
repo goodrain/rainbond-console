@@ -843,4 +843,7 @@ class DomainService(object):
         for header in set_headers:
             if header["item_key"] and not r.match(header["item_key"]):
                 raise ServiceHandleException(
-                    msg="forbidden key: {0}".format(header["item_key"]), msg_show="Header Key不合法", status_code=400, error_code=400)
+                    msg="forbidden key: {0}".format(header["item_key"]),
+                    msg_show="Header Key不合法",
+                    status_code=400,
+                    error_code=400)
