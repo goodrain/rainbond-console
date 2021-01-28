@@ -1228,8 +1228,8 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
     def check_set_header(self, set_headers):
         r = re.compile('([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
         for header in set_headers:
-            if header["key"] and not r.match(header["key"]):
-                raise Exception("forbidden key: {0}".format(header["key"]))
+            if header["item_key"] and not r.match(header["item_key"]):
+                raise Exception("forbidden key: {0}".format(header["item_key"]))
 
 
 FORBIDDEN_MESSAGE = "自定义请求头只可以使用小写英文字母、数字、下划线、中划线，并以英文字母开头结尾"
