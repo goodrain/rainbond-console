@@ -10,13 +10,10 @@ import re
 
 from console.constants import DomainType
 from console.exception.main import ServiceHandleException
-from console.repositories.app_config import (configuration_repo, domain_repo,
-                                             port_repo, tcp_domain)
+from console.repositories.app_config import (configuration_repo, domain_repo, port_repo, tcp_domain)
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.app_config.exceptoin import (err_cert_name_exists,
-                                                   err_cert_not_found,
-                                                   err_still_has_http_rules)
+from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
