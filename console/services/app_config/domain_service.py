@@ -10,10 +10,13 @@ import re
 
 from console.constants import DomainType
 from console.exception.main import ServiceHandleException
-from console.repositories.app_config import (configuration_repo, domain_repo, port_repo, tcp_domain)
+from console.repositories.app_config import (configuration_repo, domain_repo,
+                                             port_repo, tcp_domain)
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
+from console.services.app_config.exceptoin import (err_cert_name_exists,
+                                                   err_cert_not_found,
+                                                   err_still_has_http_rules)
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
@@ -130,7 +133,7 @@ class DomainService(object):
                 continue
         return cert
 
-    def __check_domain_name(self, team_id, domain_name, certificate_id=None):
+    def __check_domain_name(self, team_id, region_id, domain_name, certificate_id=None):
         if not domain_name:
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty", msg_show="域名不能为空")
         zh_pattern = re.compile('[\\u4e00-\\u9fa5]+')
@@ -140,7 +143,7 @@ class DomainService(object):
                 status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         s_domain = domain_repo.get_domain_by_domain_name(domain_name)
-        if s_domain and s_domain.tenant_id != team_id:
+        if s_domain and s_domain.tenant_id != team_id and s_domain.region_id != region_id:
             raise ServiceHandleException(
                 status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:
@@ -183,7 +186,8 @@ class DomainService(object):
 
     def bind_domain(self, tenant, user, service, domain_name, container_port, protocol, certificate_id, domain_type,
                     rule_extensions):
-        self.__check_domain_name(tenant.tenant_id, domain_name, certificate_id)
+        region = region_repo.get_region_by_region_name(service.service_region)
+        self.__check_domain_name(tenant.tenant_id, region.region_id, domain_name, certificate_id)
         certificate_info = None
         http_rule_id = make_uuid(domain_name)
         if certificate_id:
@@ -208,7 +212,6 @@ class DomainService(object):
             data["certificate_id"] = certificate_info.certificate_id
         region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         domain_info = dict()
-        region = region_repo.get_region_by_region_name(service.service_region)
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
         domain_info["domain_name"] = domain_name
@@ -293,9 +296,9 @@ class DomainService(object):
         domain_type = httpdomain["domain_type"]
         auto_ssl = httpdomain["auto_ssl"]
         auto_ssl_config = httpdomain["auto_ssl_config"]
-
+        region = region_repo.get_region_by_region_name(service.service_region)
         # 校验域名格式
-        self.__check_domain_name(tenant.tenant_id, domain_name, certificate_id)
+        self.__check_domain_name(tenant.tenant_id, region.region_id, domain_name, certificate_id)
         http_rule_id = make_uuid(domain_name)
         domain_info = dict()
         certificate_info = None
@@ -333,7 +336,6 @@ class DomainService(object):
         except region_api.CallApiError as e:
             if e.status != 404:
                 raise e
-        region = region_repo.get_region_by_region_name(service.service_region)
         if domain_path and domain_path != "/" or domain_cookie or domain_heander:
             domain_info["is_senior"] = True
         if protocol:
@@ -392,7 +394,11 @@ class DomainService(object):
         domain_info = service_domain.to_dict()
         domain_info.update(update_data)
 
-        self.__check_domain_name(tenant.tenant_id, domain_info["domain_name"], certificate_id=domain_info["certificate_id"])
+        self.__check_domain_name(
+            tenant.tenant_id,
+            service_domain.region_id,
+            domain_info["domain_name"],
+            certificate_id=domain_info["certificate_id"])
 
         certificate_info = None
         if domain_info["certificate_id"]:
