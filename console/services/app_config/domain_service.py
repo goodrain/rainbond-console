@@ -844,6 +844,9 @@ class DomainService(object):
     def check_set_header(self, set_headers):
         r = re.compile('([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
         for header in set_headers:
-            if header["key"] and not r.match(header["key"]):
+            if header["item_key"] and not r.match(header["item_key"]):
                 raise ServiceHandleException(
-                    msg="forbidden key: {0}".format(header["key"]), msg_show="Header Key不合法", status_code=400, error_code=400)
+                    msg="forbidden key: {0}".format(header["item_key"]),
+                    msg_show="Header Key不合法",
+                    status_code=400,
+                    error_code=400)
