@@ -56,7 +56,7 @@ function release_allinone() {
     docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
     docker push "${imageName}"
     if [ ${DOMESTIC_BASE_NAME} ]; then
-      domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rbd-app-ui:${VERSION}
+      domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rbd-app-ui:${VERSION}-allinone
       docker tag "${imageName}" "${domestcName}"
       docker login -u "$DOMESTIC_DOCKER_USERNAME" -p "$DOMESTIC_DOCKER_PASSWORD" "${DOMESTIC_BASE_NAME}"
       docker push "${domestcName}"
