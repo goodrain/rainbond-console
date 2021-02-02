@@ -85,7 +85,7 @@ class RainbondCenterAppRepository(object):
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
         # if teams is None, create_team scope is ('')
         if scope == "team":
-            team_sql = " and app.create_team in ('')"
+            team_sql = ""
             if teams:
                 team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
             team_sql += " and scope='" + scope + "'"
