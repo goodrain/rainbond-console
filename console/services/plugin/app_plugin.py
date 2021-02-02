@@ -8,21 +8,15 @@ import logging
 import os
 
 from addict import Dict
-from console.constants import (DefaultPluginConstants, PluginCategoryConstants,
-                               PluginImage, PluginInjection, PluginMetaType)
-from console.exception.bcode import (ErrInternalGraphsNotFound,
-                                     ErrPluginIsUsed,
-                                     ErrRepeatMonitoringTarget,
+from console.constants import (DefaultPluginConstants, PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
+from console.exception.bcode import (ErrInternalGraphsNotFound, ErrPluginIsUsed, ErrRepeatMonitoringTarget,
                                      ErrServiceMonitorExists)
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.app_config import port_repo
 from console.repositories.base import BaseConnection
-from console.repositories.plugin import (app_plugin_attr_repo,
-                                         app_plugin_relation_repo,
-                                         config_group_repo, config_item_repo,
-                                         plugin_repo, plugin_version_repo,
-                                         service_plugin_config_repo)
+from console.repositories.plugin import (app_plugin_attr_repo, app_plugin_relation_repo, config_group_repo, config_item_repo,
+                                         plugin_repo, plugin_version_repo, service_plugin_config_repo)
 from console.services.app import app_service
 from console.services.app_config import port_service
 from console.services.app_config.app_relation_service import \
@@ -36,8 +30,7 @@ from goodrain_web import settings
 from goodrain_web.settings import IMAGE_REPO
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.plugin import (PluginConfigGroup, PluginConfigItems,
-                               ServicePluginConfigVar)
+from www.models.plugin import (PluginConfigGroup, PluginConfigItems, ServicePluginConfigVar)
 from www.utils.crypt import make_uuid
 
 from .plugin_config_service import PluginConfigService
