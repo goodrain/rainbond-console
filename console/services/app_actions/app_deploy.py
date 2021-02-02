@@ -6,8 +6,10 @@ from datetime import datetime
 from enum import IntEnum
 
 from addict import Dict
-from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound, ErrInvalidVolume, InnerPortNotFound, InvalidEnvName,
-                                    ServiceHandleException, ServiceRelationAlreadyExist)
+from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound,
+                                    ErrInvalidVolume, InnerPortNotFound,
+                                    InvalidEnvName, ServiceHandleException,
+                                    ServiceRelationAlreadyExist)
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import port_repo, volume_repo
 from console.repositories.probe_repo import probe_repo
@@ -15,9 +17,10 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_template_component,
-                                                             get_upgrade_app_template)
-from console.services.app_config import (AppPortService, env_var_service, mnt_service)
+from console.services.app_actions.properties_changes import (
+    PropertiesChanges, get_template_component, get_upgrade_app_template)
+from console.services.app_config import (AppPortService, env_var_service,
+                                         mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
@@ -25,9 +28,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.backup_service import \
     groupapp_backup_service as backup_service
 from console.services.exception import ErrDepServiceNotFound
-from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
-from console.services.rbd_center_app_service import rbd_center_app_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
