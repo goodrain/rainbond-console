@@ -3,17 +3,16 @@ import json
 import logging
 from urllib.parse import urlsplit
 
-from django.http import HttpResponseRedirect
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
-
 from console.exception.main import ServiceHandleException
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.oauth_service import oauth_sev_user_service
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
 from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView)
+from django.http import HttpResponseRedirect
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message
@@ -497,7 +496,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
@@ -536,7 +535,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         body["password"] = None
         body["source_body"] = source_body
         try:
-            res, body = region_api.service_source_check(region, tenant, body)
+            res, body = region_api.service_source_check(region, tenant.tenant_name, body)
             return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.debug(e)

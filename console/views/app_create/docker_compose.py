@@ -4,7 +4,8 @@
 """
 import logging
 
-from console.exception.main import (AccountOverdueException, BusinessException, ResourceNotEnoughException)
+from console.exception.main import (AccountOverdueException, BusinessException, ResourceNotEnoughException,
+                                    ServiceHandleException)
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo
 from console.services.app_check_service import app_check_service
@@ -312,6 +313,10 @@ class ComposeDeleteView(ComposeGroupBaseView):
         """
         compose_id = request.data.get("compose_id", None)
         group_id = kwargs.get("group_id", None)
+        try:
+            group_id = int(group_id)
+        except ValueError:
+            raise ServiceHandleException(msg="group id is invalid", msg_show="参数不合法")
         if group_id:
             if group_id < 1:
                 return Response(general_message(400, "params error", "所在组参数错误 "), status=400)
