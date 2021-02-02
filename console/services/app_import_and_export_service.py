@@ -20,7 +20,6 @@ from console.services.app_config.app_relation_service import \
 from console.services.region_services import region_services
 from goodrain_web import settings
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantRegionInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
