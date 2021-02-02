@@ -159,9 +159,9 @@ class RegionApiBaseHttpClient(object):
                     timeout=urllib3.Timeout(connect=2.0, read=timeout),
                     retries=retries)
             return response.status, response.data
-        except ssl.SSLCertVerificationError:
+        except urllib3.exceptions.SSLError:
             self.destroy_client(region_config=region)
-            raise ServiceHandleException(error_code=10411, msg="SSLCertVerificationError", msg_show="访问数据中心异常，请稍后重试")
+            raise ServiceHandleException(error_code=10411, msg="SSLError", msg_show="访问数据中心异常，请稍后重试")
         except socket.timeout as e:
             raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                 "type": "request time out",
