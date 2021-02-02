@@ -4,9 +4,6 @@ import datetime
 import logging
 import re
 
-from django.db.models import Q
-from rest_framework.response import Response
-
 from console.enum.component_enum import is_singleton
 from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
@@ -17,6 +14,8 @@ from console.services.app import app_market_service
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from django.db.models import Q
+from rest_framework.response import Response
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message, general_message
 
@@ -451,84 +450,66 @@ class ServiceShareEventPost(RegionTenantHeaderView):
 
 class ServicePluginShareEventPost(RegionTenantHeaderView):
     def post(self, request, team_name, share_id, event_id, *args, **kwargs):
-        try:
-            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-            if not share_record:
-                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-                return Response(result, status=404)
-            if share_record.is_success or share_record.step >= 3:
-                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-                return Response(result, status=400)
-            events = PluginShareRecordEvent.objects.filter(record_id=share_id, ID=event_id)
-            if not events:
-                result = general_message(404, "not exist", "分享事件不存在")
-                return Response(result, status=404)
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+        if not share_record:
+            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+            return Response(result, status=404)
+        if share_record.is_success or share_record.step >= 3:
+            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+            return Response(result, status=400)
+        events = PluginShareRecordEvent.objects.filter(record_id=share_id, ID=event_id)
+        if not events:
+            result = general_message(404, "not exist", "分享事件不存在")
+            return Response(result, status=404)
 
-            bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name, share_id,
-                                                           events[0])
+        bean = share_service.sync_service_plugin_event(self.user, self.response_region, self.tenant.tenant_name, share_id,
+                                                       events[0])
+        if not bean:
+            result = general_message(400, "sync share event", "插件不存在无需发布")
+        else:
             result = general_message(200, "sync share event", "分享成功", bean=bean.to_dict())
-            return Response(result, status=200)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=result["code"])
+        return Response(result, status=result["code"])
 
     def get(self, request, team_name, share_id, event_id, *args, **kwargs):
-        try:
-            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-            if not share_record:
-                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-                return Response(result, status=404)
-            if share_record.is_success or share_record.step >= 3:
-                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-                return Response(result, status=400)
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+        if not share_record:
+            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+            return Response(result, status=404)
+        if share_record.is_success or share_record.step >= 3:
+            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+            return Response(result, status=400)
 
-            plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id, ID=event_id).order_by("ID")
-            if not plugin_events:
-                result = general_message(404, "not exist", "分享事件不存在")
-                return Response(result, status=404)
+        plugin_events = PluginShareRecordEvent.objects.filter(record_id=share_id, ID=event_id).order_by("ID")
+        if not plugin_events:
+            result = general_message(404, "not exist", "分享事件不存在")
+            return Response(result, status=404)
 
-            if plugin_events[0].event_status == "success":
-                result = general_message(200, "get sync share event result", "查询成功", bean=plugin_events[0].to_dict())
-                return Response(result, status=200)
-            bean = share_service.get_sync_plugin_events(self.response_region, team_name, plugin_events[0])
-            result = general_message(200, "get sync share event result", "查询成功", bean=bean.to_dict())
+        if plugin_events[0].event_status == "success":
+            result = general_message(200, "get sync share event result", "查询成功", bean=plugin_events[0].to_dict())
             return Response(result, status=200)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-            return Response(result, status=500)
+        bean = share_service.get_sync_plugin_events(self.response_region, team_name, plugin_events[0])
+        result = general_message(200, "get sync share event result", "查询成功", bean=bean.to_dict())
+        return Response(result, status=200)
 
 
 class ServiceShareCompleteView(RegionTenantHeaderView):
     def post(self, request, team_name, share_id, *args, **kwargs):
-        try:
-            share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
-            if not share_record:
-                result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
-                return Response(result, status=404)
-            if share_record.is_success or share_record.step >= 3:
-                result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
-                return Response(result, status=400)
-            # 验证是否所有同步事件已完成
-            count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
-            if count > 0 or plugin_count > 0:
-                result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
-                return Response(result, status=415)
-            app_market_url = share_service.complete(self.tenant, self.user, share_record)
-            result = general_message(
-                200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
-        except ServiceHandleException as e:
-            raise e
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
+        if not share_record:
+            result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+            return Response(result, status=404)
+        if share_record.is_success or share_record.step >= 3:
+            result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+            return Response(result, status=400)
+        # 验证是否所有同步事件已完成
+        count = ServiceShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
+        plugin_count = PluginShareRecordEvent.objects.filter(Q(record_id=share_id) & ~Q(event_status="success")).count()
+        if count > 0 or plugin_count > 0:
+            result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
+            return Response(result, status=415)
+        app_market_url = share_service.complete(self.tenant, self.user, share_record)
+        result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
+        return Response(result, status=200)
 
 
 class ShareRecordView(RegionTenantHeaderView):

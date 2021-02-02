@@ -2,14 +2,13 @@
 
 import logging
 
-from github import Github
-from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
-
 from console.exception.main import ServiceHandleException
 from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.urlutil import set_get_url
+from github import Github
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
 
 logger = logging.getLogger("default")
 
@@ -95,8 +94,10 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
 
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
-        user = self.api.get_user()
-        return OAuth2User(user.login, user.id, user.email), access_token, refresh_token
+        if self.api:
+            user = self.api.get_user()
+            return OAuth2User(user.login, user.id, user.email), access_token, refresh_token
+        raise ServiceHandleException(msg="can not get user info, api not set", msg_show="无法获取用户信息")
 
     def get_authorize_url(self):
         if self.oauth_service:

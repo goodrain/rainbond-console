@@ -269,8 +269,8 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], list(upgrade_service_infos.keys()))
 
         market_services = [
-            upgrade_service.market_service_and_create_backup(self.tenant, service, app_record.version, services)
-            for service in services
+            upgrade_service.market_service_and_create_backup(
+                self.tenant, service, app_record.version, all_component_one_model=services) for service in services
         ]
 
         # 处理依赖关系

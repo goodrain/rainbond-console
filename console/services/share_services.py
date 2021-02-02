@@ -7,15 +7,21 @@ import time
 
 from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
-from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
-from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
+from console.exception.main import (AbortRequest, RbdAppNotFound,
+                                    ServiceHandleException)
+from console.models.main import (PluginShareRecordEvent, RainbondCenterApp,
+                                 RainbondCenterAppVersion,
+                                 ServiceShareRecordEvent)
 from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo, volume_repo
-from console.repositories.app_config_group import (app_config_group_item_repo, app_config_group_repo,
-                                                   app_config_group_service_repo)
+from console.repositories.app_config_group import (
+    app_config_group_item_repo, app_config_group_repo,
+    app_config_group_service_repo)
 from console.repositories.component_graph import component_graph_repo
-from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
-from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
+from console.repositories.market_app_repo import (app_export_record_repo,
+                                                  rainbond_app_repo)
+from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo,
+                                         service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
@@ -566,6 +572,8 @@ class ShareService(object):
         if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
         app_template = json.loads(apps_version.app_template)
+        if "plugins" not in app_template:
+            return
         plugins_info = app_template["plugins"]
         plugin_list = []
         for plugin in plugins_info:

@@ -15,7 +15,8 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_template_component,
+                                                             get_upgrade_app_template)
 from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
@@ -122,6 +123,7 @@ class MarketService(object):
         self.tenant = tenant
         self.service = service
         self.market_name = None
+        # tenant service models
         self.all_component_one_model = all_component_one_model
         self.service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         if self.service_source.extend_info:
@@ -272,6 +274,8 @@ class MarketService(object):
             all_component_one_model=self.all_component_one_model,
             install_from_cloud=self.install_from_cloud)
         template = get_upgrade_app_template(self.tenant, self.version, pc)
+        self.template = template
+        self.pc = pc
         changes = pc.get_property_changes(template=template)
         logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
         self.changes = changes
@@ -296,11 +300,7 @@ class MarketService(object):
         """
         Perform modifications to the given properties. must be called after `set_changes`.
         """
-        service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
-        if self.install_from_cloud:
-            app = market_app_service.get_service_app_from_cloud(self.tenant, self.group_key, self.version, service_source)
-        else:
-            app = rbd_center_app_service.get_version_app(self.tenant.enterprise_id, self.version, service_source)
+        app = get_template_component(self.template, self.pc)
         self._update_service(app)
         self._update_service_source(app, self.version)
         changes = deepcopy(self.changes)
@@ -893,7 +893,7 @@ class MarketService(object):
         add = plugins.get("add", [])
         try:
             app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service,
-                                                        self.all_component_one_model, self.version, add)
+                                                        self.template["apps"], self.version, add)
         except ServiceHandleException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
 

@@ -307,7 +307,7 @@ class MarketAppService(object):
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
                 plugin_component_configs = app_plugin_map[service.service_id]
-                self.__create_service_pluginsv2(tenant, service, market_app.version, plugin_component_configs)
+                self.__create_service_pluginsv2(tenant, service, market_app.version, apps, plugin_component_configs)
 
             # component monitors
             component_monitors = app.get("component_monitors", {})
