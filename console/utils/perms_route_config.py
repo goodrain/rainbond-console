@@ -1072,7 +1072,7 @@ DeleteAppView = {
             "perms": []
         },
         "delete": {
-            "perms": [300004, 400004]
+            "perms": [400004]
         }
     }
 }
