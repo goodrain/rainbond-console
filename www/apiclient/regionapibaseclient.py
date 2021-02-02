@@ -12,12 +12,11 @@ import ssl
 import certifi
 import urllib3
 from addict import Dict
+from console.exception.main import ServiceHandleException
+from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict
 from urllib3.exceptions import MaxRetryError
-
-from console.exception.main import ServiceHandleException
-from console.repositories.region_repo import region_repo
 
 logger = logging.getLogger('default')
 
@@ -160,6 +159,9 @@ class RegionApiBaseHttpClient(object):
                     timeout=urllib3.Timeout(connect=2.0, read=timeout),
                     retries=retries)
             return response.status, response.data
+        except ssl.SSLCertVerificationError:
+            self.destroy_client(region_config=region)
+            raise ServiceHandleException(error_code=10411, msg="SSLCertVerificationError", msg_show="访问数据中心异常，请稍后重试")
         except socket.timeout as e:
             raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                 "type": "request time out",
@@ -174,6 +176,10 @@ class RegionApiBaseHttpClient(object):
             logger.debug("error url {}".format(url))
             logger.exception(e)
             raise ServiceHandleException(error_code=10411, msg="Exception", msg_show="访问数据中心异常，请稍后重试")
+
+    def destroy_client(self, region_config):
+        key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)
+        self.clients[key] = None
 
     def get_client(self, region_config):
         # get client from cache
