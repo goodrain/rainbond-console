@@ -59,9 +59,11 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
         unfinished_records = import_service.get_user_not_finish_import_record_in_enterprise(eid, self.user)
         new = False
         if unfinished_records:
-            r = unfinished_records[0]
+            r = unfinished_records[len(unfinished_records) - 1]
+            logger.info(r.region)
             region = region_services.get_region_by_region_name(r.region)
             if not region:
+                logger.warning("not found region for old import recoder")
                 new = True
         else:
             new = True
@@ -152,10 +154,9 @@ class CenterAppImportView(JWTAuthApiView):
             transaction.savepoint_commit(sid)
             result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=apps_status)
         except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
             if sid:
                 transaction.savepoint_rollback(sid)
+            raise e
         return Response(result, status=result["code"])
 
     def delete(self, request, event_id, *args, **kwargs):

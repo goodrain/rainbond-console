@@ -2,9 +2,8 @@
 """
   Created on 18/1/15.
 """
-from rest_framework.response import Response
-
 from console.utils.response import MessageResponse
+from rest_framework.response import Response
 from www.utils.return_message import general_message
 
 
@@ -61,7 +60,7 @@ class RegionNotFound(ServiceHandleException):
     """
 
     def __init__(self, msg):
-        super(RegionNotFound, self).__init__("region not found")
+        super(RegionNotFound, self).__init__("region not found", msg)
 
 
 class AbortRequest(ServiceHandleException):
@@ -69,7 +68,7 @@ class AbortRequest(ServiceHandleException):
     pass
 
 
-class RecordNotFound(Exception):
+class RecordNotFound(ServiceHandleException):
     """
     There is no corresponding record in the database
     """
