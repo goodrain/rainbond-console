@@ -48,7 +48,7 @@ class RegionRepo(object):
         """获取团队已开通的数据中心"""
         tenant = team_repo.get_team_by_team_name(team_name)
         if not tenant:
-            return []
+            return None
         return TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
 
     def get_region_by_region_name(self, region_name):

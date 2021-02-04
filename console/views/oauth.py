@@ -81,7 +81,7 @@ class OauthService(EnterpriseAdminView):
         try:
             services = oauth_repo.create_or_update_console_oauth_services(values, eid)
         except Exception as e:
-            logger.debug(e.message)
+            logger.exception(e)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
         service = oauth_repo.get_conosle_oauth_service(eid)
         api = get_oauth_instance(service.oauth_type, service, None)
@@ -214,7 +214,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
         try:
             oauth_user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
-            logger.debug(e.message)
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
@@ -281,7 +281,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         try:
             user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
-            logger.debug(e.message)
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
 

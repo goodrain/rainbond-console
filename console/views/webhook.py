@@ -310,15 +310,13 @@ class WebHooksDeploy(AlowAnyApiView):
                 result = general_message(400, "failed", "暂时仅支持github与gitlab哦～")
                 return Response(result, status=400)
 
-        except Tenants.DoesNotExist as e:
-            logger.exception(e)
-            return Response(e.message, status=400)
-        except TenantServiceInfo.DoesNotExist as e:
-            logger.exception(e)
-            return Response(e.message, status=400)
+        except Tenants.DoesNotExist:
+            return Response("tenant not exist", status=400)
+        except TenantServiceInfo.DoesNotExist:
+            return Response("component not exist", status=400)
         except Exception as e:
             logger.exception(e)
-            return Response(e.message, status=500)
+            return Response("Internal error occurred", status=500)
 
     def _check_warehouse(self, service_git_url, clone_url, ssh_url):
         # 判断地址是否相同
@@ -545,7 +543,7 @@ class UpdateSecretKey(AppBaseView):
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             deploy_obj = DeployRelation.objects.filter(service_id=service_obj.service_id)
-            pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))
+            pwd = base64.b64encode(bytes(pickle.dumps({"secret_key": secret_key}), 'utf-8'))
             if deploy_obj:
                 deploy_obj.update(secret_key=pwd)
                 result = general_message(200, "success", "修改成功")

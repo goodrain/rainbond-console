@@ -44,7 +44,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # logger.debug('Default headers: {0}'.format(self.default_headers))
 
     def __get_tenant_region_info(self, tenant_name, region):
-
+        if type(tenant_name) == Tenants:
+            tenant_name = tenant_name.tenant_name
         tenants = Tenants.objects.filter(tenant_name=tenant_name)
         if tenants:
             tenant = tenants[0]
@@ -1130,6 +1131,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 根据团队名获取其归属的企业在指定数据中心的访问信息
         token = None
         if tenant_name:
+            if type(tenant_name) == Tenants:
+                tenant_name = tenant_name.tenant_name
             url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库

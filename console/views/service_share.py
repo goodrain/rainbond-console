@@ -15,6 +15,7 @@ from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from django.db.models import Q
+from goodrain_web import settings
 from rest_framework.response import Response
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message, general_message
@@ -693,11 +694,13 @@ class AppMarketAppModelLView(JWTAuthApiView):
         logo = request.data.get("logo")
         base64_logo = ""
         if logo:
+            if logo.startswith(settings.MEDIA_URL):
+                logo = logo.replace(settings.MEDIA_URL, settings.MEDIA_ROOT + "/")
             try:
                 with open(logo, "rb") as f:
-                    base64_logo = "data:image/{};base64,".format(logo.split(".")[-1]) + base64.b64encode(f.read())
+                    base64_logo = "data:image/{};base64,".format(logo.split(".")[-1]) + base64.b64encode(f.read()).decode()
             except Exception as e:
-                logger.error("parse app logo error: ", e)
+                logger.exception(e)
                 base64_logo = ""
         dt = {
             "desc": request.data.get("desc"),

@@ -409,14 +409,14 @@ class UserFavoriteLCView(JWTAuthApiView):
 
                 old_favorite = user_repo.get_user_favorite_by_name(request.user.user_id, name)
                 if old_favorite:
-                    result = general_message(400, "fail", "名称已存在")
-                    return Response(result, status=status.HTTP_200_OK)
+                    result = general_message(400, "fail", "收藏视图名称已存在")
+                    return Response(result, status=status.HTTP_400_BAD_REQUEST)
                 user_repo.create_user_favorite(request.user.user_id, name, url, is_default)
-                result = general_message(200, "success", "创建成功")
+                result = general_message(200, "success", "收藏视图创建成功")
                 return Response(result, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.debug(e)
-                result = general_message(400, "fail", "创建失败")
+                result = general_message(400, "fail", "收藏视图创建失败")
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
         else:
             result = general_message(400, "fail", "参数错误")

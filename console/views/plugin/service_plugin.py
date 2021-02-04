@@ -5,13 +5,11 @@
 import json
 import logging
 
+from console.services.common_services import common_services
+from console.services.plugin import app_plugin_service, plugin_version_service
+from console.views.app_config.base import AppBaseView
 from django.db import transaction
 from rest_framework.response import Response
-
-from console.services.common_services import common_services
-from console.services.plugin import app_plugin_service
-from console.services.plugin import plugin_version_service
-from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -170,8 +168,8 @@ class ServicePluginOperationView(AppBaseView):
         data["plugin_id"] = plugin_id
         data["switch"] = is_active
         data["version_id"] = build_version
-        data["plugin_memory"] = memory
-        data["plugin_cpu"] = cpu
+        data["plugin_memory"] = int(memory)
+        data["plugin_cpu"] = int(cpu)
         # 更新数据中心数据参数
         region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
                                                   data)

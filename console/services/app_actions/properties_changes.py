@@ -162,6 +162,8 @@ class PropertiesChanges(object):
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
         component = get_template_component(template, self)
+        if not component:
+            return {}
         component_names = {}
         for com in template.get("apps"):
             component_names[com.get("service_share_uuid")] = com.get("service_cname")

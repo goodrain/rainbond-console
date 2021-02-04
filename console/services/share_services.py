@@ -35,21 +35,16 @@ class ShareService(object):
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
-            can_publish_list = [service for service in service_list if service.service_source != "market"]
-            if not can_publish_list:
-                data = {"code": 400, "success": False, "msg_show": "此应用中的组件全部来源于共享库或应用商店,无法再次发布", "list": [], "bean": {}}
-                return data
-            else:
-                # 批量查询组件状态
-                service_ids = [service.service_id for service in service_list]
-                status_list = base_service.status_multi_service(
-                    region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
-                for status in status_list:
-                    if status["status"] == "running":
-                        data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
-                        return data
-                data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
-                return data
+            # 批量查询组件状态
+            service_ids = [service.service_id for service in service_list]
+            status_list = base_service.status_multi_service(
+                region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
+            for status in status_list:
+                if status["status"] == "running":
+                    data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
+                    return data
+            data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
+            return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
             return data

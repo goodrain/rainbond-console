@@ -10,10 +10,13 @@ import re
 
 from console.constants import DomainType
 from console.exception.main import ServiceHandleException
-from console.repositories.app_config import (configuration_repo, domain_repo, port_repo, tcp_domain)
+from console.repositories.app_config import (configuration_repo, domain_repo,
+                                             port_repo, tcp_domain)
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
+from console.services.app_config.exceptoin import (err_cert_name_exists,
+                                                   err_cert_not_found,
+                                                   err_still_has_http_rules)
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
@@ -59,7 +62,7 @@ class DomainService(object):
     def add_certificate(self, tenant, alias, certificate_id, certificate, private_key, certificate_type):
         self.__check_certificate_alias(tenant, alias)
         cert_is_effective(certificate, private_key)
-        certificate = base64.b64encode(certificate)
+        certificate = base64.b64encode(bytes(certificate, 'utf-8'))
         certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
                                                   certificate_type)
         return certificate
@@ -107,7 +110,7 @@ class DomainService(object):
             self.__check_certificate_alias(tenant, alias)
             cert.alias = alias
         if certificate:
-            cert.certificate = base64.b64encode(certificate)
+            cert.certificate = base64.b64encode(bytes(certificate, 'utf-8'))
         if certificate_type:
             cert.certificate_type = certificate_type
         if private_key:
@@ -134,7 +137,7 @@ class DomainService(object):
         if not domain_name:
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty", msg_show="域名不能为空")
         zh_pattern = re.compile('[\\u4e00-\\u9fa5]+')
-        match = zh_pattern.search(domain_name.decode('utf-8'))
+        match = zh_pattern.search(domain_name)
         if match:
             raise ServiceHandleException(
                 status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
@@ -826,7 +829,7 @@ class DomainService(object):
         gcc_dict["body"] = configs
         gcc_dict["rule_id"] = rule_id
         try:
-            res, data = region_api.upgrade_configuration(region_name, team, service.service_alias, gcc_dict)
+            res, data = region_api.upgrade_configuration(region_name, team.tenant_name, service.service_alias, gcc_dict)
             if res.status == 200:
                 if cf:
                     cf.value = json.dumps(configs)

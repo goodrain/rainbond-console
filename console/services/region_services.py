@@ -147,7 +147,9 @@ class RegionService(object):
 
     def get_team_unopen_region(self, team_name, enterprise_id):
         usable_regions = region_repo.get_usable_regions(enterprise_id)
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
+        team_opened_regions = region_repo.get_team_opened_region(team_name)
+        if team_opened_regions:
+            team_opened_regions = team_opened_regions.filter(is_init=True)
         opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
@@ -350,7 +352,9 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name, enterprise_id):
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True, region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(team_name)
+        if team_opened_regions:
+            team_opened_regions = team_opened_regions.filter(is_init=True, region_name__in=region_names)
         return team_opened_regions
 
     def get_regions_by_enterprise_id(self, enterprise_id):
