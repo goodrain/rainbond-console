@@ -6,6 +6,7 @@ import subprocess
 import time
 import zipfile
 
+import requests
 from console.exception.main import ServiceHandleException
 from django.conf import settings
 from django.http import HttpResponse
@@ -19,6 +20,8 @@ class PlatformDataBackupServices(object):
         g = os.walk(settings.DATA_DIR + "/backups/")
         backups = []
         for path, _, file_list in g:
+            file_list.sort()
+            file_list.reverse()
             for file in file_list:
                 if file.endswith(".tar.gz"):
                     size = os.path.getsize(os.path.join(path, file))
@@ -33,7 +36,7 @@ class PlatformDataBackupServices(object):
         if not os.path.exists(backup_path):
             os.makedirs(backup_path, 0o777)
         self.export_console_data(backup_path)
-        # self.export_adaptor_data(backup_path)
+        self.export_adaptor_data(backup_path)
         self.write_version(backup_path)
         tarname = "rainbond-console-backup-data-{0}.tar.gz".format(time.strftime("%Y%m%d%H%M%S", time.localtime()))
         full_tarname = os.path.join(settings.DATA_DIR, "backups", tarname)
@@ -81,10 +84,11 @@ class PlatformDataBackupServices(object):
             raise ServiceHandleException(msg="recover data failed", msg_show="恢复控制台数据失败")
 
     def recover_adaptor_data(self, file_name):
-        dump_command = "{}/cloud-adaptor data import --fileName {}".format(settings.BASE_DIR, file_name)
-        dump_resp = subprocess.run(dump_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
-        if dump_resp.returncode != 0:
-            logger.error(msg=dump_resp.stderr)
+        files = {'file': open(file_name, 'rb')}
+        remoteurl = "http://{0}:{1}/{2}".format(
+            os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), "enterprise-server/api/v1/recover")
+        r = requests.post(remoteurl, files=files)
+        if r.status_code != 200:
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="恢复adaptor数据失败")
 
     def export_console_data(self, data_path):
@@ -97,14 +101,18 @@ class PlatformDataBackupServices(object):
             raise ServiceHandleException(msg="export console data failed", msg_show="导出控制台数据失败")
         return console_data_name
 
-    def export_adaptor_data(self):
-        adaptor_data_name = "adaptor_data.json"
-        dump_command = "{}/cloud-adaptor data export --fileName {}".format(settings.BASE_DIR, adaptor_data_name)
-        dump_resp = subprocess.run(dump_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
-        if dump_resp.returncode != 0:
-            logger.error(msg=dump_resp.stderr)
-            raise ServiceHandleException(msg="export adaptor data failed", msg_show="导出adaptor数据失败")
-        return adaptor_data_name
+    def export_adaptor_data(self, data_path):
+        remoteurl = "http://{0}:{1}/{2}".format(
+            os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), "enterprise-server/api/v1/backup")
+        local_filename = os.path.join(data_path, "adaptor_data.tar.gz")
+        r = requests.get(remoteurl)
+        f = open(local_filename, 'wb')
+        for chunk in r.iter_content(chunk_size=512 * 1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+        f.close()
+        if r.status_code != 200:
+            raise ServiceHandleException(msg="export adaptor data failed", msg_show="备份adaptor数据失败")
 
     def compressed_file_by_tar(self, backup_path, tarname):
 
