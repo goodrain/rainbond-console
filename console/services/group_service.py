@@ -9,7 +9,8 @@ from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import ErrUserNotFound
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
-from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
+from console.repositories.app_config import (domain_repo, env_var_repo,
+                                             port_repo, tcp_domain)
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo, group_service_relation_repo
@@ -98,7 +99,7 @@ class GroupService(object):
         group_repo.update(app_id, **data)
 
     def delete_group(self, group_id, default_group_id):
-        if not group_id or not str.isdigit(group_id) or group_id < 0:
+        if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
             return 400, "需要删除的应用不合法", None
         backups = backup_record_repo.get_record_by_group_id(group_id)
         if backups:
@@ -351,11 +352,8 @@ class GroupService(object):
     # 应用内没有组件情况下删除应用
     @transaction.atomic
     def delete_group_no_service(self, group_id):
-        if not group_id or group_id < 0:
-            return 400, "需要删除的应用不合法", None
-        # backups = backup_record_repo.get_record_by_group_id(group_id)
-        # if backups:
-        #     return 409, u"当前应用有备份记录，暂无法删除", None
+        if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
+            return 400, "需要删除的应用ID不合法", None
         # 删除应用
         group_repo.delete_group_by_pk(group_id)
         # 删除升级记录

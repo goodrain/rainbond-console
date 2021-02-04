@@ -16,6 +16,9 @@ import sys
 
 from corsheaders.defaults import default_headers
 
+# rainbond version
+VERSION = "5.3.0"
+
 APPEND_SLASH = True
 SETTING_DIR = os.path.dirname(__file__)
 

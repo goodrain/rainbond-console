@@ -426,11 +426,13 @@ class PropertiesChanges(object):
     def volume_changes(self, new_volumes):
         old_volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
+        old_volume_names = {volume.volume_name: volume for volume in old_volumes}
         add = []
         update = []
         for new_volume in new_volumes:
             old_volume = old_volume_paths.get(new_volume["volume_path"], None)
-            if not old_volume:
+            old_volume_name = old_volume_names.get(new_volume["volume_name"], None)
+            if not old_volume and not old_volume_name:
                 add.append(new_volume)
                 continue
             if not new_volume.get("file_content"):

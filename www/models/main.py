@@ -920,9 +920,9 @@ class TenantServiceEnvVar(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_id = models.CharField(max_length=32, db_index=True, help_text="组件id")
     container_port = models.IntegerField(default=0, help_text="端口")
-    name = models.CharField(max_length=100, blank=True, help_text="名称")
-    attr_name = models.CharField(max_length=100, help_text="属性")
-    attr_value = models.CharField(max_length=1024, help_text="值")
+    name = models.CharField(max_length=1024, blank=True, help_text="名称")
+    attr_name = models.CharField(max_length=1024, help_text="属性")
+    attr_value = models.CharField(max_length=2048, help_text="值")
     is_change = models.BooleanField(default=False, blank=True, help_text="是否可改变")
     scope = models.CharField(max_length=10, help_text="范围", default=ScopeType.OUTER.value)
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
@@ -1376,4 +1376,3 @@ class GatewayCustomConfiguration(BaseModel):
 
     rule_id = models.CharField(max_length=32, unique=True, help_text="规则id")
     value = models.TextField(help_text="配置value")
-    valueconfig = models.TextField(help_text="配置value")
