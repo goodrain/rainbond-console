@@ -768,8 +768,8 @@ class AppManageService(AppManageBase):
         new_memory = int(new_memory)
         if new_memory == service.min_memory:
             return 409, "内存没有变化，无需升级"
-        if new_memory > 65536 or new_memory < 64:
-            return 400, "内存范围在64M到64G之间"
+        if new_memory > 65536 or new_memory < 32:
+            return 400, "内存范围在32M到64G之间"
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
         if new_memory > service.min_memory:

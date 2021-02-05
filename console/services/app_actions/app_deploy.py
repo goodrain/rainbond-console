@@ -298,16 +298,18 @@ class MarketService(object):
         """
         Perform modifications to the given properties. must be called after `set_changes`.
         """
-        app = get_template_component(self.template, self.pc)
-        self._update_service(app)
-        self._update_service_source(app, self.version)
-        changes = deepcopy(self.changes)
-        if changes:
-            for k, v in list(changes.items()):
-                func = self.update_funcs.get(k, None)
-                if func is None:
-                    continue
-                func(v)
+        component = get_template_component(self.template, self.pc)
+        # if component is null, maybe new app not have this component
+        if component:
+            self._update_service(component)
+            self._update_service_source(component, self.version)
+            changes = deepcopy(self.changes)
+            if changes:
+                for k, v in list(changes.items()):
+                    func = self.update_funcs.get(k, None)
+                    if func is None:
+                        continue
+                    func(v)
 
     @staticmethod
     def _compare_async_action(a, b):

@@ -19,6 +19,7 @@ from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.services.share_services import share_service
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 volume_service = AppVolumeService()
@@ -135,7 +136,7 @@ class PropertiesChanges(object):
                 elif same and new_version_time > current_version_time:
                     if self.have_upgrade_info(self.tenant, services, version.version):
                         upgradeble_versions.append(version.version)
-        return upgradeble_versions
+        return list(set(upgradeble_versions))
 
     def have_upgrade_info(self, tenant, services, version):
         from console.services.upgrade_services import upgrade_service
@@ -435,6 +436,10 @@ class PropertiesChanges(object):
             old_volume = old_volume_paths.get(new_volume["volume_path"], None)
             old_volume_name = old_volume_names.get(new_volume["volume_name"], None)
             if not old_volume and not old_volume_name:
+                add.append(new_volume)
+                continue
+            if not old_volume and old_volume_name:
+                new_volume["volume_name"] = new_volume["volume_name"] + "-" + make_uuid()[:6]
                 add.append(new_volume)
                 continue
             if not new_volume.get("file_content"):
