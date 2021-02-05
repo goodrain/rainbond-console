@@ -18,6 +18,8 @@ logger = logging.getLogger('default')
 class PlatformDataBackupServices(object):
     def list_backups(self):
         g = os.walk(settings.DATA_DIR + "/backups/")
+        if not os.path.exists(os.path.join(settings.DATA_DIR, "backups")):
+            os.makedirs(os.path.join(settings.DATA_DIR, "backups"), 0o777)
         backups = []
         for path, _, file_list in g:
             file_list.sort()
@@ -55,6 +57,8 @@ class PlatformDataBackupServices(object):
 
     def upload_file(self, upload_file):
         try:
+            if not os.path.exists(os.path.join(settings.DATA_DIR, "backups")):
+                os.makedirs(os.path.join(settings.DATA_DIR, "backups"), 0o777)
             file_name = os.path.join(settings.DATA_DIR, "backups", upload_file.name)
             with open(file_name, 'wb+') as destination:
                 for chunk in upload_file.chunks():
