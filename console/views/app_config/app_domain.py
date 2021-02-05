@@ -1116,7 +1116,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         # Check if the given endpoint exists.
         region = region_repo.get_region_by_region_name(service.service_region)
         service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
-        if service_tcpdomain and service_tcpdomain[0].service_id != service_id:
+        if service_tcpdomain and service_tcpdomain[0].tcp_rule_id != tcp_rule_id:
             result = general_message(400, "failed", "策略已存在")
             return Response(result)
 

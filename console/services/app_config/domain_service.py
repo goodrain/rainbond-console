@@ -384,6 +384,7 @@ class DomainService(object):
             domain_info.update({"certificate_name": certificate_info.alias})
         return domain_info
 
+    @transaction.atomic
     def update_httpdomain(self, tenant, service, http_rule_id, update_data, re_model=False):
         service_domain = domain_repo.get_service_domain_by_http_rule_id(http_rule_id)
         if not service_domain:
@@ -544,6 +545,7 @@ class DomainService(object):
         domain_info.update({"rule_extensions": rule_extensions})
         return domain_info
 
+    @transaction.atomic
     def update_tcpdomain(self, tenant, user, service, end_point, container_port, tcp_rule_id, protocol, type, rule_extensions,
                          default_ip):
 
