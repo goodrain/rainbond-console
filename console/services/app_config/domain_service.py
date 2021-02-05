@@ -10,13 +10,10 @@ import re
 
 from console.constants import DomainType
 from console.exception.main import ServiceHandleException
-from console.repositories.app_config import (configuration_repo, domain_repo,
-                                             port_repo, tcp_domain)
+from console.repositories.app_config import (configuration_repo, domain_repo, port_repo, tcp_domain)
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.services.app_config.exceptoin import (err_cert_name_exists,
-                                                   err_cert_not_found,
-                                                   err_still_has_http_rules)
+from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
@@ -143,7 +140,7 @@ class DomainService(object):
                 status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         s_domain = domain_repo.get_domain_by_domain_name(domain_name)
-        if s_domain and s_domain.tenant_id != team_id and s_domain.region_id != region_id:
+        if s_domain and s_domain.tenant_id != team_id and s_domain.region_id == region_id:
             raise ServiceHandleException(
                 status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:

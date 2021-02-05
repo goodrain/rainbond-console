@@ -9,8 +9,7 @@ from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import ErrUserNotFound
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
-from console.repositories.app_config import (domain_repo, env_var_repo,
-                                             port_repo, tcp_domain)
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo, group_service_relation_repo
