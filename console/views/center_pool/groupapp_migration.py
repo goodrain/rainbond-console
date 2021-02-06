@@ -70,7 +70,7 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
         migrate_team = team_services.get_tenant_by_tenant_name(team)
         if not migrate_team:
             return Response(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status=404)
-        regions = region_services.get_team_usable_regions(migrate_team.team_name, self.tenant.enterprise_id)
+        regions = region_services.get_team_usable_regions(migrate_team.tenant_name, self.tenant.enterprise_id)
         if not regions:
             return Response(general_message(412, "region is not usable", "团队未开通任何集群"), status=412)
         if migrate_region not in [r.region_name for r in regions]:
