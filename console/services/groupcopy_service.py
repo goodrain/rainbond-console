@@ -1,26 +1,26 @@
 # -*- coding: utf8 -*-
 import logging
 
-from django.db import transaction
-
 from console.exception.main import ServiceHandleException
+from console.models.main import ServiceMonitor
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.group import group_repo
-from console.repositories.service_repo import service_repo
-from console.repositories.probe_repo import probe_repo
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
+from console.repositories.probe_repo import probe_repo
+from console.repositories.service_repo import service_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import label_service, port_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.backup_service import groupapp_backup_service
-from console.services.groupapp_recovery.groupapps_migrate import migrate_service
-from console.services.service_services import base_service
+from console.services.groupapp_recovery.groupapps_migrate import \
+    migrate_service
 from console.services.plugin import app_plugin_service, plugin_service
+from console.services.service_services import base_service
 from console.services.team_services import team_services
-from www.utils.crypt import make_uuid
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
-from console.models.main import ServiceMonitor
+from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -89,15 +89,18 @@ class GroupAppCopyService(object):
                               remove_service_ids,
                               service_ids,
                               change_service_map=None):
+        same_team_and_region_copy = False
+        if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
+            same_team_and_region_copy = True
         if not remove_service_ids:
             for service in metadata["apps"]:
                 # 处理组件存储依赖关系
                 if service["service_mnts"]:
                     new_service_mnts = []
                     for service_mnt in service["service_mnts"]:
-                        if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
-                            if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
-                                new_service_mnts.append(service_mnt)
+                        if same_team_and_region_copy and service_mnt["dep_service_id"] not in (
+                                set(remove_service_ids) ^ set(service_ids)):
+                            new_service_mnts.append(service_mnt)
                     service["service_mnts"] = new_service_mnts
                 # Handling plugin config
                 if change_service_map and service["service_plugin_config"]:
@@ -126,7 +129,7 @@ class GroupAppCopyService(object):
             if service["service_base"]["service_id"] not in remove_service_ids:
                 new_relation = []
                 for dep_service_info in service["service_relation"]:
-                    if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
+                    if same_team_and_region_copy:
                         new_relation.append(dep_service_info)
                     else:
                         if dep_service_info["dep_service_id"] in service_ids and \
@@ -138,21 +141,22 @@ class GroupAppCopyService(object):
             if service["service_mnts"]:
                 new_service_mnts = []
                 for service_mnt in service["service_mnts"]:
-                    if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
-                        if service_mnt["dep_service_id"] not in (set(remove_service_ids) ^ set(service_ids)):
-                            new_service_mnts.append(service_mnt)
+                    if same_team_and_region_copy and service_mnt["dep_service_id"] not in (
+                            set(remove_service_ids) ^ set(service_ids)):
+                        new_service_mnts.append(service_mnt)
                 service["service_mnts"] = new_service_mnts
             # Handling plugin config
             if change_service_map and service["service_plugin_config"]:
                 for plugin in service["service_plugin_config"]:
-                    if plugin["dest_service_id"] != "" and plugin["dest_service_id"] not in remove_service_ids:
-                        # Get the new next service ID pointed to by the plugin through the old service ID
-                        plugin["dest_service_alias"] = change_service_map.get(plugin["dest_service_id"], {}).get(
-                            "ServiceAlias", "")
-                        plugin["dest_service_id"] = change_service_map.get(plugin["dest_service_id"], {}).get("ServiceID", "")
-                    else:
-                        plugin["dest_service_alias"] = ""
-                        plugin["dest_service_id"] = ""
+                    if plugin["dest_service_id"] != "" and plugin["dest_service_id"]:
+                        # Handles plugin configuration of dependent components
+                        new_dep_component_c = change_service_map.get(plugin["dest_service_id"], None)
+                        if new_dep_component_c:
+                            plugin["dest_service_alias"] = new_dep_component_c.get("ServiceAlias")
+                            plugin["dest_service_id"] = new_dep_component_c.get("ServiceID")
+                        elif not same_team_and_region_copy:
+                            plugin["dest_service_alias"] = ""
+                            plugin["dest_service_id"] = ""
 
         if metadata["compose_service_relation"] is not None:
             for service in metadata["compose_service_relation"]:

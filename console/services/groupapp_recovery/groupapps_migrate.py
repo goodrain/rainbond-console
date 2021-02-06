@@ -7,57 +7,38 @@ import datetime
 import json
 import logging
 
-from django.db import transaction
-
-from console.services.app_config import port_service
-from console.enum.app import GovernanceModeEnum
 from console.constants import AppMigrateType
-from console.models.main import ServiceRelPerms
-from console.models.main import ServiceSourceInfo
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import tcp_domain
+from console.enum.app import GovernanceModeEnum
+from console.models.main import ServiceRelPerms, ServiceSourceInfo
+from console.repositories.app_config import (domain_repo, tcp_domain, volume_repo)
+from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
 from console.repositories.migration_repo import migrate_repo
 from console.repositories.plugin.plugin import plugin_repo
-from console.repositories.plugin.plugin_config import plugin_config_group_repo
-from console.repositories.plugin.plugin_config import plugin_config_items_repo
+from console.repositories.plugin.plugin_config import (plugin_config_group_repo, plugin_config_items_repo)
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.app_config_group import app_config_group_repo
-from console.services.app_config_group import app_config_group_service
+from console.services.app import app_service
+from console.services.app_config import port_service, volume_service
+from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.port_service import port_repo
 from console.services.app_config.service_monitor import service_monitor_repo
-from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
-from console.services.exception import ErrBackupRecordNotFound
-from console.services.exception import ErrNeedAllServiceCloesed
-from console.services.exception import ErrObjectStorageInfoNotFound
+from console.services.exception import (ErrBackupRecordNotFound, ErrNeedAllServiceCloesed, ErrObjectStorageInfoNotFound)
 from console.services.group_service import group_service
-from console.services.app import app_service
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
-from www.models.main import ImageServiceRelation
-from www.models.main import ServiceDomain
-from www.models.main import ServiceEvent
-from www.models.main import ServiceProbe
-from www.models.main import TenantServiceAuth
-from www.models.main import TenantServiceConfigurationFile
-from www.models.main import TenantServiceEnv
-from www.models.main import TenantServiceEnvVar
-from www.models.main import TenantServiceInfo
-from www.models.main import TenantServiceMountRelation
-from www.models.main import TenantServiceRelation
-from www.models.main import TenantServicesPort
-from www.models.main import TenantServiceVolume
-from www.models.main import ThirdPartyServiceEndpoints
-from www.models.plugin import ServicePluginConfigVar
-from www.models.plugin import TenantServicePluginRelation
+from www.models.main import (ImageServiceRelation, ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth,
+                             TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceInfo,
+                             TenantServiceMountRelation, TenantServiceRelation, TenantServicesPort, TenantServiceVolume,
+                             ThirdPartyServiceEndpoints)
+from www.models.plugin import (ServicePluginConfigVar, TenantServicePluginRelation)
 from www.utils.crypt import make_uuid
-from console.services.app_config import volume_service
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -307,10 +288,10 @@ class GroupappsMigrateService(object):
             ts.save()
 
         # restore plugin info
+        self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
         self.__save_plugin_config_items(metadata["plugin_info"]["plugin_config_items"])
         self.__save_plugin_config_groups(metadata["plugin_info"]["plugin_config_groups"])
         versions = self.__save_plugin_build_versions(migrate_tenant, metadata["plugin_info"]["plugin_build_versions"])
-        self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
         for app in apps:
             new_service_id = old_new_service_id_map[app["service_base"]["service_id"]]
             # plugin

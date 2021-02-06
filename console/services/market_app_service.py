@@ -663,7 +663,7 @@ class MarketAppService(object):
         for env in inner_envs:
             code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
                                                                       env["attr_value"], env["is_change"], "inner")
-            if code != 200:
+            if code != 200 and code != 412:
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
@@ -674,7 +674,7 @@ class MarketAppService(object):
                 code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
                                                                           env["attr_name"], env["attr_value"], env["is_change"],
                                                                           "outer")
-                if code != 200:
+                if code != 200 and code != 412:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg
         return 200, "success"
