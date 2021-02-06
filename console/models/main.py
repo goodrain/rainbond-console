@@ -565,7 +565,7 @@ class AppExportRecord(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="更新时间")
     enterprise_id = models.CharField(max_length=32, help_text="企业ID")
-    region_id = models.CharField(max_length=32, help_text="企业ID")
+    region_name = models.CharField(max_length=32, help_text="执行导出的集群ID")
 
 
 class UserMessage(BaseModel):
