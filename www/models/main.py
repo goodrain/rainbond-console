@@ -969,6 +969,7 @@ class TenantServiceVolume(BaseModel):
     SHARE = 'share-file'
     LOCAL = 'local'
     TMPFS = 'memoryfs'
+    CONFIGFILE = 'config-file'
 
     service_id = models.CharField(max_length=32, help_text="组件id")
     category = models.CharField(max_length=50, blank=True, help_text="组件类型")

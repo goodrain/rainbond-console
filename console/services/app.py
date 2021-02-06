@@ -27,6 +27,7 @@ from console.utils.oauth.oauth_types import support_oauth_type
 from console.utils.validation import validate_endpoints_info
 from django.db import transaction
 from django.db.models import Q
+from django.forms.models import model_to_dict
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume, TenantServiceInfo
@@ -402,16 +403,17 @@ class AppService(object):
         if envs_info:
             data["envs_info"] = list(envs_info)
         # 持久化目录
-        volume_info = volume_repo.get_service_volumes_with_config_file(service.service_id).values(
-            'ID', 'service_id', 'category', 'volume_name', 'volume_path', 'volume_type')
+        volume_info = volume_repo.get_service_volumes_with_config_file(service.service_id)
         if volume_info:
-            logger.debug('--------volume_info----->{0}'.format(volume_info))
+            volume_list = []
             for volume in volume_info:
-                volume_id = volume['ID']
-                config_file = volume_repo.get_service_config_file(volume_id)
-                if config_file:
-                    volume.update({"file_content": config_file.file_content})
-            data["volumes_info"] = list(volume_info)
+                volume_info = model_to_dict(volume)
+                if volume.volume_type == "config-file":
+                    config_file = volume_repo.get_service_config_file(volume.ID)
+                    if config_file:
+                        volume_info.update({"file_content": config_file.file_content})
+                volume_list.append(volume_info)
+            data["volumes_info"] = volume_list
 
         logger.debug(tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         # 挂载信息
