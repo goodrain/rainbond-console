@@ -27,7 +27,7 @@ class UserAccessTokenCLView(JWTAuthApiView):
             logger.exception(e)
             raise ServiceHandleException(msg="params error", msg_show="请检查参数是否合法")
         except IntegrityError:
-            raise ServiceHandleException(msg="note duplicate", msg_show="注释内容不能重复")
+            raise ServiceHandleException(msg="note duplicate", msg_show="令牌用途不能重复")
 
     def get(self, request, *args, **kwargs):
         access_key_list = user_access_services.get_user_access_key(request.user.user_id)
