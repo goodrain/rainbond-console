@@ -138,6 +138,8 @@ class RainbondCenterAppVersion(BaseModel):
     is_complete = models.BooleanField(default=False, help_text="代码或镜像是否同步完成")
     template_type = models.CharField(max_length=32, null=True, default=None, help_text="模板类型（ram、oam）")
     release_user_id = models.IntegerField(null=True, default=None, help_text="版本release操作人id")
+    # region_name is not null,This means that the version can only be installed on that cluster.
+    region_name = models.CharField(max_length=64, null=True, default=None, help_text="数据中心名称")
 
 
 class RainbondCenterAppInherit(BaseModel):

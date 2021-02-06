@@ -7,38 +7,13 @@ import logging
 from console.exception.main import AbortRequest, RegionNotFound
 from console.services.app_import_and_export_service import import_service
 from console.services.region_services import region_services
-from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from console.views.base import JWTAuthApiView
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger('default')
-
-
-class ImportingRecordView(RegionTenantHeaderView):
-    @never_cache
-    def post(self, request, *args, **kwargs):
-        """
-        查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名称
-              required: true
-              type: string
-              paramType: path
-
-        """
-        unfinished_records = import_service.get_user_unfinished_import_record(self.tenant, self.user)
-        if unfinished_records:
-            r = unfinished_records[0]
-        else:
-            r = import_service.create_app_import_record(self.tenant.tenant_name, self.user.nick_name, self.response_region)
-        upload_url = import_service.get_upload_url(self.response_region, r.event_id)
-        data = {"status": r.status, "source_dir": r.source_dir, "event_id": r.event_id, "upload_url": upload_url}
-
-        return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 
 
 class EnterpriseAppImportInitView(JWTAuthApiView):
@@ -60,7 +35,6 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
         new = False
         if unfinished_records:
             r = unfinished_records[len(unfinished_records) - 1]
-            logger.info(r.region)
             region = region_services.get_region_by_region_name(r.region)
             if not region:
                 logger.warning("not found region for old import recoder")
@@ -249,22 +223,4 @@ class CenterAppTarballDirView(JWTAuthApiView):
         import_record = import_service.delete_import_app_dir(self.tenant, self.response_region)
 
         result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
-        return Response(result, status=result["code"])
-
-
-class CenterAppImportingAppsView(RegionTenantHeaderView):
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        """
-        查询仍在导入的应用
-        ---
-        parameters:
-            - name: tenantName
-              description: 团队名称
-              required: true
-              type: string
-              paramType: path
-        """
-        apps = import_service.get_importing_apps(self.tenant, self.user, self.response_region)
-        result = general_message(200, "success", "查询成功", list=apps)
         return Response(result, status=result["code"])

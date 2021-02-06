@@ -4,19 +4,18 @@
 """
 import logging
 
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
 from console.repositories.group import group_repo
 from console.repositories.migration_repo import migrate_repo
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
-from console.services.groupapp_recovery.groupapps_migrate import migrate_service
+from console.services.groupapp_recovery.groupapps_migrate import \
+    migrate_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger('default')
 
@@ -71,9 +70,11 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
         migrate_team = team_services.get_tenant_by_tenant_name(team)
         if not migrate_team:
             return Response(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status=404)
-        regions = region_services.get_team_usable_regions(migrate_team, self.tenant.enterprise_id)
+        regions = region_services.get_team_usable_regions(migrate_team.team_name, self.tenant.enterprise_id)
+        if not regions:
+            return Response(general_message(412, "region is not usable", "团队未开通任何集群"), status=412)
         if migrate_region not in [r.region_name for r in regions]:
-            msg_cn = "无法迁移至数据中心{0},请确保该数据中心可用且团队{1}已开通该数据中心权限".format(migrate_region, migrate_team.tenant_name)
+            msg_cn = "无法迁移至集群{0},请确保该集群可用且团队{1}已开通该集群权限".format(migrate_region, migrate_team.tenant_name)
             return Response(general_message(412, "region is not usable", msg_cn), status=412)
 
         migrate_record = migrate_service.start_migrate(self.user, self.tenant, self.region_name, migrate_team, migrate_region,

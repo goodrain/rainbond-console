@@ -71,4 +71,7 @@ ALTER TABLE console.app_service_extend_method modify column `app_version` varcha
 ALTER TABLE region_info add column `provider` varchar(24) DEFAULT '';
 ALTER TABLE region_info add column `provider_cluster_id` varchar(64) DEFAULT '';
 
-ALTER TABLE app_export_record add column `region_id` varchar(36) DEFAULT '';
+ALTER TABLE app_export_record add column `region_name` varchar(64) DEFAULT '';
+ALTER TABLE rainbond_center_app_version add column region_name varchar(64) DEFAULT NULL;
+
+alter table gateway_custom_configuration drop column valueconfig;

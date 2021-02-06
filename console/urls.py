@@ -47,8 +47,7 @@ from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppD
                                         ImageAppView, ListAppPodsView)
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
 from console.views.center_pool.app_export import CenterAppExportView
-from console.views.center_pool.app_import import (CenterAppImportingAppsView, CenterAppImportView, CenterAppTarballDirView,
-                                                  EnterpriseAppImportInitView, ImportingRecordView)
+from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
 from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
                                             LocalComponentLibraryConfigCheck, TagCLView, TagUDView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
@@ -624,16 +623,6 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/protocols$', RegionProtocolView.as_view(), perms.RegionProtocolView),
     # 批量关闭应用下所有组件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
-    # 应用包目录查询
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/dir$', CenterAppTarballDirView.as_view()),
-    # 应用导入记录
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/record$', ImportingRecordView.as_view(), perms.ImportingRecordView),
-    # 正在导入的应用查询
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/importing-apps$', CenterAppImportingAppsView.as_view(),
-        perms.CenterAppImportingAppsView),
-    # 应用导入状态查询
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/import/(?P<event_id>[\w\-]+)$', CenterAppImportView.as_view(),
-        perms.CenterAppImportView),
     # 给一个团队添加新用户
     url(r'^teams/(?P<team_name>[\w\-]+)/add_team_user$', TeamAddUserView.as_view(), perms.TeamAddUserView),
 

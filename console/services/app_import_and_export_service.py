@@ -77,7 +77,7 @@ class AppExportService(object):
             "format": export_format,
             "status": "exporting",
             "enterprise_id": eid,
-            "region_id": region.region_id
+            "region_name": region.region_name
         }
 
         return app_export_record_repo.create_app_export_record(**params)
@@ -121,12 +121,14 @@ class AppExportService(object):
 
         if app_export_records:
             for export_record in app_export_records:
-                if not export_record.region_id:
+                if not export_record.region_name:
                     continue
-                region = region_services.get_enterprise_region(enterprise_id, export_record.region_id, check_status=False)
+                region = region_services.get_enterprise_region_by_region_name(enterprise_id, export_record.region_name)
+                if not region:
+                    continue
                 if export_record.event_id and export_record.status == "exporting":
                     try:
-                        res, body = region_api.get_app_export_status(region["region_name"], enterprise_id,
+                        res, body = region_api.get_app_export_status(export_record.region_name, enterprise_id,
                                                                      export_record.event_id)
                         result_bean = body["bean"]
                         if result_bean["status"] in ("failed", "success"):
@@ -143,7 +145,8 @@ class AppExportService(object):
                         "status":
                         export_record.status,
                         "file_path":
-                        self._wrapper_director_download_url(region["region_name"], export_record.file_path.replace("/v2", ""))
+                        self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
+                            "/v2", ""))
                     })
                 if export_record.format == "docker-compose":
                     docker_compose_init_data.update({
@@ -152,7 +155,8 @@ class AppExportService(object):
                         "status":
                         export_record.status,
                         "file_path":
-                        self._wrapper_director_download_url(region["region_name"], export_record.file_path.replace("/v2", ""))
+                        self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
+                            "/v2", ""))
                     })
 
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
@@ -422,7 +426,7 @@ class AppImportService(object):
 
     @staticmethod
     def create_app_version(app, import_record, app_template):
-        return RainbondCenterAppVersion(
+        version = RainbondCenterAppVersion(
             scope=import_record.scope,
             enterprise_id=import_record.enterprise_id,
             app_id=app.app_id,
@@ -433,6 +437,9 @@ class AppImportService(object):
             share_user=0,
             is_complete=1,
         )
+        if app_store.is_no_multiple_region_hub(import_record.enterprise_id):
+            version.region_name = import_record.region_name
+        return version
 
     def __save_import_info(self, tenant, scope, metadata):
         rainbond_apps = []

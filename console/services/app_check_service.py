@@ -254,7 +254,6 @@ class AppCheckService(object):
                     service.service_alias.upper() + str(port["container_port"]))
                 if code != 200:
                     logger.error("service.check", "save service check info port error {0}".format(msg))
-                    # return code, msg
         return 200, "success"
 
     def __upgrade_env(self, tenant, service, envs):
@@ -372,7 +371,6 @@ class AppCheckService(object):
                     service.service_alias.upper() + str(port["container_port"]))
                 if code != 200:
                     logger.error("service.check", "save service check info port error {0}".format(msg))
-                    # return code, msg
         else:
             if service.service_source == AppConstants.SOURCE_CODE:
                 port_service.delete_service_port(tenant, service)

@@ -37,6 +37,14 @@ class AppStore(object):
                     image_config["namespace"] = namespace
         return image_config
 
+    def is_no_multiple_region_hub(self, enterprise_id):
+        data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
+        if data and data.enable:
+            image_config_dict = eval(data.value)
+            if image_config_dict["hub_url"]:
+                return False
+        return True
+
     @apiException
     def get_slug_hub_info(self, store=None, app_id=None, enterprise_id=None):
         image_config = {"ftp_host": None, "ftp_port": None, "namespace": None, "ftp_username": None, "ftp_password": None}

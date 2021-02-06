@@ -862,7 +862,8 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
             )
-            # print(json.dumps(app_templete))
+            if app_store.is_no_multiple_region_hub(enterprise_id=share_team.enterprise_id):
+                app_version.region_name = region_name
             app_version.save()
             share_record.step = 2
             share_record.scope = scope
