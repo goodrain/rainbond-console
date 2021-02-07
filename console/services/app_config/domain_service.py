@@ -81,7 +81,7 @@ class DomainService(object):
         data["certificate_type"] = certificate.certificate_type
         data["id"] = certificate.ID
         data["tenant_id"] = certificate.tenant_id
-        data["certificate"] = base64.b64decode(certificate.certificate)
+        data["certificate"] = base64.b64decode(certificate.certificate).decode()
         data["private_key"] = certificate.private_key
         return 200, "success", data
 
@@ -118,7 +118,7 @@ class DomainService(object):
         body = {
             "certificate_id": cert.certificate_id,
             "certificate_name": "foobar",
-            "certificate": base64.b64decode(cert.certificate),
+            "certificate": base64.b64decode(cert.certificate).decode(),
             "private_key": cert.private_key,
         }
         team_regions = region_services.get_team_usable_regions(tenant.tenant_name, tenant.enterprise_id)
@@ -148,7 +148,7 @@ class DomainService(object):
                 status_code=400, error_code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
-            cert = base64.b64decode(certificate_info.certificate)
+            cert = base64.b64decode(certificate_info.certificate).decode()
             data = analyze_cert(cert)
             sans = data["issued_to"]
             for certificat_domain_name in sans:
@@ -156,8 +156,7 @@ class DomainService(object):
                     domain_suffix = certificat_domain_name[2:]
                 else:
                     domain_suffix = certificat_domain_name
-                domain_str = domain_name.encode('utf-8')
-                if domain_str.endswith(domain_suffix):
+                if domain_name.endswith(domain_suffix):
                     return
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain", msg_show="域名与选择的证书不匹配")
 
@@ -203,7 +202,7 @@ class DomainService(object):
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
         if certificate_info:
-            data["certificate"] = base64.b64decode(certificate_info.certificate)
+            data["certificate"] = base64.b64decode(certificate_info.certificate).decode()
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -324,7 +323,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = base64.b64decode(certificate_info.certificate)
+            data["certificate"] = base64.b64decode(certificate_info.certificate).decode()
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -431,7 +430,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = base64.b64decode(certificate_info.certificate)
+            data["certificate"] = base64.b64decode(certificate_info.certificate).decode()
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
