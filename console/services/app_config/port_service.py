@@ -119,13 +119,20 @@ class AppPortService(object):
                 host_value = k8s_service_name
             else:
                 host_value = "127.0.0.1"
-            code, msg, data = env_var_service.add_service_env_var(
+            code, msg, env = env_var_service.add_service_env_var(
                 tenant, service, container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
-            if code != 200 and code != 412:
-                return code, msg, None
-            code, msg, data = env_var_service.add_service_env_var(
+            if code != 200:
+                if code == 412 and env:
+                    env.container_port = container_port
+                    env.save()
+                else:
+                    return code, msg, None
+            code, msg, env = env_var_service.add_service_env_var(
                 tenant, service, container_port, "端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
-            if code != 200 and code != 412:
+            if code != 200:
+                if code == 412 and env:
+                    env.container_port = container_port
+                    env.save()
                 return code, msg, None
 
         service_port = {

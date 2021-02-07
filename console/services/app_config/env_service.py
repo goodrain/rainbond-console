@@ -6,10 +6,9 @@ import logging
 import re
 from itertools import chain
 
-from django.db.transaction import atomic
-
 from console.exception.main import (EnvAlreadyExist, InvalidEnvName, ServiceHandleException)
 from console.repositories.app_config import (compile_env_repo, dep_relation_repo, env_var_repo)
+from django.db.transaction import atomic
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -82,7 +81,7 @@ class AppEnvVarService(object):
         tenantServiceEnvVar["scope"] = scope
         env = env_var_repo.get_service_env_by_attr_name(service.tenant_id, service.service_id, attr_name)
         if env:
-            return 412, "环境变量{0}已存在".format(attr_name), None
+            return 412, "环境变量{0}已存在".format(attr_name), env
         # 判断是否需要再region端添加
         if service.create_status == "complete":
             attr = {

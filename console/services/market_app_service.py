@@ -670,7 +670,7 @@ class MarketAppService(object):
             container_port = env.get("container_port", 0)
             if container_port == 0:
                 if env["attr_value"] == "**None**":
-                    env["attr_value"] = service.service_id[:8]
+                    env["attr_value"] = make_uuid()[:8]
                 code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
                                                                           env["attr_name"], env["attr_value"], env["is_change"],
                                                                           "outer")
