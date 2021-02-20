@@ -28,7 +28,7 @@ RUN chmod +x /app/ui/entrypoint.sh &&  \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
     chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
-    mkdir /app/ui/www/static/dists/* && \
+    mkdir /app/ui/www/static/dists && \
     cp -a /dist/* /app/ui/www/static/dists/ && \
     rm -rf /dist \
     && mkdir /app/logs \
