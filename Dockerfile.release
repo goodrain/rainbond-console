@@ -12,8 +12,6 @@ ADD . /app/ui
 WORKDIR /app/ui
 
 RUN chmod +x /app/ui/entrypoint.sh &&  \
-      chmod +x promql-parser && \
-      mkdir -p /app/ui/bin/linux && mv promql-parser /app/ui/bin/linux && \
       mv /dist/index.html /app/ui/www/templates/index.html && \
       rm -rf /app/ui/www/static/dists/* && \
       cp -a /dist/* /app/ui/www/static/dists/ && \
