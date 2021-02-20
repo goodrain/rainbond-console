@@ -5,7 +5,8 @@ from datetime import datetime
 from enum import Enum, IntEnum
 
 from django.db import models
-from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
+from django.db.models.fields import (AutoField, BooleanField, CharField,
+                                     DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from goodrain_web import settings
 from www.models.main import TenantServiceInfo
@@ -565,7 +566,7 @@ class AppExportRecord(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="更新时间")
     enterprise_id = models.CharField(max_length=32, help_text="企业ID")
-    region_name = models.CharField(max_length=32, help_text="执行导出的集群ID")
+    region_name = models.CharField(max_length=32, null=True, help_text="执行导出的集群ID")
 
 
 class UserMessage(BaseModel):

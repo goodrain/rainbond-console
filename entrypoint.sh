@@ -19,8 +19,16 @@ if [ "$1" = "debug" -o "$1" = "bash" ]; then
 elif [ "$1" = "version" ]; then
     echo "${RELEASE_DESC}"
 else
+    for i in {1..4}; do
+        if ! (database_ready); then
+            echo -e "${RED}Database not ready, will waiting${NC}"
+            sleep 3
+        else
+            break
+        fi
+    done
     if ! (database_ready); then
-        echo -e "${RED}Database not ready${NC}"
+        echo -e "${RED}Database not ready, will exit.${NC}"
         exit 1
     fi
 
