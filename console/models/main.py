@@ -5,8 +5,7 @@ from datetime import datetime
 from enum import Enum, IntEnum
 
 from django.db import models
-from django.db.models.fields import (AutoField, BooleanField, CharField,
-                                     DateTimeField, DecimalField, IntegerField)
+from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from goodrain_web import settings
 from www.models.main import TenantServiceInfo
