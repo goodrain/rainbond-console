@@ -11,7 +11,7 @@ ADD . /app/ui
 
 WORKDIR /app/ui
 
-RUN chmod +x /app/ui/entrypoint.sh &&  \
+RUN chmod +x /app/ui/entrypoint.sh \
       && mkdir /app/logs \
       && mkdir /app/data \
       && python -m pip install --upgrade pip \
