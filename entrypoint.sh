@@ -6,7 +6,7 @@ NC='\033[0m' # No Color
 
 function database_ready() {
     if [ "${DB_TYPE}" == "mysql" ]; then
-        if mysql -h${MYSQL_HOST:-127.0.0.1} -P${MYSQL_PORT:-3306} -u${MYSQL_USER} -p${MYSQL_PASS} -e "use console;" >/dev/null; then
+        if mysql -h${MYSQL_HOST:-127.0.0.1} -P${MYSQL_PORT:-3306} -u${MYSQL_USER} -p${MYSQL_PASS} -e "use ${MYSQL_DB};" >/dev/null; then
             return 0 # 0 = true
         fi
         return 1 # 1 = false
