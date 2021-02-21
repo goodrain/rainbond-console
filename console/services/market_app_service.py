@@ -176,7 +176,7 @@ class MarketAppService(object):
                     app_manage_service.truncate_service(tenant, service)
                 except Exception as le:
                     logger.exception(le)
-            raise e
+            raise ServiceHandleException(msg="install app failure", msg_show="安装组件发生异常")
 
     def install_service_when_upgrade_app(self,
                                          tenant,

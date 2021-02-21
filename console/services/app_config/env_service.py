@@ -98,7 +98,6 @@ class AppEnvVarService(object):
                 "enterprise_id": tenant.enterprise_id,
                 "operator": user_name
             }
-
             region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, attr)
         new_env = env_var_repo.add_service_env(**tenantServiceEnvVar)
         return 200, 'success', new_env
