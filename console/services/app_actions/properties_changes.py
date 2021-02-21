@@ -133,7 +133,7 @@ class PropertiesChanges(object):
                 same, max_version = self.checkVersionG2(self.current_version.version, version.version)
                 if not same and max_version != self.current_version.version:
                     upgradeble_versions.append(version.version)
-                elif same and new_version_time > current_version_time:
+                elif same and new_version_time >= current_version_time:
                     if self.have_upgrade_info(self.tenant, services, version.version):
                         upgradeble_versions.append(version.version)
         return list(set(upgradeble_versions))
