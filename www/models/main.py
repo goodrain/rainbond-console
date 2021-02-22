@@ -193,8 +193,8 @@ class Users(models.Model):
 
     user_id = models.AutoField(primary_key=True, max_length=10)
     email = models.EmailField(max_length=35, help_text="邮件地址")
-    nick_name = models.CharField(max_length=64, null=True, blank=True, help_text="用户昵称")
-    real_name = models.CharField(max_length=64, null=True, blank=True, help_text="用户名称")
+    nick_name = models.CharField(max_length=64, null=True, blank=True, help_text="账号")
+    real_name = models.CharField(max_length=64, null=True, blank=True, help_text="姓名")
     password = models.CharField(max_length=64, help_text="密码")
     phone = models.CharField(max_length=15, null=True, blank=True, help_text="手机号码")
     is_active = models.BooleanField(default=False, help_text="激活状态")

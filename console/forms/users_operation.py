@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import logging
 import re
+
 from django import forms
 from django.forms.forms import Form
-import logging
 from www.models.main import Users
+
 logger = logging.getLogger("default")
 SENSITIVE_WORDS = ('root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services')
 
@@ -39,6 +41,10 @@ class RegisterForm(Form):
 
     email = forms.EmailField(required=True, max_length=32, label="")
 
+    phone = forms.CharField(required=False, max_length=15, label="")
+
+    real_name = forms.CharField(required=False, max_length=64, label="")
+
     password = forms.CharField(required=True, label='', widget=forms.PasswordInput, validators=[password_len])
 
     password_repeat = forms.CharField(required=True, label='', widget=forms.PasswordInput, validators=[password_len])
@@ -73,6 +79,7 @@ class RegisterForm(Form):
         password_repeat = self.cleaned_data.get('password_repeat')
         captcha_code = self.cleaned_data.get('captcha_code')
         real_captcha_code = self.cleaned_data.get('real_captcha_code')
+        phone = self.cleaned_data.get('phone')
 
         try:
             Users.objects.get(nick_name=nick_name)
@@ -84,6 +91,14 @@ class RegisterForm(Form):
         try:
             Users.objects.get(email=email)
             raise forms.ValidationError(self.error_messages['email_used'], code='email_used', params={'email': email})
+        except Users.DoesNotExist:
+            pass
+
+        # check phone
+        try:
+            if phone:
+                Users.objects.get(phone=phone)
+                raise forms.ValidationError(self.error_messages['phone_used'], code='phone_used', params={'phone': phone})
         except Users.DoesNotExist:
             pass
 
