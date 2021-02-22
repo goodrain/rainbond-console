@@ -3,12 +3,13 @@ import json
 import logging
 import os
 
-from console.exception.bcode import ErrInternalGraphsNotFound
-from console.exception.main import AbortRequest
+from django.db import transaction
+
 from console.models.main import ComponentGraph
+from console.exception.main import AbortRequest
+from console.exception.bcode import ErrInternalGraphsNotFound, ErrComponentGraphNotFound
 from console.repositories.component_graph import component_graph_repo
 from console.services.app_config.promql_service import promql_service
-from django.db import transaction
 from goodrain_web.settings import BASE_DIR
 from www.utils.crypt import make_uuid
 
@@ -49,6 +50,12 @@ class ComponentGraphService(object):
         graphs = []
         seq = self._next_sequence(component_id)
         for graph in internal_graphs.get(graph_name):
+            try:
+                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
+                continue
+            except ErrComponentGraphNotFound:
+                pass
+
             try:
                 promql = promql_service.add_or_update_label(component_id, graph["promql"])
             except AbortRequest as e:
@@ -118,10 +125,17 @@ class ComponentGraphService(object):
         cgs = []
         for graph in graphs:
             try:
+                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
+                continue
+            except ErrComponentGraphNotFound:
+                pass
+
+            try:
                 promql = promql_service.add_or_update_label(component_id, graph.get("promql"))
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
+
             cgs.append(
                 ComponentGraph(
                     component_id=component_id,
