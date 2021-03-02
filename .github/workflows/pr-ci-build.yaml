@@ -1,0 +1,35 @@
+name: commit-ci-build
+
+on:
+  pull_request:
+    branches: [V5.2]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 2.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 yapf==0.26.0
+      - name: check-code
+        run: ./check_code.sh
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      - name: Build the Docker image
+        env:
+          TRAVIS_PULL_REQUEST: true
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOMESTIC_DOCKER_PASSWORD: ${{ secrets.DOMESTIC_DOCKER_PASSWORD }}
+          DOMESTIC_DOCKER_USERNAME: ${{ secrets.DOMESTIC_DOCKER_USERNAME }}
+        run: VERSION=${{ steps.extract_branch.outputs.branch }}-dev ./release.sh
