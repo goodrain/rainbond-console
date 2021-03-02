@@ -6,9 +6,6 @@ import datetime
 import json
 import logging
 
-from django.db import transaction
-from django.db.models import Q
-
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
@@ -32,6 +29,8 @@ from console.services.plugin import (app_plugin_service, plugin_config_service, 
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
 from console.utils import slug_util
+from django.db import transaction
+from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo)
 from www.models.plugin import ServicePluginConfigVar
@@ -235,11 +234,13 @@ class MarketAppService(object):
 
             # 数据中心创建组件
             new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
-            # 创建组件插件
-            for app in apps:
-                service = old_new_id_map[app["service_id"]]
-                plugins = app_plugin_map[service.service_id]
-                self.__create_service_pluginsv2(tenant, service, market_app.version, plugins)
+
+            # disable app plugin upgrade. 5.3 version To support
+
+            # for app in apps:
+            #     service = old_new_id_map[app["service_id"]]
+            #     plugins = app_plugin_map[service.service_id]
+            #     self.__create_service_pluginsv2(tenant, service, market_app.version, plugins)
 
             events = {}
             if is_deploy:
