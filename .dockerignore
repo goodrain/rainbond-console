@@ -11,3 +11,4 @@ data
 env
 logs
 static
+www/static/www

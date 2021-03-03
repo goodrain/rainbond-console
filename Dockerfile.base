@@ -1,4 +1,4 @@
-FROM goodrainapps/alpine:3.4
+FROM goodrainapps/alpine:3.6
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
@@ -50,7 +50,6 @@ RUN set -ex \
 	ncurses-dev \
 	openssl \
 	openssl-dev \
-	libressl-dev \
 	musl-dev \
 	pax-utils \
 	readline-dev \
@@ -98,7 +97,7 @@ RUN set -ex; \
 	\
 	apk add --no-cache --virtual .fetch-deps openssl; \
 	\
-	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
+	wget -O get-pip.py 'https://bootstrap.pypa.io/2.7/get-pip.py'; \
 	\
 	apk del .fetch-deps; \
 	\

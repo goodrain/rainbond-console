@@ -11,13 +11,16 @@ ADD . /app/ui
 
 WORKDIR /app/ui
 
-RUN apk update && apk add git mysql-client && cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai \
+RUN apk update && apk add --no-cache git mysql-client && \
+      apk add --no-cache --virtual .fetch-deps  mariadb-dev gcc && \
+      cp /app/ui/hack/Shanghai /usr/share/zoneinfo/Asia/Shanghai \
       && chmod +x /app/ui/entrypoint.sh &&  \
       mv /dist/index.html /app/ui/www/templates/index.html && \
       rm -rf /app/ui/www/static/dists/* && \
       cp -a /dist/* /app/ui/www/static/dists/ && \
       rm -rf /dist \
       && mkdir /app/logs \
+      && pip install pip --upgrade \
       && pip install -r requirements.txt \
       && cp -a /usr/lib/libmysqlclient.so.18* /tmp/ \
       && cp -a /usr/lib/libmemcached* /tmp/ \
