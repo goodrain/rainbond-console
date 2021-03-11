@@ -264,6 +264,7 @@ class ShareService(object):
                 # The component is redistributed without the key from the installation source, which would cause duplication.
                 # service_id  can be thought of as following a component lifecycle.
                 data['service_key'] = service.service_id
+                # service_share_uuid The build policy cannot be changed
                 data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
                 data['need_share'] = True
                 data['category'] = service.category
