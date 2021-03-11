@@ -652,10 +652,11 @@ class MarketAppService(object):
                 ts = key_service_map[service_key]
                 dep_keys = service_key_dep_key_map[service_key]
                 for dep_key in dep_keys:
-                    dep_service = key_service_map[dep_key["dep_service_key"]]
-                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id, True)
-                    if code != 200:
-                        logger.error("save component dependency relation error {0}".format(msg))
+                    if dep_key["dep_service_key"] in key_service_map:
+                        dep_service = key_service_map[dep_key["dep_service_key"]]
+                        code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id, True)
+                        if code != 200:
+                            logger.error("save component dependency relation error {0}".format(msg))
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
