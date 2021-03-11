@@ -402,6 +402,8 @@ class PropertiesChanges(object):
 
     def port_changes(self, new_ports):
         """port can only be created, cannot be updated and deleted"""
+        if not new_ports:
+            return
         old_ports = port_repo.get_service_ports(self.service.tenant_id, self.service.service_id)
         old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports if port["container_port"] not in old_container_ports]
@@ -427,6 +429,8 @@ class PropertiesChanges(object):
         return result
 
     def volume_changes(self, new_volumes):
+        if not new_volumes:
+            return
         old_volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
         old_volume_names = {volume.volume_name: volume for volume in old_volumes}
@@ -498,6 +502,8 @@ class PropertiesChanges(object):
         def key(sid, mnt_name):
             return sid + "-" + mnt_name
 
+        if not new_dep_volumes:
+            return
         old_dep_volumes = mnt_repo.get_service_mnts(self.service.tenant_id, self.service.service_id)
         olds = {key(item.dep_service_id, item.mnt_name): item for item in old_dep_volumes}
 
