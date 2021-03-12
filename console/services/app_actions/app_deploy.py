@@ -458,11 +458,16 @@ class MarketService(object):
         add = envs.get("add", [])
         for env in add:
             container_port = env.get("container_port", 0)
-            if container_port == 0 and env["attr_value"] == "**None**":
-                env["attr_value"] = self.service.service_id[:8]
+            value = env.get("attr_value", "")
+            name = env.get("name", "")
+            attr_name = env.get("attr_name", "")
+            is_change = env.get("is_change", True)
+            if not attr_name:
+                continue
+            if container_port == 0 and value == "**None**":
+                value = self.service.service_id[:8]
             try:
-                env_var_service.create_env_var(self.service, container_port, env["name"], env["attr_name"], env["attr_value"],
-                                               env["is_change"], scope)
+                env_var_service.create_env_var(self.service, container_port, name, attr_name, value, is_change, scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
 

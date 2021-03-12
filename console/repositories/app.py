@@ -236,6 +236,20 @@ class ServiceSourceRepository(object):
         """使用group_key获取一组云市应用下的所有组件源信息的查询集"""
         return ServiceSourceInfo.objects.filter(group_key=group_key)
 
+    def upgrade_service_source_share_uuid_to_53(self):
+        ssi = ServiceSourceInfo.objects.exclude(service_share_uuid=None)
+        if not ssi:
+            return
+        for ss in ssi:
+            sk = ss.service_share_uuid.split("+")
+            if len(sk) == 2:
+                ss.service_share_uuid = "{0}+{1}".format(sk[1], sk[1])
+                ss.save()
+                component = TenantServiceInfo.objects.filter(service_id=ss.service_id)
+                if component:
+                    component[0].service_key = sk[1]
+                    component[0].save()
+
 
 class ServiceRecycleBinRepository(object):
     def get_team_trash_services(self, tenant_id):
