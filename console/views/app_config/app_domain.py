@@ -697,7 +697,6 @@ class DomainQueryView(RegionTenantHeaderView):
         region = region_repo.get_region_by_region_name(self.response_region)
         # 查询分页排序
         if search_conditions:
-            search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             cursor = connection.cursor()
             cursor.execute("select count(sd.domain_name) \
@@ -811,7 +810,6 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
         try:
             # 查询分页排序
             if search_conditions:
-                search_conditions = search_conditions.decode('utf-8')
                 # 获取总数
                 cursor = connection.cursor()
                 cursor.execute("select count(1) from service_tcp_domain std \
