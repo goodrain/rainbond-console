@@ -215,7 +215,8 @@ class ShareService(object):
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
-                    service_versions[version["service_id"]] = version["build_version"]
+                    if version and "service_id" in version and "build_version" in version:
+                        service_versions[version["service_id"]] = version["build_version"]
                 return service_versions
         except Exception as e:
             logger.exception(e)
@@ -285,7 +286,6 @@ class ShareService(object):
                 e_m = dict()
                 e_m['step_node'] = 1
                 e_m['min_memory'] = 64
-                print(service.min_memory)
                 e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
                 e_m['step_memory'] = 64
