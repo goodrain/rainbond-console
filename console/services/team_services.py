@@ -13,6 +13,8 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.service_repo import service_repo
+from console.repositories.group import group_repo
 from console.services.common_services import common_services
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
@@ -433,6 +435,19 @@ class TeamService(object):
         if data.get("tenant_alias", ""):
             d["tenant_alias"] = data.get("tenant_alias")
         team_repo.update_by_tenant_id(tenant_id).update(**d)
+
+    def overview(self, team, region_name):
+        resource = self.get_tenant_resource(team, region_name)
+        component_nums = service_repo.get_team_service_num_by_team_id(team.tenant_id, region_name)
+        app_nums = group_repo.get_tenant_region_groups_count(team.tenant_id, region_name)
+        return {
+            "total_memory": resource.get("total_memory", 0),
+            "used_memory": resource.get("used_memory", 0),
+            "total_cpu": resource.get("total_cpu", 0),
+            "used_cpu": resource.get("used_cpu", 0),
+            "app_nums": app_nums,
+            "component_nums": component_nums,
+        }
 
     def get_tenant_resource(self, team, region_name):
         if team:
