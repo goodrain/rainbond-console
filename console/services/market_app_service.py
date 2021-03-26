@@ -663,18 +663,18 @@ class MarketAppService(object):
             return 200, "success"
         for env in inner_envs:
             code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
-                                                                      env["attr_value"], env["is_change"], "inner")
+                                                                      env.get("attr_value"), env["is_change"], "inner")
             if code != 200 and code != 412:
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
             container_port = env.get("container_port", 0)
             if container_port == 0:
-                if env["attr_value"] == "**None**":
+                if env.get("attr_value") == "**None**":
                     env["attr_value"] = make_uuid()[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
-                                                                          env["attr_name"], env["attr_value"], env["is_change"],
-                                                                          "outer")
+                code, msg, env_data = env_var_service.add_service_env_var(tenant, service,
+                                                                          container_port, env["name"], env["attr_name"],
+                                                                          env.get("attr_value"), env["is_change"], "outer")
                 if code != 200 and code != 412:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg
