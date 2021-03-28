@@ -19,7 +19,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "访问域名",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "Prefix",
@@ -28,7 +28,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "请求路径前缀",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "Headers",
@@ -37,7 +37,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "请求header信息，多个以;分离",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "Weight",
@@ -46,7 +46,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "权重,当Domain,Prefix,Headers一致时生效",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxConnections",
@@ -64,7 +64,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大等待请求数",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxRequests",
@@ -73,7 +73,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大请求数",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxActiveRetries",
@@ -82,7 +82,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大重试次数",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "IntervalMS",
@@ -91,7 +91,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "降级恢复时间",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "ConsecutiveErrors",
@@ -100,7 +100,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "连续错误降级阀值",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "BaseEjectionTimeMS",
@@ -109,7 +109,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "降级基准时间",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxEjectionPercent",
@@ -118,7 +118,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大降级节点百分比",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "PROXY",
@@ -128,6 +128,33 @@
             "attr_alt_value": "YES,NO",
             "attr_info": "代理",
             "protocol": ""
+          },
+          {
+            "attr_name": "GrpcHealthServiceName",
+            "attr_type": "string",
+            "attr_default_value": "",
+            "is_change": true,
+            "attr_info": "上游组件健康检查service名称，留空则不检测",
+            "protocol": "grpc",
+            "attr_alt_value": ""
+          },
+          {
+            "attr_name": "HealthCheckInterval",
+            "attr_type": "string",
+            "attr_default_value": "4",
+            "is_change": true,
+            "attr_info": "健康检查间隔时间(秒)",
+            "attr_alt_value": "",
+            "protocol": "grpc"
+          },
+          {
+            "attr_name": "HealthCheckTimeout",
+            "attr_type": "string",
+            "attr_default_value": "5",
+            "is_change": true,
+            "attr_info": "健康检查超时时间(秒)",
+            "attr_alt_value": "",
+            "protocol": "grpc"
           }
         ]
       }
@@ -249,7 +276,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "访问域名",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "Prefix",
@@ -258,7 +285,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "请求路径前缀",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "Headers",
@@ -267,7 +294,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "请求header信息，多个以；分离",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "Weight",
@@ -276,7 +303,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "权重，Domain,Prefix,headers一致时生效",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxConnections",
@@ -294,7 +321,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大等待请求数",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxRequests",
@@ -303,7 +330,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大请求数",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxActiveRetries",
@@ -312,7 +339,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大重试次数",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxRequestsPerConnection",
@@ -321,7 +348,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "每个连接最大请求数，默认不限制，设为1则禁用keep alive",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "IntervalMS",
@@ -330,7 +357,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "降级恢复时间",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "ConsecutiveErrors",
@@ -339,7 +366,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "连续错误降级阀值",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "BaseEjectionTimeMS",
@@ -348,7 +375,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "降级基准时间",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "MaxEjectionPercent",
@@ -357,7 +384,7 @@
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "最大降级节点百分比",
-            "protocol": "http"
+            "protocol": "http,grpc"
           },
           {
             "attr_name": "PROXY",
@@ -367,6 +394,33 @@
             "attr_alt_value": "YES,NO",
             "attr_info": "代理",
             "protocol": ""
+          },
+          {
+            "attr_name": "GrpcHealthServiceName",
+            "attr_type": "string",
+            "attr_default_value": "",
+            "is_change": true,
+            "attr_info": "上游组件健康检查service名称，留空则不检测",
+            "protocol": "grpc",
+            "attr_alt_value": ""
+          },
+          {
+            "attr_name": "HealthCheckInterval",
+            "attr_type": "string",
+            "attr_default_value": "4",
+            "is_change": true,
+            "attr_info": "健康检查间隔时间(秒)",
+            "attr_alt_value": "",
+            "protocol": "grpc"
+          },
+          {
+            "attr_name": "HealthCheckTimeout",
+            "attr_type": "string",
+            "attr_default_value": "5",
+            "is_change": true,
+            "attr_info": "健康检查超时时间(秒)",
+            "attr_alt_value": "",
+            "protocol": "grpc"
           }
         ]
       }
