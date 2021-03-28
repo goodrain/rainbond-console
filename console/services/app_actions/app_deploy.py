@@ -458,11 +458,16 @@ class MarketService(object):
         add = envs.get("add", [])
         for env in add:
             container_port = env.get("container_port", 0)
-            if container_port == 0 and env["attr_value"] == "**None**":
-                env["attr_value"] = self.service.service_id[:8]
+            value = env.get("attr_value", "")
+            name = env.get("name", "")
+            attr_name = env.get("attr_name", "")
+            is_change = env.get("is_change", True)
+            if not attr_name:
+                continue
+            if container_port == 0 and value == "**None**":
+                value = self.service.service_id[:8]
             try:
-                env_var_service.create_env_var(self.service, container_port, env["name"], env["attr_name"], env["attr_value"],
-                                               env["is_change"], scope)
+                env_var_service.create_env_var(self.service, container_port, name, attr_name, value, is_change, scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
 
@@ -494,6 +499,8 @@ class MarketService(object):
         add = envs.get("add", [])
         for env in add:
             body = self._create_env_body(env, scope)
+            if not body:
+                continue
             try:
                 region_api.add_service_env(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                            body)
@@ -537,19 +544,21 @@ class MarketService(object):
         convert env to the body needed to add environment variables to the region
         """
         container_port = env.get("container_port", 0)
-        if container_port == 0 and env["attr_value"] == "**None**":
+        if 'attr_name' not in env:
+            return
+        if container_port == 0 and env.get("attr_value") == "**None**":
             env["attr_value"] = self.service.service_id[:8]
         result = {
             "container_port": container_port,
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
-            "name": env["name"],
+            "name": env.get("name"),
             "attr_name": env["attr_name"],
-            "attr_value": str(env["attr_value"]),
+            "attr_value": str(env.get("attr_value")),
             "is_change": True,
             "scope": scope,
             "env_name": env["attr_name"],
-            "env_value": str(env["attr_value"]),
+            "env_value": str(env.get("attr_value")),
             "enterprise_id": self.tenant.enterprise_id
         }
         return result

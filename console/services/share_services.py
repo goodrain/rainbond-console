@@ -215,7 +215,8 @@ class ShareService(object):
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
-                    service_versions[version["service_id"]] = version["build_version"]
+                    if version and "service_id" in version and "build_version" in version:
+                        service_versions[version["service_id"]] = version["build_version"]
                 return service_versions
         except Exception as e:
             logger.exception(e)
@@ -264,6 +265,7 @@ class ShareService(object):
                 # The component is redistributed without the key from the installation source, which would cause duplication.
                 # service_id  can be thought of as following a component lifecycle.
                 data['service_key'] = service.service_id
+                # service_share_uuid The build policy cannot be changed
                 data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
                 data['need_share'] = True
                 data['category'] = service.category
@@ -284,7 +286,6 @@ class ShareService(object):
                 e_m = dict()
                 e_m['step_node'] = 1
                 e_m['min_memory'] = 64
-                print(service.min_memory)
                 e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
                 e_m['step_memory'] = 64

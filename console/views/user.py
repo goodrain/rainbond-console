@@ -2,12 +2,10 @@
 import json
 import logging
 
-from console.exception.main import AbortRequest
 from console.enum.enterprise_enum import EnterpriseRolesEnum
-from console.utils.reqparse import parse_item
+from console.exception.bcode import ErrEnterpriseNotFound, ErrUserNotFound
 from console.exception.exceptions import UserNotExistError
-from console.exception.main import ServiceHandleException
-from console.exception.bcode import ErrUserNotFound, ErrEnterpriseNotFound
+from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -17,6 +15,7 @@ from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLa
 from console.services.perm_services import user_kind_role_service
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.utils.reqparse import parse_item
 from console.views.base import (AlowAnyApiView, BaseApiView, EnterpriseAdminView, JWTAuthApiView, TeamOwnerView)
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -256,6 +255,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                     "nick_name": user.nick_name,
                     "real_name": (user.nick_name if user.real_name is None else user.real_name),
                     "user_id": user.user_id,
+                    "phone": user.phone,
                     "create_time": user.create_time,
                     "default_favorite_name": default_favorite_name,
                     "default_favorite_url": default_favorite_url,

@@ -123,18 +123,6 @@ MODULES = {
     "SSO_LOGIN": SSO_LOGIN == "TRUE",
 }
 
-if os.getenv("MEMCACHED_HOST") and os.getenv("MEMCACHED_PORT"):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-            'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
-        },
-        'session': {
-            'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-            'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
-        }
-    }
-
 TENANT_VALID_TIME = 7
 
 JWT_AUTH = {

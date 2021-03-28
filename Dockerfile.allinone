@@ -24,22 +24,22 @@ COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
 RUN chmod +x /app/ui/entrypoint.sh &&  \
-      mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
-      mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
-      chmod +x /app/cloudadaptor && \
-      mv /dist/index.html /app/ui/www/templates/index.html && \
-      rm -rf /app/ui/www/static/dists/* && \
-      cp -a /dist/* /app/ui/www/static/dists/ && \
-      rm -rf /dist \
-      && mkdir /app/logs \
-      && mkdir /app/data \
-      && mkdir /root/.ssh \
-      && python -m pip install --upgrade pip \
-      && pip install -r requirements.txt \
-      && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
-      && rm -rf /root/.cache \
-      && rm -rf /tmp/* \
-      && rm -rf /app/ui/www/static/www/weavescope
+    mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
+    mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
+    chmod +x /app/cloudadaptor && \
+    mv /dist/index.html /app/ui/www/templates/index.html && \
+    mkdir /app/ui/www/static/dists && \
+    cp -a /dist/* /app/ui/www/static/dists/ && \
+    rm -rf /dist \
+    && mkdir /app/logs \
+    && mkdir /app/data \
+    && mkdir /root/.ssh \
+    && python -m pip install --upgrade pip \
+    && pip install -r requirements.txt \
+    && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
+    && rm -rf /root/.cache \
+    && rm -rf /tmp/* \
+    && rm -rf /app/ui/www/static/www/weavescope
 
 ENV PORT 7070
 ENV IS_OPEN_API=true
@@ -50,6 +50,7 @@ ENV DB_PATH=/app/data/cloudadaptor
 ENV CHART_PATH=/app/chart
 ENV CONFIG_DIR=/app/data/cloudadaptor
 ENV HELM_PATH=/usr/local/bin/helm
+ENV MYSQL_DB=console
 
 VOLUME /app/data
 VOLUME /app/logs

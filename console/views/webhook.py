@@ -543,7 +543,7 @@ class UpdateSecretKey(AppBaseView):
             service_alias = self.service.service_alias
             service_obj = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)[0]
             deploy_obj = DeployRelation.objects.filter(service_id=service_obj.service_id)
-            pwd = base64.b64encode(bytes(pickle.dumps({"secret_key": secret_key}), 'utf-8'))
+            pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))
             if deploy_obj:
                 deploy_obj.update(secret_key=pwd)
                 result = general_message(200, "success", "修改成功")

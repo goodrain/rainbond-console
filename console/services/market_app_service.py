@@ -176,7 +176,7 @@ class MarketAppService(object):
                     app_manage_service.truncate_service(tenant, service)
                 except Exception as le:
                     logger.exception(le)
-            raise e
+            raise ServiceHandleException(msg="install app failure", msg_show="安装组件发生异常")
 
     def install_service_when_upgrade_app(self,
                                          tenant,
@@ -652,28 +652,29 @@ class MarketAppService(object):
                 ts = key_service_map[service_key]
                 dep_keys = service_key_dep_key_map[service_key]
                 for dep_key in dep_keys:
-                    dep_service = key_service_map[dep_key["dep_service_key"]]
-                    code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id, True)
-                    if code != 200:
-                        logger.error("save component dependency relation error {0}".format(msg))
+                    if dep_key["dep_service_key"] in key_service_map:
+                        dep_service = key_service_map[dep_key["dep_service_key"]]
+                        code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id, True)
+                        if code != 200:
+                            logger.error("save component dependency relation error {0}".format(msg))
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
             return 200, "success"
         for env in inner_envs:
             code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
-                                                                      env["attr_value"], env["is_change"], "inner")
+                                                                      env.get("attr_value"), env["is_change"], "inner")
             if code != 200 and code != 412:
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
             container_port = env.get("container_port", 0)
             if container_port == 0:
-                if env["attr_value"] == "**None**":
+                if env.get("attr_value") == "**None**":
                     env["attr_value"] = make_uuid()[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
-                                                                          env["attr_name"], env["attr_value"], env["is_change"],
-                                                                          "outer")
+                code, msg, env_data = env_var_service.add_service_env_var(tenant, service,
+                                                                          container_port, env["name"], env["attr_name"],
+                                                                          env.get("attr_value"), env["is_change"], "outer")
                 if code != 200 and code != 412:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg

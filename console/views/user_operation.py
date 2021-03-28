@@ -128,6 +128,8 @@ class TenantServiceView(BaseApiView):
                 user_info["nick_name"] = nick_name
                 user_info["client_ip"] = client_ip
                 user_info["is_active"] = 1
+                user_info["phone"] = register_form.cleaned_data["phone"]
+                user_info["real_name"] = register_form.cleaned_data["real_name"]
                 user = Users(**user_info)
                 user.set_password(password)
                 user.save()
@@ -159,6 +161,8 @@ class TenantServiceView(BaseApiView):
                 data["user_id"] = user.user_id
                 data["nick_name"] = user.nick_name
                 data["email"] = user.email
+                data["phone"] = user.phone
+                data["real_name"] = user.real_name
                 data["enterprise_id"] = user.enterprise_id
                 payload = jwt_payload_handler(user)
                 token = jwt_encode_handler(payload)

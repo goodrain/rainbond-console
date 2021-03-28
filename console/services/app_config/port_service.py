@@ -133,7 +133,8 @@ class AppPortService(object):
                 if code == 412 and env:
                     env.container_port = container_port
                     env.save()
-                return code, msg, None
+                else:
+                    return code, msg, None
 
         service_port = {
             "tenant_id": tenant.tenant_id,

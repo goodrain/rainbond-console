@@ -6,7 +6,7 @@ import uuid
 
 
 def encrypt_passwd(string):
-    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(ord(string[2]) / 7)
+    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(int(ord(string[2]) / 7))
     password = hashlib.sha224(new_word.encode("utf-8")).hexdigest()[0:16]
     return password
 

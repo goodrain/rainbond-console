@@ -438,7 +438,7 @@ class AppImportService(object):
             is_complete=1,
         )
         if app_store.is_no_multiple_region_hub(import_record.enterprise_id):
-            version.region_name = import_record.region_name
+            version.region_name = import_record.region
         return version
 
     def __save_import_info(self, tenant, scope, metadata):
