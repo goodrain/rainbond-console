@@ -22,8 +22,9 @@ def make_uuid(key=None):
     if key is not None:
         if isinstance(key, str):
             merged_str = random_uuid + key.encode('utf8')
-            return hashlib.md5(merged_str).hexdigest()
-        return random_uuid
+        else:
+            merged_str = random_uuid + key
+        return hashlib.md5(merged_str).hexdigest()
     else:
         return random_uuid
 
