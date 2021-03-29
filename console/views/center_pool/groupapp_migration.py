@@ -109,7 +109,7 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
         restore_id = request.GET.get("restore_id", None)
         if not restore_id:
             return Response(general_message(400, "restore id is null", "请指明查询的备份ID"), status=400)
-        migrate_record = migrate_service.get_and_save_migrate_status(self.user, restore_id)
+        migrate_record = migrate_service.get_and_save_migrate_status(self.user, restore_id, self.team_name, self.response_region)
         if not migrate_record:
             return Response(general_message(404, "not found record", "记录不存在"), status=404)
         result = general_message(200, "success", "查询成功", bean=migrate_record.to_dict())

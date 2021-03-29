@@ -546,23 +546,6 @@ ServiceGroupSharedApps = {
     }
 }
 
-ShareRecordHistoryView = {
-    "__message": {
-        "get": {
-            "perms": [200001]
-        },
-        "post": {
-            "perms": [300012]
-        },
-        "put": {
-            "perms": [300012]
-        },
-        "delete": {
-            "perms": [300012]
-        }
-    }
-}
-
 ServiceShareInfoView = {
     "__message": {
         "get": {
