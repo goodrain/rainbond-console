@@ -917,7 +917,7 @@ class MarketAppService(object):
                     app_temp = json.loads(app_model_version.app_template)
                     for app in app_temp.get("apps"):
                         if app.get("extend_method_map"):
-                            min_memory += int(app.get("extend_method_map").get("min_memory"))
+                            min_memory += int(app.get("extend_method_map").get("init_memory"))
                     apps_min_memory[app_model_version.app_id] = min_memory
                 except ValueError:
                     apps_min_memory[app_model_version.app_id] = min_memory

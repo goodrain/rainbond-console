@@ -368,7 +368,7 @@ class GroupService(object):
             for app in apps:
                 extend_method_map = app.get("extend_method_map", None)
                 if extend_method_map:
-                    total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
+                    total_memory += extend_method_map["min_node"] * extend_method_map["init_memory"]
                 else:
                     total_memory += 128
             return total_memory
