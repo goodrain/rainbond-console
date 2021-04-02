@@ -141,7 +141,7 @@ class TeamInfo(TeamNoRegionAPIView):
         serializer.is_valid(raise_exception=True)
 
         if req.data.get("enterprise_id", ""):
-            ent = enterprise_services.get_enterprise_by_enterprise_id()
+            ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["enterprise_id"])
             if not ent:
                 raise serializers.ValidationError("指定企业不存在", status.HTTP_404_NOT_FOUND)
         if req.data.get("creator", 0):

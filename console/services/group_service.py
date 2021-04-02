@@ -351,7 +351,7 @@ class GroupService(object):
     # 应用内没有组件情况下删除应用
     @transaction.atomic
     def delete_group_no_service(self, group_id):
-        if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
+        if not group_id or (type(group_id) == str and not str.isdigit(group_id)) or int(group_id) < 0:
             return 400, "需要删除的应用ID不合法", None
         # 删除应用
         group_repo.delete_group_by_pk(group_id)
