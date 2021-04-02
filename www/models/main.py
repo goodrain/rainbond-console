@@ -8,7 +8,8 @@ from console.enum.app import GovernanceModeEnum
 from console.utils import runner_util
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
+from django.db.models.fields import (AutoField, BooleanField, CharField,
+                                     DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
@@ -40,9 +41,6 @@ class AnonymousUser(object):
     pk = None
     username = ''
     is_active = False
-
-    def __init__(self):
-        pass
 
     def __str__(self):
         return 'AnonymousUser'
@@ -922,7 +920,7 @@ class TenantServiceEnvVar(BaseModel):
     container_port = models.IntegerField(default=0, help_text="端口")
     name = models.CharField(max_length=1024, blank=True, help_text="名称")
     attr_name = models.CharField(max_length=1024, help_text="属性")
-    attr_value = models.CharField(max_length=2048, help_text="值")
+    attr_value = models.TextField(help_text="值")
     is_change = models.BooleanField(default=False, blank=True, help_text="是否可改变")
     scope = models.CharField(max_length=10, help_text="范围", default=ScopeType.OUTER.value)
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")

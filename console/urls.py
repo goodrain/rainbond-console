@@ -95,11 +95,11 @@ from console.views.region import (GetRegionPublicKeyView, MavenSettingRUDView, M
                                   QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
-from console.views.service_share import (
-    AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView, AppMarketBatchCView,
-    AppMarketCLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
-    ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
-    ServiceShareRecordView, ShareRecordHistoryView, ShareRecordView)
+from console.views.service_share import (AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView,
+                                         AppMarketBatchCView, AppMarketCLView, AppMarketRUDView, ServiceGroupSharedApps,
+                                         ServicePluginShareEventPost, ServiceShareCompleteView, ServiceShareDeleteView,
+                                         ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView,
+                                         ServiceShareRecordInfoView, ServiceShareRecordView, ShareRecordView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
@@ -256,8 +256,6 @@ urlpatterns = [
         perms.ShareRecordView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/shared/apps$', ServiceGroupSharedApps.as_view(),
         perms.ServiceGroupSharedApps),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>\d+)/shared/history$', ShareRecordHistoryView.as_view(),
-        perms.ShareRecordHistoryView),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/info$', ServiceShareInfoView.as_view(),
         perms.ServiceShareInfoView),
     url(r'^teams/(?P<team_name>[\w\-]+)/share/(?P<share_id>[\w\-]+)/giveup$', ServiceShareDeleteView.as_view(),

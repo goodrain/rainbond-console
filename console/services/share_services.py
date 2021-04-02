@@ -508,6 +508,7 @@ class ShareService(object):
                         "image_info": app.get("service_image", None),
                         "slug_info": app.get("service_slug", None)
                     }
+                    re_body = None
                     try:
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
