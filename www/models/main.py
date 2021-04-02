@@ -8,8 +8,7 @@ from console.enum.app import GovernanceModeEnum
 from console.utils import runner_util
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import (AutoField, BooleanField, CharField,
-                                     DateTimeField, DecimalField, IntegerField)
+from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
