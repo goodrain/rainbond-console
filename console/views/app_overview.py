@@ -73,44 +73,37 @@ class AppDetailView(AppBaseView):
             rainbond_app, rainbond_app_version = rainbond_app_repo.get_rainbond_app_and_version(
                 self.tenant.enterprise_id, service_source.group_key, service_source.version)
             if not rainbond_app:
-                result = general_message(200, "success", "当前云市组件已删除", bean=bean)
+                result = general_message(200, "success", "当前组件安装源模版已删除", bean=bean)
                 return Response(result, status=result["code"])
 
             bean.update({"rain_app_name": rainbond_app.app_name})
-            apps_template = json.loads(rainbond_app_version.app_template)
-            apps_list = apps_template.get("apps")
-            for app in apps_list:
-                if app["service_key"] == self.service.service_key:
-                    if self.service.deploy_version and int(app["deploy_version"]) > int(self.service.deploy_version):
-                        self.service.is_upgrate = True
-                        self.service.save()
-                        bean.update({"service": service_model})
             try:
-                apps_template = json.loads(rainbond_app_version.app_template)
-                apps_list = apps_template.get("apps")
-                service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
-                if service_source and service_source.extend_info:
-                    extend_info = json.loads(service_source.extend_info)
-                    if extend_info:
-                        for app in apps_list:
-                            if "service_share_uuid" in app:
-                                if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                    new_version = int(app["deploy_version"])
-                                    old_version = int(extend_info["source_deploy_version"])
-                                    if new_version > old_version:
-                                        self.service.is_upgrate = True
-                                        self.service.save()
-                                        service_model["is_upgrade"] = True
-                                        bean.update({"service": service_model})
-                            elif "service_share_uuid" not in app and "service_key" in app:
-                                if app["service_key"] == extend_info["source_service_share_uuid"]:
-                                    new_version = int(app["deploy_version"])
-                                    old_version = int(extend_info["source_deploy_version"])
-                                    if new_version > old_version:
-                                        self.service.is_upgrate = True
-                                        self.service.save()
-                                        service_model["is_upgrade"] = True
-                                        bean.update({"service": service_model})
+                if rainbond_app_version:
+                    apps_template = json.loads(rainbond_app_version.app_template)
+                    apps_list = apps_template.get("apps")
+                    service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
+                    if service_source and service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if extend_info:
+                            for app in apps_list:
+                                if "service_share_uuid" in app:
+                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
+                                elif "service_share_uuid" not in app and "service_key" in app:
+                                    if app["service_key"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
             except Exception as e:
                 logger.exception(e)
 
