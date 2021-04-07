@@ -1250,7 +1250,9 @@ class MarketAppService(object):
                         versions.append(version.version)
             else:
                 versions.append(version.version)
-        return set(versions)
+        versions = list(set(versions))
+        versions.sort(reverse=True)
+        return versions
 
     def get_current_version(self, enterprise_id, app_model_key, app_id):
         service_sources = group_service.get_group_service_sources(app_id).filter(Q(group_key=app_model_key))
