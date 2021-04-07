@@ -1158,7 +1158,7 @@ class MarketAppService(object):
         service_sources = group_service.get_group_service_sources(app_id).filter(~Q(group_key=None))
         app_models = dict()
         for ss in service_sources:
-            if (ss.group_key not in app_models) or compare_version(app_models[ss.group_key], ss.version) == -1:
+            if (ss.group_key not in app_models) or compare_version(app_models[ss.group_key]['version'], ss.version) == -1:
                 app_models[ss.group_key] = {'version': ss.version, 'component_source': ss}
         iterator = self.yield_app_info(app_models, tenant, app_id)
         market_apps = [market_app for market_app in iterator if len(market_app['upgrade_versions']) > 0]
@@ -1168,7 +1168,7 @@ class MarketAppService(object):
         service_sources = group_service.get_group_service_sources(group.ID).filter(~Q(group_key=None))
         app_models = dict()
         for ss in service_sources:
-            if (ss.group_key not in app_models) or compare_version(app_models[ss.group_key], ss.version) == -1:
+            if (ss.group_key not in app_models) or compare_version(app_models[ss.group_key]['version'], ss.version) == -1:
                 app_models[ss.group_key] = {'version': ss.version, 'component_source': ss}
         iterator = self.yield_app_info(app_models, tenant, group.ID)
         app_info_list = [app_info for app_info in iterator]
