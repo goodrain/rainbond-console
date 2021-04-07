@@ -806,8 +806,10 @@ class MarketAppService(object):
         tenant_service.min_node = app["extend_method_map"]["min_node"]
         if app["extend_method_map"].get("init_memory"):
             tenant_service.min_memory = app["extend_method_map"].get("init_memory")
+        elif app["extend_method_map"].get("min_memory"):
+            tenant_service.min_memory = app["extend_method_map"].get("min_memory")
         else:
-            tenant_service.min_memory = app["extend_method_map"]["min_memory"]
+            tenant_service.min_memory = 512
         tenant_service.min_cpu = baseService.calculate_service_cpu(region, tenant_service.min_memory)
         tenant_service.inner_port = 0
         tenant_service.version = app["version"]
