@@ -664,7 +664,8 @@ class MarketAppService(object):
             return 200, "success"
         for env in inner_envs:
             code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
-                                                                      env.get("attr_value"), env["is_change"], "inner")
+                                                                      env.get("attr_value"), env.get("is_change", True),
+                                                                      "inner")
             if code != 200 and code != 412:
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
@@ -673,9 +674,9 @@ class MarketAppService(object):
             if container_port == 0:
                 if env.get("attr_value") == "**None**":
                     env["attr_value"] = make_uuid()[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service,
-                                                                          container_port, env["name"], env["attr_name"],
-                                                                          env.get("attr_value"), env["is_change"], "outer")
+                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
+                                                                          env["attr_name"], env.get("attr_value"),
+                                                                          env.get("is_change", True), "outer")
                 if code != 200 and code != 412:
                     logger.error("save market app env error {0}".format(msg))
                     return code, msg
@@ -918,7 +919,13 @@ class MarketAppService(object):
                     app_temp = json.loads(app_model_version.app_template)
                     for app in app_temp.get("apps"):
                         if app.get("extend_method_map"):
-                            min_memory += int(app.get("extend_method_map").get("init_memory"))
+                            try:
+                                if app.get("extend_method_map").get("init_memory"):
+                                    min_memory += int(app.get("extend_method_map").get("init_memory"))
+                                else:
+                                    min_memory += int(app.get("extend_method_map").get("min_memory"))
+                            except Exception:
+                                pass
                     apps_min_memory[app_model_version.app_id] = min_memory
                 except ValueError:
                     apps_min_memory[app_model_version.app_id] = min_memory
