@@ -310,6 +310,8 @@ class MarketService(object):
                     if func is None:
                         continue
                     func(v)
+        else:
+            raise ServiceHandleException(msg="component is not exist", msg_show="该版本模版不存在该组件，无法进行升级")
 
     @staticmethod
     def _compare_async_action(a, b):
