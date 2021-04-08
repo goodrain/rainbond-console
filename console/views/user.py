@@ -278,7 +278,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
         # check user info
-        user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
+        user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id, phone)
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         # create user

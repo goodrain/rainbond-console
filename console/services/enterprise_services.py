@@ -249,7 +249,8 @@ class EnterpriseServices(object):
             }
         # 2. get all apps in all teams
         team_ids = [team.tenant_id for team in teams]
-        apps = group_repo.get_apps_in_multi_team(team_ids)
+        region_names = [region.region_name for region in regions]
+        apps = group_repo.get_apps_in_multi_team(team_ids, region_names)
         app_total_num = len(apps)
 
         app_ids = [app.ID for app in apps]
