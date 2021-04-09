@@ -50,7 +50,7 @@ class ComponentServiceMonitor(object):
             sm = ServiceMonitor.objects.create(**req)
             return sm
         except Exception as e:
-            region_api.delete_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name, name)
+            region_api.delete_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name, service.service_alias, name, None)
             raise e
 
     def update_component_service_monitor(self, tenant, service, user, name, path, port, service_show_name, interval):
