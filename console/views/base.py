@@ -299,6 +299,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.tenant_name = self.request.COOKIES.get('team', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team_name', None)
+        if not self.tenant_name:
+            self.tenant_name = self.request.GET.get('team_name', None)
         self.team_name = self.tenant_name
 
         if not self.response_region:
