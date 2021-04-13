@@ -72,8 +72,10 @@ class TeamService(object):
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
-    def get_team_users(self, team):
+    def get_team_users(self, team, name=None):
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+        if users and name:
+            users = users.filter(Q(nick_name__contains=name) | Q(real_name__contains=name))
         return users
 
     def get_tenant_users_by_tenant_name(self, tenant_name):

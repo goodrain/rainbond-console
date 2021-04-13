@@ -305,7 +305,7 @@ class RegionResPurchage(JWTAuthApiView):
             return Response(status=500, data=data)
 
 
-class MavenSettingView(JWTAuthApiView):
+class MavenSettingView(RegionTenantHeaderView):
     def get(self, request, enterprise_id, region_name, *args, **kwargs):
         onlyname = request.GET.get("onlyname", True)
         res, body = region_api.list_maven_settings(enterprise_id, region_name)
@@ -337,7 +337,7 @@ class MavenSettingView(JWTAuthApiView):
         return Response(status=result["code"], data=result)
 
 
-class MavenSettingRUDView(JWTAuthApiView):
+class MavenSettingRUDView(RegionTenantHeaderView):
     def get(self, request, enterprise_id, region_name, name, *args, **kwargs):
         try:
             res, body = region_api.get_maven_setting(enterprise_id, region_name, name)

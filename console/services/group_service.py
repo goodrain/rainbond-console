@@ -155,6 +155,7 @@ class GroupService(object):
         try:
             principal = user_repo.get_user_by_username(app.username)
             res['principal'] = principal.get_name()
+            res['email'] = principal.email
         except ErrUserNotFound:
             res['principal'] = app.username
 
