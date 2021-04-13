@@ -939,7 +939,7 @@ class ServiceMonitor(BaseModel):
     name = models.CharField(max_length=64, help_text="名称")
     tenant_id = models.CharField(max_length=32, help_text="团队ID")
     service_id = models.CharField(max_length=32, help_text="组件ID")
-    path = models.CharField(max_length=32, help_text="组件ID")
+    path = models.CharField(max_length=255, help_text="监控路径")
     port = models.IntegerField(help_text="端口号")
     service_show_name = models.CharField(max_length=64, help_text="展示名称")
     interval = models.CharField(max_length=10, help_text="收集指标时间间隔")
