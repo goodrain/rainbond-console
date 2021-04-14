@@ -43,7 +43,7 @@ class AuthCode(object):
         @param key: 密钥
         @return:原始字符串
         """
-        if type(string) is not str:
+        if type(string) is bytes:
             string = string.decode()
         remainder = len(string) % 4
         if 0 < remainder < 4:
