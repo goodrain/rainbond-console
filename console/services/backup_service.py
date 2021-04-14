@@ -145,6 +145,8 @@ class GroupAppBackupService(object):
             return backup_record_repo.create_backup_records(**record_data)
         except region_api.CallApiError as e:
             logger.exception(e)
+            if e.message["body"].get("msg", "") == "last backup task do not complete or have restore backup or version is exist":
+                raise ServiceHandleException(msg="backup failed", msg_show="上次备份任务未完成或有正在恢复的备份或该版本已存在", status_code=409)
             if e.status == 401:
                 raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
 
