@@ -256,9 +256,6 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             domain_service.bind_tcpdomain(self.team, self.user, service, end_point, container_port, default_port,
                                           rule_extensions, default_ip)
 
-            if code != 200:
-                raise ServiceHandleException(status_code=code, msg="bind domain error", msg_show=msg)
-
         elif ads.data.get("protocol") == "http":
             httpdomain = ads.data.get("http")
             if not httpdomain:
