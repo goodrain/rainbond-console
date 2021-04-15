@@ -598,7 +598,7 @@ class AppPluginService(object):
         component_id_key_map = {}
         for com in components:
             if type(com) == dict:
-                component_id_key_map[com["service_d"]] = com["service_share_uuid"]
+                component_id_key_map[com["service_id"]] = com["service_share_uuid"]
         for config in service_plugin_config_vars:
             dest_service_id, dest_service_alias = "", ""
             if config["service_meta_type"] == "downstream_port":

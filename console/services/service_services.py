@@ -209,8 +209,8 @@ class BaseService(object):
             bean["user"] = service_source.user_name
             bean["password"] = service_source.password
         if service.service_source == 'market':
-            from console.services.market_app_service import market_app_service
             from console.services.app import app_market_service
+            from console.services.market_app_service import market_app_service
             if service_source:
                 # get from cloud
                 app = None
@@ -241,13 +241,12 @@ class BaseService(object):
                     except RbdAppNotFound:
                         logger.warning("not found app {0} version {1} in local market".format(
                             service_source.group_key, service_source.version))
-                if app and app_version:
+                if app:
                     bean["rain_app_name"] = app.app_name
                     bean["details"] = app.details
-                    logger.debug("app_version: {}".format(app_version.version))
-                    bean["app_version"] = app_version.version
-                    bean["version"] = app_version.version
                     bean["group_key"] = app.app_id
+                    bean["app_version"] = service_source.version
+                    bean["version"] = service_source.version
         return bean
 
     def get_not_run_services_request_memory(self, tenant, services):

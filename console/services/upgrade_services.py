@@ -83,31 +83,6 @@ class UpgradeService(object):
         except AppUpgradeRecord.DoesNotExist:
             return AppUpgradeRecord()
 
-    def get_app_upgrade_versions(self, tenant, group_id, group_key):
-        """获取云市组件可升级版本列表"""
-        from console.services.group_service import group_service
-
-        # 查询某一个云市组件下的所有组件
-        services = group_service.get_rainbond_services(group_id, group_key)
-        versions = set()
-
-        # 查询可升级的组件
-        for service in services:
-            pc = PropertiesChanges(service, tenant, all_component_one_model=services)
-            service_version = pc.get_upgradeable_versions
-            versions |= set(service_version or [])
-
-        # 查询新增组件的版本
-        service_keys = services.values_list('service_key', flat=True)
-        service_keys = set(service_keys) if service_keys else set()
-        app_qs = rainbond_app_repo.get_rainbond_app_versions_by_id(tenant.enterprise_id, app_id=group_key)
-        add_versions = self.query_the_version_of_the_add_service(app_qs, service_keys)
-        versions |= add_versions
-        versions = [str(version) for version in versions]
-        versions = sorted(
-            versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")], reverse=True)
-        return versions
-
     def get_old_version(self, group_key, service_ids, cloud_version):
         """获取旧版本版本号"""
 

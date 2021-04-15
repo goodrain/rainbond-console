@@ -335,6 +335,18 @@ class ServiceSourceInfo(BaseModel):
     extend_info = models.CharField(max_length=1024, null=True, blank=True, default="", help_text="扩展信息")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
 
+    def is_install_from_cloud(self):
+        if self.extend_info:
+            extend_info = json.loads(self.extend_info)
+            if extend_info and extend_info.get("install_from_cloud", False):
+                return True
+        return False
+
+    def get_market_name(self):
+        if self.extend_info:
+            extend_info = json.loads(self.extend_info)
+            return extend_info.get("market_name")
+
 
 class TeamGitlabInfo(BaseModel):
     class Meta:
