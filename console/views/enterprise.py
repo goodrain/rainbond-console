@@ -73,8 +73,8 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
-            data = ent_config_servier.update_config(key, value)
             try:
+                data = ent_config_servier.update_config(key, value)
                 result = general_message(200, "success", "更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)

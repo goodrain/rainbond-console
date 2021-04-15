@@ -253,11 +253,8 @@ class ListAppGatewayRuleView(TeamAppAPIView):
                 logger.exception(e)
                 raise ServiceHandleException(status_code=code, msg="change port fail", msg_show="open port failure")
             # 添加tcp策略
-            code, msg, data = domain_service.bind_tcpdomain(self.team, self.user, service, end_point, container_port,
-                                                            default_port, rule_extensions, default_ip)
-
-            if code != 200:
-                raise ServiceHandleException(status_code=code, msg="bind domain error", msg_show=msg)
+            domain_service.bind_tcpdomain(self.team, self.user, service, end_point, container_port, default_port,
+                                          rule_extensions, default_ip)
 
         elif ads.data.get("protocol") == "http":
             httpdomain = ads.data.get("http")
