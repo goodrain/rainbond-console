@@ -27,7 +27,7 @@ logger = logging.getLogger('default')
 
 class GroupAppView(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
-        """查询当前组下的云市应用"""
+        """查询当前应用下的应用模版列表及可升级性"""
         group_id = int(group_id)
         group = group_service.get_group_or_404(self.tenant, self.response_region, group_id)
         apps = market_app_service.get_market_apps_in_app(self.response_region, self.tenant, group)
@@ -36,12 +36,12 @@ class GroupAppView(RegionTenantHeaderView):
 
 class AppUpgradeVersion(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
-        """获取某云市应用的可升级版本"""
+        """获取安装的应用模版的可升级版本"""
         group_key = parse_argument(
             request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
 
-        # 获取云市应用可升级版本列表
-        versions = upgrade_service.get_app_upgrade_versions(self.tenant, int(group_id), group_key)
+        # get app model upgrade versions
+        versions = market_app_service.get_models_upgradeable_version(self.tenant.enterprise_id, group_key, group_id)
         return MessageResponse(msg="success", list=list(versions))
 
 

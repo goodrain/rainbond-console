@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-import time
 
-from console.exception.main import AbortRequest
+from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, volume_repo)
 from console.repositories.component_graph import component_graph_repo
@@ -88,56 +87,6 @@ class PropertiesChanges(object):
             if current_version_source:
                 self.service_source.create_time = current_version_source.create_time
 
-    @property
-    def get_upgradeable_versions(self):
-        """
-        对比过的，可升级的版本列表，通过对比upgrade_time对比
-        :param current_version:
-        :return:
-        versions: [0.1, 0.2]
-
-        """
-        if not self.service_source:
-            return None
-        # not found current version
-        if not self.current_version:
-            return None
-        upgradeble_versions = []
-        group_id = service_group_relation_repo.get_group_id_by_service(self.service)
-        services = group_service.get_rainbond_services(group_id, self.service_source.group_key)
-        if not self.install_from_cloud:
-            # 获取最新的时间列表, 判断版本号大小，TODO 确认版本号大小
-            # 直接查出当前版本，对比时间，对比版本号大小
-            app_versions = rainbond_app_repo.get_rainbond_app_versions(self.tenant.enterprise_id, self.service_source.group_key)
-            if not app_versions:
-                logger.debug("no app versions")
-                return None
-
-            for version in app_versions:
-                new_version_time = time.mktime(version.update_time.timetuple())
-                current_version_time = time.mktime(self.service_source.create_time.timetuple())
-                same, max_version = self.checkVersionG2(self.current_version.version, version.version)
-                if not same and max_version != self.current_version.version:
-                    upgradeble_versions.append(version.version)
-                elif same and new_version_time > current_version_time:
-                    if self.have_upgrade_info(self.tenant, services, version.version):
-                        upgradeble_versions.append(version.version)
-
-        else:
-            app_version_list = app_market_service.get_market_app_model_versions(self.market, self.service_source.group_key)
-            if not app_version_list:
-                return None
-            for version in app_version_list:
-                new_version_time = time.mktime(version.update_time.timetuple())
-                current_version_time = time.mktime(self.current_version.update_time.timetuple())
-                same, max_version = self.checkVersionG2(self.current_version.version, version.version)
-                if not same and max_version != self.current_version.version:
-                    upgradeble_versions.append(version.version)
-                elif same and new_version_time >= current_version_time:
-                    if self.have_upgrade_info(self.tenant, services, version.version):
-                        upgradeble_versions.append(version.version)
-        return list(set(upgradeble_versions))
-
     def have_upgrade_info(self, tenant, services, version):
         from console.services.upgrade_services import upgrade_service
         if not services:
@@ -147,15 +96,6 @@ class PropertiesChanges(object):
             if upgrade_info:
                 return True
         return False
-
-    def checkVersionG2(self, currentversion, expectedversion):
-        same = False
-        versions = [currentversion, expectedversion]
-        sort_versions = sorted(versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")])
-        max_version = sort_versions.pop()
-        if currentversion == expectedversion:
-            same = True
-        return same, max_version
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
@@ -568,6 +508,7 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
 
 
 def get_upgrade_app_template(tenant, version, pc):
+    template = None
     if pc.install_from_cloud:
         data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, get_template=True)
         template = json.loads(data.template)
@@ -575,7 +516,9 @@ def get_upgrade_app_template(tenant, version, pc):
         data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key,
                                                                        version)
         template = json.loads(data.app_template)
-    return template
+    if template:
+        return template
+    raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="应用模版版本不存在")
 
 
 def get_template_component(template, pc):

@@ -127,10 +127,20 @@ class RegionApiBaseHttpClient(object):
         else:
             return dict()
 
+    def get_default_timeout_conifg(self):
+        connect, red = 2.0, 5.0
+        try:
+            connect = float(os.environ.get("REGION_CONNECTION_TIMEOUT", 2.0))
+            red = float(os.environ.get("REGION_RED_TIMEOUT", 5.0))
+        except Exception:
+            connect, red = 2.0, 5.0
+        return connect, red
+
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 2)
-        timeout = kwargs.get("timeout", 5.0)
+        d_connect, d_red = self.get_default_timeout_conifg()
+        timeout = kwargs.get("timeout", d_red)
         if kwargs.get("for_test"):
             region = region_name
             region_name = region.region_name
@@ -148,7 +158,7 @@ class RegionApiBaseHttpClient(object):
                     url=url,
                     method=method,
                     headers=headers,
-                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
+                    timeout=urllib3.Timeout(connect=d_connect, read=timeout),
                     retries=retries)
             else:
                 response = client.request(
@@ -156,7 +166,7 @@ class RegionApiBaseHttpClient(object):
                     method=method,
                     headers=headers,
                     body=body,
-                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
+                    timeout=urllib3.Timeout(connect=d_connect, read=timeout),
                     retries=retries)
             return response.status, response.data
         except urllib3.exceptions.SSLError:

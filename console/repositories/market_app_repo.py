@@ -409,9 +409,7 @@ class RainbondCenterAppRepository(object):
             version=app_version,
             scope__in=["gooodrain", "team", "enterprise"],
         ).order_by("-upgrade_time").first()
-        if app_version and app:
-            return app, app_version
-        return None, None
+        return app, app_version
 
     def list_by_key_time(self, group_key, time):
         rcapps = RainbondCenterAppVersion.objects.filter(app_id=group_key, update_time__gte=time, is_complete=True).all()

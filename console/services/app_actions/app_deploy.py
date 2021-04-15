@@ -310,6 +310,8 @@ class MarketService(object):
                     if func is None:
                         continue
                     func(v)
+        else:
+            raise ServiceHandleException(msg="component is not exist", msg_show="该版本模版不存在该组件，无法进行升级")
 
     @staticmethod
     def _compare_async_action(a, b):
@@ -398,10 +400,6 @@ class MarketService(object):
             self.service.image = share_image
         self.service.cmd = app.get("cmd", "")
         self.service.version = app["version"]
-        self.service.min_node = app["extend_method_map"]["min_node"]
-        self.service.min_memory = app["extend_method_map"]["min_memory"]
-        self.service.min_cpu = baseService.calculate_service_cpu(self.service.service_region, self.service.min_memory)
-        self.service.total_memory = self.service.min_node * self.service.min_memory
         self.service.save()
 
     def _update_service_source(self, app, version):
