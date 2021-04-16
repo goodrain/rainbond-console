@@ -61,10 +61,22 @@ class TenantGroupView(RegionTenantHeaderView):
         note = request.data.get("note", "")
         if len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-        region_name = self.response_region
-        if request.data.get("region_name", None):
-            region_name = request.data.get("region_name", None)
-        data = group_service.create_app(self.tenant, region_name, app_name, note, self.user.get_username())
+        app_store_name = request.data.get("app_store_name", None)
+        app_store_url = request.data.get("app_store_url", None)
+        app_template_name = request.data.get("app_template_name", None)
+        version = request.data.get("version", None)
+        region_name = request.data.get("region_name", self.response_region)
+        data = group_service.create_app(
+            self.tenant,
+            region_name,
+            app_name,
+            note,
+            self.user.get_username(),
+            app_store_name,
+            app_store_url,
+            app_template_name,
+            version,
+        )
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
 
@@ -278,4 +290,11 @@ class ApplicationStatusView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         status = group_service.get_app_status(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=status)
+        return Response(result)
+
+
+class ApplicationDetectPrecessView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        processes = group_service.get_detect_process(self.tenant, self.region_name, app_id)
+        result = general_message(200, "success", "查询成功", list=processes)
         return Response(result)

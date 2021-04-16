@@ -14,6 +14,10 @@ logger = logging.getLogger("default")
 
 class GroupRepository(object):
     @staticmethod
+    def create(app):
+        app.save()
+
+    @staticmethod
     def update(app_id, **data):
         ServiceGroup.objects.filter(pk=app_id).update(**data)
 
@@ -50,7 +54,8 @@ class GroupRepository(object):
             return None
 
     def update_group_name(self, group_id, new_group_name, group_note=""):
-        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note, update_time=datetime.now())
+        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note,
+                                                        update_time=datetime.now())
 
     def update_governance_mode(self, tenant_id, region_name, app_id, governance_mode):
         ServiceGroup.objects.filter(pk=app_id).update(

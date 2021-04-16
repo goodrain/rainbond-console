@@ -5,7 +5,8 @@ import os
 import jwt
 from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
+                                    AbortRequest)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
@@ -284,8 +285,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
     def initial(self, request, *args, **kwargs):
         self.user = request.user
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
-            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.user.enterprise_id,
+                                                                  user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.tenant_name = kwargs.get("tenantName", None)
@@ -311,9 +312,9 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.response_region = self.request.COOKIES.get('region_name', None)
         self.region_name = self.response_region
         if not self.response_region:
-            raise ImportError("region_name not found !")
+            raise AbortRequest("region_name not found !")
         if not self.tenant_name:
-            raise ImportError("team_name not found !")
+            raise AbortRequest("team_name not found !")
         try:
             self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
             self.team = self.tenant
@@ -324,8 +325,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.is_team_owner = True
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()
         self.is_enterprise_admin = False
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
-            enterprise_id=self.tenant.enterprise_id, user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.tenant.enterprise_id,
+                                                                  user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.get_perms()
