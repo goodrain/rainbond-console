@@ -46,8 +46,16 @@ class GroupService(object):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
     @transaction.atomic
-    def create_app(self, tenant, region_name, app_name, note="", username="",
-                   app_store_name="", app_store_url="", app_template_name="", version=""):
+    def create_app(self,
+                   tenant,
+                   region_name,
+                   app_name,
+                   note="",
+                   username="",
+                   app_store_name="",
+                   app_store_url="",
+                   app_template_name="",
+                   version=""):
         self.check_app_name(tenant, region_name, app_name)
         # check parameter for helm app
         app_type = AppType.rainbond.name
@@ -95,14 +103,15 @@ class GroupService(object):
         return app.to_dict()
 
     def create_region_app(self, tenant, region_name, app):
-        region_app = region_api.create_application(region_name, tenant.tenant_name, {
-            "app_name": app.group_name,
-            "app_type": app.app_type,
-            "app_store_name": app.app_store_name,
-            "app_store_url": app.app_store_url,
-            "app_template_name": app.app_template_name,
-            "version": app.version,
-        })
+        region_app = region_api.create_application(
+            region_name, tenant.tenant_name, {
+                "app_name": app.group_name,
+                "app_type": app.app_type,
+                "app_store_name": app.app_store_name,
+                "app_store_url": app.app_store_url,
+                "app_template_name": app.app_template_name,
+                "version": app.version,
+            })
 
         # record the dependencies between region app and console app
         data = {
@@ -151,8 +160,7 @@ class GroupService(object):
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
                     return 404, "应用不存在"
-                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id,
-                                                                       region_name)
+                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, "success"
 
     def sync_app_services(self, tenant, region_name, app_id):
@@ -221,13 +229,12 @@ class GroupService(object):
         :param group_id:
         :rtype: ServiceGroup
         """
-        return get_object_or_404(
-            ServiceGroup,
-            msg="Group does not exist",
-            msg_show="应用不存在",
-            tenant_id=tenant.tenant_id,
-            region_name=response_region,
-            pk=group_id)
+        return get_object_or_404(ServiceGroup,
+                                 msg="Group does not exist",
+                                 msg_show="应用不存在",
+                                 tenant_id=tenant.tenant_id,
+                                 region_name=response_region,
+                                 pk=group_id)
 
     def get_service_group_info(self, service_id):
         return group_service_relation_repo.get_group_info_by_service_id(service_id)
@@ -257,8 +264,7 @@ class GroupService(object):
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
-        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups(
-            [g.ID for g in groups])
+        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
         for k, v in list(service_group_map.items()):
@@ -348,8 +354,7 @@ class GroupService(object):
             group_id = a.ID
             app = apps.get(a.ID)
             app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
-            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(
-                group_id) else 0
+            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
                 app["run_service_num"] = 0
@@ -482,8 +487,7 @@ class GroupService(object):
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[
-                                                                                       port.service_id] + "-" + str(
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "-" + str(
                 port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,
@@ -531,6 +535,13 @@ class GroupService(object):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         process = region_api.get_app_detect_process(region_name, tenant.tenant_name, region_app_id)
         return process
+
+    @staticmethod
+    def install_app(tenant, region_name, app_id, values):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.install_app(region_name, tenant.tenant_name, region_app_id, {
+            "values": values,
+        })
 
 
 group_service = GroupService()

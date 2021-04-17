@@ -1796,6 +1796,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body["list"]
 
+    def install_app(self, region_name, tenant_name, region_app_id, data):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/install"
+
+        self._set_headers(token)
+        _, _ = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+
     def create_application(self, region_name, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)

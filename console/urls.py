@@ -65,7 +65,8 @@ from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, Ent
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView, ApplicationDetectPrecessView)
+                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
+                                 ApplicationDetectPrecessView, ApplicationInstallView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -275,6 +276,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)$', TenantGroupOperationView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/detect-process$', ApplicationDetectPrecessView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/install$', ApplicationInstallView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode', AppGovernanceModeView.as_view(),
         perms.TenantGroupOperationView),

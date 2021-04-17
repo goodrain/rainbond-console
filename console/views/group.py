@@ -298,3 +298,11 @@ class ApplicationDetectPrecessView(ApplicationView):
         processes = group_service.get_detect_process(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=processes)
         return Response(result)
+
+
+class ApplicationInstallView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        values = request.data.get("values")
+        group_service.install_app(self.tenant, self.region_name, app_id, values)
+        result = general_message(200, "success", "安装成功")
+        return Response(result)
