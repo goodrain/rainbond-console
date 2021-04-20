@@ -306,3 +306,17 @@ class ApplicationInstallView(ApplicationView):
         group_service.install_app(self.tenant, self.region_name, app_id, values)
         result = general_message(200, "success", "安装成功")
         return Response(result)
+
+
+class ApplicationPodView(ApplicationView):
+    def get(self, request, app_id, pod_name, *args, **kwargs):
+        pod = group_service.get_pod(self.tenant, self.region_name, pod_name)
+        result = general_message(200, "success", "安装成功", bean=pod)
+        return Response(result)
+
+
+class ApplicationServiceView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        services = group_service.list_services(self.tenant, self.region_name, app_id)
+        result = general_message(200, "success", "安装成功", list=services)
+        return Response(result)

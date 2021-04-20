@@ -543,5 +543,14 @@ class GroupService(object):
             "values": values,
         })
 
+    @staticmethod
+    def list_services(tenant, region_name, app_id):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        return region_api.list_app_services(region_name, tenant.tenant_name, region_app_id)
+
+    @staticmethod
+    def get_pod(tenant, region_name, pod_name):
+        return region_api.get_pod(region_name, tenant.tenant_name, pod_name)
+
 
 group_service = GroupService()
