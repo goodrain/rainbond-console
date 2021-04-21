@@ -66,7 +66,7 @@ from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
                                  TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView, ApplicationServiceView, ApplicationComponentView)
+                                 ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView, ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -301,6 +301,8 @@ urlpatterns = [
         ApplicationComponentView.as_view(), perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$',
         ApplicationComponentView.as_view(), perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/orphan-components$',
+        ApplicationOrphanComponentView.as_view(), perms.TenantGroupOperationView),
 
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),

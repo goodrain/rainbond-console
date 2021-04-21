@@ -164,8 +164,7 @@ class TenantGroupOperationView(ApplicationView):
         """
         app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
         try:
-            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name,
-                                                                                     app_id)
+            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
         except MaxRetryError as e:
             logger.warning("get the number of upgradable app: {}".format(e))
             app['upgradable_num'] = 0
@@ -220,8 +219,7 @@ class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView)
         if action == "deploy":
             self.has_perms([300008, 400010])
             # 批量操作
-        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids,
-                                                        self.oauth_instance)
+        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
@@ -328,7 +326,7 @@ class ApplicationServiceView(ApplicationView):
 class ApplicationComponentView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         service_name = parse_argument(request, "service_name", required=True)
-        components = application_service.list_components_by_service(self.region_name, self.tenant, app_id, service_name)
+        components = application_service.list_components_by_service_name(self.region_name, self.tenant, app_id, service_name)
         return Response(general_message(200, "success", "查询成功", list=components))
 
     def post(self, request, app_id, *args, **kwargs):
@@ -336,3 +334,9 @@ class ApplicationComponentView(ApplicationView):
         service_name = parse_item(request, "service_name", required=True)
         application_service.create_thirdparty_component(self.user, self.region_name, self.tenant, app_id, service_name, port)
         return Response(general_message(200, "success", "创建成功"))
+
+
+class ApplicationOrphanComponentView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        components = application_service.list_orphan_components(self.region_name, self.tenant, app_id)
+        return Response(general_message(200, "success", "查询成功", list=components))
