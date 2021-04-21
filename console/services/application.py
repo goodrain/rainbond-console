@@ -56,7 +56,9 @@ class ApplicationService(object):
     @staticmethod
     def list_orphan_components(region_name: str, tenant: object, app_id: int):
         services = group_service.list_services(tenant, region_name, app_id)
-        service_names = [svc.get("service_name") for svc in services]
+        service_names = []
+        if services:
+            service_names = [svc.get("service_name") for svc in services]
         service_components = service_component_repo.list_by_app_id(app_id)
         service_components = service_components.exclude(service_name__in=service_names)
         component_ids = [sc.component_id for sc in service_components]
