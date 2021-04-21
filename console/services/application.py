@@ -32,7 +32,8 @@ class ApplicationService(object):
                                                        component_name,
                                                        endpoints,
                                                        "static",
-                                                       is_inner_service=True)
+                                                       is_inner_service=True,
+                                                       component_type="helm")
         group_service.add_component_to_app(tenant, region_name, app_id, component.component_id)
         service_component_repo.create(app_id, service_name, component.component_id)
 

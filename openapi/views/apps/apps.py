@@ -165,15 +165,8 @@ class AppInfoView(TeamAppAPIView):
                             app_manage_service.delete_again(self.user, self.team, service, is_force=True)
                 if code_status != 200:
                     raise ServiceHandleException(msg=msg_list, msg_show="请求错误")
-                else:
-                    code, msg, data = group_service.delete_group_no_service(self.app.ID)
-                    if code != 200:
-                        raise ServiceHandleException(msg=msg, msg_show="请求错误")
-                    return Response(None, status=code)
-        code, msg, data = group_service.delete_group_no_service(self.app.ID)
-        if code != 200:
-            raise ServiceHandleException(msg=msg, msg_show="请求错误")
-        return Response(None, status=code)
+        group_service.delete_group_no_service(self.region_name, self.team.tenant_name, self.app.ID)
+        return Response(None, status=200)
 
 
 class APPOperationsView(TeamAppAPIView):
@@ -257,7 +250,8 @@ class CreateThirdComponentView(TeamAppAPIView):
                                                                    req_date["component_name"], req_date["endpoints"],
                                                                    req_date["endpoints_type"])
         # add component to app
-        code, msg_show = group_service.add_service_to_group(self.team, self.region_name, app_id, new_component.service_id)
+        code, msg_show = group_service.add_service_to_group(self.team, self.region_name, app_id,
+                                                            new_component.service_id)
         if code != 200:
             raise ServiceHandleException(
                 msg="add component to app failure", msg_show=msg_show, status_code=code, error_code=code)
@@ -417,7 +411,8 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
             openapi.Parameter(
-                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
+                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING,
+                enum=["false", "true"]),
         ],
         responses={200: ComponentMonitorSerializers(many=True)},
         tags=['openapi-apps'],
@@ -454,7 +449,8 @@ class TeamAppsMonitorQueryView(TeamAppAPIView):
                     }
                     for k, v in list(monitor_query_items.items()):
                         monitor = {"monitor_item": k}
-                        res, body = region_api.get_query_data(self.region_name, self.team.tenant_name, v % service.service_id)
+                        res, body = region_api.get_query_data(self.region_name, self.team.tenant_name,
+                                                              v % service.service_id)
                         if body.get("data"):
                             if body["data"]["result"]:
                                 result_list = []
@@ -481,7 +477,8 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
             openapi.Parameter("end", openapi.IN_PATH, description="结束时间戳", type=openapi.TYPE_NUMBER),
             openapi.Parameter("step", openapi.IN_PATH, description="步长（默认60）", type=openapi.TYPE_NUMBER),
             openapi.Parameter(
-                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING, enum=["false", "true"]),
+                "is_outer", openapi.IN_QUERY, description="是否只获取对外组件监控", type=openapi.TYPE_STRING,
+                enum=["false", "true"]),
         ],
         responses={200: ComponentMonitorSerializers(many=True)},
         tags=['openapi-apps'],

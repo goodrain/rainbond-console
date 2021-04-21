@@ -133,17 +133,12 @@ class TenantGroupOperationView(ApplicationView):
 
         """
         service = group_service_relation_repo.get_service_by_group(app_id)
-        if not service:
-            code, msg, data = group_service.delete_group_no_service(app_id)
-        else:
-            code = 400
-            msg = '当前应用内存在组件，无法删除'
-            result = general_message(code, msg, None)
+        if service:
+            result = general_message(400, '当前应用内存在组件，无法删除', None)
             return Response(result, status=result["code"])
-        if code != 200:
-            result = general_message(code, "delete group error", msg)
-        else:
-            result = general_message(code, "success", msg)
+
+        group_service.delete_group_no_service(self.region_name, self.tenant_name, app_id)
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
     def get(self, request, app_id, *args, **kwargs):

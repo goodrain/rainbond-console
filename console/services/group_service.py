@@ -22,6 +22,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.service_component import service_component_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.utils.shortcuts import get_object_or_404
@@ -408,15 +409,17 @@ class GroupService(object):
 
     # 应用内没有组件情况下删除应用
     @transaction.atomic
-    def delete_group_no_service(self, group_id):
-        if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
-            return 400, "需要删除的应用ID不合法", None
+    def delete_group_no_service(self, region_name, tenant_name, app_id):
+        if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
+            raise AbortRequest(msg="invalid 'app_id'")
         # 删除应用
-        group_repo.delete_group_by_pk(group_id)
+        group_repo.delete_group_by_pk(app_id)
         # 删除升级记录
-        upgrade_repo.delete_app_record_by_group_id(group_id)
+        upgrade_repo.delete_app_record_by_group_id(app_id)
+        service_component_repo.delete_by_app_id(app_id)
 
-        return 200, "删除成功", group_id
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.delete_app(region_name, tenant_name, region_app_id)
 
     def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""

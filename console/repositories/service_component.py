@@ -20,5 +20,9 @@ class ServiceComponentsRepository(object):
     def list_by_app_id(app_id: int):
         return ServiceComponents.objects.filter(app_id=app_id)
 
+    @staticmethod
+    def delete_by_app_id(app_id: int):
+        return ServiceComponents.objects.filter(app_id=app_id).delete()
+
 
 service_component_repo = ServiceComponentsRepository()

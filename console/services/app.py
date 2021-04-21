@@ -273,7 +273,7 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_third_party_app(self, region, tenant, user, service_cname, endpoints, endpoints_type, is_inner_service=False):
+    def create_third_party_app(self, region, tenant, user, service_cname, endpoints, endpoints_type, is_inner_service=False, component_type="rainbond"):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -289,6 +289,7 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = ''
         new_service.protocol = 'tcp'
+        new_service.component_type = component_type
         new_service.save()
         if endpoints_type == "static":
             # 如果只有一个端口，就设定为默认端口，没有或有多个端口，不设置默认端口
