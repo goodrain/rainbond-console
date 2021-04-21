@@ -86,3 +86,22 @@ class ErrPluginIsUsed(ServiceHandleException):
     def __init__(self):
         super(ErrPluginIsUsed, self).__init__(
             msg="plugin is used by the service", msg_show="该插件被组件使用，无法删除", status_code=409, error_code=20600)
+
+
+# 20700 ~ 20799 => appliction
+class ErrApplicationNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrApplicationNotFound, self).__init__(
+            msg="application not found", msg_show="应用不存在", status_code=404, error_code=20700)
+
+
+class ErrApplicationServiceNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrApplicationServiceNotFound, self).__init__(
+            msg="application service not found", msg_show="应用服务不存在", status_code=404, error_code=20701)
+
+
+class ErrServiceAddressNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrServiceAddressNotFound, self).__init__(
+            msg="service address not found", msg_show="服务地址不存在", status_code=404, error_code=20702)

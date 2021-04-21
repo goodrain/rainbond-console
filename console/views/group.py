@@ -10,6 +10,7 @@ from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
+from console.services.application import application_service
 from console.services.market_app_service import market_app_service
 from console.utils.reqparse import parse_item
 from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderView)
@@ -320,3 +321,11 @@ class ApplicationServiceView(ApplicationView):
         services = group_service.list_services(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "安装成功", list=services)
         return Response(result)
+
+
+class ApplicationComponentView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        port = parse_item(request, "port", required=True)
+        service_name = parse_item(request, "service_name", required=True)
+        application_service.create_thirdparty_component(self.user, self.region_name, self.tenant, app_id, service_name, port)
+        return Response(general_message(200, "success", "创建成功"))

@@ -7,6 +7,7 @@ import logging
 import os
 import pickle
 
+from console.utils.reqparse import parse_item
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
@@ -34,13 +35,11 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
         """
 
-        group_id = request.data.get("group_id", -1)
-        service_cname = request.data.get("service_cname", None)
+        group_id = parse_item(request, "group_id", required=True)
+        service_cname = parse_item(request, "service_cname", required=True)
         endpoints = request.data.get("endpoints", None)
         endpoints_type = request.data.get("endpoints_type", None)
 
-        if not service_cname:
-            return Response(general_message(400, "service_cname is null", "组件名未指明"), status=400)
         if not endpoints and endpoints_type != "api":
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         validate_endpoints_info(endpoints)
@@ -107,7 +106,6 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
     """
     获取实例endpoint列表
     """
-
     def get(self, request, service_id, *args, **kwargs):
         secret_key = request.GET.get("secret_key")
         # 加密

@@ -6,8 +6,10 @@ import logging
 import re
 from datetime import datetime
 
+from deprecated import deprecated
+
 from console.enum.app import GovernanceModeEnum, AppType
-from console.exception.bcode import ErrUserNotFound
+from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
@@ -153,6 +155,18 @@ class GroupService(object):
         group_service_relation_repo.update_service_relation(group_id, default_group_id)
         return 200, "删除成功", group_id
 
+    @staticmethod
+    def add_component_to_app(tenant, region_name, app_id, component_id):
+        if not app_id:
+            return
+        app_id = int(app_id)
+        if app_id > 0:
+            group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+            if not group:
+                raise ErrApplicationNotFound
+            group_service_relation_repo.add_service_group_relation(app_id, component_id, tenant.tenant_id, region_name)
+
+    @deprecated("You should use 'add_component_to_app'")
     def add_service_to_group(self, tenant, region_name, group_id, service_id):
         if group_id:
             group_id = int(group_id)
@@ -551,6 +565,12 @@ class GroupService(object):
     @staticmethod
     def get_pod(tenant, region_name, pod_name):
         return region_api.get_pod(region_name, tenant.tenant_name, pod_name)
+
+    def get_service(self, tenant, region_name, app_id, service_name):
+        services = self.list_services(tenant, region_name, app_id)
+        for svc in services:
+            if svc.get("service_name") == service_name:
+                return svc
 
 
 group_service = GroupService()

@@ -552,6 +552,10 @@ class TenantServiceInfo(BaseModel):
     def is_slug(self):
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
 
+    @property
+    def component_id(self):
+        return self.service_id
+
 
 class TenantServiceInfoDelete(BaseModel):
     class Meta:
