@@ -553,7 +553,7 @@ class GroupService(object):
     @staticmethod
     def install_app(tenant, region_name, app_id, values):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        return region_api.install_app(region_name, tenant.tenant_name, region_app_id, {
+        region_api.install_app(region_name, tenant.tenant_name, region_app_id, {
             "values": values,
         })
 
