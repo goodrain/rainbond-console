@@ -1006,3 +1006,12 @@ class ComponentGraph(BaseModel):
     title = models.CharField(max_length=255, help_text="the title of the graph")
     promql = models.CharField(max_length=2047, help_text="the title of the graph")
     sequence = models.IntegerField(help_text="the sequence number of the graph")
+
+
+class ServiceComponents(BaseModel):
+    class Meta:
+        db_table = "service_components"
+
+    app_id = models.IntegerField(help_text="the identifier of application")
+    service_name = models.CharField(help_text="the name of the kubernetes services")
+    component_id = models.CharField(max_length=32, help_text="the identity of the component")

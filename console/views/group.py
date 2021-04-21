@@ -12,7 +12,7 @@ from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.application import application_service
 from console.services.market_app_service import market_app_service
-from console.utils.reqparse import parse_item
+from console.utils.reqparse import parse_item, parse_argument
 from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
@@ -164,7 +164,8 @@ class TenantGroupOperationView(ApplicationView):
         """
         app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
         try:
-            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
+            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name,
+                                                                                     app_id)
         except MaxRetryError as e:
             logger.warning("get the number of upgradable app: {}".format(e))
             app['upgradable_num'] = 0
@@ -219,7 +220,8 @@ class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView)
         if action == "deploy":
             self.has_perms([300008, 400010])
             # 批量操作
-        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
+        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids,
+                                                        self.oauth_instance)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
@@ -324,6 +326,11 @@ class ApplicationServiceView(ApplicationView):
 
 
 class ApplicationComponentView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        service_name = parse_argument(request, "service_name", required=True)
+        components = application_service.list_components_by_service(self.region_name, self.tenant, app_id, service_name)
+        return Response(general_message(200, "success", "查询成功", list=components))
+
     def post(self, request, app_id, *args, **kwargs):
         port = parse_item(request, "port", required=True)
         service_name = parse_item(request, "service_name", required=True)

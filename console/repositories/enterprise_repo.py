@@ -261,7 +261,7 @@ class TenantEnterpriseRepo(object):
         if not group_relation_services:
             return [], 0
         service_ids = group_relation_services.values_list("service_id", flat=True)
-        services = service_repo.get_service_by_service_ids(service_ids)
+        services = service_repo.list_by_component_ids(service_ids)
         return services[(page - 1) * page_size:page * page_size], services.count()
 
 

@@ -336,7 +336,7 @@ class ServiceEventsView(RegionTenantHeaderView):
             if event["Target"] == "service":
                 service_ids.append(event["TargetID"])
 
-        services = service_repo.get_service_by_service_ids(service_ids)
+        services = service_repo.list_by_component_ids(service_ids)
 
         event_service_list = []
         for event in event_service_dynamic_list:
