@@ -303,8 +303,8 @@ class ApplicationDetectPrecessView(ApplicationView):
 class ApplicationInstallView(ApplicationView):
     def post(self, request, app_id, *args, **kwargs):
         values = request.data.get("values")
-        group_service.install_app(self.tenant, self.region_name, app_id, values)
-        result = general_message(200, "success", "安装成功")
+        services = group_service.install_app(self.tenant, self.region_name, app_id, values)
+        result = general_message(200, "success", "安装成功", list=services)
         return Response(result)
 
 

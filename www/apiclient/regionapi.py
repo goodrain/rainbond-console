@@ -1811,7 +1811,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/install"
 
         self._set_headers(token)
-        _, _ = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+        _, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+        return body["list"]
 
     def list_app_services(self, region_name, tenant_name, region_app_id):
         url, token = self.__get_region_access_info(tenant_name, region_name)
