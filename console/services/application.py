@@ -26,11 +26,12 @@ class ApplicationService(object):
         endpoints = [address + ":" + str(port)]
         component_name = service_name + "-" + str(port)
 
-        component = app_service.create_third_party_app(region_name, tenant, user, component_name, endpoints, "static")
+        component = app_service.create_third_party_app(region_name, tenant, user, component_name, endpoints, "static",
+                                                       is_inner_service=True)
         group_service.add_component_to_app(tenant, region_name, app_id, component.component_id)
         service_component_repo.create(app_id, service_name, component.component_id)
 
-        app_service.create_third_party_service(tenant, component, user.nick_name)
+        app_service.create_third_party_service(tenant, component, user.nick_name, is_inner_service=True)
 
     @staticmethod
     def list_components_by_service(region_name: str, tenant: object, app_id: int, service_name: str):

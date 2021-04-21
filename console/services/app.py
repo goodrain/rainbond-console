@@ -273,7 +273,7 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_third_party_app(self, region, tenant, user, service_cname, endpoints, endpoints_type):
+    def create_third_party_app(self, region, tenant, user, service_cname, endpoints, endpoints_type, is_inner_service=False):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -326,7 +326,7 @@ class AppService(object):
                             "mapping_port": port,
                             "protocol": protocol,
                             "port_alias": port_alias,
-                            "is_inner_service": False,
+                            "is_inner_service": is_inner_service,
                             "is_outer_service": False,
                             "k8s_service_name": new_service.service_alias + "-" + str(port),
                         }
@@ -572,7 +572,7 @@ class AppService(object):
                 break
         return rt_name
 
-    def create_third_party_service(self, tenant, service, user_name):
+    def create_third_party_service(self, tenant, service, user_name, is_inner_service=False):
         data = self.__init_third_party_data(tenant, service, user_name)
         # env var
         envs_info = env_var_repo.get_service_env(tenant.tenant_id, service.service_id).values(
@@ -585,7 +585,7 @@ class AppService(object):
                                   'is_outer_service', 'k8s_service_name')
 
         for port_info in ports_info:
-            port_info["is_inner_service"] = False
+            port_info["is_inner_service"] = is_inner_service
             port_info["is_outer_service"] = False
 
         if ports_info:
@@ -605,7 +605,6 @@ class AppService(object):
         # etcd keys
         data["etcd_key"] = service.check_uuid
         # 数据中心创建
-        logger.debug('-----------data-----------_>{0}'.format(data))
         app_id = service_group_relation_repo.get_group_id_by_service(service)
         region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
         data["app_id"] = region_app_id
