@@ -9,6 +9,9 @@ from console.services.app import app_service
 from console.services.group_service import group_service
 from console.repositories.service_component import service_component_repo
 from console.repositories.service_repo import service_repo
+from www.apiclient.regionapi import RegionInvokeApi
+
+region_api = RegionInvokeApi()
 
 
 class ApplicationService(object):
@@ -59,6 +62,10 @@ class ApplicationService(object):
         component_ids = [sc.component_id for sc in service_components]
         components = service_repo.list_by_component_ids(component_ids)
         return [{"component_name": cpt.service_cname, "component_alias": cpt.service_alias} for cpt in components]
+
+    @staticmethod
+    def ensure_name(region_name: str, tenant_name: str, app_name: str):
+        return region_api.ensure_app_name(region_name, tenant_name, app_name)
 
 
 application_service = ApplicationService()

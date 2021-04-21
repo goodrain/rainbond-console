@@ -339,3 +339,10 @@ class ApplicationOrphanComponentView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         components = application_service.list_orphan_components(self.region_name, self.tenant, app_id)
         return Response(general_message(200, "success", "查询成功", list=components))
+
+
+class ApplicationEnsureNameView(RegionTenantHeaderView):
+    def post(self, request, *args, **kwargs):
+        app_name = parse_item(request, "app_name", required=True)
+        components = application_service.ensure_name(self.region_name, self.tenant_name, app_name)
+        return Response(general_message(200, "success", "查询成功", list=components))

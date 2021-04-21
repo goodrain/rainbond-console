@@ -66,7 +66,7 @@ from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
                                  TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView, ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView)
+                                 ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView, ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView, ApplicationEnsureNameView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -226,6 +226,7 @@ urlpatterns = [
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(),
         perms.TeamServiceOverViewView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/ensure-app-name$', ApplicationEnsureNameView.as_view()),
 
     # 应用事件动态
     url(r'teams/(?P<team_name>[\w\-]+)/services/event$', ServiceEventsView.as_view(), perms.ServiceEventsView),
