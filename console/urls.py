@@ -64,9 +64,10 @@ from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseConfigView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView, ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView, ApplicationEnsureNameView)
+from console.views.group import (
+    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
+    TenantGroupOperationView, TenantGroupView, ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView,
+    ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView, ApplicationEnsureNameView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -108,7 +109,7 @@ from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, C
                                 JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamCheckKubernetesServiceName,
                                 TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
                                 TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
-                                UserApplyStatusView, UserDelView, UserFuzSerView)
+                                UserApplyStatusView, UserDelView, UserFuzSerView, TeamsPermissionCreateApp)
 from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -298,10 +299,10 @@ urlpatterns = [
         perms.AppConfigGroupView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
         AppConfigGroupView.as_view(), perms.AppConfigGroupView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$',
-        ApplicationComponentView.as_view(), perms.TenantGroupOperationView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$',
-        ApplicationComponentView.as_view(), perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$', ApplicationComponentView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$', ApplicationComponentView.as_view(),
+        perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/orphan-components$',
         ApplicationOrphanComponentView.as_view(), perms.TenantGroupOperationView),
 
@@ -783,6 +784,8 @@ urlpatterns = [
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/create-app-teams$", TeamsPermissionCreateApp.as_view()),
+
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

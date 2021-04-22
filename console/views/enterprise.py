@@ -3,7 +3,7 @@ import json
 import logging
 
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import RegionConfig
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo
@@ -147,15 +147,9 @@ class EnterpriseUserTeams(JWTAuthApiView):
         name = request.GET.get("name", None)
         code = 200
         if int(user_id) != int(user.user_id):
-            result = general_message(400, "failed", "请求失败")
-            return Response(result, status=code)
-        try:
-            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
-            result = general_message(200, "team query success", "查询成功", list=tenants)
-        except Exception as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "failed", "请求失败")
+            raise AbortRequest("mismatched user id")
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
+        result = general_message(200, "team query success", "查询成功", list=tenants)
         return Response(result, status=code)
 
 

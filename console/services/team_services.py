@@ -326,7 +326,7 @@ class TeamService(object):
             raw_tenants = tall
         tenants = []
         for tenant in raw_tenants:
-            tenants.append(self.__team_with_region_info(tenant, user))
+            tenants.append(self.team_with_region_info(tenant, user))
         return tenants, total
 
     def list_teams_v2(self, eid, query=None, page=None, page_size=None):
@@ -353,7 +353,7 @@ class TeamService(object):
             tenant["role_infos"] = roles["roles"]
         return tenants, total
 
-    def __team_with_region_info(self, tenant, request_user=None):
+    def team_with_region_info(self, tenant, request_user=None):
         try:
             user = user_repo.get_user_by_user_id(tenant.creater)
             owner_name = user.get_name()
@@ -392,7 +392,7 @@ class TeamService(object):
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
         if tenants:
             for tenant in tenants:
-                teams_list.append(self.__team_with_region_info(tenant, user))
+                teams_list.append(self.team_with_region_info(tenant, user))
         return teams_list
 
     def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
