@@ -346,3 +346,10 @@ class ApplicationEnsureNameView(RegionTenantHeaderView):
         app_name = parse_item(request, "app_name", required=True)
         components = application_service.ensure_name(self.region_name, self.tenant_name, app_name)
         return Response(general_message(200, "success", "查询成功", list=components))
+
+
+class ApplicationParseServicesView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        values = parse_item(request, "values", required=True)
+        services = application_service.parse_services(self.region_name, self.tenant, app_id, values)
+        return Response(general_message(200, "success", "查询成功", list=services))

@@ -1922,3 +1922,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             "app_name": app_name,
         }))
         return body["bean"]
+
+    def parse_app_services(self, region_name, tenant_name, app_id, values):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/parse-app-services"
+
+        self._set_headers(token)
+        _, body = self._post(url, self.default_headers, region=region_name, timeout=60, body=json.dumps({
+            "values": values,
+        }))
+        return body["list"]

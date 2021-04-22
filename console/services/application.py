@@ -9,6 +9,7 @@ from console.services.app import app_service
 from console.services.group_service import group_service
 from console.repositories.service_component import service_component_repo
 from console.repositories.service_repo import service_repo
+from console.repositories.region_app import region_app_repo
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -68,6 +69,11 @@ class ApplicationService(object):
     @staticmethod
     def ensure_name(region_name: str, tenant_name: str, app_name: str):
         return region_api.ensure_app_name(region_name, tenant_name, app_name)
+
+    @staticmethod
+    def parse_services(region_name: str, tenant_name: str, app_id: int, values: str):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        return region_api.parse_app_services(region_name, tenant_name, region_app_id, values)
 
 
 application_service = ApplicationService()
