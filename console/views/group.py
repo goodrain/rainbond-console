@@ -342,10 +342,10 @@ class ApplicationOrphanComponentView(ApplicationView):
 
 
 class ApplicationEnsureNameView(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, team_name, *args, **kwargs):
         app_name = parse_item(request, "app_name", required=True)
-        region_name = parse_argument(request, "region_name", required=True)
-        components = application_service.ensure_name(region_name, self.tenant_name, app_name)
+        region_name = parse_item(request, "region_name", required=True)
+        components = application_service.ensure_name(region_name, team_name, app_name)
         return Response(general_message(200, "success", "查询成功", list=components))
 
 

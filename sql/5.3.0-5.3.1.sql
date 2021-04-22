@@ -6,3 +6,6 @@ CREATE TABLE IF NOT EXISTS `service_components` (
     PRIMARY KEY (`ID`),
     KEY (`app_id`,`service_name`,`component_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `tenant_service_delete` ADD COLUMN `component_type` varchar(32) NULL AFTER `service_name`;
+ALTER TABLE `tenant_service` ADD COLUMN `component_type` varchar(32) NULL AFTER `service_name`;
