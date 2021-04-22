@@ -13,7 +13,7 @@ from console.services.group_service import group_service
 from console.services.application import application_service
 from console.services.market_app_service import market_app_service
 from console.utils.reqparse import parse_item, parse_argument
-from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderView, JWTAuthApiView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from www.apiclient.regionapi import RegionInvokeApi
@@ -341,10 +341,11 @@ class ApplicationOrphanComponentView(ApplicationView):
         return Response(general_message(200, "success", "查询成功", list=components))
 
 
-class ApplicationEnsureNameView(RegionTenantHeaderView):
+class ApplicationEnsureNameView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         app_name = parse_item(request, "app_name", required=True)
-        components = application_service.ensure_name(self.region_name, self.tenant_name, app_name)
+        region_name = parse_argument(request, "region_name", required=True)
+        components = application_service.ensure_name(region_name, self.tenant_name, app_name)
         return Response(general_message(200, "success", "查询成功", list=components))
 
 
