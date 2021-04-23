@@ -335,6 +335,23 @@ class ApplicationComponentView(ApplicationView):
         return Response(general_message(200, "success", "创建成功"))
 
 
+class ApplicationComponentBatchView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        services = request.data
+        if type(services) != list:
+            raise AbortRequest("expect list, but got "+type(services))
+        for service in services:
+            if not service.get("service_name"):
+                raise AbortRequest("the field 'service_name' is required")
+            if not service.get("address"):
+                raise AbortRequest("the field 'address' is required")
+            if not service.get("ports"):
+                raise AbortRequest("the field 'address' is required")
+
+        application_service.batch_create_thirdparty_components(self.user, self.region_name, self.tenant, app_id, services)
+        return Response(general_message(200, "success", "创建成功"))
+
+
 class ApplicationOrphanComponentView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         components = application_service.list_orphan_components(self.region_name, self.tenant, app_id)

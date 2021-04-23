@@ -67,7 +67,8 @@ from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (
     AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
     TenantGroupOperationView, TenantGroupView, ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView,
-    ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView, ApplicationParseServicesView, ApplicationEnsureNameView)
+    ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView, ApplicationParseServicesView,
+    ApplicationEnsureNameView, ApplicationComponentBatchView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -300,6 +301,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
         AppConfigGroupView.as_view(), perms.AppConfigGroupView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$', ApplicationComponentView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/batch-components$', ApplicationComponentBatchView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$', ApplicationComponentView.as_view(),
         perms.TenantGroupOperationView),

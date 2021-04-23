@@ -16,9 +16,8 @@ region_api = RegionInvokeApi()
 
 
 class ApplicationService(object):
-    @staticmethod
     @transaction.atomic
-    def create_thirdparty_component(user, region_name, tenant, app_id, service_name, port):
+    def create_thirdparty_component(self, user, region_name, tenant, app_id, service_name, port):
         # service address
         service = group_service.get_service(tenant, region_name, app_id, service_name)
         if not service:
@@ -27,6 +26,18 @@ class ApplicationService(object):
         if not address:
             raise ErrServiceAddressNotFound
 
+        self._create_thirdparty_component(user, region_name, tenant, app_id, service_name, port, address)
+
+    @transaction.atomic
+    def batch_create_thirdparty_components(self, user, region_name, tenant, app_id, services):
+        # TODO: Kill for loop
+        for service in services:
+            for port in service["ports"]:
+                self._create_thirdparty_component(user, region_name, tenant, app_id,
+                                                  service["service_name"], port, service["address"])
+
+    @staticmethod
+    def _create_thirdparty_component(user, region_name, tenant, app_id, service_name, port, address):
         endpoints = [address + ":" + str(port)]
         component_name = service_name + "-" + str(port)
 
@@ -42,6 +53,7 @@ class ApplicationService(object):
         service_component_repo.create(app_id, service_name, component.component_id)
 
         app_service.create_third_party_service(tenant, component, user.nick_name, is_inner_service=True)
+
 
     @staticmethod
     def list_components_by_service_name(region_name: str, tenant: object, app_id: int, service_name: str):
