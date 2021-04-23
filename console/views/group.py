@@ -77,6 +77,7 @@ class TenantGroupView(RegionTenantHeaderView):
             app_store_url,
             app_template_name,
             version,
+            self.user.enterprise_id,
         )
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])

@@ -58,7 +58,8 @@ class GroupService(object):
                    app_store_name="",
                    app_store_url="",
                    app_template_name="",
-                   version=""):
+                   version="",
+                   eid=""):
         self.check_app_name(tenant, region_name, app_name)
         # check parameter for helm app
         app_type = AppType.rainbond.name
@@ -91,7 +92,7 @@ class GroupService(object):
         )
         group_repo.create(app)
 
-        self.create_region_app(tenant, region_name, app)
+        self.create_region_app(tenant, region_name, app, eid=eid)
 
         res = app.to_dict()
         # compatible with the old version
@@ -105,9 +106,10 @@ class GroupService(object):
         self.create_region_app(tenant, region_name, app)
         return app.to_dict()
 
-    def create_region_app(self, tenant, region_name, app):
+    def create_region_app(self, tenant, region_name, app, eid=""):
         region_app = region_api.create_application(
             region_name, tenant.tenant_name, {
+                "eid": eid,
                 "app_name": app.group_name,
                 "app_type": app.app_type,
                 "app_store_name": app.app_store_name,
