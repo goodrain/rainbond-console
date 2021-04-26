@@ -127,7 +127,7 @@ class GroupService(object):
         region_app_repo.create(**data)
 
     @transaction.atomic
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, values=""):
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, values="", version=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -149,7 +149,10 @@ class GroupService(object):
         group_repo.update(app_id, **data)
 
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {"values": values})
+        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
+            "values": values,
+            "version": version,
+        })
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
@@ -182,7 +185,8 @@ class GroupService(object):
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
                     return 404, "应用不存在"
-                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
+                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id,
+                                                                       region_name)
         return 200, "success"
 
     def sync_app_services(self, tenant, region_name, app_id):
@@ -286,7 +290,8 @@ class GroupService(object):
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
-        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
+        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups(
+            [g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
         for k, v in list(service_group_map.items()):
@@ -376,7 +381,8 @@ class GroupService(object):
             group_id = a.ID
             app = apps.get(a.ID)
             app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
-            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
+            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(
+                group_id) else 0
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
                 app["run_service_num"] = 0
@@ -511,7 +517,8 @@ class GroupService(object):
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "-" + str(
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[
+                                                                                       port.service_id] + "-" + str(
                 port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,

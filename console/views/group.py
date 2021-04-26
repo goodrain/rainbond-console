@@ -112,8 +112,9 @@ class TenantGroupOperationView(ApplicationView):
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         username = request.data.get("username", None)
         values = request.data.get("values", "")
+        version = request.data.get("version", "")
 
-        group_service.update_group(self.tenant, self.response_region, app_id, app_name, note, username, values=values)
+        group_service.update_group(self.tenant, self.response_region, app_id, app_name, note, username, values=values, version=version)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
