@@ -18,7 +18,7 @@ from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import (parse_args, parse_argument, parse_date, parse_item)
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView, RegionTenantHeaderCloudEnterpriseCenterView)
+from console.views.base import (RegionTenantHeaderView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.core.paginator import Paginator
 from django.db.models import Q
 

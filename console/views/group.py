@@ -12,7 +12,7 @@ from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.utils.reqparse import parse_item
-from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from www.apiclient.regionapi import RegionInvokeApi

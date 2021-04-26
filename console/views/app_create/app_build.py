@@ -171,8 +171,7 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             group_compose.save()
             for s in new_app_list:
                 try:
-                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None,
-                                              oauth_instance=self.oauth_instance)
+                    app_manage_service.deploy(self.tenant, s, self.user, group_version=None, oauth_instance=self.oauth_instance)
                 except Exception as e:
                     logger.exception(e)
                     continue

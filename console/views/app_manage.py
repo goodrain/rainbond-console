@@ -17,7 +17,8 @@ from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
 from console.views.app_config.base import AppBaseView, AppBaseCloudEnterpriseCenterView
-from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView)
+from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView,
+                                RegionTenantHeaderCloudEnterpriseCenterView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
