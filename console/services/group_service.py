@@ -126,7 +126,8 @@ class GroupService(object):
         }
         region_app_repo.create(**data)
 
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
+    @transaction.atomic
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, values=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -134,7 +135,8 @@ class GroupService(object):
         if username:
             user_repo.get_user_by_username(username)
         # check app name
-        self.check_app_name(tenant, region_name, app_name)
+        if app_name:
+            self.check_app_name(tenant, region_name, app_name)
 
         data = {
             "note": note,
@@ -145,6 +147,9 @@ class GroupService(object):
             data["group_name"] = app_name
 
         group_repo.update(app_id, **data)
+
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {"values": values})
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
