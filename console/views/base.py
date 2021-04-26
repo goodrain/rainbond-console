@@ -231,6 +231,8 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
 
     def initial(self, request, *args, **kwargs):
         super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
+        if os.getenv("IS_CLOUD_VERSION", None):
+            return
         try:
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
