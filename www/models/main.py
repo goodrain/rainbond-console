@@ -1022,6 +1022,10 @@ class ServiceGroup(BaseModel):
     app_template_name = models.CharField(max_length=255, help_text="应用模板名称")
     version = models.CharField(max_length=255, help_text="Helm 应用版本")
 
+    @property
+    def app_id(self):
+        return self.ID
+
 
 class ServiceGroupRelation(BaseModel):
     """组件与分组关系"""

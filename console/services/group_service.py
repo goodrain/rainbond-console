@@ -421,20 +421,44 @@ class GroupService(object):
         return service_source_repo.get_service_sources_by_service_ids([service_id])
 
     def get_service_source_by_group_key(self, group_key):
-        """ geet service source by group key"""
+        """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
-    # 应用内没有组件情况下删除应用
     @transaction.atomic
-    def delete_group_no_service(self, region_name, tenant_name, app_id):
-        if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
-            raise AbortRequest(msg="invalid 'app_id'")
-        # 删除应用
-        group_repo.delete_group_by_pk(app_id)
-        # 删除升级记录
-        upgrade_repo.delete_app_record_by_group_id(app_id)
-        service_component_repo.delete_by_app_id(app_id)
+    def delete_app(self, tenant, region_name, app):
+        if app.app_type == AppType.helm.name:
+            self._delete_helm_app(tenant, region_name, app)
+            return
+        self._delete_rainbond_app(tenant, region_name, app)
 
+    def _delete_helm_app(self, tenant, region_name, app, user=None):
+        """
+        For helm application,  can be delete directly, regardless of whether there are components
+        """
+        # delete components
+        components = self.list_components(app.app_id)
+        group_service_relation_repo.delete_relation_by_group_id(app.app_id)
+        # avoid circular import
+        from console.services.app_actions import app_manage_service
+        app_manage_service.delete_components(tenant, components, user)
+        # delete app
+        service_component_repo.delete_by_app_id(app.app_id)
+        self._delete_app(tenant.tenant_name, region_name, app.app_id)
+
+    def _delete_rainbond_app(self, tenant, region_name, app):
+        """
+        For rainbond application, with components, cannot be deleted directly
+        """
+        service = group_service_relation_repo.get_service_by_group(app.app_id)
+        if service:
+            raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
+
+        self._delete_app(region_name, tenant.tenant_name, app.app_id)
+
+    @staticmethod
+    def _delete_app(tenant_name, region_name, app_id):
+        group_repo.delete_group_by_pk(app_id)
+        upgrade_repo.delete_app_record_by_group_id(app_id)
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         region_api.delete_app(region_name, tenant_name, region_app_id)
 
@@ -579,7 +603,7 @@ class GroupService(object):
         })
 
     @staticmethod
-    def list_services(tenant, region_name, app_id):
+    def list_services(tenant_name, region_name, app_id):
         # key is the function to get the identify key of service.
         def key(service_name, port):
             return service_name + "-" + str(port)
@@ -590,7 +614,7 @@ class GroupService(object):
         service_components = {key(sc.service_name, sc.port): sc for sc in service_components}
 
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        services = region_api.list_app_services(region_name, tenant.tenant_name, region_app_id)
+        services = region_api.list_app_services(region_name, tenant_name, region_app_id)
 
         # filter out the existing service component
         for service in services:
@@ -603,10 +627,15 @@ class GroupService(object):
         return region_api.get_pod(region_name, tenant.tenant_name, pod_name)
 
     def get_service(self, tenant, region_name, app_id, service_name):
-        services = self.list_services(tenant, region_name, app_id)
+        services = self.list_services(tenant.tenant_name, region_name, app_id)
         for svc in services:
             if svc.get("service_name") == service_name:
                 return svc
+
+    @staticmethod
+    def list_components(app_id):
+        service_groups = group_service_relation_repo.list_service_groups(app_id)
+        return service_repo.list_by_ids([sg.service_id for sg in service_groups])
 
 
 group_service = GroupService()

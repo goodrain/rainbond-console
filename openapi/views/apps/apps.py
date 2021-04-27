@@ -165,7 +165,7 @@ class AppInfoView(TeamAppAPIView):
                             app_manage_service.delete_again(self.user, self.team, service, is_force=True)
                 if code_status != 200:
                     raise ServiceHandleException(msg=msg_list, msg_show="请求错误")
-        group_service.delete_group_no_service(self.region_name, self.team.tenant_name, self.app.ID)
+        group_service.delete_app(self.team, self.region_name, self.app)
         return Response(None, status=200)
 
 

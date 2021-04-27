@@ -186,7 +186,8 @@ class GroupServiceRelationRepository(object):
     def get_service_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).first()
 
-    def get_services_obj_by_group(self, group_id):
+    @staticmethod
+    def list_service_groups(group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).all()
 
     def update_service_relation(self, group_id, default_group_id):

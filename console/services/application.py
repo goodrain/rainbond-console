@@ -67,8 +67,8 @@ class ApplicationService(object):
         return [{"component_name": cpt.service_cname, "component_alias": cpt.service_alias} for cpt in components]
 
     @staticmethod
-    def list_orphan_components(region_name: str, tenant: object, app_id: int):
-        services = group_service.list_services(tenant, region_name, app_id)
+    def list_orphan_components(region_name: str, tenant, app_id: int):
+        services = group_service.list_services(tenant.tenant_name, region_name, app_id)
         service_names = []
         if services:
             service_names = [svc.get("service_name") for svc in services]

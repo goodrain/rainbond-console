@@ -137,12 +137,7 @@ class TenantGroupOperationView(ApplicationView):
                   paramType: path
 
         """
-        service = group_service_relation_repo.get_service_by_group(app_id)
-        if service:
-            result = general_message(400, '当前应用内存在组件，无法删除', None)
-            return Response(result, status=result["code"])
-
-        group_service.delete_group_no_service(self.region_name, self.tenant_name, app_id)
+        group_service.delete_app(self.tenant, self.region_name, self.app)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
@@ -198,7 +193,7 @@ class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView)
         """
         action = request.data.get("action", None)
         group_id = int(kwargs.get("group_id", None))
-        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        services = group_service_relation_repo.list_service_groups(group_id)
         if not services:
             result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
@@ -237,7 +232,7 @@ class GroupStatusView(RegionTenantHeaderView):
         if not group_id or not region_name:
             result = general_message(400, "not group_id", "参数缺失")
             return Response(result)
-        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        services = group_service_relation_repo.list_service_groups(group_id)
         if not services:
             result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
