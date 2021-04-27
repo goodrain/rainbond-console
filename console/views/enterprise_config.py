@@ -20,36 +20,6 @@ from console.enum.system_config import ConfigKeyEnum
 logger = logging.getLogger("default")
 
 
-class EnterpriseConfigView(EnterpriseAdminView):
-    @never_cache
-    def put(self, request, enterprise_id, *args, **kwargs):
-        title = parse_item(request, "title")
-        logo = parse_item(request, "logo")
-        favicon = parse_item(request, "favicon")
-        enterprise_alias = parse_item(request, "enterprise_alias")
-        doc_url = parse_item(request, "doc_url")
-
-        config_service = ConfigService()
-        if title:
-            config_service.update_config_value(ConfigKeyEnum.TITLE.name, title)
-        if logo:
-            config_service.update_config_value(ConfigKeyEnum.LOGO.name, logo)
-        if enterprise_alias:
-            enterprise_services.update_alias(enterprise_id, enterprise_alias)
-        if favicon:
-            config_service.update_config_value(ConfigKeyEnum.FAVICON.name, favicon)
-        if doc_url:
-            if not doc_url.startswith(('http://', 'https://')):
-                doc_url = "http://{}".format(doc_url)
-            if not doc_url.endswith('/'):
-                doc_url = doc_url + '/'
-            doc_url_value = dict()
-            doc_url_value["platform_url"] = doc_url
-            config_service.update_config_value(ConfigKeyEnum.DOCUMENT.name, doc_url_value)
-
-        return Response(status=status.HTTP_200_OK)
-
-
 class EnterpriseObjectStorageView(EnterpriseAdminView):
     @never_cache
     def put(self, request, enterprise_id, *args, **kwargs):
