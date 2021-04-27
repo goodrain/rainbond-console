@@ -304,8 +304,6 @@ urlpatterns = [
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/batch-components$', ApplicationComponentBatchView.as_view(),
         perms.TenantGroupOperationView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$', ApplicationComponentView.as_view(),
-        perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/orphan-components$',
         ApplicationOrphanComponentView.as_view(), perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/parse-services$',

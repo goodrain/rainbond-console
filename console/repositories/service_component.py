@@ -5,11 +5,12 @@ from console.models.main import ServiceComponents
 
 class ServiceComponentsRepository(object):
     @staticmethod
-    def create(app_id: int, service_name: str, component_id: str):
+    def create(app_id: int, service_name: str, component_id: str, port: int):
         ServiceComponents.objects.create(
             app_id=app_id,
             service_name=service_name,
             component_id=component_id,
+            port=port,
         )
 
     @staticmethod

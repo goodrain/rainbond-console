@@ -50,7 +50,7 @@ class ApplicationService(object):
                                                        is_inner_service=True,
                                                        component_type="helm")
         group_service.add_component_to_app(tenant, region_name, app_id, component.component_id)
-        service_component_repo.create(app_id, service_name, component.component_id)
+        service_component_repo.create(app_id, service_name, component.component_id, port)
 
         app_service.create_third_party_service(tenant, component, user.nick_name, is_inner_service=True)
 

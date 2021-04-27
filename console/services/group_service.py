@@ -127,7 +127,8 @@ class GroupService(object):
         region_app_repo.create(**data)
 
     @transaction.atomic
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, values="", version="", revision=0):
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, values="", version="",
+                     revision=0):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -579,8 +580,23 @@ class GroupService(object):
 
     @staticmethod
     def list_services(tenant, region_name, app_id):
+        # key is the function to get the identify key of service.
+        def key(service_name, port):
+            return service_name + "-" + str(port)
+
+        # list the existing service component
+        service_components = service_component_repo.list_by_app_id(app_id)
+        # create a map for service_components
+        service_components = {key(sc.service_name, sc.port): sc for sc in service_components}
+
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        return region_api.list_app_services(region_name, tenant.tenant_name, region_app_id)
+        services = region_api.list_app_services(region_name, tenant.tenant_name, region_app_id)
+
+        # filter out the existing service component
+        for service in services:
+            ports = [port for port in service["tcp_ports"] if not service_components.get(key(service["service_name"], port))]
+            service["tcp_ports"] = ports
+        return services
 
     @staticmethod
     def get_pod(tenant, region_name, pod_name):
