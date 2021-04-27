@@ -113,8 +113,10 @@ class TenantGroupOperationView(ApplicationView):
         username = request.data.get("username", None)
         values = request.data.get("values", "")
         version = request.data.get("version", "")
+        revision = request.data.get("revision", 0)
 
-        group_service.update_group(self.tenant, self.response_region, app_id, app_name, note, username, values=values, version=version)
+        group_service.update_group(self.tenant, self.response_region, app_id, app_name, note, username,
+                                   values=values, version=version, revision=revision)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
@@ -374,3 +376,9 @@ class ApplicationParseServicesView(ApplicationView):
         values = parse_item(request, "values", required=True)
         services = application_service.parse_services(self.region_name, self.tenant, app_id, values)
         return Response(general_message(200, "success", "查询成功", list=services))
+
+
+class ApplicationHelmReleasesView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        releases = application_service.list_helm_releases(self.region_name, self.tenant, app_id)
+        return Response(general_message(200, "success", "查询成功", list=releases))

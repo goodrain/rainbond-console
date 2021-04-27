@@ -87,5 +87,10 @@ class ApplicationService(object):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         return region_api.parse_app_services(region_name, tenant_name, region_app_id, values)
 
+    @staticmethod
+    def list_helm_releases(region_name: str, tenant_name: str, app_id: int):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        return region_api.list_app_helm_releases(region_name, tenant_name, region_app_id)
+
 
 application_service = ApplicationService()
