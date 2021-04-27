@@ -7,3 +7,4 @@ class ConfigKeyEnum(AutoNumber):
     LOGO = ()
     FAVICON = ()
     ENTERPRISE_EDITION = ()
+    DOCUMENT = ()

@@ -27,6 +27,7 @@ class EnterpriseConfigView(EnterpriseAdminView):
         logo = parse_item(request, "logo")
         favicon = parse_item(request, "favicon")
         enterprise_alias = parse_item(request, "enterprise_alias")
+        doc_url = parse_item(request, "doc_url")
 
         config_service = ConfigService()
         if title:
@@ -37,6 +38,14 @@ class EnterpriseConfigView(EnterpriseAdminView):
             enterprise_services.update_alias(enterprise_id, enterprise_alias)
         if favicon:
             config_service.update_config_value(ConfigKeyEnum.FAVICON.name, favicon)
+        if doc_url:
+            if not doc_url.startswith(('http://', 'https://')):
+                doc_url = "http://{}".format(doc_url)
+            if not doc_url.endswith('/'):
+                doc_url = doc_url + '/'
+            doc_url_value = dict()
+            doc_url_value["platform_url"] = doc_url
+            config_service.update_config_value(ConfigKeyEnum.DOCUMENT.name, doc_url_value)
 
         return Response(status=status.HTTP_200_OK)
 
