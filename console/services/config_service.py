@@ -269,8 +269,10 @@ class PlatformConfigService(ConfigService):
     def __init__(self):
         super(PlatformConfigService, self).__init__()
         self.base_cfg_keys = [
-            "IS_PUBLIC", "OAUTH_SERVICES", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"
+            "IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"
         ]
+        if not os.getenv('IS_PUBLIC', False):
+            self.base_cfg_keys.append("OAUTH_SERVICES")
 
         self.cfg_keys = [
             "TITLE",
