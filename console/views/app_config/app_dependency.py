@@ -10,6 +10,8 @@ from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import general_message
+from console.exception.main import AbortRequest
+from console.enum.component_enum import is_third_party
 
 logger = logging.getLogger("default")
 
@@ -111,6 +113,8 @@ class AppDependencyView(AppBaseView):
         container_port = request.data.get("container_port", None)
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status=400)
+        if is_third_party(self.service.service_source):
+            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖")
         code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
                                                                     container_port, self.user.nick_name)
         if code == 201:

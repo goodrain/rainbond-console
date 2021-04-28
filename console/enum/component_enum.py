@@ -29,3 +29,13 @@ def is_support(component_type):
         return True
 
     return False
+
+
+class ComponentSource(Enum):
+    THIRD_PARTY = "third_party"
+
+
+def is_third_party(component_source):
+    if component_source == ComponentSource.THIRD_PARTY.value:
+        return True
+    return False
