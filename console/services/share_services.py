@@ -224,11 +224,6 @@ class ShareService(object):
         return None
 
     def query_share_service_info(self, team, group_id, scope=None):
-        service_last_share_info, _ = self.get_last_shared_app_version(team, group_id, scope)
-        if service_last_share_info:
-            service_last_share_info = service_last_share_info.get("apps")
-            if service_last_share_info:
-                service_last_share_info = {service["service_id"]: service for service in service_last_share_info}
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
@@ -346,7 +341,6 @@ class ShareService(object):
                             data['service_env_map_list'].append(e_c)
 
                 data['service_related_plugin_config'] = list()
-                # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
                 plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=[service.service_id])
                 for spr in plugins_relation_list:
                     service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(
@@ -354,14 +348,7 @@ class ShareService(object):
                     plugin_data = spr.to_dict()
                     plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
                     data['service_related_plugin_config'].append(plugin_data)
-                if service_last_share_info:
-                    service_data = service_last_share_info.get(service.service_id)
-                    if service_data:
-                        data["extend_method_map"] = self.service_last_share_cache(data["extend_method_map"],
-                                                                                  service_data["extend_method_map"])
-                        data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
-                                                                                     service_data["service_env_map_list"])
-                        # component moniotr
+                # component moniotr
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
 
