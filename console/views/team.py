@@ -190,7 +190,8 @@ class TeamUserView(RegionTenantHeaderView):
         """
         code = 200
         page = request.GET.get("page", 1)
-        user_list = team_services.get_tenant_users_by_tenant_name(tenant_name=team_name)
+        name = request.GET.get("query", None)
+        user_list = team_services.get_team_users(self.tenant, name)
         if not user_list:
             users = []
             total = 0

@@ -22,7 +22,7 @@ from console.services.app_config import volume_service
 from console.services.compose_service import compose_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import CloudEnterpriseCenterView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import RegionTenantHeaderCloudEnterpriseCenterView
 from console.cloud.services import check_memory_quota
 from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import error_message
@@ -123,7 +123,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             return True
 
 
-class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """

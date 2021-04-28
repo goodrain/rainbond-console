@@ -40,8 +40,8 @@ class AppEnvVarService(object):
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             raise InvalidEnvName(msg)
-        if len(str(attr_value)) > 512:
-            attr_value = str(attr_value)[:512]
+        if len(str(attr_value)) > 65532:
+            attr_value = str(attr_value)[:65532]
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = service.tenant_id
         tenantServiceEnvVar["service_id"] = service.service_id
@@ -68,8 +68,8 @@ class AppEnvVarService(object):
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             return 400, msg, None
-        if len(str(attr_value)) > 512:
-            attr_value = str(attr_value)[:512]
+        if len(str(attr_value)) > 65532:
+            attr_value = str(attr_value)[:65532]
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = service.tenant_id
         tenantServiceEnvVar["service_id"] = service.service_id
@@ -128,8 +128,8 @@ class AppEnvVarService(object):
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             return 400, msg, None
-        if len(str(attr_value)) > 512:
-            attr_value = str(attr_value)[:512]
+        if len(str(attr_value)) > 65532:
+            attr_value = str(attr_value)[:65532]
 
         tenant_service_env_var = dict()
         tenant_service_env_var["tenant_id"] = service.tenant_id

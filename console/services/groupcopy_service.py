@@ -39,7 +39,7 @@ class GroupAppCopyService(object):
         services_metadata, change_services_map = self.get_modify_group_metadata(old_team, old_region_name, tar_team,
                                                                                 tar_region_name, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(user, tar_team, tar_region_name, tar_group.ID, services_metadata,
-                                                 change_services_map)
+                                                 change_services_map, old_team == tar_team, old_region_name == tar_region_name)
         return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
     def get_group_services_with_build_source(self, tenant, region_name, group_id):
@@ -182,8 +182,8 @@ class GroupAppCopyService(object):
                             service["service_base"]["version"] = version
         return metadata
 
-    def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map):
-        migrate_service.save_data(tar_team, region_name, user, changed_service_map, metadata, group_id)
+    def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map, same_team, same_region):
+        migrate_service.save_data(tar_team, region_name, user, changed_service_map, metadata, group_id, same_team, same_region)
 
     def change_services_map(self, service_ids):
         change_services = {}

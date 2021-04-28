@@ -12,6 +12,7 @@ from console.views.base import RegionTenantHeaderView
 from www.models.main import Tenants, TenantServiceInfo
 from console.models.main import ComponentGraph
 from www.utils.return_message import general_message
+from console.views.base import CloudEnterpriseCenterView
 
 logger = logging.getLogger('default')
 
@@ -53,6 +54,18 @@ class AppBaseView(RegionTenantHeaderView):
         else:
             raise BusinessException(
                 Response(general_message(404, "service not found", "组件{0}不存在".format(service_alias)), status=404))
+
+
+class AppBaseCloudEnterpriseCenterView(AppBaseView, CloudEnterpriseCenterView):
+    def __init__(self, *args, **kwargs):
+        super(AppBaseCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+        self.oauth_instance = None
+        self.oauth = None
+        self.oauth_user = None
+
+    def initial(self, request, *args, **kwargs):
+        AppBaseView.initial(self, request, *args, **kwargs)
+        CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
 
 
 class ComponentGraphBaseView(AppBaseView):

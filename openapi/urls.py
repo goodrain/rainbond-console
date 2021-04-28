@@ -55,7 +55,7 @@ urlpatterns = [
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
     # apps
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps', include('openapi.sub_urls.app_url')),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
     urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]

@@ -902,7 +902,7 @@ class MarketService(object):
             app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service,
                                                         self.template["apps"], self.version, add)
         except ServiceHandleException as e:
-            logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
+            logger.exception(e)
 
         delete = plugins.get("delete", [])
         for plugin in delete:

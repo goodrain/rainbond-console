@@ -4,6 +4,7 @@
 """
 import logging
 import io
+import urllib
 
 from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
@@ -322,7 +323,7 @@ class GroupAppsBackupExportView(AlowAnyApiView):
             output.write(data_str)
             res = StreamingHttpResponse(output.getvalue())
             res['Content-Type'] = 'application/octet-stream'
-            res['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
+            res['Content-Disposition'] = "attachment;filename*=UTF-8''" + urllib.parse.quote(file_name)
             return res
         except Exception as e:
             logger.exception(e)
