@@ -377,3 +377,9 @@ class ApplicationHelmReleasesView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         releases = application_service.list_helm_releases(self.region_name, self.tenant, app_id)
         return Response(general_message(200, "success", "查询成功", list=releases))
+
+
+class ApplicationIngressesView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        result = application_service.list_access_info(self.tenant, app_id)
+        return Response(general_message(200, "success", "查询成功", list=result))

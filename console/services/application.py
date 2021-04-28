@@ -7,6 +7,7 @@ from django.db import transaction
 
 from console.services.app import app_service
 from console.services.group_service import group_service
+from console.services.app_config import port_service
 from console.repositories.service_component import service_component_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.region_app import region_app_repo
@@ -54,7 +55,6 @@ class ApplicationService(object):
 
         app_service.create_third_party_service(tenant, component, user.nick_name, is_inner_service=True)
 
-
     @staticmethod
     def list_components_by_service_name(region_name: str, tenant: object, app_id: int, service_name: str):
         service = group_service.get_service(tenant, region_name, app_id, service_name)
@@ -91,6 +91,18 @@ class ApplicationService(object):
     def list_helm_releases(region_name: str, tenant_name: str, app_id: int):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         return region_api.list_app_helm_releases(region_name, tenant_name, region_app_id)
+
+    @staticmethod
+    def list_access_info(tenant, app_id):
+        components = group_service.list_components(app_id)
+        result = []
+        for cpt in components:
+            access_type, data = port_service.get_access_info(tenant, cpt)
+            result.append({
+                "access_type": access_type,
+                "access_info": data,
+            })
+        return result
 
 
 application_service = ApplicationService()
