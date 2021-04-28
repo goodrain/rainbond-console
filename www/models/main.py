@@ -12,6 +12,7 @@ from django.db.models.fields import (AutoField, BooleanField, CharField, DateTim
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
+from console.enum.component_enum import ComponentSource
 
 logger = logging.getLogger("default")
 
@@ -550,6 +551,11 @@ class TenantServiceInfo(BaseModel):
 
     def is_slug(self):
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
+
+    def is_third_party(self):
+        if self.service_source == ComponentSource.THIRD_PARTY.value:
+            return True
+        return False
 
 
 class TenantServiceInfoDelete(BaseModel):
