@@ -1,7 +1,7 @@
-ARG VERSION=V5.3-dev
+ARG BASE_VERSION=V5.3
 ARG RELEASE_DESC=
 
-FROM rainbond/rbd-ui-base:${VERSION}
+FROM rainbond/rbd-ui-base:${BASE_VERSION}
 
 LABEL author="zengqg@goodrain.com" 
 
