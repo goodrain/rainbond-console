@@ -4,7 +4,7 @@ from console.utils import perms_route_config as perms
 from django.conf.urls import url
 from openapi.views.apps.apps import (AppInfoView, APPOperationsView, AppServiceEventsView, AppServicesView,
                                      AppServiceTelescopicHorizontalView, AppServiceTelescopicVerticalView, ComponentEnvsUView,
-                                     CreateThirdComponentView, ListAppServicesView, ListAppsView, TeamAppsCloseView,
+                                     CreateThirdComponentView, ListAppServicesView, TeamAppsCloseView,
                                      TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView)
 from openapi.views.apps.market import AppInstallView, AppUpgradeView
 from openapi.views.gateway.gateway import (ListAppGatewayHTTPRuleView, ListAppGatewayRuleView, UpdateAppGatewayHTTPRuleView,
@@ -12,7 +12,6 @@ from openapi.views.gateway.gateway import (ListAppGatewayHTTPRuleView, ListAppGa
 from openapi.views.groupapp import GroupAppsCopyView
 
 urlpatterns = [
-    url(r'^$', ListAppsView.as_view()),
     url(r'^close$', TeamAppsCloseView.as_view(), perms.TeamAppsCloseView),
     url(r'^(?P<app_id>[\d\-]+)$', AppInfoView.as_view(), perms.AppInfoView),
     url(r'^(?P<app_id>[\d\-]+)/monitor/query$', TeamAppsMonitorQueryView.as_view(), perms.AppInfoView),

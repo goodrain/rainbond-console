@@ -16,6 +16,7 @@ from openapi.views.region_view import ListRegionInfo, RegionInfo
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
                                      TeamCertificatesRUDView, TeamInfo, TeamsResourceView)
 from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView)
+from openapi.views.apps.apps import ListAppsView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -55,6 +56,7 @@ urlpatterns = [
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
     # apps
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
