@@ -785,8 +785,10 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
-                        # slug组件
-                        if delivered_type_map[service['service_id']] == "slug":
+                        delivered_type = delivered_type_map.get(service['service_id'], None)
+                        if not delivered_type:
+                            continue
+                        if delivered_type == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
                                                                                   share_team.enterprise_id)
                             service["share_type"] = "slug"

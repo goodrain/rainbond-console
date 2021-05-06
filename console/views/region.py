@@ -1,12 +1,11 @@
 # -*- coding: utf8 -*-
 import logging
 
-from rest_framework.response import Response
-
 from console.exception.main import ServiceHandleException
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import JWTAuthApiView, RegionTenantHeaderView
+from console.views.base import (JWTAuthApiView, RegionTenantHeaderView, TenantHeaderView)
+from rest_framework.response import Response
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -40,7 +39,7 @@ class RegQuyView(RegionTenantHeaderView):
         return Response(result, status=code)
 
 
-class RegUnopenView(RegionTenantHeaderView):
+class RegUnopenView(TenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         """
         获取团队未开通的数据中心
@@ -62,7 +61,7 @@ class RegUnopenView(RegionTenantHeaderView):
         return Response(result, status=code)
 
 
-class OpenRegionView(RegionTenantHeaderView):
+class OpenRegionView(TenantHeaderView):
     def post(self, request, team_name, *args, **kwargs):
         """
         为团队开通数据中心

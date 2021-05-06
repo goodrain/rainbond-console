@@ -314,7 +314,8 @@ class GroupappsMigrateService(object):
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map, same_team, same_region)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map, same_team, same_region)
         # restore application config group
-        self.__save_app_config_groups(metadata.get("app_config_group_info"), migrate_tenant, group_id, changed_service_map)
+        self.__save_app_config_groups(
+            metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id, changed_service_map)
 
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
         service_base_info.pop("ID")
@@ -755,12 +756,12 @@ class GroupappsMigrateService(object):
             service_endpoint_list.append(ThirdPartyServiceEndpoints(**endpoint))
         ThirdPartyServiceEndpoints.objects.bulk_create(service_endpoint_list)
 
-    def __save_app_config_groups(self, config_groups, tenant, app_id, changed_service_map):
+    def __save_app_config_groups(self, config_groups, tenant, region_name, app_id, changed_service_map):
         if not config_groups:
             return
         for cgroup in config_groups:
             service_ids = []
-            is_exists = app_config_group_repo.is_exists(tenant.region, app_id, cgroup["config_group_name"])
+            is_exists = app_config_group_repo.is_exists(region_name, app_id, cgroup["config_group_name"])
             if is_exists:
                 cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
             for service in cgroup["services"]:
@@ -770,7 +771,7 @@ class GroupappsMigrateService(object):
                     continue
 
             app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], cgroup["config_items"],
-                                                         cgroup["deploy_type"], cgroup["enable"], service_ids, tenant.region,
+                                                         cgroup["deploy_type"], cgroup["enable"], service_ids, region_name,
                                                          tenant.tenant_name)
 
     def __save_service_monitors(self, tenant, service, service_monitors):

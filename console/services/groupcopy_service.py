@@ -69,7 +69,7 @@ class GroupAppCopyService(object):
         return team, group
 
     def get_modify_group_metadata(self, old_team, old_region_name, tar_team, tar_region_name, group_id, service_ids, changes):
-        total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team)
+        total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team, old_region_name)
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids

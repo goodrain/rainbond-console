@@ -172,9 +172,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
                     user_role_list = user_kind_role_service.get_user_roles(
                         kind="team", kind_id=tenant.tenant_id, user=request.user)
                     roles = [x["role_name"] for x in user_role_list["roles"]]
@@ -198,10 +196,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         new_join_team.append(team_item)
             if join_tenants:
                 for tenant in join_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
@@ -225,10 +220,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         new_join_team.append(team_item)
             if request_tenants:
                 for request_tenant in request_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(request_tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)

@@ -668,7 +668,7 @@ class AppMarketService(object):
                     market.create_time = extend_info.create_time
                     market.access_actions = extend_info.access_actions
                 except Exception as e:
-                    logger.debug(e)
+                    logger.exception(e)
                     market.description = None
                     market.alias = market.name
                     market.status = 0
@@ -899,7 +899,15 @@ class AppMarketService(object):
 
     def cloud_app_model_to_db_model(self, market, app_id, version, for_install=False):
         app = app_store.get_app(market, app_id)
-        app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
+        rainbond_app_version = None
+        app_template = None
+        try:
+            if version:
+                app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
+        except ServiceHandleException as e:
+            if e.status_code != 404:
+                logger.exception(e)
+            app_template = None
         rainbond_app = RainbondCenterApp(
             app_id=app.app_key_id,
             app_name=app.name,
@@ -912,16 +920,17 @@ class AppMarketService(object):
             create_time=app.create_time,
             update_time=app.update_time)
         rainbond_app.market_name = market.name
-        rainbond_app_version = RainbondCenterAppVersion(
-            app_id=app.app_key_id,
-            app_template=app_template.template,
-            version=app_template.version,
-            version_alias=app_template.version_alias,
-            template_version=app_template.rainbond_version,
-            app_version_info=app_template.description,
-            update_time=app_template.update_time,
-            is_official=1)
-        rainbond_app_version.template_type = app_template.template_type
+        if app_template:
+            rainbond_app_version = RainbondCenterAppVersion(
+                app_id=app.app_key_id,
+                app_template=app_template.template,
+                version=app_template.version,
+                version_alias=app_template.version_alias,
+                template_version=app_template.rainbond_version,
+                app_version_info=app_template.description,
+                update_time=app_template.update_time,
+                is_official=1)
+            rainbond_app_version.template_type = app_template.template_type
         return rainbond_app, rainbond_app_version
 
     def create_market_app_model(self, market, body):

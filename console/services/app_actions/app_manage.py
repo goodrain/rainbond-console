@@ -676,7 +676,7 @@ class AppManageService(AppManageBase):
                     source_image["password"] = service_source.password
                 service_dict["image_info"] = source_image
 
-            # 云市
+            # local registry or rainstore
             elif service.service_source == "market":
                 try:
                     if service_source:
@@ -735,6 +735,7 @@ class AppManageService(AppManageBase):
                                         = template_app.get("service_share_uuid") \
                                         if template_app.get("service_share_uuid", None) \
                                         else template_app.get("service_key", "")
+                                    new_extend_info["update_time"] = app_version.update_time.strftime('%Y-%m-%d %H:%M:%S')
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
