@@ -111,12 +111,19 @@ class TenantGroupOperationView(ApplicationView):
         if note and len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         username = request.data.get("username", None)
-        values = request.data.get("values", "")
+        overrides = request.data.get("overrides", [])
         version = request.data.get("version", "")
         revision = request.data.get("revision", 0)
 
-        group_service.update_group(self.tenant, self.response_region, app_id, app_name, note, username,
-                                   values=values, version=version, revision=revision)
+        group_service.update_group(self.tenant,
+                                   self.response_region,
+                                   app_id,
+                                   app_name,
+                                   note,
+                                   username,
+                                   overrides=overrides,
+                                   version=version,
+                                   revision=revision)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
@@ -159,8 +166,7 @@ class TenantGroupOperationView(ApplicationView):
         """
         app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
         try:
-            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name,
-                                                                                     app_id)
+            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
         except MaxRetryError as e:
             logger.warning("get the number of upgradable app: {}".format(e))
             app['upgradable_num'] = 0
@@ -215,8 +221,7 @@ class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView)
         if action == "deploy":
             self.has_perms([300008, 400010])
             # 批量操作
-        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids,
-                                                        self.oauth_instance)
+        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
@@ -300,8 +305,8 @@ class ApplicationDetectPrecessView(ApplicationView):
 
 class ApplicationInstallView(ApplicationView):
     def post(self, request, app_id, *args, **kwargs):
-        values = request.data.get("values")
-        group_service.install_app(self.tenant, self.region_name, app_id, values)
+        overrides = request.data.get("overrides")
+        group_service.install_app(self.tenant, self.region_name, app_id, overrides)
         result = general_message(200, "success", "安装成功")
         return Response(result)
 
@@ -323,15 +328,13 @@ class ApplicationServiceView(ApplicationView):
 class ApplicationComponentView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         service_name = parse_argument(request, "service_name", required=True)
-        components = application_service.list_components_by_service_name(self.region_name, self.tenant, app_id,
-                                                                         service_name)
+        components = application_service.list_components_by_service_name(self.region_name, self.tenant, app_id, service_name)
         return Response(general_message(200, "success", "查询成功", list=components))
 
     def post(self, request, app_id, *args, **kwargs):
         port = parse_item(request, "port", required=True)
         service_name = parse_item(request, "service_name", required=True)
-        application_service.create_thirdparty_component(self.user, self.region_name, self.tenant, app_id, service_name,
-                                                        port)
+        application_service.create_thirdparty_component(self.user, self.region_name, self.tenant, app_id, service_name, port)
         return Response(general_message(200, "success", "创建成功"))
 
 
@@ -339,7 +342,7 @@ class ApplicationComponentBatchView(ApplicationView):
     def post(self, request, app_id, *args, **kwargs):
         services = request.data
         if type(services) != list:
-            raise AbortRequest("expect list, but got "+type(services))
+            raise AbortRequest("expect list, but got " + type(services))
         for service in services:
             if not service.get("service_name"):
                 raise AbortRequest("the field 'service_name' is required")
@@ -383,3 +386,10 @@ class ApplicationIngressesView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         result = application_service.list_access_info(self.tenant, app_id)
         return Response(general_message(200, "success", "查询成功", list=result))
+
+
+class ApplicationValuesView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        values = application_service.list_helm_app_values(self.tenant_name, self.region_name, app_id,
+                                                          parse_argument(request, "version", required=True))
+        return Response(general_message(200, "success", "查询成功", bean=values))

@@ -34,8 +34,8 @@ class ApplicationService(object):
         # TODO: Kill for loop
         for service in services:
             for port in service["ports"]:
-                self._create_thirdparty_component(user, region_name, tenant, app_id,
-                                                  service["service_name"], port, service["address"])
+                self._create_thirdparty_component(user, region_name, tenant, app_id, service["service_name"], port,
+                                                  service["address"])
 
     @staticmethod
     def _create_thirdparty_component(user, region_name, tenant, app_id, service_name, port, address):
@@ -103,6 +103,11 @@ class ApplicationService(object):
                 "access_info": data,
             })
         return result
+
+    @staticmethod
+    def list_helm_app_values(tenant_name, region_name, app_id, version):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        return region_api.list_helm_app_values(tenant_name, region_name, region_app_id, version)
 
 
 application_service = ApplicationService()

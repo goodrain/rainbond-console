@@ -1823,6 +1823,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         _, body = self._get(url, self.default_headers, region=region_name)
         return body["list"]
 
+    def list_helm_app_values(self, tenant_name, region_name, region_app_id, version):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/helm-values?version=" + version
+
+        self._set_headers(token)
+        _, body = self._get(url, self.default_headers, region=region_name, timeout=60)
+        return body["bean"]
+
     def create_application(self, region_name, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
@@ -1914,7 +1923,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def ensure_app_name(self, region_name, tenant_name, app_name):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/ensure-name"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/ensure-app-name"
 
         self._set_headers(token)
         _, body = self._post(url, self.default_headers, region=region_name, body=json.dumps({

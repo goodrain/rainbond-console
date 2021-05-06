@@ -126,9 +126,20 @@ class GroupService(object):
         }
         region_app_repo.create(**data)
 
+    @staticmethod
+    def _parse_overrides(overrides):
+        new_overrides = []
+        for key in overrides:
+            val = overrides[key]
+            if type(val) == int:
+                val = str(val)
+            if type(val) != str:
+                raise AbortRequest("wrong override value which type is {}".format(type(val)))
+            new_overrides.append(key + "=" + val)
+        return new_overrides
+
     @transaction.atomic
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, values="", version="",
-                     revision=0):
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, overrides="", version="", revision=0):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -138,6 +149,8 @@ class GroupService(object):
         # check app name
         if app_name:
             self.check_app_name(tenant, region_name, app_name)
+        if overrides:
+            overrides = self._parse_overrides(overrides)
 
         data = {
             "note": note,
@@ -153,7 +166,7 @@ class GroupService(object):
 
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
-            "values": values,
+            "overrides": overrides,
             "version": version,
             "revision": revision,
         })
@@ -189,8 +202,7 @@ class GroupService(object):
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
                     return 404, "应用不存在"
-                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id,
-                                                                       region_name)
+                group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
         return 200, "success"
 
     def sync_app_services(self, tenant, region_name, app_id):
@@ -294,8 +306,7 @@ class GroupService(object):
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
-        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups(
-            [g.ID for g in groups])
+        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
         for k, v in list(service_group_map.items()):
@@ -385,8 +396,7 @@ class GroupService(object):
             group_id = a.ID
             app = apps.get(a.ID)
             app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
-            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(
-                group_id) else 0
+            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
                 app["run_service_num"] = 0
@@ -545,8 +555,7 @@ class GroupService(object):
         k8s_services = []
         for port in ports:
             # set service_alias_container_port as default kubernetes service name
-            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[
-                                                                                       port.service_id] + "-" + str(
+            k8s_service_name = port.k8s_service_name if port.k8s_service_name else service_aliases[port.service_id] + "-" + str(
                 port.container_port)
             k8s_services.append({
                 "service_id": port.service_id,
@@ -587,6 +596,9 @@ class GroupService(object):
         status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
         if status.get("status") == "NIL":
             status["status"] = None
+        overrides = status.get("overrides", [])
+        if overrides:
+            status["overrides"] = [{override.split("=")[0]: override.split("=")[1]} for override in overrides]
         return status
 
     @staticmethod
@@ -595,11 +607,13 @@ class GroupService(object):
         process = region_api.get_app_detect_process(region_name, tenant.tenant_name, region_app_id)
         return process
 
-    @staticmethod
-    def install_app(tenant, region_name, app_id, values):
+    def install_app(self, tenant, region_name, app_id, overrides):
+        if overrides:
+            overrides = self._parse_overrides(overrides)
+
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         region_api.install_app(region_name, tenant.tenant_name, region_app_id, {
-            "values": values,
+            "overrides": overrides,
         })
 
     @staticmethod
