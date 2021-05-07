@@ -234,7 +234,8 @@ class GroupappsMigrateService(object):
                                app["service_config_file"] if 'service_config_file' in app else None)
             self.__save_compile_env(ts, app["service_compile_env"])
             self.__save_service_label(migrate_tenant, ts, migrate_region, app["service_labels"])
-            self.__save_service_probes(ts, app["service_probes"])
+            if sync_flag:
+                self.__save_service_probes(ts, app["service_probes"])
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
             self.__save_third_party_service_endpoints(ts, app.get("third_party_service_endpoints", []))

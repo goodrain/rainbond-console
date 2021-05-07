@@ -627,7 +627,8 @@ class DomainService(object):
     def get_app_service_domain_list(self, region, tenant, app_id, search_conditions, page, page_size):
         # 查询分页排序
         if search_conditions:
-            search_conditions = search_conditions.decode('utf-8')
+            if isinstance(search_conditions, bytes):
+                search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             cursor = connection.cursor()
             cursor.execute("select count(sd.domain_name) \
@@ -696,7 +697,8 @@ class DomainService(object):
     def get_app_service_tcp_domain_list(self, region, tenant, app_id, search_conditions, page, page_size):
         # 查询分页排序
         if search_conditions:
-            search_conditions = search_conditions.decode('utf-8')
+            if isinstance(search_conditions, bytes):
+                search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             cursor = connection.cursor()
             cursor.execute("select count(1) from service_tcp_domain std \
