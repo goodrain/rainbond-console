@@ -150,12 +150,19 @@ class TenantGroupOperationView(ApplicationView):
                 paramType: path
         """
         app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
+        result = general_message(200, "success", "success", bean=app)
+        return Response(result, status=result["code"])
+
+
+class TenantAppUpgradableNumView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        data = dict()
         try:
-            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
+            data['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
         except MaxRetryError as e:
             logger.warning("get the number of upgradable app: {}".format(e))
-            app['upgradable_num'] = 0
-        result = general_message(200, "success", "success", bean=app)
+            data['upgradable_num'] = 0
+        result = general_message(200, "success", "success", bean=data)
         return Response(result, status=result["code"])
 
 
