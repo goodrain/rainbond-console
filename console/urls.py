@@ -65,7 +65,8 @@ from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, Ent
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView, TenantAppUpgradableNumView)
+                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
+                                 TenantAppUpgradableNumView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
