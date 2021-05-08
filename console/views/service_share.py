@@ -37,6 +37,8 @@ def market_name_format(name):
 class ServiceShareRecordView(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         data = []
+        market = dict()
+        cloud_app = dict()
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         total, share_records = share_repo.get_service_share_records_by_groupid(
@@ -62,13 +64,18 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 else:
                     try:
                         if store_id and share_record.app_id:
+                            mkt = market.get(share_record.share_app_market_name, None)
+                            if not mkt:
+                                mkt = app_market_service.get_app_market_by_name(
+                                    self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+                                market[share_record.share_app_market_name] = mkt
 
-                            market = app_market_service.get_app_market_by_name(
-                                self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
-                            cloud_app = app_market_service.get_market_app_model(market, share_record.app_id)
-                            if cloud_app:
-                                app_model_id = share_record.app_id
-                                app_model_name = cloud_app.app_name
+                            c_app = cloud_app.get(share_record.app_id, None)
+                            if not c_app:
+                                c_app = app_market_service.get_market_app_model(mkt, share_record.app_id)
+                                cloud_app[share_record.app_id] = c_app
+                            app_model_id = share_record.app_id
+                            app_model_name = c_app.app_name
                     except ServiceHandleException:
                         app_model_id = share_record.app_id
                 data.append({
