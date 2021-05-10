@@ -17,6 +17,7 @@ from console.services.config_service import EnterpriseConfigService
 from console.services.team_services import team_services
 from console.views.base import AlowAnyApiView
 from console.views.base import RegionTenantHeaderView
+from console.services.exception import ErrBackupInProgress
 from goodrain_web.tools import JuncheePaginator
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
@@ -61,6 +62,8 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         mode = request.data.get("mode", None)
         if not mode:
             return Response(general_message(400, "mode is null", "请选择备份模式"), status=400)
+        if not groupapp_backup_service.check_unfinished_backup(self.tenant, self.region_name, group_id):
+            raise ErrBackupInProgress
 
         force = request.data.get("force", False)
         if not force:

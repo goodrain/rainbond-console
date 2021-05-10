@@ -40,7 +40,7 @@ ErrBackupRecordNotFound = ServiceHandleException(
 
 ErrBackupInProgress = ServiceHandleException(
     msg="backup in progress",
-    msg_show="该备份正在进行中",
+    msg_show="备份正在进行中",
     status_code=409,
 )
 

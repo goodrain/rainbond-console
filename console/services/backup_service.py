@@ -25,7 +25,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
-from console.services.exception import (ErrBackupInProgress, ErrBackupRecordNotFound, ErrObjectStorageInfoNotFound)
+from console.services.exception import (ErrBackupRecordNotFound, ErrObjectStorageInfoNotFound)
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
@@ -157,7 +157,7 @@ class GroupAppBackupService(object):
         if not backup_record:
             raise ErrBackupRecordNotFound
         if backup_record.status == "starting":
-            return ErrBackupInProgress
+            return backup_record_repo.delete_record_by_backup_id(tenant.tenant_id, backup_id)
 
         try:
             region_api.delete_backup_by_backup_id(region, tenant.tenant_name, backup_id)
@@ -367,6 +367,15 @@ class GroupAppBackupService(object):
     def update_backup_record_group_id(self, group_id, new_group_id):
         """修改Groupid"""
         backup_record_repo.get_record_by_group_id(group_id).update(group_id=new_group_id)
+
+    def check_unfinished_backup(self, tenant, region_name, app_id):
+        backup_records = backup_record_repo.get_group_backup_records(tenant.tenant_id, region_name, app_id)
+        if not backup_records:
+            return True
+        for bak in backup_records:
+            if bak.status == "starting":
+                return False
+        return True
 
 
 groupapp_backup_service = GroupAppBackupService()
