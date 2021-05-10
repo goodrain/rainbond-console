@@ -85,7 +85,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         back_up_record = groupapp_backup_service.backup_group_apps(self.tenant, self.user, self.region_name, group_id, mode,
                                                                    note, force)
 
-        bean = back_up_record.to_dict()
+        bean = back_up_record.to_dict() if back_up_record else None
         result = general_message(200, "success", "操作成功，正在备份中", bean=bean)
         return Response(result, status=result["code"])
 

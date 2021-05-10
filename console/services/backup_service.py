@@ -369,7 +369,13 @@ class GroupAppBackupService(object):
         backup_record_repo.get_record_by_group_id(group_id).update(group_id=new_group_id)
 
     def check_unfinished_backup(self, tenant, region_name, app_id):
-        backup_records = backup_record_repo.get_group_backup_records(tenant.tenant_id, region_name, app_id)
+        console_backups = backup_record_repo.get_record_by_group_id(app_id)
+        if not console_backups:
+            return True
+
+        group_uuid = console_backups[0].group_uuid
+        resp = region_api.get_backup_status_by_group_id(region_name, tenant.tenant_name, group_uuid)
+        backup_records = resp["list"]
         if not backup_records:
             return True
         for bak in backup_records:
