@@ -231,7 +231,6 @@ class AppPluginService(object):
         region_api.uninstall_service_plugin(region_name, tenant.tenant_name, old_plugin["plugin_id"], service.service_alias)
         region_api.install_service_plugin(region_name, tenant.tenant_name, service.service_alias, data)
 
-
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
         """console层保存默认的数据"""
         config_groups = plugin_config_service.get_config_group(plugin_id, build_version)
