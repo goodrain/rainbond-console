@@ -16,8 +16,9 @@ from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
-from console.views.app_config.base import AppBaseView
-from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView)
+from console.views.app_config.base import AppBaseView, AppBaseCloudEnterpriseCenterView
+from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView,
+                                RegionTenantHeaderCloudEnterpriseCenterView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -28,7 +29,7 @@ app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
 
 
-class StartAppView(AppBaseView, CloudEnterpriseCenterView):
+class StartAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -85,7 +86,7 @@ class StopAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
+class ReStartAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -112,7 +113,7 @@ class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
         return Response(result, status=result["code"])
 
 
-class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
+class DeployAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -193,7 +194,7 @@ class RollBackAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
+class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -278,7 +279,7 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
         return Response(result, status=result["code"])
 
 
-class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
     @never_cache
     # TODO 修改权限验证
     def post(self, request, *args, **kwargs):

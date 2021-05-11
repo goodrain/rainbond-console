@@ -495,6 +495,7 @@ class ShareService(object):
                         "image_info": app.get("service_image", None),
                         "slug_info": app.get("service_slug", None)
                     }
+                    re_body = None
                     try:
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
@@ -784,8 +785,10 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
-                        # slug组件
-                        if delivered_type_map[service['service_id']] == "slug":
+                        delivered_type = delivered_type_map.get(service['service_id'], None)
+                        if not delivered_type:
+                            continue
+                        if delivered_type == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
                                                                                   share_team.enterprise_id)
                             service["share_type"] = "slug"

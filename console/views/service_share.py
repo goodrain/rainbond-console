@@ -37,7 +37,12 @@ def market_name_format(name):
 class ServiceShareRecordView(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         data = []
-        share_records = share_repo.get_service_share_records_by_groupid(group_id=group_id)
+        market = dict()
+        cloud_app = dict()
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        total, share_records = share_repo.get_service_share_records_by_groupid(
+            team_name=team_name, group_id=group_id, page=page, page_size=page_size)
         if share_records:
             for share_record in share_records:
                 app_model_name = None
@@ -59,13 +64,18 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 else:
                     try:
                         if store_id and share_record.app_id:
+                            mkt = market.get(share_record.share_app_market_name, None)
+                            if not mkt:
+                                mkt = app_market_service.get_app_market_by_name(
+                                    self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+                                market[share_record.share_app_market_name] = mkt
 
-                            market = app_market_service.get_app_market_by_name(
-                                self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
-                            cloud_app = app_market_service.get_market_app_model(market, share_record.app_id)
-                            if cloud_app:
-                                app_model_id = share_record.app_id
-                                app_model_name = cloud_app.app_name
+                            c_app = cloud_app.get(share_record.app_id, None)
+                            if not c_app:
+                                c_app = app_market_service.get_market_app_model(mkt, share_record.app_id)
+                                cloud_app[share_record.app_id] = c_app
+                            app_model_id = share_record.app_id
+                            app_model_name = c_app.app_name
                     except ServiceHandleException:
                         app_model_id = share_record.app_id
                 data.append({
@@ -95,7 +105,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     "record_id":
                     share_record.ID,
                 })
-        result = general_message(200, "success", None, list=data)
+        result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
         return Response(result, status=200)
 
     def post(self, request, team_name, group_id, *args, **kwargs):
@@ -531,49 +541,12 @@ class ShareRecordView(RegionTenantHeaderView):
               paramType: path
         """
         share_record = share_repo.get_service_share_record_by_groupid(group_id=group_id)
-        if share_record:
-            if share_record.step == 2:
-                result = general_message(
-                    200, "the current application does not confirm sharing", "当前应用未确认分享", bean=share_record.to_dict())
-                return Response(result, status=200)
+        if share_record and share_record.step == 2:
+            result = general_message(
+                200, "the current application does not confirm sharing", "当前应用未确认分享", bean=share_record.to_dict())
+            return Response(result, status=200)
         result = general_message(
             200, "the current application is not Shared or Shared", "当前应用未分享或已分享", bean=share_record.to_dict())
-        return Response(result, status=200)
-
-
-class ShareRecordHistoryView(RegionTenantHeaderView):
-    def get(self, request, team_name, group_id, *args, **kwargs):
-        """
-        查询是否有未确认分享订单记录
-        ---
-        parameter:
-            - name: team_name
-              description: 团队名
-              required: true
-              type: string
-              paramType: path
-            - name: group_id
-              description: 应用id
-              required: true
-              type: string
-              paramType: path
-        """
-        data = []
-        share_records = share_repo.get_service_share_records_by_groupid(group_id=group_id)
-        if share_records:
-            for share_record in share_records:
-                app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
-                app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
-                data.append({
-                    "app_id": share_record.app_id,
-                    "app_name": app.app_name,
-                    "app_version": app_version.version,
-                    "scope": app.scope,
-                    "create_time": share_record.create_time,
-                    "step": share_record.step,
-                    "is_success": share_record.is_success
-                })
-        result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
 

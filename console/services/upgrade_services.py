@@ -162,7 +162,7 @@ class UpgradeService(object):
         else:
             return []
 
-    def synchronous_upgrade_status(self, tenant, record):
+    def synchronous_upgrade_status(self, tenant, region_name, record):
         """ 同步升级状态
         :type tenant: www.models.main.Tenants
         :type record: AppUpgradeRecord
@@ -184,9 +184,8 @@ class UpgradeService(object):
             for record in service_records if record.status in synchronization_type and record.event_id
         }
         event_ids = list(event_service_mapping.keys())
-        body = region_api.get_tenant_events(tenant.region, tenant.tenant_name, event_ids)
+        body = region_api.get_tenant_events(region_name, tenant.tenant_name, event_ids)
         events = body.get("list", [])
-
         for event in events:
             service_record = event_service_mapping[event["EventID"]]
             self._change_service_record_status(event["Status"], service_record)
@@ -427,7 +426,7 @@ class UpgradeService(object):
 
             # 生成升级记录
             app_record = self.get_or_create_upgrade_record(**recode_kwargs)
-            self.synchronous_upgrade_status(team, app_record)
+            self.synchronous_upgrade_status(team, region_name, app_record)
             app_record = AppUpgradeRecord.objects.get(ID=app_record.ID)
 
             # 处理新增的组件
@@ -455,7 +454,7 @@ class UpgradeService(object):
                 upgrade_service.create_add_service_record(app_record, install_info['events'], add_info)
 
             app_record.version = app_model_version
-            app_record.old_version = pc.current_version.version
+            app_record.old_version = pc.current_version
             app_record.save()
             # 处理升级组件
             upgrade_services = service_repo.get_services_by_service_ids_and_group_key(app_model_id, list(upgrade_info.keys()))

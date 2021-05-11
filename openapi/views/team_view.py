@@ -141,7 +141,7 @@ class TeamInfo(TeamNoRegionAPIView):
         serializer.is_valid(raise_exception=True)
 
         if req.data.get("enterprise_id", ""):
-            ent = enterprise_services.get_enterprise_by_enterprise_id()
+            ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["enterprise_id"])
             if not ent:
                 raise serializers.ValidationError("指定企业不存在", status.HTTP_404_NOT_FOUND)
         if req.data.get("creator", 0):
@@ -352,6 +352,8 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         new_c = domain_service.add_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
+        if isinstance(rst["certificate"], bytes):
+            rst["certificate"] = rst["certificate"].decode()
         rst_serializer = TeamCertificatesRSerializer(data=rst)
         rst_serializer.is_valid(raise_exception=True)
         return Response(rst_serializer.data, status=status.HTTP_200_OK)
@@ -388,6 +390,8 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         new_c = domain_service.update_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
+        if isinstance(rst["certificate"], bytes):
+            rst["certificate"] = rst["certificate"].decode()
         rst_serializer = TeamCertificatesRSerializer(data=rst)
         rst_serializer.is_valid(raise_exception=True)
         return Response(rst_serializer.data, status=status.HTTP_200_OK)

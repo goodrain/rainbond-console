@@ -153,7 +153,7 @@ class MarketService(object):
         self.auto_restore = True
 
     def dummy_func(self, changes):
-        pass
+        logger.debug("dummy_func")
 
     def set_properties(self, typ3=PropertyType.ALL.value):
         """
@@ -302,7 +302,7 @@ class MarketService(object):
         # if component is null, maybe new app not have this component
         if component:
             self._update_service(component)
-            self._update_service_source(component, self.version)
+            self._update_service_source(component, self.version, self.pc.template_updatetime)
             changes = deepcopy(self.changes)
             if changes:
                 for k, v in list(changes.items()):
@@ -402,7 +402,7 @@ class MarketService(object):
         self.service.version = app["version"]
         self.service.save()
 
-    def _update_service_source(self, app, version):
+    def _update_service_source(self, app, version, template_updatetime):
         new_extend_info = {}
         share_image = app.get("share_image", None)
         share_slug_path = app.get("share_slug_path", None)
@@ -419,6 +419,11 @@ class MarketService(object):
         else:
             service_share_uuid = app.get("service_key", "")
         new_extend_info["source_service_share_uuid"] = service_share_uuid
+        if template_updatetime:
+            if type(template_updatetime) == datetime:
+                new_extend_info["update_time"] = template_updatetime.strftime('%Y-%m-%d %H:%M:%S')
+            elif type(template_updatetime) == str:
+                new_extend_info["update_time"] = template_updatetime
         if self.install_from_cloud:
             new_extend_info["install_from_cloud"] = True
             new_extend_info["market"] = "default"
@@ -902,7 +907,7 @@ class MarketService(object):
             app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service,
                                                         self.template["apps"], self.version, add)
         except ServiceHandleException as e:
-            logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
+            logger.exception(e)
 
         delete = plugins.get("delete", [])
         for plugin in delete:

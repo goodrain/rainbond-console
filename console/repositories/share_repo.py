@@ -6,6 +6,7 @@ from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServi
     TenantServiceExtendMethod, ServiceProbe
 from www.models.plugin import ServicePluginConfigVar, TenantServicePluginRelation, TenantServicePluginAttr
 from www.db.base import BaseConnection
+from django.core.paginator import Paginator
 
 
 class ShareRepo(object):
@@ -226,8 +227,11 @@ class ShareRepo(object):
         else:
             return share_record[0]
 
-    def get_service_share_records_by_groupid(self, group_id):
-        return ServiceShareRecord.objects.filter(group_id=group_id, status__in=[0, 1, 2]).order_by("-create_time")
+    def get_service_share_records_by_groupid(self, team_name, group_id, page=1, page_size=10):
+        query = ServiceShareRecord.objects.filter(
+            group_id=group_id, team_name=team_name, status__in=[0, 1, 2]).order_by("-create_time")
+        ptr = Paginator(query, page_size)
+        return ptr.count, ptr.page(page)
 
     def get_service_share_record_by_id(self, group_id, record_id):
         return ServiceShareRecord.objects.filter(group_id=group_id, ID=record_id).first()

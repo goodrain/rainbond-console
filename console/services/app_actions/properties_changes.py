@@ -14,7 +14,6 @@ from console.services.app import app_market_service, app_service
 from console.services.app_config.promql_service import promql_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config.volume_service import AppVolumeService
-from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.services.share_services import share_service
@@ -29,17 +28,14 @@ class PropertiesChanges(object):
     def __init__(self, service, tenant, all_component_one_model=None, only_one_component=False, install_from_cloud=False):
         self.service = service
         self.tenant = tenant
-        self.current_version = None
-        self.current_app = None
-        self.template = None
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
+        self.current_version = self.service_source.version
         self.install_from_cloud = False
         self.market_name = None
         self.only_one_component = only_one_component
         self.market = None
         self.all_component_one_model = all_component_one_model
         if self.service_source and self.service_source.extend_info:
-            self.current_version_str = self.service_source.version
             extend_info = json.loads(self.service_source.extend_info)
             if extend_info and extend_info.get("install_from_cloud", False):
                 self.install_from_cloud = True
@@ -47,45 +43,6 @@ class PropertiesChanges(object):
                 self.market_name = extend_info.get("market_name", None)
                 self.market = app_market_repo.get_app_market_by_name(
                     tenant.enterprise_id, self.market_name, raise_exception=True)
-            self.__get_current_app_and_version()
-
-    def __get_current_app_and_version(self):
-        """
-        :return:
-        app object
-        app_version object
-        """
-        group_id = service_group_relation_repo.get_group_id_by_service(self.service)
-        service_ids = []
-        if not self.only_one_component:
-            if self.all_component_one_model:
-                service_ids = self.all_component_one_model.values_list("service_id", flat=True)
-            else:
-                services = group_service.get_rainbond_services(group_id, self.service_source.group_key)
-                service_ids = services.values_list("service_id", flat=True)
-        else:
-            service_ids = [self.service.service_id]
-        service_sources = service_source_repo.get_service_sources(self.tenant.tenant_id, service_ids)
-        versions = service_sources.exclude(version=None).values_list("version", flat=True)
-        if versions:
-            sorted_versions = sorted(versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")])
-            current_version = sorted_versions[-1]
-            current_version_source = service_sources.filter(version=current_version).first()
-        else:
-            current_version = None
-            current_version_source = None
-        if not self.install_from_cloud:
-            app, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id,
-                                                                              self.service_source.group_key, current_version)
-        else:
-            app, app_version = app_market_service.cloud_app_model_to_db_model(self.market, self.service_source.group_key,
-                                                                              current_version)
-        if app_version:
-            self.template = json.loads(app_version.app_template)
-            self.current_app = app
-            self.current_version = app_version
-            if current_version_source:
-                self.service_source.create_time = current_version_source.create_time
 
     def have_upgrade_info(self, tenant, services, version):
         from console.services.upgrade_services import upgrade_service
@@ -108,9 +65,6 @@ class PropertiesChanges(object):
         component_names = {}
         for com in template.get("apps"):
             component_names[com.get("service_share_uuid")] = com.get("service_cname")
-        # not found current version
-        if not self.current_version:
-            return None
         self.plugins = get_template_plugins(template)
         result = {}
         deploy_version = self.deploy_version_changes(component.get("deploy_version"))
@@ -492,7 +446,8 @@ def has_changes(changes):
 
 def get_upgrade_app_version_template_app(tenant, version, pc):
     if pc.install_from_cloud:
-        data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, get_template=True)
+        data = app_market_service.get_market_app_model_version(
+            pc.market, pc.service_source.group_key, version, get_template=True)
         template = json.loads(data.template)
         apps = template.get("apps")
 
@@ -510,12 +465,15 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
 def get_upgrade_app_template(tenant, version, pc):
     template = None
     if pc.install_from_cloud:
-        data = app_market_service.get_market_app_model_version(pc.market, pc.current_app.app_id, version, get_template=True)
+        data = app_market_service.get_market_app_model_version(
+            pc.market, pc.service_source.group_key, version, get_template=True)
         template = json.loads(data.template)
+        pc.template_updatetime = data.update_time
     else:
         data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key,
                                                                        version)
         template = json.loads(data.app_template)
+        pc.template_updatetime = data.update_time
     if template:
         return template
     raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="应用模版版本不存在")

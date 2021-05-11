@@ -144,11 +144,12 @@ class CenterAppView(RegionTenantHeaderView):
                                                                                         app_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-                if app_version_info.region_name and app_version_info.region_name != self.region_name:
+                if app_version_info and app_version_info.region_name and app_version_info.region_name != self.region_name:
                     raise ServiceHandleException(
                         msg="app version can not install to this region",
                         msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version_info.region_name))
-
+            if not app_version_info:
+                return Response(general_message(404, "not found", "应用版本不存在，不能进行安装"), status=404)
             market_app_service.install_service(
                 self.tenant,
                 self.response_region,

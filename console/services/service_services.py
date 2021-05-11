@@ -214,7 +214,6 @@ class BaseService(object):
             if service_source:
                 # get from cloud
                 app = None
-                app_version = None
                 if service_source.extend_info:
                     extend_info = json.loads(service_source.extend_info)
                     if extend_info and extend_info.get("install_from_cloud", False):
@@ -223,21 +222,21 @@ class BaseService(object):
                         try:
                             market = app_market_service.get_app_market_by_name(
                                 tenant.enterprise_id, market_name, raise_exception=True)
-                            app, app_version = app_market_service.cloud_app_model_to_db_model(
-                                market, service_source.group_key, service_source.version)
+                            app, _ = app_market_service.cloud_app_model_to_db_model(market, service_source.group_key, None)
                             bean["market_error_code"] = 200
                             bean["market_status"] = 1
                         except ServiceHandleException as e:
                             logger.debug(e)
                             bean["market_status"] = 0
                             bean["market_error_code"] = e.error_code
+                            bean["version"] = service_source.version
+                            bean["app_version"] = service_source.version
                             return bean
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
                 if not app:
                     try:
-                        app, app_version = market_app_service.get_rainbond_app_and_version(
-                            tenant.enterprise_id, service_source.group_key, service_source.version)
+                        app = market_app_service.get_rainbond_app(tenant.enterprise_id, service_source.group_key)
                     except RbdAppNotFound:
                         logger.warning("not found app {0} version {1} in local market".format(
                             service_source.group_key, service_source.version))
@@ -250,10 +249,13 @@ class BaseService(object):
         return bean
 
     def get_not_run_services_request_memory(self, tenant, services):
+        if not services or len(services) == 0:
+            return 0
         not_run_service_ids = []
         memory = 0
         service_ids = [service.service_id for service in services]
-        service_status_list = self.status_multi_service(tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
+        service_status_list = self.status_multi_service(services[0].service_region, tenant.tenant_name, service_ids,
+                                                        tenant.enterprise_id)
         if service_status_list:
             for status_map in service_status_list:
                 if status_map.get("status") in ["undeploy", "closed"]:

@@ -97,8 +97,9 @@ class GroupRepository(object):
     def get_multi_app_info(self, app_ids):
         return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-update_time", "-order_index")
 
-    def get_apps_in_multi_team(self, team_ids):
-        return ServiceGroup.objects.filter(tenant_id__in=team_ids).order_by("-update_time", "-order_index")
+    def get_apps_in_multi_team(self, team_ids, region_names):
+        return ServiceGroup.objects.filter(
+            tenant_id__in=team_ids, region_name__in=region_names).order_by("-update_time", "-order_index")
 
     def get_by_service_id(self, tenant_id, service_id):
         try:

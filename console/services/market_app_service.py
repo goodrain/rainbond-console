@@ -81,6 +81,7 @@ class MarketAppService(object):
             app_map = {}
             for app in apps:
                 app_map[app.get("service_share_uuid")] = app
+                app["update_time"] = market_app_version.update_time
                 ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID, install_from_cloud, market_name)
                 # Record the application's installation source information
                 service_source_data = {
@@ -132,7 +133,7 @@ class MarketAppService(object):
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
 
             # 数据中心创建组件
-            new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
+            new_service_list = self.__create_region_services(tenant, region, user, service_list, service_probe_map)
 
             # config groups
             config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
@@ -217,6 +218,7 @@ class MarketAppService(object):
             self.create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
 
             for app in apps:
+                app["update_time"] = market_app.update_time
                 ts = self.__init_market_app(
                     tenant,
                     region,
@@ -271,7 +273,7 @@ class MarketAppService(object):
                 component_graph_service.bulk_create(ts.service_id, component_graphs)
 
             # 数据中心创建组件
-            new_service_list = self.__create_region_services(tenant, user, service_list, service_probe_map)
+            new_service_list = self.__create_region_services(tenant, region, user, service_list, service_probe_map)
 
             # config groups
             config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
@@ -308,7 +310,7 @@ class MarketAppService(object):
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
                 plugin_component_configs = app_plugin_map[service.service_id]
-                self.__create_service_pluginsv2(tenant, service, market_app.version, apps, plugin_component_configs)
+                self.__create_service_pluginsv2(tenant, region, service, market_app.version, apps, plugin_component_configs)
 
             # component monitors
             component_monitors = app.get("component_monitors", {})
@@ -461,9 +463,9 @@ class MarketAppService(object):
         except Exception as e:
             logger.exception(e)
 
-    def __create_service_pluginsv2(self, tenant, service, version, components, plugins):
+    def __create_service_pluginsv2(self, tenant, region_name, service, version, components, plugins):
         try:
-            app_plugin_service.create_plugin_4marketsvc(tenant.region, tenant, service, version, components, plugins)
+            app_plugin_service.create_plugin_4marketsvc(region_name, tenant, service, version, components, plugins)
         except ServiceHandleException as e:
             logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
 
@@ -588,7 +590,7 @@ class MarketAppService(object):
     def __generator_group_name(self, group_name):
         return '_'.join([group_name, make_uuid()[-4:]])
 
-    def __create_region_services(self, tenant, user, service_list, service_probe_map):
+    def __create_region_services(self, tenant, region_name, user, service_list, service_probe_map):
         service_prob_id_map = {}
         new_service_list = []
         try:
@@ -860,6 +862,11 @@ class MarketAppService(object):
         extend_info["source_deploy_version"] = app.get("deploy_version")
         extend_info["source_service_share_uuid"] = app.get("service_share_uuid") if app.get(
             "service_share_uuid", None) else app.get("service_key", "")
+        if "update_time" in app:
+            if type(app["update_time"]) == datetime.datetime:
+                extend_info["update_time"] = app["update_time"].strftime('%Y-%m-%d %H:%M:%S')
+            elif type(app["update_time"]) == str:
+                extend_info["update_time"] = app["update_time"]
         if install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
@@ -1089,6 +1096,9 @@ class MarketAppService(object):
             return None
         return app_versions
 
+    def get_rainbond_app(self, eid, app_id):
+        return rainbond_app_repo.get_rainbond_app_qs_by_key(eid, app_id)
+
     def update_rainbond_app_install_num(self, enterprise_id, app_id, app_version):
         rainbond_app_repo.add_rainbond_install_num(enterprise_id, app_id, app_version)
 
@@ -1142,18 +1152,11 @@ class MarketAppService(object):
         if component_source:
             market_name = component_source.get_market_name()
             market = None
-            app_version = None
             install_from_cloud = component_source.is_install_from_cloud()
             if install_from_cloud and market_name:
                 market = app_market_repo.get_app_market_by_name(tenant.enterprise_id, market_name, raise_exception=True)
-                if market:
-                    app_model, app_version = app_market_service.cloud_app_model_to_db_model(
-                        market, component_source.group_key, component_source.version)
-            else:
-                app_model, app_version = rainbond_app_repo.get_rainbond_app_and_version(
-                    tenant.enterprise_id, component_source.group_key, component_source.version)
             return self.__get_upgradeable_versions(tenant.enterprise_id, component_source.group_key, component_source.version,
-                                                   app_version.update_time if app_version else None, install_from_cloud, market)
+                                                   component_source.get_template_update_time(), install_from_cloud, market)
         return []
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
@@ -1188,17 +1191,15 @@ class MarketAppService(object):
             version = app_models[app_model_key]['version']
             component_source = app_models[app_model_key]['component_source']
             app_model = None
-            app_version = None
             market_name = component_source.get_market_name()
             market = None
             install_from_cloud = component_source.is_install_from_cloud()
             if install_from_cloud and market_name:
                 market = app_market_repo.get_app_market_by_name(tenant.enterprise_id, market_name, raise_exception=True)
                 if market:
-                    app_model, app_version = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version)
+                    app_model, _ = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version=None)
             else:
-                app_model, app_version = rainbond_app_repo.get_rainbond_app_and_version(tenant.enterprise_id, app_model_key,
-                                                                                        version)
+                app_model, _ = rainbond_app_repo.get_rainbond_app_and_version(tenant.enterprise_id, app_model_key, version)
             if not app_model:
                 continue
             dat = {
@@ -1219,8 +1220,7 @@ class MarketAppService(object):
             }
             not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, app_id, app_model_key)
             versions = self.__get_upgradeable_versions(tenant.enterprise_id, app_model_key, version,
-                                                       app_version.update_time if app_version else None, install_from_cloud,
-                                                       market)
+                                                       component_source.get_template_update_time(), install_from_cloud, market)
             dat.update({
                 'current_version': version,
                 'can_upgrade': bool(versions),
@@ -1265,7 +1265,6 @@ class MarketAppService(object):
 
     def get_current_version(self, enterprise_id, app_model_key, app_id):
         service_sources = group_service.get_group_service_sources(app_id).filter(Q(group_key=app_model_key))
-        app_version = None
         install_from_cloud = False
         market = None
         current_version = None
@@ -1277,24 +1276,16 @@ class MarketAppService(object):
                     current_version = source.version
                     component_source = source
             market_name = component_source.get_market_name()
-            market = None
             install_from_cloud = component_source.is_install_from_cloud()
-            app_version = None
             if install_from_cloud and market_name:
                 market = app_market_repo.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
-                if market:
-                    app_model, app_version = app_market_service.cloud_app_model_to_db_model(
-                        market, app_model_key, current_version)
-            else:
-                app_model, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_model_key,
-                                                                                        current_version)
-        return current_version, app_version, install_from_cloud, market
+        return current_version, component_source.get_template_update_time(), install_from_cloud, market
 
     def get_models_upgradeable_version(self, enterprise_id, app_model_key, app_id):
-        current_version, app_version, install_from_cloud, market = self.get_current_version(
+        current_version, current_version_update_time, install_from_cloud, market = self.get_current_version(
             enterprise_id, app_model_key, app_id)
-        return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version,
-                                               app_version.update_time if app_version else None, install_from_cloud, market)
+        return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version, current_version_update_time,
+                                               install_from_cloud, market)
 
     def delete_rainbond_app_all_info_by_id(self, enterprise_id, app_id):
         sid = transaction.savepoint()

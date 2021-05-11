@@ -16,7 +16,6 @@ def test_list_users_by_tenant_id():
         "tenant_id": tenant_id,
         "tenant_name": "xxxxxxxx",
         "creater": 1,
-        "region": "rainbond",
         "tenant_alias": "foobar team",
         "enterprise_id": eid,
     }
