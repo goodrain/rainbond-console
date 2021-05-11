@@ -47,13 +47,13 @@ class GroupAppCopyService(object):
         if not group_services:
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
-        services = service_repo.get_service_by_service_ids(service_ids=service_ids)
+        build_infos = base_service.get_build_infos(tenant, service_ids)
+
         for group_service in group_services:
             group_service["app_name"] = group_service.get("group_name")
-            for service in services:
-                if group_service["service_id"] == service.service_id:
-                    group_service["build_source"] = base_service.get_build_info(tenant, service)
-                    group_service["build_source"]["service_id"] = service.service_id
+            if build_infos.get(group_service["service_id"], None):
+                group_service["build_source"] = build_infos[group_service["service_id"]]
+                group_service["build_source"]["service_id"] = group_service["service_id"]
         return group_services
 
     def check_and_get_team_group(self, user, team_name, region_name, group_id):
