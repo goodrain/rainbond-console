@@ -13,6 +13,7 @@ from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 
@@ -338,7 +339,7 @@ class AppEnvManageView(AppBaseView):
         code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value,
                                                               self.user.nick_name)
         if code != 200:
-            return Response(general_message(code, "update value error", msg))
+            raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
         result = general_message(200, "success", "更新成功", bean=model_to_dict(env))
         return Response(result, status=result["code"])
 

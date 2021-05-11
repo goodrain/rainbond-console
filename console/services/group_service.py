@@ -45,7 +45,7 @@ class GroupService(object):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
     @transaction.atomic
-    def create_app(self, tenant, region_name, app_name, note="", username=""):
+    def create_app(self, tenant, region_name, app_name, note="", username="", re_model=False):
         app = self.__add_group(tenant, region_name, app_name, note, username)
         self.create_region_app(tenant, region_name, app)
         res = app.to_dict()
@@ -53,6 +53,8 @@ class GroupService(object):
         res["group_id"] = app.ID
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
+        if re_model:
+            return res, app
         return res
 
     def create_default_app(self, tenant, region_name):
@@ -62,6 +64,8 @@ class GroupService(object):
 
     def __add_group(self, tenant, region_name, app_name, note="", username=""):
         self.check_app_name(tenant, region_name, app_name)
+        if group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name):
+            raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
         return group_repo.add_group(tenant.tenant_id, region_name, app_name, group_note=note, username=username)
 
     def create_region_app(self, tenant, region_name, app):
@@ -83,18 +87,23 @@ class GroupService(object):
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
         # check username
         if username:
-            user_repo.get_user_by_username(username)
+            try:
+                data = {"username": username}
+                user_repo.get_user_by_username(username)
+                group_repo.update(app_id, **data)
+                return
+            except ErrUserNotFound:
+                raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
         # check app name
         self.check_app_name(tenant, region_name, app_name)
-
+        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
+        if group and int(group.ID) != int(app_id):
+            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
         data = {
             "note": note,
         }
-        if username:
-            data["username"] = username
         if app_name:
             data["group_name"] = app_name
-
         group_repo.update(app_id, **data)
 
     def delete_group(self, group_id, default_group_id):
@@ -170,10 +179,22 @@ class GroupService(object):
         return res
 
     def get_group_by_id(self, tenant, region, group_id):
+        principal_info = dict()
+        principal_info["email"] = ""
+        principal_info["is_delete"] = False
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
-        return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note}
+        try:
+            user = user_repo.get_user_by_username(group.username)
+            principal_info["real_name"] = user.get_name()
+            principal_info["username"] = user.nick_name
+            principal_info["email"] = user.email
+        except ErrUserNotFound:
+            principal_info["is_delete"] = True
+            principal_info["real_name"] = group.username
+            principal_info["username"] = group.username
+        return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note, "principal": principal_info}
 
     def get_app_by_id(self, tenant, region, app_id):
         return group_repo.get_group_by_pk(tenant.tenant_id, region, app_id)

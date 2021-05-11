@@ -738,7 +738,7 @@ class AppMarketService(object):
                     app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"])
                     continue
                 app_market_repo.create_app_market(**dt)
-        return self.get_app_markets(eid, extend=True)
+        return self.get_app_markets(eid, extend="true")
 
     def update_app_market(self, app_market, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
