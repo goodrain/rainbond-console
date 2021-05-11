@@ -204,6 +204,8 @@ class AppPluginService(object):
             if msg == "can not add this kind plugin, a same kind plugin has been linked":
                 old_plugin = body.get("bean")
                 self.handle_network_plugin_conflict(tenant, region, service, old_plugin, data)
+                return
+            raise e
 
     @staticmethod
     def handle_network_plugin_conflict(tenant, region_name, service, old_plugin, data):
