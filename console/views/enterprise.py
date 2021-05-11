@@ -220,7 +220,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         new_join_team.append(team_item)
             if request_tenants:
                 for request_tenant in request_tenants:
-                    region_name_list = team_repo.get_team_region_names(tenant.team_id)
+                    region_name_list = team_repo.get_team_region_names(request_tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
