@@ -88,6 +88,8 @@ class AppPluginService(object):
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
         plugin_version_info = plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, build_version)
+        if not plugin_version_info:
+            raise ServiceHandleException("plugin version not found", status_code=404, msg_show="插件版本不存在")
         min_memory = plugin_version_info.min_memory
         min_cpu = plugin_version_info.min_cpu
         params = {
@@ -192,9 +194,41 @@ class AppPluginService(object):
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:
-            if "body" in e.message and "msg" in e.message["body"] \
-               and "a same kind plugin has been linked" in e.message["body"]["msg"]:
-                raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
+            body = e.message["body"]
+            msg = body.get("msg")
+            # It's ok if the plugin already exists.
+            if msg == "service plugin already exists":
+                logger.warning(msg)
+                return
+            # network plugin conflict
+            if msg == "can not add this kind plugin, a same kind plugin has been linked":
+                old_plugin = body.get("bean")
+                self.handle_network_plugin_conflict(tenant, region, service, old_plugin, data)
+
+    @staticmethod
+    def handle_network_plugin_conflict(tenant, region_name, service, old_plugin, data):
+        """
+        There are two situations that can cause network plugin conflicts:
+        1. The network plugin is indeed installed.
+        2. The console and region data are inconsistent. There are network plugin in the region, but the console does not.
+        In situation 2, we have to ensure the network plugins between console and region are consistent.
+        And the network plugin in the console should take effect.
+        """
+        if not old_plugin:
+            # compatible with legacy version which has no old_plugin.
+            raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
+
+        # situation 1, the network plugin is indeed installed
+        relation = app_plugin_relation_repo.get_relation_by_service_and_plugin(service.service_id, old_plugin["plugin_id"])
+        if relation:
+            raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
+
+        # situation 2, network plugins inconsistent.
+        # uninstall the network plugin in the region, then try install again.
+        logger.info("handling network plugin conflict#situation 2")
+        region_api.uninstall_service_plugin(region_name, tenant.tenant_name, old_plugin["plugin_id"], service.service_alias)
+        region_api.install_service_plugin(region_name, tenant.tenant_name, service.service_alias, data)
+
 
     def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
         """console层保存默认的数据"""
