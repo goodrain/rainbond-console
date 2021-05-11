@@ -79,18 +79,14 @@ class ApplicationService(object):
         return [{"component_name": cpt.service_cname, "component_alias": cpt.service_alias} for cpt in components]
 
     @staticmethod
-    def ensure_name(region_name: str, tenant_name: str, app_name: str):
-        return region_api.ensure_app_name(region_name, tenant_name, app_name)
-
-    @staticmethod
     def parse_services(region_name: str, tenant_name: str, app_id: int, values: str):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         return region_api.parse_app_services(region_name, tenant_name, region_app_id, values)
 
     @staticmethod
-    def list_helm_releases(region_name: str, tenant_name: str, app_id: int):
+    def list_releases(region_name: str, tenant_name: str, app_id: int):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        return region_api.list_app_helm_releases(region_name, tenant_name, region_app_id)
+        return region_api.list_app_releases(region_name, tenant_name, region_app_id)
 
     @staticmethod
     def list_access_info(tenant, app_id):
@@ -103,11 +99,6 @@ class ApplicationService(object):
                 "access_info": data,
             })
         return result
-
-    @staticmethod
-    def list_helm_app_values(tenant_name, region_name, app_id, version):
-        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        return region_api.list_helm_app_values(tenant_name, region_name, region_app_id, version)
 
 
 application_service = ApplicationService()

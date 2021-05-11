@@ -73,7 +73,6 @@ class GroupService(object):
                 raise AbortRequest("the field 'app_template_name' is required")
             if not version:
                 raise AbortRequest("the field 'version' is required")
-            # TODO: check if the helm app is valid
 
         app = ServiceGroup(
             tenant_id=tenant.tenant_id,
@@ -469,7 +468,10 @@ class GroupService(object):
     def _delete_app(tenant_name, region_name, app_id):
         group_repo.delete_group_by_pk(app_id)
         upgrade_repo.delete_app_record_by_group_id(app_id)
-        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        try:
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        except RegionApp.DoesNotExist:
+            return
         region_api.delete_app(region_name, tenant_name, region_app_id)
 
     def get_service_group_memory(self, app_template):

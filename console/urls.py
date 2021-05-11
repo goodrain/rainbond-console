@@ -64,12 +64,11 @@ from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseConfigView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView,
-                                 ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView,
-                                 ApplicationParseServicesView, ApplicationEnsureNameView, ApplicationComponentBatchView,
-                                 ApplicationHelmReleasesView, ApplicationIngressesView, ApplicationValuesView)
+from console.views.group import (
+    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
+    TenantGroupOperationView, TenantGroupView, ApplicationDetectPrecessView, ApplicationInstallView, ApplicationPodView,
+    ApplicationServiceView, ApplicationComponentView, ApplicationOrphanComponentView, ApplicationParseServicesView,
+    ApplicationComponentBatchView, ApplicationReleasesView, ApplicationIngressesView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -107,11 +106,11 @@ from console.views.service_share import (
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
-from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView,
-                                JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamCheckKubernetesServiceName,
-                                TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
-                                TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
-                                UserApplyStatusView, UserDelView, UserFuzSerView, TeamsPermissionCreateApp)
+from console.views.team import (
+    AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView, JoinTeamView, NotJoinTeamUserView,
+    RegisterStatusView, TeamCheckKubernetesServiceName, TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView,
+    TeamSortDomainQueryView, TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView,
+    UserDelView, UserFuzSerView, TeamsPermissionCreateApp, TeamCheckResourceName)
 from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -229,7 +228,7 @@ urlpatterns = [
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(),
         perms.TeamServiceOverViewView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/ensure-app-name$', ApplicationEnsureNameView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/check-resource-name$', TeamCheckResourceName.as_view()),
 
     # 应用事件动态
     url(r'teams/(?P<team_name>[\w\-]+)/services/event$', ServiceEventsView.as_view(), perms.ServiceEventsView),
@@ -309,11 +308,9 @@ urlpatterns = [
         ApplicationOrphanComponentView.as_view(), perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/parse-services$', ApplicationParseServicesView.as_view(),
         perms.TenantGroupOperationView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/helm-releases$', ApplicationHelmReleasesView.as_view(),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/releases$', ApplicationReleasesView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/visit$', ApplicationIngressesView.as_view(),
-        perms.TenantGroupOperationView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/helm-values$', ApplicationValuesView.as_view(),
         perms.TenantGroupOperationView),
 
     # 代码仓库

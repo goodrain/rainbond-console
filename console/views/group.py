@@ -361,14 +361,6 @@ class ApplicationOrphanComponentView(ApplicationView):
         return Response(general_message(200, "success", "查询成功", list=components))
 
 
-class ApplicationEnsureNameView(JWTAuthApiView):
-    def post(self, request, team_name, *args, **kwargs):
-        app_name = parse_item(request, "app_name", required=True)
-        region_name = parse_item(request, "region_name", required=True)
-        components = application_service.ensure_name(region_name, team_name, app_name)
-        return Response(general_message(200, "success", "查询成功", list=components))
-
-
 class ApplicationParseServicesView(ApplicationView):
     def post(self, request, app_id, *args, **kwargs):
         values = parse_item(request, "values", required=True)
@@ -376,9 +368,9 @@ class ApplicationParseServicesView(ApplicationView):
         return Response(general_message(200, "success", "查询成功", list=services))
 
 
-class ApplicationHelmReleasesView(ApplicationView):
+class ApplicationReleasesView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
-        releases = application_service.list_helm_releases(self.region_name, self.tenant, app_id)
+        releases = application_service.list_releases(self.region_name, self.tenant, app_id)
         return Response(general_message(200, "success", "查询成功", list=releases))
 
 
@@ -386,10 +378,3 @@ class ApplicationIngressesView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         result = application_service.list_access_info(self.tenant, app_id)
         return Response(general_message(200, "success", "查询成功", list=result))
-
-
-class ApplicationValuesView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
-        values = application_service.list_helm_app_values(self.tenant_name, self.region_name, app_id,
-                                                          parse_argument(request, "version", required=True))
-        return Response(general_message(200, "success", "查询成功", bean=values))
