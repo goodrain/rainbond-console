@@ -73,8 +73,8 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
-            data = ent_config_servier.update_config(key, value)
             try:
+                data = ent_config_servier.update_config(key, value)
                 result = general_message(200, "success", "更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)
@@ -134,8 +134,11 @@ class EnterpriseTeams(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         name = request.GET.get("name", None)
-        teams, total = team_services.get_enterprise_teams(
-            enterprise_id, query=name, page=page, page_size=page_size, user=self.user)
+        teams, total = team_services.get_enterprise_teams(enterprise_id,
+                                                          query=name,
+                                                          page=page,
+                                                          page_size=page_size,
+                                                          user=self.user)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
@@ -166,11 +169,10 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
-                    user_role_list = user_kind_role_service.get_user_roles(
-                        kind="team", kind_id=tenant.tenant_id, user=request.user)
+                    region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
+                    user_role_list = user_kind_role_service.get_user_roles(kind="team",
+                                                                           kind_id=tenant.tenant_id,
+                                                                           user=request.user)
                     roles = [x["role_name"] for x in user_role_list["roles"]]
                     if tenant.creater == request.user.user_id:
                         roles.append("owner")
@@ -192,10 +194,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         new_join_team.append(team_item)
             if join_tenants:
                 for tenant in join_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
@@ -219,10 +218,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         new_join_team.append(team_item)
             if request_tenants:
                 for request_tenant in request_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(request_tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(request_tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
@@ -324,8 +320,10 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")
-        data = region_services.get_enterprise_regions(
-            enterprise_id, level="safe", status=region_status, check_status=check_status)
+        data = region_services.get_enterprise_regions(enterprise_id,
+                                                      level="safe",
+                                                      status=region_status,
+                                                      check_status=check_status)
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -376,11 +374,10 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("pageSize", 10)
         tenants, total = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
-        result = general_message(
-            200, "success", "获取成功", bean={
-                "tenants": tenants,
-                "total": total,
-            })
+        result = general_message(200, "success", "获取成功", bean={
+            "tenants": tenants,
+            "total": total,
+        })
         return Response(result, status=status.HTTP_200_OK)
 
 

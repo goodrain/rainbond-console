@@ -64,7 +64,6 @@ def check_services(app_id, req_service_ids):
     if req_service_ids is not None:
         for sid in req_service_ids:
             if sid not in service_ids:
-                raise AbortRequest(
-                    msg="The serviceID is not in the serviceID of the current application binding",
-                    msg_show="请求的组件ID不在当前应用绑定的组件ID中",
-                    status_code=404)
+                raise AbortRequest(msg="The serviceID is not in the serviceID of the current application binding",
+                                   msg_show="请求的组件ID不在当前应用绑定的组件ID中",
+                                   status_code=404)

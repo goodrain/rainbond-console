@@ -127,10 +127,20 @@ class RegionApiBaseHttpClient(object):
         else:
             return dict()
 
+    def get_default_timeout_conifg(self):
+        connect, red = 2.0, 5.0
+        try:
+            connect = float(os.environ.get("REGION_CONNECTION_TIMEOUT", 2.0))
+            red = float(os.environ.get("REGION_RED_TIMEOUT", 5.0))
+        except Exception:
+            connect, red = 2.0, 5.0
+        return connect, red
+
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 2)
-        timeout = kwargs.get("timeout", 5.0)
+        d_connect, d_red = self.get_default_timeout_conifg()
+        timeout = kwargs.get("timeout", d_red)
         if kwargs.get("for_test"):
             region = region_name
             region_name = region.region_name
@@ -140,24 +150,23 @@ class RegionApiBaseHttpClient(object):
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
         if not client:
-            raise ServiceHandleException(
-                msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查集群配置", error_code=10411)
+            raise ServiceHandleException(msg="create region api client failure",
+                                         msg_show="创建集群通信客户端错误，请检查集群配置",
+                                         error_code=10411)
         try:
             if body is None:
-                response = client.request(
-                    url=url,
-                    method=method,
-                    headers=headers,
-                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
-                    retries=retries)
+                response = client.request(url=url,
+                                          method=method,
+                                          headers=headers,
+                                          timeout=urllib3.Timeout(connect=d_connect, read=timeout),
+                                          retries=retries)
             else:
-                response = client.request(
-                    url=url,
-                    method=method,
-                    headers=headers,
-                    body=body,
-                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
-                    retries=retries)
+                response = client.request(url=url,
+                                          method=method,
+                                          headers=headers,
+                                          body=body,
+                                          timeout=urllib3.Timeout(connect=d_connect, read=timeout),
+                                          retries=retries)
             return response.status, response.data
         except urllib3.exceptions.SSLError:
             self.destroy_client(region_config=region)
@@ -219,26 +228,24 @@ class RegionApiBaseHttpClient(object):
 
         # https pool manager
         if configuration.proxy:
-            self.pool_manager = urllib3.ProxyManager(
-                num_pools=pools_size,
-                maxsize=maxsize,
-                cert_reqs=cert_reqs,
-                ca_certs=ca_certs,
-                cert_file=configuration.cert_file,
-                key_file=configuration.key_file,
-                proxy_url=configuration.proxy,
-                timeout=5,
-                **addition_pool_args)
+            self.pool_manager = urllib3.ProxyManager(num_pools=pools_size,
+                                                     maxsize=maxsize,
+                                                     cert_reqs=cert_reqs,
+                                                     ca_certs=ca_certs,
+                                                     cert_file=configuration.cert_file,
+                                                     key_file=configuration.key_file,
+                                                     proxy_url=configuration.proxy,
+                                                     timeout=5,
+                                                     **addition_pool_args)
         else:
-            self.pool_manager = urllib3.PoolManager(
-                num_pools=pools_size,
-                maxsize=maxsize,
-                cert_reqs=cert_reqs,
-                ca_certs=ca_certs,
-                cert_file=configuration.cert_file,
-                key_file=configuration.key_file,
-                timeout=5,
-                **addition_pool_args)
+            self.pool_manager = urllib3.PoolManager(num_pools=pools_size,
+                                                    maxsize=maxsize,
+                                                    cert_reqs=cert_reqs,
+                                                    ca_certs=ca_certs,
+                                                    cert_file=configuration.cert_file,
+                                                    key_file=configuration.key_file,
+                                                    timeout=5,
+                                                    **addition_pool_args)
         return self.pool_manager
 
     def _get(self, url, headers, body=None, *args, **kwargs):
@@ -366,8 +373,9 @@ class RegionApiBaseHttpClient(object):
     def handle_error(self, body):
         region_bcode = json.loads(body)
         if "code" in region_bcode:
-            raise ServiceHandleException(
-                msg=region_bcode.get("msg"), status_code=region_bcode.get("status"), error_code=region_bcode.get("code"))
+            raise ServiceHandleException(msg=region_bcode.get("msg"),
+                                         status_code=region_bcode.get("status"),
+                                         error_code=region_bcode.get("code"))
         logger.error("request api failure, response body is {}".format(body))
         raise ServiceHandleException(msg="request region api failure", status_code=500, error_code=10411)
 

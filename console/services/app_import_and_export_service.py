@@ -96,7 +96,7 @@ class AppExportService(object):
         app_template["suffix"] = suffix
         app_template["describe"] = describe
         app_template["image_base64_string"] = image_base64_string
-        return json.dumps(app_template)
+        return json.dumps(app_template, cls=MyEncoder)
 
     def encode_image(self, image_url):
         if not image_url:
@@ -548,6 +548,13 @@ class AppImportService(object):
             else:
                 upload_url = "http://" + splits_texts[1] + raw_url
         return upload_url + "/" + event_id
+
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return str(obj, encoding='utf-8')
+        return json.JSONEncoder.default(self, obj)
 
 
 export_service = AppExportService()

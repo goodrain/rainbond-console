@@ -135,8 +135,10 @@ class CenterAppView(RegionTenantHeaderView):
             app_version_info = None
             if install_from_cloud:
                 dt, market = app_market_service.get_app_market(self.tenant.enterprise_id, market_name, raise_exception=True)
-                app, app_version_info = app_market_service.cloud_app_model_to_db_model(
-                    market, app_id, app_version, for_install=True)
+                app, app_version_info = app_market_service.cloud_app_model_to_db_model(market,
+                                                                                       app_id,
+                                                                                       app_version,
+                                                                                       for_install=True)
                 if not app:
                     return Response(general_message(404, "not found", "云端应用不存在"), status=404)
             else:
@@ -144,21 +146,21 @@ class CenterAppView(RegionTenantHeaderView):
                                                                                         app_version)
                 if not app:
                     return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-                if app_version_info.region_name and app_version_info.region_name != self.region_name:
-                    raise ServiceHandleException(
-                        msg="app version can not install to this region",
-                        msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version_info.region_name))
-
-            market_app_service.install_service(
-                self.tenant,
-                self.response_region,
-                self.user,
-                group_id,
-                app,
-                app_version_info,
-                is_deploy,
-                install_from_cloud,
-                market_name=market_name)
+                if app_version_info and app_version_info.region_name and app_version_info.region_name != self.region_name:
+                    raise ServiceHandleException(msg="app version can not install to this region",
+                                                 msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(
+                                                     app_version_info.region_name))
+            if not app_version_info:
+                return Response(general_message(404, "not found", "应用版本不存在，不能进行安装"), status=404)
+            market_app_service.install_service(self.tenant,
+                                               self.response_region,
+                                               self.user,
+                                               group_id,
+                                               app,
+                                               app_version_info,
+                                               is_deploy,
+                                               install_from_cloud,
+                                               market_name=market_name)
             if not install_from_cloud:
                 market_app_service.update_rainbond_app_install_num(self.user.enterprise_id, app_id, app_version)
             logger.debug("market app create success")
@@ -258,7 +260,6 @@ class CenterAppUDView(JWTAuthApiView):
         编辑和删除应用市场应用
         ---
     """
-
     def put(self, request, enterprise_id, app_id, *args, **kwargs):
         name = request.data.get("name")
         describe = request.data.get("describe", 'This is a default description.')

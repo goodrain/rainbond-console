@@ -18,7 +18,7 @@ from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import (parse_args, parse_argument, parse_date, parse_item)
 from console.utils.response import MessageResponse
 from console.utils.shortcuts import get_object_or_404
-from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
 from django.core.paginator import Paginator
 from django.db.models import Q
 
@@ -37,8 +37,11 @@ class GroupAppView(RegionTenantHeaderView):
 class AppUpgradeVersion(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取安装的应用模版的可升级版本"""
-        group_key = parse_argument(
-            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
+        group_key = parse_argument(request,
+                                   'group_key',
+                                   value_type=str,
+                                   required=True,
+                                   error='group_key is a required parameter')
 
         # get app model upgrade versions
         versions = market_app_service.get_models_upgradeable_version(self.tenant.enterprise_id, group_key, group_id)
@@ -91,12 +94,11 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
 
         # 同步升级记录状态
         for record in records:
-            upgrade_service.synchronous_upgrade_status(self.tenant, record)
+            upgrade_service.synchronous_upgrade_status(self.tenant, self.region_name, record)
 
-        return MessageResponse(
-            msg="success",
-            bean={"total": paginator.count},
-            list=[upgrade_service.serialized_upgrade_record(record) for record in records])
+        return MessageResponse(msg="success",
+                               bean={"total": paginator.count},
+                               list=[upgrade_service.serialized_upgrade_record(record) for record in records])
 
     def post(self, request, group_id, *args, **kwargs):
         """新增升级订单"""
@@ -119,15 +121,14 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
 class AppUpgradeRecordView(RegionTenantHeaderView):
     def get(self, request, group_id, record_id, *args, **kwargs):
         """获取升级订单"""
-        record = get_object_or_404(
-            AppUpgradeRecord,
-            msg="Upgrade record not found",
-            tenant_id=self.tenant.tenant_id,
-            group_id=int(group_id),
-            pk=int(record_id))
+        record = get_object_or_404(AppUpgradeRecord,
+                                   msg="Upgrade record not found",
+                                   tenant_id=self.tenant.tenant_id,
+                                   group_id=int(group_id),
+                                   pk=int(record_id))
 
         # 同步升级记录状态
-        upgrade_service.synchronous_upgrade_status(self.tenant, record)
+        upgrade_service.synchronous_upgrade_status(self.tenant, self.region_name, record)
 
         return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(record))
 
@@ -140,38 +141,45 @@ class UpgradeType(Enum):
 class AppUpgradeInfoView(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取升级信息"""
-        group_key = parse_argument(
-            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
+        group_key = parse_argument(request,
+                                   'group_key',
+                                   value_type=str,
+                                   required=True,
+                                   error='group_key is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
         market_name = request.GET.get("market_name")
 
         # 查询某一个云市应用下的所有组件
         services = group_service.get_rainbond_services(int(group_id), group_key)
-        upgrade_info = [{
-            'service': {
-                'service_id': service.service_id,
-                'service_cname': service.service_cname,
-                'service_key': service.service_key,
-                'type': UpgradeType.UPGRADE.value
-            },
-            'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version, services),
-        } for service in services]
+        upgrade_info = []
+        if services:
+            upgrade_info = [{
+                'service': {
+                    'service_id': service.service_id,
+                    'service_cname': service.service_cname,
+                    'service_key': service.service_key,
+                    'type': UpgradeType.UPGRADE.value
+                },
+                'upgrade_info': upgrade_service.get_service_changes(service, self.tenant, version, services),
+            } for service in services]
 
-        add_info = [{
-            'service': {
-                'service_id': '',
-                'service_cname': service_info['service_cname'],
-                'service_key': service_info['service_key'],
-                'type': UpgradeType.ADD.value
-            },
-            'upgrade_info': service_info,
-        } for service_info in upgrade_service.get_add_services(self.team.enterprise_id, services, group_key, version,
-                                                               market_name)]
+        add_component = upgrade_service.get_add_services(self.team.enterprise_id, services, group_key, version, market_name)
+        add_info = []
+        if add_component:
+            add_info = [{
+                'service': {
+                    'service_id': '',
+                    'service_cname': service_info['service_cname'],
+                    'service_key': service_info['service_key'],
+                    'type': UpgradeType.ADD.value
+                },
+                'upgrade_info': service_info,
+            } for service_info in add_component]
 
         return MessageResponse(msg="success", list=upgrade_info + add_info)
 
 
-class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class AppUpgradeTaskView(RegionTenantHeaderCloudEnterpriseCenterView):
     def post(self, request, group_id, *args, **kwargs):
         """提交升级任务"""
         rq_args = (
@@ -210,13 +218,15 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         )
         old_services = group_service.get_rainbond_services(group_id, group_key)
         pc = PropertiesChanges(old_services.first(), self.tenant, all_component_one_model=old_services)
-        if not pc.template:
-            raise ServiceHandleException(msg="can not get app template", msg_show="无法获取应用模版，升级无法继续进行", status_code=400)
         if pc.install_from_cloud:
             old_app_model, old_app = app_market_service.cloud_app_model_to_db_model(pc.market, group_key, version)
         else:
             old_app_model, old_app = rainbond_app_repo.get_rainbond_app_and_version(self.tenant.enterprise_id, group_key,
                                                                                     version)
+        if not old_app_model:
+            raise ServiceHandleException(msg="app is not exist", msg_show="应用市场应用不存在，无法进行升级")
+        if not old_app:
+            raise ServiceHandleException(msg="app version is not exist", msg_show="应用市场应用版本不存在，无法进行升级")
         old_app.template = old_app.app_template
         old_app.app_name = old_app_model.app_name
         new_app = deepcopy(old_app)
@@ -263,14 +273,16 @@ class AppUpgradeTaskView(RegionTenantHeaderView, CloudEnterpriseCenterView):
                                                                    upgrade_service_infos)
 
         app_record.version = version
-        app_record.old_version = pc.current_version.version
+        app_record.old_version = pc.current_version
         app_record.save()
 
         services = service_repo.get_services_by_service_ids_and_group_key(data['group_key'], list(upgrade_service_infos.keys()))
 
         market_services = [
-            upgrade_service.market_service_and_create_backup(
-                self.tenant, service, app_record.version, all_component_one_model=services) for service in services
+            upgrade_service.market_service_and_create_backup(self.tenant,
+                                                             service,
+                                                             app_record.version,
+                                                             all_component_one_model=services) for service in services
         ]
 
         # 处理依赖关系

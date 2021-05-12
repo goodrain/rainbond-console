@@ -107,8 +107,10 @@ class ServiceRepo(object):
         no_services = base_service.get_no_group_services_list(team_id=team_id, region_name=region_name)
         if no_services:
             service_ids = [service.service_id for service in no_services]
-            status_list = base_service.status_multi_service(
-                region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=enterprise_id)
+            status_list = base_service.status_multi_service(region=region_name,
+                                                            tenant_name=team_name,
+                                                            service_ids=service_ids,
+                                                            enterprise_id=enterprise_id)
             status_cache = {}
             statuscn_cache = {}
             for status in status_list:

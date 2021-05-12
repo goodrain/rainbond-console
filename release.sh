@@ -17,7 +17,7 @@ function release() {
   buildTime=$(date +%F-%H)
   release_desc=${VERSION}-${git_commit}-${buildTime}
   image_name="rainbond-console"
-  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg RELEASE_DESC="${release_desc}" -t "${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}" -f Dockerfile .
+  docker build --network=host --build-arg RELEASE_DESC="${release_desc}" -t "${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}" -f Dockerfile .
   if [ $? -ne 0 ]; then
     exit 1
   fi

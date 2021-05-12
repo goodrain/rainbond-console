@@ -16,8 +16,9 @@ from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
-from console.views.app_config.base import AppBaseView
-from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView)
+from console.views.app_config.base import AppBaseView, AppBaseCloudEnterpriseCenterView
+from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView,
+                                RegionTenantHeaderCloudEnterpriseCenterView)
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -28,7 +29,7 @@ app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
 
 
-class StartAppView(AppBaseView, CloudEnterpriseCenterView):
+class StartAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -85,7 +86,7 @@ class StopAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
+class ReStartAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -112,7 +113,7 @@ class ReStartAppView(AppBaseView, CloudEnterpriseCenterView):
         return Response(result, status=result["code"])
 
 
-class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
+class DeployAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -133,8 +134,11 @@ class DeployAppView(AppBaseView, CloudEnterpriseCenterView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            code, msg, _ = app_deploy_service.deploy(
-                self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
+            code, msg, _ = app_deploy_service.deploy(self.tenant,
+                                                     self.service,
+                                                     self.user,
+                                                     version=group_version,
+                                                     oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
@@ -193,7 +197,7 @@ class RollBackAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
+class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -221,8 +225,11 @@ class VerticalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            code, msg = app_manage_service.vertical_upgrade(
-                self.tenant, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+            code, msg = app_manage_service.vertical_upgrade(self.tenant,
+                                                            self.service,
+                                                            self.user,
+                                                            int(new_memory),
+                                                            oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
@@ -264,12 +271,15 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            app_manage_service.horizontal_upgrade(
-                self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
+            app_manage_service.horizontal_upgrade(self.tenant,
+                                                  self.service,
+                                                  self.user,
+                                                  int(new_node),
+                                                  oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
         except ServiceHandleException as e:
-            return Response(
-                general_message(e.status_code, e.msg, e.msg_show), status=(400 if e.status_code > 599 else e.status_code))
+            return Response(general_message(e.status_code, e.msg, e.msg_show),
+                            status=(400 if e.status_code > 599 else e.status_code))
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -278,7 +288,7 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
         return Response(result, status=result["code"])
 
 
-class BatchActionView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
     @never_cache
     # TODO 修改权限验证
     def post(self, request, *args, **kwargs):

@@ -6,6 +6,7 @@ from django.conf import settings
 from www.models.main import ConsoleConfig
 import datetime
 import logging
+
 logger = logging.getLogger('default')
 
 

@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 
 from console.enum.app import GovernanceModeEnum
+from console.enum.component_enum import ComponentSource
 from console.utils import runner_util
 from django.conf import settings
 from django.db import models
@@ -40,9 +41,6 @@ class AnonymousUser(object):
     pk = None
     username = ''
     is_active = False
-
-    def __init__(self):
-        pass
 
     def __str__(self):
         return 'AnonymousUser'
@@ -332,7 +330,7 @@ class Tenants(BaseModel):
     tenant_id = models.CharField(max_length=33, unique=True, default=make_tenant_id, help_text="租户id")
     tenant_name = models.CharField(max_length=64, unique=True, help_text="租户名称")
     # This property is deprecated
-    region = models.CharField(max_length=64, default='', help_text="区域中心,弃用")
+    # region = models.CharField(max_length=64, default='', help_text="区域中心,弃用")
     is_active = models.BooleanField(default=True, help_text="激活状态")
     pay_type = models.CharField(max_length=5, choices=tenant_type, help_text="付费状态")
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="账户余额")
@@ -556,6 +554,11 @@ class TenantServiceInfo(BaseModel):
     @property
     def component_id(self):
         return self.service_id
+
+    def is_third_party(self):
+        if self.service_source == ComponentSource.THIRD_PARTY.value:
+            return True
+        return False
 
 
 class TenantServiceInfoDelete(BaseModel):
@@ -924,7 +927,7 @@ class TenantServiceEnvVar(BaseModel):
     container_port = models.IntegerField(default=0, help_text="端口")
     name = models.CharField(max_length=1024, blank=True, help_text="名称")
     attr_name = models.CharField(max_length=1024, help_text="属性")
-    attr_value = models.CharField(max_length=2048, help_text="值")
+    attr_value = models.TextField(help_text="值")
     is_change = models.BooleanField(default=False, blank=True, help_text="是否可改变")
     scope = models.CharField(max_length=10, help_text="范围", default=ScopeType.OUTER.value)
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")

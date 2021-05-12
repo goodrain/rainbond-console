@@ -6,7 +6,7 @@ from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig, TeamGitlabInfo
 from console.repositories.base import BaseConnection
 from django.db.models import Q
-from www.models.main import (PermRelTenant, ServiceGroup, TenantEnterprise, TenantRegionInfo, Tenants, Users)
+from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users)
 
 logger = logging.getLogger("default")
 
@@ -68,26 +68,6 @@ class TeamRepo(object):
                     tenants.append(tn)
         return tenants
 
-    def get_active_tenants_by_user_id(self, user_id):
-        active_tenants_list = []
-        tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
-        tenants = Tenants.objects.filter(ID__in=tenant_ids)
-        if tenants:
-            for tenant in tenants:
-                active_tenants_list.append({
-                    "tenant_id": tenant.tenant_id,
-                    "team_alias": tenant.tenant_alias,
-                    "owner": tenant.creater,
-                    "enterprise_id": tenant.enterprise_id,
-                    "create_time": tenant.create_time,
-                    "team_name": tenant.tenant_name,
-                    "region": tenant.region,
-                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id))
-                })
-            active_tenants_list.sort(key=lambda x: x["num"])
-            active_tenants_list = active_tenants_list[:3]
-        return active_tenants_list
-
     def get_user_perms_in_permtenant(self, user_id, tenant_id):
         tenant_perms = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id)
         if not tenant_perms:
@@ -103,8 +83,7 @@ class TeamRepo(object):
             FROM user_info
             WHERE user_id NOT IN {where}
             AND enterprise_id="{enterprise_id}"
-        """.format(
-            where=where, enterprise_id=enterprise.enterprise_id)
+        """.format(where=where, enterprise_id=enterprise.enterprise_id)
         if query:
             sql += """
             AND nick_name like "%{query}%"
@@ -126,9 +105,8 @@ class TeamRepo(object):
         :param tenant_id: 团队id  int
         :return: 获取一个用户在一个团队中的所有身份列表
         """
-        tenant_perms_list = PermRelTenant.objects.filter(
-            user_id=user_id, tenant_id=tenant_id).values_list(
-                "identity", flat=True)
+        tenant_perms_list = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id).values_list("identity",
+                                                                                                           flat=True)
         if not tenant_perms_list:
             return None
         return tenant_perms_list
@@ -246,8 +224,7 @@ class TeamRepo(object):
         ORDER BY
             service_num DESC
         {limit}
-        """.format(
-            where=where, limit=limit)
+        """.format(where=where, limit=limit)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -263,8 +240,7 @@ class TeamRepo(object):
                 AND a.creater = d.user_id
                 AND b.user_id = {user_id}
                 AND a.enterprise_id = '{eid}'
-                """.format(
-            user_id=user_id, eid=eid)
+                """.format(user_id=user_id, eid=eid)
         if query:
             where += """AND ( a.tenant_alias LIKE "%{query}%" OR d.nick_name LIKE "%{query}%" )""".format(query=query)
         sql = """
@@ -284,8 +260,7 @@ class TeamRepo(object):
                 user_info d
             {where}
             {limit}
-            """.format(
-            where=where, limit=limit)
+            """.format(where=where, limit=limit)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -295,8 +270,7 @@ class TeamRepo(object):
                 AND c.user_id = b.user_id
                 AND b.user_id = {user_id}
                 AND a.enterprise_id = '{eid}'
-                """.format(
-            user_id=user_id, eid=eid)
+                """.format(user_id=user_id, eid=eid)
         if query:
             where += """AND a.tenant_alias LIKE "%{query}%" """.format(query=query)
         sql = """
@@ -317,7 +291,11 @@ class TeamRepo(object):
         return result[0].get("total")
 
     def get_team_regions(self, team_id):
-        return TenantRegionInfo.objects.filter(tenant_id=team_id)
+        region_names = TenantRegionInfo.objects.filter(tenant_id=team_id).values_list("region_name", flat=True)
+        return RegionConfig.objects.filter(region_name__in=region_names)
+
+    def get_team_region_names(self, team_id):
+        return self.get_team_regions(team_id).values_list("region_name", flat=True)
 
     def get_team_region_by_name(self, team_id, region_name):
         return TenantRegionInfo.objects.filter(tenant_id=team_id, region_name=region_name)

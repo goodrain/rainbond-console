@@ -53,8 +53,11 @@ class ListTeamInfo(BaseOpenAPIView):
             page_size = int(req.GET.get("page_size", 10))
         except ValueError:
             page_size = 10
-        tenants, total = team_services.list_teams_by_user_id(
-            eid=self.enterprise.enterprise_id, user_id=req.user.user_id, query=query, page=page, page_size=page_size)
+        tenants, total = team_services.list_teams_by_user_id(eid=self.enterprise.enterprise_id,
+                                                             user_id=req.user.user_id,
+                                                             query=query,
+                                                             page=page,
+                                                             page_size=page_size)
         result = {"tenants": tenants, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
@@ -113,8 +116,8 @@ class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="删除团队",
         manual_parameters=[
-            openapi.Parameter(
-                "force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true", "false"]),
+            openapi.Parameter("force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true",
+                                                                                                               "false"]),
         ],
         responses={},
         tags=['openapi-team'],
@@ -141,7 +144,7 @@ class TeamInfo(TeamNoRegionAPIView):
         serializer.is_valid(raise_exception=True)
 
         if req.data.get("enterprise_id", ""):
-            ent = enterprise_services.get_enterprise_by_enterprise_id()
+            ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["enterprise_id"])
             if not ent:
                 raise serializers.ValidationError("指定企业不存在", status.HTTP_404_NOT_FOUND)
         if req.data.get("creator", 0):
@@ -352,6 +355,8 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         new_c = domain_service.add_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
+        if isinstance(rst["certificate"], bytes):
+            rst["certificate"] = rst["certificate"].decode()
         rst_serializer = TeamCertificatesRSerializer(data=rst)
         rst_serializer.is_valid(raise_exception=True)
         return Response(rst_serializer.data, status=status.HTTP_200_OK)
@@ -388,6 +393,8 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         new_c = domain_service.update_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
+        if isinstance(rst["certificate"], bytes):
+            rst["certificate"] = rst["certificate"].decode()
         rst_serializer = TeamCertificatesRSerializer(data=rst)
         rst_serializer.is_valid(raise_exception=True)
         return Response(rst_serializer.data, status=status.HTTP_200_OK)
@@ -434,8 +441,9 @@ class TeamsResourceView(BaseOpenAPIView):
             team = None
             region_name = tenant.get("region_name")
             tenant_id = tenant.get("tenant_id")
-            team_region = TenantRegionInfo.objects.filter(
-                tenant_id=tenant_id, enterprise_id=self.enterprise.enterprise_id, region_name=region_name).first()
+            team_region = TenantRegionInfo.objects.filter(tenant_id=tenant_id,
+                                                          enterprise_id=self.enterprise.enterprise_id,
+                                                          region_name=region_name).first()
             if team_region:
                 team = team_services.get_team_by_team_id(tenant_id)
             data = team_services.get_tenant_resource(team, region_name)

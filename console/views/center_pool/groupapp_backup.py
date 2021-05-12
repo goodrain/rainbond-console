@@ -4,6 +4,7 @@
 """
 import logging
 import io
+import urllib
 
 from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
@@ -67,16 +68,17 @@ class GroupAppsBackupView(RegionTenantHeaderView):
             code, running_state_services = groupapp_backup_service.check_backup_condition(
                 self.tenant, self.region_name, group_id)
             if running_state_services:
-                return Response(
-                    general_message(
-                        code=4121, msg="state service is running", msg_show="有状态组件未关闭", list=running_state_services),
-                    status=412)
+                return Response(general_message(code=4121,
+                                                msg="state service is running",
+                                                msg_show="有状态组件未关闭",
+                                                list=running_state_services),
+                                status=412)
             # if service use custom service, can't backup
             use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id)
             if use_custom_svc:
                 logger.info("use custom volume: {}".format(use_custom_svc))
-                return Response(
-                    general_message(code=4122, msg="use custom volume", msg_show="组件使用了自定义存储", list=use_custom_svc), status=412)
+                return Response(general_message(code=4122, msg="use custom volume", msg_show="组件使用了自定义存储", list=use_custom_svc),
+                                status=412)
 
         back_up_record = groupapp_backup_service.backup_group_apps(self.tenant, self.user, self.region_name, group_id, mode,
                                                                    note, force)
@@ -220,8 +222,12 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
         backup_records = paginator.page(int(page))
         obj_storage = EnterpriseConfigService(self.user.enterprise_id).get_cloud_obj_storage_info()
         bean = {"is_configed": obj_storage is not None}
-        result = general_message(
-            200, "success", "查询成功", bean=bean, list=[backup.to_dict() for backup in backup_records], total=paginator.count)
+        result = general_message(200,
+                                 "success",
+                                 "查询成功",
+                                 bean=bean,
+                                 list=[backup.to_dict() for backup in backup_records],
+                                 total=paginator.count)
         return Response(result, status=result["code"])
 
 
@@ -322,7 +328,7 @@ class GroupAppsBackupExportView(AlowAnyApiView):
             output.write(data_str)
             res = StreamingHttpResponse(output.getvalue())
             res['Content-Type'] = 'application/octet-stream'
-            res['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
+            res['Content-Disposition'] = "attachment;filename*=UTF-8''" + urllib.parse.quote(file_name)
             return res
         except Exception as e:
             logger.exception(e)

@@ -80,8 +80,8 @@ class TenantEnterpriseRepo(object):
 
     def get_enterprise_teams(self, enterprise_id, name=None):
         if name:
-            return Tenants.objects.filter(
-                enterprise_id=enterprise_id, is_active=True, tenant_alias__contains=name).order_by("-create_time")
+            return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True,
+                                          tenant_alias__contains=name).order_by("-create_time")
         else:
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
@@ -108,10 +108,7 @@ class TenantEnterpriseRepo(object):
                     role = "owner"
                 else:
                     role = None
-            region_name_list = []
-            region_list = team_repo.get_team_regions(tenant.tenant_id)
-            if region_list:
-                region_name_list = region_list.values_list("region_name", flat=True)
+            region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
             team_item = {
                 "tenant_id": tenant.tenant_id,
                 "team_alias": tenant.tenant_alias,
@@ -120,7 +117,7 @@ class TenantEnterpriseRepo(object):
                 "enterprise_id": tenant.enterprise_id,
                 "create_time": tenant.create_time,
                 "team_name": tenant.tenant_name,
-                "region": tenant.region,
+                "region": region_name_list[0] if region_name_list else "",
                 "region_list": region_name_list,
                 "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
                 "role": role
@@ -195,8 +192,7 @@ class TenantEnterpriseRepo(object):
             JOIN tenant_enterprise_token b ON a.id = b.enterprise_id
         {where}
         {limit}
-        """.format(
-            where=where, limit=limit)
+        """.format(where=where, limit=limit)
 
         conn = BaseConnection()
         result = conn.query(sql)
@@ -270,8 +266,10 @@ class TenantEnterpriseUserPermRepo(object):
         if token is None:
             return EnterpriseUserPerm.objects.create(user_id=user_id, enterprise_id=enterprise_id, identity=identity)
         else:
-            return EnterpriseUserPerm.objects.create(
-                user_id=user_id, enterprise_id=enterprise_id, identity=identity, token=token)
+            return EnterpriseUserPerm.objects.create(user_id=user_id,
+                                                     enterprise_id=enterprise_id,
+                                                     identity=identity,
+                                                     token=token)
 
     def update_roles(self, enterprise_id, user_id, identity):
         EnterpriseUserPerm.objects.filter(enterprise_id=enterprise_id, user_id=user_id).update(identity=identity)

@@ -7,6 +7,7 @@ from addict import Dict
 from goodrain_web.decorator import method_perf_time
 
 import logging
+
 logger = logging.getLogger('default')
 
 

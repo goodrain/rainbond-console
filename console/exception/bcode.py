@@ -60,8 +60,10 @@ class ErrRepeatMonitoringTarget(ServiceHandleException):
 # 20300 ~ 20399 => oauth
 class ErrOauthServiceExists(ServiceHandleException):
     def __init__(self):
-        super(ErrOauthServiceExists, self).__init__(
-            "oauth service exists", msg_show="OAuth 名称已存在", status_code=409, error_code=20300)
+        super(ErrOauthServiceExists, self).__init__("oauth service exists",
+                                                    msg_show="OAuth 名称已存在",
+                                                    status_code=409,
+                                                    error_code=20300)
 
 
 # 20400 ~ 20499 => enterprise
@@ -84,24 +86,32 @@ class ErrComponentPortExists(ServiceHandleException):
 # 20600 ~ 20699 => service plugin
 class ErrPluginIsUsed(ServiceHandleException):
     def __init__(self):
-        super(ErrPluginIsUsed, self).__init__(
-            msg="plugin is used by the service", msg_show="该插件被组件使用，无法删除", status_code=409, error_code=20600)
+        super(ErrPluginIsUsed, self).__init__(msg="plugin is used by the service",
+                                              msg_show="该插件被组件使用，无法删除",
+                                              status_code=409,
+                                              error_code=20600)
 
 
 # 20700 ~ 20799 => appliction
 class ErrApplicationNotFound(ServiceHandleException):
     def __init__(self):
-        super(ErrApplicationNotFound, self).__init__(
-            msg="application not found", msg_show="应用不存在", status_code=404, error_code=20700)
+        super(ErrApplicationNotFound, self).__init__(msg="application not found",
+                                                     msg_show="应用不存在",
+                                                     status_code=404,
+                                                     error_code=20700)
 
 
 class ErrApplicationServiceNotFound(ServiceHandleException):
     def __init__(self):
-        super(ErrApplicationServiceNotFound, self).__init__(
-            msg="application service not found", msg_show="应用服务不存在", status_code=404, error_code=20701)
+        super(ErrApplicationServiceNotFound, self).__init__(msg="application service not found",
+                                                            msg_show="应用服务不存在",
+                                                            status_code=404,
+                                                            error_code=20701)
 
 
 class ErrServiceAddressNotFound(ServiceHandleException):
     def __init__(self):
-        super(ErrServiceAddressNotFound, self).__init__(
-            msg="service address not found", msg_show="服务地址不存在", status_code=404, error_code=20702)
+        super(ErrServiceAddressNotFound, self).__init__(msg="service address not found",
+                                                        msg_show="服务地址不存在",
+                                                        status_code=404,
+                                                        error_code=20702)

@@ -232,6 +232,8 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
 
     def initial(self, request, *args, **kwargs):
         super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
+        if not os.getenv("IS_PUBLIC", False):
+            return
         try:
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
@@ -249,11 +251,9 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
             raise AuthenticationInfoHasExpiredError(msg)
 
 
-class RegionTenantHeaderView(JWTAuthApiView):
+class TenantHeaderView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
-        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
-        self.response_region = None
-        self.region_name = None
+        super(TenantHeaderView, self).__init__(*args, **kwargs)
         self.tenant_name = None
         self.team_name = None
         self.tenant = None
@@ -290,7 +290,6 @@ class RegionTenantHeaderView(JWTAuthApiView):
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.tenant_name = kwargs.get("tenantName", None)
-        self.response_region = kwargs.get("region_name", None)
 
         if not self.tenant_name:
             self.tenant_name = kwargs.get("team_name", None)
@@ -300,6 +299,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.tenant_name = self.request.COOKIES.get('team', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team_name', None)
+        if not self.tenant_name:
+            self.tenant_name = self.request.GET.get('team_name', None)
         self.team_name = self.tenant_name
 
         if not self.response_region:
@@ -333,6 +334,64 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.check_perms(request, *args, **kwargs)
 
 
+class RegionTenantHeaderView(TenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
+        self.response_region = None
+        self.region_name = None
+
+    def initial(self, request, *args, **kwargs):
+        super(RegionTenantHeaderView, self).initial(request, *args, **kwargs)
+        self.response_region = kwargs.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region", None)
+        if not self.response_region:
+            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
+        if not self.response_region:
+            self.response_region = self.request.COOKIES.get('region_name', None)
+        self.region_name = self.response_region
+        if not self.response_region:
+            raise ImportError("region_name not found !")
+
+
+class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        RegionTenantHeaderView.initial(self, request, *args, **kwargs)
+        CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
+
+
+class ApplicationView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(ApplicationView, self).__init__(*args, **kwargs)
+        self.app = None
+
+    def initial(self, request, *args, **kwargs):
+        super(ApplicationView, self).initial(request, *args, **kwargs)
+        app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
+        self.app = app
+
+        # update update_time if the http method is not a get.
+        if request.method != 'GET':
+            group_repo.update_group_time(app_id)
+
+
+class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        ApplicationView.initial(self, request, *args, **kwargs)
+        CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
+
+
 class TeamOwnerView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(TeamOwnerView, self).__init__(*args, **kwargs)
@@ -356,24 +415,6 @@ class EnterpriseHeaderView(JWTAuthApiView):
         self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
         if not self.enterprise:
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
-
-
-class ApplicationView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(ApplicationView, self).__init__(*args, **kwargs)
-        self.app = None
-
-    def initial(self, request, *args, **kwargs):
-        super(ApplicationView, self).initial(request, *args, **kwargs)
-        app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
-        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
-        if not app:
-            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
-        self.app = app
-
-        # update update_time if the http method is not a get.
-        if request.method != 'GET':
-            group_repo.update_group_time(app_id)
 
 
 def custom_exception_handler(exc, context):
@@ -404,6 +445,7 @@ def custom_exception_handler(exc, context):
             data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障，请稍后重试"}
         return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
+        logger.error(exc)
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}

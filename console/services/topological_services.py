@@ -182,18 +182,16 @@ class TopologicalService(object):
         # pod节点信息
         region_data = dict()
         try:
-            status_data = region_api.check_service_status(
-                region=region_name,
-                tenant_name=team_name,
-                service_alias=service.service_alias,
-                enterprise_id=team.enterprise_id)
+            status_data = region_api.check_service_status(region=region_name,
+                                                          tenant_name=team_name,
+                                                          service_alias=service.service_alias,
+                                                          enterprise_id=team.enterprise_id)
             region_data = status_data["bean"]
 
-            pod_list = region_api.get_service_pods(
-                region=region_name,
-                tenant_name=team_name,
-                service_alias=service.service_alias,
-                enterprise_id=team.enterprise_id)
+            pod_list = region_api.get_service_pods(region=region_name,
+                                                   tenant_name=team_name,
+                                                   service_alias=service.service_alias,
+                                                   enterprise_id=team.enterprise_id)
             region_data["pod_list"] = pod_list["list"]
         except region_api.CallApiError as e:
             if e.message["httpcode"] == 404:

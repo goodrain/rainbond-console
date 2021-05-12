@@ -72,8 +72,10 @@ class TeamService(object):
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
-    def get_team_users(self, team):
+    def get_team_users(self, team, name=None):
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+        if users and name:
+            users = users.filter(Q(nick_name__contains=name) | Q(real_name__contains=name))
         return users
 
     def get_tenant_users_by_tenant_name(self, tenant_name):
@@ -235,9 +237,6 @@ class TeamService(object):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
         return tenants
 
-    def get_active_user_tenants(self, user_id):
-        return team_repo.get_active_tenants_by_user_id(user_id=user_id)
-
     @transaction.atomic
     def exit_current_team(self, team_name, user_id):
         s_id = transaction.savepoint()
@@ -274,9 +273,6 @@ class TeamService(object):
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-        default_region = ""
-        if region_list and len(region_list) > 0:
-            default_region = region_list[0]
         if not team_alias:
             team_alias = "{0}的团队".format(user.nick_name)
         params = {
@@ -284,7 +280,6 @@ class TeamService(object):
             "pay_type": pay_type,
             "pay_level": pay_level,
             "creater": user.user_id,
-            "region": default_region,
             "expired_time": expire_time,
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
@@ -367,9 +362,8 @@ class TeamService(object):
             if tenant.creater == request_user.user_id:
                 roles.append("owner")
         region_info_map = []
-        region_list = team_repo.get_team_regions(tenant.tenant_id)
-        if region_list:
-            region_name_list = region_list.values_list("region_name", flat=True)
+        region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
+        if region_name_list:
             region_infos = region_repo.get_region_by_region_names(region_name_list)
             if region_infos:
                 for region in region_infos:
@@ -379,7 +373,7 @@ class TeamService(object):
             "team_alias": tenant.tenant_alias,
             "team_id": tenant.tenant_id,
             "create_time": tenant.create_time,
-            "region": tenant.region,
+            "region": region_info_map[0]["region_name"] if len(region_info_map) > 0 else "",
             "region_list": region_info_map,
             "enterprise_id": tenant.enterprise_id,
             "owner": tenant.creater,

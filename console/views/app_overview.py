@@ -528,7 +528,9 @@ class BuildSourceinfo(AppBaseView):
         ---
         """
         from console.services.service_services import base_service
-        bean = base_service.get_build_info(self.tenant, self.service)
+        service_ids = [self.service.service_id]
+        build_infos = base_service.get_build_infos(self.tenant, service_ids)
+        bean = build_infos.get(self.service.service_id, None)
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
@@ -556,8 +558,8 @@ class BuildSourceinfo(AppBaseView):
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
 
-            service_source_user = service_source_repo.get_service_source(
-                team_id=self.service.tenant_id, service_id=self.service.service_id)
+            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
+                                                                         service_id=self.service.service_id)
 
             if not service_source_user:
                 service_source_info = {
