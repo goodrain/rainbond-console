@@ -15,38 +15,42 @@ buildConf = {
                 "attr_value": "www.dest_service1_5000.com",
                 "attr_default_value": "www.baidu1_5000.com",
                 "is_change": True
-            }, {
-                "attr_name": "circuit",
-                "attr_type": "int",
-                "attr_value": "2048",
-                "attr_default_value": "1024",
-                "is_change": True
-            }, {
-                "attr_name": "prefix",
-                "attr_type": "string",
-                "attr_value": "/",
-                "attr_default_value": "/",
-                "is_change": True
-            }],
+            },
+                     {
+                         "attr_name": "circuit",
+                         "attr_type": "int",
+                         "attr_value": "2048",
+                         "attr_default_value": "1024",
+                         "is_change": True
+                     },
+                     {
+                         "attr_name": "prefix",
+                         "attr_type": "string",
+                         "attr_value": "/",
+                         "attr_default_value": "/",
+                         "is_change": True
+                     }],
             "6000": [{
                 "attr_name": "domain",
                 "attr_type": "string",
                 "attr_value": "www.dest_service1_6000.com",
                 "attr_default_value": "www.baidu1_6000.com",
                 "is_change": True
-            }, {
-                "attr_name": "circuit",
-                "attr_type": "int",
-                "attr_value": "2048",
-                "attr_default_value": "1024",
-                "is_change": True
-            }, {
-                "attr_name": "prefix",
-                "attr_type": "string",
-                "attr_value": "/",
-                "attr_default_value": "/",
-                "is_change": True
-            }]
+            },
+                     {
+                         "attr_name": "circuit",
+                         "attr_type": "int",
+                         "attr_value": "2048",
+                         "attr_default_value": "1024",
+                         "is_change": True
+                     },
+                     {
+                         "attr_name": "prefix",
+                         "attr_type": "string",
+                         "attr_value": "/",
+                         "attr_default_value": "/",
+                         "is_change": True
+                     }]
         },
         "dest_service2": {
             "5000": [{
@@ -55,38 +59,42 @@ buildConf = {
                 "attr_value": "www.dest_service2_5000.com",
                 "attr_default_value": "www.baidu2_5000.com",
                 "is_change": True
-            }, {
-                "attr_name": "circuit",
-                "attr_type": "int",
-                "attr_value": "2048",
-                "attr_default_value": "1024",
-                "is_change": True
-            }, {
-                "attr_name": "prefix",
-                "attr_type": "string",
-                "attr_value": "/",
-                "attr_default_value": "/",
-                "is_change": True
-            }],
+            },
+                     {
+                         "attr_name": "circuit",
+                         "attr_type": "int",
+                         "attr_value": "2048",
+                         "attr_default_value": "1024",
+                         "is_change": True
+                     },
+                     {
+                         "attr_name": "prefix",
+                         "attr_type": "string",
+                         "attr_value": "/",
+                         "attr_default_value": "/",
+                         "is_change": True
+                     }],
             "6000": [{
                 "attr_name": "domain",
                 "attr_type": "string",
                 "attr_value": "www.dest_service2_6000.com",
                 "attr_default_value": "www.baidu2_6000.com",
                 "is_change": True
-            }, {
-                "attr_name": "circuit",
-                "attr_type": "int",
-                "attr_value": "2048",
-                "attr_default_value": "1024",
-                "is_change": True
-            }, {
-                "attr_name": "prefix",
-                "attr_type": "string",
-                "attr_value": "/",
-                "attr_default_value": "/",
-                "is_change": True
-            }]
+            },
+                     {
+                         "attr_name": "circuit",
+                         "attr_type": "int",
+                         "attr_value": "2048",
+                         "attr_default_value": "1024",
+                         "is_change": True
+                     },
+                     {
+                         "attr_name": "prefix",
+                         "attr_type": "string",
+                         "attr_value": "/",
+                         "attr_default_value": "/",
+                         "is_change": True
+                     }]
         }
     }],
     ConstKey.UPSTREAM_PORT: {
@@ -135,19 +143,21 @@ buildConf = {
         "attr_value": "www.service_6000.com",
         "attr_default_value": "www.baidu_6000.com",
         "is_change": True
-    }, {
-        "attr_name": "circuit_injection",
-        "attr_type": "int",
-        "attr_value": "2048",
-        "attr_default_value": "1024",
-        "is_change": True
-    }, {
-        "attr_name": "prefix_injection",
-        "attr_type": "string",
-        "attr_value": "/",
-        "attr_default_value": "/",
-        "is_change": True
-    }],
+    },
+                              {
+                                  "attr_name": "circuit_injection",
+                                  "attr_type": "int",
+                                  "attr_value": "2048",
+                                  "attr_default_value": "1024",
+                                  "is_change": True
+                              },
+                              {
+                                  "attr_name": "prefix_injection",
+                                  "attr_type": "string",
+                                  "attr_value": "/",
+                                  "attr_default_value": "/",
+                                  "is_change": True
+                              }],
     ConstKey.AUTO_ENV: [{
         "attr_name": "domain",
         "attr_type": "string",

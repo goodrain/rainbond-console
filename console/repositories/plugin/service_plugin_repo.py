@@ -30,9 +30,9 @@ class AppPluginRelationRepo(object):
         TenantServicePluginRelation.objects.create(**params)
 
     def update_service_plugin_status(self, service_id, plugin_id, is_active, cpu, memory):
-        TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).update(plugin_status=is_active,
-                                                                                                      min_cpu=cpu,
-                                                                                                      min_memory=memory)
+        TenantServicePluginRelation.objects.filter(
+            service_id=service_id, plugin_id=plugin_id).update(
+                plugin_status=is_active, min_cpu=cpu, min_memory=memory)
 
     def get_relation_by_service_and_plugin(self, service_id, plugin_id):
         return TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id)

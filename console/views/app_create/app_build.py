@@ -75,11 +75,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 # 添加组件有无状态标签
                 label_service.update_service_state_label(self.tenant, self.service)
                 # 部署组件
-                app_manage_service.deploy(self.tenant,
-                                          self.service,
-                                          self.user,
-                                          group_version=None,
-                                          oauth_instance=self.oauth_instance)
+                app_manage_service.deploy(
+                    self.tenant, self.service, self.user, group_version=None, oauth_instance=self.oauth_instance)
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)

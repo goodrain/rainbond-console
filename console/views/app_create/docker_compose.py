@@ -288,6 +288,7 @@ class ComposeCheckUpdate(ComposeGroupBaseView):
 
 class ComposeDeleteView(ComposeGroupBaseView):
     """放弃创建compose"""
+
     @never_cache
     def delete(self, request, *args, **kwargs):
         """

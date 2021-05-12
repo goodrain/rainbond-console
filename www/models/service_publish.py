@@ -47,6 +47,7 @@ class ServiceExtendMethod(BaseModel):
 
 class AppServiceGroup(BaseModel):
     """组件组分享记录"""
+
     class Meta:
         db_table = "app_service_group"
         unique_together = ('group_share_id', 'group_version')
@@ -75,6 +76,7 @@ class AppServiceGroup(BaseModel):
 
 class PublishedGroupServiceRelation(BaseModel):
     """分享的服务组和组件的关系"""
+
     class Meta:
         db_table = "publish_group_service_relation"
 

@@ -222,13 +222,14 @@ class UserService(object):
         Users.objects.filter(user_id=user_id).delete()
 
     def create_user(self, nick_name, password, email, enterprise_id, rf):
-        user = Users.objects.create(nick_name=nick_name,
-                                    password=password,
-                                    email=email,
-                                    sso_user_id="",
-                                    enterprise_id=enterprise_id,
-                                    is_active=False,
-                                    rf=rf)
+        user = Users.objects.create(
+            nick_name=nick_name,
+            password=password,
+            email=email,
+            sso_user_id="",
+            enterprise_id=enterprise_id,
+            is_active=False,
+            rf=rf)
         return user
 
     def create_user_set_password(self, user_name, email, raw_password, rf, enterprise, client_ip, phone=None, real_name=None):
@@ -264,14 +265,8 @@ class UserService(object):
             "phone": phone,
         }
         enterprise_center_user = instance.create_user(enterprise.enterprise_id, data)
-        user = self.create_user_set_password(enterprise_center_user.username,
-                                             email,
-                                             raw_password,
-                                             rf,
-                                             enterprise,
-                                             client_ip,
-                                             phone=phone,
-                                             real_name=real_name)
+        user = self.create_user_set_password(
+            enterprise_center_user.username, email, raw_password, rf, enterprise, client_ip, phone=phone, real_name=real_name)
         user.enterprise_center_user_id = enterprise_center_user.user_id
         user.save()
         return user
@@ -363,12 +358,8 @@ class UserService(object):
     def deploy_service(self, tenant_obj, service_obj, user, committer_name=None, oauth_instance=None):
         """重新构建"""
         group_version = None
-        code, msg, event_id = app_manage_service.deploy(tenant_obj,
-                                                        service_obj,
-                                                        user,
-                                                        group_version,
-                                                        committer_name,
-                                                        oauth_instance=oauth_instance)
+        code, msg, event_id = app_manage_service.deploy(
+            tenant_obj, service_obj, user, group_version, committer_name, oauth_instance=oauth_instance)
         bean = {}
         if code != 200:
             return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)

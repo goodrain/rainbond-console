@@ -112,11 +112,8 @@ class RegionApiBaseHttpClient(object):
                 if body is None:
                     response = self.client.request(url=url, method=method, headers=self.default_headers, timeout=timeout)
                 else:
-                    response = self.client.request(url=url,
-                                                   method=method,
-                                                   headers=self.default_headers,
-                                                   body=json.dumps(body),
-                                                   timeout=self.timeout)
+                    response = self.client.request(
+                        url=url, method=method, headers=self.default_headers, body=json.dumps(body), timeout=self.timeout)
                 return response.status, response.data
             except socket.timeout as e:
                 logger.error('client_error', "timeout: %s" % url)
@@ -166,22 +163,24 @@ class RegionApiBaseHttpClient(object):
 
         # https pool manager
         if configuration.proxy:
-            self.pool_manager = urllib3.ProxyManager(num_pools=pools_size,
-                                                     maxsize=maxsize,
-                                                     cert_reqs=cert_reqs,
-                                                     ca_certs=ca_certs,
-                                                     cert_file=configuration.cert_file,
-                                                     key_file=configuration.key_file,
-                                                     proxy_url=configuration.proxy,
-                                                     **addition_pool_args)
+            self.pool_manager = urllib3.ProxyManager(
+                num_pools=pools_size,
+                maxsize=maxsize,
+                cert_reqs=cert_reqs,
+                ca_certs=ca_certs,
+                cert_file=configuration.cert_file,
+                key_file=configuration.key_file,
+                proxy_url=configuration.proxy,
+                **addition_pool_args)
         else:
-            self.pool_manager = urllib3.PoolManager(num_pools=pools_size,
-                                                    maxsize=maxsize,
-                                                    cert_reqs=cert_reqs,
-                                                    ca_certs=ca_certs,
-                                                    cert_file=configuration.cert_file,
-                                                    key_file=configuration.key_file,
-                                                    **addition_pool_args)
+            self.pool_manager = urllib3.PoolManager(
+                num_pools=pools_size,
+                maxsize=maxsize,
+                cert_reqs=cert_reqs,
+                ca_certs=ca_certs,
+                cert_file=configuration.cert_file,
+                key_file=configuration.key_file,
+                **addition_pool_args)
         return self.pool_manager
 
     def GET(self, url, body=None, *args, **kwargs):
@@ -255,12 +254,7 @@ def clear_ssl_file(region_name):
 
 
 class Configuration():
-    def __init__(self,
-                 verify_ssl=True,
-                 ssl_ca_cert=None,
-                 cert_file=None,
-                 key_file=None,
-                 assert_hostname=None,
+    def __init__(self, verify_ssl=True, ssl_ca_cert=None, cert_file=None, key_file=None, assert_hostname=None,
                  region_name=None):
         """
         Constructor

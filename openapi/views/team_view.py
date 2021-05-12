@@ -53,11 +53,8 @@ class ListTeamInfo(BaseOpenAPIView):
             page_size = int(req.GET.get("page_size", 10))
         except ValueError:
             page_size = 10
-        tenants, total = team_services.list_teams_by_user_id(eid=self.enterprise.enterprise_id,
-                                                             user_id=req.user.user_id,
-                                                             query=query,
-                                                             page=page,
-                                                             page_size=page_size)
+        tenants, total = team_services.list_teams_by_user_id(
+            eid=self.enterprise.enterprise_id, user_id=req.user.user_id, query=query, page=page, page_size=page_size)
         result = {"tenants": tenants, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
         serializer.is_valid(raise_exception=True)
@@ -116,8 +113,8 @@ class TeamInfo(TeamNoRegionAPIView):
     @swagger_auto_schema(
         operation_description="删除团队",
         manual_parameters=[
-            openapi.Parameter("force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true",
-                                                                                                               "false"]),
+            openapi.Parameter(
+                "force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true", "false"]),
         ],
         responses={},
         tags=['openapi-team'],
@@ -441,9 +438,8 @@ class TeamsResourceView(BaseOpenAPIView):
             team = None
             region_name = tenant.get("region_name")
             tenant_id = tenant.get("tenant_id")
-            team_region = TenantRegionInfo.objects.filter(tenant_id=tenant_id,
-                                                          enterprise_id=self.enterprise.enterprise_id,
-                                                          region_name=region_name).first()
+            team_region = TenantRegionInfo.objects.filter(
+                tenant_id=tenant_id, enterprise_id=self.enterprise.enterprise_id, region_name=region_name).first()
             if team_region:
                 team = team_services.get_team_by_team_id(tenant_id)
             data = team_services.get_tenant_resource(team, region_name)

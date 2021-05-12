@@ -95,10 +95,10 @@ class TeamService(object):
         return user_perms
 
     def get_not_join_users(
-        self,
-        enterprise,
-        tenant,
-        query,
+            self,
+            enterprise,
+            tenant,
+            query,
     ):
         return team_repo.get_not_join_users(enterprise, tenant, query)
 
@@ -169,10 +169,8 @@ class TeamService(object):
             if tenant is None:
                 raise Tenants.DoesNotExist()
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
-        user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(user_id=user_id,
-                                                                                      tenant_id=tenant.pk,
-                                                                                      enterprise_id=enterprise.pk,
-                                                                                      role_id_list=role_id_list)
+        user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(
+            user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk, role_id_list=role_id_list)
         return user_role
 
     def add_user_role_to_team(self, tenant, user_ids, role_ids):
@@ -229,8 +227,8 @@ class TeamService(object):
                 raise e
             except Exception as e:
                 logger.exception(e)
-                raise ServiceHandleException(msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name),
-                                             msg="delete tenant failure")
+                raise ServiceHandleException(
+                    msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name), msg="delete tenant failure")
         team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
 
     def get_current_user_tenants(self, user_id):

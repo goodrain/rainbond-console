@@ -19,9 +19,8 @@ class ComponentGraphRepository(object):
 
     @staticmethod
     def list_between_sequence(component_id, left_sequence, right_sequence):
-        return ComponentGraph.objects.filter(component_id=component_id,
-                                             sequence__gte=left_sequence,
-                                             sequence__lt=right_sequence)
+        return ComponentGraph.objects.filter(
+            component_id=component_id, sequence__gte=left_sequence, sequence__lt=right_sequence)
 
     @staticmethod
     def get(component_id, graph_id):

@@ -52,8 +52,6 @@ class ComponentServiceMonitorEditView(AppBaseView):
 
 class ComponentMetricsView(AppBaseView):
     def get(self, request, *args, **kwargs):
-        metrics = monitor_service.get_monitor_metrics(self.region_name,
-                                                      self.tenant,
-                                                      "component",
-                                                      component_id=self.service.service_id)
+        metrics = monitor_service.get_monitor_metrics(
+            self.region_name, self.tenant, "component", component_id=self.service.service_id)
         return Response(general_message(200, "OK", "获取成功", list=metrics), status=200)

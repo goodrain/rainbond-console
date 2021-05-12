@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 class MessageResponse(Response):
     """统一响应"""
+
     def __init__(self, msg, msg_show=None, status_code=200, error_code=None, bean=None, list=None, **kwargs):
         """
         :param msg: 响应信息(中文)

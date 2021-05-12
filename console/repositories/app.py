@@ -36,7 +36,8 @@ class TenantServiceInfoRepository(object):
                 AND b.service_share_uuid IN ( {uuids} )
                 AND a.service_id = c.service_id
                 AND c.group_id = {group_id}
-            """.format(group_id=group_id, uuids=uuids)
+            """.format(
+            group_id=group_id, uuids=uuids)
         result = conn.query(sql)
         return result
 
@@ -313,9 +314,8 @@ class AppTagRepository(object):
         return RainbondCenterAppTag.objects.bulk_create(tag_list)
 
     def create_app_tag_relation(self, app, tag_id):
-        old_relation = RainbondCenterAppTagsRelation.objects.filter(enterprise_id=app.enterprise_id,
-                                                                    app_id=app.app_id,
-                                                                    tag_id=tag_id)
+        old_relation = RainbondCenterAppTagsRelation.objects.filter(
+            enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id)
         if old_relation:
             return True
         return RainbondCenterAppTagsRelation.objects.create(enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id)
@@ -330,8 +330,8 @@ class AppTagRepository(object):
         return RainbondCenterAppTagsRelation.objects.bulk_create(relation_list)
 
     def delete_app_tag_relation(self, app, tag_id):
-        return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=app.enterprise_id, app_id=app.app_id,
-                                                            tag_id=tag_id).delete()
+        return RainbondCenterAppTagsRelation.objects.filter(
+            enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id).delete()
 
     def delete_tag(self, enterprise_id, tag_id):
         status = True
@@ -384,7 +384,8 @@ class AppTagRepository(object):
         where
             atr.enterprise_id = '{eid}'
             and atr.app_id in ({app_ids});
-        """.format(eid=eid, app_ids=app_ids)
+        """.format(
+            eid=eid, app_ids=app_ids)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
@@ -401,7 +402,8 @@ class AppTagRepository(object):
                 where
                     atr.enterprise_id = '{eid}'
                     and atr.app_id = '{app_id}';
-                """.format(eid=eid, app_id=app_id)
+                """.format(
+            eid=eid, app_id=app_id)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps

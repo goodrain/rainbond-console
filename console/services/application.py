@@ -42,14 +42,8 @@ class ApplicationService(object):
         endpoints = [address + ":" + str(port)]
         component_name = service_name + "-" + str(port)
 
-        component = app_service.create_third_party_app(region_name,
-                                                       tenant,
-                                                       user,
-                                                       component_name,
-                                                       endpoints,
-                                                       "static",
-                                                       is_inner_service=True,
-                                                       component_type="helm")
+        component = app_service.create_third_party_app(
+            region_name, tenant, user, component_name, endpoints, "static", is_inner_service=True, component_type="helm")
         group_service.add_component_to_app(tenant, region_name, app_id, component.component_id)
         service_component_repo.create(app_id, service_name, component.component_id, port)
 

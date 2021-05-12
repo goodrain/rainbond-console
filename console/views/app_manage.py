@@ -134,11 +134,8 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            code, msg, _ = app_deploy_service.deploy(self.tenant,
-                                                     self.service,
-                                                     self.user,
-                                                     version=group_version,
-                                                     oauth_instance=self.oauth_instance)
+            code, msg, _ = app_deploy_service.deploy(
+                self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
@@ -225,11 +222,8 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
-            code, msg = app_manage_service.vertical_upgrade(self.tenant,
-                                                            self.service,
-                                                            self.user,
-                                                            int(new_memory),
-                                                            oauth_instance=self.oauth_instance)
+            code, msg = app_manage_service.vertical_upgrade(
+                self.tenant, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
@@ -271,15 +265,12 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            app_manage_service.horizontal_upgrade(self.tenant,
-                                                  self.service,
-                                                  self.user,
-                                                  int(new_node),
-                                                  oauth_instance=self.oauth_instance)
+            app_manage_service.horizontal_upgrade(
+                self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
         except ServiceHandleException as e:
-            return Response(general_message(e.status_code, e.msg, e.msg_show),
-                            status=(400 if e.status_code > 599 else e.status_code))
+            return Response(
+                general_message(e.status_code, e.msg, e.msg_show), status=(400 if e.status_code > 599 else e.status_code))
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:

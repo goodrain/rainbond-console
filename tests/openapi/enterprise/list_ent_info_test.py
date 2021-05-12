@@ -8,18 +8,17 @@ from www.models.main import Users
 
 @pytest.fixture(scope='function')
 def setup_db(db):
-    EnterpriseUserPerm.objects.create(user_id=1,
-                                      enterprise_id="bb2f17abc58b328374351e9c92abd400",
-                                      identity="admin",
-                                      token="6923642f067b3cc8e4b7f2194cb25917")
-    Users.objects.create(user_id=1,
-                         email="huangrh@goodrain.com",
-                         nick_name="gradmin",
-                         password="fcd5ffcabfb9bbc1",
-                         is_active=1,
-                         client_ip="192.168.195.4",
-                         status=0,
-                         enterprise_id="bb2f17abc58b328374351e9c92abd400")
+    EnterpriseUserPerm.objects.create(
+        user_id=1, enterprise_id="bb2f17abc58b328374351e9c92abd400", identity="admin", token="6923642f067b3cc8e4b7f2194cb25917")
+    Users.objects.create(
+        user_id=1,
+        email="huangrh@goodrain.com",
+        nick_name="gradmin",
+        password="fcd5ffcabfb9bbc1",
+        is_active=1,
+        client_ip="192.168.195.4",
+        status=0,
+        enterprise_id="bb2f17abc58b328374351e9c92abd400")
 
 
 @pytest.mark.django_db

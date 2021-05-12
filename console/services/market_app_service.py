@@ -219,13 +219,14 @@ class MarketAppService(object):
 
             for app in apps:
                 app["update_time"] = market_app.update_time
-                ts = self.__init_market_app(tenant,
-                                            region,
-                                            user,
-                                            app,
-                                            tenant_service_group.ID,
-                                            install_from_cloud=install_from_cloud,
-                                            market_name=market_name)
+                ts = self.__init_market_app(
+                    tenant,
+                    region,
+                    user,
+                    app,
+                    tenant_service_group.ID,
+                    install_from_cloud=install_from_cloud,
+                    market_name=market_name)
                 service_source_data = {
                     "group_key":
                     market_app.app_id,
@@ -478,16 +479,17 @@ class MarketAppService(object):
                 if ts:
                     dest_service_id, dest_service_alias = ts.service_id, ts.service_alias
             config_list.append(
-                ServicePluginConfigVar(service_id=service.service_id,
-                                       plugin_id=plugin_id,
-                                       build_version=build_version,
-                                       service_meta_type=config["service_meta_type"],
-                                       injection=config["injection"],
-                                       dest_service_id=dest_service_id,
-                                       dest_service_alias=dest_service_alias,
-                                       container_port=config["container_port"],
-                                       attrs=config["attrs"],
-                                       protocol=config["protocol"]))
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=config["service_meta_type"],
+                    injection=config["injection"],
+                    dest_service_id=dest_service_id,
+                    dest_service_alias=dest_service_alias,
+                    container_port=config["container_port"],
+                    attrs=config["attrs"],
+                    protocol=config["protocol"]))
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
     def create_plugin_for_tenant(self, region_name, user, tenant, plugins):
@@ -500,9 +502,8 @@ class MarketAppService(object):
                     logger.info("start install plugin {} for tenant {}".format(plugin["plugin_key"], tenant.tenant_id))
                     status, msg = self.__install_plugin(region_name, user, tenant, plugin)
                     if status != 200:
-                        raise ServiceHandleException(msg="install plugin failure {}".format(msg),
-                                                     msg_show="创建插件失败",
-                                                     status_code=status)
+                        raise ServiceHandleException(
+                            msg="install plugin failure {}".format(msg), msg_show="创建插件失败", status_code=status)
                 except Exception as e:
                     logger.exception(e)
                     raise ServiceHandleException(msg="install plugin failure", msg_show="创建插件失败", status_code=500)
@@ -545,16 +546,17 @@ class MarketAppService(object):
         build_version = plugin_template.get('build_version')
         min_memory = plugin_template.get('min_memory', 128)
 
-        plugin_build_version = plugin_version_service.create_build_version(region_name,
-                                                                           plugin_base_info.plugin_id,
-                                                                           tenant.tenant_id,
-                                                                           user.user_id,
-                                                                           "",
-                                                                           "unbuild",
-                                                                           min_memory,
-                                                                           image_tag=image_tag,
-                                                                           code_version="",
-                                                                           build_version=build_version)
+        plugin_build_version = plugin_version_service.create_build_version(
+            region_name,
+            plugin_base_info.plugin_id,
+            tenant.tenant_id,
+            user.user_id,
+            "",
+            "unbuild",
+            min_memory,
+            image_tag=image_tag,
+            code_version="",
+            build_version=build_version)
 
         share_config_groups = plugin_template.get('config_groups', [])
 
@@ -686,14 +688,15 @@ class MarketAppService(object):
         if not ports:
             return 200, "success"
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(tenant,
-                                                                 service,
-                                                                 int(port["container_port"]),
-                                                                 port["protocol"],
-                                                                 port["port_alias"],
-                                                                 port["is_inner_service"],
-                                                                 port["is_outer_service"],
-                                                                 k8s_service_name=port.get("k8s_service_name"))
+            code, msg, port_data = port_service.add_service_port(
+                tenant,
+                service,
+                int(port["container_port"]),
+                port["protocol"],
+                port["port_alias"],
+                port["is_inner_service"],
+                port["is_outer_service"],
+                k8s_service_name=port.get("k8s_service_name"))
             if code != 200:
                 logger.error("save market app port error: {}".format(msg))
                 return code, msg
@@ -1070,9 +1073,8 @@ class MarketAppService(object):
         else:
             # get from cloud
             try:
-                market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
-                                                                   extend_info.get("market_name"),
-                                                                   raise_exception=True)
+                market = app_market_service.get_app_market_by_name(
+                    tenant.enterprise_id, extend_info.get("market_name"), raise_exception=True)
                 resp = app_market_service.get_market_app_model_version(market, service_source.group_key, service_source.version)
                 if not resp:
                     raise app_not_found
@@ -1102,9 +1104,8 @@ class MarketAppService(object):
 
     def get_service_app_from_cloud(self, tenant, group_key, group_version, service_source):
         extent_info = json.loads(service_source.extend_info)
-        market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
-                                                           extent_info.get("market_name"),
-                                                           raise_exception=True)
+        market = app_market_service.get_app_market_by_name(
+            tenant.enterprise_id, extent_info.get("market_name"), raise_exception=True)
         _, market_app_version = app_market_service.cloud_app_model_to_db_model(market, group_key, group_version)
         if market_app_version:
             apps_template = json.loads(market_app_version.app_template)
@@ -1123,22 +1124,22 @@ class MarketAppService(object):
 
     def conversion_cloud_version_to_app(self, cloud_version):
         app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", source="cloud", scope="market")
-        app_version = RainbondCenterAppVersion(app_id=cloud_version.app_key_id,
-                                               version=cloud_version.app_version,
-                                               share_user=0,
-                                               record_id=0,
-                                               source="cloud",
-                                               scope="market",
-                                               app_template=json.dumps(cloud_version.templete.to_dict()),
-                                               is_complete=True,
-                                               template_version=cloud_version.templete_version)
+        app_version = RainbondCenterAppVersion(
+            app_id=cloud_version.app_key_id,
+            version=cloud_version.app_version,
+            share_user=0,
+            record_id=0,
+            source="cloud",
+            scope="market",
+            app_template=json.dumps(cloud_version.templete.to_dict()),
+            is_complete=True,
+            template_version=cloud_version.templete_version)
         return app, app_version
 
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
-            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain",
-                                                                    source="market",
-                                                                    group_name__icontains=app_name)
+            return rainbond_app_repo.get_all_rainbond_apps().filter(
+                scope="goodrain", source="market", group_name__icontains=app_name)
         if is_complete:
             if is_complete == "true":
                 return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=True)

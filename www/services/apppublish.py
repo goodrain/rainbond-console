@@ -12,6 +12,7 @@ logger = logging.getLogger('default')
 
 class PublishAppService(object):
     """组件发布数据获取接口"""
+
     def get_service_ports_by_ids(self, service_ids):
         """
         根据多个组件ID查询组件的端口信息
@@ -93,15 +94,16 @@ class PublishAppService(object):
             'group.share.service. now add group shared service extend method for service {0} ok'.format(service.service_id))
         count = ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).count()
         if count == 0:
-            extend_method = ServiceExtendMethod(service_key=service_key,
-                                                app_version=app_version,
-                                                min_node=service.min_node,
-                                                max_node=20,
-                                                step_node=1,
-                                                min_memory=service.min_memory,
-                                                max_memory=65536,
-                                                step_memory=128,
-                                                is_restart=False)
+            extend_method = ServiceExtendMethod(
+                service_key=service_key,
+                app_version=app_version,
+                min_node=service.min_node,
+                max_node=20,
+                step_node=1,
+                min_memory=service.min_memory,
+                max_memory=65536,
+                step_memory=128,
+                is_restart=False)
             extend_method.save()
         else:
             ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version) \
@@ -114,14 +116,12 @@ class PublishAppService(object):
         for s_id, app in list(app_service_map.items()):
             pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID, service_id=s_id)
             if not pgsr_list:
-                PublishedGroupServiceRelation.objects.create(group_pk=app_service_group.ID,
-                                                             service_id=s_id,
-                                                             service_key=app.service_key,
-                                                             version=app.app_version)
+                PublishedGroupServiceRelation.objects.create(
+                    group_pk=app_service_group.ID, service_id=s_id, service_key=app.service_key, version=app.app_version)
             else:
-                PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,
-                                                             service_id=s_id).update(service_key=app.service_key,
-                                                                                     version=app.app_version)
+                PublishedGroupServiceRelation.objects.filter(
+                    group_pk=app_service_group.ID, service_id=s_id).update(
+                        service_key=app.service_key, version=app.app_version)
 
     def delete_group_service_relation_by_group_pk(self, group_pk):
         PublishedGroupServiceRelation.objects.filter(group_pk=group_pk).delete()

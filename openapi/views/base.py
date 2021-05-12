@@ -75,8 +75,8 @@ class BaseOpenAPIView(APIView):
         if not self.region_name:
             self.region_name = kwargs.get("region_id")
         if self.region_name:
-            self.region = region_services.get_enterprise_region_by_region_name(enterprise_id=self.enterprise.enterprise_id,
-                                                                               region_name=self.region_name)
+            self.region = region_services.get_enterprise_region_by_region_name(
+                enterprise_id=self.enterprise.enterprise_id, region_name=self.region_name)
             if not self.region:
                 self.region = region_repo.get_region_by_id(self.enterprise.enterprise_id, self.region_name)
         # Temporary logic
@@ -136,8 +136,8 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
             self.is_team_owner = True
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.team.enterprise_id).first()
         self.is_enterprise_admin = False
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.team.enterprise_id,
-                                                                  user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.team.enterprise_id, user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.get_perms()
@@ -154,8 +154,8 @@ class TeamAPIView(TeamNoRegionAPIView):
         super(TeamAPIView, self).initial(request, *args, **kwargs)
         self.region_name = kwargs.get("region_name")
         if self.region_name:
-            self.region = region_services.get_enterprise_region_by_region_name(enterprise_id=self.enterprise.enterprise_id,
-                                                                               region_name=self.region_name)
+            self.region = region_services.get_enterprise_region_by_region_name(
+                enterprise_id=self.enterprise.enterprise_id, region_name=self.region_name)
         else:
             raise ErrRegionNotFound
         if not self.region:
@@ -184,13 +184,11 @@ class TeamAppServiceAPIView(TeamAppAPIView):
     def initial(self, request, *args, **kwargs):
         super(TeamAppServiceAPIView, self).initial(request, *args, **kwargs)
         service_id = kwargs.get("service_id")
-        self.service = TenantServiceInfo.objects.filter(tenant_id=self.team.tenant_id,
-                                                        service_region=self.region_name,
-                                                        service_id=service_id).first()
+        self.service = TenantServiceInfo.objects.filter(
+            tenant_id=self.team.tenant_id, service_region=self.region_name, service_id=service_id).first()
         if not self.service:
-            self.service = TenantServiceInfo.objects.filter(tenant_id=self.team.tenant_id,
-                                                            service_region=self.region_name,
-                                                            service_alias=service_id).first()
+            self.service = TenantServiceInfo.objects.filter(
+                tenant_id=self.team.tenant_id, service_region=self.region_name, service_alias=service_id).first()
         if not self.service:
             raise ServiceHandleException(msg_show="组件不存在", msg="no found component", status_code=404)
         gsr = group_service_relation_repo.get_services_by_group(self.app.ID)
@@ -216,9 +214,8 @@ class EnterpriseServiceOauthView(APIView):
                 oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
             oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=request.user.user_id)
         except OAuthServices.DoesNotExist:
-            raise ServiceHandleException(msg="not found enterprise center oauth server config",
-                                         msg_show="未找到企业中心OAuth配置",
-                                         status_code=404)
+            raise ServiceHandleException(
+                msg="not found enterprise center oauth server config", msg_show="未找到企业中心OAuth配置", status_code=404)
         except UserOAuthServices.DoesNotExist:
             raise ServiceHandleException(msg="user not authorize in enterprise center oauth", msg_show="用户身份未在企业中心认证")
         self.oauth_instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
