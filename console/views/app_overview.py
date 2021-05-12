@@ -528,7 +528,9 @@ class BuildSourceinfo(AppBaseView):
         ---
         """
         from console.services.service_services import base_service
-        bean = base_service.get_build_info(self.tenant, self.service)
+        service_ids = [self.service.service_id]
+        build_infos = base_service.get_build_infos(self.tenant, service_ids)
+        bean = build_infos.get(self.service.service_id, None)
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
