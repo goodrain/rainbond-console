@@ -362,8 +362,9 @@ class AppVolumeService(object):
                                                                                 body))
             except region_api.CallApiError as e:
                 if e.status != 404:
-                    raise ServiceHandleException(
-                        msg="delete volume from region failure", msg_show="从集群删除存储发生错误", status_code=500)
+                    raise ServiceHandleException(msg="delete volume from region failure",
+                                                 msg_show="从集群删除存储发生错误",
+                                                 status_code=500)
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume_id(volume_id)
 

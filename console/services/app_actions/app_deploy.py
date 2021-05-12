@@ -82,11 +82,18 @@ class AppDeployService(object):
         async_action = self.get_async_action()
         logger.info("service id: {}; async action is '{}'".format(service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
-            code, msg, event_id = app_manage_service.deploy(
-                tenant, service, user, group_version=version, oauth_instance=oauth_instance, committer_name=committer_name)
+            code, msg, event_id = app_manage_service.deploy(tenant,
+                                                            service,
+                                                            user,
+                                                            group_version=version,
+                                                            oauth_instance=oauth_instance,
+                                                            committer_name=committer_name)
         elif async_action == AsyncAction.UPDATE.value:
-            code, msg, event_id = app_manage_service.upgrade(
-                tenant, service, user, committer_name, oauth_instance=oauth_instance)
+            code, msg, event_id = app_manage_service.upgrade(tenant,
+                                                             service,
+                                                             user,
+                                                             committer_name,
+                                                             oauth_instance=oauth_instance)
         else:
             return 200, "", ""
         return code, msg, event_id
@@ -104,7 +111,6 @@ class OtherService(object):
     """
     Services outside the market service
     """
-
     def pre_action(self):
         logger.info("type: other; pre-deployment action.")
 
@@ -116,7 +122,6 @@ class MarketService(object):
     """
     Define some methods for upgrading market services.
     """
-
     def __init__(self, tenant, service, version, all_component_one_model=None):
         self.tenant = tenant
         self.service = service
@@ -266,11 +271,10 @@ class MarketService(object):
             self.async_action = AsyncAction.NOTHING.value
 
     def set_changes(self):
-        pc = PropertiesChanges(
-            self.service,
-            self.tenant,
-            all_component_one_model=self.all_component_one_model,
-            install_from_cloud=self.install_from_cloud)
+        pc = PropertiesChanges(self.service,
+                               self.tenant,
+                               all_component_one_model=self.all_component_one_model,
+                               install_from_cloud=self.install_from_cloud)
         template = get_upgrade_app_template(self.tenant, self.version, pc)
         self.template = template
         self.pc = pc

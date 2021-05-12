@@ -41,8 +41,9 @@ class PropertiesChanges(object):
                 self.install_from_cloud = True
             if self.install_from_cloud:
                 self.market_name = extend_info.get("market_name", None)
-                self.market = app_market_repo.get_app_market_by_name(
-                    tenant.enterprise_id, self.market_name, raise_exception=True)
+                self.market = app_market_repo.get_app_market_by_name(tenant.enterprise_id,
+                                                                     self.market_name,
+                                                                     raise_exception=True)
 
     def have_upgrade_info(self, tenant, services, version):
         from console.services.upgrade_services import upgrade_service
@@ -446,8 +447,10 @@ def has_changes(changes):
 
 def get_upgrade_app_version_template_app(tenant, version, pc):
     if pc.install_from_cloud:
-        data = app_market_service.get_market_app_model_version(
-            pc.market, pc.service_source.group_key, version, get_template=True)
+        data = app_market_service.get_market_app_model_version(pc.market,
+                                                               pc.service_source.group_key,
+                                                               version,
+                                                               get_template=True)
         template = json.loads(data.template)
         apps = template.get("apps")
 
@@ -465,8 +468,10 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
 def get_upgrade_app_template(tenant, version, pc):
     template = None
     if pc.install_from_cloud:
-        data = app_market_service.get_market_app_model_version(
-            pc.market, pc.service_source.group_key, version, get_template=True)
+        data = app_market_service.get_market_app_model_version(pc.market,
+                                                               pc.service_source.group_key,
+                                                               version,
+                                                               get_template=True)
         template = json.loads(data.template)
         pc.template_updatetime = data.update_time
     else:

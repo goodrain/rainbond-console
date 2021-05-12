@@ -91,14 +91,13 @@ class ComponentServiceMonitor(object):
         for monitor in service_monitors:
             if ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, name=monitor["name"]).count() > 0:
                 monitor["name"] = "-".join([monitor["name"], make_uuid()[-4:]])
-            data = ServiceMonitor(
-                name=monitor["name"],
-                tenant_id=tenant.tenant_id,
-                service_id=service.service_id,
-                path=monitor["path"],
-                port=monitor["port"],
-                service_show_name=monitor["service_show_name"],
-                interval=monitor["interval"])
+            data = ServiceMonitor(name=monitor["name"],
+                                  tenant_id=tenant.tenant_id,
+                                  service_id=service.service_id,
+                                  path=monitor["path"],
+                                  port=monitor["port"],
+                                  service_show_name=monitor["service_show_name"],
+                                  interval=monitor["interval"])
             monitor_list.append(data)
         ServiceMonitor.objects.bulk_create(monitor_list)
 

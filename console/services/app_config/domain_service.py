@@ -136,16 +136,22 @@ class DomainService(object):
         zh_pattern = re.compile('[\\u4e00-\\u9fa5]+')
         match = zh_pattern.search(domain_name)
         if match:
-            raise ServiceHandleException(
-                status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
+            raise ServiceHandleException(status_code=400,
+                                         error_code=400,
+                                         msg="domain can not be include chinese",
+                                         msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         s_domain = domain_repo.get_domain_by_domain_name(domain_name)
         if s_domain and s_domain.tenant_id != team_id and s_domain.region_id == region_id:
-            raise ServiceHandleException(
-                status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
+            raise ServiceHandleException(status_code=400,
+                                         error_code=400,
+                                         msg="domain be used other team",
+                                         msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:
-            raise ServiceHandleException(
-                status_code=400, error_code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
+            raise ServiceHandleException(status_code=400,
+                                         error_code=400,
+                                         msg="domain more than 256 bytes",
+                                         msg_show="域名超过256个字符")
         if certificate_id:
             certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate).decode()
@@ -391,11 +397,10 @@ class DomainService(object):
         domain_info = service_domain.to_dict()
         domain_info.update(update_data)
 
-        self.__check_domain_name(
-            tenant.tenant_id,
-            service_domain.region_id,
-            domain_info["domain_name"],
-            certificate_id=domain_info["certificate_id"])
+        self.__check_domain_name(tenant.tenant_id,
+                                 service_domain.region_id,
+                                 domain_info["domain_name"],
+                                 certificate_id=domain_info["certificate_id"])
 
         certificate_info = None
         if domain_info["certificate_id"]:
@@ -841,15 +846,16 @@ class DomainService(object):
                     configuration_repo.add_configuration(**cf_dict)
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            raise ServiceHandleException(
-                msg="update http rule configuration failure", msg_show="更新HTTP策略的参数发生异常", status_code=500, error_code=500)
+            raise ServiceHandleException(msg="update http rule configuration failure",
+                                         msg_show="更新HTTP策略的参数发生异常",
+                                         status_code=500,
+                                         error_code=500)
 
     def check_set_header(self, set_headers):
         r = re.compile('([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')
         for header in set_headers:
             if "item_key" in header and not r.match(header["item_key"]):
-                raise ServiceHandleException(
-                    msg="forbidden key: {0}".format(header["item_key"]),
-                    msg_show="Header Key不合法",
-                    status_code=400,
-                    error_code=400)
+                raise ServiceHandleException(msg="forbidden key: {0}".format(header["item_key"]),
+                                             msg_show="Header Key不合法",
+                                             status_code=400,
+                                             error_code=400)
