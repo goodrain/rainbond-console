@@ -314,7 +314,7 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
             service_id__in=service_ids)
 
         if not service_records:
-            raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show="本次升级无法回滚")
+            raise AbortRequest(msg="This upgrade cannot be rolled back", msg_show="本次升级不支持回滚")
 
         services = service_repo.get_services_by_service_ids_and_group_key(
             app_record.group_key,
