@@ -286,3 +286,10 @@ class ApplicationStatusView(ApplicationView):
         status = group_service.get_app_status(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=status)
         return Response(result)
+
+
+class ApplicationRainbondAppView(ApplicationView):
+    def get(self, request, app_id, rainbond_app_id, *args, **kwargs):
+        components = market_app_service.list_rainbond_app_components(self.user.enterprise_id, self.tenant, rainbond_app_id)
+        result = general_message(200, "success", "查询成功", list=components)
+        return Response(result)
