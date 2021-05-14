@@ -469,8 +469,8 @@ class UserService(object):
             return enterprise_user_perm_repo.update_roles(ent.enterprise_id, user.user_id, ",".join(roles))
         except EnterpriseUserPerm.DoesNotExist:
             token = self.generate_key()
-            return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id,
-                                                                         ",".join(roles), token)
+            return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, ",".join(roles),
+                                                                         token)
 
     def delete_admin_user(self, user_id):
         perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
