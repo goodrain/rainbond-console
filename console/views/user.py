@@ -188,6 +188,8 @@ class AdminUserLCView(JWTAuthApiView):
             raise AbortRequest("invalid roles", msg_show="角色不正确")
 
         user_id = request.data.get("user_id")
+        if user_id == self.user.user_id:
+            raise AbortRequest("cannot edit your own role", msg_show="不可操作自己的角色")
         try:
             user = user_services.get_user_by_user_id(user_id)
         except UserNotExistError:

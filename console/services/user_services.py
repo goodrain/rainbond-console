@@ -464,12 +464,13 @@ class UserService(object):
         return users
 
     def create_admin_user(self, user, ent, roles):
-        # 判断用户是否为企业管理员
-        if user_services.is_user_admin_in_current_enterprise(user, ent.enterprise_id):
-            return
-        # 添加企业管理员
-        token = self.generate_key()
-        return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, ",".join(roles), token)
+        try:
+            enterprise_user_perm_repo.get(ent.enterprise_id, user.user_id)
+            return enterprise_user_perm_repo.update_roles(ent.enterprise_id, user.user_id, ",".join(roles))
+        except EnterpriseUserPerm.DoesNotExist:
+            token = self.generate_key()
+            return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, ",".join(roles),
+                                                                         token)
 
     def delete_admin_user(self, user_id):
         perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
