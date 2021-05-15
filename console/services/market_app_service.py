@@ -20,6 +20,7 @@ from console.repositories.market_app_repo import (app_import_record_repo, rainbo
 from console.repositories.plugin import plugin_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.service_repo import service_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import (AppMntService, env_var_service, port_service, probe_service, volume_service)
@@ -1400,6 +1401,60 @@ class MarketAppService(object):
         if have_version:
             return app, p.page(page).object_list, total
         return app, None, 0
+
+    def list_rainbond_app_components(self, enterprise_id, tenant, app_id):
+        """
+        return the list of the rainbond app.
+        """
+        # list components by app_id
+        component_sources = service_source_repo.list_by_app_id(tenant.tenant_id, app_id)
+        if not component_sources:
+            return None
+        component_ids = [cs.service_id for cs in component_sources]
+        components = service_repo.get_service_by_service_ids(component_ids)
+
+        versions = self.list_app_versions(enterprise_id, component_sources[0])
+
+        # make a map of component_sources
+        component_sources = {cs.service_id: cs for cs in component_sources}
+
+        result = []
+        for component in components:
+            component_source = component_sources[component.service_id]
+            cpt = component.to_dict()
+            cpt["upgradable_versions"] = self.__upgradable_versions(component_source, versions)
+            result.append(cpt)
+
+        return result
+
+    @staticmethod
+    def __upgradable_versions(component_source, versions):
+        current_version = component_source.version
+        current_version_time = component_source.get_template_update_time()
+        result = []
+        for version in versions:
+            new_version_time = time.mktime(version.update_time.timetuple())
+            compare = compare_version(version.version, current_version)
+            if compare == 1:
+                result.append(version.version)
+            elif current_version_time:
+                version_time = time.mktime(current_version_time.timetuple())
+                if compare == 0 and new_version_time > version_time:
+                    result.append(version.version)
+        result = list(set(result))
+        result.sort(reverse=True)
+        return result
+
+    @staticmethod
+    def list_app_versions(enterprise_id, component_source):
+        market_name = component_source.get_market_name()
+        install_from_cloud = component_source.is_install_from_cloud()
+        if install_from_cloud and market_name:
+            market = app_market_repo.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+            versions = app_market_service.get_market_app_model_versions(market, component_source.group_key)
+        else:
+            versions = rainbond_app_repo.get_rainbond_app_versions(enterprise_id, component_source.group_key)
+        return versions
 
 
 market_app_service = MarketAppService()

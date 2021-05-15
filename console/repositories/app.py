@@ -250,6 +250,11 @@ class ServiceSourceRepository(object):
                     component[0].service_key = sk[1]
                     component[0].save()
 
+    @staticmethod
+    def list_by_app_id(team_id, app_id):
+        # group_key is equivalent to app_id in rainbond_app
+        return ServiceSourceInfo.objects.filter(team_id=team_id, group_key=app_id)
+
 
 class ServiceRecycleBinRepository(object):
     def get_team_trash_services(self, tenant_id):
