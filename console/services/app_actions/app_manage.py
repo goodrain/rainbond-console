@@ -167,9 +167,6 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, "组件异常"
-            except region_api.ResourceNotEnoughError as e:
-                logger.exception(e)
-                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
@@ -205,9 +202,6 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, "组件异常"
-            except region_api.ResourceNotEnoughError as e:
-                logger.exception(e)
-                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
@@ -303,9 +297,6 @@ class AppManageService(AppManageBase):
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
             return 507, "构建异常", ""
-        except region_api.ResourceNotEnoughError as e:
-            logger.exception(e)
-            return 412, e.msg, ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, "操作过于频繁，请稍后再试", ""
@@ -453,9 +444,6 @@ class AppManageService(AppManageBase):
         except region_api.CallApiError as e:
             logger.exception(e)
             return 507, "更新异常", ""
-        except region_api.ResourceNotEnoughError as e:
-            logger.exception(e)
-            return 412, e.msg, ""
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
             return 409, "操作过于频繁，请稍后再试", ""
@@ -503,9 +491,6 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, "组件异常"
-            except region_api.ResourceNotEnoughError as e:
-                logger.exception(e)
-                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
@@ -793,9 +778,6 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 return 507, "组件异常"
-            except region_api.ResourceNotEnoughError as e:
-                logger.exception(e)
-                return 412, e.msg
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
@@ -829,9 +811,6 @@ class AppManageService(AppManageBase):
             except region_api.CallApiError as e:
                 logger.exception(e)
                 raise ServiceHandleException(status_code=507, msg="component error", msg_show="组件异常")
-            except region_api.ResourceNotEnoughError as e:
-                logger.exception(e)
-                raise ServiceHandleException(status_code=412, msg="resource not enough", msg_show=e.msg)
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 raise ServiceHandleException(status_code=409, msg="just wait a moment", msg_show="操作过于频繁，请稍后再试")

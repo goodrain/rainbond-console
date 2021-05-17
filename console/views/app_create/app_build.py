@@ -8,7 +8,7 @@ from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, ErrInsufficientResource
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
@@ -53,7 +53,6 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         """
         probe = None
         is_deploy = request.data.get("is_deploy", True)
-        status = 200
         try:
             if not check_memory_quota(self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory,
                                       self.service.min_node):
@@ -75,9 +74,12 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 # 添加组件有无状态标签
                 label_service.update_service_state_label(self.tenant, self.service)
                 # 部署组件
-                app_manage_service.deploy(
-                    self.tenant, self.service, self.user, group_version=None, oauth_instance=self.oauth_instance)
-
+                try:
+                    app_manage_service.deploy(
+                        self.tenant, self.service, self.user, group_version=None, oauth_instance=self.oauth_instance)
+                except ErrInsufficientResource as e:
+                    result = general_message(e.error_code, e.msg, e.msg_show)
+                    return Response(result, status=e.status_code)
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 

@@ -12,18 +12,13 @@ import ssl
 import certifi
 import urllib3
 from addict import Dict
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, ErrInsufficientResource
 from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict
 from urllib3.exceptions import MaxRetryError
 
 logger = logging.getLogger('default')
-
-resource_not_enough_message = {
-    "cluster_lack_of_memory": "集群可用资源不足，请联系集群管理员",
-    "tenant_lack_of_memory": "团队使用内存已超过限额，请联系企业管理员增加限额"
-}
 
 
 class RegionApiBaseHttpClient(object):
@@ -69,15 +64,6 @@ class RegionApiBaseHttpClient(object):
     class InvalidLicenseError(Exception):
         pass
 
-    class ResourceNotEnoughError(Exception):
-        def __init__(self, status, body):
-            self.body = body
-            self.status = status
-            if resource_not_enough_message[body.msg]:
-                self.msg = resource_not_enough_message[body.msg]
-            else:
-                self.msg = "资源不足，请联系管理员"
-
     def __init__(self, *args, **kwargs):
         self.timeout = 5
         # cache client
@@ -110,7 +96,7 @@ class RegionApiBaseHttpClient(object):
                 logger.warning(body["bean"]["msg"])
                 raise self.InvalidLicenseError()
             if status == 412:
-                raise self.ResourceNotEnoughError(status, body)
+                raise ErrInsufficientResource(body.get("msg") if body else "")
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body

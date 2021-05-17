@@ -26,6 +26,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 HOME_DIR = os.getenv("HOME_DIR", BASE_DIR)
 
 DATA_DIR = os.path.join(HOME_DIR, 'data')
+DATA_DIR = os.getenv("DATA_DIR", DATA_DIR)
 # Create log directory
 LOG_PATH = os.getenv("LOG_PATH", os.path.join(HOME_DIR, 'logs'))
 folder = os.path.exists(LOG_PATH)
