@@ -863,6 +863,7 @@ class ShareService(object):
             share_record.share_version_alias = version_alias
             share_record.share_app_market_name = market_id
             share_record.update_time = datetime.datetime.now()
+            share_record.share_app_version_info = version_describe
             share_record.save()
             # 提交事务
             if sid:
