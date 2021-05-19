@@ -282,7 +282,6 @@ class ListAppPodsView(AppBaseView):
             pods = data["bean"]
             newpods = foobar(pods.get("new_pods", None))
             old_pods = foobar(pods.get("old_pods", None))
-            service_repo.update(self.tenant.tenant_id, self.service.service_id, min_node=int(len(newpods)))
             result = {"new_pods": newpods, "old_pods": old_pods}
         result = general_message(200, "success", "操作成功", list=result)
         return Response(result, status=result["code"])
