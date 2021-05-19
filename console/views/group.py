@@ -157,11 +157,16 @@ class TenantGroupOperationView(ApplicationView):
 class TenantAppUpgradableNumView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         data = dict()
+        data['upgradable_num'] = 0
         try:
             data['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
         except MaxRetryError as e:
             logger.warning("get the number of upgradable app: {}".format(e))
-            data['upgradable_num'] = 0
+        except ServiceHandleException as e:
+            logger.warning("get the number of upgradable app: {}".format(e))
+            if e.status_code != 404:
+                raise e
+
         result = general_message(200, "success", "success", bean=data)
         return Response(result, status=result["code"])
 
