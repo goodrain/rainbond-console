@@ -49,6 +49,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 app_model_id = None
                 version_alias = None
                 upgrade_time = None
+                app_version_info = ""
                 # todo get store name
                 store_name = None
                 store_id = share_record.share_app_market_name
@@ -61,6 +62,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     if app_version:
                         version_alias = app_version.version_alias
                         upgrade_time = app_version.upgrade_time
+                        app_version_info = app_version.app_version_info
                 else:
                     try:
                         if store_id and share_record.app_id:
@@ -104,6 +106,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     },
                     "record_id":
                     share_record.ID,
+                    "app_version_info":
+                    share_record.share_app_version_info if share_record.share_app_version_info else app_version_info,
                 })
         result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
         return Response(result, status=200)

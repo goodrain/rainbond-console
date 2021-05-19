@@ -312,7 +312,7 @@ class MavenSettingView(RegionTenantHeaderView):
         if redata and isinstance(redata, list) and (onlyname is True or onlyname == "true"):
             newdata = []
             for setting in redata:
-                newdata.append({"name": setting["name"]})
+                newdata.append({"name": setting["name"], "is_default": setting["is_default"]})
             redata = newdata
         result = general_message(200, 'query success', '数据中心Maven获取成功', list=redata)
         return Response(status=200, data=result)

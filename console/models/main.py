@@ -220,6 +220,7 @@ class ServiceShareRecord(BaseModel):
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text="介质同步事件ID,弃用，使用表service_share_record_event")
     share_version = models.CharField(max_length=15, null=True, blank=True, help_text="应用组发布版本")
     share_version_alias = models.CharField(max_length=32, null=True, blank=True, help_text="应用组发布版本别名")
+    share_app_version_info = models.CharField(max_length=255, help_text="应用组发布版本描述")
     is_success = models.BooleanField(default=False, help_text="发布是否成功")
     step = models.IntegerField(default=0, help_text="当前发布进度")
     # 1 发布中 2 取消发布 3 发布完成
