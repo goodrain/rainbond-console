@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from console.enum.component_enum import is_state, is_support
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
-                                    ResourceNotEnoughException, ServiceHandleException)
+                                    ResourceNotEnoughException)
 from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
@@ -268,10 +268,6 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             app_manage_service.horizontal_upgrade(
                 self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
-        except ServiceHandleException as e:
-            raise e
-            # return Response(
-            #     general_message(e.status_code, e.msg, e.msg_show), status=(400 if e.status_code > 599 else e.status_code))
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
