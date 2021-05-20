@@ -269,8 +269,9 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
                 self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
         except ServiceHandleException as e:
-            return Response(
-                general_message(e.status_code, e.msg, e.msg_show), status=(400 if e.status_code > 599 else e.status_code))
+            raise e
+            # return Response(
+            #     general_message(e.status_code, e.msg, e.msg_show), status=(400 if e.status_code > 599 else e.status_code))
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:

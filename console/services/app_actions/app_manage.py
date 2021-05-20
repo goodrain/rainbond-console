@@ -806,10 +806,13 @@ class AppManageService(AppManageBase):
                 region_api.horizontal_upgrade(service.service_region, tenant.tenant_name, service.service_alias, body)
                 service.min_node = new_node
                 service.save()
+            except ServiceHandleException as e:
+                logger.exception(e)
+                if e.error_code == 10104:
+                    e.msg_show = "节点没有变化，无需升级"
+                raise e
             except region_api.CallApiError as e:
                 logger.exception(e)
-                if "horizontal service faliure: no change, no update" in e.message["body"].get("msg", ""):
-                    raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
                 raise ServiceHandleException(status_code=507, msg="component error", msg_show="组件异常")
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
