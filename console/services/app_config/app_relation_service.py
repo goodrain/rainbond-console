@@ -102,8 +102,9 @@ class AppServiceRelationService(object):
         for tenant_service_port in open_service_ports:
             try:
                 code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
-                                                       int(tenant_service_port.container_port), "open_inner",
-                                                       tenant_service_port.protocol, tenant_service_port.port_alias, user_name)
+                                                           int(tenant_service_port.container_port), "open_inner",
+                                                           tenant_service_port.protocol, tenant_service_port.port_alias,
+                                                           user_name)
                 if code != 200:
                     logger.warning("auto open depend service inner port faliure {}".format(msg))
                 else:
