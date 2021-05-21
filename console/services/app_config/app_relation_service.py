@@ -100,13 +100,16 @@ class AppServiceRelationService(object):
             if ports:
                 open_service_ports.extend(ports)
         for tenant_service_port in open_service_ports:
-            code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
+            try:
+                code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
                                                        int(tenant_service_port.container_port), "open_inner",
                                                        tenant_service_port.protocol, tenant_service_port.port_alias, user_name)
-            if code != 200:
-                logger.warning("auto open depend service inner port faliure {}".format(msg))
-            else:
-                logger.debug("auto open depend service inner port success ")
+                if code != 200:
+                    logger.warning("auto open depend service inner port faliure {}".format(msg))
+                else:
+                    logger.debug("auto open depend service inner port success ")
+            except Exception as e:
+                logger.exception(e)
 
     def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
