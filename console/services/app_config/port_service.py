@@ -335,6 +335,8 @@ class AppPortService(object):
         # Compatible with methods that do not return code, such as __change_port_alias
         code = 200
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
+        if not deal_port:
+            return 404, "组件端口不存在", None
         if action == "open_outer":
             code, msg = self.__open_outer(tenant, service, region, deal_port, user_name)
         elif action == "only_open_outer":
