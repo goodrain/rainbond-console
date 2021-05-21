@@ -881,7 +881,8 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, is_complete=True, page=1, page_size=10, need_install="false"):
+    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, is_complete=True, page=1, page_size=10,
+                          need_install="false"):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -896,7 +897,8 @@ class MarketAppService(object):
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install)
         else:
             # default scope is enterprise
-            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size, need_install)
+            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page,
+                                                                             page_size, need_install)
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install)
         if not apps:
             return [], count[0].total
