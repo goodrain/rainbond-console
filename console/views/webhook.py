@@ -362,7 +362,8 @@ class GetWebHooksUrl(AppBaseView):
 
             service_id = service_obj.service_id
             # 从环境变量中获取域名，没有在从请求中获取
-            host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
+            req_host = request.GET.get("host", "http://" + request.get_host())
+            host = os.environ.get('DEFAULT_DOMAIN', req_host)
 
             service_webhook = service_webhooks_repo.get_or_create_service_webhook(self.service.service_id, deployment_way)
 
