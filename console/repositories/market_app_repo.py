@@ -60,7 +60,8 @@ class RainbondCenterAppRepository(object):
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
         # When installing components from the component library, you need to display the versioned application template
         if need_install == "true":
-            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id and app.enterprise_id = apv.enterprise_id"
+            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
+                            " and app.enterprise_id = apv.enterprise_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete = TRUE"
         # if teams is None, create_team scope is ('')
         if scope == "team":
@@ -114,7 +115,8 @@ class RainbondCenterAppRepository(object):
         if app_name:
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
         if need_install == "true":
-            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id and app.enterprise_id = apv.enterprise_id"
+            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
+                            " and app.enterprise_id = apv.enterprise_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete = TRUE"
         # if teams is None, create_team scope is ('')
         if scope == "team":
