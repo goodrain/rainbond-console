@@ -788,8 +788,6 @@ class AppManageService(AppManageBase):
         new_node = int(new_node)
         if new_node > 100 or new_node < 0:
             raise ServiceHandleException(status_code=409, msg="node replicas must between 1 and 100", msg_show="节点数量需在1到100之间")
-        if new_node == service.min_node:
-            raise ServiceHandleException(status_code=409, msg="no change, no update", msg_show="节点没有变化，无需升级")
 
         if new_node > 1 and is_singleton(service.extend_method):
             raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
@@ -808,6 +806,11 @@ class AppManageService(AppManageBase):
                 region_api.horizontal_upgrade(service.service_region, tenant.tenant_name, service.service_alias, body)
                 service.min_node = new_node
                 service.save()
+            except ServiceHandleException as e:
+                logger.exception(e)
+                if e.error_code == 10104:
+                    e.msg_show = "节点没有变化，无需升级"
+                raise e
             except region_api.CallApiError as e:
                 logger.exception(e)
                 raise ServiceHandleException(status_code=507, msg="component error", msg_show="组件异常")

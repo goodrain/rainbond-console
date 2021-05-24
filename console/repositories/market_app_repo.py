@@ -419,7 +419,7 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_qs_by_key(self, eid, app_id):
         """使用group_key获取一个云市应用的所有版本查询集合"""
-        return RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id)
+        return RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id).first()
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
