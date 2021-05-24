@@ -176,7 +176,7 @@ class UserPemTraView(TeamOwnerView):
         return Response(result, status=200)
 
 
-class AdminUserLCView(JWTAuthApiView):
+class AdminUserLCView(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         users = user_services.get_admin_users(enterprise_id)
         result = general_message(200, "success", "获取企业管理员列表成功", list=users)
