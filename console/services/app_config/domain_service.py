@@ -853,3 +853,17 @@ class DomainService(object):
                     msg_show="Header Key不合法",
                     status_code=400,
                     error_code=400)
+
+    @staticmethod
+    def delete_by_port(component_id, port):
+        http_rules = domain_repo.list_service_domain_by_port(component_id, port)
+        http_rule_ids = [rule.http_rule_id for rule in http_rules]
+        # delete rule extensions
+        configuration_repo.delete_by_rule_ids(http_rule_ids)
+        # delete http rules
+        domain_repo.delete_service_domain_by_port(component_id, port)
+        # delete tcp rules
+        tcp_domain.delete_by_component_port(component_id, port)
+
+
+domain_service = DomainService()
