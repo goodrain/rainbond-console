@@ -5,7 +5,7 @@
 import logging
 
 from console.exception.main import InnerPortNotFound
-from console.exception.main import ServiceRelationAlreadyExist
+from console.exception.main import ServiceRelationAlreadyExist, ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import env_var_repo
@@ -109,8 +109,10 @@ class AppServiceRelationService(object):
                     logger.warning("auto open depend service inner port faliure {}".format(msg))
                 else:
                     logger.debug("auto open depend service inner port success ")
-            except Exception as e:
+            except ServiceHandleException as e:
                 logger.exception(e)
+                if e.status_code != 404:
+                    raise e
 
     def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
