@@ -18,6 +18,7 @@ from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
+from console.services.app_config.domain_service import domain_service
 from console.services.region_services import region_services
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -232,17 +233,16 @@ class AppPortService(object):
     @transaction.atomic
     def delete_port_by_container_port(self, tenant, service, container_port, user_name=''):
         service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
-
         if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
-            return 412, "该端口有自定义域名，请先解绑域名", None
+            raise AbortRequest("contains custom domains", "该端口有自定义域名，请先解绑域名", 412)
 
-        port_info = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
-        if not port_info:
-            return 404, "端口{0}不存在".format(container_port), None
-        if port_info.is_inner_service:
-            return 409, "请关闭对内服务", None
-        if port_info.is_outer_service:
-            return 409, "请关闭对外服务", None
+        port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
+        if not port:
+            raise AbortRequest("port not found", "端口{0}不存在".format(container_port), 404)
+        if port.is_inner_service:
+            raise AbortRequest("can not delete inner port", "请关闭对内服务", 409)
+        if port.is_outer_service:
+            raise AbortRequest("can not delete outer port", "请关闭对外服务", 409)
         if service.create_status == "complete":
             body = dict()
             body["operator"] = user_name
@@ -250,19 +250,17 @@ class AppPortService(object):
             region_api.delete_service_port(service.service_region, tenant.tenant_name, service.service_alias, container_port,
                                            tenant.enterprise_id, body)
 
-        # 删除端口时禁用相关组件
-        self.disable_service_when_delete_port(tenant, service, container_port)
-
+        self.__disable_probe_by_port(tenant, service, container_port)
         # 删除env
         env_var_service.delete_env_by_container_port(tenant, service, container_port, user_name)
         # 删除端口
         port_repo.delete_serivce_port_by_port(tenant.tenant_id, service.service_id, container_port)
         # 删除端口绑定的域名
-        domain_repo.delete_service_domain_by_port(service.service_id, container_port)
-        return 200, "删除成功", port_info
+        domain_service.delete_by_port(service.service_id, container_port)
+        return port
 
-    def disable_service_when_delete_port(self, tenant, service, container_port):
-        """删除端口时禁用相关组件"""
+    @staticmethod
+    def __disable_probe_by_port(tenant, service, container_port):
         # 禁用健康检测
         from console.services.app_config import probe_service
         probe = probe_repo.get_service_probe(service.service_id).filter(is_used=True).first()
