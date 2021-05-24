@@ -68,11 +68,16 @@ class AppRestore(object):
         volume_repo.delete_config_files(self.service.service_id)
         id_cfg = {item["volume_id"]: item for item in service_config_file}
         for item in service_volumes:
+            if isinstance(item, dict):
+                item_id = item.get("ID", None)
+            else:
+                item_id = item.ID
+
             item.pop("ID")
             v = volume_repo.add_service_volume(**item)
             if v.volume_type != "config-file":
                 continue
-            cfg = id_cfg.get(item.ID, None)
+            cfg = id_cfg.get(item_id, None)
             if cfg is None:
                 continue
             cfg["volume_id"] = v.ID

@@ -30,18 +30,39 @@ class RainbondCenterAppRepository(object):
             return rcapps[0]
         return None
 
-    def get_rainbond_app_in_enterprise_by_query(self, eid, scope, app_name, tag_names=None, page=1, page_size=10):
-        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, None, tag_names, page, page_size)
+    def get_rainbond_app_in_enterprise_by_query(self,
+                                                eid,
+                                                scope,
+                                                app_name,
+                                                tag_names=None,
+                                                page=1,
+                                                page_size=10,
+                                                need_install="false"):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, None, tag_names, page, page_size, need_install)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
 
-    def _prepare_get_rainbond_app_by_query_sql(self, eid, scope, app_name, teams=None, tag_names=None, page=1, page_size=10):
+    def _prepare_get_rainbond_app_by_query_sql(self,
+                                               eid,
+                                               scope,
+                                               app_name,
+                                               teams=None,
+                                               tag_names=None,
+                                               page=1,
+                                               page_size=10,
+                                               need_install="false"):
         extend_where = ""
+        join_version = ""
         if tag_names:
             extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
         if app_name:
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        # When installing components from the component library, you need to display the versioned application template
+        if need_install == "true":
+            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
+                            " and app.enterprise_id = apv.enterprise_id"
+            extend_where += " and apv.`version` <> '' and apv.is_complete = TRUE"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""
@@ -62,27 +83,41 @@ class RainbondCenterAppRepository(object):
             left join rainbond_center_app_tag tag on
                 apr.tag_id = tag.ID
                 and tag.enterprise_id = app.enterprise_id
+            {join_version}
             where
                 app.enterprise_id = '{eid}'
                 {extend_where}
             order by app.update_time desc
             limit {offset}, {rows}
             """.format(
-            eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size)
+            eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size, join_version=join_version)
         return sql
 
-    def get_rainbond_app_in_teams_by_querey(self, eid, scope, teams, app_name, tag_names=None, page=1, page_size=10):
-        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, teams, tag_names, page, page_size)
+    def get_rainbond_app_in_teams_by_querey(self,
+                                            eid,
+                                            scope,
+                                            teams,
+                                            app_name,
+                                            tag_names=None,
+                                            page=1,
+                                            page_size=10,
+                                            need_install="false"):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, teams, tag_names, page, page_size, need_install)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
 
-    def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names):
+    def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names, need_install="false"):
         extend_where = ""
+        join_version = ""
         if tag_names:
             extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
         if app_name:
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        if need_install == "true":
+            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
+                            " and app.enterprise_id = apv.enterprise_id"
+            extend_where += " and apv.`version` <> '' and apv.is_complete = TRUE"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""
@@ -105,11 +140,12 @@ class RainbondCenterAppRepository(object):
                     rainbond_center_app_tag_relation rcatr
                 join rainbond_center_app_tag tag on
                     rcatr.tag_id = tag.iD) tag on app.app_id = tag.app_id
+            {join_version}
             where
                 app.enterprise_id = '{eid}'
                 {extend_where}
             """.format(
-            eid=eid, extend_where=extend_where)
+            eid=eid, extend_where=extend_where, join_version=join_version)
         conn = BaseConnection()
         count = conn.query(sql)
         return count
@@ -419,7 +455,7 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_qs_by_key(self, eid, app_id):
         """使用group_key获取一个云市应用的所有版本查询集合"""
-        return RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id)
+        return RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id).first()
 
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""

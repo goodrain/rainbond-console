@@ -97,6 +97,7 @@ class TenantEnterpriseRepo(object):
             return None
         active_tenants_list = []
         for tenant in tenants:
+            role = None
             owner = None
             try:
                 owner = user_repo.get_user_by_user_id(tenant.creater)
@@ -106,8 +107,7 @@ class TenantEnterpriseRepo(object):
             except UserRoleNotFoundException:
                 if tenant.creater == user_id:
                     role = "owner"
-                else:
-                    role = None
+
             region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
             team_item = {
                 "tenant_id": tenant.tenant_id,

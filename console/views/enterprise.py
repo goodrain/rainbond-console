@@ -141,22 +141,21 @@ class EnterpriseTeams(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseUserTeams(JWTAuthApiView):
+class EnterpriseUserTeams(EnterpriseAdminView):
     def get(self, request, enterprise_id, user_id, *args, **kwargs):
-        user = request.user
         name = request.GET.get("name", None)
-        code = 200
-        if int(user_id) != int(user.user_id):
-            result = general_message(400, "failed", "请求失败")
-            return Response(result, status=code)
-        try:
-            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
-            result = general_message(200, "team query success", "查询成功", list=tenants)
-        except Exception as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "failed", "请求失败")
-        return Response(result, status=code)
+        user = user_repo.get_user_by_user_id(user_id)
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
+        result = general_message(200, "team query success", "查询成功", list=tenants)
+        return Response(result, status=200)
+
+
+class EnterpriseMyTeams(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        name = request.GET.get("name", None)
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name)
+        result = general_message(200, "team query success", "查询成功", list=tenants)
+        return Response(result, status=200)
 
 
 class EnterpriseTeamOverView(JWTAuthApiView):

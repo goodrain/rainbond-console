@@ -89,7 +89,7 @@ class RegionApiBaseHttpClient(object):
             body = Dict(body)
         if 400 <= status <= 600:
             if "code" in body:
-                raise ServiceHandleException(msg=body.get("msg"), status_code=body.get("status"), error_code=body.get("code"))
+                raise ServiceHandleException(msg=body.get("msg"), status_code=status, error_code=body.get("code"))
             if status == 409:
                 raise self.CallApiFrequentError(self.apitype, url, method, res, body)
             if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
