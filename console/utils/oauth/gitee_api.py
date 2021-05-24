@@ -256,9 +256,9 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
         repo_list = []
-        repos = [self.api.get_repo(full_name)]
-        for rp in repos:
-            repo = rp[0]
+        rp, _ = self.api.get_repo(full_name)
+        repos = [rp]
+        for repo in repos:
             if repo and full_name == repo["full_name"]:
                 repo_list.append({
                     "project_id": repo["id"],
