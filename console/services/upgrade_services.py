@@ -57,7 +57,7 @@ class UpgradeService(object):
             service_group_keys = group_service.get_group_service_sources(group_id).values_list('group_key', flat=True)
             if group_key in set(service_group_keys or []):
                 if not is_from_cloud:
-                    app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key).first()
+                    app = rainbond_app_repo.get_rainbond_app_qs_by_key(tenant.enterprise_id, group_key)
                     if not app:
                         raise ServiceHandleException(
                             msg="the rainbond app is not in the group", msg_show="该应用中没有这个云市组件", status_code=404)
