@@ -30,7 +30,12 @@ class GroupAppView(RegionTenantHeaderView):
         """查询当前应用下的应用模版列表及可升级性"""
         group_id = int(group_id)
         group = group_service.get_group_or_404(self.tenant, self.response_region, group_id)
-        apps = market_app_service.get_market_apps_in_app(self.response_region, self.tenant, group)
+        apps = []
+        try:
+            apps = market_app_service.get_market_apps_in_app(self.response_region, self.tenant, group)
+        except ServiceHandleException as e:
+            if e.status_code != 404:
+                raise e
         return MessageResponse(msg="success", list=apps)
 
 

@@ -726,7 +726,7 @@ class AppMarketService(object):
     def create_app_market(self, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
-            raise ServiceHandleException(msg="name exist", msg_show="名称已存在", status_code=400)
+            raise ServiceHandleException(msg="name exist", msg_show="标识已存在", status_code=400)
         return app_market_repo.create_app_market(**data)
 
     @transaction.atomic
@@ -744,7 +744,7 @@ class AppMarketService(object):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
             if exit_market.ID != app_market.ID:
-                raise ServiceHandleException(msg="name exist", msg_show="名称已存在", status_code=400)
+                raise ServiceHandleException(msg="name exist", msg_show="标识已存在", status_code=400)
         app_market.name = data["name"]
         app_market.type = data["type"]
         app_market.enterprise_id = data["enterprise_id"]
