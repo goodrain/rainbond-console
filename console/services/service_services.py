@@ -250,7 +250,8 @@ class BaseService(object):
                             bean["market_error_code"] = e.error_code
                             bean["version"] = service_source.version
                             bean["app_version"] = service_source.version
-                            return bean
+                            build_infos[service.service_id] = bean
+                            return build_infos
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
                 if not app:

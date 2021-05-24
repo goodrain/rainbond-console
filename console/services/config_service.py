@@ -179,7 +179,7 @@ class EnterpriseConfigService(ConfigService):
                     "hub_password": None
                 },
                 "desc": "AppStore镜像仓库配置",
-                "enable": True
+                "enable": False
             },
             "NEWBIE_GUIDE": {
                 "value": None,
@@ -219,7 +219,7 @@ class EnterpriseConfigService(ConfigService):
             "OAUTH_SERVICES": {
                 "value": self.get_oauth_services(),
                 "desc": "开启/关闭OAuthServices功能",
-                "enable": True
+                "enable": False
             },
         }
 

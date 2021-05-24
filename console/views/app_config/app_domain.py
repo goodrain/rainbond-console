@@ -102,7 +102,7 @@ class TenantCertificateView(RegionTenantHeaderView):
         """
         alias = request.data.get("alias", None)
         if len(alias) > 64:
-            return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
+            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
@@ -175,7 +175,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             return Response(400, "no param certificate_id", "缺少未指明具体证书")
         new_alias = request.data.get("alias", None)
         if len(new_alias) > 64:
-            return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
+            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
 
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)

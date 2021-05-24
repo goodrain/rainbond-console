@@ -196,8 +196,6 @@ class AppEnvVarService(object):
         env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
         if not env:
             return 404, "环境变量不存在", None
-        if not env.is_change:
-            return 409, "环境变量不允许被修改", None
         update_params = {"name": name, "attr_value": attr_value}
         if service.create_status == "complete":
             body = {"env_name": env.attr_name, "env_value": attr_value, "scope": env.scope, "operator": user_name}

@@ -285,8 +285,9 @@ class GroupService(object):
             service_status[status["service_id"]] = status
 
         for service in service_list:
-            service.status = service_status[service.service_id]["status"]
-            service.used_mem = service_status[service.service_id]["used_mem"]
+            svc_sas = service_status.get(service.service_id, {"status": "failure", "used_mem": 0})
+            service.status = svc_sas["status"]
+            service.used_mem = svc_sas["used_mem"]
 
         plugin_list = app_plugin_relation_repo.get_multi_service_plugin(service_ids)
         plugins = dict()

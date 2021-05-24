@@ -11,6 +11,7 @@ from console.repositories.app import service_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.group import group_repo
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
@@ -302,6 +303,8 @@ class RegionService(object):
         if plugins:
             for plugin in plugins:
                 plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id, ignore_cluster_resource, is_force=True)
+
+        group_repo.list_tenant_group_on_region(tenant, region_name).delete()
         # delete tenant
         if not ignore_cluster_resource:
             try:
