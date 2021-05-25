@@ -1842,3 +1842,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
+
+    def delete_app(self, region, tenant_name, region_app_id, data={}):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id
+
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
+        return body

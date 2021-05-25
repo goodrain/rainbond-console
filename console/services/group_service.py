@@ -19,6 +19,8 @@ from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.migration_repo import migrate_repo
+from console.repositories.team_repo import team_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.utils.shortcuts import get_object_or_404
@@ -377,9 +379,20 @@ class GroupService(object):
         if not group_id or (type(group_id) == str and not str.isdigit(group_id)) or int(group_id) < 0:
             return 400, "需要删除的应用ID不合法", None
         # 删除应用
+        app = group_repo.get_group_by_id(group_id)
+        tenant = team_repo.get_team_by_team_id(app.tenant_id)
         group_repo.delete_group_by_pk(group_id)
         # 删除升级记录
         upgrade_repo.delete_app_record_by_group_id(group_id)
+        # 删除恢复迁移的etcd数据
+        logger.debug("ready delete etcd data while delete app")
+        keys = []
+        region_app_id = region_app_repo.get_region_app_id(group_id)
+        migrate_record = migrate_repo.get_by_original_group_id(group_id)
+        if migrate_record:
+            for record in migrate_record:
+                keys.append(record.restore_id)
+        region_api.delete_app(app.region_name, tenant.tenant_name, region_app_id, {"etcd_keys": keys})
 
         return 200, "删除成功", group_id
 
