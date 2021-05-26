@@ -922,9 +922,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def get_port(self, region, tenant_name):
+    def get_port(self, region, tenant_name, lock=False):
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/gateway/ports"
+        url = url + "/v2/gateway/ports?lock={}".format(lock)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body

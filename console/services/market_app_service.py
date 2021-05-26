@@ -673,7 +673,7 @@ class MarketAppService(object):
             logger.debug("create default gateway http rule for component {0} port {1}".format(
                 service.service_alias, port.container_port))
         else:
-            res, data = region_api.get_port(region.region_name, tenant.tenant_name)
+            res, data = region_api.get_port(region.region_name, tenant.tenant_name, True)
             if int(res.status) != 200:
                 logger.warning("can not get stream port from region, ignore {0} port {1}".format(
                     service.service_alias, port.container_port))
