@@ -386,8 +386,22 @@ class TeamService(object):
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
         if tenants:
             for tenant in tenants:
-                teams_list.append(self.__team_with_region_info(tenant, user))
+                team = self.__team_with_region_info(tenant, user)
+                team["join"] = True
+                teams_list.append(team)
         return teams_list
+
+    def list_user_teams(self, enterprise_id, user, name):
+        # User joined team
+        teams = self.get_teams_region_by_user_id(enterprise_id, user, name)
+        # The team that the user did not join
+        user_id = user.user_id if user else ""
+        nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)
+        for nojoin_team in nojoin_teams:
+            team = self.__team_with_region_info(nojoin_team)
+            team["join"] = False
+            teams.append(team)
+        return teams
 
     def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
         tenant = team_repo.get_user_tenant_by_name(user_id, tenant_name)
