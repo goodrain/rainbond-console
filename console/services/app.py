@@ -481,7 +481,7 @@ class AppService(object):
         hp = rule.end_point.split(":")
         if len(hp) == 2:
             data["ip"] = hp[0]
-            data["port"] = hp[1]
+            data["port"] = int(hp[1])
         if rule.rule_extensions:
             rule_extensions = []
             for ext in rule.rule_extensions.split(","):
