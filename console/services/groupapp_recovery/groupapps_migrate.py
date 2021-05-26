@@ -330,6 +330,7 @@ class GroupappsMigrateService(object):
         ts.creater = user.user_id
         ts.tenant_id = tenant.tenant_id
         ts.create_status = "creating"
+        ts.service_cname = ts.service_cname + "-copy"
         # compatible component type
         if ts.extend_method == "state":
             ts.extend_method = "state_multiple"
@@ -453,7 +454,6 @@ class GroupappsMigrateService(object):
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
             region = region_repo.get_region_by_region_name(service.service_region)
-            # 为每一个端口状态是打开的生成默认域名
             for port in port_list:
                 if port.is_outer_service:
                     if port.protocol == "http":
@@ -480,21 +480,6 @@ class GroupappsMigrateService(object):
                             domain_repo.create_service_domains(service_id, service_name, domain_name, create_time,
                                                                container_port, protocol, http_rule_id, tenant_id, service_alias,
                                                                region_id)
-                            # 给数据中心发请求添加默认域名
-                            data = dict()
-                            data["domain"] = domain_name
-                            data["service_id"] = service.service_id
-                            data["tenant_id"] = tenant.tenant_id
-                            data["tenant_name"] = tenant.tenant_name
-                            data["protocol"] = protocol
-                            data["container_port"] = int(container_port)
-                            data["http_rule_id"] = http_rule_id
-                            try:
-                                region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
-                            except Exception as e:
-                                logger.exception(e)
-                                domain_repo.delete_http_domains(http_rule_id)
-                                continue
 
                     else:
                         service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
@@ -522,19 +507,6 @@ class GroupappsMigrateService(object):
                             tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
                                                                   container_port, protocol, service_alias, tcp_rule_id,
                                                                   tenant_id, region_id)
-                            port = end_point.split(":")[1]
-                            data = dict()
-                            data["service_id"] = service.service_id
-                            data["container_port"] = int(container_port)
-                            data["port"] = int(port)
-                            data["tcp_rule_id"] = tcp_rule_id
-                            try:
-                                # 给数据中心传送数据添加策略
-                                region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
-                            except Exception as e:
-                                logger.exception(e)
-                                tcp_domain.delete_tcp_domain(tcp_rule_id)
-                                continue
 
     def __save_compile_env(self, service, compile_env):
         if compile_env:
