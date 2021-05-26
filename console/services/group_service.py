@@ -504,8 +504,15 @@ class GroupService(object):
     @staticmethod
     def get_app_status(tenant, region_name, app_id):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
-        if status.get("status") == "NIL":
+        status = dict()
+        try:
+            status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+        except Exception as e:
+            logger.exception(e)
+            status["cpu"] = 0
+            status["disk"] = 0
+            status["memory"] = 0
+        if not status.get("status") or status.get("status") == "NIL":
             status["status"] = None
         return status
 
