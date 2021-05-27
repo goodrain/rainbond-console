@@ -91,5 +91,4 @@ class ErrPluginIsUsed(ServiceHandleException):
 # 20700 ~ 20799 => tenant not found
 class ErrTenantNotFound(ServiceHandleException):
     def __init__(self):
-        super(ErrTenantNotFound, self).__init__(
-            msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
+        super(ErrTenantNotFound, self).__init__(msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
