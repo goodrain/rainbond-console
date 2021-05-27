@@ -15,7 +15,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -435,3 +435,11 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
             response = self.handle_exception(exc)
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
+
+
+class EnterpriseUserTeamRoleView(EnterpriseHeaderView):
+    def post(self, request, eid, user_id, tenant_name, *args, **kwargs):
+        role_ids = request.data.get('role_ids', [])
+        res = enterprise_services.create_user_roles(eid, user_id, tenant_name, role_ids)
+        result = general_message(200, "ok", "设置成功", bean=res)
+        return Response(result, status=200)
