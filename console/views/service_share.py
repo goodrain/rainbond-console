@@ -3,6 +3,7 @@ import base64
 import datetime
 import logging
 import re
+import urllib3
 
 from console.enum.component_enum import is_singleton
 from console.exception.main import ServiceHandleException
@@ -74,10 +75,13 @@ class ServiceShareRecordView(RegionTenantHeaderView):
 
                             c_app = cloud_app.get(share_record.app_id, None)
                             if not c_app:
-                                c_app = app_market_service.get_market_app_model(mkt, share_record.app_id)
-                                cloud_app[share_record.app_id] = c_app
+                                try:
+                                    c_app = app_market_service.get_market_app_model(mkt, share_record.app_id)
+                                    cloud_app[share_record.app_id] = c_app
+                                    app_model_name = c_app.app_name
+                                except urllib3.exceptions.MaxRetryError:
+                                    pass
                             app_model_id = share_record.app_id
-                            app_model_name = c_app.app_name
                     except ServiceHandleException:
                         app_model_id = share_record.app_id
                 data.append({
