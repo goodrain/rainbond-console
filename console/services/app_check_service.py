@@ -246,9 +246,8 @@ class AppCheckService(object):
         if not ports:
             return
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(
-                tenant, service, int(port["container_port"]), port["protocol"],
-                service.service_alias.upper() + str(port["container_port"]))
+            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
+                                                                 service.service_alias.upper() + str(port["container_port"]))
             if code != 200:
                 logger.error("service.check", "save service check info port error {0}".format(msg))
 
