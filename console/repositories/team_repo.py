@@ -74,9 +74,9 @@ class TeamRepo(object):
         if not enterprise:
             return []
         tenant_ids = list(
-            PermRelTenant.objects.filter(~Q(user_id=user_id),
-                                         enterprise_id=enterprise.ID).values_list("tenant_id", flat=True).order_by("-ID"))
-        q = Q(ID__in=tenant_ids)
+            PermRelTenant.objects.filter(user_id=user_id, enterprise_id=enterprise.ID).values_list("tenant_id",
+                                                                                                   flat=True).order_by("-ID"))
+        q = ~Q(ID__in=tenant_ids)
         if name:
             q &= Q(tenant_alias__contains=name)
         return Tenants.objects.filter(q)
@@ -204,7 +204,7 @@ class TeamRepo(object):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
 
     def get_enterprise_team_by_name(self, enterprise_id, team_name):
-        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name)
+        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name).first()
 
     def update_by_tenant_id(self, tenant_id, **data):
         return Tenants.objects.filter(tenant_id=tenant_id).update(**data)
