@@ -270,10 +270,16 @@ class UserService(object):
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name):
+    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name, phone):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
         user.real_name = real_name
-        user.set_password(raw_password)
+        if phone:
+            u = user_repo.get_user_by_phone(phone)
+            if u and int(u.user_id) != int(user.user_id):
+                raise AbortRequest(msg="phone exists", msg_show="手机号已存在")
+            user.phone = phone
+        if raw_password:
+            user.set_password(raw_password)
         return user
 
     def get_user_detail(self, tenant_name, nick_name):

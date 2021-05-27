@@ -312,13 +312,16 @@ class EnterPriseUsersUDView(JWTAuthApiView):
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
         password = request.data.get("password", None)
         real_name = request.data.get("real_name", None)
-        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name)
+        phone = request.data.get("phone", None)
+
+        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name, phone)
         user.save()
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
         if oauth_instance:
             data = {
                 "password": password,
                 "real_name": real_name,
+                "phone": phone,
             }
             oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
         result = general_message(200, "success", "更新用户成功")
