@@ -86,6 +86,8 @@ class RegisterForm(Form):
             raise forms.ValidationError(self.error_messages['nick_name_used'], code='nick_name_used')
         except Users.DoesNotExist:
             pass
+        except Users.MultipleObjectsReturned:
+            raise forms.ValidationError(self.error_messages['nick_name_used'], code='nick_name_used')
 
         # 校验邮箱,为空不做校验
         try:
@@ -93,6 +95,8 @@ class RegisterForm(Form):
             raise forms.ValidationError(self.error_messages['email_used'], code='email_used', params={'email': email})
         except Users.DoesNotExist:
             pass
+        except Users.MultipleObjectsReturned:
+            raise forms.ValidationError(self.error_messages['email_used'], code='email_used', params={'email': email})
 
         # check phone
         try:
@@ -101,6 +105,8 @@ class RegisterForm(Form):
                 raise forms.ValidationError(self.error_messages['phone_used'], code='phone_used', params={'phone': phone})
         except Users.DoesNotExist:
             pass
+        except Users.MultipleObjectsReturned:
+            raise forms.ValidationError(self.error_messages['phone_used'], code='phone_used', params={'phone': phone})
 
         if password_repeat != password:
             raise forms.ValidationError(

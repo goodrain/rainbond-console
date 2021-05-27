@@ -221,7 +221,7 @@ class BaseService(object):
                 from console.services.market_app_service import market_app_service
                 if not service_source:
                     build_infos[service.service_id] = bean
-                    return build_infos
+                    continue
 
                 # get from cloud
                 app = None
@@ -251,7 +251,8 @@ class BaseService(object):
                             bean["version"] = service_source.version
                             bean["app_version"] = service_source.version
                             build_infos[service.service_id] = bean
-                            return build_infos
+                            continue
+
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
                 if not app:
