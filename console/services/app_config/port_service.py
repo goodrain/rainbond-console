@@ -53,7 +53,7 @@ class AppPortService(object):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
         if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
+            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式不正确")
 
         # make k8s_service_name unique
         try:
