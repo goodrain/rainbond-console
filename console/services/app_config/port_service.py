@@ -403,7 +403,6 @@ class AppPortService(object):
                     service_tcp_domain.is_outer_service = True
                     service_tcp_domain.save()
             else:
-                # ip+port
                 # 在service_tcp_domain表中保存数据
                 res, data = region_api.get_port(region.region_name, tenant.tenant_name)
                 if int(res.status) != 200:
