@@ -598,13 +598,14 @@ class AppManageService(AppManageBase):
                 upgrade_infos_list.append(service_dict)
         return 200, body
 
-    def deploy_services_info(self, body, services, tenant, user, oauth_instance):
+    def deploy_services_info(self, body, services, tenant, user, oauth_instance, template_apps=None, upgrade=True):
         body["operation"] = "build"
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
         request_memory = base_service.get_not_run_services_request_memory(tenant, services)
         if not check_memory_quota(oauth_instance, tenant.enterprise_id, request_memory):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
+        app_version_cache = {}
         for service in services:
             service_dict = dict()
             service_dict["service_id"] = service.service_id
@@ -665,56 +666,65 @@ class AppManageService(AppManageBase):
             elif service.service_source == "market":
                 try:
                     if service_source:
-                        old_extent_info = json.loads(service_source.extend_info)
-                        app_version = None
-                        # install from cloud
-                        install_from_cloud = False
-                        if old_extent_info.get("install_from_cloud", False):
-                            install_from_cloud = True
-                            # TODO:Skip the subcontract structure to avoid loop introduction
-                            market_name = old_extent_info.get("market_name")
-                            market = app_market_service.get_app_market_by_name(
-                                tenant.enterprise_id, market_name, raise_exception=True)
-                            _, app_version = app_market_service.cloud_app_model_to_db_model(
-                                market, service_source.group_key, service_source.version)
-                        # install from local cloud
-                        else:
-                            _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
-                                tenant.enterprise_id, service_source.group_key, service_source.version)
-                        if app_version:
-                            # 解析app_template的json数据
-                            apps_template = json.loads(app_version.app_template)
-                            apps_list = apps_template.get("apps")
-                            if service_source.extend_info:
-                                extend_info = json.loads(service_source.extend_info)
-                                template_app = None
-                                for app in apps_list:
-                                    if "service_share_uuid" in app:
-                                        if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                            template_app = app
-                                            break
-                                    if "service_share_uuid" not in app and "service_key" in app:
-                                        if app["service_key"] == extend_info["source_service_share_uuid"]:
-                                            template_app = app
-                                            break
-                                if template_app:
-                                    share_image = template_app.get("share_image", None)
-                                    share_slug_path = template_app.get("share_slug_path", None)
-                                    new_extend_info = {}
-                                    if share_image:
-                                        if template_app.get("service_image", None):
-                                            source_image = dict()
-                                            service_dict["image_info"] = source_image
-                                            source_image["image_url"] = share_image
-                                            source_image["user"] = template_app.get("service_image").get("hub_user")
-                                            source_image["password"] = template_app.get("service_image").get("hub_password")
-                                            source_image["cmd"] = service.cmd
-                                            new_extend_info = template_app["service_image"]
-                                    if share_slug_path:
-                                        slug_info = template_app.get("service_slug")
-                                        slug_info["slug_path"] = share_slug_path
-                                        new_extend_info = slug_info
-                                        service_dict["slug_info"] = new_extend_info
+                        apps_template = template_apps
+                        if not apps_template:
+                            old_extent_info = json.loads(service_source.extend_info)
+                            app_version = None
+                            # install from cloud
+                            install_from_cloud = service_source.is_install_from_cloud()
+                            if app_version_cache.get(service_source.group_key + service_source.version):
+                                apps_template = app_version_cache.get(service_source.group_key + service_source.version)
+                            else:
+                                if install_from_cloud:
+                                    # TODO:Skip the subcontract structure to avoid loop introduction
+                                    market_name = old_extent_info.get("market_name")
+                                    market = app_market_service.get_app_market_by_name(
+                                        tenant.enterprise_id, market_name, raise_exception=True)
+                                    _, app_version = app_market_service.cloud_app_model_to_db_model(
+                                        market, service_source.group_key, service_source.version)
+                                # install from local cloud
+                                else:
+                                    _, app_version = rainbond_app_repo.get_rainbond_app_and_version(
+                                        tenant.enterprise_id, service_source.group_key, service_source.version)
+                                if app_version:
+                                    apps_template = json.loads(app_version.app_template)
+                                    app_version_cache[service_source.group_key + service_source.version] = apps_template
+                                else:
+                                    raise ServiceHandleException(msg="version can not found", msg_show="应用版本不存在，无法构建")
+                        if not apps_template:
+                            raise ServiceHandleException(msg="version template can not found", msg_show="应用版本不存在，无法构建")
+                        apps_list = apps_template.get("apps")
+                        if service_source.extend_info:
+                            extend_info = json.loads(service_source.extend_info)
+                            template_app = None
+                            for app in apps_list:
+                                if "service_share_uuid" in app and app["service_share_uuid"] == extend_info[
+                                        "source_service_share_uuid"]:
+                                    template_app = app
+                                    break
+                                if "service_share_uuid" not in app and "service_key" in app and app[
+                                        "service_key"] == extend_info["source_service_share_uuid"]:
+                                    template_app = app
+                                    break
+                            if template_app:
+                                share_image = template_app.get("share_image", None)
+                                share_slug_path = template_app.get("share_slug_path", None)
+                                new_extend_info = {}
+                                if share_image and template_app.get("service_image", None):
+                                    source_image = dict()
+                                    service_dict["image_info"] = source_image
+                                    source_image["image_url"] = share_image
+                                    source_image["user"] = template_app.get("service_image").get("hub_user")
+                                    source_image["password"] = template_app.get("service_image").get("hub_password")
+                                    source_image["cmd"] = service.cmd
+                                    new_extend_info = template_app["service_image"]
+                                if share_slug_path:
+                                    slug_info = template_app.get("service_slug")
+                                    slug_info["slug_path"] = share_slug_path
+                                    new_extend_info = slug_info
+                                    service_dict["slug_info"] = new_extend_info
+                                # This should not be an upgrade, code should be analyzed and improved.
+                                if upgrade:
                                     new_extend_info["source_deploy_version"] = template_app.get("deploy_version")
                                     new_extend_info["source_service_share_uuid"] \
                                         = template_app.get("service_share_uuid") \

@@ -9,21 +9,21 @@ import time
 
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
-from console.exception.bcode import ErrAppConfigGroupExists
-from console.exception.main import (ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
-from console.models.main import (RainbondCenterApp, RainbondCenterAppVersion, ServiceMonitor)
+from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
+from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
-from console.repositories.app_config import extend_repo, volume_repo
+from console.repositories.app_config import (domain_repo, env_var_repo, extend_repo, port_repo, tcp_domain, volume_repo)
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
+from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.service_repo import service_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import (AppMntService, env_var_service, port_service, probe_service, volume_service)
+from console.services.app_config import (AppMntService, port_service, probe_service, volume_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
@@ -31,15 +31,16 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.group_service import group_service
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
+from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
-from console.utils import slug_util
 from console.utils.version import compare_version
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceInfo, Users)
+from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
+                             TenantServicesPort, Users)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -54,7 +55,7 @@ mnt_service = AppMntService()
 class MarketAppService(object):
     def install_service(self,
                         tenant,
-                        region,
+                        region_name,
                         user,
                         group_id,
                         market_app,
@@ -66,54 +67,31 @@ class MarketAppService(object):
         service_key_dep_key_map = {}
         key_service_map = {}
         tenant_service_group = None
-        service_probe_map = {}
         app_plugin_map = {}  # 新装组件对应的安装的插件映射
         old_new_id_map = {}  # 新旧组件映射关系
         svc_key_id_map = {}  # service_key与组件映射关系
         try:
+            region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.app_id,
-                                                                      market_app_version.version, market_app.app_name)
+            tenant_service_group = self.__create_tenant_service_group(
+                region_name, tenant.tenant_id, group_id, market_app.app_id, market_app_version.version, market_app.app_name)
+            # install plugin for tenant
             plugins = app_templates.get("plugins", [])
             if plugins:
-                self.create_plugin_for_tenant(region, user, tenant, plugins)
+                self.create_plugin_for_tenant(region_name, user, tenant, plugins)
 
             app_map = {}
             for app in apps:
+                start = datetime.datetime.now()
                 app_map[app.get("service_share_uuid")] = app
                 app["update_time"] = market_app_version.update_time
-                ts = self.__init_market_app(tenant, region, user, app, tenant_service_group.ID, install_from_cloud, market_name)
-                # Record the application's installation source information
-                service_source_data = {
-                    "group_key":
-                    market_app.app_id,
-                    "version":
-                    market_app_version.version,
-                    "service_share_uuid":
-                    app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get("service_key"),
-                }
-                service_source_repo.update_service_source(ts.tenant_id, ts.service_id, **service_source_data)
-                group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
+                ts = self.__save_component_meta(tenant, region, tenant_service_group, group_id, app, market_app_version,
+                                                market_app, market_name, install_from_cloud, user)
+
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
                 svc_key_id_map[app["service_key"]] = ts
-
-                # 先保存env,再保存端口，因为端口需要处理env
-                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
-                if code != 200:
-                    raise Exception(msg)
-                code, msg = self.__save_port(tenant, ts, app["port_map_list"])
-                if code != 200:
-                    raise Exception(msg)
-                self.__save_volume(tenant, ts, app["service_volume_map_list"])
-
-                # 保存组件探针信息
-                probe_infos = app.get("probes", None)
-                if probe_infos:
-                    service_probe_map[ts.service_id] = probe_infos
-
-                self.__save_extend_info(ts, app["extend_method_map"])
                 if app.get("service_share_uuid", None):
                     dep_apps_key = app.get("dep_service_map_list", None)
                     if dep_apps_key:
@@ -126,15 +104,14 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
-                # component graphs
-                component_graphs = app.get("component_graphs", {})
-                component_graph_service.bulk_create(ts.service_id, component_graphs)
-
-            # 保存依赖关系
+            # save component dep info
             self.__save_service_deps(tenant, service_key_dep_key_map, key_service_map)
 
-            # 数据中心创建组件
-            new_service_list = self.__create_region_services(tenant, region, user, service_list, service_probe_map)
+            # create component to region
+            logger.debug("start create component to region")
+            start = datetime.datetime.now()
+            new_service_list = self.__create_region_services(tenant, region, user, service_list)
+            logger.debug("create component to region success, take time {}".format(datetime.datetime.now() - start))
 
             # config groups
             config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
@@ -155,20 +132,17 @@ class MarketAppService(object):
                                                                  config_group["injection_type"], True, component_ids, region,
                                                                  tenant.tenant_name)
 
-            # 创建组件插件
+            # create plugin for component
             self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
-
+            logger.info("create plugin for component success")
             # dependent volume
             self.__create_dep_mnt(tenant, apps, app_map, key_service_map)
-
-            # component monitors
-            component_monitors = app.get("component_monitors", {})
-            self.__create_component_monitor(tenant, new_service_list, component_monitors)
-
             events = []
             if is_deploy:
-                # 部署所有组件
-                events = self.__deploy_services(tenant, user, new_service_list)
+                logger.debug("start deploy all component")
+                start = datetime.datetime.now()
+                events = self.__deploy_services(tenant, user, new_service_list, app_templates)
+                logger.debug("deploy component success, take time {}".format(datetime.datetime.now() - start))
             return tenant_service_group, events
         except Exception as e:
             logger.exception(e)
@@ -179,11 +153,11 @@ class MarketAppService(object):
                     app_manage_service.truncate_service(tenant, service)
                 except Exception as le:
                     logger.exception(le)
-            raise ServiceHandleException(msg="install app failure", msg_show="安装组件发生异常")
+            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常，请稍后重试")
 
     def install_service_when_upgrade_app(self,
                                          tenant,
-                                         region,
+                                         region_name,
                                          user,
                                          group_id,
                                          market_app,
@@ -196,7 +170,6 @@ class MarketAppService(object):
         service_key_dep_key_map = {}
         key_service_map = {}
         tenant_service_group = None
-        service_probe_map = {}
         app_plugin_map = {}  # 新装组件对应的安装的插件映射
         old_new_id_map = {}  # 新旧组件映射关系
         svc_key_id_map = {}  # service_key与组件映射关系
@@ -211,52 +184,20 @@ class MarketAppService(object):
         app_map = {app.get('service_share_uuid'): app for app in json.loads(old_app.template)["apps"]}
 
         try:
+            region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
             app_templates = json.loads(market_app.template)
             apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(region, tenant.tenant_id, group_id, market_app.app_id,
-                                                                      market_app.version, market_app.app_name)
+            tenant_service_group = self.__create_tenant_service_group(
+                region_name, tenant.tenant_id, group_id, market_app.app_id, market_app.version, market_app.app_name)
 
-            self.create_plugin_for_tenant(region, user, tenant, app_templates.get("plugins", []))
+            self.create_plugin_for_tenant(region_name, user, tenant, app_templates.get("plugins", []))
 
             for app in apps:
-                app["update_time"] = market_app.update_time
-                ts = self.__init_market_app(
-                    tenant,
-                    region,
-                    user,
-                    app,
-                    tenant_service_group.ID,
-                    install_from_cloud=install_from_cloud,
-                    market_name=market_name)
-                service_source_data = {
-                    "group_key":
-                    market_app.app_id,
-                    "version":
-                    market_app.version,
-                    "service_share_uuid":
-                    app.get("service_share_uuid") if app.get("service_share_uuid", None) else app.get("service_key")
-                }
-                service_source_repo.update_service_source(ts.tenant_id, ts.service_id, **service_source_data)
-                group_service.add_service_to_group(tenant, region, group_id, ts.service_id)
+                ts = self.__save_component_meta(tenant, region, tenant_service_group, group_id, app, market_app, market_app,
+                                                market_name, install_from_cloud, user)
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
                 svc_key_id_map[app["service_key"]] = ts
-
-                # 先保存env,再保存端口，因为端口需要处理env
-                code, msg = self.__save_env(tenant, ts, app["service_env_map_list"], app["service_connect_info_map_list"])
-                if code != 200:
-                    raise Exception(msg)
-                code, msg = self.__save_port(tenant, ts, app["port_map_list"])
-                if code != 200:
-                    raise Exception(msg)
-                self.__save_volume(tenant, ts, app["service_volume_map_list"])
-
-                # 保存组件探针信息
-                probe_infos = app.get("probes", None)
-                if probe_infos:
-                    service_probe_map[ts.service_id] = probe_infos
-
-                self.__save_extend_info(ts, app["extend_method_map"])
                 if app.get("service_share_uuid", None):
                     dep_apps_key = app.get("dep_service_map_list", None)
                     if dep_apps_key:
@@ -269,12 +210,8 @@ class MarketAppService(object):
                     key_service_map[ts.service_key] = ts
                 app_plugin_map[ts.service_id] = app.get("service_related_plugin_config")
 
-                # component graphs
-                component_graphs = app.get("component_graphs", {})
-                component_graph_service.bulk_create(ts.service_id, component_graphs)
-
-            # 数据中心创建组件
-            new_service_list = self.__create_region_services(tenant, region, user, service_list, service_probe_map)
+            # create new component in region
+            new_service_list = self.__create_region_services(tenant, region_name, user, service_list)
 
             # config groups
             config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
@@ -288,10 +225,10 @@ class MarketAppService(object):
                 items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
                 try:
                     app_config_group_service.create_config_group(group_id, config_group["name"], items,
-                                                                 config_group["injection_type"], True, component_ids, region,
-                                                                 tenant.tenant_name)
+                                                                 config_group["injection_type"], True, component_ids,
+                                                                 region_name, tenant.tenant_name)
                 except ErrAppConfigGroupExists:
-                    old_cgroup = app_config_group_service.get_config_group(region, group_id, config_group["name"])
+                    old_cgroup = app_config_group_service.get_config_group(region_name, group_id, config_group["name"])
                     old_cgroup_service_ids = [
                         old_service["service_id"] for old_service in old_cgroup["services"]
                         if old_service["service_id"] not in component_ids
@@ -304,23 +241,20 @@ class MarketAppService(object):
                     component_ids.extend(old_cgroup_service_ids)
                     items.extend(old_cgroup_items)
 
-                    app_config_group_service.update_config_group(region, group_id, config_group["name"], items, True,
+                    app_config_group_service.update_config_group(region_name, group_id, config_group["name"], items, True,
                                                                  component_ids, tenant.tenant_name)
 
             # open plugin for component
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
                 plugin_component_configs = app_plugin_map[service.service_id]
-                self.__create_service_pluginsv2(tenant, region, service, market_app.version, apps, plugin_component_configs)
-
-            # component monitors
-            component_monitors = app.get("component_monitors", {})
-            self.__create_component_monitor(tenant, new_service_list, component_monitors)
+                self.__create_service_pluginsv2(tenant, region_name, service, market_app.version, apps,
+                                                plugin_component_configs)
 
             events = {}
             if is_deploy:
                 # 部署所有组件
-                events = self.__deploy_services(tenant, user, new_service_list)
+                events = self.__deploy_services(tenant, user, new_service_list, app_templates)
             return {
                 "tenant_service_group": tenant_service_group,
                 "events": events,
@@ -339,6 +273,35 @@ class MarketAppService(object):
                 except Exception as le:
                     logger.exception(le)
             raise e
+
+    def __save_component_meta(self, tenant, region, tenant_service_group, application_id, app, market_app_version, market_app,
+                              market_name, install_from_cloud, user):
+        start = datetime.datetime.now()
+        app["update_time"] = market_app_version.update_time
+        ts = self.__init_component_from_market_app(tenant, region.region_name, user, app, tenant_service_group.ID)
+        self.__init_service_source(ts, app, market_app.app_id, market_app_version.version, install_from_cloud, market_name)
+        group_service.add_service_to_group(tenant, region.region_name, application_id, ts.service_id)
+
+        # first save env before save port
+        self.__save_env(tenant, ts, app.get("service_env_map_list", []), app.get("service_connect_info_map_list", []))
+        # save port
+        self.__save_port(tenant, region, ts, app.get("port_map_list", []))
+        # save volume
+        self.__save_volume(tenant, ts, app["service_volume_map_list"])
+
+        # save component probe info
+        self.__save_probe_info(tenant, ts, app.get("probes", None))
+
+        self.__save_extend_info(ts, app["extend_method_map"])
+
+        # component monitors
+        component_monitors = app.get("component_monitors", [])
+        self.__create_component_monitor(tenant, ts, component_monitors)
+        # component graphs
+        component_graphs = app.get("component_graphs", {})
+        component_graph_service.bulk_create(ts.service_id, component_graphs)
+        logger.debug("create component {0} take time {1}".format(ts.service_alias, datetime.datetime.now() - start))
+        return ts
 
     def save_service_deps_when_upgrade_app(self, tenant, service_key_dep_key_map, key_service_map, apps, app_map):
         # 保存依赖关系
@@ -399,12 +362,6 @@ class MarketAppService(object):
                 new_items.extend(old_cgroup_items)
                 app_config_group_service.update_config_group(region_name, app_id, update_cgroup_name, new_items, True,
                                                              new_service_ids, tenant.tenant_name)
-
-    def __create_component_monitor(self, tenant, service_list, component_monitors):
-        if not service_list:
-            return
-        for service in service_list:
-            self.__save_monitors(tenant, service, component_monitors)
 
     def __create_dep_mnt(self, tenant, apps, app_map, key_service_map):
         for app in apps:
@@ -495,9 +452,8 @@ class MarketAppService(object):
 
     def create_plugin_for_tenant(self, region_name, user, tenant, plugins):
         for plugin in plugins:
-            # 对需要安装的插件查看本地是否有安装
+            # check plugin whether to install.
             tenant_plugin = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin["plugin_key"])
-            # 如果本地没有安装，进行安装操作
             if not tenant_plugin:
                 try:
                     logger.info("start install plugin {} for tenant {}".format(plugin["plugin_key"], tenant.tenant_id))
@@ -575,7 +531,7 @@ class MarketAppService(object):
         plugin_build_version.save()
         return 200, "success"
 
-    def __create_tenant_service_group(self, region, tenant_id, group_id, app_key, app_version, app_name):
+    def __create_tenant_service_group(self, region_name, tenant_id, group_id, app_key, app_version, app_name):
         group_name = self.__generator_group_name("gr")
         params = {
             "tenant_id": tenant_id,
@@ -583,7 +539,7 @@ class MarketAppService(object):
             "group_alias": app_name,
             "group_key": app_key,
             "group_version": app_version,
-            "region_name": region,
+            "region_name": region_name,
             "service_group_id": 0 if group_id == -1 else group_id
         }
         return tenant_service_group_repo.create_tenant_service_group(**params)
@@ -591,48 +547,19 @@ class MarketAppService(object):
     def __generator_group_name(self, group_name):
         return '_'.join([group_name, make_uuid()[-4:]])
 
-    def __create_region_services(self, tenant, region_name, user, service_list, service_probe_map):
-        service_prob_id_map = {}
+    def __create_region_services(self, tenant, region_name, user, service_list):
         new_service_list = []
-        try:
-            for service in service_list:
-                # 数据中心创建组件
-                new_service = app_service.create_region_service(tenant, service, user.nick_name)
-                # 为组件添加探针
-                probe_data = service_probe_map.get(service.service_id)
-                probe_ids = []
-                if probe_data:
-                    for data in probe_data:
-                        code, msg, probe = probe_service.add_service_probe(tenant, service, data)
-                        if code == 200:
-                            probe_ids.append(probe.probe_id)
-                else:
-                    code, msg, probe = app_service.add_service_default_porbe(tenant, service)
-                    if probe:
-                        probe_ids.append(probe.probe_id)
-                if probe_ids:
-                    service_prob_id_map[service.service_id] = probe_ids
+        for service in service_list:
+            # create component in region
+            new_service = app_service.create_region_service(tenant, service, user.nick_name)
+            new_service_list.append(new_service)
+        return new_service_list
 
-                new_service_list.append(new_service)
-            return new_service_list
-        except Exception as e:
-            logger.exception("local market install app error {0}".format(e))
-            if service_list:
-                for service in service_list:
-                    if service_prob_id_map:
-                        probe_ids = service_prob_id_map.get(service.service_id)
-                        if probe_ids:
-                            for probe_id in probe_ids:
-                                try:
-                                    probe_service.delete_service_probe(tenant, service, probe_id)
-                                except Exception as le:
-                                    logger.exception("local market install app delete service probe {0}".format(le))
-            raise e
-
-    def __deploy_services(self, tenant, user, service_list):
+    def __deploy_services(self, tenant, user, service_list, app_templates):
         try:
             body = dict()
-            code, data = app_manage_service.deploy_services_info(body, service_list, tenant, user, oauth_instance=None)
+            code, data = app_manage_service.deploy_services_info(
+                body, service_list, tenant, user, oauth_instance=None, template_apps=app_templates, upgrade=False)
             if code == 200:
                 # 获取数据中心信息
                 one_service = service_list[0]
@@ -664,44 +591,107 @@ class MarketAppService(object):
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
-            return 200, "success"
+            return
+        envs = []
         for env in inner_envs:
-            code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["attr_name"],
-                                                                      env.get("attr_value"), env.get("is_change", True),
-                                                                      "inner")
-            if code != 200 and code != 412:
-                logger.error("save market app env error {0}".format(msg))
-                return code, msg
+            if env.get("attr_name"):
+                envs.append(
+                    TenantServiceEnvVar(
+                        tenant_id=tenant.tenant_id,
+                        service_id=service.service_id,
+                        container_port=0,
+                        name=env.get("name"),
+                        attr_name=env.get("attr_name"),
+                        attr_value=env.get("attr_value"),
+                        is_change=env.get("is_change", True),
+                        scope="inner"))
         for env in outer_envs:
-            container_port = env.get("container_port", 0)
-            if container_port == 0:
+            if env.get("attr_name"):
+                container_port = env.get("container_port", 0)
                 if env.get("attr_value") == "**None**":
                     env["attr_value"] = make_uuid()[:8]
-                code, msg, env_data = env_var_service.add_service_env_var(tenant, service, container_port, env["name"],
-                                                                          env["attr_name"], env.get("attr_value"),
-                                                                          env.get("is_change", True), "outer")
-                if code != 200 and code != 412:
-                    logger.error("save market app env error {0}".format(msg))
-                    return code, msg
-        return 200, "success"
+                envs.append(
+                    TenantServiceEnvVar(
+                        tenant_id=tenant.tenant_id,
+                        service_id=service.service_id,
+                        container_port=container_port,
+                        name=env.get("name"),
+                        attr_name=env.get("attr_name"),
+                        attr_value=env.get("attr_value"),
+                        is_change=env.get("is_change", True),
+                        scope="outer"))
+        if len(envs) > 0:
+            env_var_repo.bulk_create_component_env(envs)
 
-    def __save_port(self, tenant, service, ports):
+    def __save_port(self, tenant, region, service, ports):
         if not ports:
-            return 200, "success"
+            return
+        create_ports = []
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(
-                tenant,
-                service,
-                int(port["container_port"]),
-                port["protocol"],
-                port["port_alias"],
-                port["is_inner_service"],
-                port["is_outer_service"],
-                k8s_service_name=port.get("k8s_service_name"))
-            if code != 200:
-                logger.error("save market app port error: {}".format(msg))
-                return code, msg
-        return 200, "success"
+            component_port = port["container_port"]
+            k8s_service_name = port.get("k8s_service_name") if port.get(
+                "k8s_service_name") else service.service_alias + "-" + str(component_port)
+            try:
+                port_service.check_k8s_service_name(tenant.tenant_id, k8s_service_name)
+            except ErrK8sServiceNameExists:
+                k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
+            except AbortRequest:
+                k8s_service_name = service.service_alias + "-" + str(component_port)
+            t_port = TenantServicesPort(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                container_port=int(component_port),
+                mapping_port=int(component_port),
+                lb_mapping_port=0,
+                protocol=port.get("protocol", "tcp"),
+                port_alias=port.get("port_alias", ""),
+                is_inner_service=port.get("is_inner_service", False),
+                is_outer_service=port.get("is_outer_service", False),
+                k8s_service_name=k8s_service_name,
+            )
+            create_ports.append(t_port)
+            if port.get("is_outer_service", False):
+                self.__create_default_gateway_rule(tenant, region, service, t_port)
+        if len(create_ports) > 0:
+            port_repo.bulk_create(create_ports)
+
+    def __create_default_gateway_rule(self, tenant, region, service, port):
+        if port.protocol == "http":
+            service_id = service.service_id
+            service_name = service.service_alias
+            container_port = port.container_port
+            domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(
+                region.httpdomain)
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            protocol = "http"
+            http_rule_id = make_uuid(domain_name)
+            tenant_id = tenant.tenant_id
+            service_alias = service.service_cname
+            region_id = region.region_id
+            domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
+                                               http_rule_id, tenant_id, service_alias, region_id)
+            logger.debug("create default gateway http rule for component {0} port {1}".format(
+                service.service_alias, port.container_port))
+        else:
+            res, data = region_api.get_port(region.region_name, tenant.tenant_name)
+            if int(res.status) != 200:
+                logger.warning("can not get stream port from region, ignore {0} port {1}".format(
+                    service.service_alias, port.container_port))
+                return
+            end_point = "0.0.0.0:{0}".format(data["bean"])
+            service_id = service.service_id
+            service_name = service.service_alias
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            container_port = port.container_port
+            protocol = port.protocol
+            service_alias = service.service_cname
+            tcp_rule_id = make_uuid(end_point)
+            tenant_id = tenant.tenant_id
+            region_id = region.region_id
+            tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port, protocol,
+                                                  service_alias, tcp_rule_id, tenant_id, region_id)
+            logger.debug("create default gateway stream rule for component {0} port {1}".format(
+                service.service_alias, port.container_port))
 
     def __save_volume(self, tenant, service, volumes):
         if not volumes:
@@ -748,51 +738,32 @@ class MarketAppService(object):
         }
         extend_repo.create_extend_method(**params)
 
-    @staticmethod
-    def __save_monitors(tenant, service, monitors):
-        if not monitors:
+    def __save_probe_info(self, tenant, service, probes):
+        if not probes or len(probes) == 0:
             return
+        for probe in probes:
+            probe_service.add_service_probe(tenant, service, probe)
 
-        for monitor in monitors:
-            monitor_name = monitor.get("name")
-            # make monitor name unique
-            try:
-                ServiceMonitor.objects.get(tenant_id=tenant.tenant_id, name=monitor_name)
-                monitor_name += "-" + make_uuid()[0:4]
-                service_monitor_repo.create_component_service_monitor(tenant, service, monitor_name, monitor.get("path"),
-                                                                      monitor.get("port"), monitor.get("service_show_name"),
-                                                                      monitor.get("interval"))
-            except ServiceMonitor.DoesNotExist:
-                pass
-            except ServiceHandleException as e:
-                logger.exception("create component monitor failed: {0}".format(e))
-                continue
+    def __create_component_monitor(self, tenant, service, monitors):
+        if not monitors or len(monitors) == 0:
+            return
+        service_monitor_repo.bulk_create_component_service_monitors(tenant, service, monitors)
 
-    def __init_market_app(self, tenant, region, user, app, tenant_service_group_id, install_from_cloud=False, market_name=None):
+    def __init_component_from_market_app(self, tenant, region_name, user, app, tenant_service_group_id):
         """
         初始化应用市场创建的应用默认数据
         """
-        # 判断分享类型是否为slug包
-        share_type = app.get("share_type")
-        if share_type:
-            is_slug = bool(share_type == "slug")
-        else:
-            is_slug = bool(slug_util.is_slug(app["image"], app["language"]))
-
         tenant_service = TenantServiceInfo()
         tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
-        tenant_service.service_cname = app["service_cname"]
+        tenant_service.service_cname = app.get("service_cname", "default-name")
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
         tenant_service.creater = user.pk
-        if is_slug:
-            tenant_service.image = app["image"]
-        else:
-            tenant_service.image = app.get("share_image", app["image"])
+        tenant_service.image = app.get("share_image", app["image"])
         tenant_service.cmd = app.get("cmd", "")
-        tenant_service.service_region = region
-        tenant_service.service_key = app["service_key"]
-        tenant_service.desc = "market app "
+        tenant_service.service_region = region_name
+        tenant_service.service_key = app.get("service_key")
+        tenant_service.desc = "install from market app"
         tenant_service.category = "app_publish"
         tenant_service.setting = ""
         # handle service type
@@ -805,42 +776,35 @@ class MarketAppService(object):
             else:
                 tenant_service.extend_method = extend_method
 
-        tenant_service.env = ","
-        tenant_service.min_node = app["extend_method_map"]["min_node"]
-        if app["extend_method_map"].get("init_memory"):
-            tenant_service.min_memory = app["extend_method_map"].get("init_memory")
-        elif app["extend_method_map"].get("min_memory"):
-            tenant_service.min_memory = app["extend_method_map"].get("min_memory")
+        tenant_service.min_node = app.get("extend_method_map", {}).get("min_node")
+        if app.get("extend_method_map", {}).get("init_memory"):
+            tenant_service.min_memory = app.get("extend_method_map", {}).get("init_memory")
+        elif app.get("extend_method_map", {}).get("min_memory"):
+            tenant_service.min_memory = app.get("extend_method_map", {}).get("min_memory")
         else:
             tenant_service.min_memory = 512
-        tenant_service.min_cpu = baseService.calculate_service_cpu(region, tenant_service.min_memory)
-        tenant_service.inner_port = 0
-        tenant_service.version = app["version"]
-        # deprecated
-        if is_slug:
-            if app.get("service_slug", None):
-                tenant_service.namespace = app["service_slug"]["namespace"]
+        tenant_service.min_cpu = baseService.calculate_service_cpu(region_name, tenant_service.min_memory)
+        tenant_service.version = app.get("version")
+        if app.get("service_image", None) and app.get("service_image", {}).get("namespace"):
+            tenant_service.namespace = app.get("service_image", {}).get("namespace")
         else:
-            if app.get("service_image", None) and app["service_image"]["namespace"]:
-                tenant_service.namespace = app["service_image"]["namespace"]
-            else:
-                tenant_service.namespace = "default"
+            tenant_service.namespace = "default"
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
         tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        tenant_service.deploy_version = app["deploy_version"]
+        tenant_service.deploy_version = app.get("deploy_version")
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
         tenant_service.total_memory = tenant_service.min_node * tenant_service.min_memory
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
+        tenant_service.inner_port = 0
+        tenant_service.env = ","
         tenant_service.code_from = ""
         tenant_service.language = ""
         tenant_service.service_source = AppConstants.MARKET
         tenant_service.create_status = "creating"
         tenant_service.tenant_service_group_id = tenant_service_group_id
-        self.__init_service_source(tenant_service, app, install_from_cloud, market_name)
-        # 存储并返回
         tenant_service.save()
         return tenant_service
 
@@ -852,32 +816,43 @@ class MarketAppService(object):
                     ex_me.max_node = app["extend_method_map"]["max_node"]
                     ex_me.save()
 
-    def __init_service_source(self, ts, app, install_from_cloud=False, market_name=None):
-        slug = app.get("service_slug", None)
+    def __init_service_source(self, ts, component, app_id, version, install_from_cloud=False, market_name=None):
+        slug = component.get("service_slug", None)
         extend_info = {}
         if slug:
             extend_info = slug
-            extend_info["slug_path"] = app.get("share_slug_path", "")
+            extend_info["slug_path"] = component.get("share_slug_path", "")
         else:
-            extend_info = app.get("service_image")
-        extend_info["source_deploy_version"] = app.get("deploy_version")
-        extend_info["source_service_share_uuid"] = app.get("service_share_uuid") if app.get(
-            "service_share_uuid", None) else app.get("service_key", "")
-        if "update_time" in app:
-            if type(app["update_time"]) == datetime.datetime:
-                extend_info["update_time"] = app["update_time"].strftime('%Y-%m-%d %H:%M:%S')
-            elif type(app["update_time"]) == str:
-                extend_info["update_time"] = app["update_time"]
+            extend_info = component.get("service_image")
+        extend_info["source_deploy_version"] = component.get("deploy_version")
+        extend_info["source_service_share_uuid"] = component.get("service_share_uuid") if component.get(
+            "service_share_uuid", None) else component.get("service_key", "")
+        if "update_time" in component:
+            if type(component["update_time"]) == datetime.datetime:
+                extend_info["update_time"] = component["update_time"].strftime('%Y-%m-%d %H:%M:%S')
+            elif type(component["update_time"]) == str:
+                extend_info["update_time"] = component["update_time"]
         if install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
             extend_info["market_name"] = market_name
         service_source_params = {
-            "team_id": ts.tenant_id,
-            "service_id": ts.service_id,
-            "user_name": "",
-            "password": "",
-            "extend_info": json.dumps(extend_info)
+            "team_id":
+            ts.tenant_id,
+            "service_id":
+            ts.service_id,
+            "user_name":
+            "",
+            "password":
+            "",
+            "extend_info":
+            json.dumps(extend_info),
+            "group_key":
+            app_id,
+            "version":
+            version,
+            "service_share_uuid":
+            component.get("service_share_uuid") if component.get("service_share_uuid", None) else component.get("service_key")
         }
         service_source_repo.create_service_source(**service_source_params)
 

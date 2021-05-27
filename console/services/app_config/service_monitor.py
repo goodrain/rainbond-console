@@ -41,8 +41,9 @@ class ComponentServiceMonitor(object):
             raise ServiceHandleException(msg="port not found", msg_show="配置的组件端口不存在", status_code=400, error_code=400)
         req = {"name": name, "path": path, "port": port, "service_show_name": service_show_name, "interval": interval}
         req["operator"] = user.get_name() if user else None
-        region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
-                                          service.service_alias, req)
+        if service.create_status == "complete":
+            region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
+                                              service.service_alias, req)
         req.pop("operator")
         req["service_id"] = service.service_id
         req["tenant_id"] = tenant.tenant_id
@@ -50,8 +51,9 @@ class ComponentServiceMonitor(object):
             sm = ServiceMonitor.objects.create(**req)
             return sm
         except Exception as e:
-            region_api.delete_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
-                                              service.service_alias, name, None)
+            if service.create_status == "complete":
+                region_api.delete_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
+                                                  service.service_alias, name, None)
             raise e
 
     def update_component_service_monitor(self, tenant, service, user, name, path, port, service_show_name, interval):

@@ -4,29 +4,20 @@
 """
 import logging
 
+from console.cloud.services import check_memory_quota
+from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
+from console.repositories.deploy_repo import deploy_repo
+from console.services.app import app_service
+from console.services.app_actions import app_manage_service, event_service
+from console.services.app_config import (dependency_service, env_var_service, port_service, probe_service, volume_service)
+from console.services.compose_service import compose_service
+from console.views.app_config.base import AppBaseView
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.exception.main import ServiceHandleException, ErrInsufficientResource
-from console.repositories.deploy_repo import deploy_repo
-from console.services.app import app_service
-from console.services.app_actions import app_manage_service
-from console.services.app_actions import event_service
-from console.services.app_config import dependency_service
-from console.services.app_config import env_var_service
-from console.services.app_config import label_service
-from console.services.app_config import port_service
-from console.services.app_config import probe_service
-from console.services.app_config import volume_service
-from console.services.compose_service import compose_service
-from console.views.app_config.base import AppBaseView
-from console.views.base import CloudEnterpriseCenterView
-from console.views.base import RegionTenantHeaderCloudEnterpriseCenterView
-from console.cloud.services import check_memory_quota
 from www.apiclient.baseclient import HttpClient
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 
@@ -66,14 +57,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
 
             self.service = new_service
-            # 为组件添加默认探针
-            if self.is_need_to_add_default_probe():
-                code, msg, probe = app_service.add_service_default_porbe(self.tenant, self.service)
-                logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
             if is_deploy:
-                # 添加组件有无状态标签
-                label_service.update_service_state_label(self.tenant, self.service)
-                # 部署组件
                 try:
                     app_manage_service.deploy(
                         self.tenant, self.service, self.user, group_version=None, oauth_instance=self.oauth_instance)
@@ -162,13 +146,6 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             for service in services:
                 new_service = app_service.create_region_service(self.tenant, service, self.user.nick_name)
                 new_app_list.append(new_service)
-                # 为组件添加默认探针
-                code, msg, probe = app_service.add_service_default_porbe(self.tenant, new_service)
-                if probe:
-                    probe_map[service.service_id] = probe.probe_id
-                # 添加组件有无状态标签
-                label_service.update_service_state_label(self.tenant, new_service)
-
             group_compose.create_status = "complete"
             group_compose.save()
             for s in new_app_list:
@@ -182,20 +159,16 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-            # 删除probe
-            # 删除region端数据
             if services:
                 for service in services:
                     if probe_map:
                         probe_id = probe_map.get(service.service_id)
                         probe_service.delete_service_probe(self.tenant, service, probe_id)
-
                     event_service.delete_service_events(service)
                     port_service.delete_region_port(self.tenant, service)
                     volume_service.delete_region_volumes(self.tenant, service)
                     env_var_service.delete_region_env(self.tenant, service)
                     dependency_service.delete_region_dependency(self.tenant, service)
-
                     app_manage_service.delete_region_service(self.tenant, service)
                     service.create_status = "checked"
                     service.save()
