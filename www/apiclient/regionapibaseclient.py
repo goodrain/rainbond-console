@@ -12,7 +12,7 @@ import ssl
 import certifi
 import urllib3
 from addict import Dict
-from console.exception.main import ServiceHandleException, ErrInsufficientResource
+from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
 from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict
@@ -88,6 +88,8 @@ class RegionApiBaseHttpClient(object):
         if isinstance(body, dict):
             body = Dict(body)
         if 400 <= status <= 600:
+            if not body:
+                raise ServiceHandleException(msg="request region api body is nil", msg_show="集群请求网络异常", status_code=status)
             if "code" in body:
                 raise ServiceHandleException(msg=body.get("msg"), status_code=status, error_code=body.get("code"))
             if status == 409:

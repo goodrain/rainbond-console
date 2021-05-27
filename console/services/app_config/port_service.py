@@ -52,8 +52,8 @@ class AppPortService(object):
     def check_k8s_service_name(tenant_id, k8s_service_name, component_id="", container_port=None):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
-        if not re.match("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'")
+        if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
+            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
 
         # make k8s_service_name unique
         try:
@@ -403,7 +403,6 @@ class AppPortService(object):
                     service_tcp_domain.is_outer_service = True
                     service_tcp_domain.save()
             else:
-                # ip+port
                 # 在service_tcp_domain表中保存数据
                 res, data = region_api.get_port(region.region_name, tenant.tenant_name)
                 if int(res.status) != 200:

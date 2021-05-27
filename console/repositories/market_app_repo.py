@@ -68,10 +68,10 @@ class RainbondCenterAppRepository(object):
             team_sql = ""
             if teams:
                 team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
-            team_sql += " and scope='" + scope + "'"
+            team_sql += " and app.scope='" + scope + "'"
             extend_where += team_sql
         if scope == "enterprise":
-            extend_where += " and scope='" + scope + "'"
+            extend_where += " and app.scope='" + scope + "'"
         sql = """
             select
                 distinct app.*
@@ -123,10 +123,10 @@ class RainbondCenterAppRepository(object):
             team_sql = ""
             if teams:
                 team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
-            team_sql += " and scope='" + scope + "'"
+            team_sql += " and app.scope='" + scope + "'"
             extend_where += team_sql
         if scope == "enterprise":
-            extend_where += " and scope='" + scope + "'"
+            extend_where += " and app.scope='" + scope + "'"
         sql = """
             select
                 count(distinct app.app_id) as total

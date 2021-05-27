@@ -145,8 +145,8 @@ class EnterpriseUserTeams(EnterpriseAdminView):
     def get(self, request, enterprise_id, user_id, *args, **kwargs):
         name = request.GET.get("name", None)
         user = user_repo.get_user_by_user_id(user_id)
-        tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
-        result = general_message(200, "team query success", "查询成功", list=tenants)
+        teams = team_services.list_user_teams(enterprise_id, user, name)
+        result = general_message(200, "team query success", "查询成功", list=teams)
         return Response(result, status=200)
 
 

@@ -71,6 +71,9 @@ class TenantServiceEnvVarRepository(object):
         env = TenantServiceEnvVar.objects.create(**tenant_service_env_var)
         return env
 
+    def bulk_create_component_env(self, envs):
+        TenantServiceEnvVar.objects.bulk_create(envs)
+
     def delete_service_env(self, tenant_id, service_id):
         TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id).delete()
 

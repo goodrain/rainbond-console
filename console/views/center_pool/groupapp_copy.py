@@ -4,13 +4,12 @@
 """
 import logging
 
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
-from www.apiclient.baseclient import HttpClient
 from console.exception.main import ServiceHandleException
 from console.services.groupcopy_service import groupapp_copy_service
 from console.views.base import RegionTenantHeaderView
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
+from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import general_message
 
 logger = logging.getLogger('default')
@@ -54,7 +53,7 @@ class GroupAppsCopyView(RegionTenantHeaderView):
             result = general_message(
                 200,
                 "success",
-                "获取成功",
+                "复制成功",
                 bean={
                     "tar_team_name": tar_team_name,
                     "tar_region_name": tar_region_name,
