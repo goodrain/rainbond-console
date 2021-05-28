@@ -22,10 +22,10 @@ class AppLView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         team = team_repo.get_enterprise_team_by_name(enterprise_id, team_name)
-        team_id = team.values_list("tenant_id", flat=True)
         if not team:
             result = general_message(404, "no found", "团队不存在")
             return Response(result, status=status.HTTP_200_OK)
+        team_id = team.tenant_id
         data = []
         app_list = service_repo.get_app_list(team_id, name, page, page_size)
         app_count = service_repo.get_app_count(team_id, name)

@@ -241,6 +241,8 @@ class GroupServiceView(RegionTenantHeaderView):
                     team_id=self.team.tenant_id,
                     region_name=self.response_region,
                     enterprise_id=self.team.enterprise_id)
+                if page_size == "-1" or page_size == "" or page_size == "0":
+                    page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
                 paginator = Paginator(no_group_service_list, page_size)
                 try:
                     no_group_service_list = paginator.page(page).object_list
@@ -264,6 +266,8 @@ class GroupServiceView(RegionTenantHeaderView):
                 team_name=self.team_name,
                 enterprise_id=self.team.enterprise_id,
                 query=query)
+            if page_size == "-1" or page_size == "" or page_size == "0":
+                page_size = len(group_service_list) if len(group_service_list) > 0 else 10
             paginator = Paginator(group_service_list, page_size)
             try:
                 group_service_list = paginator.page(page).object_list
