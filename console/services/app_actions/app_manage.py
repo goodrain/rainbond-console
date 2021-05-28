@@ -901,7 +901,11 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
+        try:
             delete_service_repo.create_delete_service(**data)
+        except Exception as e:
+            logger.exception(e)
+            pass
 
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
@@ -1191,7 +1195,11 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
+        try:
             delete_service_repo.create_delete_service(**data)
+        except Exception as e:
+            logger.exception(e)
+            pass
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
