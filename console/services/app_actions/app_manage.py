@@ -244,7 +244,7 @@ class AppManageService(AppManageBase):
                 try:
                     git_url = instance.get_clone_url(service.git_url)
                 except NoAccessKeyErr:
-                    return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
+                    return 400, "该代码仓库可能未认证或认证信息已过期，请重新认证", ""
                 body["code_info"] = {
                     "repo_url": git_url,
                     "branch": service.code_version,
