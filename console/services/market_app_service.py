@@ -856,16 +856,7 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self,
-                          user,
-                          eid,
-                          scope,
-                          app_name,
-                          tag_names=None,
-                          is_complete=True,
-                          page=1,
-                          page_size=10,
-                          need_install="false"):
+    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, page=1, page_size=10, need_install="false"):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -887,7 +878,7 @@ class MarketAppService(object):
             return [], count[0].total
 
         self._patch_rainbond_app_tag(eid, apps)
-        self._patch_rainbond_app_versions(eid, apps, is_complete)
+        self._patch_rainbond_app_versions(eid, apps)
         return apps, count[0].total
 
     # patch rainbond app tag
@@ -908,65 +899,52 @@ class MarketAppService(object):
     def _get_rainbond_app_min_memory(self, apps_model_versions):
         apps_min_memory = dict()
         for app_model_version in apps_model_versions:
-            if not apps_min_memory.get(app_model_version.app_id):
-                min_memory = 0
-                try:
-                    app_temp = json.loads(app_model_version.app_template)
-                    for app in app_temp.get("apps"):
-                        if app.get("extend_method_map"):
-                            try:
-                                if app.get("extend_method_map").get("init_memory"):
-                                    min_memory += int(app.get("extend_method_map").get("init_memory"))
-                                else:
-                                    min_memory += int(app.get("extend_method_map").get("min_memory"))
-                            except Exception:
-                                pass
-                    apps_min_memory[app_model_version.app_id] = min_memory
-                except ValueError:
-                    apps_min_memory[app_model_version.app_id] = min_memory
+            min_memory = 0
+            try:
+                app_temp = json.loads(app_model_version.app_template)
+                for app in app_temp.get("apps"):
+                    if app.get("extend_method_map"):
+                        try:
+                            if app.get("extend_method_map").get("init_memory"):
+                                min_memory += int(app.get("extend_method_map").get("init_memory"))
+                            else:
+                                min_memory += int(app.get("extend_method_map").get("min_memory"))
+                        except Exception:
+                            pass
+                apps_min_memory[app_model_version.app_id] = min_memory
+            except ValueError:
+                pass
+            if min_memory <= apps_min_memory.get(app_model_version.app_id, 0):
+                apps_min_memory[app_model_version.app_id] = min_memory
         return apps_min_memory
 
     # patch rainbond app versions
-    def _patch_rainbond_app_versions(self, eid, apps, is_complete=None):
-        app_ids = [app.app_id for app in apps]
-        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete)
-        if not versions:
-            return
-
-        app_with_versions = dict()
-        for version in versions:
-            if not app_with_versions.get(version.app_id):
-                app_with_versions[version.app_id] = []
-            version_info = {
-                "is_complete": version.is_complete,
-                "version": version.version,
-                "version_alias": version.version_alias,
-                "dev_status": version.dev_status,
-            }
-            # If the versions are the same, take the last version information
-            for info in app_with_versions[version.app_id]:
-                if version_info["version"] in info["version"]:
-                    info["is_complete"] = version_info["is_complete"]
-                    info["version_alias"] = version_info["version_alias"]
-                    info["dev_status"] = version_info["dev_status"]
-            if version_info not in app_with_versions[version.app_id]:
-                app_with_versions[version.app_id].append(version_info)
-
-        apps_min_memory = self._get_rainbond_app_min_memory(versions)
+    def _patch_rainbond_app_versions(self, eid, apps):
+        all_versions = []
         for app in apps:
-            versions_info = app_with_versions.get(app.app_id)
-            app.dev_status = ""
-            if versions_info:
-                # sort rainbond app versions by version
-                versions_info = sorted(versions_info, key=lambda x: (x["dev_status"], x["version"]))
-                # If there is a version to release, set the application to release state
-                have_release = False
-                for v in versions_info:
-                    if "release" in v["dev_status"]:
-                        have_release = True
-                if have_release:
-                    app.dev_status = "release"
-            app.versions_info = versions_info
+            # Get a sorted list of versions, which are the release version and the normal version
+            apvs_release = rainbond_app_repo.get_rainbond_app_versions_by_id(eid, app.app_id, True, dev_status="release")
+            apvs_not_release = rainbond_app_repo.get_rainbond_app_versions_by_id(eid, app.app_id, True, dev_status="")
+            if len(apvs_release) > 0:
+                app.dev_status = "release"
+
+            apvs_release.extend(apvs_not_release)
+            # all_versions Used to calculate the minimum memory of the application
+            all_versions.extend(apvs_release)
+
+            versions = []
+            for version in apvs_release:
+                version_info = {
+                    "is_complete": version.is_complete,
+                    "version": version.version,
+                    "version_alias": version.version_alias,
+                    "dev_status": version.dev_status,
+                }
+                versions.append(version_info)
+            app.versions_info = list(reversed(versions))
+
+        apps_min_memory = self._get_rainbond_app_min_memory(all_versions)
+        for app in apps:
             app.min_memory = apps_min_memory.get(app.app_id, 0)
 
     def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):

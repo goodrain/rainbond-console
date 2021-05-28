@@ -334,8 +334,11 @@ class RainbondCenterAppRepository(object):
         result = conn.query(sql)
         return result
 
-    def get_rainbond_app_versions_by_id(self, eid, app_id):
+    def get_rainbond_app_versions_by_id(self, eid, app_id, extend=False, **kwargs):
         where = 'WHERE (C.enterprise_id="{eid}") AND C.app_id="{app_id}"'.format(eid=eid, app_id=app_id)
+        if extend:
+            if kwargs.get("dev_status") is not None:
+                where += ' AND C.dev_status="{dev_status}"'.format(dev_status=kwargs["dev_status"])
         sql = """
                 SELECT
                     C.*
