@@ -8,6 +8,7 @@ import re
 from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import ErrUserNotFound
 from console.exception.main import AbortRequest, ServiceHandleException
+from console.exception.bcode import ErrK8sServiceNameExists
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
 from console.repositories.backup_repo import backup_record_repo
@@ -482,24 +483,50 @@ class GroupService(object):
     def update_kubernetes_services(self, tenant, region_name, app_id, k8s_services):
         from console.services.app_config import port_service
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
-        for k8s_service in k8s_services:
-            port_service.check_k8s_service_name(tenant.tenant_id, k8s_service.get("k8s_service_name"),
-                                                k8s_service["service_id"], k8s_service["port"])
-            # check if the given k8s_services belong to the app based on app_id
-            if k8s_service["service_id"] not in service_ids:
-                raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app_id))
 
-        # bulk_update is only available after django 2.2
+        self._check_k8s_service_names(tenant.tenant_id, k8s_services)
+
+        ports = port_repo.list_by_service_ids(tenant.tenant_id, service_ids)
+        # filter by k8s_services
+        key_2_k8s_services = {k8s_service["service_id"] + str(k8s_service["port"]): k8s_service for k8s_service in k8s_services}
+
+        # updates is the list of ports need to be updated
+        updates = []
+        for port in ports:
+            key = port.service_id + str(port.container_port)
+            k8s_service = key_2_k8s_services.get(key)
+            if not k8s_service:
+                continue
+            port.port_alias = k8s_service.get("port_alias")
+            port.port_alias = k8s_service.get("k8s_service_name")
+            updates.append(port)
+
+        port_service.update_ports(tenant, region_name, app_id, updates)
+
+    @staticmethod
+    def _check_k8s_service_names(tenant_id, k8s_services):
+        # format verification
         for k8s_service in k8s_services:
-            service = service_repo.get_service_by_service_id(k8s_service["service_id"])
-            port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, k8s_service["port"])
-            port_service.change_port_alias(
-                tenant,
-                service,
-                port,
-                k8s_service["port_alias"],
-                k8s_service["k8s_service_name"],
-            )
+            k8s_service_name = k8s_service.get("k8s_service_name")
+            if len(k8s_service_name) > 63:
+                raise AbortRequest("k8s_service_name must be no more than 63 characters")
+            if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
+                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式不正确")
+
+        # collision detection
+        k8s_service_names = [k8s_service.get("k8s_service_name") for k8s_service in k8s_services]
+        if len(k8s_service_names) != len(set(k8s_service_names)):
+            raise AbortRequest("kubernetes service name duplicated", status_code=409, msg_show="内部域名不能重复")
+        ports = port_repo.list_by_k8s_service_names(tenant_id, k8s_service_names)
+        if not ports:
+            return
+        # make a map for k8s_services
+        #  if port.service_id != component_id or port.container_port != container_port:
+        k8s_services = {k8s_service.get("k8s_service_name"): k8s_service for k8s_service in k8s_services}
+        for port in ports:
+            k8s_service = k8s_services.get(port.k8s_service_name)
+            if port.service_id != k8s_service.get("service_id") or port.container_port != k8s_service.get("port"):
+                raise ErrK8sServiceNameExists
 
     @staticmethod
     def get_app_status(tenant, region_name, app_id):

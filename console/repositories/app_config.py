@@ -7,9 +7,11 @@ import json
 import logging
 import os
 
+from bulk_update.helper import bulk_update
+from django.db.models import Q
+
 from console.exception.main import AbortRequest
 from console.utils.shortcuts import get_object_or_404
-from django.db.models import Q
 from www.db.base import BaseConnection
 from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation, ServiceAttachInfo, ServiceCreateStep,
                              ServiceDomain, ServiceDomainCertificate, ServicePaymentNotify, ServiceTcpDomain, TenantServiceAuth,
@@ -125,6 +127,9 @@ class TenantServiceEnvVarRepository(object):
     def bulk_create(self, envs):
         TenantServiceEnvVar.objects.bulk_create(envs)
 
+    @staticmethod
+    def delete_by_port(component_id, container_port):
+        TenantServiceEnvVar.objects.filter(service_id=component_id, container_port=container_port)
 
 class TenantServicePortRepository(object):
     def list_inner_ports(self, tenant_id, service_id):
@@ -195,9 +200,17 @@ class TenantServicePortRepository(object):
         return TenantServicesPort.objects.get(tenant_id=tenant_id, k8s_service_name=k8s_service_name)
 
     @staticmethod
+    def list_by_k8s_service_names(tenant_id, k8s_service_names):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id, k8s_service_name__in=k8s_service_names)
+
+    @staticmethod
     def check_k8s_service_name(tenant_id, service_id, port, k8s_service_names):
         return TenantServicesPort.objects.get(
             tenant_id=tenant_id, service_id=service_id, container_port=port, k8s_service_name__in=k8s_service_names)
+
+    @staticmethod
+    def bulk_update(ports):
+        bulk_update(ports)
 
 
 class TenantServiceVolumnRepository(object):

@@ -1745,7 +1745,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return res, body
 
-    def update_app_ports(self, region_name, tenant_name, app_id, data):
+    def update_app_ports(self, tenant_name, region_name, app_id, data):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/ports"

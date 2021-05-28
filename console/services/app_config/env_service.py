@@ -254,6 +254,10 @@ class AppEnvVarService(object):
         envs = env_var_repo.get_depend_outer_envs_by_ids(tenant.tenant_id, dep_service_ids)
         return chain(selfenv, envs)
 
+    @staticmethod
+    def delete_port_envs(port):
+        env_var_repo.delete_by_port(port.service_id, port.container_port)
+
 
 class AppEnvService(object):
     def delete_service_compile_env(self, service):

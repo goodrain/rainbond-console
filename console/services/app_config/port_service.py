@@ -12,10 +12,11 @@ from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
 from console.repositories.app import service_repo
-from console.repositories.app_config import (domain_repo, port_repo, service_endpoints_repo, tcp_domain)
+from console.repositories.app_config import (domain_repo, port_repo, service_endpoints_repo, tcp_domain, env_var_repo)
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
+from console.repositories.region_app import region_app_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.domain_service import domain_service
@@ -23,7 +24,7 @@ from console.services.region_services import region_services
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantServicesPort
+from www.models.main import TenantServicesPort, TenantServiceEnvVar
 from www.utils.crypt import make_uuid
 
 pros = ProbeService()
@@ -647,6 +648,59 @@ class AppPortService(object):
             self.update_service_port(tenant, service.service_region, service.service_alias, body, user_name)
 
         deal_port.save()
+
+    @transaction.atomic
+    def update_ports(self, tenant, region_name, app_id, ports):
+        app = group_repo.get_group_by_id(app_id)
+
+        # delete port alias envs
+        self.delete_port_alias_envs(ports)
+        # create port envs
+        self.create_port_envs(tenant.tenant_id, ports, app.governance_mode)
+        # update ports
+        port_repo.bulk_update(ports)
+        # update region ports
+        self._update_region_ports(tenant.tenant_name, region_name, app_id, ports)
+
+    @staticmethod
+    def _update_region_ports(tenant_name, region_name, app_id, ports):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        ports = [port.to_dict() for port in ports]
+        region_api.update_app_ports(tenant_name, region_name, region_app_id, ports)
+
+    @staticmethod
+    def delete_port_alias_envs(ports):
+        # If the efficiency is not high, we must bypass django and write sql by hand
+        for port in ports:
+            env_var_service.delete_port_envs(port)
+
+    def create_port_envs(self, tenant_id, ports, governance_mode):
+        """
+        Generate envs for port alias
+        port alias=MYSQL => MYSQL_HOST, MYSQL_PORT
+        """
+        envs = []
+        for port in ports:
+            attr_value = "127.0.0.1"
+            if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+                attr_value = port.k8s_service_name
+            env = self.create_port_env(tenant_id, port, "连接地址", port.port_alias + "_HOST", attr_value)
+            envs.append(env)
+            env = self.create_port_env(tenant_id, port, "端口", port.port_alias + "_PORT", port.container_port)
+            envs.append(env)
+        env_var_repo.bulk_create(envs)
+
+    @staticmethod
+    def create_port_env(tenant_id, port, name, attr_name, attr_value):
+        return TenantServiceEnvVar(
+            tenant_id=tenant_id,
+            service_id=port.service_id,
+            container_port=port.container_port,
+            name=name,
+            attr_name=attr_name,
+            attr_value=attr_value,
+            scope="outer",
+        )
 
     @staticmethod
     def update_service_port(tenant, region_name, service_alias, body, user_name=''):
