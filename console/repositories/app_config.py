@@ -128,8 +128,15 @@ class TenantServiceEnvVarRepository(object):
         TenantServiceEnvVar.objects.bulk_create(envs)
 
     @staticmethod
-    def delete_by_port(component_id, container_port):
-        TenantServiceEnvVar.objects.filter(service_id=component_id, container_port=container_port)
+    def delete_by_ports(tenant_id, ports):
+        q = None
+        for port in ports:
+            if q is None:
+                q = Q(service_id=port.service_id, container_port=port.container_port)
+                continue
+            q |= Q(service_id=port.service_id, container_port=port.container_port)
+        TenantServiceEnvVar.objects.filter(tenant_id=tenant_id).filter(q).delete()
+
 
 class TenantServicePortRepository(object):
     def list_inner_ports(self, tenant_id, service_id):

@@ -186,6 +186,10 @@ class GroupServiceRelationRepository(object):
     def update_service_relation(self, group_id, default_group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).update(group_id=default_group_id)
 
+    @staticmethod
+    def list_by_app_id(tenant_id, app_id):
+        return ServiceGroupRelation.objects.filter(tenant_id=tenant_id, group_id=app_id)
+
 
 class TenantServiceGroupRepository(object):
     def delete_tenant_service_group_by_pk(self, pk):

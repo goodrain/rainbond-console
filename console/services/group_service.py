@@ -5,12 +5,11 @@
 import logging
 import re
 
-from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import ErrUserNotFound
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.exception.bcode import ErrK8sServiceNameExists
 from console.repositories.app import service_repo, service_source_repo
-from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
+from console.repositories.app_config import (domain_repo, port_repo, tcp_domain)
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo, group_service_relation_repo
@@ -431,21 +430,12 @@ class GroupService(object):
     @staticmethod
     @transaction.atomic
     def update_governance_mode(tenant, region_name, app_id, governance_mode):
+        app = group_repo.get_group_by_id(app_id)
+        service_ids = group_service_relation_repo.list_by_app_id(tenant.tenant_id, app_id).values_list("service_id", flat=True)
+        ports = port_repo.list_by_service_ids(tenant.tenant_id, service_ids)
         # update the value of host env. eg. MYSQL_HOST
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
-        ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, service_ids)
-        for port in ports:
-            env = env_var_repo.get_service_host_env(tenant.tenant_id, port.service_id, port.container_port)
-            service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, port.service_id)
-            if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
-                env.attr_value = port.k8s_service_name if port.k8s_service_name else service.service_alias + "-" + str(
-                    port.container_port)
-            else:
-                env.attr_value = "127.0.0.1"
-            env.save()
-            if service.create_status == "complete":
-                body = {"env_name": env.attr_name, "env_value": env.attr_value, "scope": env.scope}
-                region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
+        from console.services.app_config import port_service
+        port_service.create_ports_envs(tenant, region_name, app.ID, governance_mode, ports)
 
         group_repo.update_governance_mode(tenant.tenant_id, region_name, app_id, governance_mode)
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)

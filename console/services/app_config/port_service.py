@@ -652,15 +652,26 @@ class AppPortService(object):
     @transaction.atomic
     def update_ports(self, tenant, region_name, app_id, ports):
         app = group_repo.get_group_by_id(app_id)
-
-        # delete port alias envs
-        self.delete_port_alias_envs(ports)
-        # create port envs
-        self.create_port_envs(tenant.tenant_id, ports, app.governance_mode)
+        self._create_ports_envs(tenant, app.governance_mode, ports)
         # update ports
         port_repo.bulk_update(ports)
         # update region ports
         self._update_region_ports(tenant.tenant_name, region_name, app_id, ports)
+
+    def create_ports_envs(self, tenant, region_name, app_id, governance_mode, ports):
+        # create local envs
+        self._create_ports_envs(tenant, governance_mode, ports)
+
+        # create region envs
+        ports = [port.to_dict() for port in ports]
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.update_app_ports_envs(tenant.tenant_name, region_name, region_app_id, ports)
+
+    def _create_ports_envs(self, tenant, governance_mode, ports):
+        # delete port alias envs
+        self.delete_port_envs(tenant.tenant_id, ports)
+        # create port envs
+        self.create_port_envs(tenant.tenant_id, ports, governance_mode)
 
     @staticmethod
     def _update_region_ports(tenant_name, region_name, app_id, ports):
@@ -669,10 +680,8 @@ class AppPortService(object):
         region_api.update_app_ports(tenant_name, region_name, region_app_id, ports)
 
     @staticmethod
-    def delete_port_alias_envs(ports):
-        # If the efficiency is not high, we must bypass django and write sql by hand
-        for port in ports:
-            env_var_service.delete_port_envs(port)
+    def delete_port_envs(tenant_id, ports):
+        env_var_repo.delete_by_ports(tenant_id, ports)
 
     def create_port_envs(self, tenant_id, ports, governance_mode):
         """
