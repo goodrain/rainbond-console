@@ -1261,15 +1261,15 @@ class AppManageService(AppManageBase):
     def close_all_component_in_team(self, tenant, user):
         # close all component in define team
         tenant_regions = region_repo.list_by_tenant_id(tenant.tenant_id)
-        if tenant_regions:
-            for region in tenant_regions:
-                self.close_all_component_in_tenant(tenant, region.region_name, user)
+        tenant_regions = tenant_regions if tenant_regions else []
+        for region in tenant_regions:
+            self.close_all_component_in_tenant(tenant, region.region_name, user)
 
-    def close_all_component_in_tenant(self, tenant, region_name, user):
-        services = service_repo.get_services_by_team_and_region(tenant.tenant_id, region_name)
-        if services and len(services) > 0:
-            for service in services:
-                try:
-                    self.stop(tenant, service, user)
-                except Exception as e:
-                    logger.exception(e)
+    @staticmethod
+    def close_all_component_in_tenant(tenant, region_name, user):
+        try:
+            region_api.stop_tenant(tenant.tenant_name, region_name, {
+                "operator": str(user.nick_name),
+            })
+        except Exception as e:
+            logger.exception(e)

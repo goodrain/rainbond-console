@@ -64,6 +64,9 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 except ErrInsufficientResource as e:
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
+                except Exception as e:
+                    result = general_message(400, e, "构建失败, 请重新构建")
+                    return Response(result, status=200)
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
