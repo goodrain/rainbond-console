@@ -86,3 +86,16 @@ class ErrPluginIsUsed(ServiceHandleException):
     def __init__(self):
         super(ErrPluginIsUsed, self).__init__(
             msg="plugin is used by the service", msg_show="该插件被组件使用，无法删除", status_code=409, error_code=20600)
+
+
+# 20700 ~ 20799 => tenant not found
+class ErrTenantNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrTenantNotFound, self).__init__(msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
+
+
+# 20800 ~ 20899 => component
+class ErrComponentBuildFailed(ServiceHandleException):
+    def __init__(self):
+        super(ErrComponentBuildFailed, self).__init__(
+            msg="failed to build component", msg_show="组件构建失败", status_code=400, error_code=20800)

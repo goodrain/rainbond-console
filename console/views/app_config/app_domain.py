@@ -25,6 +25,7 @@ from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -399,7 +400,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             return Response(result, status=400)
         certificate_id = request.data.get("certificate_id", None)
         service_id = request.data.get("service_id", None)
-        do_path = request.data.get("domain_path", None)
+        do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
         domain_heander = request.data.get("domain_heander", None)
         rule_extensions = request.data.get("rule_extensions", None)
@@ -410,6 +411,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
 
         # 判断参数
+        if len(do_path) > 1024:
+            raise AbortRequest(msg="Maximum length of location 1024", msg_show="Location最大长度1024")
         if not container_port or not domain_name or not service_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
@@ -512,7 +515,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             return Response(result, status=400)
         certificate_id = request.data.get("certificate_id", None)
         service_id = request.data.get("service_id", None)
-        do_path = request.data.get("domain_path", None)
+        do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
         domain_heander = request.data.get("domain_heander", None)
         rule_extensions = request.data.get("rule_extensions", None)
@@ -523,6 +526,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
 
         # 判断参数
+        if len(do_path) > 1024:
+            raise AbortRequest(msg="Maximum length of location 1024", msg_show="Location最大长度1024")
         if not service_id or not container_port or not domain_name or not http_rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
