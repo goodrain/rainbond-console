@@ -60,7 +60,7 @@ from console.views.enterprise import (EnterpriseAppComponentsLView, EnterpriseAp
                                       EnterpriseMonitor, EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView,
                                       EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView,
                                       EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams,
-                                      EnterpriseUserTeams, EnterpriseMyTeams)
+                                      EnterpriseUserTeams, EnterpriseMyTeams, EnterpriseUserTeamRoleView)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
@@ -768,6 +768,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import/(?P<event_id>[\w\-]+)/dir$',
         CenterAppTarballDirView.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/oauth/oauth-services$", EnterpriseOauthService.as_view()),
+    url(r"^enterprise/(?P<eid>[\w\-]+)/users/(?P<user_id>[\w\-]+)/teams/(?P<tenant_name>[\w\-]+)/roles$",
+        EnterpriseUserTeamRoleView.as_view(), perms.EnterpriseUserTeamRoles),
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     # 查看用户审核状态
