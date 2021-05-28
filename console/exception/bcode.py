@@ -92,3 +92,10 @@ class ErrPluginIsUsed(ServiceHandleException):
 class ErrTenantNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrTenantNotFound, self).__init__(msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
+
+
+# 20800 ~ 20899 => component
+class ErrComponentBuildFailed(ServiceHandleException):
+    def __init__(self):
+        super(ErrComponentBuildFailed, self).__init__(
+            msg="failed to build component", msg_show="组件构建失败", status_code=400, error_code=20800)
