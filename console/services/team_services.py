@@ -380,8 +380,8 @@ class TeamService(object):
                 if region_infos:
                     for region in region_infos:
                         region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
-            info["owner"] = tenant.creater
-            info["owner_name"] = owner_name
+            info["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
+            info["region_list"] = region_info_map
 
         return info
 

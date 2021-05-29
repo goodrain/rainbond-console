@@ -1033,13 +1033,11 @@ class AppManageService(AppManageBase):
 
     def __is_service_related_by_other_app_service(self, tenant, service):
         tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
-        group_ids = []
         if tsrs:
             sids = list(set([tsr.service_id for tsr in tsrs]))
             service_group = ServiceGroupRelation.objects.get(service_id=service.service_id, tenant_id=tenant.tenant_id)
             groups = ServiceGroupRelation.objects.filter(service_id__in=sids, tenant_id=tenant.tenant_id)
-            for group in groups:
-                group_ids.append(group.group_id)
+            group_ids = set([group.group_id for group in groups])
             if group_ids and service_group.group_id in group_ids:
                 group_ids.remove(service_group.group_id)
             if not group_ids:
