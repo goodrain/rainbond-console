@@ -3,7 +3,6 @@
   Created on 18/3/5.
 """
 import logging
-import os
 import time
 
 from console.models.main import (AppExportRecord, AppImportRecord, RainbondCenterApp, RainbondCenterAppTagsRelation,
@@ -150,10 +149,12 @@ class RainbondCenterAppRepository(object):
         count = conn.query(sql)
         return count
 
-    def get_rainbond_app_version_by_app_ids(self, eid, app_ids, is_complete=None):
+    def get_rainbond_app_version_by_app_ids(self, eid, app_ids, is_complete=None, rm_template_field=False):
         q = Q(enterprise_id=eid, app_id__in=app_ids)
         if is_complete:
             q = q & Q(is_complete=is_complete)
+        if rm_template_field:
+            return RainbondCenterAppVersion.objects.defer("app_template").filter(q)
         return RainbondCenterAppVersion.objects.filter(q)
 
     def get_rainbond_app_by_app_id(self, eid, app_id):
@@ -331,41 +332,6 @@ class RainbondCenterAppRepository(object):
         conn = BaseConnection()
         conn.query(sql1)
         conn.query(sql2)
-        result = conn.query(sql)
-        return result
-
-    def get_rainbond_app_versions_by_id(self, eid, app_id):
-        where = 'WHERE (C.enterprise_id="{eid}") AND C.app_id="{app_id}"'.format(eid=eid, app_id=app_id)
-        sql = """
-                SELECT
-                    C.*
-                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
-                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
-                LEFT JOIN rainbond_center_app_version C
-                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
-                C.version=B.version AND C.update_time=B.update_time
-            """
-        sql += where
-        # Sort in reverse order of version number
-        if os.environ.get('DB_TYPE') == 'mysql':
-            sql = """
-                    SELECT V.*
-                    FROM ({0}) AS V
-                    ORDER BY
-                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1),
-                        LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
-                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2),
-                        LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
-                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3),
-                        LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
-                """.format(sql)
-        else:
-            sql = """
-                    SELECT V.*
-                    FROM ({0}) AS V
-                    ORDER BY V.update_time
-                """.format(sql)
-        conn = BaseConnection()
         result = conn.query(sql)
         return result
 
