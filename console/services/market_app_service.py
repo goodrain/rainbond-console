@@ -930,7 +930,7 @@ class MarketAppService(object):
     # patch rainbond app versions
     def _patch_rainbond_app_versions(self, eid, apps, is_complete):
         app_ids = [app.app_id for app in apps]
-        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete)
+        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete, rm_template_field=True)
         if not versions:
             return
 
@@ -1359,7 +1359,8 @@ class MarketAppService(object):
         app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         if not app:
             raise RbdAppNotFound("未找到该应用")
-        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(enterprise_id, [app_id]).values()
+        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(
+            enterprise_id, [app_id], rm_template_field=True).values()
 
         apv_ver_nums = []
         app_release = False

@@ -149,10 +149,12 @@ class RainbondCenterAppRepository(object):
         count = conn.query(sql)
         return count
 
-    def get_rainbond_app_version_by_app_ids(self, eid, app_ids, is_complete=None):
+    def get_rainbond_app_version_by_app_ids(self, eid, app_ids, is_complete=None, rm_template_field=False):
         q = Q(enterprise_id=eid, app_id__in=app_ids)
         if is_complete:
             q = q & Q(is_complete=is_complete)
+        if rm_template_field:
+            return RainbondCenterAppVersion.objects.defer("app_template").filter(q)
         return RainbondCenterAppVersion.objects.filter(q)
 
     def get_rainbond_app_by_app_id(self, eid, app_id):
