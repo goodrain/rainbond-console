@@ -8,6 +8,7 @@ import logging
 from django.db import transaction
 
 from console.constants import AppConstants
+from console.exception.bcode import ErrComponentPortExists
 from console.exception.main import ServiceHandleException, ErrVolumePath
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.repositories.oauth_repo import oauth_repo
@@ -168,9 +169,10 @@ class AppCheckService(object):
             if save_code != 200:
                 logger.error('upgrade service env  by code check failure {0}'.format(save_msg))
             # 重新检测后对端口做加法
-            save_code, save_msg = self.add_service_check_port(tenant, service, data)
-            if save_code != 200:
-                logger.error('upgrade service port  by code check failure {0}'.format(save_msg))
+            try:
+                self.add_service_check_port(tenant, service, data)
+            except ErrComponentPortExists:
+                logger.error('upgrade component port by code check failure due to component port exists')
             lang = data["service_info"][0]["language"]
             if lang == "dockerfile":
                 service.cmd = ""
@@ -221,21 +223,15 @@ class AppCheckService(object):
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
-            code, msg = self.add_check_ports(tenant, service, service_info_list[0])
-            if code != 200:
-                return code, msg
-        return 200, "success"
+            self.add_check_ports(tenant, service, service_info_list[0])
 
     def add_check_ports(self, tenant, service, check_service_info):
         service_info = check_service_info
         ports = service_info.get("ports", None)
         if not ports:
-            return 200, "success"
+            return
         # 更新构建时环境变量
-        code, msg = self.__save_check_port(tenant, service, ports)
-        if code != 200:
-            return code, msg
-        return code, msg
+        self.__save_check_port(tenant, service, ports)
 
     def upgrade_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
@@ -247,14 +243,13 @@ class AppCheckService(object):
         return code, msg
 
     def __save_check_port(self, tenant, service, ports):
-        if ports:
-            for port in ports:
-                code, msg, port_data = port_service.add_service_port(
-                    tenant, service, int(port["container_port"]), port["protocol"],
-                    service.service_alias.upper() + str(port["container_port"]))
-                if code != 200:
-                    logger.error("service.check", "save service check info port error {0}".format(msg))
-        return 200, "success"
+        if not ports:
+            return
+        for port in ports:
+            code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
+                                                                 service.service_alias.upper() + str(port["container_port"]))
+            if code != 200:
+                logger.error("service.check", "save service check info port error {0}".format(msg))
 
     def __upgrade_env(self, tenant, service, envs):
         if envs:

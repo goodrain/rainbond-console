@@ -86,6 +86,10 @@ class TenantPluginRepository(object):
                 tenant_id=plugin["tenant_id"], plugin_id=plugin["plugin_id"], region=plugin["region"])
         except TenantPlugin.DoesNotExist:
             return TenantPlugin.objects.create(**plugin)
+        except TenantPlugin.MultipleObjectsReturned:
+            TenantPlugin.objects.filter(
+                tenant_id=plugin["tenant_id"], plugin_id=plugin["plugin_id"], region=plugin["region"]).delete()
+            return TenantPlugin.objects.create(**plugin)
 
 
 plugin_repo = TenantPluginRepository()
