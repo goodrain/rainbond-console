@@ -34,7 +34,7 @@ from console.services.plugin import (app_plugin_service, plugin_config_service, 
 from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
-from console.utils.version import compare_version
+from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -856,7 +856,16 @@ class MarketAppService(object):
         }
         service_source_repo.create_service_source(**service_source_params)
 
-    def get_visiable_apps(self, user, eid, scope, app_name, tag_names=None, page=1, page_size=10, need_install="false"):
+    def get_visiable_apps(self,
+                          user,
+                          eid,
+                          scope,
+                          app_name,
+                          tag_names=None,
+                          is_complete=True,
+                          page=1,
+                          page_size=10,
+                          need_install="false"):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -878,7 +887,7 @@ class MarketAppService(object):
             return [], count[0].total
 
         self._patch_rainbond_app_tag(eid, apps)
-        self._patch_rainbond_app_versions(eid, apps)
+        self._patch_rainbond_app_versions(eid, apps, is_complete)
         return apps, count[0].total
 
     # patch rainbond app tag
@@ -919,33 +928,61 @@ class MarketAppService(object):
         return apps_min_memory
 
     # patch rainbond app versions
-    def _patch_rainbond_app_versions(self, eid, apps):
-        all_versions = []
-        for app in apps:
-            # Get a sorted list of versions, which are the release version and the normal version
-            apvs_release = rainbond_app_repo.get_rainbond_app_versions_by_id(eid, app.app_id, True, dev_status="release")
-            apvs_not_release = rainbond_app_repo.get_rainbond_app_versions_by_id(eid, app.app_id, True, dev_status="")
-            if len(apvs_release) > 0:
-                app.dev_status = "release"
+    def _patch_rainbond_app_versions(self, eid, apps, is_complete):
+        app_ids = [app.app_id for app in apps]
+        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete)
+        if not versions:
+            return
 
-            apvs_release.extend(apvs_not_release)
-            # all_versions Used to calculate the minimum memory of the application
-            all_versions.extend(apvs_release)
+        app_with_versions = dict()
+        # Save the version numbers of release and normal versions for sorting
+        app_release_ver_nums = dict()
+        app_not_release_ver_nums = dict()
+        for version in versions:
+            if not app_with_versions.get(version.app_id):
+                app_with_versions[version.app_id] = dict()
+                app_release_ver_nums[version.app_id] = []
+                app_not_release_ver_nums[version.app_id] = []
+
+            version_info = {
+                "is_complete": version.is_complete,
+                "version": version.version,
+                "version_alias": version.version_alias,
+                "dev_status": version.dev_status,
+            }
+            # If the versions are the same, take the last version information
+            app_with_versions[version.app_id][version_info["version"]] = version_info
+            if version_info["version"] in app_release_ver_nums[
+                    version.app_id] or version_info["version"] in app_not_release_ver_nums[version.app_id]:
+                continue
+            if version_info["dev_status"] == "release":
+                app_release_ver_nums[version.app_id].append(version_info["version"])
+                continue
+            app_not_release_ver_nums[version.app_id].append(version_info["version"])
+
+        apps_min_memory = self._get_rainbond_app_min_memory(versions)
+        for app in apps:
+            app.dev_status = ""
+            app.versions_info = []
+            app.min_memory = apps_min_memory.get(app.app_id, 0)
+            if len(app_with_versions.get(app.app_id, {})) == 0:
+                continue
 
             versions = []
-            for version in apvs_release:
-                version_info = {
-                    "is_complete": version.is_complete,
-                    "version": version.version,
-                    "version_alias": version.version_alias,
-                    "dev_status": version.dev_status,
-                }
-                versions.append(version_info)
+            # sort rainbond app versions by version
+            release_ver_nums = app_release_ver_nums.get(app.app_id, [])
+            not_release_ver_nums = app_not_release_ver_nums.get(app.app_id, [])
+            # If there is a version to release, set the application to release state
+            if len(release_ver_nums) > 0:
+                app.dev_status = "release"
+                release_ver_nums = sorted_versions(release_ver_nums)
+            if len(not_release_ver_nums) > 0:
+                not_release_ver_nums = sorted_versions(not_release_ver_nums)
+            # Obtain version information according to the sorted version number and construct the returned data
+            release_ver_nums.extend(not_release_ver_nums)
+            for ver_num in release_ver_nums:
+                versions.append(app_with_versions[app.app_id][ver_num])
             app.versions_info = list(reversed(versions))
-
-        apps_min_memory = self._get_rainbond_app_min_memory(all_versions)
-        for app in apps:
-            app.min_memory = apps_min_memory.get(app.app_id, 0)
 
     def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):
         limit = ""
@@ -1319,33 +1356,41 @@ class MarketAppService(object):
             raise e
 
     def get_rainbond_app_and_versions(self, enterprise_id, app_id, page, page_size):
-        have_version = False
         app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
-        app_versions = rainbond_app_repo.get_rainbond_app_versions_by_id(enterprise_id, app_id)
         if not app:
             raise RbdAppNotFound("未找到该应用")
-        app_release = False
-        if app_versions is not None:
-            for version in app_versions:
-                if version["version"]:
-                    have_version = True
-                version["release_user"] = ""
-                version["share_user_id"] = version["share_user"]
-                version["share_user"] = ""
-                user = Users.objects.filter(user_id=version["release_user_id"]).first()
-                share_user = Users.objects.filter(user_id=version["share_user_id"]).first()
+        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(enterprise_id, [app_id]).values()
 
-                if user:
-                    version["release_user"] = user.nick_name
-                if share_user:
-                    version["share_user"] = share_user.nick_name
-                else:
-                    record = app_import_record_repo.get_import_record(version["record_id"])
-                    if record:
-                        version["share_user"] = record.user_name
-                version["dev_status"] = version.dev_status
-                if version["dev_status"] == "release":
-                    app_release = True
+        apv_ver_nums = []
+        app_release = False
+        app_with_versions = dict()
+        for version in app_versions:
+            if version["dev_status"] == "release":
+                app_release = True
+
+            version["release_user"] = ""
+            version["share_user_id"] = version["share_user"]
+            version["share_user"] = ""
+            user = Users.objects.filter(user_id=version["release_user_id"]).first()
+            share_user = Users.objects.filter(user_id=version["share_user_id"]).first()
+            if user:
+                version["release_user"] = user.nick_name
+            if share_user:
+                version["share_user"] = share_user.nick_name
+            else:
+                record = app_import_record_repo.get_import_record(version["record_id"])
+                if record:
+                    version["share_user"] = record.user_name
+
+            app_with_versions[version["version"]] = version
+            if version["version"] not in apv_ver_nums:
+                apv_ver_nums.append(version["version"])
+
+        # Obtain version information according to the sorted version number and construct the returned data
+        sort_versions = []
+        apv_ver_nums = sorted_versions(apv_ver_nums)
+        for ver_num in apv_ver_nums:
+            sort_versions.append(app_with_versions.get(ver_num, {}))
 
         tag_list = []
         tags = app_tag_repo.get_app_tags(enterprise_id, app_id)
@@ -1359,9 +1404,9 @@ class MarketAppService(object):
             app["dev_status"] = 'release'
         else:
             app["dev_status"] = ''
-        p = Paginator(app_versions, page_size)
+        p = Paginator(sort_versions, page_size)
         total = p.count
-        if have_version:
+        if len(sort_versions) > 0:
             return app, p.page(page).object_list, total
         return app, None, 0
 

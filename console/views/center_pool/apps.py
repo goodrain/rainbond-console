@@ -205,13 +205,14 @@ class CenterAppCLView(JWTAuthApiView):
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
         tags = request.GET.get("tags", [])
+        is_complete = request.GET.get("is_complete", None)
         need_install = request.GET.get("need_install", "false")
         if tags:
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        apps, count = market_app_service.get_visiable_apps(self.user, enterprise_id, scope, app_name, tags, page, page_size,
-                                                           need_install)
+        apps, count = market_app_service.get_visiable_apps(self.user, enterprise_id, scope, app_name, tags, is_complete, page,
+                                                           page_size, need_install)
         return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
 
     @never_cache

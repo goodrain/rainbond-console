@@ -3,7 +3,6 @@
   Created on 18/3/5.
 """
 import logging
-import os
 import time
 
 from console.models.main import (AppExportRecord, AppImportRecord, RainbondCenterApp, RainbondCenterAppTagsRelation,
@@ -331,44 +330,6 @@ class RainbondCenterAppRepository(object):
         conn = BaseConnection()
         conn.query(sql1)
         conn.query(sql2)
-        result = conn.query(sql)
-        return result
-
-    def get_rainbond_app_versions_by_id(self, eid, app_id, extend=False, **kwargs):
-        where = 'WHERE (C.enterprise_id="{eid}") AND C.app_id="{app_id}"'.format(eid=eid, app_id=app_id)
-        if extend:
-            if kwargs.get("dev_status") is not None:
-                where += ' AND C.dev_status="{dev_status}"'.format(dev_status=kwargs["dev_status"])
-        sql = """
-                SELECT
-                    C.*
-                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
-                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
-                LEFT JOIN rainbond_center_app_version C
-                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
-                C.version=B.version AND C.update_time=B.update_time
-            """
-        sql += where
-        # Sort in reverse order of version number
-        if os.environ.get('DB_TYPE') == 'mysql':
-            sql = """
-                    SELECT V.*
-                    FROM ({0}) AS V
-                    ORDER BY
-                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 1),
-                        LENGTH(SUBSTRING_INDEX(V.version, '.', 1 - 1)) + 1), '.', '') + 0 desc,
-                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 2),
-                        LENGTH(SUBSTRING_INDEX(V.version, '.', 2 - 1)) + 1), '.', '') + 0 desc,
-                        REPLACE(SUBSTRING(SUBSTRING_INDEX(version, '.', 3),
-                        LENGTH(SUBSTRING_INDEX(V.version, '.', 3 - 1)) + 1), '.', '') + 0 desc;
-                """.format(sql)
-        else:
-            sql = """
-                    SELECT V.*
-                    FROM ({0}) AS V
-                    ORDER BY V.update_time
-                """.format(sql)
-        conn = BaseConnection()
         result = conn.query(sql)
         return result
 
