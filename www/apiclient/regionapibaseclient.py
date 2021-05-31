@@ -12,7 +12,7 @@ import ssl
 import certifi
 import urllib3
 from addict import Dict
-from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
+from console.exception.main import ServiceHandleException, ErrClusterLackOfMemory, ErrTenantLackOfMemory
 from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict
@@ -98,7 +98,10 @@ class RegionApiBaseHttpClient(object):
                 logger.warning(body["bean"]["msg"])
                 raise self.InvalidLicenseError()
             if status == 412:
-                raise ErrInsufficientResource(body.get("msg") if body else "")
+                if body.get("msg") == "cluster_lack_of_memory":
+                    raise ErrClusterLackOfMemory()
+                if body.get("msg") == "tenant_lack_of_memory":
+                    raise ErrTenantLackOfMemory()
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body
