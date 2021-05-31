@@ -6,7 +6,7 @@ import os
 import pickle
 
 from console.constants import PluginCategoryConstants
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
@@ -209,17 +209,11 @@ class APPOperationsView(TeamAppAPIView):
             self.has_perms([300007, 400009])
         if action == "deploy":
             self.has_perms([300008, 400010])
-        code, msg = app_manage_service.batch_operations(self.team, request.user, action, service_ids, None)
-        if code != 200:
-            result = {"msg": "batch operation error"}
-            rst_serializer = FailSerializer(data=result)
-            rst_serializer.is_valid()
-            return Response(rst_serializer.data, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            result = {"msg": msg}
-            rst_serializer = SuccessSerializer(data=result)
-            rst_serializer.is_valid()
-            return Response(rst_serializer.data, status=status.HTTP_200_OK)
+        app_manage_service.batch_operations(self.team, self.region_name, request.user, action, service_ids, None)
+        result = {"msg": "操作成功"}
+        rst_serializer = SuccessSerializer(data=result)
+        rst_serializer.is_valid()
+        return Response(rst_serializer.data, status=status.HTTP_200_OK)
 
 
 class ListAppServicesView(TeamAppAPIView):

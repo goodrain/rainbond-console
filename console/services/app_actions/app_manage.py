@@ -9,7 +9,7 @@ import logging
 from console.cloud.services import check_memory_quota
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType, is_singleton, is_state
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
                                       service_source_repo)
@@ -529,14 +529,14 @@ class AppManageService(AppManageBase):
         return code, msg
 
     # 5.1新版批量操作（启动，关闭，构建）
-    def batch_operations(self, tenant, user, action, service_ids, oauth_instance):
+    def batch_operations(self, tenant, region_name, user, action, service_ids, oauth_instance=None):
         services = service_repo.get_services_by_service_ids(service_ids)
-        if not services or len(services) == 0:
-            return 200, "无组件被操作"
+        if not services:
+            return
         # 获取所有组件信息
         body = dict()
-        code = 200
         data = ''
+        code = 200
         if action == "start":
             code, data = self.start_services_info(body, services, tenant, user, oauth_instance)
         elif action == "stop":
@@ -546,16 +546,13 @@ class AppManageService(AppManageBase):
         elif action == "deploy":
             code, data = self.deploy_services_info(body, services, tenant, user, oauth_instance)
         if code != 200:
-            return 415, "组件信息获取失败"
+            raise AbortRequest(415, "failed to get component", "组件信息获取失败")
         # 获取数据中心信息
-        one_service = services[0]
-        region_name = one_service.service_region
         try:
             region_api.batch_operation_service(region_name, tenant.tenant_name, data)
-            return 200, "操作成功"
         except region_api.CallApiError as e:
             logger.exception(e)
-            return 500, "数据中心操作失败"
+            raise AbortRequest(500, "failed to request region api", "数据中心操作失败")
 
     def start_services_info(self, body, services, tenant, user, oauth_instance):
         body["operation"] = "start"
@@ -1265,11 +1262,11 @@ class AppManageService(AppManageBase):
         for region in tenant_regions:
             self.close_all_component_in_tenant(tenant, region.region_name, user)
 
-    @staticmethod
-    def close_all_component_in_tenant(tenant, region_name, user):
+    def close_all_component_in_tenant(self, tenant, region_name, user):
         try:
-            region_api.stop_tenant(tenant.tenant_name, region_name, {
-                "operator": str(user.nick_name),
-            })
+            # list components
+            components = service_repo.list_by_region(tenant.tenant_id, region_name)
+            component_ids = [cpt.service_id for cpt in components]
+            self.batch_operations(tenant, region_name, user, "stop", component_ids)
         except Exception as e:
             logger.exception(e)

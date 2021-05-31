@@ -521,14 +521,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def stop_tenant(self, tenant_name, region_name, body):
-        url, token = self.__get_region_access_info(tenant_name, region_name)
-        url = url + "/v2/tenants/" + tenant_name + "/stop-components"
-
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
-        return body
-
     def upgrade_service(self, region, tenant_name, service_alias, body):
         """升级组件"""
 
