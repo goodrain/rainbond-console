@@ -1,5 +1,4 @@
 ARG VERSION=V5.3-dev
-ARG RELEASE_DESC=
 
 FROM golang:1.14-stretch as builder
 ENV CGO_ENABLED=1
@@ -11,6 +10,8 @@ RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor
 
 
 FROM rainbond/rainbond-ui:${VERSION}
+
+ARG RELEASE_DESC=
 
 LABEL author="zengqg@goodrain.com" 
 
