@@ -748,6 +748,7 @@ class AppMarketService(object):
                 "ID": market.ID,
             }
             if extend == "true":
+                platform_version = "1.0"
                 try:
                     extend_info = app_store.get_market(market)
                     market.description = extend_info.description
@@ -755,6 +756,7 @@ class AppMarketService(object):
                     market.status = extend_info.status
                     market.create_time = extend_info.create_time
                     market.access_actions = extend_info.access_actions
+                    platform_version = extend_info.version
                 except Exception as e:
                     logger.exception(e)
                     market.description = None
@@ -767,6 +769,7 @@ class AppMarketService(object):
                     "alias": market.alias,
                     "status": market.status,
                     "access_actions": market.access_actions,
+                    "version": platform_version
                 })
             market_list.append(dt)
         return market_list
