@@ -748,7 +748,7 @@ class AppMarketService(object):
                 "ID": market.ID,
             }
             if extend == "true":
-                platform_version = "1.0"
+                version = "1.0"
                 try:
                     extend_info = app_store.get_market(market)
                     market.description = extend_info.description
@@ -756,7 +756,7 @@ class AppMarketService(object):
                     market.status = extend_info.status
                     market.create_time = extend_info.create_time
                     market.access_actions = extend_info.access_actions
-                    platform_version = extend_info.version
+                    version = extend_info.version if extend_info.version else version
                 except Exception as e:
                     logger.exception(e)
                     market.description = None
@@ -769,7 +769,7 @@ class AppMarketService(object):
                     "alias": market.alias,
                     "status": market.status,
                     "access_actions": market.access_actions,
-                    "version": platform_version
+                    "version": version
                 })
             market_list.append(dt)
         return market_list
@@ -785,12 +785,14 @@ class AppMarketService(object):
             "ID": market.ID,
         }
         if extend == "true":
+            version = "1.0"
             try:
                 extend_info = app_store.get_market(market)
                 market.description = extend_info.description
                 market.alias = extend_info.name
                 market.status = extend_info.status
                 market.access_actions = extend_info.access_actions
+                version = extend_info.version if extend_info.version else version
             except Exception as e:
                 logger.debug(e)
                 market.description = None
@@ -805,6 +807,7 @@ class AppMarketService(object):
                 "alias": market.alias,
                 "status": market.status,
                 "access_actions": market.access_actions,
+                "version": version
             })
         return dt, market
 
@@ -1041,6 +1044,24 @@ class AppMarketService(object):
             return []
 
         return [bm.to_dict() for bm in bindable_markets]
+
+    def get_market_orgs(self, market):
+        results = app_store.get_orgs(market)
+        return self.org_serializers(results)
+
+    def org_serializers(self, data):
+        organizations = []
+        if not data:
+            return []
+        for dt in data:
+            org = {
+                "eid": dt.eid,
+                "name": dt.name,
+                "org_id": dt.org_id,
+                "desc": dt.desc,
+            }
+            organizations.append(Dict(org))
+        return organizations
 
 
 app_service = AppService()
