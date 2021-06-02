@@ -118,10 +118,6 @@ class TenantServiceInfoRepository(object):
         service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).all()
         return service_list
 
-    @staticmethod
-    def list_by_region(tenant_id, region_name):
-        return TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region_name)
-
     def get_service_by_key(self, tenant_id):
         ServiceSourceInfo.objects.filter()
 

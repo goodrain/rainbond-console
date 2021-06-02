@@ -1265,7 +1265,7 @@ class AppManageService(AppManageBase):
     def close_all_component_in_tenant(self, tenant, region_name, user):
         try:
             # list components
-            components = service_repo.list_by_region(tenant.tenant_id, region_name)
+            components = service_repo.get_services_by_team_and_region(tenant.tenant_id, region_name)
             component_ids = [cpt.service_id for cpt in components]
             self.batch_operations(tenant, region_name, user, "stop", component_ids)
         except Exception as e:
