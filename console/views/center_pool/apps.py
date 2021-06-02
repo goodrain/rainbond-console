@@ -204,8 +204,8 @@ class CenterAppCLView(JWTAuthApiView):
         """
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
-        is_complete = request.GET.get("is_complete", None)
         tags = request.GET.get("tags", [])
+        is_complete = request.GET.get("is_complete", None)
         need_install = request.GET.get("need_install", "false")
         if tags:
             tags = json.loads(tags)

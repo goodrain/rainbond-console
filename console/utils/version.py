@@ -21,6 +21,12 @@ def get_new_versions(currentversion, *version_lists):
     return new_versions
 
 
+def sorted_versions(versions):
+    sort_versions = sorted(versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")])
+    sort_versions.reverse()
+    return sort_versions
+
+
 class TestDivision(unittest.TestCase):
     def test_compare_version(self):
         self.assertEqual(compare_version("1.1.1", "1.0.1"), 1)

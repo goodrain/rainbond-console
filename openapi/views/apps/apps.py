@@ -6,7 +6,7 @@ import os
 import pickle
 
 from console.constants import PluginCategoryConstants
-from console.exception.main import ServiceHandleException, AbortRequest
+from console.exception.main import ServiceHandleException
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo

@@ -64,6 +64,24 @@ class ErrOauthServiceExists(ServiceHandleException):
             "oauth service exists", msg_show="OAuth 名称已存在", status_code=409, error_code=20300)
 
 
+class ErrUnSupportEnterpriseOauth(ServiceHandleException):
+    def __init__(self):
+        super(ErrUnSupportEnterpriseOauth, self).__init__(
+            "Unsupported enterprise Oauth service", msg_show="不支持的企业Oauth服务", status_code=400, error_code=20301)
+
+
+class ErrUnAuthnOauthService(ServiceHandleException):
+    def __init__(self):
+        super(ErrUnAuthnOauthService, self).__init__(
+            "Unauthenticated oauth service", msg_show="该Oauth服务未认证，请认证后重试", status_code=400, error_code=20302)
+
+
+class ErrExpiredAuthnOauthService(ServiceHandleException):
+    def __init__(self):
+        super(ErrExpiredAuthnOauthService, self).__init__(
+            "oauth authentication information has expired", msg_show="该Oauth服务认证信息已过期，请重新认证", status_code=400, error_code=20303)
+
+
 # 20400 ~ 20499 => enterprise
 class ErrEnterpriseNotFound(ServiceHandleException):
     def __init__(self):
@@ -92,3 +110,10 @@ class ErrPluginIsUsed(ServiceHandleException):
 class ErrTenantNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrTenantNotFound, self).__init__(msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
+
+
+# 20800 ~ 20899 => component
+class ErrComponentBuildFailed(ServiceHandleException):
+    def __init__(self):
+        super(ErrComponentBuildFailed, self).__init__(
+            msg="failed to build component", msg_show="组件构建失败", status_code=400, error_code=20800)

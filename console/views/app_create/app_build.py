@@ -6,6 +6,7 @@ import logging
 
 from console.cloud.services import check_memory_quota
 from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
+from console.exception.bcode import ErrComponentBuildFailed
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service, event_service
@@ -65,8 +66,10 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
                 except Exception as e:
-                    result = general_message(400, e, "构建失败, 请重新构建")
-                    return Response(result, status=200)
+                    logger.exception(e)
+                    err = ErrComponentBuildFailed()
+                    result = general_message(err.error_code, e, err.msg_show)
+                    return Response(result, status=400)
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
