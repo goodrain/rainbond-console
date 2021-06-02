@@ -163,12 +163,20 @@ class ErrVolumePath(ServiceHandleException):
 
 
 class ErrInsufficientResource(ServiceHandleException):
-    def __init__(self, msg):
-        super(ErrInsufficientResource, self).__init__(msg)
-        msg_shows = {"cluster_lack_of_memory": "集群可用资源不足，请联系集群管理员", "tenant_lack_of_memory": "团队使用内存已超过限额，请联系企业管理员增加限额"}
-        msg_show = msg_shows.get(msg)
-        if not msg_show:
-            msg_show = "资源不足，请联系管理员"
-        self.msg_show = msg_show
+    pass
+
+
+class ErrClusterLackOfMemory(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrClusterLackOfMemory, self).__init__("cluster lack of memory")
+        self.msg_show = "集群可用资源不足，请联系集群管理员"
         self.status_code = 412
         self.error_code = 10406
+
+
+class ErrTenantLackOfMemory(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrTenantLackOfMemory, self).__init__("tenant lack of memory")
+        self.msg_show = "团队使用内存已超过限额，请联系企业管理员增加限额"
+        self.status_code = 412
+        self.error_code = 10413
