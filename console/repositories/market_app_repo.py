@@ -61,7 +61,7 @@ class RainbondCenterAppRepository(object):
         if need_install == "true":
             join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
                             " and app.enterprise_id = apv.enterprise_id"
-            extend_where += " and apv.`version` <> '' and apv.is_complete = TRUE"
+            extend_where += " and apv.`version` <> '' and apv.is_complete"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""
@@ -116,7 +116,7 @@ class RainbondCenterAppRepository(object):
         if need_install == "true":
             join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
                             " and app.enterprise_id = apv.enterprise_id"
-            extend_where += " and apv.`version` <> '' and apv.is_complete = TRUE"
+            extend_where += " and apv.`version` <> '' and apv.is_complete"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""
