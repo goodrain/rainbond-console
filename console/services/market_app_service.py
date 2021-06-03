@@ -615,7 +615,8 @@ class MarketAppService(object):
                 port["container_port"])
             env_prefix = port_alias.upper()
             if not envs.get(env_prefix + "_HOST", ""):
-                host_value = k8s_service_name if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name else "127.0.0.1"
+                host_value = k8s_service_name \
+                    if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name else "127.0.0.1"
                 outer_envs.append({
                     "name": "连接信息",
                     "attr_name": env_prefix + "_HOST",
