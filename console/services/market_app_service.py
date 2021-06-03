@@ -284,8 +284,9 @@ class MarketAppService(object):
         group_service.add_service_to_group(tenant, region.region_name, application_id, ts.service_id)
 
         # handle service connect info env
-        port_k8s_svc_name = self.__handle_service_connect_info(tenant, ts, app.get("port_map_list", []),
-                                                               app.get("service_connect_info_map_list", []))
+        port_k8s_svc_name, outer_envs = self.__handle_service_connect_info(tenant, ts, app.get("port_map_list", []),
+                                                                           app.get("service_connect_info_map_list", []))
+        app["service_connect_info_map_list"] = outer_envs
         # first save env before save port
         self.__save_env(tenant, ts, app.get("service_env_map_list", []), app.get("service_connect_info_map_list", []))
         # save port
@@ -595,7 +596,7 @@ class MarketAppService(object):
 
     def __handle_service_connect_info(self, tenant, service, ports, outer_envs):
         if not ports:
-            return
+            return {}, []
         port_k8s_svc_name = dict()
         envs = {oe.get("attr_name", "None"): oe for oe in outer_envs}
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
@@ -628,7 +629,7 @@ class MarketAppService(object):
                     "is_change": True,
                     "attr_value": component_port
                 })
-        return port_k8s_svc_name
+        return port_k8s_svc_name, outer_envs
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
@@ -1508,6 +1509,24 @@ class MarketAppService(object):
         else:
             versions = rainbond_app_repo.get_rainbond_app_versions(enterprise_id, component_source.group_key)
         return versions
+
+
+import sys
+import unittest
+
+
+class TestMarketAppService(unittest.TestCase):
+    def test_handle_service_connect_info(self):
+        sys.path.insert(0, "../../../../rainbond-console")
+        from console.services.market_app_service import MarketAppService
+        from www.models.main import Tenants, TenantServiceInfo
+        market_app_service = MarketAppService()
+        tn = Tenants()
+        tn.tenant_id = "c1a29fe4d7b0413993dc859430cf743d"
+        svc = TenantServiceInfo()
+        svc.service_id = "c1a29fe4d7b0413993dc859430cf7431"
+
+        market_app_service.handle_service_connect_info(tn, svc, [], [])
 
 
 market_app_service = MarketAppService()
