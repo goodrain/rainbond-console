@@ -284,7 +284,8 @@ class MarketAppService(object):
         group_service.add_service_to_group(tenant, region.region_name, application_id, ts.service_id)
 
         # handle service connect info env
-        port_k8s_svc_name = self.__handle_service_connect_info(tenant, ts, app.get("port_map_list", []), app.get("service_connect_info_map_list", []))
+        port_k8s_svc_name = self.__handle_service_connect_info(tenant, ts, app.get("port_map_list", []),
+                                                               app.get("service_connect_info_map_list", []))
         # first save env before save port
         self.__save_env(tenant, ts, app.get("service_env_map_list", []), app.get("service_connect_info_map_list", []))
         # save port
@@ -612,15 +613,15 @@ class MarketAppService(object):
             port_alias = port["port_alias"] if port.get("port_alias") else service.service_alias.upper() + str(
                 port["container_port"])
             env_prefix = port_alias.upper()
-            if not envs.get(env_prefix+"_HOST", ""):
+            if not envs.get(env_prefix + "_HOST", ""):
                 host_value = k8s_service_name if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name else "127.0.0.1"
                 outer_envs.append({
                     "name": "连接信息",
-                    "attr_name": env_prefix+"_HOST",
+                    "attr_name": env_prefix + "_HOST",
                     "is_change": True,
                     "attr_value": host_value
                 })
-            if not envs.get(env_prefix+"_PORT", ""):
+            if not envs.get(env_prefix + "_PORT", ""):
                 outer_envs.append({
                     "name": "端口",
                     "attr_name": env_prefix + "_PORT",
