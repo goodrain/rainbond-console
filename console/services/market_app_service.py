@@ -1511,22 +1511,4 @@ class MarketAppService(object):
         return versions
 
 
-import sys
-import unittest
-
-
-class TestMarketAppService(unittest.TestCase):
-    def test_handle_service_connect_info(self):
-        sys.path.insert(0, "../../../../rainbond-console")
-        from console.services.market_app_service import MarketAppService
-        from www.models.main import Tenants, TenantServiceInfo
-        market_app_service = MarketAppService()
-        tn = Tenants()
-        tn.tenant_id = "c1a29fe4d7b0413993dc859430cf743d"
-        svc = TenantServiceInfo()
-        svc.service_id = "c1a29fe4d7b0413993dc859430cf7431"
-
-        market_app_service.handle_service_connect_info(tn, svc, [], [])
-
-
 market_app_service = MarketAppService()
