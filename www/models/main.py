@@ -505,9 +505,10 @@ class TenantServiceInfo(BaseModel):
     port_type = models.CharField(max_length=15, default='multi_outer', help_text="端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text="组件创建类型cloud云市组件,assistant云帮组件")
+    # 组件所属关系，从模型安装的多个组件所属一致。
+    tenant_service_group_id = models.IntegerField(default=0, help_text="组件归属的组件组id，从应用模版安装的组件该字段需要赋值")
     # deprecated
     expired_time = models.DateTimeField(null=True, help_text="过期时间")
-    tenant_service_group_id = models.IntegerField(default=0, help_text="组件归属的组件组id")
     open_webhooks = models.BooleanField(default=False, help_text='是否开启自动触发部署功能（兼容老版本组件）')
     service_source = models.CharField(
         max_length=15, default="", null=True, blank=True, help_text="组件来源(source_code, market, docker_run, docker_compose)")
@@ -1311,7 +1312,7 @@ class TenantEnterpriseToken(BaseModel):
 
 
 class TenantServiceGroup(BaseModel):
-    """组件组实体"""
+    """从应用模型安装的组件从属关系记录"""
 
     class Meta:
         db_table = 'tenant_service_group'
@@ -1322,7 +1323,7 @@ class TenantServiceGroup(BaseModel):
     group_key = models.CharField(max_length=32, help_text="组件组id")
     group_version = models.CharField(max_length=32, help_text="组件组版本")
     region_name = models.CharField(max_length=64, help_text="区域中心名称")
-    service_group_id = models.IntegerField(default=0, help_text="ServiceGroup主键, 组件分类ID")
+    service_group_id = models.IntegerField(default=0, help_text="安装时所属应用的主键ID")
 
 
 class ServiceTcpDomain(BaseModel):

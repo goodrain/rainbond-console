@@ -197,6 +197,9 @@ class TenantServiceGroupRepository(object):
     def get_group_by_service_group_id(self, service_group_id):
         return TenantServiceGroup.objects.filter(ID=service_group_id).first()
 
+    def get_group_by_app_id(self, app_id):
+        return TenantServiceGroup.objects.filter(service_group_id=app_id)
+
 
 group_repo = GroupRepository()
 group_service_relation_repo = GroupServiceRelationRepository()

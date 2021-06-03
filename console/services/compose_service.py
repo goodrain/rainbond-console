@@ -119,9 +119,7 @@ class ComposeService(object):
 
                         group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
 
-                        code, msg = app_check_service.save_service_info(tenant, service, service_info)
-                        if code != 200:
-                            return code, msg, None
+                        app_check_service.save_service_info(tenant, service, service_info)
                         # save service info
                         service.save()
                         # 创建组件构建源信息，存储账号密码

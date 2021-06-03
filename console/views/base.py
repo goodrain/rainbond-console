@@ -365,6 +365,7 @@ class ApplicationView(RegionTenantHeaderView):
         if not app:
             raise ServiceHandleException("app not found", "应用不存在", status_code=404)
         self.app = app
+        self.app_id = self.app.ID
 
         # update update_time if the http method is not a get.
         if request.method != 'GET':

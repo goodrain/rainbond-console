@@ -925,7 +925,7 @@ class AppManageService(AppManageBase):
         component_graph_service.delete_by_component_id(service.service_id)
         app_config_group_service_repo.delete_effective_service(service.service_id)
         service_monitor_repo.delete_by_service_id(service.service_id)
-        # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
+        # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
@@ -962,7 +962,7 @@ class AppManageService(AppManageBase):
         data.pop("ID")
         trash_service = recycle_bin_repo.create_trash_service(**data)
 
-        # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
+        # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:

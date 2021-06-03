@@ -30,26 +30,20 @@ class PropertiesChanges(object):
         self.tenant = tenant
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         self.current_version = self.service_source.version
-        self.install_from_cloud = False
-        self.market_name = None
+        self.install_from_cloud = self.service_source.is_install_from_cloud()
+        self.market_name = self.service_source.get_market_name()
         self.only_one_component = only_one_component
         self.market = None
         self.all_component_one_model = all_component_one_model
-        if self.service_source and self.service_source.extend_info:
-            extend_info = json.loads(self.service_source.extend_info)
-            if extend_info and extend_info.get("install_from_cloud", False):
-                self.install_from_cloud = True
-            if self.install_from_cloud:
-                self.market_name = extend_info.get("market_name", None)
-                self.market = app_market_repo.get_app_market_by_name(
-                    tenant.enterprise_id, self.market_name, raise_exception=True)
+        if self.install_from_cloud and self.market_name:
+            self.market = app_market_repo.get_app_market_by_name(tenant.enterprise_id, self.market_name, raise_exception=True)
 
     def have_upgrade_info(self, tenant, services, version):
         from console.services.upgrade_services import upgrade_service
         if not services:
             return False
         for service in services:
-            upgrade_info = upgrade_service.get_service_changes(service, tenant, version, services)
+            _, _, upgrade_info = upgrade_service.get_service_changes(service, tenant, version, services)
             if upgrade_info:
                 return True
         return False
@@ -59,9 +53,9 @@ class PropertiesChanges(object):
     def get_property_changes(self, template, level="svc"):
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
-        component = get_template_component(template, self)
+        component = get_template_component(template, self.service_source)
         if not component:
-            return {}
+            return None, {}
         component_names = {}
         for com in template.get("apps"):
             component_names[com.get("service_share_uuid")] = com.get("service_cname")
@@ -70,13 +64,9 @@ class PropertiesChanges(object):
         deploy_version = self.deploy_version_changes(component.get("deploy_version"))
         if deploy_version:
             result["deploy_version"] = deploy_version
-        # source code service does not have 'share_image'
-        image = self.image_changes(component.get("share_image", None))
-        if image:
-            result["image"] = image
-        slug_path = self.slug_path_changes(component.get("share_slug_path", None))
-        if slug_path:
-            result["slug_path"] = slug_path
+
+        # TODO: show compoent code commit change or source image(tag) change
+
         envs = self.env_changes(component.get("service_env_map_list", []))
         if envs:
             result["envs"] = envs
@@ -120,7 +110,7 @@ class PropertiesChanges(object):
         if component_monitors:
             result["component_monitors"] = component_monitors
 
-        return result
+        return component, result
 
     def app_config_group_changes(self, template):
         if not template.get("app_config_groups"):
@@ -221,17 +211,6 @@ class PropertiesChanges(object):
         if self.service_source.version == new:
             return None
         return {"old": self.service_source.version, "new": new, "is_change": self.service_source.version != new}
-
-    def image_changes(self, new):
-        """
-        compare the old and new image to determine if there is any change.
-        """
-        if new is None or self.service.image == new:
-            return None
-        # goodrain.me/bjlaezp3/nginx:20190516112845_v1.0
-        if new.rpartition("_")[0] == self.service.image.rpartition("_")[0]:
-            return None
-        return {"old": self.service.image, "new": new, "is_change": self.service.image != new}
 
     def slug_path_changes(self, new):
         """
@@ -343,7 +322,7 @@ class PropertiesChanges(object):
             if not new_volume.get("file_content"):
                 continue
             old_file_content = volume_repo.get_service_config_file(old_volume.ID)
-            if old_file_content.file_content != new_volume["file_content"]:
+            if old_file_content and old_file_content.file_content != new_volume["file_content"]:
                 update.append(new_volume)
         if not add and not update:
             return None
@@ -481,12 +460,12 @@ def get_upgrade_app_template(tenant, version, pc):
     raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="应用模版版本不存在")
 
 
-def get_template_component(template, pc):
+def get_template_component(template, service_source):
     apps = template.get("apps")
 
     def func(x):
-        result = x.get("service_share_uuid", None) == pc.service_source.service_share_uuid \
-                    or x.get("service_key", None) == pc.service_source.service_share_uuid
+        result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
+                    or x.get("service_key", None) == service_source.service_share_uuid
         return result
 
     return next(iter([x for x in apps if func(x)]), None)

@@ -93,6 +93,9 @@ class TenantServiceInfoRepository(object):
     def get_services_by_service_group_id(self, service_group_id):
         return TenantServiceInfo.objects.filter(tenant_service_group_id=service_group_id)
 
+    def get_services_by_service_group_ids(self, component_ids, service_group_ids):
+        return TenantServiceInfo.objects.filter(service_id__in=component_ids, tenant_service_group_id__in=service_group_ids)
+
     def get_services_by_raw_sql(self, raw_sql):
         return TenantServiceInfo.objects.raw(raw_sql)
 

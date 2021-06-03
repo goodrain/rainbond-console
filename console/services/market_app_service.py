@@ -13,7 +13,7 @@ from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameE
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
-from console.repositories.app_config import (domain_repo, env_var_repo, extend_repo, port_repo, tcp_domain, volume_repo)
+from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo)
 from console.repositories.base import BaseConnection
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
@@ -23,7 +23,7 @@ from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import (AppMntService, port_service, probe_service, volume_service)
+from console.services.app_config import (AppMntService, domain_service, port_service, probe_service, volume_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
@@ -87,7 +87,7 @@ class MarketAppService(object):
                 app_map[app.get("service_share_uuid")] = app
                 app["update_time"] = market_app_version.update_time
                 ts = self.__save_component_meta(tenant, region, tenant_service_group, group_id, app, market_app_version,
-                                                market_app, market_name, install_from_cloud, user)
+                                                market_app.app_id, market_name, install_from_cloud, user)
 
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
@@ -160,10 +160,10 @@ class MarketAppService(object):
                                          region_name,
                                          user,
                                          group_id,
-                                         market_app,
-                                         old_app,
+                                         market_app_version,
                                          services,
                                          is_deploy,
+                                         upgrade_group_id,
                                          install_from_cloud=False,
                                          market_name=None):
         service_list = []
@@ -180,21 +180,19 @@ class MarketAppService(object):
                 key_service_map[service_share_uuid] = service
             else:
                 key_service_map[service.service_key] = service
-
-        app_map = {app.get('service_share_uuid'): app for app in json.loads(old_app.template)["apps"]}
+        market_app_template = json.loads(market_app_version.app_template)
+        app_map = {app.get('service_share_uuid'): app for app in market_app_template["apps"]}
 
         try:
             region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
-            app_templates = json.loads(market_app.template)
-            apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(
-                region_name, tenant.tenant_id, group_id, market_app.app_id, market_app.version, market_app.app_name)
+            apps = market_app_template["apps"]
+            tenant_service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
 
-            self.create_plugin_for_tenant(region_name, user, tenant, app_templates.get("plugins", []))
+            self.create_plugin_for_tenant(region_name, user, tenant, market_app_template.get("plugins", []))
 
             for app in apps:
-                ts = self.__save_component_meta(tenant, region, tenant_service_group, group_id, app, market_app, market_app,
-                                                market_name, install_from_cloud, user)
+                ts = self.__save_component_meta(tenant, region, tenant_service_group, group_id, app, market_app_version,
+                                                market_app_version.app_id, market_name, install_from_cloud, user)
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
                 svc_key_id_map[app["service_key"]] = ts
@@ -214,7 +212,7 @@ class MarketAppService(object):
             new_service_list = self.__create_region_services(tenant, region_name, user, service_list)
 
             # config groups
-            config_groups = app_templates["app_config_groups"] if app_templates.get("app_config_groups") else []
+            config_groups = market_app_template["app_config_groups"] if market_app_template.get("app_config_groups") else []
             for config_group in config_groups:
                 component_ids = []
                 for service_key in config_group.get("component_keys", []):
@@ -248,13 +246,16 @@ class MarketAppService(object):
             for app in apps:
                 service = old_new_id_map[app["service_id"]]
                 plugin_component_configs = app_plugin_map[service.service_id]
-                self.__create_service_pluginsv2(tenant, region_name, service, market_app.version, apps,
+                self.__create_service_pluginsv2(tenant, region_name, service, market_app_version.version, apps,
                                                 plugin_component_configs)
 
             events = {}
             if is_deploy:
                 # 部署所有组件
-                events = self.__deploy_services(tenant, user, new_service_list, app_templates)
+                logger.debug("start deploy new create component")
+                start = datetime.datetime.now()
+                events = self.__deploy_services(tenant, user, new_service_list, market_app_template)
+                logger.debug("deploy component success, take time {}".format(datetime.datetime.now() - start))
             return {
                 "tenant_service_group": tenant_service_group,
                 "events": events,
@@ -265,8 +266,6 @@ class MarketAppService(object):
             }
         except Exception as e:
             logger.exception(e)
-            if tenant_service_group:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(tenant_service_group.ID)
             for service in service_list:
                 try:
                     app_manage_service.truncate_service(tenant, service)
@@ -274,12 +273,12 @@ class MarketAppService(object):
                     logger.exception(le)
             raise e
 
-    def __save_component_meta(self, tenant, region, tenant_service_group, application_id, app, market_app_version, market_app,
-                              market_name, install_from_cloud, user):
+    def __save_component_meta(self, tenant, region, tenant_service_group, application_id, app, market_app_version,
+                              market_app_id, market_name, install_from_cloud, user):
         start = datetime.datetime.now()
         app["update_time"] = market_app_version.update_time
         ts = self.__init_component_from_market_app(tenant, region.region_name, user, app, tenant_service_group.ID)
-        self.__init_service_source(ts, app, market_app.app_id, market_app_version.version, install_from_cloud, market_name)
+        self.__init_service_source(ts, app, market_app_id, market_app_version.version, install_from_cloud, market_name)
         group_service.add_service_to_group(tenant, region.region_name, application_id, ts.service_id)
 
         # first save env before save port
@@ -425,7 +424,7 @@ class MarketAppService(object):
         try:
             app_plugin_service.create_plugin_4marketsvc(region_name, tenant, service, version, components, plugins)
         except ServiceHandleException as e:
-            logger.warning("plugin data: {}; failed to create plugin: {}", plugins, e)
+            logger.warning("plugin data: {0}; failed to create plugin: {1}".format(plugins, e.msg))
 
     def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars, old_new_id_map):
         config_list = []
@@ -651,47 +650,9 @@ class MarketAppService(object):
             )
             create_ports.append(t_port)
             if port.get("is_outer_service", False):
-                self.__create_default_gateway_rule(tenant, region, service, t_port)
+                domain_service.create_default_gateway_rule(tenant, region, service, t_port)
         if len(create_ports) > 0:
             port_repo.bulk_create(create_ports)
-
-    def __create_default_gateway_rule(self, tenant, region, service, port):
-        if port.protocol == "http":
-            service_id = service.service_id
-            service_name = service.service_alias
-            container_port = port.container_port
-            domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(
-                region.httpdomain)
-            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            protocol = "http"
-            http_rule_id = make_uuid(domain_name)
-            tenant_id = tenant.tenant_id
-            service_alias = service.service_cname
-            region_id = region.region_id
-            domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
-                                               http_rule_id, tenant_id, service_alias, region_id)
-            logger.debug("create default gateway http rule for component {0} port {1}".format(
-                service.service_alias, port.container_port))
-        else:
-            res, data = region_api.get_port(region.region_name, tenant.tenant_name, True)
-            if int(res.status) != 200:
-                logger.warning("can not get stream port from region, ignore {0} port {1}".format(
-                    service.service_alias, port.container_port))
-                return
-            end_point = "0.0.0.0:{0}".format(data["bean"])
-            service_id = service.service_id
-            service_name = service.service_alias
-            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            container_port = port.container_port
-            protocol = port.protocol
-            service_alias = service.service_cname
-            tcp_rule_id = make_uuid(end_point)
-            tenant_id = tenant.tenant_id
-            region_id = region.region_id
-            tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port, protocol,
-                                                  service_alias, tcp_rule_id, tenant_id, region_id)
-            logger.debug("create default gateway stream rule for component {0} port {1}, endpoint {2}".format(
-                service.service_alias, port.container_port, end_point))
 
     def __save_volume(self, tenant, service, volumes):
         if not volumes:
@@ -1167,30 +1128,35 @@ class MarketAppService(object):
         except TenantEnterpriseToken.DoesNotExist:
             return None
 
-    def count_upgradeable_market_apps(self, tenant, region, app_id):
-        service_sources = group_service.get_group_service_sources(app_id).filter(~Q(group_key=None))
-        app_models = dict()
-        for ss in service_sources:
-            if (ss.group_key not in app_models) or compare_version(app_models[ss.group_key]['version'], ss.version) == -1:
-                app_models[ss.group_key] = {'version': ss.version, 'component_source': ss}
-        iterator = self.yield_app_info(app_models, tenant, app_id)
-        market_apps = [market_app for market_app in iterator if len(market_app['upgrade_versions']) > 0]
-        return len(market_apps)
+    def count_upgradeable_market_apps(self, tenant, region_name, application):
+        apps = [app for app in self.get_market_apps_in_app(region_name, tenant, application) if app["can_upgrade"]]
+        return len(apps)
 
-    def get_market_apps_in_app(self, region, tenant, group):
-        service_sources = group_service.get_group_service_sources(group.ID).filter(~Q(group_key=None))
-        app_models = dict()
+    def get_market_apps_in_app(self, region_name, tenant, application):
+        component_groups = tenant_service_group_repo.get_group_by_app_id(application.ID)
+        group_ids = component_groups.values_list('ID', flat=True)
+        components, service_sources = group_service.get_component_and_resource_by_group_ids(application.ID, group_ids)
+        upgrade_app_models = dict()
+        component_groups_cache = {}
+        for component in components:
+            if component.tenant_service_group_id:
+                component_groups_cache[component.service_id] = component.tenant_service_group_id
         for ss in service_sources:
-            if (ss.group_key not in app_models) or compare_version(app_models[ss.group_key]['version'], ss.version) == -1:
-                app_models[ss.group_key] = {'version': ss.version, 'component_source': ss}
-        iterator = self.yield_app_info(app_models, tenant, group.ID)
+            if ss.service_id in component_groups_cache:
+                upgrade_app_key = "{0}-{1}".format(ss.group_key, component_groups_cache[ss.service_id])
+                if (upgrade_app_key not in upgrade_app_models) or compare_version(
+                        upgrade_app_models[upgrade_app_key]['version'], ss.version) == -1:
+                    upgrade_app_models[upgrade_app_key] = {'version': ss.version, 'component_source': ss}
+        iterator = self.yield_app_info(upgrade_app_models, tenant, application.ID)
         app_info_list = [app_info for app_info in iterator]
         return app_info_list
 
     def yield_app_info(self, app_models, tenant, app_id):
-        for app_model_key in app_models:
-            version = app_models[app_model_key]['version']
-            component_source = app_models[app_model_key]['component_source']
+        for upgrade_key in app_models:
+            app_model_key = upgrade_key.split("-")[0]
+            upgrade_group_id = upgrade_key.split("-")[1]
+            version = app_models[upgrade_key]['version']
+            component_source = app_models[upgrade_key]['component_source']
             app_model = None
             market_name = component_source.get_market_name()
             market = None
@@ -1205,6 +1171,7 @@ class MarketAppService(object):
                 continue
             dat = {
                 'group_key': app_model_key,
+                'upgrade_group_id': upgrade_group_id,
                 'group_name': app_model.app_name,
                 'app_model_name': app_model.app_name,
                 'app_model_id': app_model_key,
@@ -1260,12 +1227,16 @@ class MarketAppService(object):
                         versions.append(version.version)
             else:
                 versions.append(version.version)
-        versions = list(set(versions))
-        versions.sort(reverse=True)
+        versions = sorted_versions(list(set(versions)))
         return versions
 
-    def get_current_version(self, enterprise_id, app_model_key, app_id):
-        service_sources = group_service.get_group_service_sources(app_id).filter(Q(group_key=app_model_key))
+    def get_current_version(self, enterprise_id, app_model_key, app_id, upgrade_group_id):
+        service_sources = []
+        if upgrade_group_id:
+            _, service_sources = group_service.get_component_and_resource_by_group_ids(app_id, [upgrade_group_id])
+            service_sources = service_sources.filter(Q(group_key=app_model_key))
+        else:
+            service_sources = group_service.get_group_service_sources(app_id).filter(Q(group_key=app_model_key))
         install_from_cloud = False
         market = None
         current_version = None
@@ -1282,9 +1253,9 @@ class MarketAppService(object):
                 market = app_market_repo.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         return current_version, component_source.get_template_update_time(), install_from_cloud, market
 
-    def get_models_upgradeable_version(self, enterprise_id, app_model_key, app_id):
+    def get_models_upgradeable_version(self, enterprise_id, app_model_key, app_id, upgrade_group_id):
         current_version, current_version_update_time, install_from_cloud, market = self.get_current_version(
-            enterprise_id, app_model_key, app_id)
+            enterprise_id, app_model_key, app_id, upgrade_group_id)
         return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version, current_version_update_time,
                                                install_from_cloud, market)
 
@@ -1411,14 +1382,15 @@ class MarketAppService(object):
             return app, p.page(page).object_list, total
         return app, None, 0
 
-    def list_rainbond_app_components(self, enterprise_id, tenant, app_id):
+    def list_rainbond_app_components(self, enterprise_id, tenant, app_id, model_app_key, upgrade_group_id):
         """
         return the list of the rainbond app.
         """
         # list components by app_id
-        component_sources = service_source_repo.list_by_app_id(tenant.tenant_id, app_id)
+        _, component_sources = group_service.get_component_and_resource_by_group_ids(app_id, [upgrade_group_id])
+        component_sources = component_sources.filter(Q(group_key=model_app_key))
         if not component_sources:
-            return None
+            return []
         component_ids = [cs.service_id for cs in component_sources]
         components = service_repo.get_service_by_service_ids(component_ids)
 
@@ -1432,6 +1404,7 @@ class MarketAppService(object):
             component_source = component_sources[component.service_id]
             cpt = component.to_dict()
             cpt["upgradable_versions"] = self.__upgradable_versions(component_source, versions)
+            cpt["current_version"] = component_source.version
             result.append(cpt)
 
         return result

@@ -763,6 +763,7 @@ class AppUpgradeRecord(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     market_name = models.CharField(max_length=64, null=True, help_text="商店标识")
     is_from_cloud = models.BooleanField(default=False, help_text="应用来源")
+    upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -792,7 +793,7 @@ class ServiceUpgradeRecord(BaseModel):
     )
     service_cname = models.CharField(max_length=100, help_text="服务名")
     upgrade_type = models.CharField(max_length=20, default=UpgradeType.UPGRADE.value, help_text="升级类型")
-    event_id = models.CharField(max_length=32)
+    event_id = models.CharField(max_length=32, null=True)
     update = models.TextField(help_text="升级信息")
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text="升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text="更新时间")

@@ -71,6 +71,35 @@ class UpgradeService(object):
             else:
                 raise AbortRequest(msg="the app model is not in the group", msg_show="该应用中没有这个应用模型", status_code=404)
 
+    def get_or_create_upgrade_record_new(self, tenant, region_name, application, app_model_key, upgrade_group_id):
+        from console.services.market_app_service import market_app_service
+        record = upgrade_repo.get_last_upgrade_record(tenant, application.ID, upgrade_group_id)
+        if record:
+            self.synchronous_upgrade_status(tenant, region_name, record)
+            # not start upgrade or upgrading record.
+            if record.status in [UpgradeStatus.UPGRADING.value, UpgradeStatus.NOT.value, UpgradeStatus.ROLLING.value]:
+                return record
+        current_version, template_update_time, install_from_cloud, market = market_app_service.get_current_version(
+            tenant.enterprise_id, app_model_key, application.ID, upgrade_group_id)
+        if install_from_cloud:
+            app, _ = app_market_service.cloud_app_model_to_db_model(market, app_model_key, None)
+        else:
+            app, _ = rainbond_app_repo.get_rainbond_app_and_version(tenant.enterprise_id, app_model_key, None)
+        if not app:
+            raise ServiceHandleException(msg="app is not exist", msg_show="应用市场应用不存在，无法进行升级")
+        recode_kwargs = {
+            "tenant_id": tenant.tenant_id,
+            "group_id": application.ID,
+            "group_key": app_model_key,
+            "group_name": app.app_name,
+            "create_time": datetime.now(),
+            "is_from_cloud": install_from_cloud,
+            "market_name": market.name if market else "",
+            "upgrade_group_id": upgrade_group_id,
+            "old_version": current_version,
+        }
+        return upgrade_repo.create_app_upgrade_record(**recode_kwargs)
+
     def get_app_not_upgrade_record(self, tenant_id, group_id, group_key):
         """获取未完成升级记录"""
         recode_kwargs = {
@@ -136,7 +165,8 @@ class UpgradeService(object):
         try:
             pc = PropertiesChanges(service, tenant, all_component_one_model=services)
             upgrade_template = get_upgrade_app_template(tenant, version, pc)
-            return pc.get_property_changes(template=upgrade_template, level="app")
+            model_component, changes = pc.get_property_changes(template=upgrade_template, level="app")
+            return pc.current_version, model_component, changes
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
             AbortRequest(msg=str(e))
         except RbdAppNotFound as e:
@@ -217,11 +247,16 @@ class UpgradeService(object):
                 upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value)
 
     @staticmethod
-    def market_service_and_create_backup(tenant, service, version, all_component_one_model=None):
+    def market_service_and_create_backup(tenant,
+                                         service,
+                                         version,
+                                         all_component_one_model=None,
+                                         component_change_info=None,
+                                         app_version=None):
         """创建组件升级接口并创建备份"""
         from console.services.app_actions.app_deploy import MarketService
 
-        market_service = MarketService(tenant, service, version, all_component_one_model)
+        market_service = MarketService(tenant, service, version, all_component_one_model, component_change_info, app_version)
         market_service.create_backup()
         return market_service
 
@@ -232,31 +267,51 @@ class UpgradeService(object):
         try:
             with transaction.atomic():
                 for market_service in market_services:
+                    logger.debug("upgrade component {} ORDINARY attribute".format(market_service.service.service_alias))
+                    start = datetime.now()
                     market_service.set_changes()
                     market_service.set_properties(PropertyType.ORDINARY.value)
                     market_service.modify_property()
                     market_service.sync_region_property()
+                    logger.debug("upgrade component {0} ORDINARY attribute take time {1}".format(
+                        market_service.service.service_alias,
+                        datetime.now() - start))
 
                 for market_service in market_services:
+                    logger.debug("upgrade component {} DEPENDENT attribute".format(market_service.service.service_alias))
+                    start = datetime.now()
                     market_service.set_properties(PropertyType.DEPENDENT.value)
                     market_service.modify_property()
                     market_service.sync_region_property()
+                    logger.debug("upgrade component {0} DEPENDENT attribute take time {1}".format(
+                        market_service.service.service_alias,
+                        datetime.now() - start))
+        except ServiceHandleException as e:
+            logger.exception(e)
+            for market_service in market_services:
+                market_service.restore_backup()
+            e.msg_show = "升级时发送错误:{0}, 已升级组件已自动回滚，但新增组件不会进行删除，请手动处理".format(e.msg_show)
+            raise e
         except Exception as e:
             logger.exception(e)
             for market_service in market_services:
                 market_service.restore_backup()
-            raise AbortRequest(msg=str(e))
+            raise ServiceHandleException(msg="upgrade app failure", msg_show="升级时发送错误, 已升级组件已自动回滚，但新增组件不会进行删除，请手动处理")
 
     def send_upgrade_request(self, market_services, tenant, user, app_record, service_infos, oauth_instance):
         """向数据中心发送更新请求"""
         from console.services.app_actions.app_deploy import AppDeployService
 
         for market_service in market_services:
-            app_deploy_service = AppDeployService()
-            app_deploy_service.set_impl(market_service)
-            code, msg, event_id = app_deploy_service.execute(
-                tenant, market_service.service, user, True, app_record.version, oauth_instance=oauth_instance)
-
+            event_id = ""
+            if market_service.changes:
+                app_deploy_service = AppDeployService()
+                app_deploy_service.set_impl(market_service)
+                code, msg, event_id = app_deploy_service.execute(
+                    tenant, market_service.service, user, True, app_record.version, oauth_instance=oauth_instance)
+            else:
+                # set record is UPGRADED
+                code = 200
             upgrade_repo.create_service_upgrade_record(app_record, market_service.service, event_id,
                                                        service_infos[market_service.service.service_id],
                                                        self._get_sync_upgrade_status(code, event_id))
@@ -334,6 +389,7 @@ class UpgradeService(object):
         """创建组件回滚接口并回滚数据库"""
         from console.services.app_actions.app_deploy import MarketService
 
+        # TODO: set app template init MarketService
         market_service = MarketService(tenant, service, version)
         market_service.auto_restore = False
         market_service.restore_backup()
@@ -381,7 +437,8 @@ class UpgradeService(object):
                 "create_time": service_record.create_time,
                 "service_id": service_record.service_id,
                 "upgrade_type": service_record.upgrade_type,
-                "ID": service_record.ID
+                "ID": service_record.ID,
+                "service_key": service_record.service.service_key
             } for service_record in app_record.service_upgrade_records.all()],
             **app_record.to_dict())
 
@@ -389,7 +446,7 @@ class UpgradeService(object):
         # 查询某一个云市应用下的所有组件
         upgrade_info = {}
         for service in services:
-            changes = upgrade_service.get_service_changes(service, team, app_model_version, services)
+            _, _, changes = upgrade_service.get_service_changes(service, team, app_model_version, services)
             if not changes:
                 continue
             upgrade_info[service.service_id] = changes
@@ -409,10 +466,13 @@ class UpgradeService(object):
             app_model_id = update_version["app_model_id"]
             app_model_version = update_version["app_model_version"]
             market_name = update_version["market_name"]
+            # TODO: get upgrade component will set upgrade_group_id.
+            # Otherwise, there is a problem with multiple installs and upgrades of an application.
             services = group_service.get_rainbond_services(int(app_id), app_model_id)
             if not services:
                 continue
-            pc = PropertiesChanges(services.first(), team, all_component_one_model=services)
+            exist_component = services.first()
+            pc = PropertiesChanges(exist_component, team, all_component_one_model=services)
             recode_kwargs = {
                 "tenant_id": team.tenant_id,
                 "group_id": int(app_id),
@@ -442,9 +502,9 @@ class UpgradeService(object):
 
                 # 查询某一个云市应用下的所有组件
                 try:
-                    install_info = market_app_service.install_service_when_upgrade_app(team, region_name, user, app_id, new_app,
-                                                                                       old_app, services, True,
-                                                                                       pc.install_from_cloud, pc.market_name)
+                    install_info = market_app_service.install_service_when_upgrade_app(
+                        team, region_name, user, app_id, new_app, old_app, services, True,
+                        exist_component.tenant_service_group_id, pc.install_from_cloud, pc.market_name)
                 except ResourceNotEnoughException as re:
                     raise re
                 except AccountOverdueException as re:

@@ -351,17 +351,27 @@ class GroupService(object):
             re_app_list.append(app)
         return re_app_list
 
-    def get_rainbond_services(self, group_id, group_key):
+    def get_rainbond_services(self, group_id, group_key, upgrade_group_id=None):
         """获取云市应用下的所有组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
-        return service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
+        components = service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
+        if upgrade_group_id:
+            return components.filter(tenant_service_group_id=upgrade_group_id)
+        return components
 
     def get_group_service_sources(self, group_id):
         """查询某一应用下的组件源信息"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
+
+    # get component resource list, component will in app and belong to group_ids
+    def get_component_and_resource_by_group_ids(self, app_id, group_ids):
+        gsr = group_service_relation_repo.get_services_by_group(app_id)
+        components = service_repo.get_services_by_service_group_ids(gsr.values_list('service_id', flat=True), group_ids)
+        service_ids = components.values_list('service_id', flat=True)
+        return components, service_source_repo.get_service_sources_by_service_ids(service_ids)
 
     def get_group_service_source(self, service_id):
         """ get only one service source"""

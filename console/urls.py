@@ -57,17 +57,17 @@ from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
 from console.views.enterprise import (EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView,
-                                      EnterpriseMonitor, EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView,
-                                      EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView,
-                                      EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams,
-                                      EnterpriseUserTeams, EnterpriseMyTeams, EnterpriseUserTeamRoleView)
+                                      EnterpriseMonitor, EnterpriseMyTeams, EnterpriseOverview, EnterpriseRegionDashboard,
+                                      EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
+                                      EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
+                                      EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 TenantAppUpgradableNumView, ApplicationRainbondAppView)
+                                 TenantAppUpgradableNumView, TenantGroupCommonOperationView, TenantGroupOperationView,
+                                 TenantGroupView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -280,8 +280,6 @@ urlpatterns = [
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8sservices', AppKubernetesServiceView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', ApplicationStatusView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/rainbondapps/(?P<rainbond_app_id>[\w\-]+)',
-        ApplicationRainbondAppView.as_view()),
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.GroupStatusView),
     # 应用(组)常见操作
@@ -797,6 +795,11 @@ urlpatterns += [
     # 查询当前组下的云市应用
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/apps$', app_upgrade.GroupAppView.as_view(),
         perms.GroupAppView),
+    # 查询某个升级应用的详情
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/apps/(?P<upgrade_group_id>[0-9]+)$',
+        app_upgrade.AppUpgradeDetailView.as_view(), perms.GroupAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/apps/(?P<upgrade_group_id>[\w\-]+)/components',
+        app_upgrade.AppUpgradeComponentListView.as_view()),
     # 查询当前组下某云市应用的更新版本
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-versions$', app_upgrade.AppUpgradeVersion.as_view(),
         perms.AppUpgradeVersion),

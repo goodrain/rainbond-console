@@ -2,9 +2,7 @@
 import json
 from datetime import datetime
 
-from console.models.main import AppUpgradeRecord
-from console.models.main import ServiceUpgradeRecord
-from console.models.main import UpgradeStatus
+from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
 
 
 class UpgradeRepo(object):
@@ -16,6 +14,10 @@ class UpgradeRepo(object):
 
     def create_app_upgrade_record(self, **kwargs):
         return AppUpgradeRecord.objects.create(**kwargs)
+
+    def get_last_upgrade_record(self, tenant, app_id, upgrade_group_id):
+        return AppUpgradeRecord.objects.filter(
+            upgrade_group_id=upgrade_group_id, group_id=app_id, tenant_id=tenant.tenant_id).order_by("-update_time").first()
 
     def create_service_upgrade_record(self,
                                       app_upgrade_record,

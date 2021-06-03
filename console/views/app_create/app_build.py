@@ -157,6 +157,9 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
             for s in new_app_list:
                 try:
                     app_manage_service.deploy(self.tenant, s, self.user, group_version=None, oauth_instance=self.oauth_instance)
+                except ErrInsufficientResource as e:
+                    result = general_message(e.error_code, e.msg, e.msg_show)
+                    return Response(result, status=e.status_code)
                 except Exception as e:
                     logger.exception(e)
                     continue
