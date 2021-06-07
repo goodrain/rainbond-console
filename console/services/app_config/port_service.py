@@ -16,9 +16,9 @@ from console.repositories.app_config import (domain_repo, port_repo, service_end
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
+from console.services.app_config.domain_service import domain_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
-from console.services.app_config.domain_service import domain_service
 from console.services.region_services import region_services
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -758,6 +758,8 @@ class AppPortService(object):
                                                                   port.container_port)
 
             if service_tcp_domain:
+                if "0.0.0.0" in service_tcp_domain.end_point:
+                    return service_tcp_domain.end_point.replace("0.0.0.0", region.tcpdomain)
                 return service_tcp_domain.end_point
             else:
                 return None
