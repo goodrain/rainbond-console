@@ -12,16 +12,17 @@ from console.services.market_app.update_components import UpdateComponents
 # service
 from console.services.group_service import group_service
 from console.services.app import app_market_service
+from console.services.app_actions import app_manage_service
 # repo
 from console.repositories.app import service_source_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_app import region_app_repo
 # exception
-from console.exception.main import AbortRequest
+from console.exception.main import AbortRequest, ServiceHandleException
 # model
 from www.models.main import TenantServiceGroup
-# from console.models.main import AppUpgradeRecord
-# from console.models.main import UpgradeStatus
+from console.models.main import AppUpgradeRecord
+from console.models.main import UpgradeStatus
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -30,8 +31,7 @@ region_api = RegionInvokeApi()
 
 
 class MarketApp(object):
-    def __init__(self, enterprise_id, tenant, region_name, user, version, service_group: TenantServiceGroup,
-                 component_keys):
+    def __init__(self, enterprise_id, tenant, region_name, user, version, service_group: TenantServiceGroup, component_keys):
         """
         components_keys: component keys that the user select.
         """
@@ -53,18 +53,23 @@ class MarketApp(object):
         self.app_template_source = self._app_template_source()
         self.app_template = self._app_template()
         # original app
-        self.original_app = OriginalApp(self.app_id, self.app_model_key, self.upgrade_group_id)
+        self.original_app = OriginalApp(self.tenant_id, self.app_id, self.upgrade_group_id, self.app_model_key)
         self.new_app = self._new_app()
 
-    @transaction.atomic
     def upgrade(self):
         try:
             self._upgrade()
+            self._create_upgrade_record(UpgradeStatus.UPGRADING.value)
         except Exception as e:
             logger.exception(e)
             # rollback on failure
-            self._sync_components(self.original_app.components)
+            self._sync_components(self.original_app)
+            self._create_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
+            raise ServiceHandleException("unexpected error", "未知错误, 请联系管理员")
+        # TODO(huangrh): show deploy error
+        self._deploy()
 
+    @transaction.atomic
     def _upgrade(self):
         # TODO(huangrh): install plugins
         # TODO(huangrh): config groups
@@ -72,8 +77,12 @@ class MarketApp(object):
         self._update_components()
         self._update_service_group()
 
-        # TODO(huangrh):  create update record
-        # TODO(huangrh):  build, update or nothing
+    def _deploy(self):
+        # Optimization: not all components need deploy
+        component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
+        events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+        # TODO(huangrh): Is it necessary to create component upgrade records
+        _ = events
 
     def _update_components(self):
         self.new_app.save()
@@ -96,8 +105,9 @@ class MarketApp(object):
                 "volumes": [volume.to_dict() for volume in cpt.volumes],
                 "probe": cpt.probe,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
-                "relations": [dep.to_dict() for dep in cpt.component_deps],
             }
+            if cpt.component_deps:
+                component["relations"] = [dep.to_dict() for dep in cpt.component_deps]
             new_components.append(component)
 
         body = {
@@ -107,9 +117,6 @@ class MarketApp(object):
         print(json.dumps(body))
         region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         region_api.sync_components(self.tenant.tenant_name, self.region_name, region_app_id, body)
-
-    def deploy(self):
-        pass
 
     def _update_service_group(self):
         self.service_group.group_version = self.version
@@ -121,7 +128,7 @@ class MarketApp(object):
         rollback the original app on failure
         """
         # TODO(huangrh): retry
-        self._sync_components(self.original_app.components)
+        self._sync_components(self.original_app)
 
     def _app_template(self):
         if not self.app_template_source.is_install_from_cloud():
@@ -152,14 +159,15 @@ class MarketApp(object):
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys).components
-        return NewApp(self.upgrade_group_id, self.app_template, new_components, update_components)
+        return NewApp(self.tenant_id, self.app_id, self.upgrade_group_id, self.app_template, new_components, update_components)
 
-    # def _create_upgrade_record(self):
-    #     AppUpgradeRecord(
-    #         tenant_id=self.tenant_id,
-    #         group_id=self.app_id,
-    #         group_key=self.app_model_key,
-    #         version=self.version,
-    #         old_version=self.old_version,
-    #         status=UpgradeStatus.NOT.value,
-    #     )
+    def _create_upgrade_record(self, status):
+        record = AppUpgradeRecord(
+            tenant_id=self.tenant_id,
+            group_id=self.app_id,
+            group_key=self.app_model_key,
+            version=self.version,
+            old_version=self.old_version,
+            status=status,
+        )
+        record.save()

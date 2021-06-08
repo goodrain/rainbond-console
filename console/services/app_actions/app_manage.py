@@ -549,7 +549,9 @@ class AppManageService(AppManageBase):
             raise AbortRequest(415, "failed to get component", "组件信息获取失败")
         # 获取数据中心信息
         try:
-            region_api.batch_operation_service(region_name, tenant.tenant_name, data)
+            _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
+            result = body["bean"]["batch_result"]
+            return {item.event_id: item.service_id for item in result}
         except region_api.CallApiError as e:
             logger.exception(e)
             raise AbortRequest(500, "failed to request region api", "数据中心操作失败")

@@ -72,7 +72,6 @@ class MarketAppService(object):
             raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
         market_app = MarketApp(tenant.enterprise_id, tenant, region_name, user, version, service_group, component_keys)
         market_app.upgrade()
-        market_app.deploy()
 
     def install_service(self,
                         tenant,
@@ -586,7 +585,7 @@ class MarketAppService(object):
                 region_name = one_service.service_region
                 try:
                     _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
-                    result = body["bean"]["batche_result"]
+                    result = body["bean"]["batch_result"]
                     events = {item.event_id: item.service_id for item in result}
                     return events
                 except region_api.CallApiError as e:

@@ -17,11 +17,17 @@ from console.exception.main import AbortRequest
 
 
 class OriginalApp(object):
-    def __init__(self, app_id, app_model_key, upgrade_group_id):
-        self.components = self._create_components(app_id, app_model_key, upgrade_group_id)
+    def __init__(self, tenant_id, app_id, upgrade_group_id, app_model_key):
+        self.app_id = app_id
+        self.upgrade_group_id = upgrade_group_id
+        self.app_model_key = app_model_key
+        self._components = self._create_components(app_id, upgrade_group_id, app_model_key)
+
+        self.component_deps = dep_relation_repo.list_by_component_ids(tenant_id,
+                                                                      [cpt.component.component_id for cpt in self._components])
 
     @staticmethod
-    def _create_components(app_id, app_model_key, upgrade_group_id):
+    def _create_components(app_id, upgrade_group_id, app_model_key):
         components = group_service.get_rainbond_services(app_id, app_model_key, upgrade_group_id)
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
@@ -36,6 +42,8 @@ class OriginalApp(object):
             probe = probe_repo.get_probe(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
-            component_deps = dep_relation_repo.get_service_dependencies(cpt.tenant_id, cpt.component_id)
-            result.append(Component(cpt, component_source, envs, ports, volumes, probe, None, monitors, graphs, component_deps))
+            result.append(Component(cpt, component_source, envs, ports, volumes, probe, None, monitors, graphs))
         return result
+
+    def components(self):
+        return self._components

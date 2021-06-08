@@ -16,6 +16,7 @@ from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
 from www.models.main import TenantServiceEnvVar
 from www.models.main import TenantServiceVolume
+from www.models.main import ServiceGroupRelation
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
@@ -35,8 +36,17 @@ logger = logging.getLogger("default")
 
 
 class Component(object):
-    def __init__(self, component, component_source, envs, ports, volumes, probe, extend_info, monitors, graphs,
-                 component_deps=None):
+    def __init__(self,
+                 component,
+                 component_source,
+                 envs,
+                 ports,
+                 volumes,
+                 probe,
+                 extend_info,
+                 monitors,
+                 graphs,
+                 service_group_rel=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
@@ -46,7 +56,8 @@ class Component(object):
         self.extend_info = extend_info
         self.monitors = list(monitors)
         self.graphs = list(graphs)
-        self.component_deps = component_deps
+        self.component_deps = []
+        self.service_group_rel = service_group_rel
 
     def set_changes(self, changes):
         """
@@ -255,15 +266,14 @@ class NewComponents(object):
         create component and related attributes
         """
         # new component templates
-        exist_components = {cpt.component.service_key: cpt.component for cpt in self.original_app.components}
+        exist_components = {cpt.component.service_key: cpt.component for cpt in self.original_app.components()}
         templates = self.app_template.get("apps")
         templates = templates if templates else []
         templates = [ct for ct in templates if not exist_components.get(ct.get("service_key"))]
 
-        components = [
-            self._template_to_component(self.tenant.tenant_id, template) for template in templates
-            if self.components_keys and template.get("service_key") in self.components_keys
-        ]
+        components = [self._template_to_component(self.tenant.tenant_id, template) for template in templates]
+        if self.components_keys:
+            components = [cpt for cpt in components if cpt.service_key in self.components_keys]
 
         # make a map of templates
         templates = {tmpl.get("service_key"): tmpl for tmpl in templates}
@@ -273,7 +283,7 @@ class NewComponents(object):
             component_tmpl = templates.get(cpt.service_key)
 
             # component source
-            component_source = self._template_to_component_source(cpt)
+            component_source = self._template_to_component_source(cpt, component_tmpl)
             # envs
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")
@@ -293,8 +303,14 @@ class NewComponents(object):
             monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))
             # graphs
             graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"))
-
-            result.append(Component(cpt, component_source, envs, ports, volumes, probe, extend_info, monitors, graphs))
+            service_group_rel = ServiceGroupRelation(
+                service_id=cpt.component_id,
+                group_id=self.original_app.app_id,
+                tenant_id=self.tenant.tenant_id,
+                region_name=self.region_name,
+            )
+            result.append(
+                Component(cpt, component_source, envs, ports, volumes, probe, extend_info, monitors, graphs, service_group_rel))
         return result
 
     def _template_to_component(self, tenant_id, template):
@@ -340,16 +356,16 @@ class NewComponents(object):
 
         return component
 
-    def _template_to_component_source(self, component):
-        extend_info = component.get("service_image")
-        extend_info["source_deploy_version"] = component.get("deploy_version")
-        extend_info["source_service_share_uuid"] = component.get("service_share_uuid") if component.get(
-            "service_share_uuid", None) else component.get("service_key", "")
-        if "update_time" in component:
-            if type(component["update_time"]) == datetime.datetime:
-                extend_info["update_time"] = component["update_time"].strftime('%Y-%m-%d %H:%M:%S')
-            elif type(component["update_time"]) == str:
-                extend_info["update_time"] = component["update_time"]
+    def _template_to_component_source(self, component: TenantServiceInfo, tmpl: map):
+        extend_info = tmpl.get("service_image")
+        extend_info["source_deploy_version"] = tmpl.get("deploy_version")
+        extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
+            "service_share_uuid", None) else tmpl.get("service_key", "")
+        if "update_time" in tmpl:
+            if type(tmpl["update_time"]) == datetime:
+                extend_info["update_time"] = tmpl["update_time"].strftime('%Y-%m-%d %H:%M:%S')
+            elif type(tmpl["update_time"]) == str:
+                extend_info["update_time"] = tmpl["update_time"]
         if self.install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
@@ -360,8 +376,8 @@ class NewComponents(object):
             extend_info=json.dumps(extend_info),
             group_key=self.app_model_key,
             version=self.version,
-            service_share_uuid=component.get("service_share_uuid")
-            if component.get("service_share_uuid", None) else component.get("service_key"),
+            service_share_uuid=tmpl.get("service_share_uuid")
+            if tmpl.get("service_share_uuid", None) else tmpl.get("service_key"),
         )
 
     def _template_to_envs(self, component, inner_envs, outer_envs):
@@ -429,7 +445,7 @@ class NewComponents(object):
             # TODO(huangrh): create default rule
             # if port.get("is_outer_service", False):
             #     domain_service.create_default_gateway_rule(tenant, region, service, t_port)
-            result.append(result, port)
+            result.append(port)
         return result
 
     def _template_to_volumes(self, component, volumes):
@@ -441,8 +457,7 @@ class NewComponents(object):
                 if "file_content" in list(volume.keys()) and volume["file_content"] != "":
                     continue
                 else:
-                    settings = volume_service.get_best_suitable_volume_settings(self.tenant, component,
-                                                                                volume["volume_type"],
+                    settings = volume_service.get_best_suitable_volume_settings(self.tenant, component, volume["volume_type"],
                                                                                 volume.get("access_mode"),
                                                                                 volume.get("share_policy"),
                                                                                 volume.get("backup_policy"), None,
@@ -458,8 +473,7 @@ class NewComponents(object):
 
                     result.append(
                         volume_service.create_service_volume(self.tenant, component, volume["volume_path"],
-                                                             volume["volume_type"], volume["volume_name"], None,
-                                                             settings))
+                                                             volume["volume_type"], volume["volume_name"], None, settings))
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
 
@@ -488,6 +502,8 @@ class NewComponents(object):
             is_restart=extend_info["is_restart"])
 
     def _template_to_service_monitors(self, component, service_monitors):
+        if not service_monitors:
+            return []
         monitors = []
         for monitor in service_monitors:
             # Optimization: check all monitor names at once

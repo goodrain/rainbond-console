@@ -11,5 +11,9 @@ class ServiceGroupRelationRepositry(object):
             return group[0].group_id
         return None
 
+    @staticmethod
+    def bulk_create(service_group_rels):
+        ServiceGroupRelation.objects.bulk_create(service_group_rels)
+
 
 service_group_relation_repo = ServiceGroupRelationRepositry()

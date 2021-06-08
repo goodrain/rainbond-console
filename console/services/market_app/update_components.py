@@ -26,7 +26,7 @@ class UpdateComponents(object):
         """
         # filter by self.components_keys
         components = []
-        for cpt in self.original_app.components:
+        for cpt in self.original_app.components():
             if self.components_keys and cpt.component.service_key not in self.components_keys:
                 continue
             components.append(cpt)
