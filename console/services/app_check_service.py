@@ -5,26 +5,21 @@
 import json
 import logging
 
-from django.db import transaction
-
 from console.constants import AppConstants
+from console.enum.component_enum import ComponentType
 from console.exception.bcode import ErrComponentPortExists
-from console.exception.main import ServiceHandleException, ErrVolumePath
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.repositories.oauth_repo import oauth_repo
-from console.repositories.oauth_repo import oauth_user_repo
+from console.exception.main import ErrVolumePath, ServiceHandleException
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import service_endpoints_repo
-from console.services.app_config import compile_env_service
-from console.services.app_config import env_var_service
-from console.services.app_config import port_service
-from console.services.app_config import volume_service
-from console.services.app_config import label_service
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
+from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
+                                         volume_service)
 from console.services.common_services import common_services
+from console.services.region_services import region_services
+from console.utils.oauth.oauth_types import get_oauth_instance
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
-
 from www.models.main import Tenants
-from console.enum.component_enum import ComponentType
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -365,13 +360,19 @@ class AppCheckService(object):
                     tenant, service, int(port["container_port"]), port["protocol"],
                     service.service_alias.upper() + str(port["container_port"]))
                 if code != 200:
-                    logger.error("service.check", "save service check info port error {0}".format(msg))
+                    logger.error("save service check info port error {0}".format(msg))
         else:
             if service.service_source == AppConstants.SOURCE_CODE:
                 port_service.delete_service_port(tenant, service)
-                # 添加默认5000端口
-                port_service.add_service_port(tenant, service, 5000, "http",
-                                              service.service_alias.upper() + str(5000), False, True)
+                _, _, t_port = port_service.add_service_port(tenant, service, 5000, "http",
+                                                             service.service_alias.upper() + str(5000), False, True)
+                region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
+                if region_info:
+                    domain_service.create_default_gateway_rule(tenant, region_info, service, t_port)
+                else:
+                    logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
+                                                                                     service.service_region))
+
         return 200, "success"
 
     def __save_volume(self, tenant, service, volumes):

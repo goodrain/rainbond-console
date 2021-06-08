@@ -14,9 +14,9 @@ from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameE
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
-from console.repositories.app_config import (domain_repo, env_var_repo, extend_repo, port_repo, tcp_domain, volume_repo)
+from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo)
 from console.repositories.base import BaseConnection
-from console.repositories.group import tenant_service_group_repo, group_repo
+from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
 from console.repositories.service_repo import service_repo
@@ -24,7 +24,7 @@ from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import (AppMntService, port_service, probe_service, volume_service)
+from console.services.app_config import (AppMntService, domain_service, port_service, probe_service, volume_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.app_config.component_graph import component_graph_service
@@ -697,47 +697,9 @@ class MarketAppService(object):
             )
             create_ports.append(t_port)
             if port.get("is_outer_service", False):
-                self.__create_default_gateway_rule(tenant, region, service, t_port)
+                domain_service.create_default_gateway_rule(tenant, region, service, t_port)
         if len(create_ports) > 0:
             port_repo.bulk_create(create_ports)
-
-    def __create_default_gateway_rule(self, tenant, region, service, port):
-        if port.protocol == "http":
-            service_id = service.service_id
-            service_name = service.service_alias
-            container_port = port.container_port
-            domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(
-                region.httpdomain)
-            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            protocol = "http"
-            http_rule_id = make_uuid(domain_name)
-            tenant_id = tenant.tenant_id
-            service_alias = service.service_cname
-            region_id = region.region_id
-            domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
-                                               http_rule_id, tenant_id, service_alias, region_id)
-            logger.debug("create default gateway http rule for component {0} port {1}".format(
-                service.service_alias, port.container_port))
-        else:
-            res, data = region_api.get_port(region.region_name, tenant.tenant_name, True)
-            if int(res.status) != 200:
-                logger.warning("can not get stream port from region, ignore {0} port {1}".format(
-                    service.service_alias, port.container_port))
-                return
-            end_point = "0.0.0.0:{0}".format(data["bean"])
-            service_id = service.service_id
-            service_name = service.service_alias
-            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            container_port = port.container_port
-            protocol = port.protocol
-            service_alias = service.service_cname
-            tcp_rule_id = make_uuid(end_point)
-            tenant_id = tenant.tenant_id
-            region_id = region.region_id
-            tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port, protocol,
-                                                  service_alias, tcp_rule_id, tenant_id, region_id)
-            logger.debug("create default gateway stream rule for component {0} port {1}, endpoint {2}".format(
-                service.service_alias, port.container_port, end_point))
 
     def __save_volume(self, tenant, service, volumes):
         if not volumes:
