@@ -550,8 +550,8 @@ class AppManageService(AppManageBase):
         # 获取数据中心信息
         try:
             _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
-            result = body["bean"]["batch_result"]
-            return {item.event_id: item.service_id for item in result}
+            events = body["bean"]["batch_result"]
+            return events
         except region_api.CallApiError as e:
             logger.exception(e)
             raise AbortRequest(500, "failed to request region api", "数据中心操作失败")

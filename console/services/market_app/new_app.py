@@ -134,12 +134,7 @@ class NewApp(object):
                                                        [cpt.component.component_id for cpt in components])
 
     def _component_deps(self):
-        component_ids = [cpt.component.component_id for cpt in self._components()]
-        component_sources = service_source_repo.get_service_sources_by_service_ids(component_ids)
-        service_share_uuids = {source.service_id: source.service_share_uuid for source in component_sources}
-
-        components = {service_share_uuids[cpt.component.component_id]: cpt.component for cpt in self._components() if
-                      service_share_uuids.get(cpt.component.component_id)}
+        components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self._components()}
         existing_deps = {dep.service_id + dep.dep_service_id: dep for dep in self._exiting_deps()}
 
         deps = []
@@ -157,7 +152,7 @@ class NewApp(object):
                                                                                                    dep_component_key))
                     continue
 
-                if existing_deps.get(component_key + dep_component_key):
+                if existing_deps.get(component.component_id+dep_component.component_id):
                     continue
 
                 dep = TenantServiceRelation(

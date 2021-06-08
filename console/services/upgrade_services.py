@@ -431,7 +431,7 @@ class UpgradeService(object):
                 "status": service_record.status,
                 "update_time": service_record.update_time,
                 "event_id": service_record.event_id,
-                "update": json.loads(service_record.update),
+                "update": json.loads(service_record.update) if service_record.update else None,
                 "app_upgrade_record": service_record.app_upgrade_record_id,
                 "service_cname": service_record.service_cname,
                 "create_time": service_record.create_time,

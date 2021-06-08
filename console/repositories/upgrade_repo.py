@@ -53,4 +53,11 @@ class UpgradeRepo(object):
         AppUpgradeRecord.objects.filter(group_id=group_id).delete()
 
 
+class ComponentUpgradeRecordRepository(object):
+    @staticmethod
+    def bulk_create(records):
+        ServiceUpgradeRecord.objects.bulk_create(records)
+
+
 upgrade_repo = UpgradeRepo()
+component_upgrade_record_repo = ComponentUpgradeRecordRepository()

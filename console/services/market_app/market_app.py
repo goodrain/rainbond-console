@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+from datetime import datetime
 from json.decoder import JSONDecodeError
 
 from django.db import transaction
@@ -17,12 +18,14 @@ from console.services.app_actions import app_manage_service
 from console.repositories.app import service_source_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_app import region_app_repo
+from console.repositories.upgrade_repo import component_upgrade_record_repo
 # exception
 from console.exception.main import AbortRequest, ServiceHandleException
 # model
 from www.models.main import TenantServiceGroup
 from console.models.main import AppUpgradeRecord
 from console.models.main import UpgradeStatus
+from console.models.main import ServiceUpgradeRecord
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -59,7 +62,7 @@ class MarketApp(object):
     def upgrade(self):
         try:
             self._upgrade()
-            self._create_upgrade_record(UpgradeStatus.UPGRADING.value)
+            record = self._create_upgrade_record(UpgradeStatus.UPGRADING.value)
         except Exception as e:
             logger.exception(e)
             # rollback on failure
@@ -67,7 +70,7 @@ class MarketApp(object):
             self._create_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
             raise ServiceHandleException("unexpected error", "未知错误, 请联系管理员")
         # TODO(huangrh): show deploy error
-        self._deploy()
+        self._deploy(record)
 
     @transaction.atomic
     def _upgrade(self):
@@ -77,12 +80,30 @@ class MarketApp(object):
         self._update_components()
         self._update_service_group()
 
-    def _deploy(self):
+    def _deploy(self, record):
         # Optimization: not all components need deploy
         component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
         events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
-        # TODO(huangrh): Is it necessary to create component upgrade records
-        _ = events
+        self._create_component_record(record, events)
+
+    def _create_component_record(self, app_record: AppUpgradeRecord, events=list):
+        event_ids = {event["service_id"]: event["event_id"] for event in events}
+        records = []
+        for cpt in self.new_app.components():
+            event_id = event_ids.get(cpt.component.component_id)
+            if not event_id:
+                continue
+            record = ServiceUpgradeRecord(
+                create_time=datetime.now(),
+                app_upgrade_record=app_record,
+                service_id=cpt.component.component_id,
+                service_cname=cpt.component.service_cname,
+                upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value,
+                event_id=event_id,
+                status=UpgradeStatus.UPGRADING.value,
+            )
+            records.append(record)
+        component_upgrade_record_repo.bulk_create(records)
 
     def _update_components(self):
         self.new_app.save()
@@ -171,3 +192,4 @@ class MarketApp(object):
             status=status,
         )
         record.save()
+        return record
