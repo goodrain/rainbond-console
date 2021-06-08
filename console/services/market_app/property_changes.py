@@ -6,7 +6,7 @@ from console.services.market_app.new_components import Component
 from console.services.app_config.promql_service import promql_service
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
-# execption
+# exception
 from console.exception.main import AbortRequest
 # utils
 from www.utils.crypt import make_uuid
@@ -16,17 +16,23 @@ logger = logging.getLogger("default")
 
 class PropertyChanges(object):
     def __init__(self, components, app_template):
+        self.components = components
+        self.app_template = app_template
         self.changes = self._get_component_changes(components, app_template)
 
+    def need_change(self):
+        return self.changes
+
     def _get_component_changes(self, components, app_template):
-        changes = []
+        cpt_changes = []
         for cpt in components:
             # get component template
             tmpl = self._get_component_template(cpt.component_source, app_template)
             if not tmpl:
                 continue
-            changes.append(self._get_component_change(cpt, tmpl))
-        return changes
+            cpt_changes.append(self._get_component_change(cpt, tmpl))
+
+        return cpt_changes
 
     @staticmethod
     def _get_component_template(component_source, app_template):
@@ -34,7 +40,7 @@ class PropertyChanges(object):
 
         def func(x):
             result = x.get("service_share_uuid", None) == component_source.service_share_uuid \
-                        or x.get("service_key", None) == component_source.service_share_uuid
+                     or x.get("service_key", None) == component_source.service_share_uuid
 
             return result
 
@@ -78,7 +84,8 @@ class PropertyChanges(object):
         #     logger.debug("app_config_groups changes: {}".format(json.dumps(app_config_groups)))
         #     result["app_config_groups"] = app_config_groups
 
-        component_graphs = self._graphs(component.graphs, component_tmpl.get("component_graphs", []))
+        component_graphs = self._graphs(component.component.component_id, component.graphs,
+                                        component_tmpl.get("component_graphs", []))
         if component_graphs:
             result["component_graphs"] = component_graphs
 
@@ -102,7 +109,8 @@ class PropertyChanges(object):
             return None
         return {"old": old, "new": new, "is_change": is_change}
 
-    def _envs(self, exist_envs, new_envs):
+    @staticmethod
+    def _envs(exist_envs, new_envs):
         """
         Environment variables are only allowed to increase, not allowed to
         update and delete. Compare existing environment variables and input
@@ -114,7 +122,8 @@ class PropertyChanges(object):
             return None
         return {"add": add_env}
 
-    def _ports(self, old_ports, new_ports):
+    @staticmethod
+    def _ports(old_ports, new_ports):
         """port can only be created, cannot be updated and deleted"""
         if not new_ports:
             return
@@ -140,7 +149,8 @@ class PropertyChanges(object):
             result["upd"] = update_ports
         return result
 
-    def _volumes(self, old_volumes, new_volumes):
+    @staticmethod
+    def _volumes(old_volumes, new_volumes):
         if not new_volumes:
             return
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
@@ -170,7 +180,8 @@ class PropertyChanges(object):
             "upd": update,
         }
 
-    def _probe(self, old_probe, new_probes):
+    @staticmethod
+    def _probe(old_probe, new_probes):
         if not new_probes:
             return None
         new_probe = new_probes[0]
@@ -186,7 +197,8 @@ class PropertyChanges(object):
                 return {"add": [], "upd": new_probe}
         return None
 
-    def _graphs(self, old_graphs, graphs):
+    @staticmethod
+    def _graphs(component_id, old_graphs, graphs):
         if not graphs:
             return None
 
@@ -194,7 +206,7 @@ class PropertyChanges(object):
         add = []
         for graph in graphs:
             try:
-                new_promql = promql_service.add_or_update_label(self.service.service_id, graph.get("promql"))
+                new_promql = promql_service.add_or_update_label(component_id, graph.get("promql"))
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
@@ -204,12 +216,13 @@ class PropertyChanges(object):
             return None
         return {"add": add}
 
-    def _monitors(self, tenant_id, old_monitors, moniotors):
-        if not moniotors:
+    @staticmethod
+    def _monitors(tenant_id, old_monitors, monitors):
+        if not monitors:
             return None
         add = []
         old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
-        for monitor in moniotors:
+        for monitor in monitors:
             # Optimization: do not check monitor name iteratively
             tenant_monitor = service_monitor_repo.get_tenant_service_monitor(tenant_id, monitor["name"])
             if not tenant_monitor and monitor["name"] not in old_monitor_names:

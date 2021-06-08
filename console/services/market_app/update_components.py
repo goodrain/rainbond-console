@@ -32,13 +32,12 @@ class UpdateComponents(object):
             components.append(cpt)
 
         pc = PropertyChanges(components, self.app_template)
-        changes = pc.changes
-        if not changes:
+        if not pc.need_change():
             raise AbortRequest("no changes", "应用无变化, 无需升级")
-        changes = {change["component_id"]: change for change in changes}
 
+        cpt_changes = {change["component_id"]: change for change in pc.changes}
         for cpt in components:
-            cpt.set_changes(changes[cpt.component.component_id])
+            cpt.set_changes(cpt_changes[cpt.component.component_id])
             cpt.component_source.group_key = self.app_model_key
             cpt.component_source.version = self.version
 

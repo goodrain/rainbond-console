@@ -35,7 +35,8 @@ logger = logging.getLogger("default")
 
 
 class Component(object):
-    def __init__(self, component, component_source, envs, ports, volumes, probe, extend_info, monitors, graphs):
+    def __init__(self, component, component_source, envs, ports, volumes, probe, extend_info, monitors, graphs,
+                 component_deps=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
@@ -45,6 +46,7 @@ class Component(object):
         self.extend_info = extend_info
         self.monitors = list(monitors)
         self.graphs = list(graphs)
+        self.component_deps = component_deps
 
     def set_changes(self, changes):
         """

@@ -313,6 +313,11 @@ class TenantServiceVolumnRepository(object):
         volume.save()
 
 
+def bulk_create_or_update(tenant_id, component_deps):
+    TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id__in=[dep.service_id for dep in component_deps]).delete()
+    TenantServiceRelation.objects.bulk_create(component_deps)
+
+
 class TenantServiceRelationRepository(object):
     def get_service_dependencies(self, tenant_id, service_id):
         return TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
@@ -388,6 +393,16 @@ class TenantServiceRelationRepository(object):
                 LIMIT 1""".format(eid=eid)
         result2 = conn.query(sql2)
         return True if len(result2) > 0 else False
+
+    @staticmethod
+    def list_by_component_ids(tenant_id, component_ids):
+        return TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id__in=component_ids)
+
+    @staticmethod
+    def bulk_create_or_update(tenant_id, component_deps):
+        component_ids = [dep.service_id for dep in component_deps]
+        TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id__in=component_ids).delete()
+        TenantServiceRelation.objects.bulk_create(component_deps)
 
 
 class TenantServiceMntRelationRepository(object):

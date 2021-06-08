@@ -54,42 +54,37 @@ class MarketApp(object):
         self.app_template = self._app_template()
         # original app
         self.original_app = OriginalApp(self.app_id, self.app_model_key, self.upgrade_group_id)
+        self.new_app = self._new_app()
 
     @transaction.atomic
     def upgrade(self):
+        try:
+            self._upgrade()
+        except Exception as e:
+            logger.exception(e)
+            # rollback on failure
+            self._sync_components(self.original_app.components)
+
+    def _upgrade(self):
         # TODO(huangrh): install plugins
         # TODO(huangrh): config groups
         # components
         self._update_components()
         self._update_service_group()
-        # TODO(huangrh): component dependencies
+
         # TODO(huangrh):  create update record
         # TODO(huangrh):  build, update or nothing
 
-    def deploy(self):
-        pass
-
     def _update_components(self):
-        """
-        1. create new components
-        2. update existing components
-        3. rollback on failure
-        """
-        new_app = self._new_app()
-        new_app.save()
-        try:
-            self._sync_components(new_app.components())
-        except Exception as e:
-            # TODO: catch api error
-            logger.exception(e)
-            raise e
+        self.new_app.save()
+        self._sync_components(self.new_app)
 
-    def _sync_components(self, components):
+    def _sync_components(self, app):
         """
         synchronous components to the application in region
         """
         new_components = []
-        for cpt in components:
+        for cpt in app.components():
             component_base = cpt.component.to_dict()
             component_base["component_id"] = component_base["service_id"]
             component_base["component_name"] = component_base["service_name"]
@@ -100,14 +95,21 @@ class MarketApp(object):
                 "ports": [port.to_dict() for port in cpt.ports],
                 "volumes": [volume.to_dict() for volume in cpt.volumes],
                 "probe": cpt.probe,
-                "monitors": [monitor.to_dict() for monitor in cpt.monitors]
+                "monitors": [monitor.to_dict() for monitor in cpt.monitors],
+                "relations": [dep.to_dict() for dep in cpt.component_deps],
             }
             new_components.append(component)
-        print(json.dumps(new_components))
-        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
-        region_api.sync_components(self.tenant.tenant_name, self.region_name, region_app_id, {
+
+        body = {
             "components": new_components,
-        })
+        }
+
+        print(json.dumps(body))
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
+        region_api.sync_components(self.tenant.tenant_name, self.region_name, region_app_id, body)
+
+    def deploy(self):
+        pass
 
     def _update_service_group(self):
         self.service_group.group_version = self.version
@@ -148,8 +150,9 @@ class MarketApp(object):
                                        self.app_template_source.is_install_from_cloud(), self.component_keys,
                                        self.app_template_source.get_market_name()).components
         # components that need to be updated
-        update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version, self.component_keys).components
-        return NewApp(self.upgrade_group_id, new_components, update_components)
+        update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
+                                             self.component_keys).components
+        return NewApp(self.upgrade_group_id, self.app_template, new_components, update_components)
 
     # def _create_upgrade_record(self):
     #     AppUpgradeRecord(

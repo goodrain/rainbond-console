@@ -11,6 +11,7 @@ from console.repositories.app_config import volume_repo
 from console.repositories.probe_repo import probe_repo
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.component_graph import component_graph_repo
+from console.repositories.app_config import dep_relation_repo
 # exception
 from console.exception.main import AbortRequest
 
@@ -35,5 +36,6 @@ class OriginalApp(object):
             probe = probe_repo.get_probe(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
-            result.append(Component(cpt, component_source, envs, ports, volumes, probe, None, monitors, graphs))
+            component_deps = dep_relation_repo.get_service_dependencies(cpt.tenant_id, cpt.component_id)
+            result.append(Component(cpt, component_source, envs, ports, volumes, probe, None, monitors, graphs, component_deps))
         return result
