@@ -262,10 +262,12 @@ class AppUpgradeTaskView(RegionTenantHeaderCloudEnterpriseCenterView):
             service['service']['service_key']: service['upgrade_info']
             for service in data['services'] if service['service']['type'] == UpgradeType.ADD.value and service['upgrade_info']
         }
+
         # 安装插件
         plugins = template.get("plugins", None)
         if plugins:
             market_app_service.create_plugin_for_tenant(self.response_region, self.user, self.tenant, plugins)
+
         install_info = {}
         if add_service_infos:
             logger.debug("start create new component for upgrade {}".format(data['upgrade_record_id']))
@@ -392,3 +394,13 @@ class AppUpgradeComponentListView(ApplicationView):
         components = market_app_service.list_rainbond_app_components(self.user.enterprise_id, self.tenant, self.app_id,
                                                                      app_model_key, upgrade_group_id)
         return MessageResponse(msg="success", list=components)
+
+
+class AppUpgradeView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        upgrade_group_id = parse_item(request, "upgrade_group_id", required=True)
+        version = parse_item(request, "version", required=True)
+        component_keys = parse_item(request, "component_keys")
+        is_deploy = parse_item(request, "is_deploy", default=False)
+        market_app_service.upgrade(self.tenant, self.region_name, self.user, upgrade_group_id, version, component_keys, is_deploy)
+        return MessageResponse(msg="success", msg_show="升级成功")

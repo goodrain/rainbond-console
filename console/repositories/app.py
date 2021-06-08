@@ -258,6 +258,10 @@ class ServiceSourceRepository(object):
         # group_key is equivalent to app_id in rainbond_app
         return ServiceSourceInfo.objects.filter(team_id=team_id, group_key=app_id)
 
+    @staticmethod
+    def bulk_create(service_sources):
+        ServiceSourceInfo.objects.bulk_create(service_sources)
+
 
 class ServiceRecycleBinRepository(object):
     def get_team_trash_services(self, tenant_id):

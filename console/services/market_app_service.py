@@ -7,8 +7,11 @@ import json
 import logging
 import time
 
+# enum
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
+from console.enum.app import AppTemplateSourceEnum
+# exception
 from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
@@ -44,6 +47,7 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
+from console.services.market_app.market_app import MarketApp
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -53,6 +57,22 @@ mnt_service = AppMntService()
 
 
 class MarketAppService(object):
+    @staticmethod
+    def upgrade(tenant,
+                region_name,
+                user,
+                upgrade_group_id,
+                version,
+                component_keys=None,
+                is_deploy=False):
+        """
+        Upgrade application market applications
+        """
+        service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
+        market_app = MarketApp(tenant.enterprise_id, tenant, region_name, user, version, service_group, component_keys)
+        market_app.upgrade()
+        market_app.deploy()
+
     def install_service(self,
                         tenant,
                         region_name,
@@ -141,7 +161,7 @@ class MarketAppService(object):
             if is_deploy:
                 logger.debug("start deploy all component")
                 start = datetime.datetime.now()
-                events = self.__deploy_services(tenant, user, new_service_list, app_templates)
+                events = self.__deploy_servicesxxx(tenant, user, new_service_list, app_templates)
                 logger.debug("deploy component success, take time {}".format(datetime.datetime.now() - start))
             return tenant_service_group, events
         except Exception as e:

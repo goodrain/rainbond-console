@@ -1063,6 +1063,14 @@ class AppMarketService(object):
             organizations.append(Dict(org))
         return organizations
 
+    def update_market_app(self, app_id, upgrade_group_id, app_model_key, version):
+        # plugins
+        # config groups
+        # app
+        # create update record
+        # build, update or nothing
+        return
+
 
 app_service = AppService()
 app_market_service = AppMarketService()

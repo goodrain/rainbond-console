@@ -812,9 +812,9 @@ urlpatterns += [
     # 查询某云市应用下组件的更新信息
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-info$', app_upgrade.AppUpgradeInfoView.as_view(),
         perms.AppUpgradeInfoView),
-    # 创建升级任务
-    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-tasks$', app_upgrade.AppUpgradeTaskView.as_view(),
-        perms.AppUpgradeTaskView),
+    # upgrade application
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade$', app_upgrade.AppUpgradeView.as_view(),
+        perms.AppUpgradeView),
     # 回滚某一条升级
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/rollback$',
         app_upgrade.AppUpgradeRollbackView.as_view(), perms.AppUpgradeRollbackView)

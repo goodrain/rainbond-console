@@ -3130,7 +3130,7 @@ AppUpgradeInfoView = {
     }
 }
 
-AppUpgradeTaskView = {
+AppUpgradeView = {
     "__message": {
         "get": {
             "perms": [200001]

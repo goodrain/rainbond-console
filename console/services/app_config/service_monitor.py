@@ -107,5 +107,9 @@ class ComponentServiceMonitor(object):
     def delete_by_service_id(self, service_id):
         return ServiceMonitor.objects.filter(service_id=service_id).delete()
 
+    @staticmethod
+    def bulk_create(monitors):
+        ServiceMonitor.objects.bulk_create(monitors)
+
 
 service_monitor_repo = ComponentServiceMonitor()

@@ -125,6 +125,20 @@ class TenantServiceEnvVarRepository(object):
     def bulk_create(self, envs):
         TenantServiceEnvVar.objects.bulk_create(envs)
 
+    def bulk_create_or_update(self, envs):
+        for env in envs:
+            self.create_or_update(env)
+
+    @staticmethod
+    def create_or_update(env: TenantServiceEnvVar):
+        try:
+            old_env = TenantServiceEnvVar.objects.get(
+                tenant_id=env.tenant_id, service_id=env.service_id, attr_name=env.attr_name)
+            env.ID = old_env.ID
+            env.save()
+        except TenantServiceEnvVar.DoesNotExist:
+            env.save()
+
 
 class TenantServicePortRepository(object):
     def list_inner_ports(self, tenant_id, service_id):
@@ -641,6 +655,10 @@ class ServiceExtendRepository(object):
 
     def create_extend_method(self, **params):
         return ServiceExtendMethod.objects.create(**params)
+
+    @staticmethod
+    def bulk_create(extend_infos):
+        ServiceExtendMethod.objects.bulk_create(extend_infos)
 
 
 class CompileEnvRepository(object):
