@@ -15,12 +15,18 @@ from console.services.app import app_market_service
 # repo
 from console.repositories.app import service_source_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.region_app import region_app_repo
 # exception
 from console.exception.main import AbortRequest
 # model
 from www.models.main import TenantServiceGroup
+# from console.models.main import AppUpgradeRecord
+# from console.models.main import UpgradeStatus
+# www
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class MarketApp(object):
@@ -35,9 +41,11 @@ class MarketApp(object):
         self.region_name = region_name
         self.user = user
 
+        self.service_group = service_group
         self.app_id = service_group.service_group_id
         self.upgrade_group_id = service_group.ID
         self.app_model_key = service_group.group_key
+        self.old_version = service_group.group_version
         self.version = version
         self.component_keys = component_keys
 
@@ -53,6 +61,7 @@ class MarketApp(object):
         # TODO(huangrh): config groups
         # components
         self._update_components()
+        self._update_service_group()
         # TODO(huangrh): component dependencies
         # TODO(huangrh):  create update record
         # TODO(huangrh):  build, update or nothing
@@ -77,10 +86,33 @@ class MarketApp(object):
 
     def _sync_components(self, components):
         """
-        synchronous components  to the application in region
+        synchronous components to the application in region
         """
-        # TODO(huangrh)
-        pass
+        new_components = []
+        for cpt in components:
+            component_base = cpt.component.to_dict()
+            component_base["component_id"] = component_base["service_id"]
+            component_base["component_name"] = component_base["service_name"]
+            component_base["component_alias"] = component_base["service_alias"]
+            component = {
+                "component_base": component_base,
+                "envs": [env.to_dict() for env in cpt.envs],
+                "ports": [port.to_dict() for port in cpt.ports],
+                "volumes": [volume.to_dict() for volume in cpt.volumes],
+                "probe": cpt.probe,
+                "monitors": [monitor.to_dict() for monitor in cpt.monitors]
+            }
+            new_components.append(component)
+        print(json.dumps(new_components))
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
+        region_api.sync_components(self.tenant.tenant_name, self.region_name, region_app_id, {
+            "components": new_components,
+        })
+
+    def _update_service_group(self):
+        self.service_group.group_version = self.version
+        self.service_group.group_key = self.app_model_key
+        self.service_group.save()
 
     def _rollback_original_app(self):
         """
@@ -95,8 +127,7 @@ class MarketApp(object):
                                                                             self.version)
         else:
             _, app_version = app_market_service.cloud_app_model_to_db_model(self.app_template_source.get_market_name(),
-                                                                            self.app_model_key,
-                                                                            self.version)
+                                                                            self.app_model_key, self.version)
         try:
             return json.loads(app_version.app_template)
         except JSONDecodeError:
@@ -113,12 +144,19 @@ class MarketApp(object):
     def _new_app(self):
         # new components
         new_components = NewComponents(self.tenant, self.region_name, self.user, self.original_app,
-                                       self.app_model_key,
-                                       self.app_template,
-                                       self.version,
-                                       self.app_template_source.is_install_from_cloud(),
-                                       self.component_keys,
+                                       self.app_model_key, self.app_template, self.version,
+                                       self.app_template_source.is_install_from_cloud(), self.component_keys,
                                        self.app_template_source.get_market_name()).components
         # components that need to be updated
-        update_components = UpdateComponents(self.original_app, self.app_template, self.component_keys).components
+        update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version, self.component_keys).components
         return NewApp(self.upgrade_group_id, new_components, update_components)
+
+    # def _create_upgrade_record(self):
+    #     AppUpgradeRecord(
+    #         tenant_id=self.tenant_id,
+    #         group_id=self.app_id,
+    #         group_key=self.app_model_key,
+    #         version=self.version,
+    #         old_version=self.old_version,
+    #         status=UpgradeStatus.NOT.value,
+    #     )

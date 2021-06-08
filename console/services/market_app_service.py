@@ -10,7 +10,6 @@ import time
 # enum
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
-from console.enum.app import AppTemplateSourceEnum
 # exception
 from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
@@ -69,6 +68,8 @@ class MarketAppService(object):
         Upgrade application market applications
         """
         service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
+        if not service_group:
+            raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
         market_app = MarketApp(tenant.enterprise_id, tenant, region_name, user, version, service_group, component_keys)
         market_app.upgrade()
         market_app.deploy()

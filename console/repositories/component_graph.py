@@ -66,6 +66,10 @@ class ComponentGraphRepository(object):
     def bulk_create(self, component_graphs):
         ComponentGraph.objects.bulk_create(component_graphs)
 
+    def bulk_create_or_update(self, component_graphs):
+        ComponentGraph.objects.filter(pk__in=[graph.ID for graph in component_graphs]).delete()
+        self.bulk_create(component_graphs)
+
     def batch_delete(self, component_id, graph_ids):
         ComponentGraph.objects.filter(component_id=component_id, graph_id__in=graph_ids).delete()
 

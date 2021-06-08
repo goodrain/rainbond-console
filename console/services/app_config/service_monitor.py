@@ -111,5 +111,10 @@ class ComponentServiceMonitor(object):
     def bulk_create(monitors):
         ServiceMonitor.objects.bulk_create(monitors)
 
+    def bulk_create_or_update(self, monitors):
+        ids = [monitor.ID for monitor in monitors]
+        ServiceMonitor.objects.filter(pk__in=ids).delete()
+        self.bulk_create(monitors)
+
 
 service_monitor_repo = ComponentServiceMonitor()

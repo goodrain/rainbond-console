@@ -402,5 +402,6 @@ class AppUpgradeView(ApplicationView):
         version = parse_item(request, "version", required=True)
         component_keys = parse_item(request, "component_keys")
         is_deploy = parse_item(request, "is_deploy", default=False)
-        market_app_service.upgrade(self.tenant, self.region_name, self.user, upgrade_group_id, version, component_keys, is_deploy)
+        market_app_service.upgrade(self.tenant, self.region_name, self.user, upgrade_group_id, version, component_keys,
+                                   is_deploy)
         return MessageResponse(msg="success", msg_show="升级成功")

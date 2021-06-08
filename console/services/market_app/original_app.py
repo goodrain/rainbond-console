@@ -19,7 +19,8 @@ class OriginalApp(object):
     def __init__(self, app_id, app_model_key, upgrade_group_id):
         self.components = self._create_components(app_id, app_model_key, upgrade_group_id)
 
-    def _create_components(self, app_id, app_model_key, upgrade_group_id):
+    @staticmethod
+    def _create_components(app_id, app_model_key, upgrade_group_id):
         components = group_service.get_rainbond_services(app_id, app_model_key, upgrade_group_id)
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)

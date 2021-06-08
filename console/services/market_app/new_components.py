@@ -260,7 +260,7 @@ class NewComponents(object):
 
         components = [
             self._template_to_component(self.tenant.tenant_id, template) for template in templates
-            if template.get("service_key") in self.components_keys
+            if self.components_keys and template.get("service_key") in self.components_keys
         ]
 
         # make a map of templates
@@ -271,7 +271,7 @@ class NewComponents(object):
             component_tmpl = templates.get(cpt.service_key)
 
             # component source
-            component_source = self._template_to_component_source(cpt, )
+            component_source = self._template_to_component_source(cpt)
             # envs
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")

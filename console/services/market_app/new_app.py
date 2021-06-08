@@ -1,12 +1,14 @@
 # -*- coding: utf8 -*-
 
+from console.services.app_config.service_monitor import service_monitor_repo
+
 from console.repositories.service_repo import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.probe_repo import probe_repo
-from console.services.app_config.service_monitor import service_monitor_repo
+from console.repositories.app_config import volume_repo
 from console.repositories.component_graph import component_graph_repo
 
 
@@ -44,7 +46,8 @@ class NewApp(object):
             ports.extend(cpt.ports)
             volumes.extend(cpt.volumes)
             probes.extend(cpt.probes)
-            extend_infos.append(cpt.extend_info)
+            if cpt.extend_info:
+                extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
         components = [cpt.component for cpt in self.new_components]
@@ -62,6 +65,7 @@ class NewApp(object):
         """
         update existing components
         """
+        sources = []
         envs = []
         ports = []
         volumes = []
@@ -70,17 +74,23 @@ class NewApp(object):
         monitors = []
         graphs = []
         for cpt in self.update_components:
+            sources.append(cpt.component_source)
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             volumes.extend(cpt.volumes)
             if cpt.probe:
                 probes.append(cpt.probe)
-            extend_infos.append(cpt.extend_info)
+            if cpt.extend_info:
+                extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
 
         components = [cpt.component for cpt in self.update_components]
+        service_source_repo.bulk_create_or_update(sources)
         service_repo.bulk_update(components)
-        # TODO(huangrh): component sources
         env_var_repo.bulk_create_or_update(envs)
-        # TODO(huangrh): ports, probe, etc.
+        port_repo.bulk_create_or_update(ports)
+        volume_repo.bulk_create_or_update(volumes)
+        extend_repo.bulk_create_or_update(extend_infos)
+        service_monitor_repo.bulk_create_or_update(monitors)
+        component_graph_repo.bulk_create_or_update(graphs)

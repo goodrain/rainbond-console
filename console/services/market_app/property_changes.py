@@ -23,6 +23,8 @@ class PropertyChanges(object):
         for cpt in components:
             # get component template
             tmpl = self._get_component_template(cpt.component_source, app_template)
+            if not tmpl:
+                continue
             changes.append(self._get_component_change(cpt, tmpl))
         return changes
 
