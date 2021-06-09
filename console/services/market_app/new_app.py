@@ -26,8 +26,10 @@ from console.models.main import ConfigGroupItem
 from console.models.main import ConfigGroupService
 # utils
 from www.utils.crypt import make_uuid
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger('default')
+region_api = RegionInvokeApi()
 
 
 class NewApp(object):
@@ -35,8 +37,7 @@ class NewApp(object):
     A new application formed by template application in existing application
     """
 
-    def __init__(self, tenant_id, region_name, app_id, upgrade_group_id, app_template, new_components,
-                 update_components):
+    def __init__(self, tenant_id, region_name, app_id, upgrade_group_id, app_template, new_components, update_components):
         self.tenant_id = tenant_id
         self.region_name = region_name
         self.app_id = app_id
@@ -54,26 +55,39 @@ class NewApp(object):
         self.config_group_components = self._config_group_components()
 
     def save(self):
+        # component
         self._save_components()
         self._update_components()
+        # dependency
         self._save_component_deps()
         self._save_volume_deps()
+        # config group
+        self._save_config_groups()
 
     def components(self):
         components = self._components()
+        # component dependency
         component_deps = {}
         for dep in self.component_deps:
             deps = component_deps.get(dep.service_id, [])
             deps.append(dep)
             component_deps[dep.service_id] = deps
+        # volume dependency
         volume_deps = {}
         for dep in self.volume_deps:
             deps = volume_deps.get(dep.service_id, [])
             deps.append(dep)
             volume_deps[dep.service_id] = deps
+        # application config groups
+        config_group_components = {}
+        for cgc in self.config_group_components:
+            cgcs = config_group_components.get(cgc.service_id, [])
+            cgcs.append(cgc)
+            config_group_components[cgc.service_id] = cgcs
         for cpt in components:
             cpt.component_deps = component_deps.get(cpt.component.component_id)
             cpt.volume_deps = volume_deps.get(cpt.component.component_id)
+            cpt.app_config_groups = config_group_components.get(cpt.component.component_id)
         return components
 
     def _components(self):
@@ -165,22 +179,18 @@ class NewApp(object):
         volume_dep_repo.bulk_create_or_update(self.tenant_id, self.volume_deps)
 
     def _save_config_groups(self):
-        # app_config_group_repo.bulk_create_or_update(self.config_groups)
-        # app_config_group_item_repo.bulk_create_or_update(self.config_group_items)
-        # app_config_group_service_repo.bulk_create_or_update(self.config_group_components)
-        # TODO(huangrh): region should support updating config groups in batch
-        pass
+        app_config_group_repo.bulk_create_or_update(self.config_groups)
+        app_config_group_item_repo.bulk_create_or_update(self.config_group_items)
+        app_config_group_service_repo.bulk_create_or_update(self.config_group_components)
 
     def _exiting_deps(self):
         components = self._components()
-        return dep_relation_repo.list_by_component_ids(self.tenant_id,
-                                                       [cpt.component.component_id for cpt in components])
+        return dep_relation_repo.list_by_component_ids(self.tenant_id, [cpt.component.component_id for cpt in components])
 
     def _existing_volume_deps(self):
         components = self._components()
         volume_deps = volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id,
-                                                                        [cpt.component.component_id for cpt in
-                                                                         components])
+                                                                        [cpt.component.component_id for cpt in components])
         return {dep.key(): dep for dep in volume_deps}
 
     def _component_deps(self):

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 
-from console.services.market_app.new_components import Component
+from console.services.market_app.component import Component
 # service
 from console.services.group_service import group_service
 # repository

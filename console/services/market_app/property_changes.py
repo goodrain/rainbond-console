@@ -2,7 +2,7 @@
 import logging
 
 # service
-from console.services.market_app.new_components import Component
+from console.services.market_app.component import Component
 from console.services.app_config.promql_service import promql_service
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo

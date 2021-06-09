@@ -282,13 +282,7 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def create_service_volume(self,
-                              tenant,
-                              service,
-                              volume_path,
-                              volume_type,
-                              volume_name,
-                              settings=None):
+    def create_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         volume_name = self.check_volume_name(service, volume_name)
@@ -328,7 +322,14 @@ class AppVolumeService(object):
                            settings=None,
                            user_name=''):
 
-        volume = self.create_service_volume(tenant, service, volume_path, volume_type, volume_name, settings,)
+        volume = self.create_service_volume(
+            tenant,
+            service,
+            volume_path,
+            volume_type,
+            volume_name,
+            settings,
+        )
 
         # region端添加数据
         if service.create_status == "complete":

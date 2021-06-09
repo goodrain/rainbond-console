@@ -1845,7 +1845,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def sync_components(self, tenant_name, region_name, app_id, components):
         url, token = self.__get_region_access_info(tenant_name, region_name)
-        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/components".format(
-            tenant_name=tenant_name, app_id=app_id)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/components".format(tenant_name=tenant_name, app_id=app_id)
         self._set_headers(token)
         self._post(url, self.default_headers, body=json.dumps(components), region=region_name)
+
+    def sync_config_groups(self, tenant_name, region_name, app_id, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/app-config-groups".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)

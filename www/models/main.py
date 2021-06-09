@@ -973,7 +973,7 @@ class TenantServiceMountRelation(BaseModel):
     mnt_dir = models.CharField(max_length=400, help_text="mnt dir")
 
     def key(self):
-        return self.service_id+self.dep_service_id+self.mnt_name
+        return self.service_id + self.dep_service_id + self.mnt_name
 
 
 class TenantServiceVolume(BaseModel):

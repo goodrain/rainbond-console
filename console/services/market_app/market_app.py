@@ -75,9 +75,7 @@ class MarketApp(object):
     @transaction.atomic
     def _upgrade(self):
         # TODO(huangrh): install plugins
-        # TODO(huangrh): config groups
-        # components
-        self._update_components()
+        self._save()
         self._update_service_group()
 
     def _deploy(self, record):
@@ -105,9 +103,10 @@ class MarketApp(object):
             records.append(record)
         component_upgrade_record_repo.bulk_create(records)
 
-    def _update_components(self):
+    def _save(self):
         self.new_app.save()
         self._sync_components(self.new_app)
+        self._sync_app_config_groups(self.new_app)
 
     def _sync_components(self, app):
         """
@@ -136,6 +135,10 @@ class MarketApp(object):
             # component dependency
             if cpt.component_deps:
                 component["relations"] = [dep.to_dict() for dep in cpt.component_deps]
+            if cpt.app_config_groups:
+                component["app_config_groups"] = [{
+                    "config_group_name": config_group.config_group_name
+                } for config_group in cpt.app_config_groups]
             new_components.append(component)
 
         body = {
@@ -145,6 +148,34 @@ class MarketApp(object):
         print(json.dumps(body))
         region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         region_api.sync_components(self.tenant.tenant_name, self.region_name, region_app_id, body)
+
+    def _sync_app_config_groups(self, app):
+        config_group_items = dict()
+        for item in app.config_group_items:
+            items = config_group_items.get(item.config_group_name, [])
+            new_item = item.to_dict()
+            items.append(new_item)
+            config_group_items[item.config_group_name] = items
+        config_group_components = dict()
+        for cgc in app.config_group_components:
+            cgcs = config_group_components.get(cgc.config_group_name, [])
+            new_cgc = cgc.to_dict()
+            cgcs.append(new_cgc)
+            config_group_components[cgc.config_group_name] = cgcs
+        config_groups = list()
+        for config_group in app.config_groups:
+            cg = config_group.to_dict()
+            cg["config_items"] = config_group_items.get(config_group.config_group_name)
+            cg["config_group_services"] = config_group_components.get(config_group.config_group_name)
+            config_groups.append(cg)
+        body = {
+            "app_config_groups": config_groups,
+        }
+
+        print(json.dumps(body))
+
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
+        region_api.sync_config_groups(self.tenant.tenant_name, self.region_name, region_app_id, body)
 
     def _update_service_group(self):
         self.service_group.group_version = self.version
