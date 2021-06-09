@@ -180,7 +180,7 @@ class MarketApp(object):
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys).components
-        return NewApp(self.tenant_id, self.app_id, self.upgrade_group_id, self.app_template, new_components, update_components)
+        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template, new_components, update_components)
 
     def _create_upgrade_record(self, status):
         record = AppUpgradeRecord(

@@ -45,6 +45,12 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.filter(
             region_name=region_name, app_id=app_id, config_group_name=config_group_name).exists()
 
+    @staticmethod
+    def bulk_create_or_update(config_groups):
+        config_group_ids = [cg.config_group_id for cg in config_groups]
+        ApplicationConfigGroup.objects.filter(config_group_id__in=config_group_ids).delete()
+        ApplicationConfigGroup.objects.bulk_create(config_groups)
+
 
 class ApplicationConfigGroupServiceRepository(object):
     def create(self, **data):
@@ -52,6 +58,10 @@ class ApplicationConfigGroupServiceRepository(object):
 
     def list(self, config_group_id):
         return ConfigGroupService.objects.filter(config_group_id=config_group_id)
+
+    @staticmethod
+    def list_by_app_id(app_id):
+        return ConfigGroupService.objects.filter(app_id=app_id)
 
     def delete(self, config_group_id):
         return ConfigGroupService.objects.filter(config_group_id=config_group_id).delete()
@@ -62,6 +72,12 @@ class ApplicationConfigGroupServiceRepository(object):
     def delete_effective_service(self, service_id):
         return ConfigGroupService.objects.filter(service_id=service_id).delete()
 
+    @staticmethod
+    def bulk_create_or_update(config_group_components):
+        cgc_ids = [cgc.ID for cgc in config_group_components]
+        ConfigGroupService.objects.filter(pk__in=cgc_ids).delete()
+        ConfigGroupService.objects.bulk_create(config_group_components)
+
 
 class ApplicationConfigGroupItemRepository(object):
     def create(self, **data):
@@ -70,8 +86,18 @@ class ApplicationConfigGroupItemRepository(object):
     def list(self, config_group_id):
         return ConfigGroupItem.objects.filter(config_group_id=config_group_id)
 
+    @staticmethod
+    def list_by_config_group_ids(config_group_ids):
+        return ConfigGroupItem.objects.filter(config_group_id__in=config_group_ids)
+
     def delete(self, config_group_id):
         return ConfigGroupItem.objects.filter(config_group_id=config_group_id).delete()
+
+    @staticmethod
+    def bulk_create_or_update(items):
+        item_ids = [item.ID for item in items]
+        ConfigGroupItem.objects.filter(pk__in=item_ids).delete()
+        ConfigGroupItem.objects.bulk_create(items)
 
 
 app_config_group_repo = ApplicationConfigGroupRepository()
