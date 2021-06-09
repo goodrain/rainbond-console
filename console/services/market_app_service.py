@@ -126,12 +126,12 @@ class MarketAppService(object):
                 items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
                 try:
                     app_config_group_service.create_config_group(group_id, config_group["name"], items,
-                                                                 config_group["injection_type"], True, component_ids, region,
-                                                                 tenant.tenant_name)
+                                                                 config_group["injection_type"], True, component_ids,
+                                                                 region.region_name, tenant.tenant_name)
                 except ErrAppConfigGroupExists:
                     app_config_group_service.create_config_group(group_id, config_group["name"] + "-" + make_uuid()[:4], items,
-                                                                 config_group["injection_type"], True, component_ids, region,
-                                                                 tenant.tenant_name)
+                                                                 config_group["injection_type"], True, component_ids,
+                                                                 region.region_name, tenant.tenant_name)
 
             # create plugin for component
             self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
