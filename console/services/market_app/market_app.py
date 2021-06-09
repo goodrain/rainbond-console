@@ -123,10 +123,17 @@ class MarketApp(object):
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in cpt.envs],
                 "ports": [port.to_dict() for port in cpt.ports],
-                "volumes": [volume.to_dict() for volume in cpt.volumes],
+                "config_files": [cf.to_dict() for cf in cpt.config_files],
                 "probe": cpt.probe,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
             }
+            volumes = [volume.to_dict() for volume in cpt.volumes]
+            for volume in volumes:
+                volume["allow_expansion"] = True if volume["allow_expansion"] == 1 else False
+            # volume dependency
+            if cpt.volume_deps:
+                component["volume_relations"] = [dep.to_dict() for dep in cpt.volume_deps]
+            # component dependency
             if cpt.component_deps:
                 component["relations"] = [dep.to_dict() for dep in cpt.component_deps]
             new_components.append(component)
@@ -180,7 +187,8 @@ class MarketApp(object):
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys).components
-        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template, new_components, update_components)
+        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template, new_components,
+                      update_components)
 
     def _create_upgrade_record(self, status):
         record = AppUpgradeRecord(

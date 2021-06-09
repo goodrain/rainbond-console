@@ -321,7 +321,7 @@ class PropertiesChanges(object):
                 continue
             if not new_volume.get("file_content"):
                 continue
-            old_file_content = volume_repo.get_service_config_file(old_volume.ID)
+            old_file_content = volume_repo.get_service_config_file(old_volume)
             if old_file_content and old_file_content.file_content != new_volume["file_content"]:
                 update.append(new_volume)
         if not add and not update:

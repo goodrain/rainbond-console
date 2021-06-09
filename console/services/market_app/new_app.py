@@ -11,6 +11,8 @@ from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import extend_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.app_config import volume_repo
+from console.repositories.app_config import config_file_repo
+from console.repositories.app_config import mnt_repo as volume_dep_repo
 from console.repositories.component_graph import component_graph_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 from console.repositories.app_config_group import app_config_group_repo
@@ -18,6 +20,7 @@ from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 # model
 from www.models.main import TenantServiceRelation
+from www.models.main import TenantServiceMountRelation
 from console.models.main import ApplicationConfigGroup
 from console.models.main import ConfigGroupItem
 from console.models.main import ConfigGroupService
@@ -44,6 +47,7 @@ class NewApp(object):
 
         # component dependencies
         self.component_deps = self._component_deps()
+        self.volume_deps = self._volume_deps()
         # config groups
         self.config_groups = self._config_groups()
         self.config_group_items = self._config_group_items()
@@ -53,6 +57,7 @@ class NewApp(object):
         self._save_components()
         self._update_components()
         self._save_component_deps()
+        self._save_volume_deps()
 
     def components(self):
         components = self._components()
@@ -61,8 +66,14 @@ class NewApp(object):
             deps = component_deps.get(dep.service_id, [])
             deps.append(dep)
             component_deps[dep.service_id] = deps
+        volume_deps = {}
+        for dep in self.volume_deps:
+            deps = volume_deps.get(dep.service_id, [])
+            deps.append(dep)
+            volume_deps[dep.service_id] = deps
         for cpt in components:
             cpt.component_deps = component_deps.get(cpt.component.component_id)
+            cpt.volume_deps = volume_deps.get(cpt.component.component_id)
         return components
 
     def _components(self):
@@ -76,6 +87,7 @@ class NewApp(object):
         envs = []
         ports = []
         volumes = []
+        config_files = []
         probes = []
         extend_infos = []
         monitors = []
@@ -86,6 +98,7 @@ class NewApp(object):
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             volumes.extend(cpt.volumes)
+            config_files.extend(cpt.config_files)
             if cpt.probe:
                 probes.append(cpt.probe)
             if cpt.extend_info:
@@ -99,6 +112,8 @@ class NewApp(object):
         service_source_repo.bulk_create(component_sources)
         env_var_repo.bulk_create(envs)
         port_repo.bulk_create(ports)
+        volume_repo.bulk_create(volumes)
+        config_file_repo.bulk_create(config_files)
         probe_repo.bulk_create(probes)
         extend_repo.bulk_create(extend_infos)
         service_monitor_repo.bulk_create(monitors)
@@ -113,15 +128,18 @@ class NewApp(object):
         envs = []
         ports = []
         volumes = []
+        config_files = []
         probes = []
         extend_infos = []
         monitors = []
         graphs = []
+        # TODO(huangrh): merged with _save_components
         for cpt in self.update_components:
             sources.append(cpt.component_source)
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             volumes.extend(cpt.volumes)
+            config_files.extend(cpt.config_files)
             if cpt.probe:
                 probes.append(cpt.probe)
             if cpt.extend_info:
@@ -135,12 +153,16 @@ class NewApp(object):
         env_var_repo.bulk_create_or_update(envs)
         port_repo.bulk_create_or_update(ports)
         volume_repo.bulk_create_or_update(volumes)
+        config_file_repo.bulk_create_or_update(config_files)
         extend_repo.bulk_create_or_update(extend_infos)
         service_monitor_repo.bulk_create_or_update(monitors)
         component_graph_repo.bulk_create_or_update(graphs)
 
     def _save_component_deps(self):
         dep_relation_repo.bulk_create_or_update(self.tenant_id, self.component_deps)
+
+    def _save_volume_deps(self):
+        volume_dep_repo.bulk_create_or_update(self.tenant_id, self.volume_deps)
 
     def _save_config_groups(self):
         # app_config_group_repo.bulk_create_or_update(self.config_groups)
@@ -153,6 +175,13 @@ class NewApp(object):
         components = self._components()
         return dep_relation_repo.list_by_component_ids(self.tenant_id,
                                                        [cpt.component.component_id for cpt in components])
+
+    def _existing_volume_deps(self):
+        components = self._components()
+        volume_deps = volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id,
+                                                                        [cpt.component.component_id for cpt in
+                                                                         components])
+        return {dep.key(): dep for dep in volume_deps}
 
     def _component_deps(self):
         components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self._components()}
@@ -169,8 +198,8 @@ class NewApp(object):
                 dep_component_key = dep["dep_service_key"]
                 dep_component = components.get(dep_component_key)
                 if not dep_component:
-                    logger.info("The component({}) cannot find the dependent component({})".format(component_key,
-                                                                                                   dep_component_key))
+                    logger.info("The component({}) cannot find the dependent component({})".format(
+                        component_key, dep_component_key))
                     continue
 
                 if existing_deps.get(component.component_id + dep_component.component_id):
@@ -187,8 +216,52 @@ class NewApp(object):
         deps.extend(self._exiting_deps())
         return deps
 
+    def _volume_deps(self):
+        components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self._components()}
+        existing_volume_deps = self._existing_volume_deps()
+        deps = []
+        for tmpl in self.app_template.get("apps", []):
+            component_key = tmpl.get("service_share_uuid")
+            component = components.get(component_key)
+            if not component:
+                continue
+
+            for dep in tmpl.get("mnt_relation_list", []):
+                # check if the dependent component exists
+                dep_component_key = dep["service_share_uuid"]
+                dep_component = components.get(dep_component_key)
+                if not dep_component:
+                    logger.info("dependent component({}) not found".format(dep_component.service_id))
+                    continue
+
+                # check if the dependent volume exists
+                if not self._volume_exists(dep_component.service_id, dep["mnt_name"]):
+                    logger.info("dependent volume({}/{}) not found".format(dep_component.service_id, dep["mnt_name"]))
+                    continue
+
+                # check if the volume dependency exists
+                if existing_volume_deps.get(component.component_id + dep_component.component_id + dep["mnt_name"]):
+                    continue
+
+                dep = TenantServiceMountRelation(
+                    tenant_id=component.tenant_id,
+                    service_id=component.service_id,
+                    dep_service_id=dep_component.service_id,
+                    mnt_name=dep["mnt_name"],
+                    mnt_dir=dep["mnt_dir"],
+                )
+                deps.append(dep)
+        return deps
+
+    def _volume_exists(self, component_id, volume_name):
+        volumes = []
+        for cpt in self._components():
+            volumes.extend(cpt.volumes)
+        volumes = {vol.service_id + vol.volume_name: vol for vol in volumes}
+        return True if volumes.get(component_id + volume_name) else False
+
     def _config_groups(self):
-        config_groups = app_config_group_repo.list(self.region_name, self.app_id)
+        config_groups = list(app_config_group_repo.list(self.region_name, self.app_id))
         config_group_names = [cg.config_group_name for cg in config_groups]
         tmpl = self.app_template.get("app_config_groups")
         for cg in tmpl:
@@ -209,8 +282,8 @@ class NewApp(object):
         config_group_ids = [cg.config_group_id for cg in self.config_groups]
         config_groups = {cg.config_group_name: cg for cg in self.config_groups}
 
-        items = app_config_group_item_repo.list_by_config_group_ids(config_group_ids)
-        item_keys = [item.config_group_name + item.item_key for item in items]
+        config_group_items = list(app_config_group_item_repo.list_by_config_group_ids(config_group_ids))
+        item_keys = [item.config_group_name + item.item_key for item in config_group_items]
         tmpl = self.app_template.get("app_config_groups")
         for cg in tmpl:
             config_group = config_groups.get(cg["name"])
@@ -232,15 +305,15 @@ class NewApp(object):
                     item_value=items[item_key],
                     config_group_id=config_group.config_group_id,
                 )
-                items.append(item)
-        return items
+                config_group_items.append(item)
+        return config_group_items
 
     def _config_group_components(self):
         components = {cpt.component.service_key: cpt for cpt in self._components()}
 
         config_groups = {cg.config_group_name: cg for cg in self.config_groups}
 
-        config_group_components = app_config_group_service_repo.list_by_app_id(self.app_id)
+        config_group_components = list(app_config_group_service_repo.list_by_app_id(self.app_id))
         config_group_component_keys = [cgc.config_group_name + cgc.service_id for cgc in config_group_components]
 
         tmpl = self.app_template.get("app_config_groups")

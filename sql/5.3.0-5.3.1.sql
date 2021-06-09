@@ -6,3 +6,4 @@ ALTER TABLE tenant_info DROP COLUMN `region`;
 ALTER TABLE service_share_record ADD COLUMN `share_app_version_info` VARCHAR(255) DEFAULT '';
 
 ALTER TABLE app_upgrade_record ADD COLUMN `upgrade_group_id` int DEFAULT 0;
+ALTER TABLE `console`.`tenant_service_config` ADD COLUMN `volume_name` varchar(255) NULL AFTER `file_content`;

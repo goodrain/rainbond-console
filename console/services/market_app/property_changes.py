@@ -158,8 +158,8 @@ class PropertyChanges(object):
         add = []
         update = []
         for new_volume in new_volumes:
-            old_volume = old_volume_paths.get(new_volume["volume_path"], None)
-            old_volume_name = old_volume_names.get(new_volume["volume_name"], None)
+            old_volume = old_volume_paths.get(new_volume["volume_path"])
+            old_volume_name = old_volume_names.get(new_volume["volume_name"])
             if not old_volume and not old_volume_name:
                 add.append(new_volume)
                 continue
@@ -169,10 +169,7 @@ class PropertyChanges(object):
                 continue
             if not new_volume.get("file_content"):
                 continue
-            # TODO(huangrh)
-            # old_file_content = volume_repo.get_service_config_file(old_volume.ID)
-            # if old_file_content and old_file_content.file_content != new_volume["file_content"]:
-            #     update.append(new_volume)
+            # TODO(huangrh): update config file
         if not add and not update:
             return None
         return {

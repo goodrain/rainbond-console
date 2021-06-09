@@ -21,6 +21,7 @@ from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
 from www.models.service_publish import ServiceExtendMethod
+from www.models.main import TenantServiceConfigurationFile
 # exception
 from console.exception.main import AbortRequest
 from console.exception.bcode import ErrK8sServiceNameExists
@@ -42,6 +43,7 @@ class Component(object):
                  envs,
                  ports,
                  volumes,
+                 config_files,
                  probe,
                  extend_info,
                  monitors,
@@ -52,6 +54,7 @@ class Component(object):
         self.envs = list(envs)
         self.ports = list(ports)
         self.volumes = list(volumes)
+        self.config_files = list(config_files)
         self.probe = probe
         self.extend_info = extend_info
         self.monitors = list(monitors)
@@ -197,27 +200,22 @@ class Component(object):
         port["port_alias"] = port_alias
 
     def _update_volumes(self, volumes):
-        # TODO(huangrh): file content
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
                                                                    volume["volume_path"])
             volume["host_path"] = host_path
-            file_content = volume.get("file_content", None)
-            if file_content is not None:
+            file_content = volume.get("file_content")
+            if file_content:
+                self.config_files.append(
+                    TenantServiceConfigurationFile(
+                        service_id=self.component.component_id,
+                        volume_name=volume["volume_name"],
+                        file_content=file_content,
+                    ))
+            if "file_content" in volume.keys():
                 volume.pop("file_content")
             self.volumes.append(TenantServiceVolume(**volume))
-
-            # if not file_content and volume["volume_type"] != "config-file":
-            #     continue
-            # file_data = {"service_id": self.component.service_id, "volume_id": v.ID, "file_content": file_content}
-            # _ = volume_repo.add_service_config_file(**file_data)
-        for volume in volumes.get("upd"):
-            # only volume of type config-file can be updated,
-            # and only the contents of the configuration file can be updated.
-            file_content = volume.get("file_content", None)
-            if not file_content and volume["volume_type"] != "config-file":
-                continue
 
     def _update_probe(self, probe):
         add = probe.get("add")
@@ -291,7 +289,7 @@ class NewComponents(object):
             # ports
             ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
             # volumes
-            volumes = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
+            volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
             # probe
             probes = self._template_to_probes(cpt, component_tmpl.get("probes"))
             probe = None
@@ -310,7 +308,8 @@ class NewComponents(object):
                 region_name=self.region_name,
             )
             result.append(
-                Component(cpt, component_source, envs, ports, volumes, probe, extend_info, monitors, graphs, service_group_rel))
+                Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs,
+                          service_group_rel))
         return result
 
     def _template_to_component(self, tenant_id, template):
@@ -333,7 +332,7 @@ class NewComponents(object):
         component.service_type = "application"
         component.total_memory = component.min_node * component.min_memory
         component.service_source = AppConstants.MARKET
-        component.create_status = "creating"  # TODO(huangrh)
+        component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
 
         # component type
@@ -450,12 +449,18 @@ class NewComponents(object):
 
     def _template_to_volumes(self, component, volumes):
         if not volumes:
-            return []
-        result = []
+            return [], []
+        volumes2 = []
+        config_files = []
         for volume in volumes:
             try:
-                if "file_content" in list(volume.keys()) and volume["file_content"] != "":
-                    continue
+                if volume["volume_type"] == "config-file" and volume["file_content"] != "":
+                    settings = None
+                    config_file = TenantServiceConfigurationFile(
+                        service_id=component.component_id,
+                        volume_name=volume["volume_name"],
+                        file_content=volume["file_content"])
+                    config_files.append(config_file)
                 else:
                     settings = volume_service.get_best_suitable_volume_settings(self.tenant, component, volume["volume_type"],
                                                                                 volume.get("access_mode"),
@@ -471,11 +476,12 @@ class NewComponents(object):
                     else:
                         settings["volume_capacity"] = volume.get("volume_capacity", 0)
 
-                    result.append(
-                        volume_service.create_service_volume(self.tenant, component, volume["volume_path"],
-                                                             volume["volume_type"], volume["volume_name"], None, settings))
+                volumes2.append(
+                    volume_service.create_service_volume(self.tenant, component, volume["volume_path"], volume["volume_type"],
+                                                         volume["volume_name"], settings))
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
+        return volumes2, config_files
 
     def _template_to_probes(self, component, probes):
         if not probes:

@@ -25,6 +25,10 @@ class OriginalApp(object):
 
         self.component_deps = dep_relation_repo.list_by_component_ids(tenant_id,
                                                                       [cpt.component.component_id for cpt in self._components])
+        # TODO(huangrh): volume dependency
+        self.volume_deps = []
+        # TODO(huangrh): config groups
+        # TODO(huangrh): config files
 
     @staticmethod
     def _create_components(app_id, upgrade_group_id, app_model_key):
@@ -39,10 +43,11 @@ class OriginalApp(object):
             envs = env_var_repo.get_service_env(cpt.tenant_id, cpt.service_id)
             ports = port_repo.get_service_ports(cpt.tenant_id, cpt.service_id)
             volumes = volume_repo.get_service_volumes_with_config_file(cpt.service_id)
+            config_files = volume_repo.get_service_config_files(cpt.service_id)
             probe = probe_repo.get_probe(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
-            result.append(Component(cpt, component_source, envs, ports, volumes, probe, None, monitors, graphs))
+            result.append(Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs))
         return result
 
     def components(self):

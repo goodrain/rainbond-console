@@ -409,7 +409,7 @@ class AppService(object):
             for volume in volume_info:
                 volume_info = model_to_dict(volume)
                 if volume.volume_type == "config-file":
-                    config_file = volume_repo.get_service_config_file(volume.ID)
+                    config_file = volume_repo.get_service_config_file(volume)
                     if config_file:
                         volume_info.update({"file_content": config_file.file_content})
                 volume_list.append(volume_info)

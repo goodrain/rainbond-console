@@ -288,17 +288,13 @@ class AppVolumeService(object):
                               volume_path,
                               volume_type,
                               volume_name,
-                              file_content=None,
-                              settings=None,
-                              user_name=''):
+                              settings=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         volume_name = self.check_volume_name(service, volume_name)
+
         self.check_volume_path(service, volume_path)
         host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
-
-        self.check_volume_options(tenant, service, volume_type, settings)
-        settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 
         volume_data = {
             "service_id": service.service_id,
@@ -309,13 +305,17 @@ class AppVolumeService(object):
             "volume_name": volume_name
         }
 
-        volume_data['volume_capacity'] = settings['volume_capacity']
-        volume_data['volume_provider_name'] = settings['volume_provider_name']
-        volume_data['access_mode'] = settings['access_mode']
-        volume_data['share_policy'] = settings['share_policy']
-        volume_data['backup_policy'] = settings['backup_policy']
-        volume_data['reclaim_policy'] = settings['reclaim_policy']
-        volume_data['allow_expansion'] = settings['allow_expansion']
+        if settings:
+            self.check_volume_options(tenant, service, volume_type, settings)
+            settings = self.setting_volume_properties(tenant, service, volume_type, settings)
+
+            volume_data['volume_capacity'] = settings['volume_capacity']
+            volume_data['volume_provider_name'] = settings['volume_provider_name']
+            volume_data['access_mode'] = settings['access_mode']
+            volume_data['share_policy'] = settings['share_policy']
+            volume_data['backup_policy'] = settings['backup_policy']
+            volume_data['reclaim_policy'] = settings['reclaim_policy']
+            volume_data['allow_expansion'] = settings['allow_expansion']
         return TenantServiceVolume(**volume_data)
 
     def add_service_volume(self,
@@ -328,8 +328,7 @@ class AppVolumeService(object):
                            settings=None,
                            user_name=''):
 
-        volume = self.create_service_volume(tenant, service, volume_path, volume_type, volume_name, file_content, settings,
-                                            user_name)
+        volume = self.create_service_volume(tenant, service, volume_path, volume_type, volume_name, settings,)
 
         # region端添加数据
         if service.create_status == "complete":
@@ -381,7 +380,7 @@ class AppVolumeService(object):
                     raise ServiceHandleException(
                         msg="delete volume from region failure", msg_show="从集群删除存储发生错误", status_code=500)
         volume_repo.delete_volume_by_id(volume_id)
-        volume_repo.delete_file_by_volume_id(volume_id)
+        volume_repo.delete_file_by_volume(volume)
 
         return 200, "success", volume
 

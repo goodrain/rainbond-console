@@ -972,6 +972,9 @@ class TenantServiceMountRelation(BaseModel):
     mnt_name = models.CharField(max_length=100, help_text="mnt name")
     mnt_dir = models.CharField(max_length=400, help_text="mnt dir")
 
+    def key(self):
+        return self.service_id+self.dep_service_id+self.mnt_name
+
 
 class TenantServiceVolume(BaseModel):
     """数据持久化表格"""
@@ -1007,6 +1010,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text="组件id")
     volume_id = models.IntegerField(null=True, help_text="存储id")
+    volume_name = models.CharField(max_length=32, help_text="组件名称, 唯一标识")
     file_content = models.TextField(blank=True, help_text="配置文件内容")
 
 
