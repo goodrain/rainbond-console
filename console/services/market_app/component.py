@@ -94,7 +94,6 @@ class Component(object):
         return {
             "deploy_version": self._update_deploy_version,
             "app_version": self._update_version,
-            # "image": self.dummy_func,  # TODO(huangrh)
             "envs": self._update_inner_envs,
             "connect_infos": self._update_outer_envs,
             "ports": self._update_ports,

@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 
+from .utils import get_component_template
 from console.services.market_app.original_app import OriginalApp
 from console.services.market_app.property_changes import PropertyChanges
 from console.exception.main import AbortRequest
@@ -38,7 +39,16 @@ class UpdateComponents(object):
 
         cpt_changes = {change["component_id"]: change for change in pc.changes}
         for cpt in components:
+            component_tmpl = get_component_template(cpt.component_source, self.app_template)
+            if not component_tmpl:
+                continue
+
             cpt.set_changes(cpt_changes[cpt.component.component_id], self.original_app.governance_mode)
+
+            cpt.component.image = component_tmpl["share_image"]
+            cpt.component.cmd = component_tmpl.get("cmd", "")
+            cpt.component.version = component_tmpl["version"]
+
             cpt.component_source.group_key = self.app_model_key
             cpt.component_source.version = self.version
 

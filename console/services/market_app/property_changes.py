@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from .utils import get_component_template
 # service
 from console.services.market_app.component import Component
 from console.services.app_config.promql_service import promql_service
@@ -27,24 +28,12 @@ class PropertyChanges(object):
         cpt_changes = []
         for cpt in components:
             # get component template
-            tmpl = self._get_component_template(cpt.component_source, app_template)
+            tmpl = get_component_template(cpt.component_source, app_template)
             if not tmpl:
                 continue
             cpt_changes.append(self._get_component_change(cpt, tmpl))
 
         return cpt_changes
-
-    @staticmethod
-    def _get_component_template(component_source, app_template):
-        component_tmpls = app_template.get("apps")
-
-        def func(x):
-            result = x.get("service_share_uuid", None) == component_source.service_share_uuid \
-                     or x.get("service_key", None) == component_source.service_share_uuid
-
-            return result
-
-        return next(iter([x for x in component_tmpls if func(x)]), None)
 
     def _get_component_change(self, component: Component, component_tmpl: map):
         result = {"component_id": component.component.service_id}
