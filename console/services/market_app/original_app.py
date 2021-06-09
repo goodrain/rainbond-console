@@ -12,24 +12,35 @@ from console.repositories.probe_repo import probe_repo
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.component_graph import component_graph_repo
 from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import mnt_repo as volume_dep_repo
+from console.repositories.app_config_group import app_config_group_repo
+from console.repositories.app_config_group import app_config_group_item_repo
+from console.repositories.app_config_group import app_config_group_service_repo
 # exception
 from console.exception.main import AbortRequest
 
 
 class OriginalApp(object):
-    def __init__(self, tenant_id, app_id, upgrade_group_id, app_model_key, governance_mode):
+    def __init__(self, tenant, region_name, app_id, upgrade_group_id, app_model_key, governance_mode):
+        self.tenant_id = tenant.tenant_id
+        self.region_name = region_name
         self.app_id = app_id
         self.upgrade_group_id = upgrade_group_id
         self.app_model_key = app_model_key
         self.governance_mode = governance_mode
         self._components = self._create_components(app_id, upgrade_group_id, app_model_key)
 
-        self.component_deps = dep_relation_repo.list_by_component_ids(tenant_id,
+        self.component_deps = dep_relation_repo.list_by_component_ids(self.tenant_id,
                                                                       [cpt.component.component_id for cpt in self._components])
-        # TODO(huangrh): volume dependency
-        self.volume_deps = []
-        # TODO(huangrh): config groups
-        # TODO(huangrh): config files
+        self.volume_deps = self._volume_deps()
+
+        # config groups
+        self.config_groups = self._config_groups()
+        self.config_group_items = self._config_group_items()
+        self.config_group_components = self._config_group_components()
+
+    def components(self):
+        return self._components
 
     @staticmethod
     def _create_components(app_id, upgrade_group_id, app_model_key):
@@ -51,5 +62,15 @@ class OriginalApp(object):
             result.append(Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs))
         return result
 
-    def components(self):
-        return self._components
+    def _volume_deps(self):
+        component_ids = [cpt.component.component_id for cpt in self._components]
+        return list(volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id, component_ids))
+
+    def _config_groups(self):
+        return list(app_config_group_repo.list(self.region_name, self.app_id))
+
+    def _config_group_items(self):
+        return list(app_config_group_item_repo.list_by_app_id(self.app_id))
+
+    def _config_group_components(self):
+        return list(app_config_group_service_repo.list_by_app_id(self.app_id))

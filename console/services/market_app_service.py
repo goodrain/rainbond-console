@@ -155,7 +155,7 @@ class MarketAppService(object):
             if is_deploy:
                 logger.debug("start deploy all component")
                 start = datetime.datetime.now()
-                events = self.__deploy_servicesxxx(tenant, user, new_service_list, app_templates)
+                events = self.__deploy_services(tenant, user, new_service_list, app_templates)
                 logger.debug("deploy component success, take time {}".format(datetime.datetime.now() - start))
             return tenant_service_group, events
         except Exception as e:

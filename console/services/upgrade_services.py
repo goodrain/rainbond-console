@@ -39,7 +39,7 @@ class UpgradeService(object):
         except TenantEnterpriseToken.DoesNotExist:
             return None
 
-    def get_or_create_upgrade_record(self, tenant_id, group_id, group_key, is_from_cloud, market_name):
+    def get_or_create_upgrade_record(self, tenant_id, group_id, group_key, upgrade_group_id, is_from_cloud, market_name):
         """获取或创建升级记录"""
         recode_kwargs = {
             "tenant_id": tenant_id,
@@ -48,6 +48,7 @@ class UpgradeService(object):
             "create_time": datetime.now(),
             "is_from_cloud": is_from_cloud,
             "market_name": market_name,
+            "upgrade_group_id": upgrade_group_id,
         }
         try:
             return upgrade_repo.get_app_not_upgrade_record(status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)

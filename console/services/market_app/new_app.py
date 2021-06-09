@@ -37,7 +37,8 @@ class NewApp(object):
     A new application formed by template application in existing application
     """
 
-    def __init__(self, tenant_id, region_name, app_id, upgrade_group_id, app_template, governance_mode, new_components, update_components):
+    def __init__(self, tenant_id, region_name, app_id, upgrade_group_id, app_template, governance_mode, new_components,
+                 update_components):
         self.tenant_id = tenant_id
         self.region_name = region_name
         self.app_id = app_id
@@ -290,10 +291,9 @@ class NewApp(object):
         return config_groups
 
     def _config_group_items(self):
-        config_group_ids = [cg.config_group_id for cg in self.config_groups]
         config_groups = {cg.config_group_name: cg for cg in self.config_groups}
+        config_group_items = list(app_config_group_item_repo.list_by_app_id(self.app_id))
 
-        config_group_items = list(app_config_group_item_repo.list_by_config_group_ids(config_group_ids))
         item_keys = [item.config_group_name + item.item_key for item in config_group_items]
         tmpl = self.app_template.get("app_config_groups")
         for cg in tmpl:

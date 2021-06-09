@@ -58,7 +58,8 @@ class MarketApp(object):
         self.app_template_source = self._app_template_source()
         self.app_template = self._app_template()
         # original app
-        self.original_app = OriginalApp(self.tenant_id, self.app_id, self.upgrade_group_id, self.app_model_key, self.app.governance_mode)
+        self.original_app = OriginalApp(self.tenant, self.region_name, self.app_id, self.upgrade_group_id, self.app_model_key,
+                                        self.app.governance_mode)
         self.new_app = self._new_app()
 
     def upgrade(self):
@@ -131,9 +132,16 @@ class MarketApp(object):
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:
                 volume["allow_expansion"] = True if volume["allow_expansion"] == 1 else False
+            component["volumes"] = volumes
             # volume dependency
             if cpt.volume_deps:
-                component["volume_relations"] = [dep.to_dict() for dep in cpt.volume_deps]
+                deps = []
+                for dep in cpt.volume_deps:
+                    new_dep = dep.to_dict()
+                    new_dep["dep_volume_name"] = dep.mnt_name
+                    new_dep["mount_path"] = dep.mnt_dir
+                    deps.append(new_dep)
+                component["volume_relations"] = deps
             # component dependency
             if cpt.component_deps:
                 component["relations"] = [dep.to_dict() for dep in cpt.component_deps]
@@ -220,8 +228,8 @@ class MarketApp(object):
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys).components
-        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template, self.app.governance_mode, new_components,
-                      update_components)
+        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template,
+                      self.app.governance_mode, new_components, update_components)
 
     def _create_upgrade_record(self, status):
         record = AppUpgradeRecord(

@@ -87,8 +87,8 @@ class ApplicationConfigGroupItemRepository(object):
         return ConfigGroupItem.objects.filter(config_group_id=config_group_id)
 
     @staticmethod
-    def list_by_config_group_ids(config_group_ids):
-        return ConfigGroupItem.objects.filter(config_group_id__in=config_group_ids)
+    def list_by_app_id(app_id):
+        return ConfigGroupItem.objects.filter(app_id=app_id)
 
     def delete(self, config_group_id):
         return ConfigGroupItem.objects.filter(config_group_id=config_group_id).delete()
