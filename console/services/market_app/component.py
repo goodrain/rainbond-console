@@ -14,6 +14,8 @@ from console.models.main import ComponentGraph
 from www.models.main import TenantServiceConfigurationFile
 # exception
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
+# enum
+from console.enum.app import GovernanceModeEnum
 # util
 from www.utils.crypt import make_uuid
 
@@ -48,7 +50,7 @@ class Component(object):
         self.app_config_groups = []
         self.service_group_rel = service_group_rel
 
-    def set_changes(self, changes):
+    def set_changes(self, changes, governance_mode):
         """
         Set changes to the component
         """
@@ -58,19 +60,20 @@ class Component(object):
                 continue
             update_func = update_funcs[key]
             update_func(changes.get(key))
-        self._ensure_port_envs()
+        self._ensure_port_envs(governance_mode)
 
-    def _ensure_port_envs(self):
+    def _ensure_port_envs(self, governance_mode):
         # filter out the old port envs
         envs = [env for env in self.envs if env.container_port != 0]
         # create outer envs for every port
         for port in self.ports:
-            envs.extend(self._create_envs_4_ports(port))
+            envs.extend(self._create_envs_4_ports(port, governance_mode))
         self.envs = envs
 
-    def _create_envs_4_ports(self, port: TenantServicesPort):
+    def _create_envs_4_ports(self, port: TenantServicesPort, governance_mode):
         port_alias = self.component.service_alias.upper()
-        host_env = self._create_port_env(port, "连接地址", port_alias + "_HOST", "127.0.0.1")
+        host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
+        host_env = self._create_port_env(port, "连接地址", port_alias + "_HOST", host_value)
         port_env = self._create_port_env(port, "端口", port_alias + "_PORT", str(port.container_port))
         return [host_env, port_env]
 

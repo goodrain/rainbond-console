@@ -37,12 +37,13 @@ class NewApp(object):
     A new application formed by template application in existing application
     """
 
-    def __init__(self, tenant_id, region_name, app_id, upgrade_group_id, app_template, new_components, update_components):
+    def __init__(self, tenant_id, region_name, app_id, upgrade_group_id, app_template, governance_mode, new_components, update_components):
         self.tenant_id = tenant_id
         self.region_name = region_name
         self.app_id = app_id
         self.upgrade_group_id = upgrade_group_id
         self.app_template = app_template
+        self.governance_mode = governance_mode
         self.new_components = new_components
         self.update_components = update_components
 

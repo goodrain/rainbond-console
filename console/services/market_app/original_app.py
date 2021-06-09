@@ -17,10 +17,11 @@ from console.exception.main import AbortRequest
 
 
 class OriginalApp(object):
-    def __init__(self, tenant_id, app_id, upgrade_group_id, app_model_key):
+    def __init__(self, tenant_id, app_id, upgrade_group_id, app_model_key, governance_mode):
         self.app_id = app_id
         self.upgrade_group_id = upgrade_group_id
         self.app_model_key = app_model_key
+        self.governance_mode = governance_mode
         self._components = self._create_components(app_id, upgrade_group_id, app_model_key)
 
         self.component_deps = dep_relation_repo.list_by_component_ids(tenant_id,

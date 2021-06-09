@@ -19,6 +19,7 @@ from console.repositories.app import service_source_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
+from console.repositories.group import group_repo
 # exception
 from console.exception.main import AbortRequest, ServiceHandleException
 # model
@@ -46,6 +47,7 @@ class MarketApp(object):
 
         self.service_group = service_group
         self.app_id = service_group.service_group_id
+        self.app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, self.app_id)
         self.upgrade_group_id = service_group.ID
         self.app_model_key = service_group.group_key
         self.old_version = service_group.group_version
@@ -56,7 +58,7 @@ class MarketApp(object):
         self.app_template_source = self._app_template_source()
         self.app_template = self._app_template()
         # original app
-        self.original_app = OriginalApp(self.tenant_id, self.app_id, self.upgrade_group_id, self.app_model_key)
+        self.original_app = OriginalApp(self.tenant_id, self.app_id, self.upgrade_group_id, self.app_model_key, self.app.governance_mode)
         self.new_app = self._new_app()
 
     def upgrade(self):
@@ -218,7 +220,7 @@ class MarketApp(object):
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys).components
-        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template, new_components,
+        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template, self.app.governance_mode, new_components,
                       update_components)
 
     def _create_upgrade_record(self, status):
