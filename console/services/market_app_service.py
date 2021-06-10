@@ -23,6 +23,7 @@ from console.repositories.plugin import plugin_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import (AppMntService, domain_service, port_service, probe_service, volume_service)
@@ -45,6 +46,7 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
                              TenantServicesPort, Users)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
+from console.models.main import UpgradeStatus
 from www.utils.crypt import make_uuid
 from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.app_restore import AppRestore
@@ -58,17 +60,22 @@ mnt_service = AppMntService()
 
 class MarketAppService(object):
     @staticmethod
-    def upgrade(tenant, region_name, user, upgrade_group_id, version, component_keys=None):
+    def upgrade(tenant, region_name, user, upgrade_group_id, version, record_id, component_keys=None):
         """
         Upgrade application market applications
         """
+        record = upgrade_repo.get_by_record_id(record_id)
+        if record.status != UpgradeStatus.NOT.value:
+            raise AbortRequest("the status of the upgrade record is not not_upgraded", "只能升级未升级的升级记录")
+
         service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
         if not service_group:
             raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
-        market_app = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, service_group, component_keys)
+        market_app = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, service_group, record, component_keys)
         market_app.upgrade()
 
-    def restore(self, tenant, region_name, app, upgrade_group_id, record):
+    @staticmethod
+    def restore(tenant, region_name, app, upgrade_group_id, record):
         service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
         if not service_group:
             raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)

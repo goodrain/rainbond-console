@@ -21,6 +21,7 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.region_app import region_app_repo
 # model
 from www.models.main import ServiceGroup
+from www.models.main import TenantServiceGroup
 # utils
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -37,7 +38,7 @@ class NewApp(object):
                  tenant,
                  region_name,
                  app: ServiceGroup,
-                 upgrade_group_id,
+                 component_group: TenantServiceGroup,
                  new_components,
                  update_components,
                  component_deps,
@@ -50,7 +51,8 @@ class NewApp(object):
         self.region_name = region_name
         self.app_id = app.app_id
         self.app = app
-        self.upgrade_group_id = upgrade_group_id
+        self.component_group = component_group
+        self.upgrade_group_id = component_group.ID
         self.region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         self.governance_mode = app.governance_mode
         self.new_components = new_components
@@ -75,6 +77,8 @@ class NewApp(object):
         self._save_volume_deps()
         # config group
         self._save_config_groups()
+        # component group
+        self.component_group.save()
 
     def components(self):
         components = self._components()

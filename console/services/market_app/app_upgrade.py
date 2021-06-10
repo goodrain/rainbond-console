@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import copy
 from datetime import datetime
 from json.decoder import JSONDecodeError
 
@@ -48,7 +49,8 @@ region_api = RegionInvokeApi()
 
 
 class AppUpgrade(MarketApp):
-    def __init__(self, enterprise_id, tenant, region_name, user, version, service_group: TenantServiceGroup, component_keys):
+    def __init__(self, enterprise_id, tenant, region_name, user, version, component_group: TenantServiceGroup,
+                 record: AppUpgradeRecord, component_keys):
         """
         components_keys: component keys that the user select.
         """
@@ -58,12 +60,13 @@ class AppUpgrade(MarketApp):
         self.region_name = region_name
         self.user = user
 
-        self.service_group = service_group
-        self.app_id = service_group.service_group_id
+        self.component_group = component_group
+        self.record = record
+        self.app_id = component_group.service_group_id
         self.app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, self.app_id)
-        self.upgrade_group_id = service_group.ID
-        self.app_model_key = service_group.group_key
-        self.old_version = service_group.group_version
+        self.upgrade_group_id = component_group.ID
+        self.app_model_key = component_group.group_key
+        self.old_version = component_group.group_version
         self.version = version
         self.component_keys = component_keys
 
@@ -81,15 +84,16 @@ class AppUpgrade(MarketApp):
         self.sync_new_app()
 
         try:
-            record = self._save_app()
+            snapshot = self._save_app()
+            self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot.snapshot_id)
         except Exception as e:
             logger.exception(e)
             # rollback on failure
             self._sync_app(self.original_app)
-            self._create_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
+            self._update_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
             raise ServiceHandleException("unexpected error", "未知错误, 请联系管理员")
 
-        self._deploy(record)
+        self._deploy(self.record)
 
     def _deploy(self, record):
         # Optimization: not all components need deploy
@@ -118,10 +122,8 @@ class AppUpgrade(MarketApp):
 
     @transaction.atomic
     def _save_app(self):
-        self.new_app.save()
-        self._update_service_group()
-        snap = self._take_snapshot()
-        return self._create_upgrade_record(UpgradeStatus.UPGRADING.value, snap.snapshot_id)
+        self.save_new_app()
+        return self._take_snapshot()
 
     def _sync_app(self, app):
         self._sync_components(app)
@@ -203,11 +205,6 @@ class AppUpgrade(MarketApp):
         region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         region_api.sync_config_groups(self.tenant.tenant_name, self.region_name, region_app_id, body)
 
-    def _update_service_group(self):
-        self.service_group.group_version = self.version
-        self.service_group.group_key = self.app_model_key
-        self.service_group.save()
-
     def _rollback_original_app(self):
         """
         rollback the original app on failure
@@ -259,11 +256,14 @@ class AppUpgrade(MarketApp):
         config_group_items = self._config_group_items(config_groups)
         config_group_components = self._config_group_components(components, config_groups)
 
+        component_group = copy.deepcopy(self.component_group)
+        component_group.group_version = self.version
+
         return NewApp(
             self.tenant,
             self.region_name,
             self.app,
-            self.upgrade_group_id,
+            component_group,
             new_components,
             update_components,
             component_deps,
@@ -369,19 +369,10 @@ class AppUpgrade(MarketApp):
             config_groups.append(config_group)
         return config_groups
 
-    def _create_upgrade_record(self, status, snapshot_id=None):
-        record = AppUpgradeRecord(
-            tenant_id=self.tenant_id,
-            group_id=self.app_id,
-            group_key=self.app_model_key,
-            version=self.version,
-            old_version=self.old_version,
-            status=status,
-            upgrade_group_id=self.upgrade_group_id,
-            snapshot_id=snapshot_id,
-        )
-        record.save()
-        return record
+    def _update_upgrade_record(self, status, snapshot_id=None):
+        self.record.status = status
+        self.record.snapshot_id = snapshot_id
+        self.record.save()
 
     def _take_snapshot(self):
         components = []
@@ -396,7 +387,10 @@ class AppUpgrade(MarketApp):
                 tenant_id=self.tenant_id,
                 upgrade_group_id=self.upgrade_group_id,
                 snapshot_id=make_uuid(),
-                snapshot=json.dumps({"components": components}),
+                snapshot=json.dumps({
+                    "components": components,
+                    "component_group": self.component_group.to_dict(),
+                }),
             ))
         return snapshot
 

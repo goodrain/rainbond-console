@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import copy
 
 from .app import MarketApp
 from .original_app import OriginalApp
@@ -10,6 +11,7 @@ from .component import Component
 from console.repositories.app_snapshot import app_snapshot_repo
 # model
 from www.models.main import ServiceGroup
+from www.models.main import TenantServiceGroup
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServiceEnvVar
 from www.models.main import TenantServicesPort
@@ -19,6 +21,7 @@ from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
 from www.models.main import ServiceProbe
 from www.models.service_publish import ServiceExtendMethod
+from console.models.main import UpgradeStatus
 from console.models.main import AppUpgradeRecord
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
@@ -37,14 +40,15 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     """
 
-    def __init__(self, tenant, region_name, app: ServiceGroup, upgrade_group_id, record: AppUpgradeRecord):
+    def __init__(self, tenant, region_name, app: ServiceGroup, component_group: TenantServiceGroup, record: AppUpgradeRecord):
         self.tenant = tenant
         self.region_name = region_name
         self.app = app
-        self.upgrade_group_id = upgrade_group_id
+        self.upgrade_group_id = component_group.service_group_id
         self.record = record
+        self.component_group = component_group
 
-        self.original_app = OriginalApp(tenant.tenant_id, region_name, app, upgrade_group_id)
+        self.original_app = OriginalApp(tenant.tenant_id, region_name, app, component_group.service_group_id)
         self.snapshot = self._get_snapshot()
         self.new_app = self._create_new_app()
         super(AppRestore, self).__init__(self.original_app, self.new_app)
@@ -52,11 +56,23 @@ class AppRestore(MarketApp):
     def restore(self):
         self.sync_new_app()
         try:
-            self.save_new_app()
+            self._save_new_app()
         except Exception as e:
             logger.exception(e)
             self.rollback()
             raise ServiceHandleException("unexpected error", "未知错误, 请联系管理员")
+
+    def _save_new_app(self):
+        # save new app
+        self.save_new_app()
+        # update record
+        self._update_upgrade_record(UpgradeStatus.ROLLING.value)
+
+
+    def _update_upgrade_record(self, status, snapshot_id=None):
+        self.record.status = status
+        self.record.snapshot_id=snapshot_id
+        self.record.save()
 
     def _get_snapshot(self):
         snap = app_snapshot_repo.get_by_snapshot_id(self.record.snapshot_id)
@@ -87,7 +103,7 @@ class AppRestore(MarketApp):
             tenant=self.tenant,
             region_name=self.region_name,
             app=self.app,
-            upgrade_group_id=self.upgrade_group_id,
+            component_group=self._create_component_group(),
             new_components=[],
             update_components=components,
             component_deps=component_deps,
@@ -142,3 +158,10 @@ class AppRestore(MarketApp):
             volume_deps.extend([TenantServiceMountRelation(**dep) for dep in snap["service_mnts"]])
         # filter out the component dependencies which dep_service_id does not belong to the components
         return [dep for dep in volume_deps if dep.dep_service_id in component_ids]
+
+    def _create_component_group(self):
+        component_group = self.snapshot["component_group"]
+        version = component_group["group_version"]
+        component_group = copy.deepcopy(self.component_group)
+        component_group.group_version = version
+        return component_group
