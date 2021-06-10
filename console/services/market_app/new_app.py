@@ -40,11 +40,12 @@ class NewApp(object):
     """
 
     def __init__(self, tenant, region_name, app: ServiceGroup, upgrade_group_id, new_components,
-                 update_components, component_deps):
+                 update_components, component_deps, volume_deps):
         self.tenant = tenant
         self.tenant_id = tenant.tenant_id
         self.region_name = region_name
         self.app_id = app.app_id
+        self.app = app
         self.upgrade_group_id = upgrade_group_id
         self.region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         self.governance_mode = app.governance_mode
@@ -52,11 +53,11 @@ class NewApp(object):
         self.update_components = update_components
         self.component_ids = [cpt.component.component_id for cpt in self._components()]
 
-        # TODO(huangrh)
         # component dependencies
-        self.component_deps = component_deps
-        # self.volume_deps = self._volume_deps()
-        self.volume_deps = []
+        self.component_deps = component_deps if component_deps else []
+        # volume dependencies
+        self.volume_deps = volume_deps if volume_deps else []
+        # TODO(huangrh)
         # config groups
         self.config_groups = []
         # self.config_groups = self._config_groups()
@@ -187,7 +188,7 @@ class NewApp(object):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)
 
     def _save_volume_deps(self):
-        volume_dep_repo.bulk_create_or_update(self.tenant_id, self.volume_deps)
+        volume_dep_repo.overwrite_by_component_id(self.component_ids, self.volume_deps)
 
     def _save_config_groups(self):
         app_config_group_repo.bulk_create_or_update(self.config_groups)
@@ -199,53 +200,6 @@ class NewApp(object):
         volume_deps = volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id,
                                                                         [cpt.component.component_id for cpt in components])
         return {dep.key(): dep for dep in volume_deps}
-
-    # def _volume_deps(self):
-    #     """
-    #     Complete coverage under the same component group(upgrade_group_id)
-    #     """
-    #     components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self._components()}
-    #     existing_volume_deps = self._existing_volume_deps()
-    #     deps = []
-    #     for tmpl in self.app_template.get("apps", []):
-    #         component_key = tmpl.get("service_share_uuid")
-    #         component = components.get(component_key)
-    #         if not component:
-    #             continue
-    #
-    #         for dep in tmpl.get("mnt_relation_list", []):
-    #             # check if the dependent component exists
-    #             dep_component_key = dep["service_share_uuid"]
-    #             dep_component = components.get(dep_component_key)
-    #             if not dep_component:
-    #                 logger.info("dependent component({}) not found".format(dep_component.service_id))
-    #                 continue
-    #
-    #             # check if the dependent volume exists
-    #             if not self._volume_exists(dep_component.service_id, dep["mnt_name"]):
-    #                 logger.info("dependent volume({}/{}) not found".format(dep_component.service_id, dep["mnt_name"]))
-    #                 continue
-    #
-    #             # check if the volume dependency exists
-    #             if existing_volume_deps.get(component.component_id + dep_component.component_id + dep["mnt_name"]):
-    #                 continue
-    #
-    #             dep = TenantServiceMountRelation(
-    #                 tenant_id=component.tenant_id,
-    #                 service_id=component.service_id,
-    #                 dep_service_id=dep_component.service_id,
-    #                 mnt_name=dep["mnt_name"],
-    #                 mnt_dir=dep["mnt_dir"],
-    #             )
-    #             deps.append(dep)
-    #     return deps
-
-    def _volume_exists(self, component_id, volume_name):
-        volumes = []
-        for cpt in self._components():
-            volumes.extend(cpt.volumes)
-        volumes = {vol.service_id + vol.volume_name: vol for vol in volumes}
-        return True if volumes.get(component_id + volume_name) else False
 
     # def _config_groups(self):
     #     """

@@ -33,7 +33,7 @@ class MarketApp(object):
         """
         确保组件依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
-        只处理同一应用下, 同一 upgrade_group_id的组件的依赖关系, 即
+        只处理同一应用下, 同一 upgrade_group_id 的组件的依赖关系, 即
         情况 1: 覆盖 app_id 和 upgrade_group_id 依赖关系
         情况 2: 保留 app_id 和 upgrade_group_id 都不同的依赖关系
         """
@@ -41,6 +41,22 @@ class MarketApp(object):
         # component_ids 是相同 app_id 和 upgrade_group_id 下的组件, 所以 dep_service_id 不属于 component_ids 的依赖关系属于'情况2'
         component_ids = [cpt.component.component_id for cpt in original_app.components()]
         deps = [dep for dep in original_app.component_deps if dep.dep_service_id not in component_ids]
+        deps.extend(new_deps)
+        return deps
+
+    @staticmethod
+    def ensure_volume_deps(original_app: OriginalApp, new_deps):
+        """
+        确保存储依赖关系的正确性.
+        根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
+        只处理同一应用下, 同一 upgrade_group_id 的存储的依赖关系, 即
+        情况 1: 覆盖 app_id 和 upgrade_group_id 存储依赖关系
+        情况 2: 保留 app_id 和 upgrade_group_id 都不同的存储依赖关系
+        """
+        # 保留 app_id 和 upgrade_group_id 都不同的依赖关系
+        # component_ids 是相同 app_id 和 upgrade_group_id 下的组件, 所以 dep_service_id 不属于 component_ids 的依赖关系属于'情况2'
+        component_ids = [cpt.component.component_id for cpt in original_app.components()]
+        deps = [dep for dep in original_app.volume_deps if dep.dep_service_id not in component_ids]
         deps.extend(new_deps)
         return deps
 

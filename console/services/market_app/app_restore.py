@@ -52,7 +52,7 @@ class AppRestore(MarketApp):
     def restore(self):
         self.sync_new_app()
         try:
-            record = self.save_new_app()
+            self.save_new_app()
         except Exception as e:
             logger.exception(e)
             self.rollback()
@@ -73,11 +73,15 @@ class AppRestore(MarketApp):
         components = []
         for snap in self.snapshot["components"]:
             components.append(self._create_component(snap))
+        component_ids = [cpt.component.component_id for cpt in components]
 
         # component dependencies
-        component_ids = [cpt.component.component_id for cpt in components]
         new_deps = self._create_component_deps(component_ids)
         component_deps = self.ensure_component_deps(self.original_app, new_deps)
+
+        # volume dependencies
+        new_volume_deps = self._create_volume_deps(component_ids)
+        volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
 
         return NewApp(
             tenant=self.tenant,
@@ -87,6 +91,7 @@ class AppRestore(MarketApp):
             new_components=[],
             update_components=components,
             component_deps=component_deps,
+            volume_deps=volume_deps,
         )
 
     @staticmethod
@@ -132,8 +137,9 @@ class AppRestore(MarketApp):
         # filter out the component dependencies which dep_service_id does not belong to the components
         return [dep for dep in component_deps if dep.dep_service_id in component_ids]
 
-    def _create_volume_deps(self):
+    def _create_volume_deps(self, component_ids):
         volume_deps = []
         for snap in self.snapshot["components"]:
             volume_deps.extend([TenantServiceMountRelation(**dep) for dep in snap["service_mnts"]])
-        return volume_deps
+        # filter out the component dependencies which dep_service_id does not belong to the components
+        return [dep for dep in volume_deps if dep.dep_service_id in component_ids]

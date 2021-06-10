@@ -28,6 +28,7 @@ from console.exception.main import AbortRequest, ServiceHandleException
 # model
 from www.models.main import TenantServiceGroup
 from www.models.main import TenantServiceRelation
+from www.models.main import TenantServiceMountRelation
 from console.models.main import AppUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.models.main import ServiceUpgradeRecord
@@ -72,7 +73,7 @@ class AppUpgrade(MarketApp):
 
     def upgrade(self):
         # TODO(huangrh): install plugins
-        self._sync_app(self.new_app)
+        self.sync_new_app()
 
         try:
             record = self._save_app()
@@ -114,7 +115,6 @@ class AppUpgrade(MarketApp):
     def _save_app(self):
         self.new_app.save()
         self._update_service_group()
-
         snap = self._take_snapshot()
         return self._create_upgrade_record(UpgradeStatus.UPGRADING.value, snap.snapshot_id)
 
@@ -245,7 +245,11 @@ class AppUpgrade(MarketApp):
         new_component_deps = self._create_component_deps(components)
         component_deps = self.ensure_component_deps(self.original_app, new_component_deps)
 
-        return NewApp(self.tenant, self.region_name, self.app, self.upgrade_group_id, new_components, update_components, component_deps)
+        # volume dependencies
+        new_volume_deps = self._create_volume_deps(components)
+        volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
+
+        return NewApp(self.tenant, self.region_name, self.app, self.upgrade_group_id, new_components, update_components, component_deps, volume_deps)
 
     def _create_component_deps(self, components):
         """
@@ -280,6 +284,48 @@ class AppUpgrade(MarketApp):
                 deps.append(dep)
         return deps
 
+    def _create_volume_deps(self, raw_components):
+        """
+        Create new volume dependencies with application template
+        """
+        volumes = []
+        for cpt in raw_components:
+            volumes.extend(cpt.volumes)
+        components = {cpt.component_source.service_share_uuid: cpt.component for cpt in raw_components}
+        deps = []
+        for tmpl in self.app_template.get("apps", []):
+            component_key = tmpl.get("service_share_uuid")
+            component = components.get(component_key)
+            if not component:
+                continue
+
+            for dep in tmpl.get("mnt_relation_list", []):
+                # check if the dependent component exists
+                dep_component_key = dep["service_share_uuid"]
+                dep_component = components.get(dep_component_key)
+                if not dep_component:
+                    logger.info("dependent component({}) not found".format(dep_component.service_id))
+                    continue
+
+                # check if the dependent volume exists
+                if not self._volume_exists(volumes, dep_component.service_id, dep["mnt_name"]):
+                    logger.info("dependent volume({}/{}) not found".format(dep_component.service_id, dep["mnt_name"]))
+                    continue
+
+                dep = TenantServiceMountRelation(
+                    tenant_id=component.tenant_id,
+                    service_id=component.service_id,
+                    dep_service_id=dep_component.service_id,
+                    mnt_name=dep["mnt_name"],
+                    mnt_dir=dep["mnt_dir"],
+                )
+                deps.append(dep)
+        return deps
+
+    @staticmethod
+    def _volume_exists(volumes, component_id, volume_name):
+        volumes = {vol.service_id + vol.volume_name: vol for vol in volumes}
+        return True if volumes.get(component_id + volume_name) else False
 
     def _create_upgrade_record(self, status, snapshot_id=None):
         record = AppUpgradeRecord(

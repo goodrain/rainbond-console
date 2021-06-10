@@ -485,8 +485,8 @@ class TenantServiceMntRelationRepository(object):
     def bulk_create(self, mnts):
         TenantServiceMountRelation.objects.bulk_create(mnts)
 
-    def bulk_create_or_update(self, tenant_id, volume_deps):
-        TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, pk__in=[dep.ID for dep in volume_deps]).delete()
+    def overwrite_by_component_id(self, component_ids, volume_deps):
+        TenantServiceMountRelation.objects.filter(service_id__in=component_ids).delete()
         self.bulk_create(volume_deps)
 
 
