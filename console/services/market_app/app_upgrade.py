@@ -23,6 +23,9 @@ from console.repositories.region_app import region_app_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 from console.repositories.group import group_repo
 from console.repositories.app_snapshot import app_snapshot_repo
+from console.repositories.app_config_group import app_config_group_repo
+from console.repositories.app_config_group import app_config_group_item_repo
+from console.repositories.app_config_group import app_config_group_service_repo
 # exception
 from console.exception.main import AbortRequest, ServiceHandleException
 # model
@@ -33,6 +36,9 @@ from console.models.main import AppUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import AppSnapshot
+from console.models.main import ApplicationConfigGroup
+from console.models.main import ConfigGroupItem
+from console.models.main import ConfigGroupService
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
@@ -42,8 +48,7 @@ region_api = RegionInvokeApi()
 
 
 class AppUpgrade(MarketApp):
-    def __init__(self, enterprise_id, tenant, region_name, user, version, service_group: TenantServiceGroup,
-                 component_keys):
+    def __init__(self, enterprise_id, tenant, region_name, user, version, service_group: TenantServiceGroup, component_keys):
         """
         components_keys: component keys that the user select.
         """
@@ -249,7 +254,23 @@ class AppUpgrade(MarketApp):
         new_volume_deps = self._create_volume_deps(components)
         volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
 
-        return NewApp(self.tenant, self.region_name, self.app, self.upgrade_group_id, new_components, update_components, component_deps, volume_deps)
+        # config groups
+        config_groups = self._config_groups()
+        config_group_items = self._config_group_items(config_groups)
+        config_group_components = self._config_group_components(components, config_groups)
+
+        return NewApp(
+            self.tenant,
+            self.region_name,
+            self.app,
+            self.upgrade_group_id,
+            new_components,
+            update_components,
+            component_deps,
+            volume_deps,
+            config_groups=config_groups,
+            config_group_items=config_group_items,
+            config_group_components=config_group_components)
 
     def _create_component_deps(self, components):
         """
@@ -327,6 +348,27 @@ class AppUpgrade(MarketApp):
         volumes = {vol.service_id + vol.volume_name: vol for vol in volumes}
         return True if volumes.get(component_id + volume_name) else False
 
+    def _config_groups(self):
+        """
+        only add
+        """
+        config_groups = list(app_config_group_repo.list(self.region_name, self.app_id))
+        config_group_names = [cg.config_group_name for cg in config_groups]
+        tmpl = self.app_template.get("app_config_groups")
+        for cg in tmpl:
+            if cg["name"] in config_group_names:
+                continue
+            config_group = ApplicationConfigGroup(
+                app_id=self.app_id,
+                config_group_name=cg["name"],
+                deploy_type=cg["injection_type"],
+                enable=True,  # tmpl does not have the 'enable' property
+                region_name=self.region_name,
+                config_group_id=make_uuid(),
+            )
+            config_groups.append(config_group)
+        return config_groups
+
     def _create_upgrade_record(self, status, snapshot_id=None):
         record = AppUpgradeRecord(
             tenant_id=self.tenant_id,
@@ -349,12 +391,77 @@ class AppUpgrade(MarketApp):
             components.append(csnap)
         if not components:
             return None
-        snapshot = app_snapshot_repo.create(AppSnapshot(
-            tenant_id=self.tenant_id,
-            upgrade_group_id=self.upgrade_group_id,
-            snapshot_id=make_uuid(),
-            snapshot=json.dumps({
-                "components": components
-            }),
-        ))
+        snapshot = app_snapshot_repo.create(
+            AppSnapshot(
+                tenant_id=self.tenant_id,
+                upgrade_group_id=self.upgrade_group_id,
+                snapshot_id=make_uuid(),
+                snapshot=json.dumps({"components": components}),
+            ))
         return snapshot
+
+    def _config_group_items(self, config_groups):
+        """
+        only add
+        """
+        config_groups = {cg.config_group_name: cg for cg in config_groups}
+        config_group_items = list(app_config_group_item_repo.list_by_app_id(self.app_id))
+
+        item_keys = [item.config_group_name + item.item_key for item in config_group_items]
+        tmpl = self.app_template.get("app_config_groups")
+        for cg in tmpl:
+            config_group = config_groups.get(cg["name"])
+            if not config_group:
+                logger.warning("config group {} not found".format(cg["name"]))
+                continue
+            items = cg.get("config_items")
+            if not items:
+                continue
+            for item_key in items:
+                key = cg["name"] + item_key
+                if key in item_keys:
+                    # do not change existing items
+                    continue
+                item = ConfigGroupItem(
+                    app_id=self.app_id,
+                    config_group_name=cg["name"],
+                    item_key=item_key,
+                    item_value=items[item_key],
+                    config_group_id=config_group.config_group_id,
+                )
+                config_group_items.append(item)
+        return config_group_items
+
+    def _config_group_components(self, components, config_groups):
+        """
+        only add
+        """
+        components = {cpt.component.service_key: cpt for cpt in components}
+
+        config_groups = {cg.config_group_name: cg for cg in config_groups}
+
+        config_group_components = list(app_config_group_service_repo.list_by_app_id(self.app_id))
+        config_group_component_keys = [cgc.config_group_name + cgc.service_id for cgc in config_group_components]
+
+        tmpl = self.app_template.get("app_config_groups")
+        for cg in tmpl:
+            config_group = config_groups.get(cg["name"])
+            if not config_group:
+                continue
+
+            component_keys = cg.get("component_keys", [])
+            for component_key in component_keys:
+                cpt = components.get(component_key)
+                if not cpt:
+                    continue
+                key = config_group.config_group_name + cpt.component.component_id
+                if key in config_group_component_keys:
+                    continue
+                cgc = ConfigGroupService(
+                    app_id=self.app_id,
+                    config_group_name=config_group.config_group_name,
+                    service_id=cpt.component.component_id,
+                    config_group_id=config_group.config_group_id,
+                )
+                config_group_components.append(cgc)
+        return config_group_components

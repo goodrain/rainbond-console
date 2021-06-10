@@ -61,7 +61,6 @@ class UpgradeRepo(object):
             raise ErrAppUpgradeRecordNotFound
 
 
-
 class ComponentUpgradeRecordRepository(object):
     @staticmethod
     def bulk_create(records):

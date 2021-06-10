@@ -109,8 +109,7 @@ class AppRestore(MarketApp):
         # volumes
         volumes = [TenantServiceVolume(**volume) for volume in snap["service_volumes"]]
         # configuration files
-        config_files = [TenantServiceConfigurationFile(**config_file) for config_file in
-                        snap["service_config_file"]]
+        config_files = [TenantServiceConfigurationFile(**config_file) for config_file in snap["service_config_file"]]
         # probe
         probes = [ServiceProbe(**probe) for probe in snap["service_probes"]]
         # monitors

@@ -381,6 +381,7 @@ class AppUpgradeRollbackView(ApplicationView):
         market_app_service.restore(self.tenant, self.region_name, self.app, record.upgrade_group_id, record)
         return MessageResponse(msg="success")
 
+
 class AppUpgradeDetailView(ApplicationView):
     def get(self, request, upgrade_group_id, *args, **kwargs):
         # same as app_key or group_key
@@ -410,5 +411,12 @@ class AppUpgradeView(ApplicationView):
         upgrade_group_id = parse_item(request, "upgrade_group_id", required=True)
         version = parse_item(request, "version", required=True)
         component_keys = parse_item(request, "component_keys")
-        market_app_service.upgrade(self.tenant, self.region_name, self.user, upgrade_group_id, version, component_keys,)
+        market_app_service.upgrade(
+            self.tenant,
+            self.region_name,
+            self.user,
+            upgrade_group_id,
+            version,
+            component_keys,
+        )
         return MessageResponse(msg="success", msg_show="升级成功")

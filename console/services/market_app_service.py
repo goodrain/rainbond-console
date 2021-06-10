@@ -76,7 +76,6 @@ class MarketAppService(object):
         app_restore = AppRestore(tenant, region_name, app, upgrade_group_id, record)
         app_restore.restore()
 
-
     def install_service(self,
                         tenant,
                         region_name,
