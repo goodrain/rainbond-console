@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 
 from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
+from console.exception.bcode import ErrAppUpgradeRecordNotFound
 
 
 class UpgradeRepo(object):
@@ -51,6 +52,14 @@ class UpgradeRepo(object):
     def delete_app_record_by_group_id(self, group_id):
         """级联删除升级记录"""
         AppUpgradeRecord.objects.filter(group_id=group_id).delete()
+
+    @staticmethod
+    def get_by_record_id(record_id):
+        try:
+            return AppUpgradeRecord.objects.get(pk=record_id)
+        except AppUpgradeRecord.DoesNotExist:
+            raise ErrAppUpgradeRecordNotFound
+
 
 
 class ComponentUpgradeRecordRepository(object):

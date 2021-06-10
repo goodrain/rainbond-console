@@ -4,6 +4,7 @@ from console.services.market_app.component import Component
 # service
 from console.services.group_service import group_service
 # repository
+from console.repositories.group import group_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
@@ -16,24 +17,25 @@ from console.repositories.app_config import mnt_repo as volume_dep_repo
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
+# model
+from www.models.main import ServiceGroup
 # exception
 from console.exception.main import AbortRequest
 
 
 class OriginalApp(object):
-    def __init__(self, tenant, region_name, app_id, upgrade_group_id, app_model_key, governance_mode):
-        self.tenant_id = tenant.tenant_id
+    def __init__(self, tenant_id, region_name, app: ServiceGroup, upgrade_group_id):
+        self.tenant_id = tenant_id
         self.region_name = region_name
-        self.app_id = app_id
+        self.app_id = app.app_id
         self.upgrade_group_id = upgrade_group_id
-        self.app_model_key = app_model_key
-        self.governance_mode = governance_mode
-        self._components = self._create_components(app_id, upgrade_group_id, app_model_key)
-
+        self.app = group_repo.get_group_by_pk(tenant_id, region_name, app.app_id)
+        self.governance_mode = app.governance_mode
+        self._components = self._create_components(app.app_id, upgrade_group_id)
+        # dependency
         self.component_deps = dep_relation_repo.list_by_component_ids(self.tenant_id,
                                                                       [cpt.component.component_id for cpt in self._components])
         self.volume_deps = self._volume_deps()
-
         # config groups
         self.config_groups = self._config_groups()
         self.config_group_items = self._config_group_items()
@@ -43,8 +45,8 @@ class OriginalApp(object):
         return self._components
 
     @staticmethod
-    def _create_components(app_id, upgrade_group_id, app_model_key):
-        components = group_service.get_rainbond_services(app_id, app_model_key, upgrade_group_id)
+    def _create_components(app_id, upgrade_group_id):
+        components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
 

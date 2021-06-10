@@ -1036,6 +1036,10 @@ class ServiceGroup(BaseModel):
     create_time = models.DateTimeField(help_text="创建时间")
     update_time = models.DateTimeField(help_text="更新时间")
 
+    @property
+    def app_id(self):
+        return self.ID
+
 
 class ServiceGroupRelation(BaseModel):
     """组件与分组关系"""

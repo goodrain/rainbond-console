@@ -333,7 +333,7 @@ class AppUpgradeTaskView(RegionTenantHeaderCloudEnterpriseCenterView):
         return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(app_record))
 
 
-class AppUpgradeRollbackView(RegionTenantHeaderView):
+class AppUpgradeRollbackViewDeprecated(RegionTenantHeaderView):
     def post(self, request, group_id, record_id, *args, **kwargs):
         """提交回滚任务"""
         service_ids = parse_item(request, 'service_ids', required=True, error='service_ids is a required parameter')
@@ -372,6 +372,15 @@ class AppUpgradeRollbackView(RegionTenantHeaderView):
         return MessageResponse(msg="success", bean=upgrade_service.serialized_upgrade_record(app_record))
 
 
+class AppUpgradeRollbackView(ApplicationView):
+    def post(self, request, group_id, record_id, *args, **kwargs):
+        record = upgrade_repo.get_by_record_id(record_id)
+        if record.status != UpgradeStatus.UPGRADED.value:
+            raise AbortRequest("unable to rollback an incomplete upgrade", "无法回滚一个未完成的升级")
+
+        market_app_service.restore(self.tenant, self.region_name, self.app, record.upgrade_group_id, record)
+        return MessageResponse(msg="success")
+
 class AppUpgradeDetailView(ApplicationView):
     def get(self, request, upgrade_group_id, *args, **kwargs):
         # same as app_key or group_key
@@ -401,7 +410,5 @@ class AppUpgradeView(ApplicationView):
         upgrade_group_id = parse_item(request, "upgrade_group_id", required=True)
         version = parse_item(request, "version", required=True)
         component_keys = parse_item(request, "component_keys")
-        is_deploy = parse_item(request, "is_deploy", default=False)
-        market_app_service.upgrade(self.tenant, self.region_name, self.user, upgrade_group_id, version, component_keys,
-                                   is_deploy)
+        market_app_service.upgrade(self.tenant, self.region_name, self.user, upgrade_group_id, version, component_keys,)
         return MessageResponse(msg="success", msg_show="升级成功")

@@ -764,6 +764,7 @@ class AppUpgradeRecord(BaseModel):
     market_name = models.CharField(max_length=64, null=True, help_text="商店标识")
     is_from_cloud = models.BooleanField(default=False, help_text="应用来源")
     upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32)
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -1015,3 +1016,15 @@ class ComponentGraph(BaseModel):
     title = models.CharField(max_length=255, help_text="the title of the graph")
     promql = models.CharField(max_length=2047, help_text="the title of the graph")
     sequence = models.IntegerField(help_text="the sequence number of the graph")
+
+
+class AppSnapshot(BaseModel):
+    class Meta:
+        db_table = "app_snapshots"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    tenant_id = models.CharField(max_length=32)
+    upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32, help_text="the identity of the snapshot")
+    snapshot = models.TextField()

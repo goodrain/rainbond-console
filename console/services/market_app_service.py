@@ -46,7 +46,8 @@ from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServ
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from console.services.market_app.market_app import MarketApp
+from console.services.market_app.app_upgrade import AppUpgrade
+from console.services.market_app.app_restore import AppRestore
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -57,15 +58,24 @@ mnt_service = AppMntService()
 
 class MarketAppService(object):
     @staticmethod
-    def upgrade(tenant, region_name, user, upgrade_group_id, version, component_keys=None, is_deploy=False):
+    def upgrade(tenant, region_name, user, upgrade_group_id, version, component_keys=None):
         """
         Upgrade application market applications
         """
         service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
         if not service_group:
             raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
-        market_app = MarketApp(tenant.enterprise_id, tenant, region_name, user, version, service_group, component_keys)
+        market_app = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, service_group, component_keys)
         market_app.upgrade()
+
+    def restore(self, tenant, region_name, app, upgrade_group_id, record):
+        service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
+        if not service_group:
+            raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
+
+        app_restore = AppRestore(tenant, region_name, app, upgrade_group_id, record)
+        app_restore.restore()
+
 
     def install_service(self,
                         tenant,

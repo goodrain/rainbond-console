@@ -117,3 +117,22 @@ class ErrComponentBuildFailed(ServiceHandleException):
     def __init__(self):
         super(ErrComponentBuildFailed, self).__init__(
             msg="failed to build component", msg_show="组件构建失败", status_code=400, error_code=20800)
+
+
+# 20900 ~ 20999 => app upgrade
+class ErrAppUpgradeRecordNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppUpgradeRecordNotFound, self).__init__(
+            msg="app upgrade record not found", msg_show="找不到升级记录", status_code=404, error_code=20900)
+
+
+class ErrAppSnapshotNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppSnapshotNotFound, self).__init__(
+            msg="app snapshot not found", msg_show="找不到应用升级快照", status_code=404, error_code=20901)
+
+
+class ErrAppSnapshotExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppSnapshotExists, self).__init__(
+            msg="app snapshot exists", msg_show="应用升级快照已存在", status_code=409, error_code=20902)

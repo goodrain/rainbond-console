@@ -125,9 +125,10 @@ class TenantServiceEnvVarRepository(object):
     def bulk_create(self, envs):
         TenantServiceEnvVar.objects.bulk_create(envs)
 
-    def bulk_create_or_update(self, envs):
-        for env in envs:
-            self.create_or_update(env)
+    @staticmethod
+    def overwrite_by_component_id(component_ids, envs):
+        TenantServiceEnvVar.objects.filter(service_id__in=component_ids).delete()
+        TenantServiceEnvVar.objects.bulk_create(envs)
 
     @staticmethod
     def create_or_update(env: TenantServiceEnvVar):
@@ -408,9 +409,8 @@ class TenantServiceRelationRepository(object):
         return TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id__in=component_ids)
 
     @staticmethod
-    def bulk_create_or_update(tenant_id, component_deps):
-        component_ids = [dep.service_id for dep in component_deps]
-        TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id__in=component_ids).delete()
+    def overwrite_by_component_id(component_ids, component_deps):
+        TenantServiceRelation.objects.filter(service_id__in=component_ids).delete()
         TenantServiceRelation.objects.bulk_create(component_deps)
 
 

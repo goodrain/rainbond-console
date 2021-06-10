@@ -93,7 +93,7 @@ class PropertyChanges(object):
         # deploy_version is Build the app version of the source
         if not new:
             return None
-        is_change = old < new
+        is_change = old != new
         if not is_change:
             return None
         return {"old": old, "new": new, "is_change": is_change}
@@ -114,6 +114,10 @@ class PropertyChanges(object):
     @staticmethod
     def _ports(old_ports, new_ports):
         """port can only be created, cannot be updated and deleted"""
+        """
+        新增
+        更新: 对内对外, 协议, 别名
+        """
         if not new_ports:
             return
         old_container_ports = {port.container_port: port for port in old_ports}
@@ -140,6 +144,10 @@ class PropertyChanges(object):
 
     @staticmethod
     def _volumes(old_volumes, new_volumes):
+        """
+        新增
+        配置文件内容可以更新
+        """
         if not new_volumes:
             return
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
@@ -168,6 +176,9 @@ class PropertyChanges(object):
 
     @staticmethod
     def _probe(old_probe, new_probes):
+        """
+        完全覆盖
+        """
         if not new_probes:
             return None
         new_probe = new_probes[0]
@@ -185,6 +196,9 @@ class PropertyChanges(object):
 
     @staticmethod
     def _graphs(component_id, old_graphs, graphs):
+        """
+        新增, 更新
+        """
         if not graphs:
             return None
 
@@ -204,6 +218,9 @@ class PropertyChanges(object):
 
     @staticmethod
     def _monitors(tenant_id, old_monitors, monitors):
+        """
+        新增, 更新
+        """
         if not monitors:
             return None
         add = []

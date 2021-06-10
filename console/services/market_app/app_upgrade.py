@@ -6,6 +6,7 @@ from json.decoder import JSONDecodeError
 
 from django.db import transaction
 
+from console.services.market_app.app import MarketApp
 from console.services.market_app.new_app import NewApp
 from console.services.market_app.original_app import OriginalApp
 from console.services.market_app.new_components import NewComponents
@@ -14,28 +15,34 @@ from console.services.market_app.update_components import UpdateComponents
 from console.services.group_service import group_service
 from console.services.app import app_market_service
 from console.services.app_actions import app_manage_service
+from console.services.backup_service import groupapp_backup_service
 # repo
 from console.repositories.app import service_source_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 from console.repositories.group import group_repo
+from console.repositories.app_snapshot import app_snapshot_repo
 # exception
 from console.exception.main import AbortRequest, ServiceHandleException
 # model
 from www.models.main import TenantServiceGroup
+from www.models.main import TenantServiceRelation
 from console.models.main import AppUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.models.main import ServiceUpgradeRecord
+from console.models.main import AppSnapshot
 # www
 from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
-class MarketApp(object):
-    def __init__(self, enterprise_id, tenant, region_name, user, version, service_group: TenantServiceGroup, component_keys):
+class AppUpgrade(MarketApp):
+    def __init__(self, enterprise_id, tenant, region_name, user, version, service_group: TenantServiceGroup,
+                 component_keys):
         """
         components_keys: component keys that the user select.
         """
@@ -58,28 +65,25 @@ class MarketApp(object):
         self.app_template_source = self._app_template_source()
         self.app_template = self._app_template()
         # original app
-        self.original_app = OriginalApp(self.tenant, self.region_name, self.app_id, self.upgrade_group_id, self.app_model_key,
-                                        self.app.governance_mode)
-        self.new_app = self._new_app()
+        self.original_app = OriginalApp(self.tenant_id, self.region_name, self.app, self.upgrade_group_id)
+        self.new_app = self._create_new_app()
+
+        super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
     def upgrade(self):
+        # TODO(huangrh): install plugins
+        self._sync_app(self.new_app)
+
         try:
-            self._upgrade()
-            record = self._create_upgrade_record(UpgradeStatus.UPGRADING.value)
+            record = self._save_app()
         except Exception as e:
             logger.exception(e)
             # rollback on failure
-            self._sync_components(self.original_app)
+            self._sync_app(self.original_app)
             self._create_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
             raise ServiceHandleException("unexpected error", "未知错误, 请联系管理员")
-        # TODO(huangrh): show deploy error
-        self._deploy(record)
 
-    @transaction.atomic
-    def _upgrade(self):
-        # TODO(huangrh): install plugins
-        self._save()
-        self._update_service_group()
+        self._deploy(record)
 
     def _deploy(self, record):
         # Optimization: not all components need deploy
@@ -106,10 +110,17 @@ class MarketApp(object):
             records.append(record)
         component_upgrade_record_repo.bulk_create(records)
 
-    def _save(self):
+    @transaction.atomic
+    def _save_app(self):
         self.new_app.save()
-        self._sync_components(self.new_app)
-        self._sync_app_config_groups(self.new_app)
+        self._update_service_group()
+
+        snap = self._take_snapshot()
+        return self._create_upgrade_record(UpgradeStatus.UPGRADING.value, snap.snapshot_id)
+
+    def _sync_app(self, app):
+        self._sync_components(app)
+        self._sync_app_config_groups(app)
 
     def _sync_components(self, app):
         """
@@ -196,7 +207,6 @@ class MarketApp(object):
         """
         rollback the original app on failure
         """
-        # TODO(huangrh): retry
         self._sync_components(self.original_app)
 
     def _app_template(self):
@@ -219,7 +229,7 @@ class MarketApp(object):
         component_source = service_source_repo.get_service_source(component.tenant_id, component.service_id)
         return component_source
 
-    def _new_app(self):
+    def _create_new_app(self):
         # new components
         new_components = NewComponents(self.tenant, self.region_name, self.user, self.original_app,
                                        self.app_model_key, self.app_template, self.version,
@@ -228,10 +238,50 @@ class MarketApp(object):
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys).components
-        return NewApp(self.tenant_id, self.region_name, self.app_id, self.upgrade_group_id, self.app_template,
-                      self.app.governance_mode, new_components, update_components)
 
-    def _create_upgrade_record(self, status):
+        components = new_components + update_components
+
+        # create new component dependency from app_template
+        new_component_deps = self._create_component_deps(components)
+        component_deps = self.ensure_component_deps(self.original_app, new_component_deps)
+
+        return NewApp(self.tenant, self.region_name, self.app, self.upgrade_group_id, new_components, update_components, component_deps)
+
+    def _create_component_deps(self, components):
+        """
+        组件唯一标识: cpt.component_source.service_share_uuid
+        组件模板唯一标识: tmpl.get("service_share_uuid")
+        被依赖组件唯一标识: dep["dep_service_key"]
+        """
+        components = {cpt.component_source.service_share_uuid: cpt.component for cpt in components}
+
+        deps = []
+        for tmpl in self.app_template.get("apps", []):
+            for dep in tmpl.get("dep_service_map_list", []):
+                component_key = tmpl.get("service_share_uuid")
+                component = components.get(component_key)
+                if not component:
+                    continue
+
+                dep_component_key = dep["dep_service_key"]
+                dep_component = components.get(dep_component_key)
+                if not dep_component:
+                    logger.info("The component({}) cannot find the dependent component({})".format(
+                        component_key, dep_component_key))
+                    continue
+
+                dep = TenantServiceRelation(
+                    tenant_id=component.tenant_id,
+                    service_id=component.service_id,
+                    dep_service_id=dep_component.service_id,
+                    dep_service_type="application",
+                    dep_order=0,
+                )
+                deps.append(dep)
+        return deps
+
+
+    def _create_upgrade_record(self, status, snapshot_id=None):
         record = AppUpgradeRecord(
             tenant_id=self.tenant_id,
             group_id=self.app_id,
@@ -239,6 +289,26 @@ class MarketApp(object):
             version=self.version,
             old_version=self.old_version,
             status=status,
+            upgrade_group_id=self.upgrade_group_id,
+            snapshot_id=snapshot_id,
         )
         record.save()
         return record
+
+    def _take_snapshot(self):
+        components = []
+        for cpt in self.original_app.components():
+            # component snapshot
+            csnap, _ = groupapp_backup_service.get_service_details(self.tenant, cpt.component)
+            components.append(csnap)
+        if not components:
+            return None
+        snapshot = app_snapshot_repo.create(AppSnapshot(
+            tenant_id=self.tenant_id,
+            upgrade_group_id=self.upgrade_group_id,
+            snapshot_id=make_uuid(),
+            snapshot=json.dumps({
+                "components": components
+            }),
+        ))
+        return snapshot

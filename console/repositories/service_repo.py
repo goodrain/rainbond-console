@@ -152,12 +152,8 @@ class ServiceRepo(object):
 
     @staticmethod
     def bulk_update(components):
-        """
-        bulk_update is only available after django 2.2
-        if update component if for loop is too slow, may be we can use django-bulk-update
-        """
-        for cpt in components:
-            cpt.save()
+        TenantServiceInfo.objects.filter(pk__in=[cpt.ID for cpt in components]).delete()
+        TenantServiceInfo.objects.bulk_create(components)
 
 
 service_repo = ServiceRepo()

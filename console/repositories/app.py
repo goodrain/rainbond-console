@@ -262,7 +262,7 @@ class ServiceSourceRepository(object):
     def bulk_create(service_sources):
         ServiceSourceInfo.objects.bulk_create(service_sources)
 
-    def bulk_create_or_update(self, service_sources):
+    def bulk_update(self, service_sources):
         ServiceSourceInfo.objects.filter(pk__in=[source.ID for source in service_sources]).delete()
         self.bulk_create(service_sources)
 
