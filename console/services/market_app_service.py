@@ -73,8 +73,8 @@ class MarketAppService(object):
         service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
         if not service_group:
             raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
-        market_app = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, service_group, record, component_keys)
-        market_app.upgrade()
+        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, service_group, record, component_keys)
+        app_upgrade.upgrade()
 
     @staticmethod
     def restore(tenant, region_name, user, app, upgrade_group_id, record):
@@ -84,6 +84,15 @@ class MarketAppService(object):
 
         app_restore = AppRestore(tenant, region_name, user, app, component_group, record)
         app_restore.restore()
+
+    @staticmethod
+    def get_property_changes(tenant, region_name, user, upgrade_group_id, version):
+        component_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
+        if not component_group:
+            raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
+
+        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group)
+        return app_upgrade.changes()
 
     def install_service(self,
                         tenant,

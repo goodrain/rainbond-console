@@ -156,50 +156,11 @@ class UpgradeType(Enum):
 class AppUpgradeInfoView(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取升级信息"""
-        group_key = parse_argument(
-            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
         upgrade_group_id = parse_argument(
             request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
-        market_name = request.GET.get("market_name")
-        if upgrade_group_id == 0 or upgrade_group_id == "0":
-            upgrade_group_id = None
-        # 查询某一个云市应用下的所有组件
-        exist_components = group_service.get_rainbond_services(int(group_id), group_key, upgrade_group_id)
-        upgrade_components = []
-        if exist_components:
-            for component in exist_components:
-                current_version, model_component, upgrade_info = upgrade_service.get_service_changes(
-                    component, self.tenant, version, exist_components)
-                upgrade_components.append({
-                    'service': {
-                        'service_id': component.service_id,
-                        'service_cname': component.service_cname,
-                        'service_key': component.service_key,
-                        'type': UpgradeType.UPGRADE.value,
-                        'current_version': current_version,
-                        'can_upgrade': True if model_component else False,
-                        'have_change': True if upgrade_info and current_version != version else False
-                    },
-                    'upgrade_info': upgrade_info
-                })
-
-        add_component = upgrade_service.get_add_services(self.team.enterprise_id, exist_components, group_key, version,
-                                                         market_name)
-        add_info = []
-        if add_component:
-            add_info = [{
-                'service': {
-                    'service_id': '',
-                    'service_cname': service_info['service_cname'],
-                    'service_key': service_info['service_key'],
-                    'can_upgrade': True,
-                    'type': UpgradeType.ADD.value
-                },
-                'upgrade_info': service_info,
-            } for service_info in add_component]
-
-        return MessageResponse(msg="success", list=upgrade_components + add_info)
+        changes = market_app_service.get_property_changes(self.tenant, self.region_name, self.user, upgrade_group_id, version)
+        return MessageResponse(msg="success", list=changes)
 
 
 class AppUpgradeTaskView(RegionTenantHeaderCloudEnterpriseCenterView):

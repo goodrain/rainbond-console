@@ -12,6 +12,7 @@ from console.services.market_app.new_app import NewApp
 from console.services.market_app.original_app import OriginalApp
 from console.services.market_app.new_components import NewComponents
 from console.services.market_app.update_components import UpdateComponents
+from console.services.market_app.property_changes import PropertyChanges
 # service
 from console.services.group_service import group_service
 from console.services.app import app_market_service
@@ -51,7 +52,7 @@ region_api = RegionInvokeApi()
 
 class AppUpgrade(MarketApp):
     def __init__(self, enterprise_id, tenant, region_name, user, version, component_group: TenantServiceGroup,
-                 record: AppUpgradeRecord, component_keys):
+                 record: AppUpgradeRecord = None, component_keys=None):
         """
         components_keys: component keys that the user select.
         """
@@ -69,13 +70,14 @@ class AppUpgrade(MarketApp):
         self.app_model_key = component_group.group_key
         self.old_version = component_group.group_version
         self.version = version
-        self.component_keys = component_keys
+        self.component_keys = component_keys if component_keys else None
 
         # app template
         self.app_template_source = self._app_template_source()
         self.app_template = self._app_template()
         # original app
         self.original_app = OriginalApp(self.tenant_id, self.region_name, self.app, self.upgrade_group_id)
+        self.property_changes = PropertyChanges(self.original_app.components(), self.app_template)
         self.new_app = self._create_new_app()
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
@@ -97,6 +99,54 @@ class AppUpgrade(MarketApp):
             raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
 
         self._deploy(self.record)
+
+    def changes(self):
+        templates = self.app_template.get("apps")
+        templates = {tmpl["service_key"]: tmpl for tmpl in templates}
+
+        result = []
+        original_components = {cpt.component.component_id: cpt for cpt in self.original_app.components()}
+        cpt_changes = {change["component_id"]: change for change in self.property_changes.changes}
+        # upgrade components
+        for cpt in self.new_app.update_components:
+            component_id = cpt.component.component_id
+            change = cpt_changes.get(component_id, {})
+            if "component_id" in change.keys():
+                change.pop("component_id")
+
+            original_cpt = original_components.get(component_id)
+
+            upgrade_info = cpt_changes.get(component_id, None)
+            current_version = original_cpt.component_source.version
+            result.append({
+                "service": {
+                    "service_id": cpt.component.component_id,
+                    "service_cname": cpt.component.service_cname,
+                    "service_key": cpt.component.service_key,
+                    "type": "upgrade",
+                    'current_version': current_version,
+                    'can_upgrade': original_cpt is not None,
+                    'have_change': True if upgrade_info and current_version != self.version else False
+                },
+                "upgrade_info": upgrade_info,
+            })
+
+        # new components
+        for cpt in self.new_app.new_components:
+            tmpl = templates.get(cpt.component.service_key)
+            if not tmpl:
+                continue
+            result.append({
+                "service": {
+                    "service_id": "",
+                    "service_cname": cpt.component.service_cname,
+                    "service_key": cpt.component.service_key,
+                    "type": "add",
+                },
+                "upgrade_info": tmpl,
+            })
+
+        return result
 
     def _deploy(self, record):
         # Optimization: not all components need deploy
@@ -212,12 +262,6 @@ class AppUpgrade(MarketApp):
         region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         region_api.sync_config_groups(self.tenant.tenant_name, self.region_name, region_app_id, body)
 
-    def _rollback_original_app(self):
-        """
-        rollback the original app on failure
-        """
-        self._sync_components(self.original_app)
-
     def _app_template(self):
         if not self.app_template_source.is_install_from_cloud():
             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.enterprise_id, self.app_model_key,
@@ -246,7 +290,7 @@ class AppUpgrade(MarketApp):
                                        self.app_template_source.get_market_name()).components
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
-                                             self.component_keys).components
+                                             self.component_keys, self.property_changes).components
 
         components = new_components + update_components
 
