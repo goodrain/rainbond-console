@@ -68,6 +68,8 @@ class MarketAppService(object):
         if record.status != UpgradeStatus.NOT.value:
             raise AbortRequest("the status of the upgrade record is not not_upgraded", "只能升级未升级的升级记录")
 
+        # TODO(huangrh): 升级任务能不能执行
+
         service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
         if not service_group:
             raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
@@ -75,12 +77,12 @@ class MarketAppService(object):
         market_app.upgrade()
 
     @staticmethod
-    def restore(tenant, region_name, app, upgrade_group_id, record):
-        service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
-        if not service_group:
+    def restore(tenant, region_name, user, app, upgrade_group_id, record):
+        component_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
+        if not component_group:
             raise AbortRequest("tenant service group not found", "无法找到组件与应用市场应用的从属关系", status_code=404, error_code=404)
 
-        app_restore = AppRestore(tenant, region_name, app, upgrade_group_id, record)
+        app_restore = AppRestore(tenant, region_name, user, app, component_group, record)
         app_restore.restore()
 
     def install_service(self,

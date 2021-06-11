@@ -193,19 +193,11 @@ class TenantServicePortRepository(object):
             tenant_id=param["tenant_id"], service_id=param["service_id"],
             container_port=param["container_port"]).update(**param)
 
-    def bulk_create_or_update(self, ports):
-        for port in ports:
-            self.create_or_update(port)
-
     @staticmethod
-    def create_or_update(port: TenantServicesPort):
-        try:
-            old_port = TenantServicesPort.objects.get(
-                tenant_id=port.tenant_id, service_id=port.service_id, container_port=port.container_port)
-            port.ID = old_port.ID
-            port.save()
-        except TenantServicesPort.DoesNotExist:
-            port.save()
+    def bulk_create_or_update(ports):
+        TenantServicesPort.objects.filter(pk__in=[port.ID for port in ports]).delete()
+        TenantServicesPort.objects.bulk_create(ports)
+
 
     @staticmethod
     def list_by_service_ids(tenant_id, service_ids):

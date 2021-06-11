@@ -36,13 +36,12 @@ class ComponentGraphRepository(object):
         except ComponentGraph.DoesNotExist:
             raise ErrComponentGraphNotFound
 
-    def create(self, component_id, graph_id, title, promql, sequence):
+    @staticmethod
+    def create(component_id, graph_id, title, promql, sequence):
         # check if the component graph already exists
-        try:
-            self.get(component_id=component_id, graph_id=graph_id)
+        graph = ComponentGraph.objects.filter(component_id=component_id, title=title).first()
+        if graph:
             raise ErrComponentGraphExists
-        except ErrComponentGraphNotFound:
-            pass
         ComponentGraph.objects.create(
             component_id=component_id,
             graph_id=graph_id,

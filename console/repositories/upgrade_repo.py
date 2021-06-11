@@ -66,6 +66,16 @@ class ComponentUpgradeRecordRepository(object):
     def bulk_create(records):
         ServiceUpgradeRecord.objects.bulk_create(records)
 
+    @staticmethod
+    def list_by_app_record_id(app_record_id):
+        return ServiceUpgradeRecord.objects.filter(app_upgrade_record_id=app_record_id)
+
+    @staticmethod
+    def bulk_update(records):
+        # bulk_update is only available after django 2.2
+        for record in records:
+            record.save()
+
 
 upgrade_repo = UpgradeRepo()
 component_upgrade_record_repo = ComponentUpgradeRecordRepository()

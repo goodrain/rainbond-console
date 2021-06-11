@@ -82,7 +82,6 @@ class ComponentGraphService(object):
             # rearrange to avoid overflow
             self.rearrange(component_id)
             sequence = self._next_sequence(component_id)
-        # TODO(huangrh): title 唯一
         component_graph_repo.create(component_id, graph_id, title, promql, sequence)
         return component_graph_repo.get(component_id, graph_id).to_dict()
 

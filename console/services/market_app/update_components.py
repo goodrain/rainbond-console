@@ -49,7 +49,6 @@ class UpdateComponents(object):
             cpt.component.cmd = component_tmpl.get("cmd", "")
             cpt.component.version = component_tmpl["version"]
 
-            cpt.component_source.group_key = self.app_model_key
             cpt.component_source.version = self.version
 
         return components

@@ -7,8 +7,11 @@ from .app import MarketApp
 from .original_app import OriginalApp
 from .new_app import NewApp
 from .component import Component
+# service
+from console.services.app_actions import app_manage_service
 # repository
 from console.repositories.app_snapshot import app_snapshot_repo
+from console.repositories.upgrade_repo import component_upgrade_record_repo
 # model
 from www.models.main import ServiceGroup
 from www.models.main import TenantServiceGroup
@@ -28,6 +31,7 @@ from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
 # exception
 from console.exception.main import ServiceHandleException
+from console.exception.bcode import ErrAppUpgradeDeploy
 
 logger = logging.getLogger('django.contrib.gis')
 
@@ -40,27 +44,33 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     """
 
-    def __init__(self, tenant, region_name, app: ServiceGroup, component_group: TenantServiceGroup, record: AppUpgradeRecord):
+    def __init__(self, tenant, region_name, user, app: ServiceGroup, component_group: TenantServiceGroup, record: AppUpgradeRecord):
         self.tenant = tenant
         self.region_name = region_name
+        self.user = user
         self.app = app
-        self.upgrade_group_id = component_group.service_group_id
+        self.upgrade_group_id = component_group.ID
         self.record = record
         self.component_group = component_group
 
-        self.original_app = OriginalApp(tenant.tenant_id, region_name, app, component_group.service_group_id)
+        self.original_app = OriginalApp(tenant.tenant_id, region_name, app, component_group.ID)
         self.snapshot = self._get_snapshot()
         self.new_app = self._create_new_app()
         super(AppRestore, self).__init__(self.original_app, self.new_app)
 
     def restore(self):
+        # Sync the new application to the data center first
+        # TODO(huangrh): rollback on api timeout
         self.sync_new_app()
         try:
+            # Save the application to the console
             self._save_new_app()
         except Exception as e:
             logger.exception(e)
             self.rollback()
-            raise ServiceHandleException("unexpected error", "未知错误, 请联系管理员")
+            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
+
+        self._deploy()
 
     def _save_new_app(self):
         # save new app
@@ -68,11 +78,31 @@ class AppRestore(MarketApp):
         # update record
         self._update_upgrade_record(UpgradeStatus.ROLLING.value)
 
-
     def _update_upgrade_record(self, status, snapshot_id=None):
         self.record.status = status
         self.record.snapshot_id=snapshot_id
         self.record.save()
+
+    def _deploy(self):
+        # Optimization: not all components need deploy
+        component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
+
+        try:
+            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+        except ServiceHandleException as e:
+            raise ErrAppUpgradeDeploy(e.msg)
+        self._update_component_record(events)
+
+    def _update_component_record(self, events):
+        event_ids = {event["service_id"]: event["event_id"] for event in events}
+        records = component_upgrade_record_repo.list_by_app_record_id(self.record.ID)
+        for record in records:
+            event_id = event_ids.get(record.service_id)
+            if not event_id:
+                continue
+            record.status = UpgradeStatus.ROLLING.value
+            record.event_id = event_id
+        component_upgrade_record_repo.bulk_update(records)
 
     def _get_snapshot(self):
         snap = app_snapshot_repo.get_by_snapshot_id(self.record.snapshot_id)

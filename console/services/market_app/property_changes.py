@@ -49,29 +49,12 @@ class PropertyChanges(object):
         ports = self._ports(component.ports, component_tmpl.get("port_map_list", []))
         if ports:
             result["ports"] = ports
-        volumes = self._volumes(component.volumes, component_tmpl.get("service_volume_map_list", []))
+        volumes = self._volumes(component.volumes, component_tmpl.get("service_volume_map_list", []), component.config_files)
         if volumes:
             result["volumes"] = volumes
         probe = self._probe(component.probe, component_tmpl["probes"])
         if probe:
             result["probe"] = probe
-        # TODO(huangrh)
-        # dep_uuids = []
-        # if component.get("dep_service_map_list", []):
-        #     dep_uuids = [item["dep_service_key"] for item in component.get("dep_service_map_list")]
-        # dep_services = self.dep_services_changes(component, dep_uuids, component_names, level)
-        # if dep_services:
-        #     result["dep_services"] = dep_services
-        # dep_volumes = self.dep_volumes_changes(component.get("mnt_relation_list", []))
-        # if dep_volumes:
-        #     result["dep_volumes"] = dep_volumes
-        # plugin_component_configs = self.plugin_changes(component.get("service_related_plugin_config", []))
-        # if plugin_component_configs:
-        #     result["plugins"] = plugin_component_configs
-        # app_config_groups = self.app_config_group_changes(template)
-        # if app_config_groups:
-        #     logger.debug("app_config_groups changes: {}".format(json.dumps(app_config_groups)))
-        #     result["app_config_groups"] = app_config_groups
 
         component_graphs = self._graphs(component.component.component_id, component.graphs,
                                         component_tmpl.get("component_graphs", []))
@@ -113,28 +96,30 @@ class PropertyChanges(object):
 
     @staticmethod
     def _ports(old_ports, new_ports):
-        """port can only be created, cannot be updated and deleted"""
         """
-        新增
-        更新: 对内对外, 协议, 别名
+        Support for adding and updating.
+        Allow to update is_inner_service, is_inner_service, protocol and port alias.
+        The port can be opened, but the port cannot be closed.
         """
         if not new_ports:
             return
         old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports if port["container_port"] not in old_container_ports]
+
         update_ports = []
         for new_port in new_ports:
             if new_port["container_port"] not in old_container_ports:
                 continue
             old_port = old_container_ports[new_port["container_port"]]
-            if new_port["is_outer_service"] and not old_port.is_outer_service:
+            outer_change = new_port["is_outer_service"] and not old_port.is_outer_service
+            inner_change = new_port["is_inner_service"] and not old_port.is_outer_service
+            protocol_change = new_port["protocol"] != old_port.protocol
+            port_alias_change = new_port["port_alias"] != old_port.port_alias
+            if outer_change or inner_change or protocol_change or port_alias_change:
                 update_ports.append(new_port)
-                continue
-            if new_port["is_inner_service"] and not old_port.is_inner_service:
-                update_ports.append(new_port)
-                continue
         if not create_ports and not update_ports:
             return None
+
         result = {}
         if create_ports:
             result["add"] = create_ports
@@ -143,15 +128,16 @@ class PropertyChanges(object):
         return result
 
     @staticmethod
-    def _volumes(old_volumes, new_volumes):
+    def _volumes(old_volumes, new_volumes, config_files):
         """
-        新增
-        配置文件内容可以更新
+        Support for adding volume and updating config file.
         """
         if not new_volumes:
             return
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
         old_volume_names = {volume.volume_name: volume for volume in old_volumes}
+        config_files = {config_file.volume_name: config_file for config_file in config_files}
+
         add = []
         update = []
         for new_volume in new_volumes:
@@ -164,9 +150,13 @@ class PropertyChanges(object):
                 new_volume["volume_name"] = new_volume["volume_name"] + "-" + make_uuid()[:6]
                 add.append(new_volume)
                 continue
-            if not new_volume.get("file_content"):
+            file_content = new_volume.get("file_content")
+            if not file_content:
                 continue
-            # TODO(huangrh): update config file
+            # configuration file
+            config_file = config_files.get(new_volume["volume_name"])
+            if config_file and config_file.file_content != new_volume["file_content"]:
+                update.append(new_volume)
         if not add and not update:
             return None
         return {
@@ -177,7 +167,7 @@ class PropertyChanges(object):
     @staticmethod
     def _probe(old_probe, new_probes):
         """
-        完全覆盖
+        Support adding and updating all attributes
         """
         if not new_probes:
             return None
@@ -197,29 +187,36 @@ class PropertyChanges(object):
     @staticmethod
     def _graphs(component_id, old_graphs, graphs):
         """
-        新增, 更新
+        Support adding and updating promql
         """
         if not graphs:
             return None
 
-        old_promqls = [graph.promql for graph in old_graphs if old_graphs]
+        old_graphs = {graph.title: graph for graph in old_graphs if old_graphs}
         add = []
+        update = []
         for graph in graphs:
+            old_graph = old_graphs.get(graph.get("title"))
+            if not old_graph:
+                add.append(graph)
+                continue
+
             try:
                 new_promql = promql_service.add_or_update_label(component_id, graph.get("promql"))
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
-            if new_promql not in old_promqls:
-                add.append(graph)
-        if not add:
-            return None
-        return {"add": add}
+            if new_promql != old_graph.promql:
+                update.append(graph)
+        return {
+            "add": add,
+            "upd": update,
+        }
 
     @staticmethod
     def _monitors(tenant_id, old_monitors, monitors):
         """
-        新增, 更新
+        Support adding and updating
         """
         if not monitors:
             return None

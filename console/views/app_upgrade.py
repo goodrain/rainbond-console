@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import Enum
 
 from console.exception.main import (AbortRequest, AccountOverdueException, ResourceNotEnoughException, ServiceHandleException)
+from console.exception.bcode import ErrAppUpgradeDeploy
 from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -378,7 +379,12 @@ class AppUpgradeRollbackView(ApplicationView):
         if record.status != UpgradeStatus.UPGRADED.value:
             raise AbortRequest("unable to rollback an incomplete upgrade", "无法回滚一个未完成的升级")
 
-        market_app_service.restore(self.tenant, self.region_name, self.app, record.upgrade_group_id, record)
+        try:
+            market_app_service.restore(self.tenant, self.region_name, self.user, self.app, record.upgrade_group_id, record)
+        except ErrAppUpgradeDeploy as e:
+            raise e
+        except ServiceHandleException:
+            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
         return MessageResponse(msg="success")
 
 
@@ -411,15 +417,21 @@ class AppUpgradeView(ApplicationView):
         record_id = parse_item(request, "upgrade_record_id", required=True)
         upgrade_group_id = parse_item(request, "upgrade_group_id", required=True)
         version = parse_item(request, "version", required=True)
+        # It is not yet possible to upgrade based on services, which is user-specified attribute changes
         components = parse_item(request, "services")
         component_keys = [cpt["service"]["service_key"] for cpt in components]
-        market_app_service.upgrade(
-            self.tenant,
-            self.region_name,
-            self.user,
-            upgrade_group_id,
-            version,
-            record_id,
-            component_keys,
-        )
+        try:
+            market_app_service.upgrade(
+                self.tenant,
+                self.region_name,
+                self.user,
+                upgrade_group_id,
+                version,
+                record_id,
+                component_keys,
+            )
+        except ErrAppUpgradeDeploy as e:
+            raise e
+        except ServiceHandleException:
+            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
         return MessageResponse(msg="success", msg_show="升级成功")

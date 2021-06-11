@@ -29,6 +29,7 @@ from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 # exception
 from console.exception.main import AbortRequest, ServiceHandleException
+from console.exception.bcode import ErrAppUpgradeDeploy
 # model
 from www.models.main import TenantServiceGroup
 from www.models.main import TenantServiceRelation
@@ -81,24 +82,29 @@ class AppUpgrade(MarketApp):
 
     def upgrade(self):
         # TODO(huangrh): install plugins
+        # Sync the new application to the data center first
+        # TODO(huangrh): rollback on api timeout
         self.sync_new_app()
 
         try:
-            snapshot = self._save_app()
-            self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot.snapshot_id)
+            # Save the application to the console
+            self._save_app()
         except Exception as e:
             logger.exception(e)
-            # rollback on failure
-            self._sync_app(self.original_app)
             self._update_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
-            raise ServiceHandleException("unexpected error", "未知错误, 请联系管理员")
+            # rollback on failure
+            self.rollback()
+            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
 
         self._deploy(self.record)
 
     def _deploy(self, record):
         # Optimization: not all components need deploy
         component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
-        events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+        try:
+            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+        except ServiceHandleException as e:
+            raise ErrAppUpgradeDeploy(e.msg)
         self._create_component_record(record, events)
 
     def _create_component_record(self, app_record: AppUpgradeRecord, events=list):
@@ -122,8 +128,9 @@ class AppUpgrade(MarketApp):
 
     @transaction.atomic
     def _save_app(self):
+        snapshot = self._take_snapshot()
         self.save_new_app()
-        return self._take_snapshot()
+        self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot.snapshot_id)
 
     def _sync_app(self, app):
         self._sync_components(app)

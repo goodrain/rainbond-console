@@ -136,3 +136,10 @@ class ErrAppSnapshotExists(ServiceHandleException):
     def __init__(self):
         super(ErrAppSnapshotExists, self).__init__(
             msg="app snapshot exists", msg_show="应用升级快照已存在", status_code=409, error_code=20902)
+
+
+class ErrAppUpgradeDeploy(ServiceHandleException):
+    def __init__(self, msg=""):
+        super(ErrAppUpgradeDeploy, self).__init__(
+            msg if msg else "failed to deploy the app, please retry later", msg_show="组件部署失败, 请稍后重试", status_code=400, error_code=20903)
+

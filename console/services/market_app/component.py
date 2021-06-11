@@ -10,8 +10,9 @@ from console.repositories.app_config import port_repo
 from www.models.main import TenantServicesPort
 from www.models.main import TenantServiceEnvVar
 from www.models.main import TenantServiceVolume
-from console.models.main import ComponentGraph
 from www.models.main import TenantServiceConfigurationFile
+from console.models.main import ComponentGraph
+from console.models.main import ServiceMonitor
 # exception
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
 # enum
@@ -64,7 +65,7 @@ class Component(object):
 
     def _ensure_port_envs(self, governance_mode):
         # filter out the old port envs
-        envs = [env for env in self.envs if env.container_port != 0]
+        envs = [env for env in self.envs if env.container_port == 0]
         # create outer envs for every port
         for port in self.ports:
             envs.extend(self._create_envs_4_ports(port, governance_mode))
@@ -73,8 +74,9 @@ class Component(object):
     def _create_envs_4_ports(self, port: TenantServicesPort, governance_mode):
         port_alias = self.component.service_alias.upper()
         host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
-        host_env = self._create_port_env(port, "连接地址", port_alias + "_HOST", host_value)
-        port_env = self._create_port_env(port, "端口", port_alias + "_PORT", str(port.container_port))
+        attr_name_prefix = port_alias + str(port.container_port)
+        host_env = self._create_port_env(port, "连接地址", attr_name_prefix + "_HOST", host_value)
+        port_env = self._create_port_env(port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
         return [host_env, port_env]
 
     def _create_port_env(self, port: TenantServicesPort, name, attr_name, attr_value):
@@ -164,13 +166,22 @@ class Component(object):
         if not component_graphs:
             return
         graphs = component_graphs.get("add", [])
-        self.graphs = [ComponentGraph(**graph) for graph in graphs]
+        self.graphs.extend([ComponentGraph(**graph) for graph in graphs])
+
+        graphs = component_graphs.get("upd", [])
+        old_graphs = {graph.title: graph for graph in self.graphs}
+        for graph in graphs:
+            old_graph = old_graphs.get(graph.get("title"))
+            if not old_graph:
+                continue
+            old_graph.promql = graph.get("promql", "")
+            old_graph.sequence = graph.get("sequence", 99)
 
     def _update_component_monitors(self, component_monitors):
         if not component_monitors:
             return
         monitors = component_monitors.get("add", [])
-        self.monitors = [ComponentGraph(**monitor) for monitor in monitors]
+        self.monitors = [ServiceMonitor(**monitor) for monitor in monitors]
 
     def _update_port_data(self, port):
         container_port = int(port["container_port"])
