@@ -51,8 +51,15 @@ region_api = RegionInvokeApi()
 
 
 class AppUpgrade(MarketApp):
-    def __init__(self, enterprise_id, tenant, region_name, user, version, component_group,
-                 record: AppUpgradeRecord = None, component_keys=None):
+    def __init__(self,
+                 enterprise_id,
+                 tenant,
+                 region_name,
+                 user,
+                 version,
+                 component_group,
+                 record: AppUpgradeRecord = None,
+                 component_keys=None):
         """
         components_keys: component keys that the user select.
         """
@@ -273,8 +280,6 @@ class AppUpgrade(MarketApp):
             return json.loads(app_version.app_template)
         except JSONDecodeError:
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
-
-
 
     def _create_new_app(self):
         # new components

@@ -62,8 +62,11 @@ class UpgradeRepo(object):
 
     @staticmethod
     def get_unfinished_record(upgrade_group_id):
-        return AppUpgradeRecord.objects.filter(
-            upgrade_group_id=upgrade_group_id).order_by("-create_time").first()
+        return AppUpgradeRecord.objects.filter(upgrade_group_id=upgrade_group_id).order_by("-create_time").first()
+
+    @staticmethod
+    def list_records_by_app_id(app_id):
+        return AppUpgradeRecord.objects.filter(group_id=app_id).order_by("-create_time")
 
 
 class ComponentUpgradeRecordRepository(object):
@@ -77,9 +80,8 @@ class ComponentUpgradeRecordRepository(object):
 
     @staticmethod
     def bulk_update(records):
-        # bulk_update is only available after django 2.2
-        for record in records:
-            record.save()
+        ServiceUpgradeRecord.objects.filter(pk__in=[record.ID for record in records]).delete()
+        ServiceUpgradeRecord.objects.bulk_create(records)
 
 
 upgrade_repo = UpgradeRepo()

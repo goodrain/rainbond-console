@@ -13,16 +13,3 @@ class GovernanceModeEnum(AutoNumber):
     @classmethod
     def names(cls):
         return [key.name for key in cls]
-
-
-class AppTemplateSourceEnum(AutoNumber):
-    LOCAL = ()
-    CLOUD = ()
-
-    @classmethod
-    def choices(cls):
-        return [(key.value, key.name) for key in cls]
-
-    @classmethod
-    def names(cls):
-        return [key.name for key in cls]

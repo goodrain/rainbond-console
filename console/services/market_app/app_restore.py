@@ -44,7 +44,8 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     """
 
-    def __init__(self, tenant, region_name, user, app: ServiceGroup, component_group: TenantServiceGroup, record: AppUpgradeRecord):
+    def __init__(self, tenant, region_name, user, app: ServiceGroup, component_group: TenantServiceGroup,
+                 record: AppUpgradeRecord):
         self.tenant = tenant
         self.region_name = region_name
         self.user = user
@@ -80,7 +81,7 @@ class AppRestore(MarketApp):
 
     def _update_upgrade_record(self, status, snapshot_id=None):
         self.record.status = status
-        self.record.snapshot_id=snapshot_id
+        self.record.snapshot_id = snapshot_id
         self.record.save()
 
     def _deploy(self):

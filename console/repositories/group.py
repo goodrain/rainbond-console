@@ -202,7 +202,6 @@ class TenantServiceGroupRepository(object):
             raise ErrComponentGroupNotFound
         return component_group
 
-
     def get_group_by_app_id(self, app_id):
         return TenantServiceGroup.objects.filter(service_group_id=app_id)
 

@@ -66,56 +66,11 @@ class UnfinishedAppUpgradeRecordView(ApplicationView):
 
 class AppUpgradeRecordsView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
-        """获取升级订单列表"""
         page = parse_argument(request, 'page', value_type=int, default=1)
         page_size = parse_argument(request, 'page_size', value_type=int, default=10)
 
-        rq_args = (
-            {
-                'key': 'group_key',
-                'value_type': str
-            },
-            {
-                'key': 'status__in',
-                'value_type': list
-            },
-            {
-                'key': 'status__gt',
-                'value_type': int
-            },
-            {
-                'key': 'status__lt',
-                'value_type': int
-            },
-        )
-
-        qs_args = parse_args(request, rq_args)
-        switch = {
-            'group_key': Q(group_key=qs_args.get('group_key')),
-            'status__in': Q(status__in=qs_args.get('status__in')),
-            'status__gt': Q(status__gt=qs_args.get('status__gt')),
-            'status__lt': Q(status__lt=qs_args.get('status__lt')),
-        }
-        q = Q()
-        for arg_key in list(qs_args.keys()):
-            q &= switch[arg_key]
-
-        record_qs = AppUpgradeRecord.objects.filter(
-            tenant_id=self.tenant.tenant_id,
-            group_id=int(app_id),
-        ).filter(q).order_by('-create_time')
-
-        paginator = Paginator(record_qs, page_size)
-        records = paginator.page(page)
-
-        # 同步升级记录状态
-        for record in records:
-            upgrade_service.synchronous_upgrade_status(self.tenant, self.region_name, record)
-
-        return MessageResponse(
-            msg="success",
-            bean={"total": paginator.count},
-            list=[upgrade_service.serialized_upgrade_record(record) for record in records])
+        records, total = upgrade_service.list_records(self.tenant_name, self.region_name, self.app_id, page, page_size)
+        return MessageResponse(msg="success", bean={"total": total}, list=records)
 
     def post(self, request, app_id, *args, **kwargs):
         upgrade_group_id = parse_item(request, 'upgrade_group_id', required=True)

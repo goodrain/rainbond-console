@@ -746,6 +746,11 @@ class UpgradeStatus(IntEnum):
     ROLLBACK_FAILED = 9  # 回滚失败
 
 
+class AppUpgradeRecordType(Enum):
+    UPGRADE = "upgrade"
+    ROLLBACK = "rollback"
+
+
 class AppUpgradeRecord(BaseModel):
     """云市应用升级记录"""
 
@@ -772,6 +777,19 @@ class AppUpgradeRecord(BaseModel):
             return True
         statuses = [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
         return True if self.status not in statuses else False
+
+    def type(self):
+        if self.status in [
+                UpgradeStatus.UPGRADING.value, UpgradeStatus.UPGRADED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+                UpgradeStatus.UPGRADE_FAILED.value
+        ]:
+            return AppUpgradeRecordType.UPGRADE.value
+        if self.status in [
+                UpgradeStatus.ROLLING.value, UpgradeStatus.ROLLBACK.value, UpgradeStatus.PARTIAL_ROLLBACK.value,
+                UpgradeStatus.ROLLBACK_FAILED.value
+        ]:
+            return AppUpgradeRecordType.UPGRADE.value
+        return None
 
 
 class ServiceUpgradeRecord(BaseModel):

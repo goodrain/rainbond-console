@@ -141,7 +141,10 @@ class ErrAppSnapshotExists(ServiceHandleException):
 class ErrAppUpgradeDeploy(ServiceHandleException):
     def __init__(self, msg=""):
         super(ErrAppUpgradeDeploy, self).__init__(
-            msg if msg else "failed to deploy the app, please retry later", msg_show="组件部署失败, 请稍后重试", status_code=400, error_code=20903)
+            msg if msg else "failed to deploy the app, please retry later",
+            msg_show="组件部署失败, 请稍后重试",
+            status_code=400,
+            error_code=20903)
 
 
 class ErrComponentGroupNotFound(ServiceHandleException):
@@ -154,4 +157,3 @@ class ErrPreviousRecordUnfinished(ServiceHandleException):
     def __init__(self):
         super(ErrPreviousRecordUnfinished, self).__init__(
             "the previous record is unfinished", msg_show="上一个任务未完成", status_code=400, error_code=20905)
-

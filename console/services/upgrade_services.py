@@ -8,6 +8,7 @@ from enum import Enum
 
 from django.db import transaction
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 # market app
 from console.services.market_app.app_upgrade import AppUpgrade
@@ -17,20 +18,23 @@ from console.services.market_app.component_group import ComponentGroup
 from console.exception.main import (AbortRequest, AccountOverdueException, RbdAppNotFound, RecordNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
 from console.exception.bcode import ErrPreviousRecordUnfinished
+# service
+from console.services.app import app_market_service
+from console.services.app_actions.exception import ErrServiceSourceNotFound
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
+from console.services.group_service import group_service
 # repository
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
-from console.services.app import app_market_service
-from console.services.app_actions.exception import ErrServiceSourceNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
-from console.services.group_service import group_service
+from console.repositories.upgrade_repo import component_upgrade_record_repo
+
 # model
-from console.models.main import (AppUpgradeRecord, RainbondCenterAppVersion, ServiceSourceInfo, ServiceUpgradeRecord,
-                                 UpgradeStatus)
+from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
+from console.models.main import AppUpgradeRecordType
 from www.models.main import ServiceGroup
-from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
+from www.models.main import Tenants
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -44,6 +48,20 @@ class UpgradeType(Enum):
 
 
 class UpgradeService(object):
+    def __init__(self):
+        self.status_tables = {
+            UpgradeStatus.UPGRADING.value: {
+                "success": UpgradeStatus.UPGRADED.value,
+                "failure": UpgradeStatus.UPGRADE_FAILED.value,
+                "timeout": UpgradeStatus.UPGRADED.value,
+            },
+            UpgradeStatus.ROLLING.value: {
+                "success": UpgradeStatus.ROLLBACK.value,
+                "failure": UpgradeStatus.ROLLBACK_FAILED.value,
+                "timeout": UpgradeStatus.ROLLBACK.value,
+            },
+        }
+
     @staticmethod
     def upgrade(tenant, region_name, user, upgrade_group_id, version, record_id, component_keys=None):
         """
@@ -54,7 +72,8 @@ class UpgradeService(object):
             raise AbortRequest("the status of the upgrade record is not not_upgraded", "只能升级未升级的升级记录")
 
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
-        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, record, component_keys)
+        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, record,
+                                 component_keys)
         app_upgrade.upgrade()
 
     @staticmethod
@@ -103,13 +122,108 @@ class UpgradeService(object):
         record = upgrade_repo.create_app_upgrade_record(**record)
         return record.to_dict()
 
+    def list_records(self, tenant_name, region_name, app_id, page, page_size):
+        # list records and pagination
+        records = upgrade_repo.list_records_by_app_id(app_id)
+        paginator = Paginator(records, page_size)
+        records = paginator.page(page)
 
-    def get_enterprise_access_token(self, enterprise_id, access_target):
-        enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
-        try:
-            return TenantEnterpriseToken.objects.get(enterprise_id=enter.pk, access_target=access_target)
-        except TenantEnterpriseToken.DoesNotExist:
-            return None
+        self.sync_unfinished_records(tenant_name, region_name, records)
+
+        return [record.to_dict() for record in records], paginator.count
+
+    def sync_unfinished_records(self, tenant_name, region_name, records):
+        for record in records:
+            if record.is_finished:
+                continue
+            # synchronize the last unfinished record
+            self.sync_record(tenant_name, region_name, record)
+            break
+
+    def sync_record(self, tenant_name, region_name, record: AppUpgradeRecord):
+        # list component records
+        component_records = component_upgrade_record_repo.list_by_app_record_id(record.ID)
+        # filter out the finished records
+        unfinished = {
+            record.event_id: record
+            for record in component_records
+            if not record.status in [UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+        }
+        # list events
+        event_ids = [event_id for event_id in unfinished.keys()]
+        body = region_api.get_tenant_events(region_name, tenant_name, event_ids)
+        events = body.get("list", [])
+
+        for event in events:
+            component_record = unfinished.get(event["EventID"])
+            if not component_record:
+                continue
+            self._update_component_record_status(component_record, event["Status"])
+
+        self._update_app_record_status(record, unfinished.values())
+
+        # save app record and component records
+        self.save_upgrade_record(record, unfinished.values())
+
+    def _update_component_record_status(self, record: ServiceUpgradeRecord, event_status):
+        if event_status == "":
+            return
+        status_table = self.status_tables.get(record.status, {})
+        if status_table:
+            logger.warning("unexpected component upgrade record status: {}".format(record.status))
+            return
+        status = status_table.get(event_status)
+        if status:
+            logger.warning("unexpected event status: {}".format(event_status))
+            return
+        record.status = status
+
+    def _update_app_record_status(self, app_record, component_records):
+        if self._is_upgrade_status_unfinished(component_records):
+            return
+        if self._is_upgrade_status_failed(component_records):
+            if app_record.type() == AppUpgradeRecordType.UPGRADE.value:
+                app_record.status = UpgradeStatus.UPGRADE_FAILED.value
+            if app_record.type() == AppUpgradeRecordType.ROLLBACK.value:
+                app_record.status = UpgradeStatus.ROLLBACK_FAILED.value
+            return
+        if self._is_upgrade_status_success(component_records):
+            if app_record.type() == AppUpgradeRecordType.UPGRADE.value:
+                app_record.status = UpgradeStatus.UPGRADED.value
+            if app_record.type() == AppUpgradeRecordType.ROLLBACK.value:
+                app_record.status = UpgradeStatus.ROLLBACK.value
+            return
+        # partial
+        if app_record.type() == AppUpgradeRecordType.UPGRADE.value:
+            app_record.status = UpgradeStatus.PARTIAL_UPGRADED.value
+        if app_record.type() == AppUpgradeRecordType.ROLLBACK.value:
+            app_record.status = UpgradeStatus.PARTIAL_ROLLBACK.value
+
+    @staticmethod
+    def _is_upgrade_status_unfinished(component_records):
+        for component_record in component_records:
+            if component_record.status in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]:
+                return False
+            return True
+
+    @staticmethod
+    def _is_upgrade_status_failed(component_records):
+        for component_record in component_records:
+            if component_record.status not in [UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.UPGRADE_FAILED.value]:
+                return False
+            return True
+
+    @staticmethod
+    def _is_upgrade_status_success(component_records):
+        for component_record in component_records:
+            if component_record.status not in [UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]:
+                return False
+            return True
+
+    @staticmethod
+    def save_upgrade_record(app_upgrade_record, component_upgrade_records):
+        app_upgrade_record.save()
+        component_upgrade_record_repo.bulk_update(component_upgrade_records)
 
     def get_or_create_upgrade_record(self, tenant_id, group_id, group_key, upgrade_group_id, is_from_cloud, market_name):
         """获取或创建升级记录"""
@@ -184,36 +298,6 @@ class UpgradeService(object):
             return upgrade_repo.get_app_not_upgrade_record(status__lt=UpgradeStatus.UPGRADED.value, **recode_kwargs)
         except AppUpgradeRecord.DoesNotExist:
             return AppUpgradeRecord()
-
-    def get_old_version(self, group_key, service_ids, cloud_version):
-        """获取旧版本版本号"""
-
-        versions = ServiceSourceInfo.objects.filter(
-            group_key=group_key,
-            service_id__in=service_ids,
-        ).values_list(
-            'version', flat=True) or []
-
-        app = RainbondCenterAppVersion.objects.filter(app_id=group_key, version__in=versions).order_by('-create_time').first()
-        if app and app.version:
-            return app.version
-        elif cloud_version and len(versions) >= 1:
-            return versions[0]
-        else:
-            return ''
-
-    def query_the_version_of_the_add_service(self, app_qs, service_keys):
-        """查询增加组件的版本
-        :param app_qs: 所有版本的组件
-        :type service_keys: set
-        :rtype: set
-        """
-        version_app_template_mapping = {app.version: self.parse_app_template(app.app_template) for app in app_qs}
-        return {
-            version
-            for version, parse_app_template in list(version_app_template_mapping.items())
-            if self.get_new_services(parse_app_template, service_keys)
-        }
 
     @staticmethod
     def get_new_services(parse_app_template, service_keys):
