@@ -13,6 +13,7 @@ from console.services.market_app.original_app import OriginalApp
 from console.services.market_app.new_components import NewComponents
 from console.services.market_app.update_components import UpdateComponents
 from console.services.market_app.property_changes import PropertyChanges
+from console.services.market_app.component_group import ComponentGroup
 # service
 from console.services.group_service import group_service
 from console.services.app import app_market_service
@@ -32,7 +33,6 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.exception.bcode import ErrAppUpgradeDeploy
 # model
-from www.models.main import TenantServiceGroup
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
 from console.models.main import AppUpgradeRecord
@@ -51,7 +51,7 @@ region_api = RegionInvokeApi()
 
 
 class AppUpgrade(MarketApp):
-    def __init__(self, enterprise_id, tenant, region_name, user, version, component_group: TenantServiceGroup,
+    def __init__(self, enterprise_id, tenant, region_name, user, version, component_group,
                  record: AppUpgradeRecord = None, component_keys=None):
         """
         components_keys: component keys that the user select.
@@ -62,18 +62,18 @@ class AppUpgrade(MarketApp):
         self.region_name = region_name
         self.user = user
 
-        self.component_group = component_group
+        self.component_group = ComponentGroup(enterprise_id, component_group, version)
         self.record = record
-        self.app_id = component_group.service_group_id
+        self.app_id = component_group.app_id
         self.app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, self.app_id)
-        self.upgrade_group_id = component_group.ID
-        self.app_model_key = component_group.group_key
-        self.old_version = component_group.group_version
+        self.upgrade_group_id = component_group.upgrade_group_id
+        self.app_model_key = component_group.app_model_key
+        self.old_version = component_group.version
         self.version = version
         self.component_keys = component_keys if component_keys else None
 
         # app template
-        self.app_template_source = self._app_template_source()
+        self.app_template_source = self.app_template_source()
         self.app_template = self._app_template()
         # original app
         self.original_app = OriginalApp(self.tenant_id, self.region_name, self.app, self.upgrade_group_id)
@@ -274,13 +274,7 @@ class AppUpgrade(MarketApp):
         except JSONDecodeError:
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
 
-    def _app_template_source(self):
-        components = group_service.get_rainbond_services(self.app_id, self.app_model_key, self.upgrade_group_id)
-        if not components:
-            raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
-        component = components[0]
-        component_source = service_source_repo.get_service_source(component.tenant_id, component.service_id)
-        return component_source
+
 
     def _create_new_app(self):
         # new components
@@ -307,7 +301,7 @@ class AppUpgrade(MarketApp):
         config_group_items = self._config_group_items(config_groups)
         config_group_components = self._config_group_components(components, config_groups)
 
-        component_group = copy.deepcopy(self.component_group)
+        component_group = copy.deepcopy(self.component_group.component_group)
         component_group.group_version = self.version
 
         return NewApp(
@@ -440,7 +434,7 @@ class AppUpgrade(MarketApp):
                 snapshot_id=make_uuid(),
                 snapshot=json.dumps({
                     "components": components,
-                    "component_group": self.component_group.to_dict(),
+                    "component_group": self.component_group.component_group.to_dict(),
                 }),
             ))
         return snapshot

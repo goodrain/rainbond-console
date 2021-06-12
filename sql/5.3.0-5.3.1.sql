@@ -19,3 +19,5 @@ CREATE TABLE IF NOT EXISTS `app_snapshots` (
      `create_time` datetime(6) NOT NULL,
      PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=588 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE `console`.`app_upgrade_record` ADD COLUMN `is_finished` tinyint(1) NOT NULL DEFAULT 0 AFTER `snapshot_id`;

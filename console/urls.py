@@ -803,8 +803,10 @@ urlpatterns += [
     # 查询当前组下某云市应用的更新版本
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-versions$', app_upgrade.AppUpgradeVersion.as_view(),
         perms.AppUpgradeVersion),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/unfinished-record$',
+        app_upgrade.UnfinishedAppUpgradeRecordView.as_view(), perms.AppUpgradeRecordsView),
     # 升级记录集合
-    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records$',
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records$',
         app_upgrade.AppUpgradeRecordsView.as_view(), perms.AppUpgradeRecordsView),
     # 某一条升级记录
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)$',

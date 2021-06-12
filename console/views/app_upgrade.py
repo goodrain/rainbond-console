@@ -57,8 +57,15 @@ class AppUpgradeVersion(RegionTenantHeaderView):
         return MessageResponse(msg="success", list=list(versions))
 
 
-class AppUpgradeRecordsView(RegionTenantHeaderView):
-    def get(self, request, group_id, *args, **kwargs):
+class UnfinishedAppUpgradeRecordView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        upgrade_group_id = parse_item(request, "upgrade_group_id", required=True)
+        record = upgrade_service.get_latest_upgrade_record(upgrade_group_id)
+        return MessageResponse(msg="success", bean=record)
+
+
+class AppUpgradeRecordsView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
         """获取升级订单列表"""
         page = parse_argument(request, 'page', value_type=int, default=1)
         page_size = parse_argument(request, 'page_size', value_type=int, default=10)
@@ -95,7 +102,7 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
 
         record_qs = AppUpgradeRecord.objects.filter(
             tenant_id=self.tenant.tenant_id,
-            group_id=int(group_id),
+            group_id=int(app_id),
         ).filter(q).order_by('-create_time')
 
         paginator = Paginator(record_qs, page_size)
@@ -110,26 +117,10 @@ class AppUpgradeRecordsView(RegionTenantHeaderView):
             bean={"total": paginator.count},
             list=[upgrade_service.serialized_upgrade_record(record) for record in records])
 
-    def post(self, request, group_id, *args, **kwargs):
-        """新增升级订单"""
-        group_key = parse_item(request, 'group_key', required=True, error='group_key is a required parameter')
-        is_from_cloud = request.data.get("is_from_cloud", False)
-        market_name = request.data.get("market_name", None)
-        upgrade_group_id = request.data.get("upgrade_group_id", "0")
-        if not upgrade_group_id.isdigit() or not group_id.isdigit():
-            raise ServiceHandleException(msg="upgrade_group_id or group_id is invalid", msg_show="参数类型错误", status_code=400)
-        recode_kwargs = {
-            "tenant_id": self.tenant.tenant_id,
-            "group_id": int(group_id),
-            "group_key": group_key,
-            "is_from_cloud": is_from_cloud,
-            "market_name": market_name,
-            "upgrade_group_id": int(upgrade_group_id)
-        }
-        # 查询或创建一条升级记录
-        app_record = upgrade_service.get_or_create_upgrade_record(**recode_kwargs)
-
-        return MessageResponse(msg="success", bean=app_record.to_dict())
+    def post(self, request, app_id, *args, **kwargs):
+        upgrade_group_id = parse_item(request, 'upgrade_group_id', required=True)
+        record = upgrade_service.create_upgrade_record(self.user.enterprise_id, self.tenant, self.app, upgrade_group_id)
+        return MessageResponse(msg="success", bean=record)
 
 
 class AppUpgradeRecordView(RegionTenantHeaderView):

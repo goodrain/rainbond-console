@@ -6,10 +6,19 @@ from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 
+from django.db import transaction
+from django.db.models import Q
+
+# market app
+from console.services.market_app.app_upgrade import AppUpgrade
+from console.services.market_app.app_restore import AppRestore
+from console.services.market_app.component_group import ComponentGroup
+# exception
 from console.exception.main import (AbortRequest, AccountOverdueException, RbdAppNotFound, RecordNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
-from console.models.main import (AppUpgradeRecord, RainbondCenterAppVersion, ServiceSourceInfo, ServiceUpgradeRecord,
-                                 UpgradeStatus)
+from console.exception.bcode import ErrPreviousRecordUnfinished
+# repository
+from console.repositories.group import tenant_service_group_repo
 from console.repositories.app import service_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -17,10 +26,13 @@ from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
 from console.services.group_service import group_service
-from django.db import transaction
-from django.db.models import Q
-from www.apiclient.regionapi import RegionInvokeApi
+# model
+from console.models.main import (AppUpgradeRecord, RainbondCenterAppVersion, ServiceSourceInfo, ServiceUpgradeRecord,
+                                 UpgradeStatus)
+from www.models.main import ServiceGroup
 from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
+# www
+from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -32,6 +44,66 @@ class UpgradeType(Enum):
 
 
 class UpgradeService(object):
+    @staticmethod
+    def upgrade(tenant, region_name, user, upgrade_group_id, version, record_id, component_keys=None):
+        """
+        Upgrade application market applications
+        """
+        record = upgrade_repo.get_by_record_id(record_id)
+        if record.status != UpgradeStatus.NOT.value:
+            raise AbortRequest("the status of the upgrade record is not not_upgraded", "只能升级未升级的升级记录")
+
+        component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
+        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, record, component_keys)
+        app_upgrade.upgrade()
+
+    @staticmethod
+    def restore(tenant, region_name, user, app, upgrade_group_id, record):
+        component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
+        app_restore = AppRestore(tenant, region_name, user, app, component_group, record)
+        app_restore.restore()
+
+    @staticmethod
+    def get_property_changes(tenant, region_name, user, upgrade_group_id, version):
+        component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
+        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group)
+        return app_upgrade.changes()
+
+    @staticmethod
+    def get_latest_upgrade_record(upgrade_group_id):
+        tenant_service_group_repo.get_component_group(upgrade_group_id)
+        record = upgrade_repo.get_unfinished_record(upgrade_group_id)
+        return record.to_dict() if record else None
+
+    @staticmethod
+    @transaction.atomic
+    def create_upgrade_record(enterprise_id, tenant: Tenants, app: ServiceGroup, upgrade_group_id):
+        component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
+
+        # If there are unfinished record, it is not allowed to create new record
+        unfinished_record = upgrade_repo.get_unfinished_record(upgrade_group_id)
+        if unfinished_record and not unfinished_record.can_create_new_record():
+            raise ErrPreviousRecordUnfinished
+
+        component_group = ComponentGroup(enterprise_id, component_group)
+        app_template_source = component_group.app_template_source()
+
+        # create new record
+        record = {
+            "tenant_id": tenant.tenant_id,
+            "group_id": app.app_id,
+            "group_key": component_group.app_model_key,
+            "group_name": app.app_name,
+            "create_time": datetime.now(),
+            "is_from_cloud": component_group.is_install_from_cloud(),
+            "market_name": app_template_source.get_market_name(),
+            "upgrade_group_id": upgrade_group_id,
+            "old_version": component_group.version,
+        }
+        record = upgrade_repo.create_app_upgrade_record(**record)
+        return record.to_dict()
+
+
     def get_enterprise_access_token(self, enterprise_id, access_target):
         enter = TenantEnterprise.objects.get(enterprise_id=enterprise_id)
         try:

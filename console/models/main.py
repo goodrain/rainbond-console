@@ -765,6 +765,13 @@ class AppUpgradeRecord(BaseModel):
     is_from_cloud = models.BooleanField(default=False, help_text="应用来源")
     upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
     snapshot_id = models.CharField(max_length=32)
+    is_finished = models.BooleanField(default=False, help_text="升级是否完成了")
+
+    def can_create_new_record(self):
+        if self.is_finished:
+            return True
+        statuses = [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+        return True if self.status not in statuses else False
 
 
 class ServiceUpgradeRecord(BaseModel):

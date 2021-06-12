@@ -3,8 +3,6 @@ import json
 
 from .new_app import NewApp
 from .original_app import OriginalApp
-# repository
-from console.repositories.app_config import dep_relation_repo
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 

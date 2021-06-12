@@ -1040,6 +1040,10 @@ class ServiceGroup(BaseModel):
     def app_id(self):
         return self.ID
 
+    @property
+    def app_name(self):
+        return self.group_name
+
 
 class ServiceGroupRelation(BaseModel):
     """组件与分组关系"""

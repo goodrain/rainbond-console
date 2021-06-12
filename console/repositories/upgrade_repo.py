@@ -60,6 +60,11 @@ class UpgradeRepo(object):
         except AppUpgradeRecord.DoesNotExist:
             raise ErrAppUpgradeRecordNotFound
 
+    @staticmethod
+    def get_unfinished_record(upgrade_group_id):
+        return AppUpgradeRecord.objects.filter(
+            upgrade_group_id=upgrade_group_id).order_by("-create_time").first()
+
 
 class ComponentUpgradeRecordRepository(object):
     @staticmethod
