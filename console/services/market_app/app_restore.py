@@ -2,6 +2,7 @@
 import json
 import logging
 import copy
+from datetime import datetime
 
 from .app import MarketApp
 from .original_app import OriginalApp
@@ -11,6 +12,7 @@ from .component import Component
 from console.services.app_actions import app_manage_service
 # repository
 from console.repositories.app_snapshot import app_snapshot_repo
+from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 # model
 from www.models.main import ServiceGroup
@@ -26,12 +28,13 @@ from www.models.main import ServiceProbe
 from www.models.service_publish import ServiceExtendMethod
 from console.models.main import UpgradeStatus
 from console.models.main import AppUpgradeRecord
+from console.models.main import ServiceUpgradeRecord
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
 # exception
 from console.exception.main import ServiceHandleException
-from console.exception.bcode import ErrAppUpgradeDeploy
+from console.exception.bcode import ErrAppUpgradeDeployFailed
 
 logger = logging.getLogger('django.contrib.gis')
 
@@ -45,13 +48,14 @@ class AppRestore(MarketApp):
     """
 
     def __init__(self, tenant, region_name, user, app: ServiceGroup, component_group: TenantServiceGroup,
-                 record: AppUpgradeRecord):
+                 app_upgrade_record: AppUpgradeRecord):
         self.tenant = tenant
         self.region_name = region_name
         self.user = user
         self.app = app
         self.upgrade_group_id = component_group.ID
-        self.record = record
+        self.upgrade_record = app_upgrade_record
+        self.rollback_record = None
         self.component_group = component_group
 
         self.original_app = OriginalApp(tenant.tenant_id, region_name, app, component_group.ID)
@@ -68,21 +72,33 @@ class AppRestore(MarketApp):
             self._save_new_app()
         except Exception as e:
             logger.exception(e)
+            self._update_rollback_record(UpgradeStatus.ROLLBACK_FAILED.value)
             self.rollback()
             raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
 
         self._deploy()
 
+        return self.rollback_record
+
     def _save_new_app(self):
         # save new app
         self.save_new_app()
         # update record
-        self._update_upgrade_record(UpgradeStatus.ROLLING.value)
+        self.create_rollback_record()
 
-    def _update_upgrade_record(self, status, snapshot_id=None):
-        self.record.status = status
-        self.record.snapshot_id = snapshot_id
-        self.record.save()
+    def create_rollback_record(self):
+        rollback_record = self.upgrade_record.to_dict()
+        rollback_record.pop("ID")
+        rollback_record["status"] = UpgradeStatus.ROLLING.value
+        self.rollback_record = upgrade_repo.create_app_upgrade_record(**rollback_record)
+
+    def _update_upgrade_record(self, status):
+        self.upgrade_record.status = status
+        self.upgrade_record.save()
+
+    def _update_rollback_record(self, status):
+        self.rollback_record.status = status
+        self.rollback_record.save()
 
     def _deploy(self):
         # Optimization: not all components need deploy
@@ -91,22 +107,34 @@ class AppRestore(MarketApp):
         try:
             events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
         except ServiceHandleException as e:
-            raise ErrAppUpgradeDeploy(e.msg)
-        self._update_component_record(events)
+            self._update_rollback_record(UpgradeStatus.DEPLOY_FAILED.value)
+            raise ErrAppUpgradeDeployFailed(e.msg)
+        except Exception as e:
+            self._update_rollback_record(UpgradeStatus.DEPLOY_FAILED.value)
+            raise e
+        self._create_component_record(events)
 
-    def _update_component_record(self, events):
+    def _create_component_record(self, events=list):
         event_ids = {event["service_id"]: event["event_id"] for event in events}
-        records = component_upgrade_record_repo.list_by_app_record_id(self.record.ID)
-        for record in records:
-            event_id = event_ids.get(record.service_id)
+        records = []
+        for cpt in self.new_app.components():
+            event_id = event_ids.get(cpt.component.component_id)
             if not event_id:
                 continue
-            record.status = UpgradeStatus.ROLLING.value
-            record.event_id = event_id
-        component_upgrade_record_repo.bulk_update(records)
+            record = ServiceUpgradeRecord(
+                create_time=datetime.now(),
+                app_upgrade_record=self.rollback_record,
+                service_id=cpt.component.component_id,
+                service_cname=cpt.component.service_cname,
+                upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value,
+                event_id=event_id,
+                status=UpgradeStatus.ROLLING.value,
+            )
+            records.append(record)
+        component_upgrade_record_repo.bulk_create(records)
 
     def _get_snapshot(self):
-        snap = app_snapshot_repo.get_by_snapshot_id(self.record.snapshot_id)
+        snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)
         snap = json.loads(snap.snapshot)
         # filter out components that are in the snapshot but not in the application
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]

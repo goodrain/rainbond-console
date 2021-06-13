@@ -17,12 +17,15 @@ from console.services.market_app.component_group import ComponentGroup
 # exception
 from console.exception.main import (AbortRequest, AccountOverdueException, RbdAppNotFound, RecordNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
+from console.exception.bcode import ErrAppUpgradeDeployFailed
 from console.exception.bcode import ErrPreviousRecordUnfinished
+from console.exception.bcode import ErrAppUpgradeRecordCanNotDeploy
 # service
 from console.services.app import app_market_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
 from console.services.group_service import group_service
+from console.services.app_actions import app_manage_service
 # repository
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.app import service_repo
@@ -62,8 +65,7 @@ class UpgradeService(object):
             },
         }
 
-    @staticmethod
-    def upgrade(tenant, region_name, user, upgrade_group_id, version, record_id, component_keys=None):
+    def upgrade(self, tenant, region_name, user, upgrade_group_id, version, record_id, component_keys=None):
         """
         Upgrade application market applications
         """
@@ -74,13 +76,14 @@ class UpgradeService(object):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
         app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, record,
                                  component_keys)
-        app_upgrade.upgrade()
+        record = app_upgrade.upgrade()
+        return self.serialized_upgrade_record(record)
 
-    @staticmethod
-    def restore(tenant, region_name, user, app, upgrade_group_id, record):
+    def restore(self, tenant, region_name, user, app, upgrade_group_id, record):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
         app_restore = AppRestore(tenant, region_name, user, app, component_group, record)
-        app_restore.restore()
+        record = app_restore.restore()
+        return self.serialized_upgrade_record(record)
 
     @staticmethod
     def get_property_changes(tenant, region_name, user, upgrade_group_id, version):
@@ -94,9 +97,8 @@ class UpgradeService(object):
         record = upgrade_repo.get_unfinished_record(upgrade_group_id)
         return record.to_dict() if record else None
 
-    @staticmethod
     @transaction.atomic
-    def create_upgrade_record(enterprise_id, tenant: Tenants, app: ServiceGroup, upgrade_group_id):
+    def create_upgrade_record(self, enterprise_id, tenant: Tenants, app: ServiceGroup, upgrade_group_id):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
@@ -120,7 +122,7 @@ class UpgradeService(object):
             "old_version": component_group.version,
         }
         record = upgrade_repo.create_app_upgrade_record(**record)
-        return record.to_dict()
+        return self.serialized_upgrade_record(record)
 
     def list_records(self, tenant_name, region_name, app_id, page, page_size):
         # list records and pagination
@@ -147,7 +149,7 @@ class UpgradeService(object):
         unfinished = {
             record.event_id: record
             for record in component_records
-            if not record.status in [UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+            if record.status in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
         }
         # list events
         event_ids = [event_id for event_id in unfinished.keys()]
@@ -160,20 +162,72 @@ class UpgradeService(object):
                 continue
             self._update_component_record_status(component_record, event["Status"])
 
-        self._update_app_record_status(record, unfinished.values())
+        self._update_app_record_status(record, component_records)
 
         # save app record and component records
-        self.save_upgrade_record(record, unfinished.values())
+        self.save_upgrade_record(record, component_records)
+
+    def deploy(self, tenant, region_name, user, record_id):
+        record = upgrade_repo.get_by_record_id(record_id)
+        if record.can_deploy():
+            raise ErrAppUpgradeRecordCanNotDeploy
+
+        # failed events
+        component_records = component_upgrade_record_repo.list_by_app_record_id(record.ID)
+        failed_component_records = {
+            record.event_id: record
+            for record in component_records if record.service_id in
+            [UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.DEPLOY_FAILED.value]
+        }
+
+        component_ids = [record.service_id for record in failed_component_records]
+
+        try:
+            events = app_manage_service.batch_operations(tenant, region_name, user, "deploy", component_ids)
+            status = UpgradeStatus.UPGRADING.value if record.type(
+            ) == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
+            upgrade_repo.change_app_record_status(record, status)
+        except ServiceHandleException as e:
+            upgrade_repo.change_app_record_status(record, UpgradeStatus.DEPLOY_FAILED.value)
+            raise ErrAppUpgradeDeployFailed(e.msg)
+        except Exception as e:
+            upgrade_repo.change_app_record_status(record, UpgradeStatus.DEPLOY_FAILED.value)
+            raise e
+        self._update_component_records(record, failed_component_records, events)
+
+    @staticmethod
+    def save_upgrade_record(app_upgrade_record, component_upgrade_records):
+        app_upgrade_record.save()
+        component_upgrade_record_repo.bulk_update(component_upgrade_records)
+
+    def get_app_upgrade_record(self, tenant_name, region_name, record_id):
+        record = upgrade_repo.get_by_record_id(record_id)
+        if not record.is_finished:
+            self.sync_record(tenant_name, region_name, record)
+        return self.serialized_upgrade_record(record)
+
+    @staticmethod
+    def _update_component_records(app_record: AppUpgradeRecord, component_records, events):
+        event_ids = {event["service_id"]: event["event_id"] for event in events}
+        status = UpgradeStatus.UPGRADING.value if app_record.type(
+        ) == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
+        for component_record in component_records:
+            event_id = event_ids.get(component_record.service_id)
+            if not event_id:
+                continue
+            component_record.status = status
+            component_record.event_id = event_id
+        component_upgrade_record_repo.bulk_update(component_records)
 
     def _update_component_record_status(self, record: ServiceUpgradeRecord, event_status):
         if event_status == "":
             return
         status_table = self.status_tables.get(record.status, {})
-        if status_table:
+        if not status_table:
             logger.warning("unexpected component upgrade record status: {}".format(record.status))
             return
         status = status_table.get(event_status)
-        if status:
+        if not status:
             logger.warning("unexpected event status: {}".format(event_status))
             return
         record.status = status
@@ -203,8 +257,8 @@ class UpgradeService(object):
     def _is_upgrade_status_unfinished(component_records):
         for component_record in component_records:
             if component_record.status in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]:
-                return False
-            return True
+                return True
+            return False
 
     @staticmethod
     def _is_upgrade_status_failed(component_records):
@@ -216,14 +270,9 @@ class UpgradeService(object):
     @staticmethod
     def _is_upgrade_status_success(component_records):
         for component_record in component_records:
-            if component_record.status not in [UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]:
+            if component_record.status in [UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]:
                 return False
             return True
-
-    @staticmethod
-    def save_upgrade_record(app_upgrade_record, component_upgrade_records):
-        app_upgrade_record.save()
-        component_upgrade_record_repo.bulk_update(component_upgrade_records)
 
     def get_or_create_upgrade_record(self, tenant_id, group_id, group_key, upgrade_group_id, is_from_cloud, market_name):
         """获取或创建升级记录"""

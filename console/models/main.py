@@ -744,6 +744,7 @@ class UpgradeStatus(IntEnum):
     PARTIAL_ROLLBACK = 7  # 部分回滚
     UPGRADE_FAILED = 8  # 升级失败
     ROLLBACK_FAILED = 9  # 回滚失败
+    DEPLOY_FAILED = 10
 
 
 class AppUpgradeRecordType(Enum):
@@ -778,6 +779,15 @@ class AppUpgradeRecord(BaseModel):
         statuses = [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
         return True if self.status not in statuses else False
 
+    def can_deploy(self):
+        if self.is_finished:
+            return False
+        statuses = [
+            UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value
+        ]
+        return True if self.status in statuses else False
+
     def type(self):
         if self.status in [
                 UpgradeStatus.UPGRADING.value, UpgradeStatus.UPGRADED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
@@ -788,7 +798,7 @@ class AppUpgradeRecord(BaseModel):
                 UpgradeStatus.ROLLING.value, UpgradeStatus.ROLLBACK.value, UpgradeStatus.PARTIAL_ROLLBACK.value,
                 UpgradeStatus.ROLLBACK_FAILED.value
         ]:
-            return AppUpgradeRecordType.UPGRADE.value
+            return AppUpgradeRecordType.ROLLBACK.value
         return None
 
 

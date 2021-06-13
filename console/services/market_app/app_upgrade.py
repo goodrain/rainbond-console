@@ -15,12 +15,10 @@ from console.services.market_app.update_components import UpdateComponents
 from console.services.market_app.property_changes import PropertyChanges
 from console.services.market_app.component_group import ComponentGroup
 # service
-from console.services.group_service import group_service
 from console.services.app import app_market_service
 from console.services.app_actions import app_manage_service
 from console.services.backup_service import groupapp_backup_service
 # repo
-from console.repositories.app import service_source_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
@@ -31,7 +29,7 @@ from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 # exception
 from console.exception.main import AbortRequest, ServiceHandleException
-from console.exception.bcode import ErrAppUpgradeDeploy
+from console.exception.bcode import ErrAppUpgradeDeployFailed
 # model
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
@@ -71,16 +69,16 @@ class AppUpgrade(MarketApp):
 
         self.component_group = ComponentGroup(enterprise_id, component_group, version)
         self.record = record
-        self.app_id = component_group.app_id
+        self.app_id = self.component_group.app_id
         self.app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, self.app_id)
-        self.upgrade_group_id = component_group.upgrade_group_id
-        self.app_model_key = component_group.app_model_key
-        self.old_version = component_group.version
+        self.upgrade_group_id = self.component_group.upgrade_group_id
+        self.app_model_key = self.component_group.app_model_key
+        self.old_version = self.component_group.version
         self.version = version
         self.component_keys = component_keys if component_keys else None
 
         # app template
-        self.app_template_source = self.app_template_source()
+        self.app_template_source = self.component_group.app_template_source()
         self.app_template = self._app_template()
         # original app
         self.original_app = OriginalApp(self.tenant_id, self.region_name, self.app, self.upgrade_group_id)
@@ -106,6 +104,8 @@ class AppUpgrade(MarketApp):
             raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
 
         self._deploy(self.record)
+
+        return self.record
 
     def changes(self):
         templates = self.app_template.get("apps")
@@ -161,7 +161,11 @@ class AppUpgrade(MarketApp):
         try:
             events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
         except ServiceHandleException as e:
-            raise ErrAppUpgradeDeploy(e.msg)
+            self._update_upgrade_record(UpgradeStatus.DEPLOY_FAILED.value)
+            raise ErrAppUpgradeDeployFailed(e.msg)
+        except Exception as e:
+            self._update_upgrade_record(UpgradeStatus.DEPLOY_FAILED.value)
+            raise e
         self._create_component_record(record, events)
 
     def _create_component_record(self, app_record: AppUpgradeRecord, events=list):
