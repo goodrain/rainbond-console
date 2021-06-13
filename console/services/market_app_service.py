@@ -7,8 +7,10 @@ import json
 import logging
 import time
 
+# enum
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
+# exception
 from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
@@ -186,7 +188,7 @@ class MarketAppService(object):
         try:
             region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
             apps = market_app_template["apps"]
-            tenant_service_group = tenant_service_group_repo.get_group_by_service_group_id(upgrade_group_id)
+            tenant_service_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
             self.create_plugin_for_tenant(region_name, user, tenant, market_app_template.get("plugins", []))
 
@@ -565,7 +567,7 @@ class MarketAppService(object):
                 region_name = one_service.service_region
                 try:
                     _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
-                    result = body["bean"]["batche_result"]
+                    result = body["bean"]["batch_result"]
                     events = {item.event_id: item.service_id for item in result}
                     return events
                 except region_api.CallApiError as e:

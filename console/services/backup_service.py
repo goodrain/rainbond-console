@@ -279,6 +279,7 @@ class GroupAppBackupService(object):
             if not third_party_service_endpoints:
                 raise ServiceHandleException(msg="third party service endpoints can't be null", msg_show="第三方组件实例不可为空")
         app_info = {
+            "component_id": service.component_id,
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],

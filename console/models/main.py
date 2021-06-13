@@ -744,6 +744,12 @@ class UpgradeStatus(IntEnum):
     PARTIAL_ROLLBACK = 7  # 部分回滚
     UPGRADE_FAILED = 8  # 升级失败
     ROLLBACK_FAILED = 9  # 回滚失败
+    DEPLOY_FAILED = 10
+
+
+class AppUpgradeRecordType(Enum):
+    UPGRADE = "upgrade"
+    ROLLBACK = "rollback"
 
 
 class AppUpgradeRecord(BaseModel):
@@ -764,6 +770,36 @@ class AppUpgradeRecord(BaseModel):
     market_name = models.CharField(max_length=64, null=True, help_text="商店标识")
     is_from_cloud = models.BooleanField(default=False, help_text="应用来源")
     upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32)
+    is_finished = models.BooleanField(default=False, help_text="升级是否完成了")
+
+    def can_create_new_record(self):
+        if self.is_finished:
+            return True
+        statuses = [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+        return True if self.status not in statuses else False
+
+    def can_deploy(self):
+        if self.is_finished:
+            return False
+        statuses = [
+            UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value
+        ]
+        return True if self.status in statuses else False
+
+    def type(self):
+        if self.status in [
+                UpgradeStatus.UPGRADING.value, UpgradeStatus.UPGRADED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+                UpgradeStatus.UPGRADE_FAILED.value
+        ]:
+            return AppUpgradeRecordType.UPGRADE.value
+        if self.status in [
+                UpgradeStatus.ROLLING.value, UpgradeStatus.ROLLBACK.value, UpgradeStatus.PARTIAL_ROLLBACK.value,
+                UpgradeStatus.ROLLBACK_FAILED.value
+        ]:
+            return AppUpgradeRecordType.ROLLBACK.value
+        return None
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -1015,3 +1051,15 @@ class ComponentGraph(BaseModel):
     title = models.CharField(max_length=255, help_text="the title of the graph")
     promql = models.CharField(max_length=2047, help_text="the title of the graph")
     sequence = models.IntegerField(help_text="the sequence number of the graph")
+
+
+class AppSnapshot(BaseModel):
+    class Meta:
+        db_table = "app_snapshots"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    tenant_id = models.CharField(max_length=32)
+    upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32, help_text="the identity of the snapshot")
+    snapshot = models.TextField()

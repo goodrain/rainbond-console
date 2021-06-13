@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 
 from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
+from console.exception.bcode import ErrAppUpgradeRecordNotFound
 
 
 class UpgradeRepo(object):
@@ -52,5 +53,36 @@ class UpgradeRepo(object):
         """级联删除升级记录"""
         AppUpgradeRecord.objects.filter(group_id=group_id).delete()
 
+    @staticmethod
+    def get_by_record_id(record_id):
+        try:
+            return AppUpgradeRecord.objects.get(pk=record_id)
+        except AppUpgradeRecord.DoesNotExist:
+            raise ErrAppUpgradeRecordNotFound
+
+    @staticmethod
+    def get_unfinished_record(upgrade_group_id):
+        return AppUpgradeRecord.objects.filter(upgrade_group_id=upgrade_group_id).order_by("-create_time").first()
+
+    @staticmethod
+    def list_records_by_app_id(app_id):
+        return AppUpgradeRecord.objects.filter(group_id=app_id).order_by("-create_time")
+
+
+class ComponentUpgradeRecordRepository(object):
+    @staticmethod
+    def bulk_create(records):
+        ServiceUpgradeRecord.objects.bulk_create(records)
+
+    @staticmethod
+    def list_by_app_record_id(app_record_id):
+        return ServiceUpgradeRecord.objects.filter(app_upgrade_record_id=app_record_id)
+
+    @staticmethod
+    def bulk_update(records):
+        ServiceUpgradeRecord.objects.filter(pk__in=[record.ID for record in records]).delete()
+        ServiceUpgradeRecord.objects.bulk_create(records)
+
 
 upgrade_repo = UpgradeRepo()
+component_upgrade_record_repo = ComponentUpgradeRecordRepository()

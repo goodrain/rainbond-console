@@ -351,6 +351,13 @@ class GroupService(object):
             re_app_list.append(app)
         return re_app_list
 
+    @staticmethod
+    def list_components_by_upgrade_group_id(group_id, upgrade_group_id):
+        gsr = group_service_relation_repo.get_services_by_group(group_id)
+        service_ids = gsr.values_list('service_id', flat=True)
+        components = service_repo.list_by_ids(service_ids)
+        return components.filter(tenant_service_group_id=upgrade_group_id)
+
     def get_rainbond_services(self, group_id, group_key, upgrade_group_id=None):
         """获取云市应用下的所有组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)

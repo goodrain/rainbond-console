@@ -196,7 +196,7 @@ class AppMntService(object):
                     "volume_type": dep_volume.volume_type
                 }
             else:
-                config_file = volume_repo.get_service_config_file(dep_volume.ID)
+                config_file = volume_repo.get_service_config_file(dep_volume)
                 data = {
                     "depend_service_id": dep_volume.service_id,
                     "volume_name": dep_volume.volume_name,

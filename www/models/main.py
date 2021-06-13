@@ -539,6 +539,10 @@ class TenantServiceInfo(BaseModel):
         return data
 
     @property
+    def component_id(self):
+        return self.service_id
+
+    @property
     def clone_url(self):
         if self.code_from == "github":
             code_user = self.git_url.split("/")[3]
@@ -557,6 +561,11 @@ class TenantServiceInfo(BaseModel):
         if self.service_source == ComponentSource.THIRD_PARTY.value:
             return True
         return False
+
+    def calculate_min_cpu(self, min_memory):
+        # The algorithm is absolete
+        min_cpu = int(min_memory) / 128 * 20
+        return int(min_cpu)
 
 
 class TenantServiceInfoDelete(BaseModel):
@@ -963,6 +972,9 @@ class TenantServiceMountRelation(BaseModel):
     mnt_name = models.CharField(max_length=100, help_text="mnt name")
     mnt_dir = models.CharField(max_length=400, help_text="mnt dir")
 
+    def key(self):
+        return self.service_id + self.dep_service_id + self.mnt_name
+
 
 class TenantServiceVolume(BaseModel):
     """数据持久化表格"""
@@ -998,6 +1010,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text="组件id")
     volume_id = models.IntegerField(null=True, help_text="存储id")
+    volume_name = models.CharField(max_length=32, help_text="组件名称, 唯一标识")
     file_content = models.TextField(blank=True, help_text="配置文件内容")
 
 
@@ -1022,6 +1035,14 @@ class ServiceGroup(BaseModel):
         help_text="governance mode")
     create_time = models.DateTimeField(help_text="创建时间")
     update_time = models.DateTimeField(help_text="更新时间")
+
+    @property
+    def app_id(self):
+        return self.ID
+
+    @property
+    def app_name(self):
+        return self.group_name
 
 
 class ServiceGroupRelation(BaseModel):

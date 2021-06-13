@@ -36,13 +36,12 @@ class ComponentGraphRepository(object):
         except ComponentGraph.DoesNotExist:
             raise ErrComponentGraphNotFound
 
-    def create(self, component_id, graph_id, title, promql, sequence):
+    @staticmethod
+    def create(component_id, graph_id, title, promql, sequence):
         # check if the component graph already exists
-        try:
-            self.get(component_id=component_id, graph_id=graph_id)
+        graph = ComponentGraph.objects.filter(component_id=component_id, title=title).first()
+        if graph:
             raise ErrComponentGraphExists
-        except ErrComponentGraphNotFound:
-            pass
         ComponentGraph.objects.create(
             component_id=component_id,
             graph_id=graph_id,
@@ -65,6 +64,10 @@ class ComponentGraphRepository(object):
 
     def bulk_create(self, component_graphs):
         ComponentGraph.objects.bulk_create(component_graphs)
+
+    def bulk_create_or_update(self, component_graphs):
+        ComponentGraph.objects.filter(pk__in=[graph.ID for graph in component_graphs]).delete()
+        self.bulk_create(component_graphs)
 
     def batch_delete(self, component_id, graph_ids):
         ComponentGraph.objects.filter(component_id=component_id, graph_id__in=graph_ids).delete()

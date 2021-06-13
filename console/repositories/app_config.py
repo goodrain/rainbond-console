@@ -125,6 +125,21 @@ class TenantServiceEnvVarRepository(object):
     def bulk_create(self, envs):
         TenantServiceEnvVar.objects.bulk_create(envs)
 
+    @staticmethod
+    def overwrite_by_component_id(component_ids, envs):
+        TenantServiceEnvVar.objects.filter(service_id__in=component_ids).delete()
+        TenantServiceEnvVar.objects.bulk_create(envs)
+
+    @staticmethod
+    def create_or_update(env: TenantServiceEnvVar):
+        try:
+            old_env = TenantServiceEnvVar.objects.get(
+                tenant_id=env.tenant_id, service_id=env.service_id, attr_name=env.attr_name)
+            env.ID = old_env.ID
+            env.save()
+        except TenantServiceEnvVar.DoesNotExist:
+            env.save()
+
 
 class TenantServicePortRepository(object):
     def list_inner_ports(self, tenant_id, service_id):
@@ -177,6 +192,11 @@ class TenantServicePortRepository(object):
         TenantServicesPort.objects.filter(
             tenant_id=param["tenant_id"], service_id=param["service_id"],
             container_port=param["container_port"]).update(**param)
+
+    @staticmethod
+    def bulk_create_or_update(ports):
+        TenantServicesPort.objects.filter(pk__in=[port.ID for port in ports]).delete()
+        TenantServicesPort.objects.bulk_create(ports)
 
     @staticmethod
     def list_by_service_ids(tenant_id, service_ids):
@@ -238,8 +258,9 @@ class TenantServiceVolumnRepository(object):
     def delete_volume_by_id(self, volume_id):
         TenantServiceVolume.objects.filter(ID=volume_id).delete()
 
-    def delete_file_by_volume_id(self, volume_id):
-        TenantServiceConfigurationFile.objects.filter(volume_id=volume_id).delete()
+    @staticmethod
+    def delete_file_by_volume(volume: TenantServiceVolume):
+        TenantServiceConfigurationFile.objects.filter(Q(volume_id=volume.ID) | Q(volume_name=volume.volume_name)).delete()
 
     def add_service_config_file(self, **service_config_file):
         return TenantServiceConfigurationFile.objects.create(**service_config_file)
@@ -247,8 +268,9 @@ class TenantServiceVolumnRepository(object):
     def get_service_config_files(self, service_id):
         return TenantServiceConfigurationFile.objects.filter(service_id=service_id)
 
-    def get_service_config_file(self, volume_id):
-        return TenantServiceConfigurationFile.objects.filter(volume_id=volume_id).first()
+    @staticmethod
+    def get_service_config_file(volume: TenantServiceVolume):
+        return TenantServiceConfigurationFile.objects.filter(Q(volume_id=volume.ID) | Q(volume_name=volume.volume_name)).first()
 
     def get_services_volumes(self, service_ids):
         return TenantServiceVolume.objects.filter(service_id__in=service_ids)
@@ -261,6 +283,41 @@ class TenantServiceVolumnRepository(object):
 
     def delete_config_files(self, sid):
         TenantServiceConfigurationFile.objects.filter(service_id=sid).defer()
+
+    @staticmethod
+    def bulk_create(volumes):
+        TenantServiceVolume.objects.bulk_create(volumes)
+
+    def bulk_create_or_update(self, volumes):
+        for volume in volumes:
+            self.create_or_update(volume)
+
+    @staticmethod
+    def create_or_update(volume: TenantServiceVolume):
+        try:
+            old_volume = TenantServiceVolume.objects.get(service_id=volume.service_id, volume_name=volume.volume_name)
+            volume.ID = old_volume.ID
+        except TenantServiceVolume.DoesNotExist:
+            pass
+        volume.save()
+
+
+class ComponentConfigurationFileRepository(object):
+    @staticmethod
+    def bulk_create(config_files):
+        TenantServiceConfigurationFile.objects.bulk_create(config_files)
+
+    @staticmethod
+    def bulk_create_or_update(config_files):
+        config_file_ids = [cf.ID for cf in config_files]
+        TenantServiceConfigurationFile.objects.filter(pk__in=config_file_ids).delete()
+        TenantServiceConfigurationFile.objects.bulk_create(config_files)
+
+
+def bulk_create_or_update(tenant_id, component_deps):
+    TenantServiceRelation.objects.filter(
+        tenant_id=tenant_id, service_id__in=[dep.service_id for dep in component_deps]).delete()
+    TenantServiceRelation.objects.bulk_create(component_deps)
 
 
 class TenantServiceRelationRepository(object):
@@ -338,6 +395,15 @@ class TenantServiceRelationRepository(object):
         result2 = conn.query(sql2)
         return True if len(result2) > 0 else False
 
+    @staticmethod
+    def list_by_component_ids(tenant_id, component_ids):
+        return TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id__in=component_ids)
+
+    @staticmethod
+    def overwrite_by_component_id(component_ids, component_deps):
+        TenantServiceRelation.objects.filter(service_id__in=component_ids).delete()
+        TenantServiceRelation.objects.bulk_create(component_deps)
+
 
 class TenantServiceMntRelationRepository(object):
     def get_mnt_by_dep_id_and_mntname(self, dep_service_id, mnt_name):
@@ -384,9 +450,7 @@ class TenantServiceMntRelationRepository(object):
         return dep_mnts
 
     def list_mnt_relations_by_service_ids(self, tenant_id, service_ids):
-        dep_mnts = TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
-
-        return dep_mnts
+        return TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
 
     def add_service_mnt_relation(self, tenant_id, service_id, dep_service_id, mnt_name, mnt_dir):
         tsr = TenantServiceMountRelation.objects.create(
@@ -411,6 +475,10 @@ class TenantServiceMntRelationRepository(object):
 
     def bulk_create(self, mnts):
         TenantServiceMountRelation.objects.bulk_create(mnts)
+
+    def overwrite_by_component_id(self, component_ids, volume_deps):
+        TenantServiceMountRelation.objects.filter(service_id__in=component_ids).delete()
+        self.bulk_create(volume_deps)
 
 
 class ImageServiceRelationRepository(object):
@@ -642,6 +710,14 @@ class ServiceExtendRepository(object):
     def create_extend_method(self, **params):
         return ServiceExtendMethod.objects.create(**params)
 
+    @staticmethod
+    def bulk_create(extend_infos):
+        ServiceExtendMethod.objects.bulk_create(extend_infos)
+
+    def bulk_create_or_update(self, extend_infos):
+        ServiceExtendMethod.objects.filter(pk__in=[ei.ID for ei in extend_infos]).delete()
+        self.bulk_create(extend_infos)
+
 
 class CompileEnvRepository(object):
     def delete_service_compile_env(self, service_id):
@@ -827,6 +903,7 @@ port_repo = TenantServicePortRepository()
 image_service_relation_repo = ImageServiceRelationRepository()
 domain_repo = ServiceDomainRepository()
 volume_repo = TenantServiceVolumnRepository()
+config_file_repo = ComponentConfigurationFileRepository()
 mnt_repo = TenantServiceMntRelationRepository()
 dep_relation_repo = TenantServiceRelationRepository()
 extend_repo = ServiceExtendRepository()

@@ -409,7 +409,7 @@ class AppService(object):
             for volume in volume_info:
                 volume_info = model_to_dict(volume)
                 if volume.volume_type == "config-file":
-                    config_file = volume_repo.get_service_config_file(volume.ID)
+                    config_file = volume_repo.get_service_config_file(volume)
                     if config_file:
                         volume_info.update({"file_content": config_file.file_content})
                 volume_list.append(volume_info)
@@ -1062,6 +1062,14 @@ class AppMarketService(object):
             }
             organizations.append(Dict(org))
         return organizations
+
+    def update_market_app(self, app_id, upgrade_group_id, app_model_key, version):
+        # plugins
+        # config groups
+        # app
+        # create update record
+        # build, update or nothing
+        return
 
 
 app_service = AppService()

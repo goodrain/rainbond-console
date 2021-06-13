@@ -699,7 +699,7 @@ class MarketService(object):
                 logger.warning("service id: {}; volume name: {}; failed to update volume: \
                     volume not found.".format(self.service.service_id, volume["volume_name"]))
             logger.debug("update volume {} for component {}".format(v.volume_name, self.service.service_id))
-            cfg = volume_repo.get_service_config_file(v.ID)
+            cfg = volume_repo.get_service_config_file(v)
             cfg.file_content = file_content
             cfg.save()
 
@@ -878,7 +878,7 @@ class MarketService(object):
                 "volume_type": dep_vol.volume_type
             }
             if dep_vol.volume_type == "config-file":
-                config_file = volume_repo.get_service_config_file(dep_vol.ID)
+                config_file = volume_repo.get_service_config_file(dep_vol)
                 data["file_content"] = config_file.file_content
             region_api.add_service_dep_volumes(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                                data)

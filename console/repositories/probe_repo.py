@@ -45,5 +45,9 @@ class ServiceProbeRepository(object):
         obj, _ = ServiceProbe.objects.update_or_create(service_id=service_id, defaults=defaults)
         return obj
 
+    @staticmethod
+    def bulk_create(probes):
+        ServiceProbe.objects.bulk_create(probes)
+
 
 probe_repo = ServiceProbeRepository()
