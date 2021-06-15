@@ -5,14 +5,16 @@ from enum import Enum
 
 from console.exception.bcode import ErrAppUpgradeDeployFailed
 from console.exception.main import AbortRequest, ServiceHandleException
-from console.models.main import UpgradeStatus
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.upgrade_services import upgrade_service
 from console.utils.reqparse import parse_argument, parse_item
 from console.utils.response import MessageResponse
-from console.views.base import ApplicationView, RegionTenantHeaderView
+from console.views.base import ApplicationView, RegionTenantHeaderView, AppUpgradeRecordView
+# model
+from console.models.main import UpgradeStatus
+from console.models.main import AppUpgradeRecordType
 
 logger = logging.getLogger('default')
 
@@ -50,8 +52,9 @@ class AppUpgradeVersion(RegionTenantHeaderView):
 
 class AppLastUpgradeRecordView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
-        upgrade_group_id = parse_item(request, "upgrade_group_id")
-        record = upgrade_service.get_latest_upgrade_record(self.team, self.app, upgrade_group_id)
+        upgrade_group_id = parse_argument(request, "upgrade_group_id")
+        record_type = parse_argument(request, "record_type")
+        record = upgrade_service.get_latest_upgrade_record(self.team, self.app, upgrade_group_id, record_type)
         return MessageResponse(msg="success", bean=record)
 
 
@@ -59,8 +62,7 @@ class AppUpgradeRecordsView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         page = parse_argument(request, 'page', value_type=int, default=1)
         page_size = parse_argument(request, 'page_size', value_type=int, default=10)
-
-        records, total = upgrade_service.list_records(self.tenant_name, self.region_name, self.app_id, page, page_size)
+        records, total = upgrade_service.list_records(self.tenant_name, self.region_name, self.app_id, AppUpgradeRecordType.UPGRADE.value, page, page_size)
         return MessageResponse(msg="success", bean={"total": total}, list=records)
 
     def post(self, request, app_id, *args, **kwargs):
@@ -69,7 +71,7 @@ class AppUpgradeRecordsView(ApplicationView):
         return MessageResponse(msg="success", bean=record)
 
 
-class AppUpgradeRecordView(RegionTenantHeaderView):
+class AppUpgradeRecordDetailView(RegionTenantHeaderView):
     def get(self, request, group_id, record_id, *args, **kwargs):
         record = upgrade_service.get_app_upgrade_record(self.tenant_name, self.region_name, record_id)
         return MessageResponse(msg="success", bean=record)
@@ -90,19 +92,9 @@ class AppUpgradeInfoView(RegionTenantHeaderView):
         return MessageResponse(msg="success", list=changes)
 
 
-class AppUpgradeRollbackView(ApplicationView):
+class AppUpgradeRollbackView(AppUpgradeRecordView):
     def post(self, request, group_id, record_id, *args, **kwargs):
-        record = upgrade_repo.get_by_record_id(record_id)
-        if record.status != UpgradeStatus.UPGRADED.value:
-            raise AbortRequest("unable to rollback an incomplete upgrade", "无法回滚一个未完成的升级")
-
-        try:
-            record = upgrade_service.restore(self.tenant, self.region_name, self.user, self.app, record.upgrade_group_id,
-                                             record)
-        except ErrAppUpgradeDeployFailed as e:
-            raise e
-        except ServiceHandleException:
-            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
+        record = upgrade_service.restore(self.tenant, self.region_name, self.user, self.app, self.app_upgrade_record)
         return MessageResponse(msg="success", bean=record)
 
 
@@ -130,30 +122,30 @@ class AppUpgradeComponentListView(ApplicationView):
         return MessageResponse(msg="success", list=components)
 
 
-class AppUpgradeView(ApplicationView):
+class AppUpgradeView(AppUpgradeRecordView):
     def post(self, request, app_id, record_id, *args, **kwargs):
-        upgrade_group_id = parse_item(request, "upgrade_group_id", required=True)
         version = parse_item(request, "version", required=True)
         # It is not yet possible to upgrade based on services, which is user-specified attribute changes
         components = parse_item(request, "services", default=[])
         component_keys = [cpt["service"]["service_key"] for cpt in components]
-        try:
-            record = upgrade_service.upgrade(
-                self.tenant,
-                self.region_name,
-                self.user,
-                upgrade_group_id,
-                version,
-                record_id,
-                component_keys,
-            )
-        except ErrAppUpgradeDeployFailed as e:
-            raise e
-        except ServiceHandleException:
-            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
+        record = upgrade_service.upgrade(
+            self.tenant,
+            self.region_name,
+            self.user,
+            version,
+            self.app_upgrade_record,
+            component_keys,
+        )
         return MessageResponse(msg="success", msg_show="升级成功", bean=record)
 
 
-class AppUpgradeDeployView(ApplicationView):
+class AppUpgradeDeployView(AppUpgradeRecordView):
     def post(self, request, app_id, record_id, *args, **kwargs):
-        upgrade_service.deploy(record_id)
+        upgrade_service.deploy(self.tenant, self.region_name, self.user, self.app_upgrade_record)
+        return MessageResponse(msg="success", msg_show="部署成功")
+
+
+class AppRollbackRecordsView(AppUpgradeRecordView):
+    def get(self, request, app_id, upgrade_record_id, *args, **kwargs):
+        records = upgrade_service.list_rollback_record(self.app_upgrade_record)
+        return MessageResponse(msg="success", msg_show="获取成功", list=records)

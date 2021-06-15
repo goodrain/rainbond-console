@@ -2,18 +2,18 @@
 
 from console.exception.bcode import ErrAppSnapshotNotFound
 from console.exception.bcode import ErrAppSnapshotExists
-from console.models.main import AppSnapshot
+from console.models.main import AppUpgradeSnapshot
 
 
 class AppSnapshotRepo(object):
     @staticmethod
     def get_by_snapshot_id(snapshot_id):
         try:
-            return AppSnapshot.objects.get(snapshot_id=snapshot_id)
-        except AppSnapshot.DoesNotExist:
+            return AppUpgradeSnapshot.objects.get(snapshot_id=snapshot_id)
+        except AppUpgradeSnapshot.DoesNotExist:
             raise ErrAppSnapshotNotFound
 
-    def create(self, snapshot: AppSnapshot):
+    def create(self, snapshot: AppUpgradeSnapshot):
         try:
             self.get_by_snapshot_id(snapshot.snapshot_id)
             raise ErrAppSnapshotExists

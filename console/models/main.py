@@ -771,35 +771,42 @@ class AppUpgradeRecord(BaseModel):
     is_from_cloud = models.BooleanField(default=False, help_text="应用来源")
     upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
     snapshot_id = models.CharField(max_length=32, null=True)
-    is_finished = models.BooleanField(default=False, help_text="升级是否完成了")
+    record_type = models.CharField(max_length=64, null=True, help_text="记录类型, 升级/回滚")
+    parent_id = models.IntegerField(default=0, help_text="回滚记录对应的升级记录 ID")
 
-    def can_create_new_record(self):
-        if self.is_finished:
-            return True
-        statuses = [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
-        return True if self.status not in statuses else False
+    def to_dict(self):
+        record = super(AppUpgradeRecord, self).to_dict()
+        record["can_rollback"] = self.can_rollback()
+        record["is_finished"] = self.is_finished()
+        return record
+
+    def is_finished(self):
+        return self.status not in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+
+    def can_rollback(self):
+        if self.record_type != AppUpgradeRecordType.UPGRADE.value:
+            return False
+        statuses = [
+            UpgradeStatus.UPGRADED.value,
+            UpgradeStatus.ROLLBACK.value,
+            UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value,
+            UpgradeStatus.DEPLOY_FAILED.value,
+        ]
+        return self.status in statuses
+
+    def can_upgrade(self):
+        return self.status == UpgradeStatus.NOT.value
 
     def can_deploy(self):
-        if self.is_finished:
+        if self.is_finished():
             return False
         statuses = [
             UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
             UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value
         ]
         return True if self.status in statuses else False
-
-    def type(self):
-        if self.status in [
-                UpgradeStatus.UPGRADING.value, UpgradeStatus.UPGRADED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
-                UpgradeStatus.UPGRADE_FAILED.value
-        ]:
-            return AppUpgradeRecordType.UPGRADE.value
-        if self.status in [
-                UpgradeStatus.ROLLING.value, UpgradeStatus.ROLLBACK.value, UpgradeStatus.PARTIAL_ROLLBACK.value,
-                UpgradeStatus.ROLLBACK_FAILED.value
-        ]:
-            return AppUpgradeRecordType.ROLLBACK.value
-        return None
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -834,6 +841,9 @@ class ServiceUpgradeRecord(BaseModel):
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text="升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
+
+    def is_finished(self):
+        return self.status not in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
 
 
 class RegionConfig(BaseModel):
@@ -1053,9 +1063,9 @@ class ComponentGraph(BaseModel):
     sequence = models.IntegerField(help_text="the sequence number of the graph")
 
 
-class AppSnapshot(BaseModel):
+class AppUpgradeSnapshot(BaseModel):
     class Meta:
-        db_table = "app_snapshots"
+        db_table = "app_upgrade_snapshots"
 
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")

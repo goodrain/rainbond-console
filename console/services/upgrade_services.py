@@ -6,7 +6,9 @@ from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 
-from console.exception.bcode import (ErrAppUpgradeDeployFailed, ErrAppUpgradeRecordCanNotDeploy, ErrPreviousRecordUnfinished)
+from console.exception.bcode import (ErrAppUpgradeDeployFailed, ErrAppUpgradeRecordCanNotDeploy, ErrLastRecordUnfinished)
+from console.exception.bcode import ErrAppUpgradeRecordCanNotRollback
+from console.exception.bcode import ErrAppUpgradeWrongStatus
 # exception
 from console.exception.main import (AbortRequest, AccountOverdueException, RbdAppNotFound, RecordNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
@@ -58,22 +60,23 @@ class UpgradeService(object):
             },
         }
 
-    def upgrade(self, tenant, region_name, user, upgrade_group_id, version, record_id, component_keys=None):
+    def upgrade(self, tenant, region_name, user, version, record: AppUpgradeRecord, component_keys=None):
         """
         Upgrade application market applications
         """
-        record = upgrade_repo.get_by_record_id(record_id)
-        if record.status != UpgradeStatus.NOT.value:
-            raise AbortRequest("the status of the upgrade record is not not_upgraded", "只能升级未升级的升级记录")
-
-        component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
+        if not record.can_upgrade():
+            raise ErrAppUpgradeWrongStatus
+        component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, record,
                                  component_keys)
         record = app_upgrade.upgrade()
         return self.serialized_upgrade_record(record)
 
-    def restore(self, tenant, region_name, user, app, upgrade_group_id, record):
-        component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
+    def restore(self, tenant, region_name, user, app, record: AppUpgradeRecord):
+        if not record.can_rollback():
+            raise ErrAppUpgradeRecordCanNotRollback
+
+        component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         app_restore = AppRestore(tenant, region_name, user, app, component_group, record)
         record = app_restore.restore()
         return self.serialized_upgrade_record(record)
@@ -85,14 +88,11 @@ class UpgradeService(object):
         return app_upgrade.changes()
 
     @staticmethod
-    def get_latest_upgrade_record(tenant: Tenants, app: ServiceGroup, upgrade_group_id):
-        record = None
+    def get_latest_upgrade_record(tenant: Tenants, app: ServiceGroup, upgrade_group_id=None, record_type=None):
         if upgrade_group_id:
             # check upgrade_group_id
             tenant_service_group_repo.get_component_group(upgrade_group_id)
-            record = upgrade_repo.get_last_upgrade_record(tenant, app.ID, upgrade_group_id)
-        else:
-            record = upgrade_repo.get_last_upgrade_record_in_app(tenant, app.ID)
+        record = upgrade_repo.get_last_upgrade_record(tenant.tenant_id, app.app_id, upgrade_group_id, record_type)
         return record.to_dict() if record else None
 
     @transaction.atomic
@@ -100,9 +100,9 @@ class UpgradeService(object):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
-        unfinished_record = upgrade_repo.get_last_upgrade_record(tenant, app.ID, upgrade_group_id)
-        if unfinished_record and not unfinished_record.can_create_new_record():
-            raise ErrPreviousRecordUnfinished
+        last_record = upgrade_repo.get_last_upgrade_record(tenant.tenant_id, app.ID, upgrade_group_id)
+        if last_record and not last_record.is_finished():
+            raise ErrLastRecordUnfinished
 
         component_group = ComponentGroup(enterprise_id, component_group)
         app_template_source = component_group.app_template_source()
@@ -118,13 +118,14 @@ class UpgradeService(object):
             "market_name": app_template_source.get_market_name(),
             "upgrade_group_id": upgrade_group_id,
             "old_version": component_group.version,
+            "record_type": AppUpgradeRecordType.UPGRADE.value,
         }
         record = upgrade_repo.create_app_upgrade_record(**record)
-        return self.serialized_upgrade_record(record)
+        return record.to_dict()
 
-    def list_records(self, tenant_name, region_name, app_id, page, page_size):
+    def list_records(self, tenant_name, region_name, app_id, record_type=None, page=1, page_size=10):
         # list records and pagination
-        records = upgrade_repo.list_records_by_app_id(app_id)
+        records = upgrade_repo.list_records_by_app_id(app_id, record_type)
         paginator = Paginator(records, page_size)
         records = paginator.page(page)
 
@@ -144,11 +145,7 @@ class UpgradeService(object):
         # list component records
         component_records = component_upgrade_record_repo.list_by_app_record_id(record.ID)
         # filter out the finished records
-        unfinished = {
-            record.event_id: record
-            for record in component_records
-            if record.status in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
-        }
+        unfinished = {record.event_id: record for record in component_records if not record.is_finished()}
         # list events
         event_ids = [event_id for event_id in unfinished.keys()]
         body = region_api.get_tenant_events(region_name, tenant_name, event_ids)
@@ -165,9 +162,8 @@ class UpgradeService(object):
         # save app record and component records
         self.save_upgrade_record(record, component_records)
 
-    def deploy(self, tenant, region_name, user, record_id):
-        record = upgrade_repo.get_by_record_id(record_id)
-        if record.can_deploy():
+    def deploy(self, tenant, region_name, user, record: AppUpgradeRecord):
+        if not record.can_deploy():
             raise ErrAppUpgradeRecordCanNotDeploy
 
         # failed events
@@ -182,8 +178,7 @@ class UpgradeService(object):
 
         try:
             events = app_manage_service.batch_operations(tenant, region_name, user, "deploy", component_ids)
-            status = UpgradeStatus.UPGRADING.value if record.type(
-            ) == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
+            status = UpgradeStatus.UPGRADING.value if record.record_type == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
             upgrade_repo.change_app_record_status(record, status)
         except ServiceHandleException as e:
             upgrade_repo.change_app_record_status(record, UpgradeStatus.DEPLOY_FAILED.value)
@@ -200,15 +195,21 @@ class UpgradeService(object):
 
     def get_app_upgrade_record(self, tenant_name, region_name, record_id):
         record = upgrade_repo.get_by_record_id(record_id)
-        if not record.is_finished:
+        if not record.is_finished():
             self.sync_record(tenant_name, region_name, record)
         return self.serialized_upgrade_record(record)
 
     @staticmethod
+    def list_rollback_record(upgrade_record: AppUpgradeRecord):
+        records = upgrade_repo.list_by_rollback_records(upgrade_record.ID)
+        return [record.to_dict() for record in records]
+
+    @staticmethod
     def _update_component_records(app_record: AppUpgradeRecord, component_records, events):
+        if not events:
+            return
         event_ids = {event["service_id"]: event["event_id"] for event in events}
-        status = UpgradeStatus.UPGRADING.value if app_record.type(
-        ) == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
+        status = UpgradeStatus.UPGRADING.value if app_record.record_type == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
         for component_record in component_records:
             event_id = event_ids.get(component_record.service_id)
             if not event_id:
@@ -234,21 +235,21 @@ class UpgradeService(object):
         if self._is_upgrade_status_unfinished(component_records):
             return
         if self._is_upgrade_status_failed(component_records):
-            if app_record.type() == AppUpgradeRecordType.UPGRADE.value:
+            if app_record.record_type == AppUpgradeRecordType.UPGRADE.value:
                 app_record.status = UpgradeStatus.UPGRADE_FAILED.value
-            if app_record.type() == AppUpgradeRecordType.ROLLBACK.value:
+            if app_record.record_type == AppUpgradeRecordType.ROLLBACK.value:
                 app_record.status = UpgradeStatus.ROLLBACK_FAILED.value
             return
         if self._is_upgrade_status_success(component_records):
-            if app_record.type() == AppUpgradeRecordType.UPGRADE.value:
+            if app_record.record_type == AppUpgradeRecordType.UPGRADE.value:
                 app_record.status = UpgradeStatus.UPGRADED.value
-            if app_record.type() == AppUpgradeRecordType.ROLLBACK.value:
+            if app_record.record_type == AppUpgradeRecordType.ROLLBACK.value:
                 app_record.status = UpgradeStatus.ROLLBACK.value
             return
         # partial
-        if app_record.type() == AppUpgradeRecordType.UPGRADE.value:
+        if app_record.record_type == AppUpgradeRecordType.UPGRADE.value:
             app_record.status = UpgradeStatus.PARTIAL_UPGRADED.value
-        if app_record.type() == AppUpgradeRecordType.ROLLBACK.value:
+        if app_record.record_type == AppUpgradeRecordType.ROLLBACK.value:
             app_record.status = UpgradeStatus.PARTIAL_ROLLBACK.value
 
     @staticmethod

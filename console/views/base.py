@@ -7,9 +7,12 @@ from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
+# repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.upgrade_repo import upgrade_repo
+# service
 from console.services.user_services import user_services
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
@@ -357,6 +360,7 @@ class ApplicationView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(ApplicationView, self).__init__(*args, **kwargs)
         self.app = None
+        self.app_id = None
 
     def initial(self, request, *args, **kwargs):
         super(ApplicationView, self).initial(request, *args, **kwargs)
@@ -370,6 +374,17 @@ class ApplicationView(RegionTenantHeaderView):
         # update update_time if the http method is not a get.
         if request.method != 'GET':
             group_repo.update_group_time(app_id)
+
+
+class AppUpgradeRecordView(ApplicationView):
+    def __init__(self, *args, **kwargs):
+        super(AppUpgradeRecordView, self).__init__(*args, **kwargs)
+        self.app_upgrade_record = None
+
+    def initial(self, request, *args, **kwargs):
+        super(AppUpgradeRecordView, self).initial(request, *args, **kwargs)
+        record_id = kwargs.get("record_id") if kwargs.get("record_id") else kwargs.get("upgrade_record_id")
+        self.app_upgrade_record = upgrade_repo.get_by_record_id(record_id)
 
 
 class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):

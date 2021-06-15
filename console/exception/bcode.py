@@ -153,13 +153,25 @@ class ErrComponentGroupNotFound(ServiceHandleException):
             "component group not found", msg_show="无法找到组件与应用市场应用的从属关系", status_code=404, error_code=20904)
 
 
-class ErrPreviousRecordUnfinished(ServiceHandleException):
+class ErrLastRecordUnfinished(ServiceHandleException):
     def __init__(self):
-        super(ErrPreviousRecordUnfinished, self).__init__(
-            "the previous record is unfinished", msg_show="上一个任务未完成", status_code=400, error_code=20905)
+        super(ErrLastRecordUnfinished, self).__init__(
+            "the last record is unfinished", msg_show="上一个任务未完成", status_code=400, error_code=20905)
 
 
 class ErrAppUpgradeRecordCanNotDeploy(ServiceHandleException):
     def __init__(self):
         super(ErrAppUpgradeRecordCanNotDeploy, self).__init__(
             "can not deploy the record", msg_show="无法重新部署该记录", status_code=400, error_code=20906)
+
+
+class ErrAppUpgradeRecordCanNotRollback(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppUpgradeRecordCanNotRollback, self).__init__(
+            "can not rollback the record", msg_show="无法回滚该记录", status_code=400, error_code=20907)
+
+
+class ErrAppUpgradeWrongStatus(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppUpgradeWrongStatus, self).__init__(
+            "the status of the upgrade record is not not_upgraded", msg_show="只能升级未升级的升级记录", status_code=400, error_code=20908)
