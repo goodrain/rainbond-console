@@ -27,6 +27,7 @@ from www.models.main import TenantServiceMountRelation
 from www.models.main import ServiceProbe
 from www.models.service_publish import ServiceExtendMethod
 from console.models.main import UpgradeStatus
+from console.models.main import AppUpgradeRecordType
 from console.models.main import AppUpgradeRecord
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import ServiceSourceInfo
@@ -89,7 +90,11 @@ class AppRestore(MarketApp):
     def create_rollback_record(self):
         rollback_record = self.upgrade_record.to_dict()
         rollback_record.pop("ID")
+        rollback_record.pop("can_rollback")
+        rollback_record.pop("is_finished")
         rollback_record["status"] = UpgradeStatus.ROLLING.value
+        rollback_record["record_type"] = AppUpgradeRecordType.ROLLBACK.value
+        rollback_record["parent_id"] = self.upgrade_record.ID
         self.rollback_record = upgrade_repo.create_app_upgrade_record(**rollback_record)
 
     def _update_upgrade_record(self, status):

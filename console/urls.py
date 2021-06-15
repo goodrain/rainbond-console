@@ -808,9 +808,11 @@ urlpatterns += [
     # 升级记录集合
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records$',
         app_upgrade.AppUpgradeRecordsView.as_view(), perms.AppUpgradeRecordsView),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records/(?P<upgrade_record_id>[0-9]+)/rollback-records$',
+        app_upgrade.AppRollbackRecordsView.as_view(), perms.AppUpgradeRecordsView),
     # 某一条升级记录
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)$',
-        app_upgrade.AppUpgradeRecordView.as_view(), perms.AppUpgradeRecordView),
+        app_upgrade.AppUpgradeRecordDetailView.as_view(), perms.AppUpgradeRecordView),
     # 查询某云市应用下组件的更新信息
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-info$', app_upgrade.AppUpgradeInfoView.as_view(),
         perms.AppUpgradeInfoView),
@@ -820,7 +822,7 @@ urlpatterns += [
     # 回滚某一条升级
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/rollback$',
         app_upgrade.AppUpgradeRollbackView.as_view(), perms.AppUpgradeRollbackView),
-    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/deploy$',
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/deploy$',
         app_upgrade.AppUpgradeDeployView.as_view(), perms.AppUpgradeView)
 ]
 

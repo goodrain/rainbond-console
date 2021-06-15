@@ -36,7 +36,7 @@ from www.models.main import TenantServiceMountRelation
 from console.models.main import AppUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.models.main import ServiceUpgradeRecord
-from console.models.main import AppSnapshot
+from console.models.main import AppUpgradeSnapshot
 from console.models.main import ApplicationConfigGroup
 from console.models.main import ConfigGroupItem
 from console.models.main import ConfigGroupService
@@ -437,7 +437,7 @@ class AppUpgrade(MarketApp):
         if not components:
             return None
         snapshot = app_snapshot_repo.create(
-            AppSnapshot(
+            AppUpgradeSnapshot(
                 tenant_id=self.tenant_id,
                 upgrade_group_id=self.upgrade_group_id,
                 snapshot_id=make_uuid(),
