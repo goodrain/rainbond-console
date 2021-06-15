@@ -1010,7 +1010,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text="组件id")
     volume_id = models.IntegerField(null=True, help_text="存储id")
-    volume_name = models.CharField(max_length=32, help_text="组件名称, 唯一标识")
+    volume_name = models.CharField(max_length=32, null=True, help_text="组件名称, 唯一标识")
     file_content = models.TextField(blank=True, help_text="配置文件内容")
 
 

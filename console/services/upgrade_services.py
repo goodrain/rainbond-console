@@ -6,40 +6,33 @@ from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 
-from django.db import transaction
-from django.db.models import Q
-from django.core.paginator import Paginator
-
-# market app
-from console.services.market_app.app_upgrade import AppUpgrade
-from console.services.market_app.app_restore import AppRestore
-from console.services.market_app.component_group import ComponentGroup
+from console.exception.bcode import (ErrAppUpgradeDeployFailed, ErrAppUpgradeRecordCanNotDeploy, ErrPreviousRecordUnfinished)
 # exception
 from console.exception.main import (AbortRequest, AccountOverdueException, RbdAppNotFound, RecordNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
-from console.exception.bcode import ErrAppUpgradeDeployFailed
-from console.exception.bcode import ErrPreviousRecordUnfinished
-from console.exception.bcode import ErrAppUpgradeRecordCanNotDeploy
+# model
+from console.models.main import (AppUpgradeRecord, AppUpgradeRecordType, ServiceUpgradeRecord, UpgradeStatus)
+from console.repositories.app import service_repo
+# repository
+from console.repositories.group import tenant_service_group_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.upgrade_repo import (component_upgrade_record_repo, upgrade_repo)
 # service
 from console.services.app import app_market_service
+from console.services.app_actions import app_manage_service
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_template)
 from console.services.group_service import group_service
-from console.services.app_actions import app_manage_service
-# repository
-from console.repositories.group import tenant_service_group_repo
-from console.repositories.app import service_repo
-from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.upgrade_repo import upgrade_repo
-from console.repositories.upgrade_repo import component_upgrade_record_repo
-
-# model
-from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
-from console.models.main import AppUpgradeRecordType
-from www.models.main import ServiceGroup
-from www.models.main import Tenants
+from console.services.market_app.app_restore import AppRestore
+# market app
+from console.services.market_app.app_upgrade import AppUpgrade
+from console.services.market_app.component_group import ComponentGroup
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
 # www
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceGroup, Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -92,9 +85,14 @@ class UpgradeService(object):
         return app_upgrade.changes()
 
     @staticmethod
-    def get_latest_upgrade_record(upgrade_group_id):
-        tenant_service_group_repo.get_component_group(upgrade_group_id)
-        record = upgrade_repo.get_unfinished_record(upgrade_group_id)
+    def get_latest_upgrade_record(tenant: Tenants, app: ServiceGroup, upgrade_group_id):
+        record = None
+        if upgrade_group_id:
+            # check upgrade_group_id
+            tenant_service_group_repo.get_component_group(upgrade_group_id)
+            record = upgrade_repo.get_last_upgrade_record(tenant, app.ID, upgrade_group_id)
+        else:
+            record = upgrade_repo.get_last_upgrade_record_in_app(tenant, app.ID)
         return record.to_dict() if record else None
 
     @transaction.atomic
@@ -102,7 +100,7 @@ class UpgradeService(object):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
-        unfinished_record = upgrade_repo.get_unfinished_record(upgrade_group_id)
+        unfinished_record = upgrade_repo.get_last_upgrade_record(tenant, app.ID, upgrade_group_id)
         if unfinished_record and not unfinished_record.can_create_new_record():
             raise ErrPreviousRecordUnfinished
 
@@ -313,7 +311,10 @@ class UpgradeService(object):
         if record:
             self.synchronous_upgrade_status(tenant, region_name, record)
             # not start upgrade or upgrading record.
-            if record.status in [UpgradeStatus.UPGRADING.value, UpgradeStatus.NOT.value, UpgradeStatus.ROLLING.value]:
+            if record.status in [
+                    UpgradeStatus.UPGRADING.value, UpgradeStatus.NOT.value, UpgradeStatus.ROLLING.value,
+                    UpgradeStatus.PARTIAL_UPGRADED.value
+            ]:
                 return record
         current_version, template_update_time, install_from_cloud, market = market_app_service.get_current_version(
             tenant.enterprise_id, app_model_key, application.ID, upgrade_group_id)

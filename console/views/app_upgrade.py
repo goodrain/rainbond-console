@@ -3,17 +3,16 @@
 import logging
 from enum import Enum
 
-from console.exception.main import (AbortRequest, ServiceHandleException)
 from console.exception.bcode import ErrAppUpgradeDeployFailed
-from console.models.main import (AppUpgradeRecord, UpgradeStatus)
+from console.exception.main import AbortRequest, ServiceHandleException
+from console.models.main import UpgradeStatus
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.upgrade_services import upgrade_service
-from console.utils.reqparse import (parse_argument, parse_item)
+from console.utils.reqparse import parse_argument, parse_item
 from console.utils.response import MessageResponse
-from console.utils.shortcuts import get_object_or_404
-from console.views.base import (ApplicationView, RegionTenantHeaderView)
+from console.views.base import ApplicationView, RegionTenantHeaderView
 
 logger = logging.getLogger('default')
 
@@ -49,10 +48,10 @@ class AppUpgradeVersion(RegionTenantHeaderView):
         return MessageResponse(msg="success", list=list(versions))
 
 
-class UnfinishedAppUpgradeRecordView(ApplicationView):
+class AppLastUpgradeRecordView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
-        upgrade_group_id = parse_item(request, "upgrade_group_id", required=True)
-        record = upgrade_service.get_latest_upgrade_record(upgrade_group_id)
+        upgrade_group_id = parse_item(request, "upgrade_group_id")
+        record = upgrade_service.get_latest_upgrade_record(self.team, self.app, upgrade_group_id)
         return MessageResponse(msg="success", bean=record)
 
 

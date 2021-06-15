@@ -2,8 +2,8 @@
 import json
 from datetime import datetime
 
-from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
 from console.exception.bcode import ErrAppUpgradeRecordNotFound
+from console.models.main import (AppUpgradeRecord, ServiceUpgradeRecord, UpgradeStatus)
 
 
 class UpgradeRepo(object):
@@ -19,6 +19,9 @@ class UpgradeRepo(object):
     def get_last_upgrade_record(self, tenant, app_id, upgrade_group_id):
         return AppUpgradeRecord.objects.filter(
             upgrade_group_id=upgrade_group_id, group_id=app_id, tenant_id=tenant.tenant_id).order_by("-update_time").first()
+
+    def get_last_upgrade_record_in_app(self, tenant, app_id):
+        return AppUpgradeRecord.objects.filter(group_id=app_id, tenant_id=tenant.tenant_id).order_by("-update_time").first()
 
     def create_service_upgrade_record(self,
                                       app_upgrade_record,
@@ -59,10 +62,6 @@ class UpgradeRepo(object):
             return AppUpgradeRecord.objects.get(pk=record_id)
         except AppUpgradeRecord.DoesNotExist:
             raise ErrAppUpgradeRecordNotFound
-
-    @staticmethod
-    def get_unfinished_record(upgrade_group_id):
-        return AppUpgradeRecord.objects.filter(upgrade_group_id=upgrade_group_id).order_by("-create_time").first()
 
     @staticmethod
     def list_records_by_app_id(app_id):
