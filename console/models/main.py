@@ -800,7 +800,7 @@ class AppUpgradeRecord(BaseModel):
         return self.status == UpgradeStatus.NOT.value
 
     def can_deploy(self):
-        if self.is_finished():
+        if not self.is_finished():
             return False
         statuses = [
             UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.PARTIAL_UPGRADED.value,

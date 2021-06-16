@@ -23,6 +23,9 @@ class MarketApp(object):
     def sync_new_app(self):
         self._sync_app(self.new_app)
 
+    def install_plugins(self):
+        pass
+
     def rollback(self):
         self._sync_app(self.original_app)
 
