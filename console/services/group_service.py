@@ -444,28 +444,69 @@ class GroupService(object):
         if sg and sg.ID:
             group_repo.update_group_time(sg.ID)
 
-    @staticmethod
     @transaction.atomic
-    def update_governance_mode(tenant, region_name, app_id, governance_mode):
+    def update_governance_mode(self, tenant, region_name, app_id, governance_mode):
         # update the value of host env. eg. MYSQL_HOST
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
-        ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, service_ids)
-        for port in ports:
-            env = env_var_repo.get_service_host_env(tenant.tenant_id, port.service_id, port.container_port)
-            service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, port.service_id)
+        component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
+
+        components = service_repo.list_by_ids(component_ids)
+        components = {cpt.component_id: cpt for cpt in components}
+
+        ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, component_ids)
+        ports = {port.service_id+str(port.container_port): port for port in ports}
+
+        envs = env_var_repo.list_envs_by_component_ids(tenant.tenant_id, component_ids)
+        for env in envs:
+            if not env.is_host_env():
+                continue
+            cpt = components.get(env.service_id)
+            if not cpt:
+                continue
+            port = ports.get(env.service_id+str(env.container_port))
+            if not port:
+                continue
             if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
-                env.attr_value = port.k8s_service_name if port.k8s_service_name else service.service_alias + "-" + str(
+                env.attr_value = port.k8s_service_name if port.k8s_service_name else cpt.service_alias + "-" + str(
                     port.container_port)
             else:
                 env.attr_value = "127.0.0.1"
-            env.save()
-            if service.create_status == "complete":
-                body = {"env_name": env.attr_name, "env_value": env.attr_value, "scope": env.scope}
-                region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
-
+        env_var_repo.bulk_update(envs)
         group_repo.update_governance_mode(tenant.tenant_id, region_name, app_id, governance_mode)
+
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        self.sync_envs(tenant.tenant_name, region_name, region_app_id, components.values(), envs)
         region_api.update_app(region_name, tenant.tenant_name, region_app_id, {"governance_mode": governance_mode})
+
+    @staticmethod
+    def sync_envs(tenant_name, region_name, region_app_id, components, envs):
+        # make sure attr_value is string.
+        for env in envs:
+            if type(env.attr_value) != str:
+                env.attr_value = str(env.attr_value)
+
+        new_components = []
+        for cpt in components:
+            if cpt.create_status != "complete":
+                continue
+
+            component_base = cpt.to_dict()
+            component_base["component_id"] = component_base["service_id"]
+            component_base["component_name"] = component_base["service_name"]
+            component_base["component_alias"] = component_base["service_alias"]
+            component = {
+                "component_base": component_base,
+                "envs": [env.to_dict() for env in envs if env.service_id == cpt.component_id]
+            }
+            new_components.append(component)
+
+        if not new_components:
+            return
+
+        body = {
+            "components": new_components,
+        }
+        region_api.sync_components(tenant_name, region_name, region_app_id, body)
+
 
     @staticmethod
     def list_kubernetes_services(tenant_id, region_name, app_id):
@@ -496,27 +537,19 @@ class GroupService(object):
         return k8s_services
 
     @transaction.atomic()
-    def update_kubernetes_services(self, tenant, region_name, app_id, k8s_services):
+    def update_kubernetes_services(self, tenant, region_name, app, k8s_services):
         from console.services.app_config import port_service
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
-        for k8s_service in k8s_services:
-            port_service.check_k8s_service_name(tenant.tenant_id, k8s_service.get("k8s_service_name"),
-                                                k8s_service["service_id"], k8s_service["port"])
-            # check if the given k8s_services belong to the app based on app_id
-            if k8s_service["service_id"] not in service_ids:
-                raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app_id))
+        port_service.check_k8s_service_names(tenant.tenant_id, k8s_services)
 
-        # bulk_update is only available after django 2.2
+        # check if the given k8s_services belong to the app based on app_id
+        app_component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app.app_id)
+        component_ids = []
         for k8s_service in k8s_services:
-            service = service_repo.get_service_by_service_id(k8s_service["service_id"])
-            port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, k8s_service["port"])
-            port_service.change_port_alias(
-                tenant,
-                service,
-                port,
-                k8s_service["port_alias"],
-                k8s_service["k8s_service_name"],
-            )
+            if k8s_service["service_id"] not in app_component_ids:
+                raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app.app_id))
+            component_ids.append(k8s_service["service_id"])
+
+        port_service.update_by_k8s_services(tenant, region_name, app, k8s_services)
 
     @staticmethod
     def get_app_status(tenant, region_name, app_id):

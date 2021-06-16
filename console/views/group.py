@@ -277,7 +277,7 @@ class AppKubernetesServiceView(ApplicationView):
             if not k8s_service.get("port_alias"):
                 raise AbortRequest("the field 'port_alias' is required")
 
-        group_service.update_kubernetes_services(self.tenant, self.region_name, app_id, k8s_services)
+        group_service.update_kubernetes_services(self.tenant, self.region_name, self.app, k8s_services)
 
         result = general_message(200, "success", "更新成功", list=k8s_services)
         return Response(result)

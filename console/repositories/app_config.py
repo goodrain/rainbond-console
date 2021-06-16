@@ -67,6 +67,10 @@ class TenantServiceEnvVarRepository(object):
         return TenantServiceEnvVar.objects.get(
             tenant_id=tenant_id, service_id=service_id, container_port=port, attr_name__contains="HOST")
 
+    @staticmethod
+    def list_envs_by_component_ids(tenant_id, component_ids):
+        return TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id__in=component_ids)
+
     def add_service_env(self, **tenant_service_env_var):
         env = TenantServiceEnvVar.objects.create(**tenant_service_env_var)
         return env
@@ -140,6 +144,11 @@ class TenantServiceEnvVarRepository(object):
         except TenantServiceEnvVar.DoesNotExist:
             env.save()
 
+    @staticmethod
+    def bulk_update(envs):
+        TenantServiceEnvVar.objects.filter(pk__in=[env.ID for env in envs]).delete()
+        TenantServiceEnvVar.objects.bulk_create(envs)
+
 
 class TenantServicePortRepository(object):
     def list_inner_ports(self, tenant_id, service_id):
@@ -199,6 +208,11 @@ class TenantServicePortRepository(object):
         TenantServicesPort.objects.bulk_create(ports)
 
     @staticmethod
+    def overwrite_by_component_ids(component_ids, ports):
+        TenantServicesPort.objects.filter(service_id__in=component_ids).delete()
+        TenantServicesPort.objects.bulk_create(ports)
+
+    @staticmethod
     def list_by_service_ids(tenant_id, service_ids):
         return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
 
@@ -207,6 +221,10 @@ class TenantServicePortRepository(object):
         if not service_ids:
             return []
         return TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id__in=service_ids, is_inner_service=True)
+
+    @staticmethod
+    def list_by_k8s_service_names(tenant_id, k8s_service_names):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id, k8s_service_name__in=k8s_service_names)
 
     @staticmethod
     def get_by_k8s_service_name(tenant_id, k8s_service_name):

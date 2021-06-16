@@ -5,22 +5,30 @@
 import datetime
 import logging
 import re
-
 import validators
+
+from django.db import transaction
+
 from console.constants import ServicePortConstants
 from console.enum.app import GovernanceModeEnum
 from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
+# repository
 from console.repositories.app import service_repo
-from console.repositories.app_config import (domain_repo, port_repo, service_endpoints_repo, tcp_domain)
+from console.repositories.app_config import (domain_repo, port_repo, service_endpoints_repo, tcp_domain, env_var_repo)
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
+from console.repositories.region_app import region_app_repo
+from console.repositories.group import group_service_relation_repo
+# service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.domain_service import domain_service
 from console.services.region_services import region_services
-from django.db import transaction
+# model
+from www.models.main import ServiceGroup
+# www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantServicesPort
@@ -49,6 +57,25 @@ class AppPortService(object):
         return 200, "success"
 
     @staticmethod
+    def check_k8s_service_names(tenant_id, k8s_services):
+        k8s_service_names = [k8s_service.get("k8s_service_name") for k8s_service in k8s_services]
+        for k8s_service_name in k8s_service_names:
+            if len(k8s_service_name) > 63:
+                raise AbortRequest("k8s_service_name must be no more than 63 characters")
+            if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
+                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
+
+        # make a map of k8s services
+        new_k8s_services = {k8s_service.get("k8s_service_name"): k8s_service for k8s_service in k8s_services}
+        ports = port_repo.list_by_k8s_service_names(tenant_id, k8s_service_names)
+        for port in ports:
+            k8s_service = new_k8s_services.get(port.k8s_service_name)
+            if not k8s_service:
+                raise ErrK8sServiceNameExists
+            if port.service_id != k8s_service["service_id"] or port.container_port != k8s_service["port"]:
+                raise ErrK8sServiceNameExists
+
+    @staticmethod
     def check_k8s_service_name(tenant_id, k8s_service_name, component_id="", container_port=None):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
@@ -64,6 +91,76 @@ class AppPortService(object):
                 raise ErrK8sServiceNameExists
         except TenantServicesPort.DoesNotExist:
             pass
+
+    @transaction.atomic
+    def update_by_k8s_services(self, tenant, region_name, app: ServiceGroup, k8s_services):
+        """
+        Update k8s_service_name and port_alias
+        When updating a port, we also need to update the port environment variables
+        """
+        component_ids = [k8s_service["service_id"] for k8s_service in k8s_services]
+        ports = port_repo.list_by_service_ids(tenant.tenant_id, component_ids)
+
+        # list envs exclude port envs.
+        envs = env_var_repo.list_envs_by_component_ids(tenant.tenant_id, component_ids)
+        new_envs = [env for env in envs if not env.is_port_env()]
+
+        # make a map of k8s_services
+        k8s_services = {k8s_service["service_id"] + str(k8s_service["port"]): k8s_service for k8s_service in k8s_services}
+        for port in ports:
+            k8s_service = k8s_services.get(port.service_id+str(port.container_port))
+            if k8s_service:
+                port.k8s_service_name = k8s_service.get("k8s_service_name")
+                port.port_alias = k8s_service.get("port_alias")
+            # create new port envs
+            if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+                attr_value = port.k8s_service_name
+            else:
+                attr_value = "127.0.0.1"
+            host_env = env_var_service.create_port_env(port, "连接地址", "HOST", attr_value)
+            port_env = env_var_service.create_port_env(port, "连接端口", "PORT", port.container_port)
+            new_envs.append(host_env)
+            new_envs.append(port_env)
+
+        # save ports and envs
+        port_repo.overwrite_by_component_ids(component_ids, ports)
+        env_var_repo.overwrite_by_component_id(component_ids, new_envs)
+
+        # sync ports and envs
+        components = service_repo.list_by_ids(component_ids)
+        region_app_id = region_app_repo.get_region_app_id(region_name, app.app_id)
+        self.sync_ports(tenant.tenant_name, region_name, region_app_id, components, ports, new_envs)
+
+    @staticmethod
+    def sync_ports(tenant_name, region_name, region_app_id, components, ports, envs):
+        # make sure attr_value is string.
+        for env in envs:
+            if type(env.attr_value) != str:
+                env.attr_value = str(env.attr_value)
+
+        new_components = []
+        for cpt in components:
+            if cpt.create_status != "complete":
+                continue
+
+            component_base = cpt.to_dict()
+            component_base["component_id"] = component_base["service_id"]
+            component_base["component_name"] = component_base["service_name"]
+            component_base["component_alias"] = component_base["service_alias"]
+            component = {
+                "component_base": component_base,
+                "ports": [port.to_dict() for port in ports if port.service_id == cpt.component_id],
+                "envs": [env.to_dict() for env in envs if env.service_id == cpt.component_id],
+            }
+            new_components.append(component)
+
+        if not new_components:
+            return
+
+        body = {
+            "components": new_components,
+        }
+        region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
     def create_internal_port(self, tenant, component, container_port, user_name=''):
         try:

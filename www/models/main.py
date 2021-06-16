@@ -943,6 +943,11 @@ class TenantServiceEnvVar(BaseModel):
     def __unicode__(self):
         return self.name
 
+    def is_port_env(self):
+        return self.container_port != 0
+
+    def is_host_env(self):
+        return self.container_port != 0 and self.attr_name.endswith("_HOST")
 
 class TenantServicesPort(BaseModel):
     class Meta:
