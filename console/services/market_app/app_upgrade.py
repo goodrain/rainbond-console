@@ -8,6 +8,7 @@ from json.decoder import JSONDecodeError
 from django.db import transaction
 
 from console.services.market_app.new_plugin import NewPlugin
+from console.services.market_app.plugin import Plugin
 from console.services.market_app.app import MarketApp
 from console.services.market_app.new_app import NewApp
 from console.services.market_app.original_app import OriginalApp
@@ -15,6 +16,7 @@ from console.services.market_app.new_components import NewComponents
 from console.services.market_app.update_components import UpdateComponents
 from console.services.market_app.property_changes import PropertyChanges
 from console.services.market_app.component_group import ComponentGroup
+from console.services.market_app.component import Component
 # service
 from console.services.app import app_market_service
 from console.services.app_actions import app_manage_service
@@ -41,6 +43,8 @@ from console.models.main import AppUpgradeSnapshot
 from console.models.main import ApplicationConfigGroup
 from console.models.main import ConfigGroupItem
 from console.models.main import ConfigGroupService
+from www.models.plugin import TenantServicePluginRelation
+from www.models.plugin import ServicePluginConfigVar
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
@@ -89,10 +93,20 @@ class AppUpgrade(MarketApp):
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
     def upgrade(self):
-        # TODO(huangrh): install plugins
+        # install plugins
+        try:
+            self.install_plugins()
+        except Exception as e:
+            self._update_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
+            raise e
+
         # Sync the new application to the data center first
-        # TODO(huangrh): rollback on api timeout
-        self.sync_new_app()
+        try:
+            self.sync_new_app()
+        except Exception as e:
+            # TODO(huangrh): rollback on api timeout
+            self._update_upgrade_record(UpgradeStatus.UPGRADE_FAILED.value)
+            raise e
 
         try:
             # Save the application to the console
@@ -158,15 +172,70 @@ class AppUpgrade(MarketApp):
 
     @transaction.atomic
     def install_plugins(self):
-        new_plugin = NewPlugin(self.tenant, self.region_name, self.user, self.app_template["plugins"])
+        new_plugin = NewPlugin(self.tenant, self.region_name, self.user, self.app_template.get("plugins"))
         # save plugins
-        # new_plugin.save()
+        new_plugin.save()
+        # sync plugins
+        self._sync_plugins(new_plugin.new_plugins)
+        # deploy plugins
+        self._deploy_plugins(new_plugin.new_plugins)
+
+    def _sync_plugins(self, plugins: [Plugin]):
+        new_plugins = []
+        for plugin in plugins:
+            new_plugins.append({
+                "build_model": plugin.plugin.build_source,
+                "git_url": plugin.plugin.code_repo,
+                "image_url": "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag),
+                "plugin_id": plugin.plugin.plugin_id,
+                "plugin_info": plugin.plugin.desc,
+                "plugin_model": plugin.plugin.category,
+                "plugin_name": plugin.plugin.plugin_name
+            })
+        body = {
+            "plugins": new_plugins,
+        }
+        region_api.sync_plugins(self.tenant_name, self.region_name, body)
+
+    def _deploy_plugins(self, plugins: [Plugin]):
+        new_plugins = []
+        for plugin in plugins:
+            origin = plugin.plugin.origin
+            if origin == "local_market":
+                plugin_from = "yb"
+            elif origin == "market":
+                plugin_from = "ys"
+            else:
+                plugin_from = None
+
+            new_plugins.append({
+                "plugin_id": plugin.plugin.plugin_id,
+                "build_version": plugin.build_version.build_version,
+                "event_id": plugin.build_version.event_id,
+                "info": plugin.build_version.update_info,
+                "operator": self.user.nick_name,
+                "plugin_cmd": plugin.build_version.build_cmd,
+                "plugin_memory": int(plugin.build_version.min_memory),
+                "plugin_cpu": int(plugin.build_version.min_cpu),
+                "repo_url": plugin.build_version.code_version,
+                "username": plugin.plugin.username,  # git username
+                "password": plugin.plugin.password,  # git password
+                "tenant_id": self.tenant_id,
+                "ImageInfo": plugin.plugin_image,
+                "build_image": "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag),
+                "plugin_from": plugin_from,
+            })
+        body = {
+            "plugins": new_plugins,
+        }
+        region_api.build_plugins(self.tenant_name, self.region_name, body)
 
     def _deploy(self, record):
         # Optimization: not all components need deploy
         component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
         try:
-            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy",
+                                                         component_ids)
         except ServiceHandleException as e:
             self._update_upgrade_record(UpgradeStatus.DEPLOY_FAILED.value)
             raise ErrAppUpgradeDeployFailed(e.msg)
@@ -174,9 +243,6 @@ class AppUpgrade(MarketApp):
             self._update_upgrade_record(UpgradeStatus.DEPLOY_FAILED.value)
             raise e
         self._create_component_record(record, events)
-
-    def _sync_plugins(self, ):
-        pass
 
     def _create_component_record(self, app_record: AppUpgradeRecord, events=list):
         event_ids = {event["service_id"]: event["event_id"] for event in events}
@@ -202,86 +268,6 @@ class AppUpgrade(MarketApp):
         snapshot = self._take_snapshot()
         self.save_new_app()
         self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot.snapshot_id)
-
-    def _sync_app(self, app):
-        self._sync_components(app)
-        self._sync_app_config_groups(app)
-
-    def _sync_components(self, app):
-        """
-        synchronous components to the application in region
-        """
-        new_components = []
-        for cpt in app.components():
-            component_base = cpt.component.to_dict()
-            component_base["component_id"] = component_base["service_id"]
-            component_base["component_name"] = component_base["service_name"]
-            component_base["component_alias"] = component_base["service_alias"]
-            component = {
-                "component_base": component_base,
-                "envs": [env.to_dict() for env in cpt.envs],
-                "ports": [port.to_dict() for port in cpt.ports],
-                "config_files": [cf.to_dict() for cf in cpt.config_files],
-                "probe": cpt.probe,
-                "monitors": [monitor.to_dict() for monitor in cpt.monitors],
-            }
-            volumes = [volume.to_dict() for volume in cpt.volumes]
-            for volume in volumes:
-                volume["allow_expansion"] = True if volume["allow_expansion"] == 1 else False
-            component["volumes"] = volumes
-            # volume dependency
-            if cpt.volume_deps:
-                deps = []
-                for dep in cpt.volume_deps:
-                    new_dep = dep.to_dict()
-                    new_dep["dep_volume_name"] = dep.mnt_name
-                    new_dep["mount_path"] = dep.mnt_dir
-                    deps.append(new_dep)
-                component["volume_relations"] = deps
-            # component dependency
-            if cpt.component_deps:
-                component["relations"] = [dep.to_dict() for dep in cpt.component_deps]
-            if cpt.app_config_groups:
-                component["app_config_groups"] = [{
-                    "config_group_name": config_group.config_group_name
-                } for config_group in cpt.app_config_groups]
-            new_components.append(component)
-
-        body = {
-            "components": new_components,
-        }
-
-        print(json.dumps(body))
-        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
-        region_api.sync_components(self.tenant.tenant_name, self.region_name, region_app_id, body)
-
-    def _sync_app_config_groups(self, app):
-        config_group_items = dict()
-        for item in app.config_group_items:
-            items = config_group_items.get(item.config_group_name, [])
-            new_item = item.to_dict()
-            items.append(new_item)
-            config_group_items[item.config_group_name] = items
-        config_group_components = dict()
-        for cgc in app.config_group_components:
-            cgcs = config_group_components.get(cgc.config_group_name, [])
-            new_cgc = cgc.to_dict()
-            cgcs.append(new_cgc)
-            config_group_components[cgc.config_group_name] = cgcs
-        config_groups = list()
-        for config_group in app.config_groups:
-            cg = config_group.to_dict()
-            cg["config_items"] = config_group_items.get(config_group.config_group_name)
-            cg["config_group_services"] = config_group_components.get(config_group.config_group_name)
-            config_groups.append(cg)
-        body = {
-            "app_config_groups": config_groups,
-        }
-
-        print(json.dumps(body))
-
-        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
-        region_api.sync_config_groups(self.tenant.tenant_name, self.region_name, region_app_id, body)
 
     def _app_template(self):
         if not self.app_template_source.is_install_from_cloud():
@@ -320,6 +306,11 @@ class AppUpgrade(MarketApp):
         config_group_items = self._config_group_items(config_groups)
         config_group_components = self._config_group_components(components, config_groups)
 
+        # plugins
+        new_plugin = NewPlugin(self.tenant, self.region_name, self.user, self.app_template.get("plugins"))
+        plugins = new_plugin.plugins()
+        plugin_deps, plugin_configs = self._component_plugins(plugins, components)
+
         component_group = copy.deepcopy(self.component_group.component_group)
         component_group.group_version = self.version
 
@@ -332,6 +323,9 @@ class AppUpgrade(MarketApp):
             update_components,
             component_deps,
             volume_deps,
+            plugins=plugins,
+            plugin_deps=plugin_deps,
+            plugin_configs=plugin_configs,
             config_groups=config_groups,
             config_group_items=config_group_items,
             config_group_components=config_group_components)
@@ -524,3 +518,89 @@ class AppUpgrade(MarketApp):
                 )
                 config_group_components.append(cgc)
         return config_group_components
+
+    def _component_plugins(self, plugins: [Plugin], components: [Component]):
+        plugins = {plugin.plugin.origin_share_id: plugin for plugin in plugins}
+
+        components = {cpt.component.service_key: cpt for cpt in components}
+        component_keys = {tmpl["service_id"]: tmpl["service_key"] for tmpl in self.app_template.get("apps")}
+
+        plugin_deps = []
+        for component in self.app_template["apps"]:
+            plugin_deps.extend(component["service_related_plugin_config"])
+
+        new_plugin_deps = []
+        new_plugin_configs = []
+        for plugin_dep in plugin_deps:
+            # get component
+            component_key = component_keys.get(plugin_dep["service_id"])
+            if not component_key:
+                logger.warning("component key {} not found".format(plugin_dep["service_id"]))
+                continue
+            component = components.get(component_key)
+            if not component:
+                logger.info("component {} not found".format(component_key))
+                continue
+
+            # get plugin
+            plugin = plugins.get(plugin_dep["plugin_key"])
+            if not plugin:
+                logger.info("plugin {} not found".format(plugin_dep["plugin_key"]))
+                continue
+
+            # plugin configs
+            plugin_configs, ignore_plugin = self._create_plugin_configs(component, plugin, plugin_dep["attr"], component_keys, components)
+            if ignore_plugin:
+                continue
+            new_plugin_configs.extend(plugin_configs)
+
+            new_plugin_deps.append(TenantServicePluginRelation(
+                service_id=component.component.component_id,
+                plugin_id=plugin.plugin.plugin_id,
+                build_version=plugin.build_version.build_version,
+                service_meta_type=plugin_dep["service_meta_type"],
+                plugin_status=plugin_dep["plugin_status"],
+                min_memory=plugin_dep["min_memory"],
+                min_cpu=plugin_dep["min_cpu"],
+            ))
+        return new_plugin_deps, new_plugin_configs
+
+    @staticmethod
+    def _create_plugin_configs(component: Component, plugin: Plugin, plugin_configs, component_keys: [str], components):
+        """
+        return new_plugin_configs, ignore_plugin
+        new_plugin_configs: new plugin configs created from app template
+        ignore_plugin: ignore the plugin if the dependent component not found
+        """
+        new_plugin_configs = []
+        for plugin_config in plugin_configs:
+            new_plugin_config = ServicePluginConfigVar(
+                service_id=component.component.component_id,
+                plugin_id=plugin.plugin.plugin_id,
+                build_version=plugin.build_version.build_version,
+                service_meta_type=plugin_config["service_meta_type"],
+                injection=plugin_config["injection"],
+                container_port=plugin_config["container_port"],
+                attrs=plugin_config["attrs"],
+                protocol=plugin_config["protocol"],
+            )
+
+            # dest_service_id, dest_service_alias
+            dest_service_id = plugin_config.get("dest_service_id")
+            if dest_service_id:
+                dep_component_key = component_keys.get(dest_service_id)
+                if not dep_component_key:
+                    logger.info("dependent component key {} not found".format(dest_service_id))
+                    return [], True
+                dep_component = components.get(dep_component_key)
+                if not dep_component:
+                    logger.info("dependent component {} not found".format(dep_component_key))
+                    return [], True
+                new_plugin_config.dest_service_id = dep_component.component.component_id
+                new_plugin_config.dest_service_alias = dep_component.component.service_alias
+            new_plugin_configs.append(new_plugin_config)
+
+        return new_plugin_configs, False
+
+
+

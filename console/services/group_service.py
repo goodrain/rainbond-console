@@ -289,7 +289,7 @@ class GroupService(object):
             service.status = svc_sas["status"]
             service.used_mem = svc_sas["used_mem"]
 
-        plugin_list = app_plugin_relation_repo.get_multi_service_plugin(service_ids)
+        plugin_list = app_plugin_relation_repo.list_by_component_ids(service_ids)
         plugins = dict()
         for plugin in plugin_list:
             if not plugins.get(plugin.service_id):

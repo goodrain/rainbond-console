@@ -2,6 +2,8 @@
 """
   Created on 18/1/29.
 """
+import json
+
 from www.db.base import BaseConnection
 from www.models.plugin import ServicePluginConfigVar
 from www.models.plugin import TenantServicePluginAttr
@@ -9,7 +11,8 @@ from www.models.plugin import TenantServicePluginRelation
 
 
 class AppPluginRelationRepo(object):
-    def get_multi_service_plugin(self, service_ids):
+    @staticmethod
+    def list_by_component_ids(service_ids):
         return TenantServicePluginRelation.objects.filter(service_id__in=service_ids)
 
     def get_service_plugin_relation_by_service_id(self, service_id):
@@ -55,6 +58,13 @@ class AppPluginRelationRepo(object):
     def bulk_create(self, plugin_relations):
         TenantServicePluginRelation.objects.bulk_create(plugin_relations)
 
+    @staticmethod
+    def overwrite_by_component_ids(component_ids, plugin_deps):
+        for plugin_dep in plugin_deps:
+            print(json.dumps(plugin_dep.to_dict()))
+        TenantServicePluginRelation.objects.filter(service_id__in=component_ids).delete()
+        TenantServicePluginRelation.objects.bulk_create(plugin_deps)
+
     def check_plugins_by_eid(self, eid):
         """
         check if an app has been shared
@@ -91,3 +101,8 @@ class ServicePluginConfigVarRepository(object):
 
     def get_service_plugin_all_config(self, service_id):
         return ServicePluginConfigVar.objects.filter(service_id=service_id)
+
+    @staticmethod
+    def overwrite_by_component_ids(component_ids, plugin_configs):
+        ServicePluginConfigVar.objects.filter(service_id__in=component_ids).delete()
+        ServicePluginConfigVar.objects.bulk_create(plugin_configs)

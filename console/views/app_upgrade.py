@@ -3,8 +3,7 @@
 import logging
 from enum import Enum
 
-from console.exception.bcode import ErrAppUpgradeDeployFailed
-from console.exception.main import AbortRequest, ServiceHandleException
+from console.exception.main import ServiceHandleException
 from console.repositories.upgrade_repo import upgrade_repo
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
@@ -13,7 +12,6 @@ from console.utils.reqparse import parse_argument, parse_item
 from console.utils.response import MessageResponse
 from console.views.base import ApplicationView, RegionTenantHeaderView, AppUpgradeRecordView
 # model
-from console.models.main import UpgradeStatus
 from console.models.main import AppUpgradeRecordType
 
 logger = logging.getLogger('default')

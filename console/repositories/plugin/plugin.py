@@ -100,4 +100,11 @@ class TenantPluginRepository(object):
         TenantPlugin.objects.bulk_create(plugins)
 
 
+class PluginBuildVersionRepository(object):
+    @staticmethod
+    def list_by_plugin_ids(plugin_ids):
+        return PluginBuildVersion.objects.filter(plugin_id__in=plugin_ids)
+
+
 plugin_repo = TenantPluginRepository()
+plugin_version_repo = PluginBuildVersionRepository()

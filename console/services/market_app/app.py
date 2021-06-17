@@ -3,6 +3,9 @@ import json
 
 from .new_app import NewApp
 from .original_app import OriginalApp
+# constant
+from console.constants import PluginMetaType
+from console.constants import PluginInjection
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -22,9 +25,6 @@ class MarketApp(object):
 
     def sync_new_app(self):
         self._sync_app(self.new_app)
-
-    def install_plugins(self):
-        pass
 
     def rollback(self):
         self._sync_app(self.original_app)
@@ -69,8 +69,10 @@ class MarketApp(object):
         """
         synchronous components to the application in region
         """
+        components = app.components()
+        plugin_bodies = self._create_plugin_bodies(components)
         new_components = []
-        for cpt in app.components():
+        for cpt in components:
             component_base = cpt.component.to_dict()
             component_base["component_id"] = component_base["service_id"]
             component_base["component_name"] = component_base["service_name"]
@@ -103,6 +105,9 @@ class MarketApp(object):
                 component["app_config_groups"] = [{
                     "config_group_name": config_group.config_group_name
                 } for config_group in cpt.app_config_groups]
+            # plugin
+            plugin_body = plugin_bodies.get(cpt.component.component_id, [])
+            component["plugins"] = plugin_body
             new_components.append(component)
 
         body = {
@@ -110,6 +115,77 @@ class MarketApp(object):
         }
         print(json.dumps(body))
         region_api.sync_components(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
+
+    def _create_plugin_bodies(self, components):
+        components = {cpt.component.component_id: cpt for cpt in components}
+        plugins = {plugin.plugin.plugin_id: plugin for plugin in self.new_app.plugins}
+        plugin_configs = {}
+        for plugin_config in self.new_app.plugin_configs:
+            pcs = plugin_configs.get(plugin_config.service_id, [])
+            pcs.append(plugin_config)
+            plugin_configs[plugin_config.service_id] = pcs
+
+        new_plugin_deps = {}
+        for plugin_dep in self.new_app.plugin_deps:
+            plugin = plugins.get(plugin_dep.plugin_id)
+            if not plugin:
+                continue
+            component = components.get(plugin_dep.service_id)
+            if not component:
+                continue
+
+            cpt_plugin_configs = plugin_configs.get(plugin_dep.service_id, [])
+            normal_envs = []
+            base_normal = {}
+            base_ports = []
+            base_services = []
+            for plugin_config in cpt_plugin_configs:
+                if plugin_config.service_meta_type == PluginMetaType.UNDEFINE:
+                    if plugin_config.injection == PluginInjection.EVN:
+                        attr_map = json.loads(plugin_config.attrs)
+                        for k, v in list(attr_map.items()):
+                            normal_envs.append({"env_name": k, "env_value": v})
+                    else:
+                        base_normal["options"] = json.loads(plugin_config.attrs)
+                if plugin_config.service_meta_type == PluginMetaType.UPSTREAM_PORT:
+                    base_ports.append({
+                        "service_id": plugin_config.service_id,
+                        "options": json.loads(plugin_config.attrs),
+                        "protocol": plugin_config.protocol,
+                        "port": plugin_config.container_port,
+                        "service_alias": component.component.service_alias
+                    })
+                if plugin_config.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
+                    base_services.append({
+                        "depend_service_alias": plugin_config.dest_service_alias,
+                        "protocol": plugin_config.protocol,
+                        "service_alias": component.component.service_alias,
+                        "options": json.loads(plugin_config.attrs),
+                        "service_id": component.component.service_id,
+                        "depend_service_id": plugin_config.dest_service_id,
+                        "port": plugin_config.container_port,
+                    })
+            new_plugin_dep = {
+                "plugin_id": plugin_dep.plugin_id,
+                "version_id": plugin.build_version.build_version,
+                "plugin_model": plugin.plugin.category,
+                "container_cpu": plugin_dep.min_cpu,
+                "container_memory": plugin_dep.min_memory,
+                "switch": plugin_dep.min_memory == 1,
+                "config_envs": {
+                    "normal_envs": normal_envs,
+                },
+                "complex_envs": {
+                    "base_ports": base_ports,
+                    "base_services": base_services,
+                    "base_normal": base_normal,
+                }
+            }
+            pds = new_plugin_deps.get(plugin_dep.service_id, [])
+            pds.append(new_plugin_dep)
+            new_plugin_deps[plugin_dep.service_id] = pds
+        return new_plugin_deps
+
 
     def _sync_app_config_groups(self, app):
         config_group_items = dict()
@@ -134,5 +210,4 @@ class MarketApp(object):
         body = {
             "app_config_groups": config_groups,
         }
-        print(json.dumps(body))
         region_api.sync_config_groups(self.tenant_name, self.region_name, self.new_app.region_app_id, body)

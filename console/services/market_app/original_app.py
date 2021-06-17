@@ -17,6 +17,7 @@ from console.repositories.app_config import mnt_repo as volume_dep_repo
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
+from console.repositories.plugin import app_plugin_relation_repo
 # model
 from www.models.main import ServiceGroup
 # exception
@@ -31,7 +32,10 @@ class OriginalApp(object):
         self.upgrade_group_id = upgrade_group_id
         self.app = group_repo.get_group_by_pk(tenant_id, region_name, app.app_id)
         self.governance_mode = app.governance_mode
+
+        self._component_ids = self._component_ids()
         self._components = self._create_components(app.app_id, upgrade_group_id)
+
         # dependency
         self.component_deps = dep_relation_repo.list_by_component_ids(self.tenant_id,
                                                                       [cpt.component.component_id for cpt in self._components])
@@ -44,11 +48,20 @@ class OriginalApp(object):
     def components(self):
         return self._components
 
-    @staticmethod
-    def _create_components(app_id, upgrade_group_id):
+    def _component_ids(self):
+        components = group_service.list_components_by_upgrade_group_id(self.app_id, self.upgrade_group_id)
+        if not components:
+            raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
+        return [cpt.component_id for cpt in components]
+
+    def _create_components(self, app_id, upgrade_group_id):
         components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
+
+        plugin_deps = self._plugin_deps()
+        # make a map of plugin_deps
+        plugin_deps = {plugin_dep.service_id: plugin_dep for plugin_dep in plugin_deps}
 
         result = []
         # Optimization: get the attributes at once, don't get it iteratively
@@ -61,7 +74,8 @@ class OriginalApp(object):
             probe = probe_repo.get_probe(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
-            result.append(Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs))
+            cpt_plugin_deps = plugin_deps.get(cpt.component_id)
+            result.append(Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, cpt_plugin_deps))
         return result
 
     def _volume_deps(self):
@@ -76,3 +90,6 @@ class OriginalApp(object):
 
     def _config_group_components(self):
         return list(app_config_group_service_repo.list_by_app_id(self.app_id))
+
+    def _plugin_deps(self):
+        return app_plugin_relation_repo.list_by_component_ids(self._component_ids)

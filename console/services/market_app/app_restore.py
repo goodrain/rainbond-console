@@ -165,6 +165,9 @@ class AppRestore(MarketApp):
         new_volume_deps = self._create_volume_deps(component_ids)
         volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
 
+        # plugins
+
+
         return NewApp(
             tenant=self.tenant,
             region_name=self.region_name,
@@ -231,3 +234,6 @@ class AppRestore(MarketApp):
         component_group = copy.deepcopy(self.component_group)
         component_group.group_version = version
         return component_group
+
+    def _create_plugins_deps(self):
+        pass

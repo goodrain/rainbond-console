@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import logging
 
+
+from .plugin import Plugin
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
@@ -19,6 +21,8 @@ from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.region_app import region_app_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.plugin import service_plugin_config_repo
 # model
 from www.models.main import ServiceGroup
 from www.models.main import TenantServiceGroup
@@ -43,6 +47,9 @@ class NewApp(object):
                  update_components,
                  component_deps,
                  volume_deps,
+                 plugins: [Plugin] = None,
+                 plugin_deps=None,
+                 plugin_configs=None,
                  config_groups=None,
                  config_group_items=None,
                  config_group_components=None):
@@ -60,6 +67,11 @@ class NewApp(object):
         self.update_components = update_components
         self.component_ids = [cpt.component.component_id for cpt in self._components()]
 
+        # plugins
+        self.plugins = plugins
+        self.plugin_deps = plugin_deps
+        self.plugin_configs = plugin_configs
+
         # component dependencies
         self.component_deps = component_deps if component_deps else []
         # volume dependencies
@@ -73,6 +85,11 @@ class NewApp(object):
         # component
         self._save_components()
         self._update_components()
+
+        # plugins
+        self._save_plugin_deps()
+        self._save_plugin_configs()
+
         # dependency
         self._save_component_deps()
         self._save_volume_deps()
@@ -101,10 +118,23 @@ class NewApp(object):
             cgcs = config_group_components.get(cgc.service_id, [])
             cgcs.append(cgc)
             config_group_components[cgc.service_id] = cgcs
+        # plugins
+        plugin_deps = {}
+        for plugin_dep in self.plugin_deps:
+            pds = plugin_deps.get(plugin_dep.service_id, [])
+            pds.append(plugin_dep)
+            plugin_deps[plugin_dep.service_id] = pds
+        plugin_configs = {}
+        for plugin_config in self.plugin_configs:
+            pcs = plugin_configs.get(plugin_config.service_id, [])
+            pcs.append(plugin_config)
+            plugin_configs[plugin_config.service_id] = pcs
         for cpt in components:
             cpt.component_deps = component_deps.get(cpt.component.component_id)
             cpt.volume_deps = volume_deps.get(cpt.component.component_id)
             cpt.app_config_groups = config_group_components.get(cpt.component.component_id)
+            cpt.plugin_deps = plugin_deps.get(cpt.component.component_id)
+            cpt.plugin_configs = plugin_configs.get(cpt.component.component_id)
         return components
 
     def _components(self):
@@ -205,3 +235,9 @@ class NewApp(object):
         volume_deps = volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id,
                                                                         [cpt.component.component_id for cpt in components])
         return {dep.key(): dep for dep in volume_deps}
+
+    def _save_plugin_deps(self):
+        app_plugin_relation_repo.overwrite_by_component_ids(self.component_ids, self.plugin_deps)
+
+    def _save_plugin_configs(self):
+        service_plugin_config_repo.overwrite_by_component_ids(self.component_ids, self.plugin_configs)
