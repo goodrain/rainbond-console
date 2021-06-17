@@ -95,6 +95,8 @@ class AppRestore(MarketApp):
         rollback_record["status"] = UpgradeStatus.ROLLING.value
         rollback_record["record_type"] = AppUpgradeRecordType.ROLLBACK.value
         rollback_record["parent_id"] = self.upgrade_record.ID
+        rollback_record["version"] = self.upgrade_record.old_version
+        rollback_record["old_version"] = self.upgrade_record.version
         self.rollback_record = upgrade_repo.create_app_upgrade_record(**rollback_record)
 
     def _update_upgrade_record(self, status):

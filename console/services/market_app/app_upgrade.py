@@ -7,6 +7,7 @@ from json.decoder import JSONDecodeError
 
 from django.db import transaction
 
+from console.services.market_app.new_plugin import NewPlugin
 from console.services.market_app.app import MarketApp
 from console.services.market_app.new_app import NewApp
 from console.services.market_app.original_app import OriginalApp
@@ -155,6 +156,12 @@ class AppUpgrade(MarketApp):
 
         return result
 
+    @transaction.atomic
+    def install_plugins(self):
+        new_plugin = NewPlugin(self.tenant, self.region_name, self.user, self.app_template["plugins"])
+        # save plugins
+        # new_plugin.save()
+
     def _deploy(self, record):
         # Optimization: not all components need deploy
         component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
@@ -167,6 +174,9 @@ class AppUpgrade(MarketApp):
             self._update_upgrade_record(UpgradeStatus.DEPLOY_FAILED.value)
             raise e
         self._create_component_record(record, events)
+
+    def _sync_plugins(self, ):
+        pass
 
     def _create_component_record(self, app_record: AppUpgradeRecord, events=list):
         event_ids = {event["service_id"]: event["event_id"] for event in events}
@@ -426,6 +436,7 @@ class AppUpgrade(MarketApp):
     def _update_upgrade_record(self, status, snapshot_id=None):
         self.record.status = status
         self.record.snapshot_id = snapshot_id
+        self.record.version = self.version
         self.record.save()
 
     def _take_snapshot(self):

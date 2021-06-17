@@ -11,6 +11,10 @@ logger = logging.getLogger("default")
 
 
 class TenantPluginRepository(object):
+    @staticmethod
+    def list_by_tenant_id(tenant_id, region_name):
+        return TenantPlugin.objects.filter(tenant_id=tenant_id, region=region_name)
+
     def get_plugin_by_plugin_id(self, tenant_id, plugin_id):
         """
         根据租户和插件id查询插件元信息
@@ -90,6 +94,10 @@ class TenantPluginRepository(object):
             TenantPlugin.objects.filter(
                 tenant_id=plugin["tenant_id"], plugin_id=plugin["plugin_id"], region=plugin["region"]).delete()
             return TenantPlugin.objects.create(**plugin)
+
+    @staticmethod
+    def bulk_create(plugins):
+        TenantPlugin.objects.bulk_create(plugins)
 
 
 plugin_repo = TenantPluginRepository()

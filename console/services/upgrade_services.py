@@ -126,6 +126,7 @@ class UpgradeService(object):
     def list_records(self, tenant_name, region_name, app_id, record_type=None, page=1, page_size=10):
         # list records and pagination
         records = upgrade_repo.list_records_by_app_id(app_id, record_type)
+        records = records.exclude(Q(status=1))
         paginator = Paginator(records, page_size)
         records = paginator.page(page)
 
@@ -168,13 +169,14 @@ class UpgradeService(object):
 
         # failed events
         component_records = component_upgrade_record_repo.list_by_app_record_id(record.ID)
+        component_records = [record for record in component_records]
         failed_component_records = {
             record.event_id: record
-            for record in component_records if record.service_id in
-            [UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.DEPLOY_FAILED.value]
+            for record in component_records if record.status in
+            [UpgradeStatus.PARTIAL_UPGRADED.value, UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value]
         }
 
-        component_ids = [record.service_id for record in failed_component_records]
+        component_ids = [record.service_id for record in failed_component_records.values()]
 
         try:
             events = app_manage_service.batch_operations(tenant, region_name, user, "deploy", component_ids)
@@ -186,7 +188,7 @@ class UpgradeService(object):
         except Exception as e:
             upgrade_repo.change_app_record_status(record, UpgradeStatus.DEPLOY_FAILED.value)
             raise e
-        self._update_component_records(record, failed_component_records, events)
+        self._update_component_records(record, failed_component_records.values(), events)
 
     @staticmethod
     def save_upgrade_record(app_upgrade_record, component_upgrade_records):
@@ -235,16 +237,16 @@ class UpgradeService(object):
         if self._is_upgrade_status_unfinished(component_records):
             return
         if self._is_upgrade_status_failed(component_records):
-            if app_record.record_type == AppUpgradeRecordType.UPGRADE.value:
-                app_record.status = UpgradeStatus.UPGRADE_FAILED.value
             if app_record.record_type == AppUpgradeRecordType.ROLLBACK.value:
                 app_record.status = UpgradeStatus.ROLLBACK_FAILED.value
+            else:
+                app_record.status = UpgradeStatus.UPGRADE_FAILED.value
             return
         if self._is_upgrade_status_success(component_records):
-            if app_record.record_type == AppUpgradeRecordType.UPGRADE.value:
-                app_record.status = UpgradeStatus.UPGRADED.value
             if app_record.record_type == AppUpgradeRecordType.ROLLBACK.value:
                 app_record.status = UpgradeStatus.ROLLBACK.value
+            else:
+                app_record.status = UpgradeStatus.UPGRADED.value
             return
         # partial
         if app_record.record_type == AppUpgradeRecordType.UPGRADE.value:
@@ -305,38 +307,6 @@ class UpgradeService(object):
                 return app_record
             else:
                 raise AbortRequest(msg="the app model is not in the group", msg_show="该应用中没有这个应用模型", status_code=404)
-
-    def get_or_create_upgrade_record_new(self, tenant, region_name, application, app_model_key, upgrade_group_id):
-        from console.services.market_app_service import market_app_service
-        record = upgrade_repo.get_last_upgrade_record(tenant, application.ID, upgrade_group_id)
-        if record:
-            self.synchronous_upgrade_status(tenant, region_name, record)
-            # not start upgrade or upgrading record.
-            if record.status in [
-                    UpgradeStatus.UPGRADING.value, UpgradeStatus.NOT.value, UpgradeStatus.ROLLING.value,
-                    UpgradeStatus.PARTIAL_UPGRADED.value
-            ]:
-                return record
-        current_version, template_update_time, install_from_cloud, market = market_app_service.get_current_version(
-            tenant.enterprise_id, app_model_key, application.ID, upgrade_group_id)
-        if install_from_cloud:
-            app, _ = app_market_service.cloud_app_model_to_db_model(market, app_model_key, None)
-        else:
-            app, _ = rainbond_app_repo.get_rainbond_app_and_version(tenant.enterprise_id, app_model_key, None)
-        if not app:
-            raise ServiceHandleException(msg="app is not exist", msg_show="应用市场应用不存在，无法进行升级")
-        recode_kwargs = {
-            "tenant_id": tenant.tenant_id,
-            "group_id": application.ID,
-            "group_key": app_model_key,
-            "group_name": app.app_name,
-            "create_time": datetime.now(),
-            "is_from_cloud": install_from_cloud,
-            "market_name": market.name if market else "",
-            "upgrade_group_id": upgrade_group_id,
-            "old_version": current_version,
-        }
-        return upgrade_repo.create_app_upgrade_record(**recode_kwargs)
 
     def get_app_not_upgrade_record(self, tenant_id, group_id, group_key):
         """获取未完成升级记录"""

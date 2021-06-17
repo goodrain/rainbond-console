@@ -53,6 +53,7 @@ class NewApp(object):
         self.app = app
         self.component_group = component_group
         self.upgrade_group_id = component_group.ID
+        self.version = component_group.group_version
         self.region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         self.governance_mode = app.governance_mode
         self.new_components = new_components

@@ -100,15 +100,11 @@ class AppUpgradeRollbackView(AppUpgradeRecordView):
 
 class AppUpgradeDetailView(ApplicationView):
     def get(self, request, upgrade_group_id, *args, **kwargs):
-        # same as app_key or group_key
-        app_model_key = parse_argument(
-            request, 'app_model_key', value_type=str, required=True, error='app_model_key is a required parameter')
-        record = upgrade_service.get_or_create_upgrade_record_new(self.team, self.region_name, self.app, app_model_key,
-                                                                  upgrade_group_id)
+        record_id = parse_argument(
+            request, 'record_id', value_type=str, required=True, error='record_id is a required parameter')
+        record = upgrade_repo.get_by_record_id(record_id)
         # get app model upgrade versions
-        versions = market_app_service.get_models_upgradeable_version(self.tenant.enterprise_id, app_model_key, self.app_id,
-                                                                     upgrade_group_id)
-
+        versions = market_app_service.list_app_upgradeable_versions(self.tenant.enterprise_id, record)
         return MessageResponse(msg="success", bean={'record': record.to_dict(), 'versions': versions})
 
 

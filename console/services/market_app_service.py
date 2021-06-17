@@ -7,6 +7,8 @@ import json
 import logging
 import time
 
+# market app
+from console.services.market_app.component_group import ComponentGroup
 # enum
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -40,10 +42,12 @@ from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
-from www.apiclient.regionapi import RegionInvokeApi
+# model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
                              TenantServicesPort, Users)
-from www.models.plugin import ServicePluginConfigVar
+from console.models.main import AppUpgradeRecord
+# www
+from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
@@ -1209,7 +1213,6 @@ class MarketAppService(object):
                                    market=None):
         # Simply determine if there is a version that can be upgraded, not attribute changes.
         versions = []
-        app_version_list = []
         if install_from_cloud and market:
             app_version_list = app_market_service.get_market_app_model_versions(market, app_model_key)
         else:
@@ -1260,6 +1263,15 @@ class MarketAppService(object):
             enterprise_id, app_model_key, app_id, upgrade_group_id)
         return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version, current_version_update_time,
                                                install_from_cloud, market)
+
+    def list_app_upgradeable_versions(self, enterprise_id, record: AppUpgradeRecord):
+        component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
+        component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
+        app_template_source = component_group.app_template_source()
+        return self.__get_upgradeable_versions(enterprise_id, component_group.app_model_key, component_group.version,
+                                               app_template_source.get_template_update_time(),
+                                               component_group.is_install_from_cloud(),
+                                               app_template_source.get_market_name())
 
     def delete_rainbond_app_all_info_by_id(self, enterprise_id, app_id):
         sid = transaction.savepoint()
