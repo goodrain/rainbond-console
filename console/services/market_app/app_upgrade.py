@@ -23,7 +23,7 @@ from console.services.app_actions import app_manage_service
 from console.services.backup_service import groupapp_backup_service
 # repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.region_app import region_app_repo
+from console.repositories.app import app_market_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 from console.repositories.group import group_repo
 from console.repositories.app_snapshot import app_snapshot_repo
@@ -274,8 +274,8 @@ class AppUpgrade(MarketApp):
             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.enterprise_id, self.app_model_key,
                                                                             self.version)
         else:
-            _, app_version = app_market_service.cloud_app_model_to_db_model(self.app_template_source.get_market_name(),
-                                                                            self.app_model_key, self.version)
+            market = app_market_repo.get_app_market_by_name(self.enterprise_id, self.app_template_source.get_market_name(), raise_exception=True)
+            _, app_version = app_market_service.cloud_app_model_to_db_model(market, self.app_model_key, self.version)
         try:
             return json.loads(app_version.app_template)
         except JSONDecodeError:
@@ -412,7 +412,7 @@ class AppUpgrade(MarketApp):
         """
         config_groups = list(app_config_group_repo.list(self.region_name, self.app_id))
         config_group_names = [cg.config_group_name for cg in config_groups]
-        tmpl = self.app_template.get("app_config_groups")
+        tmpl = self.app_template.get("app_config_groups", [])
         for cg in tmpl:
             if cg["name"] in config_group_names:
                 continue
@@ -461,7 +461,7 @@ class AppUpgrade(MarketApp):
         config_group_items = list(app_config_group_item_repo.list_by_app_id(self.app_id))
 
         item_keys = [item.config_group_name + item.item_key for item in config_group_items]
-        tmpl = self.app_template.get("app_config_groups")
+        tmpl = self.app_template.get("app_config_groups", [])
         for cg in tmpl:
             config_group = config_groups.get(cg["name"])
             if not config_group:
@@ -496,7 +496,7 @@ class AppUpgrade(MarketApp):
         config_group_components = list(app_config_group_service_repo.list_by_app_id(self.app_id))
         config_group_component_keys = [cgc.config_group_name + cgc.service_id for cgc in config_group_components]
 
-        tmpl = self.app_template.get("app_config_groups")
+        tmpl = self.app_template.get("app_config_groups", [])
         for cg in tmpl:
             config_group = config_groups.get(cg["name"])
             if not config_group:
@@ -527,7 +527,7 @@ class AppUpgrade(MarketApp):
 
         plugin_deps = []
         for component in self.app_template["apps"]:
-            plugin_deps.extend(component["service_related_plugin_config"])
+            plugin_deps.extend(component.get("service_related_plugin_config", []))
 
         new_plugin_deps = []
         new_plugin_configs = []

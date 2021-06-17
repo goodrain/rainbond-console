@@ -46,6 +46,7 @@ from django.db.models import Q
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
                              TenantServicesPort, Users)
 from console.models.main import AppUpgradeRecord
+from console.models.main import AppMarket
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
@@ -1210,7 +1211,7 @@ class MarketAppService(object):
                                    current_version,
                                    current_version_time,
                                    install_from_cloud=False,
-                                   market=None):
+                                   market: AppMarket = None):
         # Simply determine if there is a version that can be upgraded, not attribute changes.
         versions = []
         if install_from_cloud and market:
@@ -1268,10 +1269,10 @@ class MarketAppService(object):
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
         app_template_source = component_group.app_template_source()
+        market = app_market_repo.get_app_market_by_name(enterprise_id, app_template_source.get_market_name(), raise_exception=True)
         return self.__get_upgradeable_versions(enterprise_id, component_group.app_model_key, component_group.version,
                                                app_template_source.get_template_update_time(),
-                                               component_group.is_install_from_cloud(),
-                                               app_template_source.get_market_name())
+                                               component_group.is_install_from_cloud(), market)
 
     def delete_rainbond_app_all_info_by_id(self, enterprise_id, app_id):
         sid = transaction.savepoint()

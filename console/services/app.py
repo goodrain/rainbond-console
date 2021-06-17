@@ -756,7 +756,7 @@ class AppMarketService(object):
                     market.status = extend_info.status
                     market.create_time = extend_info.create_time
                     market.access_actions = extend_info.access_actions
-                    version = extend_info.version if extend_info.version else version
+                    version = extend_info.version if hasattr(extend_info, version) else version
                 except Exception as e:
                     logger.exception(e)
                     market.description = None
@@ -977,7 +977,7 @@ class AppMarketService(object):
         results = app_store.get_app(market, app_id)
         return self.app_model_serializers(market, results, extend=extend)
 
-    def get_market_app_model_versions(self, market, app_id, query_all=False, extend=False):
+    def get_market_app_model_versions(self, market: AppMarket, app_id, query_all=False, extend=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         results = app_store.get_app_versions(market, app_id, query_all=query_all)
@@ -991,7 +991,7 @@ class AppMarketService(object):
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
 
-    def cloud_app_model_to_db_model(self, market, app_id, version, for_install=False):
+    def cloud_app_model_to_db_model(self, market: AppMarket, app_id, version, for_install=False):
         app = app_store.get_app(market, app_id)
         rainbond_app_version = None
         app_template = None
