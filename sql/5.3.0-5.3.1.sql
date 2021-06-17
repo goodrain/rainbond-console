@@ -5,3 +5,6 @@ ALTER TABLE tenant_info CHANGE `region` `region` varchar(64) Default '';
 ALTER TABLE service_share_record ADD COLUMN `share_app_version_info` VARCHAR(255) DEFAULT '';
 ALTER TABLE rainbond_center_app_version modify COLUMN version_alias VARCHAR(64);
 ALTER TABLE service_share_record modify COLUMN share_version_alias VARCHAR(64);
+
+ALTER TABLE tenant_service add COLUMN container_gpu int(64) DEFAULT 0;
+ALTER TABLE tenant_service_delete add COLUMN container_gpu int(64) DEFAULT 0;

@@ -4,9 +4,6 @@
 """
 import logging
 
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
 from console.enum.component_enum import is_state, is_support
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException)
@@ -16,9 +13,11 @@ from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
-from console.views.app_config.base import AppBaseView, AppBaseCloudEnterpriseCenterView
-from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderView,
-                                RegionTenantHeaderCloudEnterpriseCenterView)
+from console.views.app_config.base import (AppBaseCloudEnterpriseCenterView, AppBaseView)
+from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderCloudEnterpriseCenterView,
+                                RegionTenantHeaderView)
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -216,14 +215,32 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
               required: true
               type: int
               paramType: form
+            - name: new_gpu
+              description: gpu显存数量(单位：MiB)
+              required: false
+              type: int
+              paramType: form
+            - name: new_cpu
+              description: cpu分配额(单位：1000=1Core)
+              required: false
+              type: int
+              paramType: form
 
         """
         try:
             new_memory = request.data.get("new_memory", None)
             if not new_memory:
                 return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
+            new_gpu = request.data.get("new_gpu", None)
+            new_cpu = request.data.get("new_cpu", None)
             code, msg = app_manage_service.vertical_upgrade(
-                self.tenant, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+                self.tenant,
+                self.service,
+                self.user,
+                int(new_memory),
+                oauth_instance=self.oauth_instance,
+                new_gpu=new_gpu,
+                new_cpu=new_cpu)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)

@@ -9,7 +9,8 @@ from console.enum.component_enum import ComponentSource
 from console.utils import runner_util
 from django.conf import settings
 from django.db import models
-from django.db.models.fields import (AutoField, BooleanField, CharField, DateTimeField, DecimalField, IntegerField)
+from django.db.models.fields import (AutoField, BooleanField, CharField,
+                                     DateTimeField, DecimalField, IntegerField)
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
@@ -463,15 +464,17 @@ class TenantServiceInfo(BaseModel):
     update_version = models.IntegerField(default=1, help_text="内部发布次数")
     image = models.CharField(max_length=200, help_text="镜像")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text="启动参数")
+    min_node = models.IntegerField(help_text="实例数量", default=1)
+    min_cpu = models.IntegerField(help_text="cpu分配额 1000=1core", default=500)
+    container_gpu = models.IntegerField(help_text="gpu显存数量", default=0)
+    min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
+
     # deprecated
     setting = models.CharField(max_length=200, null=True, blank=True, help_text="设置项")
     extend_method = models.CharField(
         max_length=32, choices=extend_method, default='stateless_multiple', help_text="组件部署类型,stateless or state")
     # deprecated
     env = models.CharField(max_length=200, null=True, blank=True, help_text="环境变量")
-    min_node = models.IntegerField(help_text="启动个数", default=1)
-    min_cpu = models.IntegerField(help_text="cpu个数", default=500)
-    min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
     # deprecated
     inner_port = models.IntegerField(help_text="内部端口", default=0)
     # deprecated
@@ -582,6 +585,7 @@ class TenantServiceInfoDelete(BaseModel):
     min_node = models.IntegerField(help_text="启动个数", default=1)
     min_cpu = models.IntegerField(help_text="cpu个数", default=500)
     min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
+    container_gpu = models.IntegerField(help_text="gpu显存数量", default=0)
     inner_port = models.IntegerField(help_text="内部端口")
     volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text="mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text="mount目录")

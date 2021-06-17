@@ -1842,3 +1842,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
+
+    def get_region_license_feature(self, tenant: Tenants, region_name):
+        url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
+        url = url + "/license/features"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body

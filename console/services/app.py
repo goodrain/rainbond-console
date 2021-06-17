@@ -537,6 +537,7 @@ class AppService(object):
         data["comment"] = service.desc
         data["image_name"] = service.image
         data["container_cpu"] = int(service.min_cpu)
+        data["container_gpu"] = int(service.container_gpu)
         data["container_memory"] = int(service.min_memory)
         data["volume_path"] = "vol" + service.service_id[0:10]
         data["extend_method"] = service.extend_method
@@ -756,7 +757,7 @@ class AppMarketService(object):
                     market.status = extend_info.status
                     market.create_time = extend_info.create_time
                     market.access_actions = extend_info.access_actions
-                    version = extend_info.version if extend_info.version else version
+                    version = extend_info.version if hasattr(extend_info, "version") else version
                 except Exception as e:
                     logger.exception(e)
                     market.description = None

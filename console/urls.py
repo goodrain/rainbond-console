@@ -57,17 +57,17 @@ from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
 from console.views.enterprise import (EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView,
-                                      EnterpriseMonitor, EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView,
-                                      EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView,
-                                      EnterpriseRUDView, Enterprises, EnterpriseTeamOverView, EnterpriseTeams,
-                                      EnterpriseUserTeams, EnterpriseMyTeams, EnterpriseUserTeamRoleView)
+                                      EnterpriseMonitor, EnterpriseMyTeams, EnterpriseOverview, EnterpriseRegionDashboard,
+                                      EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
+                                      EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
+                                      EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 TenantAppUpgradableNumView, ApplicationRainbondAppView)
+from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationRainbondAppView,
+                                 ApplicationStatusView, GroupStatusView, TenantAppUpgradableNumView,
+                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -93,15 +93,15 @@ from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView)
-from console.views.region import (GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView, OpenRegionView,
-                                  QyeryRegionView, RegQuyView, RegUnopenView)
+from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
+                                  OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import (
     AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView, AppMarketBatchCView,
-    AppMarketCLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
-    ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
-    ServiceShareRecordView, ShareRecordView, AppMarketOrgModelLView)
+    AppMarketCLView, AppMarketOrgModelLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost,
+    ServiceShareCompleteView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView,
+    ServiceShareRecordInfoView, ServiceShareRecordView, ShareRecordView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
@@ -547,6 +547,7 @@ urlpatterns = [
     # 获取数据中心builder PublicKey
     url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/publickey$', GetRegionPublicKeyView.as_view(),
         perms.GetRegionPublicKeyView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/features$', GetRegionFeature.as_view()),
 
     # 插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins$', PluginCreateView.as_view(), perms.PluginCreateView),
