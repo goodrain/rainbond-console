@@ -4,6 +4,7 @@ import logging
 import copy
 from datetime import datetime
 
+from .plugin import Plugin
 from .app import MarketApp
 from .original_app import OriginalApp
 from .new_app import NewApp
@@ -14,6 +15,8 @@ from console.services.app_actions import app_manage_service
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
+from console.repositories.plugin import plugin_repo
+from console.repositories.plugin.plugin import plugin_version_repo
 # model
 from www.models.main import ServiceGroup
 from www.models.main import TenantServiceGroup
@@ -25,6 +28,8 @@ from www.models.main import TenantServiceConfigurationFile
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
 from www.models.main import ServiceProbe
+from www.models.plugin import TenantServicePluginRelation
+from www.models.plugin import ServicePluginConfigVar
 from www.models.service_publish import ServiceExtendMethod
 from console.models.main import UpgradeStatus
 from console.models.main import AppUpgradeRecordType
@@ -166,7 +171,7 @@ class AppRestore(MarketApp):
         volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
 
         # plugins
-
+        plugins = self._create_plugins()
 
         return NewApp(
             tenant=self.tenant,
@@ -177,6 +182,9 @@ class AppRestore(MarketApp):
             update_components=components,
             component_deps=component_deps,
             volume_deps=volume_deps,
+            plugins=plugins,
+            plugin_deps=self._create_plugins_deps(),
+            plugin_configs=self._create_plugins_configs(),
         )
 
     @staticmethod
@@ -235,5 +243,32 @@ class AppRestore(MarketApp):
         component_group.group_version = version
         return component_group
 
+    def _create_plugins(self):
+        plugins = plugin_repo.list_by_tenant_id(self.tenant.tenant_id, self.region_name)
+        plugin_ids = [plugin.plugin_id for plugin in plugins]
+        plugin_versions = self._list_plugin_versions(plugin_ids)
+
+        new_plugins = []
+        for plugin in plugins:
+            plugin_version = plugin_versions.get(plugin.plugin_id)
+            new_plugins.append(Plugin(plugin, plugin_version))
+        return new_plugins
+
+    @staticmethod
+    def _list_plugin_versions(plugin_ids):
+        plugin_versions = plugin_version_repo.list_by_plugin_ids(plugin_ids)
+        return {plugin_version.plugin_id: plugin_version for plugin_version in plugin_versions}
+
     def _create_plugins_deps(self):
-        pass
+        plugin_deps = []
+        for component in self.snapshot["components"]:
+            for plugin_dep in component["service_plugin_relation"]:
+                plugin_deps.append(TenantServicePluginRelation(**plugin_dep))
+        return plugin_deps
+
+    def _create_plugins_configs(self):
+        plugin_configs = []
+        for component in self.snapshot["components"]:
+            for plugin_config in component["service_plugin_config"]:
+                plugin_configs.append(ServicePluginConfigVar(**plugin_config))
+        return plugin_configs

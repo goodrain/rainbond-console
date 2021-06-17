@@ -47,9 +47,9 @@ class NewApp(object):
                  update_components,
                  component_deps,
                  volume_deps,
-                 plugins: [Plugin] = None,
-                 plugin_deps=None,
-                 plugin_configs=None,
+                 plugins: [Plugin],
+                 plugin_deps,
+                 plugin_configs,
                  config_groups=None,
                  config_group_items=None,
                  config_group_components=None):
