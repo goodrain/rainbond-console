@@ -8,6 +8,7 @@ from console.services.app_config import env_var_service
 from console.repositories.app_config import port_repo
 # model
 from www.models.main import TenantServicesPort
+from www.models.main import ServiceProbe
 from www.models.main import TenantServiceEnvVar
 from www.models.main import TenantServiceVolume
 from www.models.main import TenantServiceConfigurationFile
@@ -221,10 +222,9 @@ class Component(object):
         add = probe.get("add")
         if add:
             add["probe_id"] = make_uuid()
-            self.probe = TenantServicesPort(**add)
+            self.probe = ServiceProbe(**add)
         upd = probe.get("upd", None)
         if upd:
-            probe = TenantServicesPort(**upd)
+            probe = ServiceProbe(**upd)
             probe.ID = self.probe.ID
-            probe.tenant_id = self.probe.tenant_id
             probe.service_id = self.probe.service_id

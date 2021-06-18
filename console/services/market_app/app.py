@@ -77,12 +77,14 @@ class MarketApp(object):
             component_base["component_id"] = component_base["service_id"]
             component_base["component_name"] = component_base["service_name"]
             component_base["component_alias"] = component_base["service_alias"]
+            probe = cpt.probe.to_dict()
+            probe["is_used"] = 1 if probe["is_used"] else 0
             component = {
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in cpt.envs],
                 "ports": [port.to_dict() for port in cpt.ports],
                 "config_files": [cf.to_dict() for cf in cpt.config_files],
-                "probe": cpt.probe,
+                "probe": probe,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
