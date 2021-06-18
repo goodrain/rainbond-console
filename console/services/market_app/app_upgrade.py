@@ -196,13 +196,12 @@ class AppUpgrade(MarketApp):
 
     @transaction.atomic
     def install_plugins(self):
-        new_plugin = NewPlugin(self.tenant, self.region_name, self.user, self.app_template.get("plugins"))
         # save plugins
-        new_plugin.save()
+        self.new_app.new_plugin.save()
         # sync plugins
-        self._sync_plugins(new_plugin.new_plugins)
+        self._sync_plugins(self.new_app.new_plugin.new_plugins)
         # deploy plugins
-        self._deploy_plugins(new_plugin.new_plugins)
+        self._deploy_plugins(self.new_app.new_plugin.new_plugins)
 
     @transaction.atomic
     def _save_new_app(self):
@@ -226,9 +225,8 @@ class AppUpgrade(MarketApp):
         region_api.sync_plugins(self.tenant_name, self.region_name, body)
 
     def _install_deploy(self):
-        component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
         try:
-            _ = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+            _ = self.deploy()
         except Exception as e:
             logger.exception(e)
             raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常，请稍后重试")
@@ -268,9 +266,8 @@ class AppUpgrade(MarketApp):
 
     def _deploy(self, record):
         # Optimization: not all components need deploy
-        component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
         try:
-            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+            events = self.deploy()
         except ServiceHandleException as e:
             self._update_upgrade_record(UpgradeStatus.DEPLOY_FAILED.value)
             raise ErrAppUpgradeDeployFailed(e.msg)
@@ -279,7 +276,7 @@ class AppUpgrade(MarketApp):
             raise e
         self._create_component_record(record, events)
 
-    def _create_component_record(self, app_record: AppUpgradeRecord, events=list):
+    def _create_component_record(self, app_record: AppUpgradeRecord, events):
         event_ids = {event["service_id"]: event["event_id"] for event in events}
         records = []
         for cpt in self.new_app.components():
@@ -345,6 +342,7 @@ class AppUpgrade(MarketApp):
             update_components,
             component_deps,
             volume_deps,
+            new_plugin=new_plugin,
             plugins=plugins,
             plugin_deps=plugin_deps,
             plugin_configs=plugin_configs,

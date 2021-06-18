@@ -739,6 +739,10 @@ class ServiceExtendRepository(object):
 
 
 class CompileEnvRepository(object):
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        return TenantServiceEnv.objects.filter(service_id__in=component_ids)
+
     def delete_service_compile_env(self, service_id):
         TenantServiceEnv.objects.filter(service_id=service_id).delete()
 

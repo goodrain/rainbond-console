@@ -113,11 +113,8 @@ class AppRestore(MarketApp):
         self.rollback_record.save()
 
     def _deploy(self):
-        # Optimization: not all components need deploy
-        component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
-
         try:
-            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+            events = self.deploy()
         except ServiceHandleException as e:
             self._update_rollback_record(UpgradeStatus.DEPLOY_FAILED.value)
             raise ErrAppUpgradeDeployFailed(e.msg)

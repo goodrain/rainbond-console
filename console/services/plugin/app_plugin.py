@@ -164,7 +164,6 @@ class AppPluginService(object):
 
         dsn = BaseConnection()
         installed_plugins = dsn.query(query_installed_plugin)
-        print(query_uninstalled_plugin)
         uninstalled_plugins = dsn.query(query_uninstalled_plugin)
         return installed_plugins, uninstalled_plugins
 

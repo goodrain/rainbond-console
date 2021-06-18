@@ -29,6 +29,31 @@ class MarketApp(object):
     def rollback(self):
         self._sync_app(self.original_app)
 
+    def deploy(self):
+        builds = []
+        for cpt in self.new_app.components():
+            build = dict()
+            build["service_id"] = cpt.component.component_id
+            build["action"] = 'deploy'
+            if cpt.component.build_upgrade:
+                build["action"] = 'upgrade'
+            build["kind"] = "build_from_market_image"
+            extend_info = json.loads(cpt.component_source.extend_info)
+            build["image_info"] = {
+                "image_url": cpt.component.image,
+                "user": extend_info.get("hub_user"),
+                "password": extend_info.get("hub_password"),
+                "cmd": cpt.component.cmd,
+            }
+            builds.append(build)
+
+        body = {
+            "operation": "build",
+            "build_infos": builds,
+        }
+        _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
+        return body["bean"]["batch_result"]
+
     @staticmethod
     def ensure_component_deps(original_app: OriginalApp, new_deps):
         """
