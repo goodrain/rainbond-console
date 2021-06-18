@@ -4,7 +4,12 @@ from www.models.plugin import (PluginBuildVersion, TenantPlugin)
 
 
 class Plugin(object):
-    def __init__(self, plugin: TenantPlugin, build_version: PluginBuildVersion, config_groups=None, config_items=None, plugin_image=None):
+    def __init__(self,
+                 plugin: TenantPlugin,
+                 build_version: PluginBuildVersion,
+                 config_groups=None,
+                 config_items=None,
+                 plugin_image=None):
         self.plugin = plugin
         self.build_version = build_version
         self.config_groups = config_groups

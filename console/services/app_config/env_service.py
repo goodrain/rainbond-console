@@ -271,7 +271,7 @@ class AppEnvVarService(object):
             service_id=port.service_id,
             container_port=port.container_port,
             name=name,
-            attr_name=port.port_alias+str(port.container_port)+"_"+attr_name_suffix,
+            attr_name=port.port_alias + str(port.container_port) + "_" + attr_name_suffix,
             attr_value=attr_value,
             is_change=False,
             scope="outer",

@@ -74,7 +74,8 @@ class MarketAppService(object):
             if not market_app:
                 raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
         else:
-            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key, version)
+            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
+                                                                                      version)
             if not market_app:
                 raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
             if app_version and app_version.region_name and app_version.region_name != region_name:
@@ -83,10 +84,11 @@ class MarketAppService(object):
                     msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
         app_template = json.loads(app_version.app_template)
 
-        component_group = self._create_tenant_service_group(
-            region_name, tenant.tenant_id, app.app_id, market_app.app_id, version, market_app.app_name)
+        component_group = self._create_tenant_service_group(region_name, tenant.tenant_id, app.app_id, market_app.app_id,
+                                                            version, market_app.app_name)
 
-        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template, install_from_cloud, market_name)
+        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template,
+                                 install_from_cloud, market_name)
         app_upgrade.install()
 
     def install_service(self,
@@ -110,8 +112,8 @@ class MarketAppService(object):
             region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self._create_tenant_service_group(
-                region_name, tenant.tenant_id, group_id, market_app.app_id, market_app_version.version, market_app.app_name)
+            tenant_service_group = self._create_tenant_service_group(region_name, tenant.tenant_id, group_id, market_app.app_id,
+                                                                     market_app_version.version, market_app.app_name)
             # install plugin for tenant
             plugins = app_templates.get("plugins", [])
             if plugins:
@@ -1298,7 +1300,8 @@ class MarketAppService(object):
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
         app_template_source = component_group.app_template_source()
-        market = app_market_repo.get_app_market_by_name(enterprise_id, app_template_source.get_market_name(), raise_exception=True)
+        market = app_market_repo.get_app_market_by_name(
+            enterprise_id, app_template_source.get_market_name(), raise_exception=True)
         return self.__get_upgradeable_versions(enterprise_id, component_group.app_model_key, component_group.version,
                                                app_template_source.get_template_update_time(),
                                                component_group.is_install_from_cloud(), market)

@@ -102,7 +102,6 @@ class Component(object):
             "ports": self._update_ports,
             "volumes": self._update_volumes,
             "probe": self._update_probe,
-            # "plugins": self._update_plugins,
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
         }
@@ -161,13 +160,19 @@ class Component(object):
         for port in add:
             # Optimization: do not update port data iteratively
             self._update_port_data(port)
-            self.ports.append(TenantServicesPort(**port))
+            new_port = TenantServicesPort(**port)
+            new_port.service_id = self.component.component_id
+            self.ports.append(new_port)
 
     def _update_component_graphs(self, component_graphs):
         if not component_graphs:
             return
         graphs = component_graphs.get("add", [])
-        self.graphs.extend([ComponentGraph(**graph) for graph in graphs])
+        for graph in graphs:
+            new_graph = ComponentGraph(**graph)
+            new_graph.graph_id = make_uuid()
+            new_graph.component_id = self.component.component_id
+            self.graphs.append(new_graph)
 
         graphs = component_graphs.get("upd", [])
         old_graphs = {graph.title: graph for graph in self.graphs}
@@ -182,7 +187,11 @@ class Component(object):
         if not component_monitors:
             return
         monitors = component_monitors.get("add", [])
-        self.monitors = [ServiceMonitor(**monitor) for monitor in monitors]
+        for monitor in monitors:
+            new_monitor = ServiceMonitor(**monitor)
+            new_monitor.service_id = self.component.component_id
+            new_monitor.tenant_id = self.component.tenant_id
+            self.monitors.append(new_monitor)
 
     def _update_port_data(self, port):
         container_port = int(port["container_port"])
@@ -223,6 +232,7 @@ class Component(object):
         if add:
             add["probe_id"] = make_uuid()
             self.probe = ServiceProbe(**add)
+            self.probe.service_id = self.component.component_id
         upd = probe.get("upd", None)
         if upd:
             probe = ServiceProbe(**upd)

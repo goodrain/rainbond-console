@@ -223,10 +223,13 @@ class PropertyChanges(object):
         add = []
         old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
         for monitor in monitors:
+            if monitor["name"] in old_monitor_names:
+                continue
             # Optimization: do not check monitor name iteratively
             tenant_monitor = service_monitor_repo.get_tenant_service_monitor(tenant_id, monitor["name"])
-            if not tenant_monitor and monitor["name"] not in old_monitor_names:
-                add.append(monitor)
+            if tenant_monitor:
+                monitor["name"] += "-" + make_uuid()[:4]
+            add.append(monitor)
         if not add:
             return None
         return {"add": add}

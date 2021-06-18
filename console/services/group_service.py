@@ -453,7 +453,7 @@ class GroupService(object):
         components = {cpt.component_id: cpt for cpt in components}
 
         ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, component_ids)
-        ports = {port.service_id+str(port.container_port): port for port in ports}
+        ports = {port.service_id + str(port.container_port): port for port in ports}
 
         envs = env_var_repo.list_envs_by_component_ids(tenant.tenant_id, component_ids)
         for env in envs:
@@ -462,7 +462,7 @@ class GroupService(object):
             cpt = components.get(env.service_id)
             if not cpt:
                 continue
-            port = ports.get(env.service_id+str(env.container_port))
+            port = ports.get(env.service_id + str(env.container_port))
             if not port:
                 continue
             if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
@@ -506,7 +506,6 @@ class GroupService(object):
             "components": new_components,
         }
         region_api.sync_components(tenant_name, region_name, region_app_id, body)
-
 
     @staticmethod
     def list_kubernetes_services(tenant_id, region_name, app_id):

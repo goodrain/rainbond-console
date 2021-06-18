@@ -108,7 +108,7 @@ class AppPortService(object):
         # make a map of k8s_services
         k8s_services = {k8s_service["service_id"] + str(k8s_service["port"]): k8s_service for k8s_service in k8s_services}
         for port in ports:
-            k8s_service = k8s_services.get(port.service_id+str(port.container_port))
+            k8s_service = k8s_services.get(port.service_id + str(port.container_port))
             if k8s_service:
                 port.k8s_service_name = k8s_service.get("k8s_service_name")
                 port.port_alias = k8s_service.get("port_alias")

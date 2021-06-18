@@ -269,8 +269,7 @@ class AppUpgrade(MarketApp):
         # Optimization: not all components need deploy
         component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
         try:
-            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy",
-                                                         component_ids)
+            events = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
         except ServiceHandleException as e:
             self._update_upgrade_record(UpgradeStatus.DEPLOY_FAILED.value)
             raise ErrAppUpgradeDeployFailed(e.msg)
@@ -306,9 +305,8 @@ class AppUpgrade(MarketApp):
 
     def _create_new_app(self):
         # new components
-        new_components = NewComponents(self.tenant, self.region_name, self.user, self.original_app,
-                                       self.app_model_key, self.app_template, self.version,
-                                       self.install_from_cloud, self.component_keys,
+        new_components = NewComponents(self.tenant, self.region_name, self.user, self.original_app, self.app_model_key,
+                                       self.app_template, self.version, self.install_from_cloud, self.component_keys,
                                        self.market_name).components
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
@@ -572,20 +570,22 @@ class AppUpgrade(MarketApp):
                 continue
 
             # plugin configs
-            plugin_configs, ignore_plugin = self._create_plugin_configs(component, plugin, plugin_dep["attr"], component_keys, components)
+            plugin_configs, ignore_plugin = self._create_plugin_configs(component, plugin, plugin_dep["attr"], component_keys,
+                                                                        components)
             if ignore_plugin:
                 continue
             new_plugin_configs.extend(plugin_configs)
 
-            new_plugin_deps.append(TenantServicePluginRelation(
-                service_id=component.component.component_id,
-                plugin_id=plugin.plugin.plugin_id,
-                build_version=plugin.build_version.build_version,
-                service_meta_type=plugin_dep.get("service_meta_type"),
-                plugin_status=plugin_dep.get("plugin_status"),
-                min_memory=plugin_dep.get("min_memory", 128),
-                min_cpu=plugin_dep.get("min_cpu"),
-            ))
+            new_plugin_deps.append(
+                TenantServicePluginRelation(
+                    service_id=component.component.component_id,
+                    plugin_id=plugin.plugin.plugin_id,
+                    build_version=plugin.build_version.build_version,
+                    service_meta_type=plugin_dep.get("service_meta_type"),
+                    plugin_status=plugin_dep.get("plugin_status"),
+                    min_memory=plugin_dep.get("min_memory", 128),
+                    min_cpu=plugin_dep.get("min_cpu"),
+                ))
         return new_plugin_deps, new_plugin_configs
 
     @staticmethod
@@ -624,6 +624,3 @@ class AppUpgrade(MarketApp):
             new_plugin_configs.append(new_plugin_config)
 
         return new_plugin_configs, False
-
-
-

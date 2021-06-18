@@ -189,7 +189,6 @@ class MarketApp(object):
             new_plugin_deps[plugin_dep.service_id] = pds
         return new_plugin_deps
 
-
     def _sync_app_config_groups(self, app):
         config_group_items = dict()
         for item in app.config_group_items:

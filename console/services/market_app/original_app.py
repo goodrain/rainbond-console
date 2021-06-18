@@ -71,7 +71,9 @@ class OriginalApp(object):
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
             cpt_plugin_deps = plugin_deps.get(cpt.component_id)
-            result.append(Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, cpt_plugin_deps))
+            result.append(
+                Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs,
+                          cpt_plugin_deps))
         return result
 
     def _volume_deps(self):

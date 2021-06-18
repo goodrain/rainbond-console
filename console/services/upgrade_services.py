@@ -76,7 +76,8 @@ class UpgradeService(object):
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
         app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, app_template,
-                                 app_template_source.is_install_from_cloud(), app_template_source.get_market_name(), record, component_keys)
+                                 app_template_source.is_install_from_cloud(), app_template_source.get_market_name(), record,
+                                 component_keys)
         record = app_upgrade.upgrade()
         return self.serialized_upgrade_record(record)
 
@@ -101,7 +102,8 @@ class UpgradeService(object):
         if not app_template_source.is_install_from_cloud():
             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_model_key, version)
         else:
-            market = app_market_repo.get_app_market_by_name(enterprise_id, app_template_source.get_market_name(), raise_exception=True)
+            market = app_market_repo.get_app_market_by_name(
+                enterprise_id, app_template_source.get_market_name(), raise_exception=True)
             _, app_version = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version)
         try:
             return json.loads(app_version.app_template)
@@ -117,7 +119,7 @@ class UpgradeService(object):
         # original_app = OriginalApp(tenant.tenant_id, region_name, app, upgrade_group_id)
 
         app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template,
-                                 app_template_source.is_install_from_cloud(),app_template_source.get_market_name())
+                                 app_template_source.is_install_from_cloud(), app_template_source.get_market_name())
         return app_upgrade.changes()
 
     @staticmethod

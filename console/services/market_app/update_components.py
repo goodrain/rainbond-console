@@ -3,7 +3,6 @@ import copy
 
 from .utils import get_component_template
 from console.services.market_app.original_app import OriginalApp
-from console.exception.main import AbortRequest
 
 
 class UpdateComponents(object):

@@ -1,7 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
 
-
 from .plugin import Plugin
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
@@ -219,8 +218,8 @@ class NewApp(object):
         volume_repo.bulk_create_or_update(volumes)
         config_file_repo.bulk_create_or_update(config_files)
         extend_repo.bulk_create_or_update(extend_infos)
-        service_monitor_repo.bulk_create_or_update(monitors)
-        component_graph_repo.bulk_create_or_update(graphs)
+        service_monitor_repo.overwrite_by_component_ids(self.component_ids, monitors)
+        component_graph_repo.overwrite_by_component_ids(self.component_ids, graphs)
 
     def _save_component_deps(self):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)

@@ -331,20 +331,19 @@ class NewComponents(object):
     def _template_to_component_graphs(self, component, graphs):
         if not graphs:
             return []
-        result = []
+        new_graphs = {}
         for graph in graphs:
             try:
                 promql = promql_service.add_or_update_label(component.service_id, graph.get("promql"))
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
-
-            result.append(
-                ComponentGraph(
-                    component_id=component.service_id,
-                    graph_id=make_uuid(),
-                    title=graph.get("title"),
-                    promql=promql,
-                    sequence=graph.get("sequence"),
-                ))
-        return result
+            new_graph = ComponentGraph(
+                component_id=component.service_id,
+                graph_id=make_uuid(),
+                title=graph.get("title"),
+                promql=promql,
+                sequence=graph.get("sequence"),
+            )
+            new_graphs[new_graph.title] = new_graph
+        return new_graphs.values()

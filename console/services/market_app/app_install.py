@@ -16,7 +16,12 @@ logger = logging.getLogger("default")
 
 
 class AppInstall(MarketApp):
-    def __init__(self, tenant, region_name, user, ):
+    def __init__(
+            self,
+            tenant,
+            region_name,
+            user,
+    ):
         self.tenant = tenant
         self.region_name = region_name
         self.user = user

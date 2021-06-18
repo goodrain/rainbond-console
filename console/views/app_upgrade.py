@@ -60,7 +60,8 @@ class AppUpgradeRecordsView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         page = parse_argument(request, 'page', value_type=int, default=1)
         page_size = parse_argument(request, 'page_size', value_type=int, default=10)
-        records, total = upgrade_service.list_records(self.tenant_name, self.region_name, self.app_id, AppUpgradeRecordType.UPGRADE.value, page, page_size)
+        records, total = upgrade_service.list_records(self.tenant_name, self.region_name, self.app_id,
+                                                      AppUpgradeRecordType.UPGRADE.value, page, page_size)
         return MessageResponse(msg="success", bean={"total": total}, list=records)
 
     def post(self, request, app_id, *args, **kwargs):
@@ -85,7 +86,8 @@ class AppUpgradeInfoView(ApplicationView):
         upgrade_group_id = parse_argument(
             request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
-        changes = upgrade_service.get_property_changes(self.tenant, self.region_name, self.user, self.app, upgrade_group_id, version)
+        changes = upgrade_service.get_property_changes(self.tenant, self.region_name, self.user, self.app, upgrade_group_id,
+                                                       version)
         return MessageResponse(msg="success", list=changes)
 
 

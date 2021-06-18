@@ -949,6 +949,7 @@ class TenantServiceEnvVar(BaseModel):
     def is_host_env(self):
         return self.container_port != 0 and self.attr_name.endswith("_HOST")
 
+
 class TenantServicesPort(BaseModel):
     class Meta:
         db_table = 'tenant_services_port'
