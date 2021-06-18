@@ -1300,8 +1300,7 @@ class MarketAppService(object):
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
         app_template_source = component_group.app_template_source()
-        market = app_market_repo.get_app_market_by_name(
-            enterprise_id, app_template_source.get_market_name(), raise_exception=True)
+        market = app_market_repo.get_app_market_by_name(enterprise_id, app_template_source.get_market_name())
         return self.__get_upgradeable_versions(enterprise_id, component_group.app_model_key, component_group.version,
                                                app_template_source.get_template_update_time(),
                                                component_group.is_install_from_cloud(), market)

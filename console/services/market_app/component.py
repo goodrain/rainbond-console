@@ -164,6 +164,17 @@ class Component(object):
             new_port.service_id = self.component.component_id
             self.ports.append(new_port)
 
+        old_ports = {port.container_port: port for port in self.ports}
+        upd = ports.get("upd", [])
+        for port in upd:
+            old_port = old_ports.get(port["container_port"])
+            old_port.protocol = port["protocol"]
+            old_port.port_alias = port["port_alias"]
+            if not old_port.is_inner_service:
+                old_port.is_inner_service = port["is_inner_service"]
+            if not old_port.is_outer_service:
+                old_port.is_outer_service = port["is_outer_service"]
+
     def _update_component_graphs(self, component_graphs):
         if not component_graphs:
             return
