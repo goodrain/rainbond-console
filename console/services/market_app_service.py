@@ -9,6 +9,7 @@ import time
 
 # market app
 from console.services.market_app.component_group import ComponentGroup
+from console.services.market_app.app_upgrade import AppUpgrade
 # enum
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType
@@ -25,6 +26,7 @@ from console.repositories.plugin import plugin_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.group import group_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import (AppMntService, domain_service, port_service, probe_service, volume_service)
@@ -60,6 +62,33 @@ mnt_service = AppMntService()
 
 
 class MarketAppService(object):
+    def install_app(self, tenant, region_name, user, app_id, app_model_key, version, market_name, install_from_cloud):
+        app = group_repo.get_group_by_id(app_id)
+        if not app:
+            raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
+
+        if install_from_cloud:
+            _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
+            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
+                market, app_model_key, version, for_install=True)
+            if not market_app:
+                raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
+        else:
+            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key, version)
+            if not market_app:
+                raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
+            if app_version and app_version.region_name and app_version.region_name != region_name:
+                raise AbortRequest(
+                    msg="app version can not install to this region",
+                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+        app_template = json.loads(app_version.app_template)
+
+        component_group = self._create_tenant_service_group(
+            region_name, tenant.tenant_id, app.app_id, market_app.app_id, version, market_app.app_name)
+
+        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template, install_from_cloud, market_name)
+        app_upgrade.install()
+
     def install_service(self,
                         tenant,
                         region_name,
@@ -81,7 +110,7 @@ class MarketAppService(object):
             region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self.__create_tenant_service_group(
+            tenant_service_group = self._create_tenant_service_group(
                 region_name, tenant.tenant_id, group_id, market_app.app_id, market_app_version.version, market_app.app_name)
             # install plugin for tenant
             plugins = app_templates.get("plugins", [])
@@ -537,7 +566,7 @@ class MarketAppService(object):
         plugin_build_version.save()
         return 200, "success"
 
-    def __create_tenant_service_group(self, region_name, tenant_id, group_id, app_key, app_version, app_name):
+    def _create_tenant_service_group(self, region_name, tenant_id, group_id, app_key, app_version, app_name):
         group_name = self.__generator_group_name("gr")
         params = {
             "tenant_id": tenant_id,

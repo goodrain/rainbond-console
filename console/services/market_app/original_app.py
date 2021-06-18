@@ -50,14 +50,10 @@ class OriginalApp(object):
 
     def _component_ids(self):
         components = group_service.list_components_by_upgrade_group_id(self.app_id, self.upgrade_group_id)
-        if not components:
-            raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
         return [cpt.component_id for cpt in components]
 
     def _create_components(self, app_id, upgrade_group_id):
         components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)
-        if not components:
-            raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
 
         plugin_deps = self._plugin_deps()
         # make a map of plugin_deps

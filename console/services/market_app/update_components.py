@@ -35,9 +35,6 @@ class UpdateComponents(object):
             cpt = copy.deepcopy(cpt)
             components.append(cpt)
 
-        if not self.property_changes.need_change():
-            raise AbortRequest("no changes", "应用无变化, 无需升级")
-
         cpt_changes = {change["component_id"]: change for change in self.property_changes.changes}
         for cpt in components:
             component_tmpl = get_component_template(cpt.component_source, self.app_template)

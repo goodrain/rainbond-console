@@ -77,7 +77,7 @@ class ComponentGraphBaseView(AppBaseView):
         super(ComponentGraphBaseView, self).initial(request, *args, **kwargs)
         try:
             graph_id = kwargs.get("graph_id", None)
-            graph = ComponentGraph.objects.get(component_id=self.service.service_id, graph_id=graph_id)
+            graph = ComponentGraph.objects.filter(component_id=self.service.service_id, graph_id=graph_id).filter()
         except ComponentGraph.DoesNotExist:
             raise AbortRequest("graph not found", "监控图不存在", 404, 404)
         self.graph = graph

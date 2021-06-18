@@ -735,16 +735,16 @@ class AppManageService(AppManageBase):
                                         new_extend_info["market"] = "default"
                                         new_extend_info["market_name"] = old_extent_info.get("market_name")
                                     service_source.extend_info = json.dumps(new_extend_info)
-                                    service_source.save()
-                                    code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
-                                                                app["service_connect_info_map_list"])
-                                    if code != 200:
-                                        raise Exception(msg)
-                                    self.__save_volume(tenant, service, app["service_volume_map_list"])
-                                    code, msg = self.__save_port(tenant, service, app["port_map_list"])
-                                    if code != 200:
-                                        raise Exception(msg)
-                                    self.__save_extend_info(service, app["extend_method_map"])
+                                    # service_source.save()
+                                    # code, msg = self.__save_env(tenant, service, app["service_env_map_list"],
+                                    #                             app["service_connect_info_map_list"])
+                                    # if code != 200:
+                                    #     raise Exception(msg)
+                                    # self.__save_volume(tenant, service, app["service_volume_map_list"])
+                                    # code, msg = self.__save_port(tenant, service, app["port_map_list"])
+                                    # if code != 200:
+                                    #     raise Exception(msg)
+                                    # self.__save_extend_info(service, app["extend_method_map"])
                 except ServiceHandleException as e:
                     if e.msg != "no found app market":
                         logger.exception(e)

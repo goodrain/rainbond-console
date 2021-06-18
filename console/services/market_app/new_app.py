@@ -185,6 +185,9 @@ class NewApp(object):
         """
         update existing components
         """
+        if not self.update_components:
+            return
+
         sources = []
         envs = []
         ports = []

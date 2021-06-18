@@ -77,8 +77,9 @@ class MarketApp(object):
             component_base["component_id"] = component_base["service_id"]
             component_base["component_name"] = component_base["service_name"]
             component_base["component_alias"] = component_base["service_alias"]
-            probe = cpt.probe.to_dict()
-            probe["is_used"] = 1 if probe["is_used"] else 0
+            probe = cpt.probe.to_dict() if cpt.probe else None
+            if probe:
+                probe["is_used"] = 1 if probe["is_used"] else 0
             component = {
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in cpt.envs],

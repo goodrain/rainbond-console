@@ -61,6 +61,9 @@ class AppUpgrade(MarketApp):
                  user,
                  version,
                  component_group,
+                 app_template,
+                 install_from_cloud,
+                 market_name,
                  record: AppUpgradeRecord = None,
                  component_keys=None):
         """
@@ -83,14 +86,34 @@ class AppUpgrade(MarketApp):
         self.component_keys = component_keys if component_keys else None
 
         # app template
-        self.app_template_source = self.component_group.app_template_source()
-        self.app_template = self._app_template()
+        self.app_template = app_template
+        self.install_from_cloud = install_from_cloud
+        self.market_name = market_name
         # original app
         self.original_app = OriginalApp(self.tenant_id, self.region_name, self.app, self.upgrade_group_id)
         self.property_changes = PropertyChanges(self.original_app.components(), self.app_template)
         self.new_app = self._create_new_app()
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
+
+    def install(self):
+        # install plugins
+        self.install_plugins()
+
+        # Sync the new application to the data center first
+        # TODO(huangrh): rollback on api timeout
+        self.sync_new_app()
+
+        try:
+            # Save the application to the console
+            self.save_new_app()
+        except Exception as e:
+            logger.exception(e)
+            # rollback on failure
+            self.rollback()
+            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
+
+        self._install_deploy()
 
     def upgrade(self):
         # install plugins
@@ -180,6 +203,10 @@ class AppUpgrade(MarketApp):
         # deploy plugins
         self._deploy_plugins(new_plugin.new_plugins)
 
+    @transaction.atomic
+    def _save_new_app(self):
+        self.save_new_app()
+
     def _sync_plugins(self, plugins: [Plugin]):
         new_plugins = []
         for plugin in plugins:
@@ -196,6 +223,14 @@ class AppUpgrade(MarketApp):
             "plugins": new_plugins,
         }
         region_api.sync_plugins(self.tenant_name, self.region_name, body)
+
+    def _install_deploy(self):
+        component_ids = [cpt.component.component_id for cpt in self.new_app.components()]
+        try:
+            _ = app_manage_service.batch_operations(self.tenant, self.region_name, self.user, "deploy", component_ids)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常，请稍后重试")
 
     def _deploy_plugins(self, plugins: [Plugin]):
         new_plugins = []
@@ -269,24 +304,12 @@ class AppUpgrade(MarketApp):
         self.save_new_app()
         self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot.snapshot_id)
 
-    def _app_template(self):
-        if not self.app_template_source.is_install_from_cloud():
-            _, app_version = rainbond_app_repo.get_rainbond_app_and_version(self.enterprise_id, self.app_model_key,
-                                                                            self.version)
-        else:
-            market = app_market_repo.get_app_market_by_name(self.enterprise_id, self.app_template_source.get_market_name(), raise_exception=True)
-            _, app_version = app_market_service.cloud_app_model_to_db_model(market, self.app_model_key, self.version)
-        try:
-            return json.loads(app_version.app_template)
-        except JSONDecodeError:
-            raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
-
     def _create_new_app(self):
         # new components
         new_components = NewComponents(self.tenant, self.region_name, self.user, self.original_app,
                                        self.app_model_key, self.app_template, self.version,
-                                       self.app_template_source.is_install_from_cloud(), self.component_keys,
-                                       self.app_template_source.get_market_name()).components
+                                       self.install_from_cloud, self.component_keys,
+                                       self.market_name).components
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys, self.property_changes).components
@@ -558,10 +581,10 @@ class AppUpgrade(MarketApp):
                 service_id=component.component.component_id,
                 plugin_id=plugin.plugin.plugin_id,
                 build_version=plugin.build_version.build_version,
-                service_meta_type=plugin_dep["service_meta_type"],
-                plugin_status=plugin_dep["plugin_status"],
-                min_memory=plugin_dep["min_memory"],
-                min_cpu=plugin_dep["min_cpu"],
+                service_meta_type=plugin_dep.get("service_meta_type"),
+                plugin_status=plugin_dep.get("plugin_status"),
+                min_memory=plugin_dep.get("min_memory", 128),
+                min_cpu=plugin_dep.get("min_cpu"),
             ))
         return new_plugin_deps, new_plugin_configs
 

@@ -5,7 +5,9 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum
+from json.decoder import JSONDecodeError
 
+from console.services.market_app.original_app import OriginalApp
 from console.exception.bcode import (ErrAppUpgradeDeployFailed, ErrAppUpgradeRecordCanNotDeploy, ErrLastRecordUnfinished)
 from console.exception.bcode import ErrAppUpgradeRecordCanNotRollback
 from console.exception.bcode import ErrAppUpgradeWrongStatus
@@ -18,6 +20,8 @@ from console.repositories.app import service_repo
 # repository
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.app import app_market_repo
+from console.repositories.app import service_source_repo
 from console.repositories.upgrade_repo import (component_upgrade_record_repo, upgrade_repo)
 # service
 from console.services.app import app_market_service
@@ -67,8 +71,12 @@ class UpgradeService(object):
         if not record.can_upgrade():
             raise ErrAppUpgradeWrongStatus
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
-        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, record,
-                                 component_keys)
+
+        app_template_source = self._app_template_source(record.group_id, record.group_key, record.upgrade_group_id)
+        app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
+
+        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, app_template,
+                                 app_template_source.is_install_from_cloud(), app_template_source.get_market_name(), record, component_keys)
         record = app_upgrade.upgrade()
         return self.serialized_upgrade_record(record)
 
@@ -81,10 +89,35 @@ class UpgradeService(object):
         record = app_restore.restore()
         return self.serialized_upgrade_record(record)
 
-    @staticmethod
-    def get_property_changes(tenant, region_name, user, upgrade_group_id, version):
+    def _app_template_source(self, app_id, app_model_key, upgrade_group_id):
+        components = group_service.get_rainbond_services(app_id, app_model_key, upgrade_group_id)
+        if not components:
+            raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
+        component = components[0]
+        component_source = service_source_repo.get_service_source(component.tenant_id, component.service_id)
+        return component_source
+
+    def _app_template(self, enterprise_id, app_model_key, version, app_template_source):
+        if not app_template_source.is_install_from_cloud():
+            _, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_model_key, version)
+        else:
+            market = app_market_repo.get_app_market_by_name(enterprise_id, app_template_source.get_market_name(), raise_exception=True)
+            _, app_version = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version)
+        try:
+            return json.loads(app_version.app_template)
+        except JSONDecodeError:
+            raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
+
+    def get_property_changes(self, tenant, region_name, user, app, upgrade_group_id, version):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
-        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group)
+
+        app_template_source = self._app_template_source(app.app_id, component_group.group_key, upgrade_group_id)
+        app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
+
+        # original_app = OriginalApp(tenant.tenant_id, region_name, app, upgrade_group_id)
+
+        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template,
+                                 app_template_source.is_install_from_cloud(),app_template_source.get_market_name())
         return app_upgrade.changes()
 
     @staticmethod

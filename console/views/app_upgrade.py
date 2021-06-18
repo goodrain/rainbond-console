@@ -80,13 +80,12 @@ class UpgradeType(Enum):
     ADD = 'add'
 
 
-class AppUpgradeInfoView(RegionTenantHeaderView):
+class AppUpgradeInfoView(ApplicationView):
     def get(self, request, group_id, *args, **kwargs):
-        """获取升级信息"""
         upgrade_group_id = parse_argument(
             request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
-        changes = upgrade_service.get_property_changes(self.tenant, self.region_name, self.user, upgrade_group_id, version)
+        changes = upgrade_service.get_property_changes(self.tenant, self.region_name, self.user, self.app, upgrade_group_id, version)
         return MessageResponse(msg="success", list=changes)
 
 
