@@ -197,11 +197,11 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             http_rules = domain_service.get_http_rules_by_app_id(app_id)
             data["http"] = http_rules
         elif query == "tcp":
-            tcp_rules = domain_service.get_tcp_rules_by_app_id(app_id)
+            tcp_rules = domain_service.get_tcp_rules_by_app_id(self.region_name, app_id)
             data["tcp"] = tcp_rules
         else:
             http_rules = domain_service.get_http_rules_by_app_id(app_id)
-            tcp_rules = domain_service.get_tcp_rules_by_app_id(app_id)
+            tcp_rules = domain_service.get_tcp_rules_by_app_id(self.region_name, app_id)
             data["http"] = http_rules
             data["tcp"] = tcp_rules
 
@@ -299,7 +299,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             raise ServiceHandleException(msg="error parameters: protocol", msg_show="错误参数: protocol")
         data = {}
         http_rules = domain_service.get_http_rules_by_app_id(app_id)
-        tcp_rules = domain_service.get_tcp_rules_by_app_id(app_id)
+        tcp_rules = domain_service.get_tcp_rules_by_app_id(self.region_name, app_id)
         data["http"] = http_rules
         data["tcp"] = tcp_rules
         re = GatewayRuleSerializer(data)
