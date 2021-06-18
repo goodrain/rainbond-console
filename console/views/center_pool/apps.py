@@ -128,7 +128,7 @@ class CenterAppView(RegionTenantHeaderView):
         market_name = request.data.get("market_name", None)
 
         market_app_service.install_app(self.tenant, self.region_name, self.user, app_id, app_model_key, version, market_name,
-                                       install_from_cloud)
+                                       install_from_cloud, is_deploy)
         return Response(general_message(200, "success", "创建成功"), status=200)
 
 

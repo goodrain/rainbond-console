@@ -278,7 +278,8 @@ class TenantServiceVolumnRepository(object):
 
     @staticmethod
     def delete_file_by_volume(volume: TenantServiceVolume):
-        TenantServiceConfigurationFile.objects.filter(Q(volume_id=volume.ID) | Q(volume_name=volume.volume_name)).delete()
+        TenantServiceConfigurationFile.objects.filter(service_id=volume.service_id)\
+            .filter(Q(volume_id=volume.ID) | Q(volume_name=volume.volume_name)).delete()
 
     def add_service_config_file(self, **service_config_file):
         return TenantServiceConfigurationFile.objects.create(**service_config_file)
@@ -288,7 +289,8 @@ class TenantServiceVolumnRepository(object):
 
     @staticmethod
     def get_service_config_file(volume: TenantServiceVolume):
-        return TenantServiceConfigurationFile.objects.filter(Q(volume_id=volume.ID) | Q(volume_name=volume.volume_name)).first()
+        return TenantServiceConfigurationFile.objects.filter(service_id=volume.service_id)\
+            .filter(Q(volume_id=volume.ID) | Q(volume_name=volume.volume_name)).first()
 
     def get_services_volumes(self, service_ids):
         return TenantServiceVolume.objects.filter(service_id__in=service_ids)
@@ -326,9 +328,8 @@ class ComponentConfigurationFileRepository(object):
         TenantServiceConfigurationFile.objects.bulk_create(config_files)
 
     @staticmethod
-    def bulk_create_or_update(config_files):
-        config_file_ids = [cf.ID for cf in config_files]
-        TenantServiceConfigurationFile.objects.filter(pk__in=config_file_ids).delete()
+    def overwrite_by_component_ids(component_ids, config_files):
+        TenantServiceConfigurationFile.objects.filter(service_id__in=component_ids).delete()
         TenantServiceConfigurationFile.objects.bulk_create(config_files)
 
 

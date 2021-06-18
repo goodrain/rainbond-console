@@ -216,7 +216,7 @@ class NewApp(object):
         env_var_repo.overwrite_by_component_id(self.component_ids, envs)
         port_repo.bulk_create_or_update(ports)
         volume_repo.bulk_create_or_update(volumes)
-        config_file_repo.bulk_create_or_update(config_files)
+        config_file_repo.overwrite_by_component_ids(self.component_ids, config_files)
         extend_repo.bulk_create_or_update(extend_infos)
         service_monitor_repo.overwrite_by_component_ids(self.component_ids, monitors)
         component_graph_repo.overwrite_by_component_ids(self.component_ids, graphs)

@@ -96,7 +96,7 @@ class AppUpgrade(MarketApp):
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
-    def install(self):
+    def install(self, is_deploy):
         # install plugins
         self.install_plugins()
 
@@ -113,7 +113,8 @@ class AppUpgrade(MarketApp):
             self.rollback()
             raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
 
-        self._install_deploy()
+        if is_deploy:
+            self._install_deploy()
 
     def upgrade(self):
         # install plugins

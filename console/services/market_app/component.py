@@ -238,6 +238,15 @@ class Component(object):
                 volume.pop("file_content")
             self.volumes.append(TenantServiceVolume(**volume))
 
+        old_config_files = {config_file.volume_name: config_file for config_file in self.config_files}
+        for volume in volumes.get("upd"):
+            old_config_file = old_config_files.get(volume.get("volume_name"))
+            if not old_config_file:
+                continue
+            old_config_file.file_content = volume.get("file_content")
+
+        self.config_files = old_config_files.values()
+
     def _update_probe(self, probe):
         add = probe.get("add")
         if add:

@@ -62,7 +62,7 @@ mnt_service = AppMntService()
 
 
 class MarketAppService(object):
-    def install_app(self, tenant, region_name, user, app_id, app_model_key, version, market_name, install_from_cloud):
+    def install_app(self, tenant, region_name, user, app_id, app_model_key, version, market_name, install_from_cloud, is_deploy=False):
         app = group_repo.get_group_by_id(app_id)
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
@@ -89,7 +89,7 @@ class MarketAppService(object):
 
         app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template,
                                  install_from_cloud, market_name)
-        app_upgrade.install()
+        app_upgrade.install(is_deploy)
 
     def install_service(self,
                         tenant,
