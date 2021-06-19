@@ -124,7 +124,7 @@ class AppPortService(object):
 
         # save ports and envs
         port_repo.overwrite_by_component_ids(component_ids, ports)
-        env_var_repo.overwrite_by_component_id(component_ids, new_envs)
+        env_var_repo.overwrite_by_component_ids(component_ids, new_envs)
 
         # sync ports and envs
         components = service_repo.list_by_ids(component_ids)

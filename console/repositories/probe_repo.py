@@ -49,8 +49,8 @@ class ServiceProbeRepository(object):
     def bulk_create(probes):
         ServiceProbe.objects.bulk_create(probes)
 
-    def bulk_create_or_update(self, probes):
-        ServiceProbe.objects.filter(pk__in=[probe.ID for probe in probes]).delete()
+    def overwrite_by_component_ids(self, component_ids, probes):
+        ServiceProbe.objects.filter(service_id__in=component_ids).delete()
         self.bulk_create(probes)
 
 
