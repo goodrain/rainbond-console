@@ -5,7 +5,8 @@ import os
 import jwt
 from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException, AbortRequest)
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
+                                    AbortRequest)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 # repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)

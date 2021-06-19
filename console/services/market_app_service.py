@@ -96,8 +96,17 @@ class MarketAppService(object):
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
 
-        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, version, component_group, app_template,
-                                 install_from_cloud, market_name, is_deploy=is_deploy)
+        app_upgrade = AppUpgrade(
+            user.enterprise_id,
+            tenant,
+            region,
+            user,
+            version,
+            component_group,
+            app_template,
+            install_from_cloud,
+            market_name,
+            is_deploy=is_deploy)
         app_upgrade.install()
 
     def install_service(self,
@@ -1196,7 +1205,8 @@ class MarketAppService(object):
                 upgrade_group_id = component_groups_cache[ss.service_id]
                 component_group = component_groups[upgrade_group_id]
                 upgrade_app_key = "{0}-{1}".format(ss.group_key, upgrade_group_id)
-                if (upgrade_app_key not in upgrade_app_models) or compare_version(upgrade_app_models[upgrade_app_key]['version'], ss.version) == -1:
+                if (upgrade_app_key not in upgrade_app_models) or compare_version(
+                        upgrade_app_models[upgrade_app_key]['version'], ss.version) == -1:
                     # The version of the component group is the version of the application
                     upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version, 'component_source': ss}
         iterator = self.yield_app_info(upgrade_app_models, tenant, application.ID)

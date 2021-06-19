@@ -113,7 +113,9 @@ class NewComponents(object):
                 tenant_id=self.tenant.tenant_id,
                 region_name=self.region_name,
             )
-            result.append(Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs, [], http_rules, service_group_rel))
+            result.append(
+                Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs, [],
+                          http_rules, service_group_rel))
         return result
 
     def _template_to_component(self, tenant_id, template):
@@ -258,7 +260,8 @@ class NewComponents(object):
         # only create gateway rule for http port now
         if not port.is_outer_service or port.protocol != "http":
             return None
-        domain_name = str(port.container_port) + "." + str(component.service_alias) + "." + str(self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+        domain_name = str(port.container_port) + "." + str(component.service_alias) + "." + str(
+            self.tenant.tenant_name) + "." + str(self.region.httpdomain)
         return ServiceDomain(
             service_id=component.service_id,
             service_name=component.service_name,

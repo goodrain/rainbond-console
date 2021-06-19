@@ -74,9 +74,19 @@ class UpgradeService(object):
         app_template_source = self._app_template_source(record.group_id, record.group_key, record.upgrade_group_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
-        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region, user, version, component_group, app_template,
-                                 app_template_source.is_install_from_cloud(), app_template_source.get_market_name(), record,
-                                 component_keys, is_deploy=True)
+        app_upgrade = AppUpgrade(
+            tenant.enterprise_id,
+            tenant,
+            region,
+            user,
+            version,
+            component_group,
+            app_template,
+            app_template_source.is_install_from_cloud(),
+            app_template_source.get_market_name(),
+            record,
+            component_keys,
+            is_deploy=True)
         record = app_upgrade.upgrade()
         return self.serialized_upgrade_record(record)
 
