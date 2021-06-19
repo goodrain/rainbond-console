@@ -62,7 +62,7 @@ class OriginalApp(object):
         components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)
 
         result = []
-        # Optimization: get the attributes at once, don't get it iteratively
+        # TODO(huangrh): get the attributes at once, don't get it iteratively
         for cpt in components:
             component_source = service_source_repo.get_service_source(cpt.tenant_id, cpt.service_id)
             envs = env_var_repo.get_service_env(cpt.tenant_id, cpt.service_id)

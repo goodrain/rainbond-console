@@ -212,15 +212,15 @@ class MarketApp(object):
                 "plugin_model": plugin.plugin.category,
                 "container_cpu": plugin_dep.min_cpu,
                 "container_memory": plugin_dep.min_memory,
-                "switch": plugin_dep.min_memory == 1,
+                "switch": plugin_dep.plugin_status == 1,
                 "config_envs": {
                     "normal_envs": normal_envs,
+                    "complex_envs": {
+                        "base_ports": base_ports,
+                        "base_services": base_services,
+                        "base_normal": base_normal,
+                    }
                 },
-                "complex_envs": {
-                    "base_ports": base_ports,
-                    "base_services": base_services,
-                    "base_normal": base_normal,
-                }
             }
             pds = new_plugin_deps.get(plugin_dep.service_id, [])
             pds.append(new_plugin_dep)
