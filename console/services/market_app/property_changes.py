@@ -7,6 +7,9 @@ from console.services.market_app.component import Component
 from console.services.app_config.promql_service import promql_service
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
+# model
+from www.models.plugin import TenantPlugin
+from www.models.plugin import TenantServicePluginRelation
 # exception
 from console.exception.main import AbortRequest
 # utils
@@ -16,8 +19,9 @@ logger = logging.getLogger("default")
 
 
 class PropertyChanges(object):
-    def __init__(self, components, app_template):
+    def __init__(self, components, plugins: [TenantPlugin], app_template):
         self.components = components
+        self.plugins = plugins
         self.app_template = app_template
         self.changes = self._get_component_changes(components, app_template)
 
@@ -55,6 +59,10 @@ class PropertyChanges(object):
         probe = self._probe(component.probe, component_tmpl["probes"])
         if probe:
             result["probe"] = probe
+        # plugin dependency
+        plugin_deps = self._plugin_deps(component.plugin_deps, component_tmpl.get("service_related_plugin_config"))
+        if plugin_deps:
+            result["plugin_deps"] = plugin_deps
 
         component_graphs = self._graphs(component.component.component_id, component.graphs,
                                         component_tmpl.get("component_graphs", []))
@@ -232,4 +240,22 @@ class PropertyChanges(object):
             add.append(monitor)
         if not add:
             return None
+        return {"add": add}
+
+    def _plugin_deps(self, old_plugin_deps: [TenantServicePluginRelation], plugin_deps):
+        if not plugin_deps:
+            return None
+        add = []
+        exist_plugin_ids = [plugin_dep.plugin_id for plugin_dep in old_plugin_deps]
+        exist_plugin_keys = [plugin.origin_share_id for plugin in self.plugins if plugin.plugin_id in exist_plugin_ids]
+        plugins = {plugin.origin_share_id: plugin for plugin in self.plugins}
+        for plugin_dep in plugin_deps:
+            if plugin_dep["plugin_key"] in exist_plugin_keys:
+                continue
+            plugin = plugins.get(plugin_dep["plugin_key"])
+            if not plugin:
+                logger.warning("plugin {} not found".format(plugin_dep["plugin_key"]))
+                continue
+            plugin_dep["plugin"] = plugin.to_dict()
+            add.append(plugin_dep)
         return {"add": add}

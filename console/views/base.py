@@ -5,13 +5,14 @@ import os
 import jwt
 from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException, AbortRequest)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 # repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.region_repo import region_repo
 # service
 from console.services.user_services import user_services
 from console.utils import perms
@@ -330,6 +331,7 @@ class RegionTenantHeaderView(TenantHeaderView):
         super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
         self.response_region = None
         self.region_name = None
+        self.region = None
 
     def initial(self, request, *args, **kwargs):
         super(RegionTenantHeaderView, self).initial(request, *args, **kwargs)
@@ -345,6 +347,10 @@ class RegionTenantHeaderView(TenantHeaderView):
         self.region_name = self.response_region
         if not self.response_region:
             raise ImportError("region_name not found !")
+        region = region_repo.get_region_by_region_name(self.region_name)
+        if not region:
+            raise AbortRequest("region not found", "数据中心不存在", status_code=404, error_code=404)
+        self.region = region
 
 
 class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudEnterpriseCenterView):

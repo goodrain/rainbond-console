@@ -33,6 +33,7 @@ from console.models.main import ServiceUpgradeRecord
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
+from console.models.main import RegionConfig
 # exception
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrAppUpgradeDeployFailed
@@ -48,10 +49,11 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     """
 
-    def __init__(self, tenant, region_name, user, app: ServiceGroup, component_group: TenantServiceGroup,
+    def __init__(self, tenant, region: RegionConfig, user, app: ServiceGroup, component_group: TenantServiceGroup,
                  app_upgrade_record: AppUpgradeRecord):
         self.tenant = tenant
-        self.region_name = region_name
+        self.region = region
+        self.region_name = region.region_name
         self.user = user
         self.app = app
         self.upgrade_group_id = component_group.ID
@@ -59,7 +61,7 @@ class AppRestore(MarketApp):
         self.rollback_record = None
         self.component_group = component_group
 
-        self.original_app = OriginalApp(tenant.tenant_id, region_name, app, component_group.ID)
+        self.original_app = OriginalApp(tenant.tenant_id, region, app, component_group.ID)
         self.snapshot = self._get_snapshot()
         self.new_app = self._create_new_app()
         super(AppRestore, self).__init__(self.original_app, self.new_app)
@@ -160,7 +162,7 @@ class AppRestore(MarketApp):
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(component_ids)
-        volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
+        volume_deps = self.ensure_volume_deps(self.original_app, new_volume_deps)
 
         # plugins
         plugins = self.list_original_plugins()
@@ -212,6 +214,7 @@ class AppRestore(MarketApp):
             extend_info=extend_info,
             monitors=monitors,
             graphs=graphs,
+            plugin_deps=[],
         )
 
     def _create_component_deps(self, component_ids):

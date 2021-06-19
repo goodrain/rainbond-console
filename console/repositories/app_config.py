@@ -716,6 +716,10 @@ class ServiceDomainRepository(object):
     def count_by_service_ids(region_id, service_ids):
         return ServiceDomain.objects.filter(region_id=region_id, service_id__in=service_ids).count()
 
+    @staticmethod
+    def bulk_create(http_rules):
+        ServiceDomain.objects.bulk_create(http_rules)
+
 
 class ServiceExtendRepository(object):
     # only market service return extend_method

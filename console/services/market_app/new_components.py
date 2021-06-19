@@ -14,9 +14,11 @@ from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
 from www.models.main import TenantServiceEnvVar
 from www.models.main import ServiceGroupRelation
+from www.models.main import ServiceDomain
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
+from console.models.main import RegionConfig
 from www.models.service_publish import ServiceExtendMethod
 from www.models.main import TenantServiceConfigurationFile
 # exception
@@ -35,7 +37,7 @@ logger = logging.getLogger("default")
 class NewComponents(object):
     def __init__(self,
                  tenant,
-                 region_name,
+                 region: RegionConfig,
                  user,
                  original_app,
                  app_model_key,
@@ -43,20 +45,22 @@ class NewComponents(object):
                  version,
                  install_from_cloud,
                  components_keys,
-                 market_name=""):
+                 market_name="",
+                 is_deploy=False):
         """
         components_keys: component keys that the user select.
         """
         self.tenant = tenant
-        self.region_name = region_name
+        self.region = region
+        self.region_name = region.region_name
         self.user = user
         self.original_app = original_app
-        # TODO(huangrh): merge app_model_key, app_template, version, install_from_cloud and market_name
         self.app_model_key = app_model_key
         self.app_template = app_template
         self.version = version
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
+        self.is_deploy = is_deploy
 
         self.components_keys = components_keys
         self.components = self.create_components()
@@ -89,7 +93,7 @@ class NewComponents(object):
             outer_envs = component_tmpl.get("service_connect_info_map_list")
             envs = self._template_to_envs(cpt, inner_envs, outer_envs)
             # ports
-            ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
+            ports, http_rules = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
             # volumes
             volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
             # probe
@@ -109,9 +113,7 @@ class NewComponents(object):
                 tenant_id=self.tenant.tenant_id,
                 region_name=self.region_name,
             )
-            result.append(
-                Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs,
-                          service_group_rel))
+            result.append(Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs, [], http_rules, service_group_rel))
         return result
 
     def _template_to_component(self, tenant_id, template):
@@ -136,6 +138,7 @@ class NewComponents(object):
         component.service_source = AppConstants.MARKET
         component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
+        component.build_upgrade = self.is_deploy
 
         # component type
         extend_method = template["extend_method"]
@@ -219,8 +222,9 @@ class NewComponents(object):
 
     def _template_to_ports(self, component, ports):
         if not ports:
-            return []
-        result = []
+            return [], []
+        new_ports = []
+        gateway_rules = []
         for port in ports:
             component_port = port["container_port"]
             k8s_service_name = port.get("k8s_service_name") if port.get(
@@ -243,11 +247,29 @@ class NewComponents(object):
                 is_outer_service=port.get("is_outer_service", False),
                 k8s_service_name=k8s_service_name,
             )
-            # TODO(huangrh): create default rule
-            # if port.get("is_outer_service", False):
-            #     domain_service.create_default_gateway_rule(tenant, region, service, t_port)
-            result.append(port)
-        return result
+            new_ports.append(port)
+
+            gateway_rule = self._create_default_gateway_rule(component, port)
+            if gateway_rule:
+                gateway_rules.append(gateway_rule)
+        return new_ports, gateway_rules
+
+    def _create_default_gateway_rule(self, component: TenantServiceInfo, port: TenantServicesPort):
+        # only create gateway rule for http port now
+        if not port.is_outer_service or port.protocol != "http":
+            return None
+        domain_name = str(port.container_port) + "." + str(component.service_alias) + "." + str(self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+        return ServiceDomain(
+            service_id=component.service_id,
+            service_name=component.service_name,
+            domain_name=domain_name,
+            create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            container_port=port.container_port,
+            protocol="http",
+            http_rule_id=make_uuid(domain_name),
+            tenant_id=self.tenant.tenant_id,
+            service_alias=component.service_alias,
+            region_id=self.region.region_id)
 
     def _template_to_volumes(self, component, volumes):
         if not volumes:

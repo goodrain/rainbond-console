@@ -64,7 +64,7 @@ mnt_service = AppMntService()
 class MarketAppService(object):
     def install_app(self,
                     tenant,
-                    region_name,
+                    region,
                     user,
                     app_id,
                     app_model_key,
@@ -87,18 +87,18 @@ class MarketAppService(object):
                                                                                       version)
             if not market_app:
                 raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
-            if app_version and app_version.region_name and app_version.region_name != region_name:
+            if app_version and app_version.region_name and app_version.region_name != region.region_name:
                 raise AbortRequest(
                     msg="app version can not install to this region",
                     msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
         app_template = json.loads(app_version.app_template)
 
-        component_group = self._create_tenant_service_group(region_name, tenant.tenant_id, app.app_id, market_app.app_id,
+        component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
 
-        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template,
-                                 install_from_cloud, market_name)
-        app_upgrade.install(is_deploy)
+        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, version, component_group, app_template,
+                                 install_from_cloud, market_name, is_deploy=is_deploy)
+        app_upgrade.install()
 
     def install_service(self,
                         tenant,

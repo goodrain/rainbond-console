@@ -63,7 +63,7 @@ class UpgradeService(object):
             },
         }
 
-    def upgrade(self, tenant, region_name, user, version, record: AppUpgradeRecord, component_keys=None):
+    def upgrade(self, tenant, region, user, version, record: AppUpgradeRecord, component_keys=None):
         """
         Upgrade application market applications
         """
@@ -74,18 +74,18 @@ class UpgradeService(object):
         app_template_source = self._app_template_source(record.group_id, record.group_key, record.upgrade_group_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
-        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region_name, user, version, component_group, app_template,
+        app_upgrade = AppUpgrade(tenant.enterprise_id, tenant, region, user, version, component_group, app_template,
                                  app_template_source.is_install_from_cloud(), app_template_source.get_market_name(), record,
-                                 component_keys)
+                                 component_keys, is_deploy=True)
         record = app_upgrade.upgrade()
         return self.serialized_upgrade_record(record)
 
-    def restore(self, tenant, region_name, user, app, record: AppUpgradeRecord):
+    def restore(self, tenant, region, user, app, record: AppUpgradeRecord):
         if not record.can_rollback():
             raise ErrAppUpgradeRecordCanNotRollback
 
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
-        app_restore = AppRestore(tenant, region_name, user, app, component_group, record)
+        app_restore = AppRestore(tenant, region, user, app, component_group, record)
         record = app_restore.restore()
         return self.serialized_upgrade_record(record)
 
@@ -111,15 +111,13 @@ class UpgradeService(object):
         except JSONDecodeError:
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
 
-    def get_property_changes(self, tenant, region_name, user, app, upgrade_group_id, version):
+    def get_property_changes(self, tenant, region, user, app, upgrade_group_id, version):
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
         app_template_source = self._app_template_source(app.app_id, component_group.group_key, upgrade_group_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
-        # original_app = OriginalApp(tenant.tenant_id, region_name, app, upgrade_group_id)
-
-        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region_name, user, version, component_group, app_template,
+        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, version, component_group, app_template,
                                  app_template_source.is_install_from_cloud(), app_template_source.get_market_name())
         return app_upgrade.changes()
 

@@ -86,14 +86,14 @@ class AppUpgradeInfoView(ApplicationView):
         upgrade_group_id = parse_argument(
             request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
-        changes = upgrade_service.get_property_changes(self.tenant, self.region_name, self.user, self.app, upgrade_group_id,
+        changes = upgrade_service.get_property_changes(self.tenant, self.region, self.user, self.app, upgrade_group_id,
                                                        version)
         return MessageResponse(msg="success", list=changes)
 
 
 class AppUpgradeRollbackView(AppUpgradeRecordView):
     def post(self, request, group_id, record_id, *args, **kwargs):
-        record = upgrade_service.restore(self.tenant, self.region_name, self.user, self.app, self.app_upgrade_record)
+        record = upgrade_service.restore(self.tenant, self.region, self.user, self.app, self.app_upgrade_record)
         return MessageResponse(msg="success", bean=record)
 
 
@@ -125,7 +125,7 @@ class AppUpgradeView(AppUpgradeRecordView):
         component_keys = [cpt["service"]["service_key"] for cpt in components]
         record = upgrade_service.upgrade(
             self.tenant,
-            self.region_name,
+            self.region,
             self.user,
             version,
             self.app_upgrade_record,

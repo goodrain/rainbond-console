@@ -13,6 +13,8 @@ from console.repositories.plugin.plugin_version import build_version_repo
 # constant
 from console.constants import PluginMetaType
 from console.constants import PluginInjection
+# model
+from www.models.main import ServiceDomain
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -109,6 +111,9 @@ class MarketApp(object):
             component_base["component_id"] = component_base["service_id"]
             component_base["component_name"] = component_base["service_name"]
             component_base["component_alias"] = component_base["service_alias"]
+            component_base["container_cpu"] = cpt.component.min_cpu
+            component_base["container_memory"] = cpt.component.min_memory
+            component_base["replicas"] = cpt.component.min_node
             probe = cpt.probe.to_dict() if cpt.probe else None
             if probe:
                 probe["is_used"] = 1 if probe["is_used"] else 0
@@ -119,6 +124,7 @@ class MarketApp(object):
                 "config_files": [cf.to_dict() for cf in cpt.config_files],
                 "probe": probe,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
+                "http_rules": self._create_http_rules(cpt.http_rules)
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:
@@ -220,6 +226,17 @@ class MarketApp(object):
             pds.append(new_plugin_dep)
             new_plugin_deps[plugin_dep.service_id] = pds
         return new_plugin_deps
+
+    @staticmethod
+    def _create_http_rules(gateway_rules: [ServiceDomain]):
+        rules = []
+        for gateway_rule in gateway_rules:
+            rule = gateway_rule.to_dict()
+            rule["domain"] = gateway_rule.domain_name
+            rule.pop("certificate_id")
+            rule.pop("rule_extensions")
+            rules.append(rule)
+        return rules
 
     def _sync_app_config_groups(self, app):
         config_group_items = dict()

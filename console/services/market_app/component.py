@@ -12,6 +12,7 @@ from www.models.main import ServiceProbe
 from www.models.main import TenantServiceEnvVar
 from www.models.main import TenantServiceVolume
 from www.models.main import TenantServiceConfigurationFile
+from www.models.plugin import TenantServicePluginRelation
 from console.models.main import ComponentGraph
 from console.models.main import ServiceMonitor
 # exception
@@ -36,11 +37,14 @@ class Component(object):
                  extend_info,
                  monitors,
                  graphs,
+                 plugin_deps,
+                 http_rules=None,
                  service_group_rel=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
         self.ports = list(ports)
+        self.http_rules = list(http_rules) if http_rules else []
         self.volumes = list(volumes)
         self.config_files = list(config_files)
         self.probe = probe
@@ -49,6 +53,7 @@ class Component(object):
         self.graphs = list(graphs)
         self.component_deps = []
         self.volume_deps = []
+        self.plugin_deps: [TenantServicePluginRelation] = list(plugin_deps)
         self.app_config_groups = []
         self.service_group_rel = service_group_rel
 

@@ -6,6 +6,7 @@ from .plugin import Plugin
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.app import service_source_repo
+from console.repositories.app_config import domain_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import dep_relation_repo
@@ -148,6 +149,7 @@ class NewApp(object):
         component_sources = []
         envs = []
         ports = []
+        http_rules = []
         volumes = []
         config_files = []
         probes = []
@@ -159,6 +161,7 @@ class NewApp(object):
             component_sources.append(cpt.component_source)
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
+            http_rules.extend(cpt.http_rules)
             volumes.extend(cpt.volumes)
             config_files.extend(cpt.config_files)
             if cpt.probe:
@@ -174,6 +177,7 @@ class NewApp(object):
         service_source_repo.bulk_create(component_sources)
         env_var_repo.bulk_create(envs)
         port_repo.bulk_create(ports)
+        domain_repo.bulk_create(http_rules)
         volume_repo.bulk_create(volumes)
         config_file_repo.bulk_create(config_files)
         probe_repo.bulk_create(probes)
@@ -219,6 +223,7 @@ class NewApp(object):
         port_repo.bulk_create_or_update(ports)
         volume_repo.bulk_create_or_update(volumes)
         config_file_repo.overwrite_by_component_ids(self.component_ids, config_files)
+        probe_repo.bulk_create_or_update(probes)
         extend_repo.bulk_create_or_update(extend_infos)
         service_monitor_repo.overwrite_by_component_ids(self.component_ids, monitors)
         component_graph_repo.overwrite_by_component_ids(self.component_ids, graphs)

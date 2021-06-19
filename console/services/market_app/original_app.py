@@ -18,19 +18,20 @@ from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.plugin import service_plugin_config_repo
 # model
 from www.models.main import ServiceGroup
-# exception
-from console.exception.main import AbortRequest
+from console.models.main import RegionConfig
 
 
 class OriginalApp(object):
-    def __init__(self, tenant_id, region_name, app: ServiceGroup, upgrade_group_id):
+    def __init__(self, tenant_id, region: RegionConfig, app: ServiceGroup, upgrade_group_id):
         self.tenant_id = tenant_id
-        self.region_name = region_name
+        self.region = region
+        self.region_name = region.region_name
         self.app_id = app.app_id
         self.upgrade_group_id = upgrade_group_id
-        self.app = group_repo.get_group_by_pk(tenant_id, region_name, app.app_id)
+        self.app = group_repo.get_group_by_pk(tenant_id, region.region_name, app.app_id)
         self.governance_mode = app.governance_mode
 
         self._component_ids = self._component_ids()
@@ -40,6 +41,11 @@ class OriginalApp(object):
         self.component_deps = dep_relation_repo.list_by_component_ids(self.tenant_id,
                                                                       [cpt.component.component_id for cpt in self._components])
         self.volume_deps = self._volume_deps()
+
+        # plugins
+        self.plugin_deps = self._plugin_deps()
+        self.plugin_configs = self._plugin_configs()
+
         # config groups
         self.config_groups = self._config_groups()
         self.config_group_items = self._config_group_items()
@@ -55,10 +61,6 @@ class OriginalApp(object):
     def _create_components(self, app_id, upgrade_group_id):
         components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)
 
-        plugin_deps = self._plugin_deps()
-        # make a map of plugin_deps
-        plugin_deps = {plugin_dep.service_id: plugin_dep for plugin_dep in plugin_deps}
-
         result = []
         # Optimization: get the attributes at once, don't get it iteratively
         for cpt in components:
@@ -70,10 +72,8 @@ class OriginalApp(object):
             probe = probe_repo.get_probe(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
-            cpt_plugin_deps = plugin_deps.get(cpt.component_id)
             result.append(
-                Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs,
-                          cpt_plugin_deps))
+                Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, []))
         return result
 
     def _volume_deps(self):
@@ -91,3 +91,6 @@ class OriginalApp(object):
 
     def _plugin_deps(self):
         return app_plugin_relation_repo.list_by_component_ids(self._component_ids)
+
+    def _plugin_configs(self):
+        return service_plugin_config_repo.list_by_component_ids(self._component_ids)

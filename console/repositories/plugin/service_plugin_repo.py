@@ -13,7 +13,8 @@ from www.models.plugin import TenantServicePluginRelation
 class AppPluginRelationRepo(object):
     @staticmethod
     def list_by_component_ids(service_ids):
-        return TenantServicePluginRelation.objects.filter(service_id__in=service_ids)
+        rels = TenantServicePluginRelation.objects.filter(service_id__in=service_ids)
+        return [rel for rel in rels]
 
     def get_service_plugin_relation_by_service_id(self, service_id):
         return TenantServicePluginRelation.objects.filter(service_id=service_id)
@@ -101,6 +102,11 @@ class ServicePluginConfigVarRepository(object):
 
     def get_service_plugin_all_config(self, service_id):
         return ServicePluginConfigVar.objects.filter(service_id=service_id)
+
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        configs = ServicePluginConfigVar.objects.filter(service_id__in=component_ids)
+        return [config for config in configs]
 
     @staticmethod
     def overwrite_by_component_ids(component_ids, plugin_configs):

@@ -35,6 +35,7 @@ from console.models.main import AppUpgradeSnapshot
 from console.models.main import ApplicationConfigGroup
 from console.models.main import ConfigGroupItem
 from console.models.main import ConfigGroupService
+from console.models.main import RegionConfig
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
 from www.models.plugin import TenantServicePluginRelation
@@ -55,7 +56,7 @@ class AppUpgrade(MarketApp):
     def __init__(self,
                  enterprise_id,
                  tenant,
-                 region_name,
+                 region: RegionConfig,
                  user,
                  version,
                  component_group,
@@ -63,38 +64,49 @@ class AppUpgrade(MarketApp):
                  install_from_cloud,
                  market_name,
                  record: AppUpgradeRecord = None,
-                 component_keys=None):
+                 component_keys=None,
+                 is_deploy=False):
         """
         components_keys: component keys that the user select.
         """
         self.enterprise_id = enterprise_id
         self.tenant = tenant
         self.tenant_id = tenant.tenant_id
-        self.region_name = region_name
+        self.region = region
+        self.region_name = region.region_name
         self.user = user
 
         self.component_group = ComponentGroup(enterprise_id, component_group, version)
         self.record = record
         self.app_id = self.component_group.app_id
-        self.app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, self.app_id)
+        self.app = group_repo.get_group_by_pk(tenant.tenant_id, region.region_name, self.app_id)
         self.upgrade_group_id = self.component_group.upgrade_group_id
         self.app_model_key = self.component_group.app_model_key
         self.old_version = self.component_group.version
         self.version = version
         self.component_keys = component_keys if component_keys else None
+        self.is_deploy = is_deploy
 
         # app template
         self.app_template = app_template
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
+
         # original app
-        self.original_app = OriginalApp(self.tenant_id, self.region_name, self.app, self.upgrade_group_id)
-        self.property_changes = PropertyChanges(self.original_app.components(), self.app_template)
+        self.original_app = OriginalApp(self.tenant_id, self.region, self.app, self.upgrade_group_id)
+
+        # plugins
+        self.original_plugins = self.list_original_plugins()
+        self.new_plugins = self._create_new_plugins()
+        plugins = [plugin.plugin for plugin in self._plugins()]
+
+        self.property_changes = PropertyChanges(self.original_app.components(), plugins, self.app_template)
+
         self.new_app = self._create_new_app()
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
-    def install(self, is_deploy):
+    def install(self):
         # install plugins
         self.install_plugins()
 
@@ -111,7 +123,7 @@ class AppUpgrade(MarketApp):
             self.rollback()
             raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
 
-        if is_deploy:
+        if self.is_deploy:
             self._install_deploy()
 
     def upgrade(self):
@@ -301,7 +313,7 @@ class AppUpgrade(MarketApp):
 
     def _create_new_app(self):
         # new components
-        new_components = NewComponents(self.tenant, self.region_name, self.user, self.original_app, self.app_model_key,
+        new_components = NewComponents(self.tenant, self.region, self.user, self.original_app, self.app_model_key,
                                        self.app_template, self.version, self.install_from_cloud, self.component_keys,
                                        self.market_name).components
         # components that need to be updated
@@ -316,7 +328,7 @@ class AppUpgrade(MarketApp):
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(components)
-        volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
+        volume_deps = self.ensure_volume_deps(self.original_app, new_volume_deps)
 
         # config groups
         config_groups = self._config_groups()
@@ -324,10 +336,9 @@ class AppUpgrade(MarketApp):
         config_group_components = self._config_group_components(components, config_groups)
 
         # plugins
-        original_plugins = self.list_original_plugins()
-        new_plugins = self._create_new_plugins(original_plugins, self.app_template.get("plugins"))
-        plugins = original_plugins + new_plugins
-        plugin_deps, plugin_configs = self._component_plugins(plugins, components)
+        new_plugin_deps, new_plugin_configs = self._new_component_plugins(components)
+        plugin_deps = self.original_app.plugin_deps + new_plugin_deps
+        plugin_configs = self.original_app.plugin_configs + new_plugin_configs
 
         component_group = copy.deepcopy(self.component_group.component_group)
         component_group.group_version = self.version
@@ -341,13 +352,19 @@ class AppUpgrade(MarketApp):
             update_components,
             component_deps,
             volume_deps,
-            plugins=plugins,
+            plugins=self._plugins(),
             plugin_deps=plugin_deps,
             plugin_configs=plugin_configs,
-            new_plugins=new_plugins,
+            new_plugins=self.new_plugins,
             config_groups=config_groups,
             config_group_items=config_group_items,
             config_group_components=config_group_components)
+
+    def _create_original_plugins(self):
+        return self.list_original_plugins()
+
+    def _plugins(self):
+        return self.original_plugins + self.new_plugins
 
     def _create_component_deps(self, components):
         """
@@ -397,7 +414,10 @@ class AppUpgrade(MarketApp):
             if not component:
                 continue
 
-            for dep in tmpl.get("mnt_relation_list", []):
+            volume_deps = tmpl.get("mnt_relation_list")
+            if not volume_deps:
+                continue
+            for dep in volume_deps:
                 # check if the dependent component exists
                 dep_component_key = dep["service_share_uuid"]
                 dep_component = components.get(dep_component_key)
@@ -538,8 +558,8 @@ class AppUpgrade(MarketApp):
                 config_group_components.append(cgc)
         return config_group_components
 
-    def _component_plugins(self, plugins: [Plugin], components: [Component]):
-        plugins = {plugin.plugin.origin_share_id: plugin for plugin in plugins}
+    def _new_component_plugins(self, components: [Component]):
+        plugins = {plugin.plugin.origin_share_id: plugin for plugin in self._plugins()}
 
         components = {cpt.component.service_key: cpt for cpt in components}
         component_keys = {tmpl["service_id"]: tmpl["service_key"] for tmpl in self.app_template.get("apps")}
@@ -623,11 +643,12 @@ class AppUpgrade(MarketApp):
 
         return new_plugin_configs, False
 
-    def _create_new_plugins(self, original_plugins, plugin_templates):
+    def _create_new_plugins(self):
+        plugin_templates = self.app_template.get("plugins")
         if not plugin_templates:
             return []
 
-        original_plugins = {plugin.plugin.origin_share_id: plugin.plugin for plugin in original_plugins}
+        original_plugins = {plugin.plugin.origin_share_id: plugin.plugin for plugin in self.original_plugins}
         plugins = []
         for plugin_tmpl in plugin_templates:
             original_plugin = original_plugins.get(plugin_tmpl.get("plugin_key"))
