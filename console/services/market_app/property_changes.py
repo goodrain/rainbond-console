@@ -230,9 +230,13 @@ class PropertyChanges(object):
             return None
         add = []
         old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
+        old_show_names = [monitor.service_show_name for monitor in old_monitors if old_monitors]
         for monitor in monitors:
             if monitor["name"] in old_monitor_names:
                 continue
+            else:
+                if monitor["service_show_name"] in old_show_names:
+                    continue
             # Optimization: do not check monitor name iteratively
             tenant_monitor = service_monitor_repo.get_tenant_service_monitor(tenant_id, monitor["name"])
             if tenant_monitor:

@@ -315,7 +315,7 @@ class AppUpgrade(MarketApp):
         # new components
         new_components = NewComponents(self.tenant, self.region, self.user, self.original_app, self.app_model_key,
                                        self.app_template, self.version, self.install_from_cloud, self.component_keys,
-                                       self.market_name).components
+                                       self.market_name, self.is_deploy).components
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys, self.property_changes).components
