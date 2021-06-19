@@ -3,7 +3,7 @@ import logging
 
 from django.db import transaction
 
-from .app import MarketApp
+from .market_app import MarketApp
 # service
 from console.services.app_actions import app_manage_service
 # exception

@@ -7,7 +7,6 @@ from datetime import datetime
 from enum import Enum
 from json.decoder import JSONDecodeError
 
-from console.services.market_app.original_app import OriginalApp
 from console.exception.bcode import (ErrAppUpgradeDeployFailed, ErrAppUpgradeRecordCanNotDeploy, ErrLastRecordUnfinished)
 from console.exception.bcode import ErrAppUpgradeRecordCanNotRollback
 from console.exception.bcode import ErrAppUpgradeWrongStatus
@@ -90,7 +89,8 @@ class UpgradeService(object):
         record = app_restore.restore()
         return self.serialized_upgrade_record(record)
 
-    def _app_template_source(self, app_id, app_model_key, upgrade_group_id):
+    @staticmethod
+    def _app_template_source(app_id, app_model_key, upgrade_group_id):
         components = group_service.get_rainbond_services(app_id, app_model_key, upgrade_group_id)
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
@@ -98,7 +98,8 @@ class UpgradeService(object):
         component_source = service_source_repo.get_service_source(component.tenant_id, component.service_id)
         return component_source
 
-    def _app_template(self, enterprise_id, app_model_key, version, app_template_source):
+    @staticmethod
+    def _app_template(enterprise_id, app_model_key, version, app_template_source):
         if not app_template_source.is_install_from_cloud():
             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_model_key, version)
         else:

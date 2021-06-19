@@ -3,13 +3,11 @@ import json
 import logging
 import copy
 from datetime import datetime
-from json.decoder import JSONDecodeError
 
 from django.db import transaction
 
-from console.services.market_app.new_plugin import NewPlugin
 from console.services.market_app.plugin import Plugin
-from console.services.market_app.app import MarketApp
+from console.services.market_app.market_app import MarketApp
 from console.services.market_app.new_app import NewApp
 from console.services.market_app.original_app import OriginalApp
 from console.services.market_app.new_components import NewComponents
@@ -18,12 +16,8 @@ from console.services.market_app.property_changes import PropertyChanges
 from console.services.market_app.component_group import ComponentGroup
 from console.services.market_app.component import Component
 # service
-from console.services.app import app_market_service
-from console.services.app_actions import app_manage_service
 from console.services.backup_service import groupapp_backup_service
 # repo
-from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.app import app_market_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 from console.repositories.group import group_repo
 from console.repositories.app_snapshot import app_snapshot_repo
@@ -31,11 +25,9 @@ from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 # exception
-from console.exception.main import AbortRequest, ServiceHandleException
+from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrAppUpgradeDeployFailed
 # model
-from www.models.main import TenantServiceRelation
-from www.models.main import TenantServiceMountRelation
 from console.models.main import AppUpgradeRecord
 from console.models.main import UpgradeStatus
 from console.models.main import ServiceUpgradeRecord
@@ -43,8 +35,14 @@ from console.models.main import AppUpgradeSnapshot
 from console.models.main import ApplicationConfigGroup
 from console.models.main import ConfigGroupItem
 from console.models.main import ConfigGroupService
+from www.models.main import TenantServiceRelation
+from www.models.main import TenantServiceMountRelation
 from www.models.plugin import TenantServicePluginRelation
 from www.models.plugin import ServicePluginConfigVar
+from www.models.plugin import TenantPlugin
+from www.models.plugin import PluginBuildVersion
+from www.models.plugin import PluginConfigItems
+from www.models.plugin import PluginConfigGroup
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
@@ -197,11 +195,11 @@ class AppUpgrade(MarketApp):
     @transaction.atomic
     def install_plugins(self):
         # save plugins
-        self.new_app.new_plugin.save()
+        self.save_new_plugins()
         # sync plugins
-        self._sync_plugins(self.new_app.new_plugin.new_plugins)
+        self._sync_plugins(self.new_app.new_plugins)
         # deploy plugins
-        self._deploy_plugins(self.new_app.new_plugin.new_plugins)
+        self._deploy_plugins(self.new_app.new_plugins)
 
     @transaction.atomic
     def _save_new_app(self):
@@ -326,8 +324,9 @@ class AppUpgrade(MarketApp):
         config_group_components = self._config_group_components(components, config_groups)
 
         # plugins
-        new_plugin = NewPlugin(self.tenant, self.region_name, self.user, self.app_template.get("plugins"))
-        plugins = new_plugin.plugins()
+        original_plugins = self.list_original_plugins()
+        new_plugins = self._create_new_plugins(original_plugins, self.app_template.get("plugins"))
+        plugins = original_plugins + new_plugins
         plugin_deps, plugin_configs = self._component_plugins(plugins, components)
 
         component_group = copy.deepcopy(self.component_group.component_group)
@@ -342,10 +341,10 @@ class AppUpgrade(MarketApp):
             update_components,
             component_deps,
             volume_deps,
-            new_plugin=new_plugin,
             plugins=plugins,
             plugin_deps=plugin_deps,
             plugin_configs=plugin_configs,
+            new_plugins=new_plugins,
             config_groups=config_groups,
             config_group_items=config_group_items,
             config_group_components=config_group_components)
@@ -623,3 +622,101 @@ class AppUpgrade(MarketApp):
             new_plugin_configs.append(new_plugin_config)
 
         return new_plugin_configs, False
+
+    def _create_new_plugins(self, original_plugins, plugin_templates):
+        if not plugin_templates:
+            return []
+
+        original_plugins = {plugin.plugin.origin_share_id: plugin.plugin for plugin in original_plugins}
+        plugins = []
+        for plugin_tmpl in plugin_templates:
+            original_plugin = original_plugins.get(plugin_tmpl.get("plugin_key"))
+            if original_plugin:
+                continue
+
+            image = None
+            if plugin_tmpl["share_image"]:
+                image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
+                if len(image_and_tag) > 1:
+                    image = image_and_tag[0]
+                else:
+                    image = image_and_tag[0]
+            plugin = TenantPlugin(
+                tenant_id=self.tenant.tenant_id,
+                region=self.region_name,
+                plugin_id=make_uuid(),
+                create_user=self.user.user_id,
+                desc=plugin_tmpl["desc"],
+                plugin_alias=plugin_tmpl["plugin_alias"],
+                category=plugin_tmpl["category"],
+                build_source="image",
+                image=image,
+                code_repo=plugin_tmpl["code_repo"],
+                username=plugin_tmpl["plugin_image"]["hub_user"],
+                password=plugin_tmpl["plugin_image"]["hub_password"],
+                origin="local_market",
+                origin_share_id=plugin_tmpl["plugin_key"])
+
+            build_version = self._create_build_version(plugin.plugin_id, plugin_tmpl)
+            config_groups, config_items = self._create_config_groups(plugin.plugin_id, build_version,
+                                                                     plugin_tmpl["config_groups"])
+            config_groups = config_groups
+            config_items = config_items
+            plugins.append(Plugin(plugin, build_version, config_groups, config_items, plugin_tmpl["plugin_image"]))
+
+        return plugins
+
+    def _create_build_version(self, plugin_id, plugin_tmpl):
+        image_tag = None
+        if plugin_tmpl["share_image"]:
+            image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
+            if len(image_and_tag) > 1:
+                image_tag = image_and_tag[1]
+            else:
+                image_tag = "latest"
+
+        min_memory = plugin_tmpl.get('min_memory', 128)
+        min_cpu = int(min_memory) / 128 * 20
+
+        return PluginBuildVersion(
+            plugin_id=plugin_id,
+            tenant_id=self.tenant.tenant_id,
+            region=self.region_name,
+            user_id=self.user.user_id,
+            event_id=make_uuid(),
+            build_version=plugin_tmpl.get('build_version'),
+            build_status="building",
+            min_memory=min_memory,
+            min_cpu=min_cpu,
+            image_tag=image_tag,
+            plugin_version_status="fixed",
+        )
+
+    @staticmethod
+    def _create_config_groups(plugin_id, build_version, config_groups_tmpl):
+        config_groups = []
+        config_items = []
+        for config in config_groups_tmpl:
+            options = config["options"]
+            plugin_config_meta = PluginConfigGroup(
+                plugin_id=plugin_id,
+                build_version=build_version.build_version,
+                config_name=config["config_name"],
+                service_meta_type=config["service_meta_type"],
+                injection=config["injection"])
+            config_groups.append(plugin_config_meta)
+
+            for option in options:
+                config_item = PluginConfigItems(
+                    plugin_id=plugin_id,
+                    build_version=build_version.build_version,
+                    service_meta_type=config["service_meta_type"],
+                    attr_name=option.get("attr_name", ""),
+                    attr_alt_value=option.get("attr_alt_value", ""),
+                    attr_type=option.get("attr_type", "string"),
+                    attr_default_value=option.get("attr_default_value", None),
+                    is_change=option.get("is_change", False),
+                    attr_info=option.get("attr_info", ""),
+                    protocol=option.get("protocol", ""))
+                config_items.append(config_item)
+        return config_groups, config_items

@@ -2,7 +2,6 @@
 import logging
 
 from .plugin import Plugin
-from .new_plugin import NewPlugin
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
@@ -47,10 +46,10 @@ class NewApp(object):
                  update_components,
                  component_deps,
                  volume_deps,
-                 new_plugin: NewPlugin,
                  plugins: [Plugin],
                  plugin_deps,
                  plugin_configs,
+                 new_plugins: [Plugin] = None,
                  config_groups=None,
                  config_group_items=None,
                  config_group_components=None):
@@ -69,8 +68,8 @@ class NewApp(object):
         self.component_ids = [cpt.component.component_id for cpt in self._components()]
 
         # plugins
-        self.new_plugin = new_plugin
         self.plugins = plugins
+        self.new_plugins = new_plugins
         self.plugin_deps = plugin_deps
         self.plugin_configs = plugin_configs
 

@@ -3,6 +3,13 @@ import json
 
 from .new_app import NewApp
 from .original_app import OriginalApp
+from .plugin import Plugin
+# repository
+from console.repositories.plugin import config_group_repo
+from console.repositories.plugin import config_item_repo
+from console.repositories.plugin.plugin import plugin_version_repo
+from console.repositories.plugin.plugin import plugin_repo
+from console.repositories.plugin.plugin_version import build_version_repo
 # constant
 from console.constants import PluginMetaType
 from console.constants import PluginInjection
@@ -238,3 +245,35 @@ class MarketApp(object):
             "app_config_groups": config_groups,
         }
         region_api.sync_config_groups(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
+
+    def list_original_plugins(self):
+        plugins = plugin_repo.list_by_tenant_id(self.original_app.tenant_id, self.region_name)
+        plugin_ids = [plugin.plugin_id for plugin in plugins]
+        plugin_versions = self._list_plugin_versions(plugin_ids)
+
+        new_plugins = []
+        for plugin in plugins:
+            plugin_version = plugin_versions.get(plugin.plugin_id)
+            new_plugins.append(Plugin(plugin, plugin_version))
+        return new_plugins
+
+    @staticmethod
+    def _list_plugin_versions(plugin_ids):
+        plugin_versions = plugin_version_repo.list_by_plugin_ids(plugin_ids)
+        return {plugin_version.plugin_id: plugin_version for plugin_version in plugin_versions}
+
+    def save_new_plugins(self):
+        plugins = []
+        build_versions = []
+        config_groups = []
+        config_items = []
+        for plugin in self.new_app.new_plugins:
+            plugins.append(plugin.plugin)
+            build_versions.append(plugin.build_version)
+            config_groups.extend(plugin.config_groups)
+            config_items.extend(plugin.config_items)
+
+        plugin_repo.bulk_create(plugins)
+        build_version_repo.bulk_create(build_versions)
+        config_group_repo.bulk_create_plugin_config_group(config_groups)
+        config_item_repo.bulk_create_items(config_items)

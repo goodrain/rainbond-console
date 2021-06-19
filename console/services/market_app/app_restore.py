@@ -4,19 +4,14 @@ import logging
 import copy
 from datetime import datetime
 
-from .plugin import Plugin
-from .app import MarketApp
+from .market_app import MarketApp
 from .original_app import OriginalApp
 from .new_app import NewApp
 from .component import Component
-# service
-from console.services.app_actions import app_manage_service
 # repository
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
-from console.repositories.plugin import plugin_repo
-from console.repositories.plugin.plugin import plugin_version_repo
 # model
 from www.models.main import ServiceGroup
 from www.models.main import TenantServiceGroup
@@ -168,7 +163,7 @@ class AppRestore(MarketApp):
         volume_deps = self.ensure_component_deps(self.original_app, new_volume_deps)
 
         # plugins
-        plugins = self._create_plugins()
+        plugins = self.list_original_plugins()
 
         return NewApp(
             tenant=self.tenant,
@@ -239,22 +234,6 @@ class AppRestore(MarketApp):
         component_group = copy.deepcopy(self.component_group)
         component_group.group_version = version
         return component_group
-
-    def _create_plugins(self):
-        plugins = plugin_repo.list_by_tenant_id(self.tenant.tenant_id, self.region_name)
-        plugin_ids = [plugin.plugin_id for plugin in plugins]
-        plugin_versions = self._list_plugin_versions(plugin_ids)
-
-        new_plugins = []
-        for plugin in plugins:
-            plugin_version = plugin_versions.get(plugin.plugin_id)
-            new_plugins.append(Plugin(plugin, plugin_version))
-        return new_plugins
-
-    @staticmethod
-    def _list_plugin_versions(plugin_ids):
-        plugin_versions = plugin_version_repo.list_by_plugin_ids(plugin_ids)
-        return {plugin_version.plugin_id: plugin_version for plugin_version in plugin_versions}
 
     def _create_plugins_deps(self):
         plugin_deps = []
