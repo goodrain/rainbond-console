@@ -154,7 +154,6 @@ class MarketApp(object):
         body = {
             "components": new_components,
         }
-        print(json.dumps(body))
         region_api.sync_components(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
 
     def _create_plugin_bodies(self, components):

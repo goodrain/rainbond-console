@@ -1188,14 +1188,20 @@ class MarketAppService(object):
         for component in components:
             if component.tenant_service_group_id:
                 component_groups_cache[component.service_id] = component.tenant_service_group_id
+
+        component_groups = {cg.ID: cg for cg in component_groups}
+
         for ss in service_sources:
             if ss.service_id in component_groups_cache:
-                upgrade_app_key = "{0}-{1}".format(ss.group_key, component_groups_cache[ss.service_id])
-                if (upgrade_app_key not in upgrade_app_models) or compare_version(
-                        upgrade_app_models[upgrade_app_key]['version'], ss.version) == -1:
-                    upgrade_app_models[upgrade_app_key] = {'version': ss.version, 'component_source': ss}
+                upgrade_group_id = component_groups_cache[ss.service_id]
+                component_group = component_groups[upgrade_group_id]
+                upgrade_app_key = "{0}-{1}".format(ss.group_key, upgrade_group_id)
+                if (upgrade_app_key not in upgrade_app_models) or compare_version(upgrade_app_models[upgrade_app_key]['version'], ss.version) == -1:
+                    # The version of the component group is the version of the application
+                    upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version, 'component_source': ss}
         iterator = self.yield_app_info(upgrade_app_models, tenant, application.ID)
         app_info_list = [app_info for app_info in iterator]
+
         return app_info_list
 
     def yield_app_info(self, app_models, tenant, app_id):

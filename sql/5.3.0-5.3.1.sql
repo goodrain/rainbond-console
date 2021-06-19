@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `app_upgrade_snapshots` (
      `tenant_id` varchar(32) NOT NULL,
      `upgrade_group_id` int NOT NULL,
      `snapshot_id` varchar(32) NOT NULL,
-     `snapshot` text NOT NULL,
+     `snapshot` longtext NOT NULL,
      `update_time` datetime(6) NOT NULL,
      `create_time` datetime(6) NOT NULL,
      PRIMARY KEY (`ID`)
