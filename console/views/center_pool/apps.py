@@ -93,7 +93,6 @@ class CenterAppListView(JWTAuthApiView):
 
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
-    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
         创建应用市场应用

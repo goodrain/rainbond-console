@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import json
 
+from django.db import transaction
+
 from .new_app import NewApp
 from .original_app import OriginalApp
 from .plugin import Plugin
@@ -29,14 +31,17 @@ class MarketApp(object):
         self.tenant_name = self.new_app.tenant.tenant_name
         self.region_name = self.new_app.region_name
 
+    @transaction.atomic
     def save_new_app(self):
         self.new_app.save()
 
     def sync_new_app(self):
-        self._sync_app(self.new_app)
+        self._sync_new_components()
+        self._sync_app_config_groups(self.new_app)
 
     def rollback(self):
-        self._sync_app(self.original_app)
+        self._rollback_components()
+        self._sync_app_config_groups(self.original_app)
 
     def deploy(self):
         builds = []
@@ -95,16 +100,25 @@ class MarketApp(object):
         deps.extend(new_deps)
         return deps
 
-    def _sync_app(self, app):
-        self._sync_components(app)
-        self._sync_app_config_groups(app)
-
-    def _sync_components(self, app):
+    def _sync_new_components(self):
         """
         synchronous components to the application in region
         """
+        body = {
+            "components": self._create_component_body(self.new_app),
+        }
+        region_api.sync_components(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
+
+    def _rollback_components(self):
+        body = {
+            "components": self._create_component_body(self.original_app),
+            "delete_component_ids": [cpt.component.component_id for cpt in self.new_app.new_components]
+        }
+        region_api.sync_components(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
+
+    def _create_component_body(self, app):
         components = app.components()
-        plugin_bodies = self._create_plugin_bodies(components)
+        plugin_bodies = self._create_plugin_body(components)
         new_components = []
         for cpt in components:
             component_base = cpt.component.to_dict()
@@ -150,13 +164,9 @@ class MarketApp(object):
             plugin_body = plugin_bodies.get(cpt.component.component_id, [])
             component["plugins"] = plugin_body
             new_components.append(component)
+        return new_components
 
-        body = {
-            "components": new_components,
-        }
-        region_api.sync_components(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
-
-    def _create_plugin_bodies(self, components):
+    def _create_plugin_body(self, components):
         components = {cpt.component.component_id: cpt for cpt in components}
         plugins = {plugin.plugin.plugin_id: plugin for plugin in self.new_app.plugins}
         plugin_configs = {}
