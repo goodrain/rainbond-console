@@ -167,10 +167,18 @@ class DomainService(object):
         return tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, container_port)
 
         # get all http rules in define app
-    def get_tcp_rules_by_app_id(self, app_id):
+    def get_tcp_rules_by_app_id(self, region_name, app_id):
         services = group_service.get_group_services(app_id)
         service_ids = [s.service_id for s in services]
-        return tcp_domain.get_services_tcpdomains(service_ids)
+        tcpdomains = tcp_domain.get_services_tcpdomains(service_ids)
+        tcpdomain = region_services.get_region_tcpdomain(region_name=region_name)
+        for domain in tcpdomains:
+            arr = domain.end_point.split(":")
+            if len(arr) != 2 or arr[0] != "0.0.0.0":
+                continue
+            domain.end_point = tcpdomain + ":" + arr[1]
+
+        return tcpdomains
 
     def get_sld_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id,
