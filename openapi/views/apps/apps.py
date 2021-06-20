@@ -355,8 +355,16 @@ class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceO
         serializer = AppServiceTelescopicVerticalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_memory = serializer.data.get("new_memory")
+        new_gpu = serializer.data.get("new_gpu", None)
+        new_cpu = serializer.data.get("new_cpu", None)
         code, msg = app_manage_service.vertical_upgrade(
-            self.team, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+            self.team,
+            self.service,
+            self.user,
+            int(new_memory),
+            oauth_instance=self.oauth_instance,
+            new_gpu=new_gpu,
+            new_cpu=new_cpu)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="vertical upgrade error", msg_show=msg)
         return Response(None, status=code)

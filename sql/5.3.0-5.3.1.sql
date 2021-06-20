@@ -2,7 +2,6 @@
 ALTER TABLE tenant_service_env_var MODIFY attr_value text;
 ALTER TABLE tenant_service_monitor MODIFY `path` varchar(255);
 ALTER TABLE tenant_info CHANGE `region` `region` varchar(64) Default '';
-ALTER TABLE tenant_info DROP COLUMN `region`;
 ALTER TABLE service_share_record ADD COLUMN `share_app_version_info` VARCHAR(255) DEFAULT '';
 
 ALTER TABLE app_upgrade_record ADD COLUMN `upgrade_group_id` int DEFAULT 0;
@@ -21,3 +20,9 @@ CREATE TABLE IF NOT EXISTS `app_upgrade_snapshots` (
      `create_time` datetime(6) NOT NULL,
      PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=588 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE rainbond_center_app_version modify COLUMN version_alias VARCHAR(64);
+ALTER TABLE service_share_record modify COLUMN share_version_alias VARCHAR(64);
+
+ALTER TABLE tenant_service add COLUMN container_gpu int(64) DEFAULT 0;
+ALTER TABLE tenant_service_delete add COLUMN container_gpu int(64) DEFAULT 0;

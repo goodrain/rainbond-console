@@ -20,11 +20,10 @@ from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.region_app import region_app_repo
-from console.repositories.group import group_service_relation_repo
 # service
+from console.services.app_config.domain_service import domain_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.probe_service import ProbeService
-from console.services.app_config.domain_service import domain_service
 from console.services.region_services import region_services
 # model
 from www.models.main import ServiceGroup
@@ -475,22 +474,22 @@ class AppPortService(object):
                 region_id = region.region_id
                 domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
                                                    http_rule_id, tenant_id, service_alias, region_id)
-                # 给数据中心发请求添加默认域名
-                data = dict()
-                data["domain"] = domain_name
-                data["service_id"] = service.service_id
-                data["tenant_id"] = tenant.tenant_id
-                data["tenant_name"] = tenant.tenant_name
-                data["protocol"] = protocol
-                data["container_port"] = int(container_port)
-                data["http_rule_id"] = http_rule_id
-                try:
-                    region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
-                except Exception as e:
-                    logger.exception(e)
-                    domain_repo.delete_http_domains(http_rule_id)
-                    return 412, "数据中心添加策略失败"
-
+                if service.create_status == "complete":
+                    # 给数据中心发请求添加默认域名
+                    data = dict()
+                    data["domain"] = domain_name
+                    data["service_id"] = service.service_id
+                    data["tenant_id"] = tenant.tenant_id
+                    data["tenant_name"] = tenant.tenant_name
+                    data["protocol"] = protocol
+                    data["container_port"] = int(container_port)
+                    data["http_rule_id"] = http_rule_id
+                    try:
+                        region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
+                    except Exception as e:
+                        logger.exception(e)
+                        domain_repo.delete_http_domains(http_rule_id)
+                        return 412, "数据中心添加策略失败"
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
                 service.service_id, deal_port.container_port)
@@ -516,20 +515,21 @@ class AppPortService(object):
                 region_id = region.region_id
                 tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
                                                       protocol, service_alias, tcp_rule_id, tenant_id, region_id)
-                port = end_point.split(":")[1]
-                data = dict()
-                data["service_id"] = service.service_id
-                data["container_port"] = int(container_port)
-                data["ip"] = "0.0.0.0"
-                data["port"] = int(port)
-                data["tcp_rule_id"] = tcp_rule_id
-                try:
-                    # 给数据中心传送数据添加策略
-                    region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
-                except Exception as e:
-                    logger.exception(e)
-                    tcp_domain.delete_tcp_domain(tcp_rule_id)
-                    return 412, "数据中心添加策略失败"
+                if service.create_status == "complete":
+                    port = end_point.split(":")[1]
+                    data = dict()
+                    data["service_id"] = service.service_id
+                    data["container_port"] = int(container_port)
+                    data["ip"] = "0.0.0.0"
+                    data["port"] = int(port)
+                    data["tcp_rule_id"] = tcp_rule_id
+                    try:
+                        # 给数据中心传送数据添加策略
+                        region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
+                    except Exception as e:
+                        logger.exception(e)
+                        tcp_domain.delete_tcp_domain(tcp_rule_id)
+                        return 412, "数据中心添加策略失败"
 
         deal_port.is_outer_service = True
         if service.create_status == "complete":
@@ -854,6 +854,8 @@ class AppPortService(object):
                                                                   port.container_port)
 
             if service_tcp_domain:
+                if "0.0.0.0" in service_tcp_domain.end_point:
+                    return service_tcp_domain.end_point.replace("0.0.0.0", region.tcpdomain)
                 return service_tcp_domain.end_point
             else:
                 return None

@@ -9,7 +9,7 @@ import logging
 from console.cloud.services import check_memory_quota
 from console.constants import AppConstants
 from console.enum.component_enum import ComponentType, is_singleton, is_state
-from console.exception.main import ServiceHandleException, AbortRequest
+from console.exception.main import AbortRequest, ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
                                       service_source_repo)
@@ -758,31 +758,31 @@ class AppManageService(AppManageBase):
             deploy_infos_list.append(service_dict)
         return 200, body
 
-    def vertical_upgrade(self, tenant, service, user, new_memory, oauth_instance):
-        """组件水平升级"""
+    def vertical_upgrade(self, tenant, service, user, new_memory, oauth_instance, new_gpu=None, new_cpu=None):
+        """组件垂直升级"""
         new_memory = int(new_memory)
-        if new_memory == service.min_memory:
-            return 409, "内存没有变化，无需升级"
         if new_memory > 65536 or new_memory < 32:
             return 400, "内存范围在32M到64G之间"
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
-        if new_memory > service.min_memory:
-            if not check_memory_quota(oauth_instance, tenant.enterprise_id, new_memory - int(service.min_memory),
-                                      service.min_node):
-                raise ServiceHandleException(error_code=20002, msg="not enough quota")
-
-        new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
+        if new_memory > service.min_memory and not check_memory_quota(oauth_instance, tenant.enterprise_id,
+                                                                      new_memory - int(service.min_memory), service.min_node):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body = dict()
             body["container_memory"] = new_memory
+            if new_cpu is None or type(new_gpu) != int:
+                new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
             body["container_cpu"] = new_cpu
+            if new_gpu is not None and type(new_gpu) == int:
+                body["container_gpu"] = new_gpu
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:
                 region_api.vertical_upgrade(service.service_region, tenant.tenant_name, service.service_alias, body)
                 service.min_cpu = new_cpu
                 service.min_memory = new_memory
+                service.container_gpu = new_gpu
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)

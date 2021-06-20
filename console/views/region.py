@@ -166,6 +166,18 @@ class GetRegionPublicKeyView(RegionTenantHeaderView):
         return Response(result, status=200)
 
 
+class GetRegionFeature(RegionTenantHeaderView):
+    def get(self, request, region_name, *args, **kwargs):
+        """
+        获取指定数据中心的授权功能列表
+        ---
+
+        """
+        features = region_services.get_region_license_features(self.team, region_name)
+        result = general_message(200, 'query success', '集群授权功能获取成功', list=features)
+        return Response(result, status=200)
+
+
 class PublicRegionListView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """

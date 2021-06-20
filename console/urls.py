@@ -93,15 +93,15 @@ from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView)
-from console.views.region import (GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView, OpenRegionView,
-                                  QyeryRegionView, RegQuyView, RegUnopenView)
+from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
+                                  OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import (
     AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView, AppMarketBatchCView,
-    AppMarketCLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost, ServiceShareCompleteView,
-    ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView, ServiceShareRecordInfoView,
-    ServiceShareRecordView, ShareRecordView, AppMarketOrgModelLView)
+    AppMarketCLView, AppMarketOrgModelLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost,
+    ServiceShareCompleteView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView,
+    ServiceShareRecordInfoView, ServiceShareRecordView, ShareRecordView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
@@ -545,6 +545,7 @@ urlpatterns = [
     # 获取数据中心builder PublicKey
     url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/publickey$', GetRegionPublicKeyView.as_view(),
         perms.GetRegionPublicKeyView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/features$', GetRegionFeature.as_view()),
 
     # 插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/plugins$', PluginCreateView.as_view(), perms.PluginCreateView),

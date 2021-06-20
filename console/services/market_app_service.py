@@ -12,6 +12,7 @@ from console.services.market_app.component_group import ComponentGroup
 from console.services.market_app.app_upgrade import AppUpgrade
 # enum
 from console.constants import AppConstants
+from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import ComponentType
 # exception
 from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
@@ -20,7 +21,7 @@ from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
 from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo)
 from console.repositories.base import BaseConnection
-from console.repositories.group import tenant_service_group_repo
+from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
 from console.repositories.service_repo import service_repo
@@ -181,12 +182,12 @@ class MarketAppService(object):
                 items = [{"item_key": key, "item_value": config_items[key]} for key in config_items]
                 try:
                     app_config_group_service.create_config_group(group_id, config_group["name"], items,
-                                                                 config_group["injection_type"], True, component_ids, region,
-                                                                 tenant.tenant_name)
+                                                                 config_group["injection_type"], True, component_ids,
+                                                                 region.region_name, tenant.tenant_name)
                 except ErrAppConfigGroupExists:
                     app_config_group_service.create_config_group(group_id, config_group["name"] + "-" + make_uuid()[:4], items,
-                                                                 config_group["injection_type"], True, component_ids, region,
-                                                                 tenant.tenant_name)
+                                                                 config_group["injection_type"], True, component_ids,
+                                                                 region.region_name, tenant.tenant_name)
 
             # create plugin for component
             self.__create_service_plugins(region, tenant, service_list, app_plugin_map, old_new_id_map)
@@ -337,10 +338,14 @@ class MarketAppService(object):
         self.__init_service_source(ts, app, market_app_id, market_app_version.version, install_from_cloud, market_name)
         group_service.add_service_to_group(tenant, region.region_name, application_id, ts.service_id)
 
+        # handle service connect info env
+        port_k8s_svc_name, outer_envs = self.__handle_service_connect_info(tenant, ts, app.get("port_map_list", []),
+                                                                           app.get("service_connect_info_map_list", []))
+        app["service_connect_info_map_list"] = outer_envs
         # first save env before save port
         self.__save_env(tenant, ts, app.get("service_env_map_list", []), app.get("service_connect_info_map_list", []))
         # save port
-        self.__save_port(tenant, region, ts, app.get("port_map_list", []))
+        self.__save_port(tenant, region, ts, app.get("port_map_list", []), port_k8s_svc_name)
         # save volume
         self.__save_volume(tenant, ts, app["service_volume_map_list"])
 
@@ -644,6 +649,44 @@ class MarketAppService(object):
                         if code != 200:
                             logger.error("save component dependency relation error {0}".format(msg))
 
+    def __handle_service_connect_info(self, tenant, service, ports, outer_envs):
+        if not ports:
+            return {}, []
+        port_k8s_svc_name = dict()
+        envs = {oe.get("attr_name", "None"): oe for oe in outer_envs}
+        app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+        for port in ports:
+            # Process the k8s_service_name of each port
+            component_port = port["container_port"]
+            k8s_service_name = port.get("k8s_service_name") if port.get(
+                "k8s_service_name") else service.service_alias + "-" + str(component_port)
+            k8s_service_name = self.__handle_k8s_service_name(tenant, service, k8s_service_name, component_port)
+            # Use component ID and port number as unique identification
+            port_k8s_svc_name["{}{}".format(service.service_id, component_port)] = k8s_service_name
+
+            if not port.get("is_inner_service", False):
+                continue
+            port_alias = port["port_alias"] if port.get("port_alias") else service.service_alias.upper() + str(
+                port["container_port"])
+            env_prefix = port_alias.upper()
+            if not envs.get(env_prefix + "_HOST", ""):
+                host_value = k8s_service_name \
+                    if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name else "127.0.0.1"
+                outer_envs.append({
+                    "name": "连接信息",
+                    "attr_name": env_prefix + "_HOST",
+                    "is_change": True,
+                    "attr_value": host_value
+                })
+            if not envs.get(env_prefix + "_PORT", ""):
+                outer_envs.append({
+                    "name": "端口",
+                    "attr_name": env_prefix + "_PORT",
+                    "is_change": True,
+                    "attr_value": component_port
+                })
+        return port_k8s_svc_name, outer_envs
+
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
             return
@@ -678,20 +721,23 @@ class MarketAppService(object):
         if len(envs) > 0:
             env_var_repo.bulk_create_component_env(envs)
 
-    def __save_port(self, tenant, region, service, ports):
+    def __handle_k8s_service_name(self, tenant, service, k8s_service_name, component_port):
+        try:
+            port_service.check_k8s_service_name(tenant.tenant_id, k8s_service_name)
+        except ErrK8sServiceNameExists:
+            k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
+        except AbortRequest:
+            k8s_service_name = service.service_alias + "-" + str(component_port)
+        return k8s_service_name
+
+    def __save_port(self, tenant, region, service, ports, port_k8s_svc_name):
         if not ports:
             return
         create_ports = []
         for port in ports:
             component_port = port["container_port"]
-            k8s_service_name = port.get("k8s_service_name") if port.get(
-                "k8s_service_name") else service.service_alias + "-" + str(component_port)
-            try:
-                port_service.check_k8s_service_name(tenant.tenant_id, k8s_service_name)
-            except ErrK8sServiceNameExists:
-                k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
-            except AbortRequest:
-                k8s_service_name = service.service_alias + "-" + str(component_port)
+            k8s_service_name = port_k8s_svc_name.get("{}{}".format(service.service_id, component_port), "")
+
             t_port = TenantServicesPort(
                 tenant_id=tenant.tenant_id,
                 service_id=service.service_id,

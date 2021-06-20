@@ -1866,3 +1866,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/{tenant_name}/batch-build-plugins".format(tenant_name=tenant_name)
         self._set_headers(token)
         self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
+    def get_region_license_feature(self, tenant: Tenants, region_name):
+        url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
+        url = url + "/license/features"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body

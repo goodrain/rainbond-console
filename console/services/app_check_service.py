@@ -337,15 +337,16 @@ class AppCheckService(object):
         else:
             if service.service_source == AppConstants.SOURCE_CODE:
                 port_service.delete_service_port(tenant, service)
-                # default add port
-                code, msg, t_port = port_service.add_service_port(tenant, service, 5000, "http",
-                                                                  service.service_alias.upper() + str(5000), False, True)
+                _, _, t_port = port_service.add_service_port(tenant, service, 5000, "http",
+                                                             service.service_alias.upper() + str(5000), False, True)
                 region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
                 if region_info:
                     domain_service.create_default_gateway_rule(tenant, region_info, service, t_port)
                 else:
                     logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
                                                                                      service.service_region))
+
+        return 200, "success"
 
     def __save_volume(self, tenant, service, volumes):
         if volumes:
