@@ -1843,6 +1843,30 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
+    def sync_components(self, tenant_name, region_name, app_id, components):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/components".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(components), region=region_name)
+
+    def sync_config_groups(self, tenant_name, region_name, app_id, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/app-config-groups".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
+    def sync_plugins(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/plugins".format(tenant_name=tenant_name)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
+    def build_plugins(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/batch-build-plugins".format(tenant_name=tenant_name)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
     def get_region_license_feature(self, tenant: Tenants, region_name):
         url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
         url = url + "/license/features"

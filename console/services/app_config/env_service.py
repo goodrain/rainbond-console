@@ -5,10 +5,17 @@
 import logging
 import re
 from itertools import chain
+from datetime import datetime
 
-from console.exception.main import (EnvAlreadyExist, InvalidEnvName, ServiceHandleException)
-from console.repositories.app_config import (compile_env_repo, dep_relation_repo, env_var_repo)
 from django.db.transaction import atomic
+
+# exception
+from console.exception.main import (EnvAlreadyExist, InvalidEnvName, ServiceHandleException)
+# repository
+from console.repositories.app_config import (compile_env_repo, dep_relation_repo, env_var_repo)
+# model
+from www.models.main import TenantServicesPort, TenantServiceEnvVar
+# www
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -28,18 +35,21 @@ class AppEnvVarService(object):
             return False, "变量名称{0}不符合规范".format(attr_name)
         return True, "success"
 
-    def create_env_var(self, service, container_port, name, attr_name, attr_value, is_change=False, scope="outer"):
-        """
-        raise: EnvAlreadyExist
-        raise: InvalidEnvName
-        """
-        if env_var_repo.get_service_env_by_attr_name(service.tenant_id, service.service_id, attr_name):
+    def check_env(self, component, attr_name, attr_value):
+        if env_var_repo.get_service_env_by_attr_name(component.tenant_id, component.service_id, attr_name):
             raise EnvAlreadyExist()
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
             raise InvalidEnvName(msg)
+
+    def create_env_var(self, service, container_port, name, attr_name, attr_value, is_change=False, scope="outer"):
+        """
+        raise: EnvAlreadyExist
+        raise: InvalidEnvName
+        """
+        self.check_env(service, attr_name, attr_value)
         if len(str(attr_value)) > 65532:
             attr_value = str(attr_value)[:65532]
         tenantServiceEnvVar = {}
@@ -253,6 +263,20 @@ class AppEnvVarService(object):
             "dep_service_id", flat=True)
         envs = env_var_repo.get_depend_outer_envs_by_ids(tenant.tenant_id, dep_service_ids)
         return chain(selfenv, envs)
+
+    @staticmethod
+    def create_port_env(port: TenantServicesPort, name, attr_name_suffix, attr_value):
+        return TenantServiceEnvVar(
+            tenant_id=port.tenant_id,
+            service_id=port.service_id,
+            container_port=port.container_port,
+            name=name,
+            attr_name=port.port_alias + str(port.container_port) + "_" + attr_name_suffix,
+            attr_value=attr_value,
+            is_change=False,
+            scope="outer",
+            create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        )
 
 
 class AppEnvService(object):

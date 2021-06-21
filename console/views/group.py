@@ -159,7 +159,7 @@ class TenantAppUpgradableNumView(ApplicationView):
         data = dict()
         data['upgradable_num'] = 0
         try:
-            data['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
+            data['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, self.app)
         except MaxRetryError as e:
             logger.warning("get the number of upgradable app: {}".format(e))
         except ServiceHandleException as e:
@@ -277,7 +277,7 @@ class AppKubernetesServiceView(ApplicationView):
             if not k8s_service.get("port_alias"):
                 raise AbortRequest("the field 'port_alias' is required")
 
-        group_service.update_kubernetes_services(self.tenant, self.region_name, app_id, k8s_services)
+        group_service.update_kubernetes_services(self.tenant, self.region_name, self.app, k8s_services)
 
         result = general_message(200, "success", "更新成功", list=k8s_services)
         return Response(result)
@@ -287,11 +287,4 @@ class ApplicationStatusView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         status = group_service.get_app_status(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=status)
-        return Response(result)
-
-
-class ApplicationRainbondAppView(ApplicationView):
-    def get(self, request, app_id, rainbond_app_id, *args, **kwargs):
-        components = market_app_service.list_rainbond_app_components(self.user.enterprise_id, self.tenant, rainbond_app_id)
-        result = general_message(200, "success", "查询成功", list=components)
         return Response(result)

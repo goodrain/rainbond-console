@@ -744,6 +744,12 @@ class UpgradeStatus(IntEnum):
     PARTIAL_ROLLBACK = 7  # 部分回滚
     UPGRADE_FAILED = 8  # 升级失败
     ROLLBACK_FAILED = 9  # 回滚失败
+    DEPLOY_FAILED = 10
+
+
+class AppUpgradeRecordType(Enum):
+    UPGRADE = "upgrade"
+    ROLLBACK = "rollback"
 
 
 class AppUpgradeRecord(BaseModel):
@@ -763,6 +769,44 @@ class AppUpgradeRecord(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     market_name = models.CharField(max_length=64, null=True, help_text="商店标识")
     is_from_cloud = models.BooleanField(default=False, help_text="应用来源")
+    upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32, null=True)
+    record_type = models.CharField(max_length=64, null=True, help_text="记录类型, 升级/回滚")
+    parent_id = models.IntegerField(default=0, help_text="回滚记录对应的升级记录 ID")
+
+    def to_dict(self):
+        record = super(AppUpgradeRecord, self).to_dict()
+        record["can_rollback"] = self.can_rollback()
+        record["is_finished"] = self.is_finished()
+        return record
+
+    def is_finished(self):
+        return self.status not in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+
+    def can_rollback(self):
+        if self.record_type != AppUpgradeRecordType.UPGRADE.value:
+            return False
+        statuses = [
+            UpgradeStatus.UPGRADED.value,
+            UpgradeStatus.ROLLBACK.value,
+            UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value,
+            UpgradeStatus.DEPLOY_FAILED.value,
+        ]
+        return self.status in statuses
+
+    def can_upgrade(self):
+        return self.status == UpgradeStatus.NOT.value
+
+    def can_deploy(self):
+        if not self.is_finished():
+            return False
+        statuses = [
+            UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value
+        ]
+        return True if self.status in statuses else False
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -792,11 +836,14 @@ class ServiceUpgradeRecord(BaseModel):
     )
     service_cname = models.CharField(max_length=100, help_text="服务名")
     upgrade_type = models.CharField(max_length=20, default=UpgradeType.UPGRADE.value, help_text="升级类型")
-    event_id = models.CharField(max_length=32)
+    event_id = models.CharField(max_length=32, null=True)
     update = models.TextField(help_text="升级信息")
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text="升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
+
+    def is_finished(self):
+        return self.status not in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
 
 
 class RegionConfig(BaseModel):
@@ -1014,3 +1061,15 @@ class ComponentGraph(BaseModel):
     title = models.CharField(max_length=255, help_text="the title of the graph")
     promql = models.CharField(max_length=2047, help_text="the title of the graph")
     sequence = models.IntegerField(help_text="the sequence number of the graph")
+
+
+class AppUpgradeSnapshot(BaseModel):
+    class Meta:
+        db_table = "app_upgrade_snapshots"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    tenant_id = models.CharField(max_length=32)
+    upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32, help_text="the identity of the snapshot")
+    snapshot = models.TextField()

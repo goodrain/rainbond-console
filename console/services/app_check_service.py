@@ -160,9 +160,7 @@ class AppCheckService(object):
         try:
             sid = transaction.savepoint()
             # 删除原有build类型env，保存新检测build类型env
-            save_code, save_msg = self.upgrade_service_env_info(tenant, service, data)
-            if save_code != 200:
-                logger.error('upgrade service env  by code check failure {0}'.format(save_msg))
+            self.upgrade_service_env_info(tenant, service, data)
             # 重新检测后对端口做加法
             try:
                 self.add_service_check_port(tenant, service, data)
@@ -183,36 +181,28 @@ class AppCheckService(object):
             raise ServiceHandleException(status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
 
     def save_service_check_info(self, tenant, service, data):
-        # 检测成功将信息存储
-        if data["check_status"] == "success":
-            if service.create_status == "checking":
-                logger.debug("checking service info install,save info into database")
-                service_info_list = data["service_info"]
-                sid = None
-                try:
-                    sid = transaction.savepoint()
-                    code, msg = self.save_service_info(tenant, service, service_info_list[0])
-                    if code != 200:
-                        return code, msg
-                    # save service info, checked 表示检测完成
-                    service.create_status = "checked"
-                    service.save()
-                    transaction.savepoint_commit(sid)
-                except Exception as e:
-                    if sid:
-                        transaction.savepoint_rollback(sid)
-                    logger.exception(e)
-                    return 400, "解析并存储组件属性发生错误"
-        return 200, "success"
+        # save the detection properties but does not throw any exception.
+        if data["check_status"] == "success" and service.create_status == "checking":
+            logger.debug("checking service info install,save info into database")
+            service_info_list = data["service_info"]
+            sid = None
+            try:
+                sid = transaction.savepoint()
+                self.save_service_info(tenant, service, service_info_list[0])
+                # save service info, checked 表示检测完成
+                service.create_status = "checked"
+                service.save()
+                transaction.savepoint_commit(sid)
+            except Exception as e:
+                if sid:
+                    transaction.savepoint_rollback(sid)
+                logger.exception(e)
 
     def upgrade_service_env_info(self, tenant, service, data):
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
-            code, msg = self.upgrade_service_info(tenant, service, service_info_list[0])
-            if code != 200:
-                return code, msg
-        return 200, "success"
+            self.upgrade_service_info(tenant, service, service_info_list[0])
 
     def add_service_check_port(self, tenant, service, data):
         # 更新构建时环境变量
@@ -232,10 +222,7 @@ class AppCheckService(object):
         service_info = check_service_info
         envs = service_info["envs"]
         # 更新构建时环境变量
-        code, msg = self.__upgrade_env(tenant, service, envs)
-        if code != 200:
-            return code, msg
-        return code, msg
+        self.__upgrade_env(tenant, service, envs)
 
     def __save_check_port(self, tenant, service, ports):
         if not ports:
@@ -244,7 +231,7 @@ class AppCheckService(object):
             code, msg, port_data = port_service.add_service_port(tenant, service, int(port["container_port"]), port["protocol"],
                                                                  service.service_alias.upper() + str(port["container_port"]))
             if code != 200:
-                logger.error("service.check", "save service check info port error {0}".format(msg))
+                logger.error("save service check info port error {0}".format(msg))
 
     def __upgrade_env(self, tenant, service, envs):
         if envs:
@@ -261,8 +248,7 @@ class AppCheckService(object):
                     code, msg, data = env_var_service.add_service_build_env_var(tenant, service, 0, env["name"], env["name"],
                                                                                 env["value"], True)
                     if code != 200:
-                        logger.error("service.check", "save service check info env error {0}".format(msg))
-        return 200, "success"
+                        logger.error("save service check info env error {0}".format(msg))
 
     def save_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
@@ -285,29 +271,17 @@ class AppCheckService(object):
             service_image = image["name"] + ":" + image["tag"]
             service.image = service_image
             service.version = image["tag"]
-
         envs = service_info.get("envs", None)
         ports = service_info.get("ports", None)
         volumes = service_info.get("volumes", None)
         service_runtime_os = service_info.get("os", "linux")
         if service_runtime_os == "windows":
             label_service.set_service_os_label(tenant, service, service_runtime_os)
-        code, msg = self.__save_compile_env(tenant, service, service.language)
-        if code != 200:
-            return code, msg
-
-        # 先保存env,再保存端口，因为端口需要处理env
-        code, msg = self.__save_env(tenant, service, envs)
-        if code != 200:
-            return code, msg
-        code, msg = self.__save_port(tenant, service, ports)
-        if code != 200:
-            return code, msg
-
-        code, msg = self.__save_volume(tenant, service, volumes)
-        if code != 200:
-            return code, msg
-        return 200, "success"
+        self.__save_compile_env(tenant, service, service.language)
+        # save env
+        self.__save_env(tenant, service, envs)
+        self.__save_port(tenant, service, ports)
+        self.__save_volume(tenant, service, volumes)
 
     def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
@@ -323,7 +297,6 @@ class AppCheckService(object):
         user_dependency = compile_env_service.get_service_default_env_by_language(language)
         user_dependency_json = json.dumps(user_dependency)
         compile_env_service.save_compile_env(service, language, check_dependency_json, user_dependency_json)
-        return 200, "success"
 
     def __save_env(self, tenant, service, envs):
         if envs:
@@ -342,18 +315,18 @@ class AppCheckService(object):
                     code, msg, data = env_var_service.add_service_build_env_var(tenant, service, 0, env["name"], env["name"],
                                                                                 env["value"], True)
                     if code != 200:
-                        logger.error("service.check", "save service check info env error {0}".format(msg))
+                        logger.error("save service check info env error {0}".format(msg))
                 else:
                     code, msg, env_data = env_var_service.add_service_env_var(tenant, service, 0, env["name"], env["name"],
                                                                               env["value"], True, "inner")
                     if code != 200:
-                        logger.error("service.check", "save service check info env error {0}".format(msg))
-                        # return code, msg
-        return 200, "success"
+                        logger.error("save service check info env error {0}".format(msg))
 
     def __save_port(self, tenant, service, ports):
+        if not tenant or not service:
+            return
         if ports:
-            # 删除原有port
+            # delete ports before add
             port_service.delete_service_port(tenant, service)
             for port in ports:
                 code, msg, port_data = port_service.add_service_port(
@@ -393,8 +366,6 @@ class AppCheckService(object):
                                                           volume_name, None, settings)
                     except ErrVolumePath:
                         logger.warning("Volume Path {0} error".format(volume["volume_path"]))
-
-        return 200, "success"
 
     def wrap_service_check_info(self, service, data):
         rt_info = dict()

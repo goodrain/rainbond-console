@@ -146,5 +146,14 @@ class ServiceRepo(object):
     def get_service_by_service_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids, )
 
+    @staticmethod
+    def bulk_create(components):
+        TenantServiceInfo.objects.bulk_create(components)
+
+    @staticmethod
+    def bulk_update(components):
+        TenantServiceInfo.objects.filter(pk__in=[cpt.ID for cpt in components]).delete()
+        TenantServiceInfo.objects.bulk_create(components)
+
 
 service_repo = ServiceRepo()

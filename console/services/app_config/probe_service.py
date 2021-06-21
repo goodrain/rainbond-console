@@ -5,8 +5,9 @@
 import copy
 import logging
 
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.repositories.probe_repo import probe_repo
+from www.models.main import ServiceProbe
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
@@ -79,16 +80,16 @@ class ProbeService(object):
 
         return 200, "success"
 
-    def add_service_probe(self, tenant, service, data):
+    def create_probe(self, tenant, service, data):
         code, msg = self.__check_probe_data(data)
         if code != 200:
-            return code, msg, None
+            raise AbortRequest("invalid probe", msg_show=msg)
 
         probe = probe_repo.get_probe_by_mode(service.service_id, data["mode"])
         if probe:
-            return 409, "已设置过该类型探针", None
+            raise AbortRequest("probe exists", msg_show="已设置过该类型探针", status_code=409, error_code=409)
         is_used = 1 if data.get("is_used", 1) else 0
-        prob_data = {
+        probe = {
             "service_id": service.service_id,
             "scheme": data.get("scheme", "tcp"),
             "path": data.get("path", ""),
@@ -104,15 +105,20 @@ class ProbeService(object):
             "probe_id": make_uuid(),
             "mode": data["mode"],
         }
-        # 真·深拷贝
-        console_prob = copy.deepcopy(prob_data)
-        prob_data["enterprise_id"] = tenant.enterprise_id
+        return ServiceProbe(**probe)
+
+    def add_service_probe(self, tenant, service, data):
+        probe = self.create_probe(tenant, service, data)
+        probe = probe.to_dict()
+        # deep copy
         logger.debug("create status: {}".format(service.create_status))
         if service.create_status == "complete":
+            new_probe = copy.deepcopy(probe)
+            new_probe["enterprise_id"] = tenant.enterprise_id
             res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name, service.service_alias,
-                                                     prob_data)
+                                                     new_probe)
             logger.debug("add probe action status {0}".format(res.status))
-        new_probe = probe_repo.add_service_probe(**console_prob)
+        new_probe = probe_repo.add_service_probe(**probe)
         return 200, "success", new_probe
 
     def update_service_probea(self, tenant, service, data, user_name=''):

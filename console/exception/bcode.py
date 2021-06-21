@@ -117,3 +117,61 @@ class ErrComponentBuildFailed(ServiceHandleException):
     def __init__(self):
         super(ErrComponentBuildFailed, self).__init__(
             msg="failed to build component", msg_show="组件构建失败", status_code=400, error_code=20800)
+
+
+# 20900 ~ 20999 => app upgrade
+class ErrAppUpgradeRecordNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppUpgradeRecordNotFound, self).__init__(
+            msg="app upgrade record not found", msg_show="找不到升级记录", status_code=404, error_code=20900)
+
+
+class ErrAppSnapshotNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppSnapshotNotFound, self).__init__(
+            msg="app snapshot not found", msg_show="找不到应用升级快照", status_code=404, error_code=20901)
+
+
+class ErrAppSnapshotExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppSnapshotExists, self).__init__(
+            msg="app snapshot exists", msg_show="应用升级快照已存在", status_code=409, error_code=20902)
+
+
+class ErrAppUpgradeDeployFailed(ServiceHandleException):
+    def __init__(self, msg=""):
+        super(ErrAppUpgradeDeployFailed, self).__init__(
+            msg if msg else "failed to deploy the app, please retry later",
+            msg_show="组件部署失败, 请稍后重试",
+            status_code=400,
+            error_code=20903)
+
+
+class ErrComponentGroupNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrComponentGroupNotFound, self).__init__(
+            "component group not found", msg_show="无法找到组件与应用市场应用的从属关系", status_code=404, error_code=20904)
+
+
+class ErrLastRecordUnfinished(ServiceHandleException):
+    def __init__(self):
+        super(ErrLastRecordUnfinished, self).__init__(
+            "the last record is unfinished", msg_show="上一个任务未完成", status_code=400, error_code=20905)
+
+
+class ErrAppUpgradeRecordCanNotDeploy(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppUpgradeRecordCanNotDeploy, self).__init__(
+            "can not deploy the record", msg_show="无法重新部署该记录", status_code=400, error_code=20906)
+
+
+class ErrAppUpgradeRecordCanNotRollback(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppUpgradeRecordCanNotRollback, self).__init__(
+            "can not rollback the record", msg_show="无法回滚该记录", status_code=400, error_code=20907)
+
+
+class ErrAppUpgradeWrongStatus(ServiceHandleException):
+    def __init__(self):
+        super(ErrAppUpgradeWrongStatus, self).__init__(
+            "the status of the upgrade record is not not_upgraded", msg_show="只能升级未升级的升级记录", status_code=400, error_code=20908)

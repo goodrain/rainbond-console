@@ -5,11 +5,16 @@ import os
 import jwt
 from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
+                                    AbortRequest)
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
+# repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.region_repo import region_repo
+# service
 from console.services.user_services import user_services
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
@@ -327,6 +332,7 @@ class RegionTenantHeaderView(TenantHeaderView):
         super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
         self.response_region = None
         self.region_name = None
+        self.region = None
 
     def initial(self, request, *args, **kwargs):
         super(RegionTenantHeaderView, self).initial(request, *args, **kwargs)
@@ -342,6 +348,10 @@ class RegionTenantHeaderView(TenantHeaderView):
         self.region_name = self.response_region
         if not self.response_region:
             raise ImportError("region_name not found !")
+        region = region_repo.get_region_by_region_name(self.region_name)
+        if not region:
+            raise AbortRequest("region not found", "数据中心不存在", status_code=404, error_code=404)
+        self.region = region
 
 
 class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudEnterpriseCenterView):
@@ -357,6 +367,7 @@ class ApplicationView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(ApplicationView, self).__init__(*args, **kwargs)
         self.app = None
+        self.app_id = None
 
     def initial(self, request, *args, **kwargs):
         super(ApplicationView, self).initial(request, *args, **kwargs)
@@ -365,10 +376,22 @@ class ApplicationView(RegionTenantHeaderView):
         if not app:
             raise ServiceHandleException("app not found", "应用不存在", status_code=404)
         self.app = app
+        self.app_id = self.app.ID
 
         # update update_time if the http method is not a get.
         if request.method != 'GET':
             group_repo.update_group_time(app_id)
+
+
+class AppUpgradeRecordView(ApplicationView):
+    def __init__(self, *args, **kwargs):
+        super(AppUpgradeRecordView, self).__init__(*args, **kwargs)
+        self.app_upgrade_record = None
+
+    def initial(self, request, *args, **kwargs):
+        super(AppUpgradeRecordView, self).initial(request, *args, **kwargs)
+        record_id = kwargs.get("record_id") if kwargs.get("record_id") else kwargs.get("upgrade_record_id")
+        self.app_upgrade_record = upgrade_repo.get_by_record_id(record_id)
 
 
 class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):
