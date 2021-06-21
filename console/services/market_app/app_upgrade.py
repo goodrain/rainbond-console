@@ -658,10 +658,7 @@ class AppUpgrade(MarketApp):
             image = None
             if plugin_tmpl["share_image"]:
                 image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
-                if len(image_and_tag) > 1:
-                    image = image_and_tag[0]
-                else:
-                    image = image_and_tag[0]
+                image = image_and_tag[0]
             plugin = TenantPlugin(
                 tenant_id=self.tenant.tenant_id,
                 region=self.region_name,
@@ -681,8 +678,6 @@ class AppUpgrade(MarketApp):
             build_version = self._create_build_version(plugin.plugin_id, plugin_tmpl)
             config_groups, config_items = self._create_config_groups(plugin.plugin_id, build_version,
                                                                      plugin_tmpl["config_groups"])
-            config_groups = config_groups
-            config_items = config_items
             plugins.append(Plugin(plugin, build_version, config_groups, config_items, plugin_tmpl["plugin_image"]))
 
         return plugins
