@@ -121,7 +121,7 @@ class AppUpgrade(MarketApp):
             logger.exception(e)
             # rollback on failure
             self.rollback()
-            raise ServiceHandleException("unexpected error", "升级遇到了故障, 暂无法执行, 请稍后重试")
+            raise ServiceHandleException("unexpected error", "安装遇到了故障, 暂无法执行, 请稍后重试")
 
         if self.is_deploy:
             self._install_deploy()

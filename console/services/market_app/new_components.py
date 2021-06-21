@@ -131,12 +131,10 @@ class NewComponents(object):
         component.service_key = template.get("service_key")
         component.desc = "install from market app"
         component.category = "app_publish"
-        component.min_cpu = component.calculate_min_cpu(component.min_memory)
         component.version = template.get("version")
         component.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         component.deploy_version = template.get("deploy_version")
         component.service_type = "application"
-        component.total_memory = component.min_node * component.min_memory
         component.service_source = AppConstants.MARKET
         component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
@@ -159,6 +157,8 @@ class NewComponents(object):
             component.min_memory = template.get("extend_method_map", {}).get("min_memory")
         else:
             component.min_memory = 512
+        component.min_cpu = component.calculate_min_cpu(component.min_memory)
+        component.total_memory = component.min_node * component.min_memory
 
         return component
 

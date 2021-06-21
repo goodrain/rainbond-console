@@ -6,7 +6,6 @@ from console.exception.main import AbortRequest
 from console.services.group_service import group_service
 # repository
 from console.repositories.app import service_source_repo
-from console.repositories.market_app_repo import rainbond_app_repo
 # model
 from www.models.main import TenantServiceGroup
 
