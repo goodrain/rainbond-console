@@ -27,7 +27,6 @@ from console.repositories.plugin import plugin_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.group import group_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import (AppMntService, domain_service, port_service, probe_service, volume_service)
@@ -48,6 +47,7 @@ from django.db.models import Q
 # model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
                              TenantServicesPort, Users)
+from www.models.plugin import ServicePluginConfigVar
 from console.models.main import AppUpgradeRecord
 from console.models.main import AppMarket
 # www

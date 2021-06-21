@@ -224,7 +224,8 @@ class UpgradeService(object):
 
         try:
             events = app_manage_service.batch_operations(tenant, region_name, user, "deploy", component_ids)
-            status = UpgradeStatus.UPGRADING.value if record.record_type == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
+            status = UpgradeStatus.UPGRADING.value \
+                if record.record_type == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
             upgrade_repo.change_app_record_status(record, status)
         except ServiceHandleException as e:
             upgrade_repo.change_app_record_status(record, UpgradeStatus.DEPLOY_FAILED.value)
@@ -255,7 +256,8 @@ class UpgradeService(object):
         if not events:
             return
         event_ids = {event["service_id"]: event["event_id"] for event in events}
-        status = UpgradeStatus.UPGRADING.value if app_record.record_type == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
+        status = UpgradeStatus.UPGRADING.value \
+            if app_record.record_type == UpgradeType.UPGRADE.value else UpgradeStatus.ROLLING.value
         for component_record in component_records:
             event_id = event_ids.get(component_record.service_id)
             if not event_id:
