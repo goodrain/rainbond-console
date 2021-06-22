@@ -424,6 +424,7 @@ class TenantServiceRelationRepository(object):
 
     @staticmethod
     def overwrite_by_component_id(component_ids, component_deps):
+        component_deps = [dep for dep in component_deps if dep.service_id in component_ids]
         TenantServiceRelation.objects.filter(service_id__in=component_ids).delete()
         TenantServiceRelation.objects.bulk_create(component_deps)
 
@@ -500,6 +501,7 @@ class TenantServiceMntRelationRepository(object):
         TenantServiceMountRelation.objects.bulk_create(mnts)
 
     def overwrite_by_component_id(self, component_ids, volume_deps):
+        volume_deps = [dep for dep in volume_deps if dep.service_id in component_ids]
         TenantServiceMountRelation.objects.filter(service_id__in=component_ids).delete()
         self.bulk_create(volume_deps)
 

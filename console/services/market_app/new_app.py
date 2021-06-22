@@ -26,7 +26,6 @@ from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
 # model
 from www.models.main import ServiceGroup
-from www.models.main import TenantServiceGroup
 # utils
 from www.apiclient.regionapi import RegionInvokeApi
 

@@ -61,8 +61,7 @@ class AppPluginRelationRepo(object):
 
     @staticmethod
     def overwrite_by_component_ids(component_ids, plugin_deps):
-        for plugin_dep in plugin_deps:
-            print(json.dumps(plugin_dep.to_dict()))
+        plugin_deps = [plugin_dep for plugin_dep in plugin_deps if plugin_dep.service_id in component_ids]
         TenantServicePluginRelation.objects.filter(service_id__in=component_ids).delete()
         TenantServicePluginRelation.objects.bulk_create(plugin_deps)
 
@@ -110,5 +109,6 @@ class ServicePluginConfigVarRepository(object):
 
     @staticmethod
     def overwrite_by_component_ids(component_ids, plugin_configs):
+        plugin_configs = [config for config in plugin_configs if config.service_id in component_ids]
         ServicePluginConfigVar.objects.filter(service_id__in=component_ids).delete()
         ServicePluginConfigVar.objects.bulk_create(plugin_configs)
