@@ -351,7 +351,7 @@ class AppUpgrade(MarketApp):
             self.tenant,
             self.region_name,
             self.app,
-            ComponentGroup(self.enterprise_id, new_component_group, need_save=self.is_upgrade_one),
+            ComponentGroup(self.enterprise_id, new_component_group, need_save=not self.is_upgrade_one),
             new_components,
             update_components,
             component_deps,
