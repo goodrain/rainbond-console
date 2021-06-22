@@ -108,8 +108,7 @@ class UpgradeService(object):
             app_template_source.get_market_name(),
             component_keys=[component.service_key],
             is_deploy=True,
-            is_upgrade_one=True
-        )
+            is_upgrade_one=True)
         app_upgrade.upgrade()
 
     def restore(self, tenant, region, user, app, record: AppUpgradeRecord):
