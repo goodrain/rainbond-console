@@ -2,6 +2,7 @@
 import logging
 
 from .plugin import Plugin
+from .component_group import ComponentGroup
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
@@ -25,7 +26,6 @@ from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
 # model
 from www.models.main import ServiceGroup
-from www.models.main import TenantServiceGroup
 # utils
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -42,7 +42,7 @@ class NewApp(object):
                  tenant,
                  region_name,
                  app: ServiceGroup,
-                 component_group: TenantServiceGroup,
+                 component_group: ComponentGroup,
                  new_components,
                  update_components,
                  component_deps,
@@ -60,8 +60,8 @@ class NewApp(object):
         self.app_id = app.app_id
         self.app = app
         self.component_group = component_group
-        self.upgrade_group_id = component_group.ID
-        self.version = component_group.group_version
+        self.upgrade_group_id = component_group.upgrade_group_id
+        self.version = component_group.version
         self.region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
         self.governance_mode = app.governance_mode
         self.new_components = new_components

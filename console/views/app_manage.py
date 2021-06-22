@@ -4,6 +4,9 @@
 """
 import logging
 
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
+
 from console.enum.component_enum import is_state, is_support
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException)
@@ -13,11 +16,11 @@ from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
+from console.services.upgrade_services import upgrade_service
 from console.views.app_config.base import (AppBaseCloudEnterpriseCenterView, AppBaseView)
 from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderCloudEnterpriseCenterView,
                                 RegionTenantHeaderView)
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
+from console.utils.reqparse import parse_item
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -539,6 +542,11 @@ class MarketServiceUpgradeView(AppBaseView):
             logger.debug(e)
             return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
         return Response(status=200, data=general_message(200, "success", "查询成功", list=versions))
+
+    def post(self, request, *args, **kwargs):
+        version = parse_item(request, "group_version", required=True)
+        upgrade_service.upgrade_component(self.tenant, self.region, self.user, self.service, version)
+        return Response(status=200, data=general_message(200, "success", "升级成功"))
 
 
 class TeamAppsCloseView(JWTAuthApiView):
