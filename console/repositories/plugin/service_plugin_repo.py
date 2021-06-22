@@ -2,8 +2,6 @@
 """
   Created on 18/1/29.
 """
-import json
-
 from www.db.base import BaseConnection
 from www.models.plugin import ServicePluginConfigVar
 from www.models.plugin import TenantServicePluginAttr
