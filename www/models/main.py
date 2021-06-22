@@ -545,6 +545,10 @@ class TenantServiceInfo(BaseModel):
         return self.service_id
 
     @property
+    def upgrade_group_id(self):
+        return self.tenant_service_group_id
+
+    @property
     def clone_url(self):
         if self.code_from == "github":
             code_user = self.git_url.split("/")[3]

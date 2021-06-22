@@ -15,8 +15,9 @@ from console.exception.main import (AbortRequest, AccountOverdueException, RbdAp
                                     ResourceNotEnoughException, ServiceHandleException)
 # model
 from console.models.main import (AppUpgradeRecord, AppUpgradeRecordType, ServiceUpgradeRecord, UpgradeStatus)
-from console.repositories.app import service_repo
+from www.models.main import TenantServiceInfo
 # repository
+from console.repositories.app import service_repo
 from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.app import app_market_repo
@@ -90,6 +91,27 @@ class UpgradeService(object):
         record = app_upgrade.upgrade()
         return self.serialized_upgrade_record(record)
 
+    def upgrade_component(self, tenant, region, user, component: TenantServiceInfo, version):
+        component_group = tenant_service_group_repo.get_component_group(component.upgrade_group_id)
+        app_template_source = service_source_repo.get_service_source(component.tenant_id, component.component_id)
+        app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
+
+        app_upgrade = AppUpgrade(
+            tenant.enterprise_id,
+            tenant,
+            region,
+            user,
+            version,
+            component_group,
+            app_template,
+            app_template_source.is_install_from_cloud(),
+            app_template_source.get_market_name(),
+            component_keys=[component.service_key],
+            is_deploy=True,
+            is_upgrade_one=True
+        )
+        app_upgrade.upgrade()
+
     def restore(self, tenant, region, user, app, record: AppUpgradeRecord):
         if not record.can_rollback():
             raise ErrAppUpgradeRecordCanNotRollback
@@ -116,6 +138,10 @@ class UpgradeService(object):
             market = app_market_repo.get_app_market_by_name(
                 enterprise_id, app_template_source.get_market_name(), raise_exception=True)
             _, app_version = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version)
+
+        if not app_version:
+            raise AbortRequest("app template not found", "找不到应用模板", status_code=404, error_code=404)
+
         try:
             return json.loads(app_version.app_template)
         except JSONDecodeError:

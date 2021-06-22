@@ -65,7 +65,8 @@ class AppUpgrade(MarketApp):
                  market_name,
                  record: AppUpgradeRecord = None,
                  component_keys=None,
-                 is_deploy=False):
+                 is_deploy=False,
+                 is_upgrade_one=False):
         """
         components_keys: component keys that the user select.
         """
@@ -86,6 +87,7 @@ class AppUpgrade(MarketApp):
         self.version = version
         self.component_keys = component_keys if component_keys else None
         self.is_deploy = is_deploy
+        self.is_upgrade_one = is_upgrade_one
 
         # app template
         self.app_template = app_template
@@ -287,6 +289,8 @@ class AppUpgrade(MarketApp):
         self._create_component_record(record, events)
 
     def _create_component_record(self, app_record: AppUpgradeRecord, events):
+        if self.is_upgrade_one:
+            return
         event_ids = {event["service_id"]: event["event_id"] for event in events}
         records = []
         for cpt in self.new_app.components():
@@ -309,7 +313,7 @@ class AppUpgrade(MarketApp):
     def _save_app(self):
         snapshot = self._take_snapshot()
         self.save_new_app()
-        self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot.snapshot_id)
+        self._update_upgrade_record(UpgradeStatus.UPGRADING.value, snapshot)
 
     def _create_new_app(self):
         # new components
@@ -340,14 +344,14 @@ class AppUpgrade(MarketApp):
         plugin_deps = self.original_app.plugin_deps + new_plugin_deps
         plugin_configs = self.original_app.plugin_configs + new_plugin_configs
 
-        component_group = copy.deepcopy(self.component_group.component_group)
-        component_group.group_version = self.version
+        new_component_group = copy.deepcopy(self.component_group.component_group)
+        new_component_group.group_version = self.version
 
         return NewApp(
             self.tenant,
             self.region_name,
             self.app,
-            component_group,
+            ComponentGroup(self.enterprise_id, new_component_group, need_save=self.is_upgrade_one),
             new_components,
             update_components,
             component_deps,
@@ -466,13 +470,17 @@ class AppUpgrade(MarketApp):
             config_groups.append(config_group)
         return config_groups
 
-    def _update_upgrade_record(self, status, snapshot_id=None):
+    def _update_upgrade_record(self, status, snapshot=None):
+        if self.is_upgrade_one:
+            return
         self.record.status = status
-        self.record.snapshot_id = snapshot_id
+        self.record.snapshot_id = snapshot.snapshot_id
         self.record.version = self.version
         self.record.save()
 
     def _take_snapshot(self):
+        if self.is_upgrade_one:
+            return
         components = []
         for cpt in self.original_app.components():
             # component snapshot
