@@ -49,6 +49,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 app_model_id = None
                 version_alias = None
                 upgrade_time = None
+                app_version_info = ""
                 # todo get store name
                 store_name = None
                 store_id = share_record.share_app_market_name
@@ -61,6 +62,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     if app_version:
                         version_alias = app_version.version_alias
                         upgrade_time = app_version.upgrade_time
+                        app_version_info = app_version.app_version_info
                 else:
                     try:
                         if store_id and share_record.app_id:
@@ -104,6 +106,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     },
                     "record_id":
                     share_record.ID,
+                    "app_version_info":
+                    share_record.share_app_version_info if share_record.share_app_version_info else app_version_info,
                 })
         result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
         return Response(result, status=200)
@@ -181,13 +185,15 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             version_alias = None
             upgrade_time = None
             store_name = None
+            store_version = "1.0"
             store_id = share_record.share_app_market_name
             scope = share_record.scope
             if store_id:
-                _, market = app_market_service.get_app_market(
-                    self.tenant.enterprise_id, share_record.share_app_market_name, extend=True, raise_exception=True)
+                extend, market = app_market_service.get_app_market(
+                    self.tenant.enterprise_id, share_record.share_app_market_name, extend="true", raise_exception=True)
                 if market:
                     store_name = market.name
+                    store_version = extend.get("version", store_version)
             app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
             if app:
                 app_model_id = share_record.app_id
@@ -211,6 +217,7 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
                 "scope_target": {
                     "store_name": store_name,
                     "store_id": store_id,
+                    "store_version": store_version
                 },
                 "record_id": share_record.ID,
             }
@@ -682,6 +689,7 @@ class AppMarketAppModelLView(JWTAuthApiView):
             "publish_type": request.data.get("publish_type"),
             "tags": request.data.get("tags"),
             "introduction": request.data.get("introduction"),
+            "org_id": request.data.get("org_id")
         }
         market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         rst = app_market_service.create_market_app_model(market, body=dt)
@@ -703,4 +711,12 @@ class AppMarketAppModelVersionsRView(JWTAuthApiView):
         _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
         data = app_market_service.get_market_app_model_version(market_model, app_id, version, extend=True)
         result = general_message(200, "success", None, bean=data)
+        return Response(result, status=200)
+
+
+class AppMarketOrgModelLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, market_name):
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        orgs = app_market_service.get_market_orgs(market_model)
+        result = general_message(200, msg="success", msg_show=None, list=orgs)
         return Response(result, status=200)

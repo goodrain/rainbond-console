@@ -167,10 +167,18 @@ class DomainService(object):
         return tcp_domain.get_service_tcp_domains_by_service_id_and_port(service.service_id, container_port)
 
         # get all http rules in define app
-    def get_tcp_rules_by_app_id(self, app_id):
+    def get_tcp_rules_by_app_id(self, region_name, app_id):
         services = group_service.get_group_services(app_id)
         service_ids = [s.service_id for s in services]
-        return tcp_domain.get_services_tcpdomains(service_ids)
+        tcpdomains = tcp_domain.get_services_tcpdomains(service_ids)
+        tcpdomain = region_services.get_region_tcpdomain(region_name=region_name)
+        for domain in tcpdomains:
+            arr = domain.end_point.split(":")
+            if len(arr) != 2 or arr[0] != "0.0.0.0":
+                continue
+            domain.end_point = tcpdomain + ":" + arr[1]
+
+        return tcpdomains
 
     def get_sld_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id,
@@ -853,3 +861,55 @@ class DomainService(object):
                     msg_show="Header Key不合法",
                     status_code=400,
                     error_code=400)
+
+    @staticmethod
+    def delete_by_port(component_id, port):
+        http_rules = domain_repo.list_service_domain_by_port(component_id, port)
+        http_rule_ids = [rule.http_rule_id for rule in http_rules]
+        # delete rule extensions
+        configuration_repo.delete_by_rule_ids(http_rule_ids)
+        # delete http rules
+        domain_repo.delete_service_domain_by_port(component_id, port)
+        # delete tcp rules
+        tcp_domain.delete_by_component_port(component_id, port)
+
+    def create_default_gateway_rule(self, tenant, region_info, service, port):
+        if port.protocol == "http":
+            service_id = service.service_id
+            service_name = service.service_alias
+            container_port = port.container_port
+            domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(
+                region_info.httpdomain)
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            protocol = "http"
+            http_rule_id = make_uuid(domain_name)
+            tenant_id = tenant.tenant_id
+            service_alias = service.service_cname
+            region_id = region_info.region_id
+            domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
+                                               http_rule_id, tenant_id, service_alias, region_id)
+            logger.debug("create default gateway http rule for component {0} port {1}".format(
+                service.service_alias, port.container_port))
+        else:
+            res, data = region_api.get_port(region_info.region_name, tenant.tenant_name, True)
+            if int(res.status) != 200:
+                logger.warning("can not get stream port from region, ignore {0} port {1}".format(
+                    service.service_alias, port.container_port))
+                return
+            end_point = "0.0.0.0:{0}".format(data["bean"])
+            service_id = service.service_id
+            service_name = service.service_alias
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            container_port = port.container_port
+            protocol = port.protocol
+            service_alias = service.service_cname
+            tcp_rule_id = make_uuid(end_point)
+            tenant_id = tenant.tenant_id
+            region_id = region_info.region_id
+            tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port, protocol,
+                                                  service_alias, tcp_rule_id, tenant_id, region_id)
+            logger.debug("create default gateway stream rule for component {0} port {1}, endpoint {2}".format(
+                service.service_alias, port.container_port, end_point))
+
+
+domain_service = DomainService()

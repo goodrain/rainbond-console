@@ -40,8 +40,8 @@ class ComposeService(object):
             buf = StringIO(compose_tontent)
             res = yaml.safe_load(buf)
             return 200, "success", res
-        except yaml.YAMLError as exc:
-            return 400, "yaml内容格式不正确{0}".format(exc.message), {}
+        except yaml.YAMLError:
+            return 400, "yaml内容格式不正确", {}
 
     def create_group_compose(self, tenant, region, group_id, compose_content, hub_user="", hub_pass=""):
         gc = compose_repo.get_group_compose_by_group_id(group_id)
@@ -119,9 +119,7 @@ class ComposeService(object):
 
                         group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
 
-                        code, msg = app_check_service.save_service_info(tenant, service, service_info)
-                        if code != 200:
-                            return code, msg, None
+                        app_check_service.save_service_info(tenant, service, service_info)
                         # save service info
                         service.save()
                         # 创建组件构建源信息，存储账号密码

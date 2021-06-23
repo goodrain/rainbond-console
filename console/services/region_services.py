@@ -8,6 +8,7 @@ from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
 from console.models.main import ConsoleSysConfig, RegionConfig
 from console.repositories.app import service_repo
+from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
@@ -161,12 +162,22 @@ class RegionService(object):
     def get_public_key(self, tenant, region):
         try:
             res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
-            if body and body["bean"]:
+            if body and "bean" in body:
                 return body["bean"]
             return {}
         except Exception as e:
             logger.exception(e)
             return {}
+
+    def get_region_license_features(self, tenant, region_name):
+        try:
+            body = region_api.get_region_license_feature(tenant, region_name)
+            if body and "list" in body:
+                return body["list"]
+            return []
+        except Exception as e:
+            logger.exception(e)
+            return []
 
     def get_all_regions(self, query="", page=None, page_size=None):
         # 即将移除，仅用于OpenAPI V1
@@ -302,6 +313,8 @@ class RegionService(object):
         if plugins:
             for plugin in plugins:
                 plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id, ignore_cluster_resource, is_force=True)
+
+        group_repo.list_tenant_group_on_region(tenant, region_name).delete()
         # delete tenant
         if not ignore_cluster_resource:
             try:

@@ -582,6 +582,9 @@ class AppPluginService(object):
             return
         plugin_id = p[0].plugin_id
         plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
+        if not plugin_version:
+            logger.warning("open plugin failure , plugin {} not build in tenant {}".format(plugin_key, tenant.tenant_id))
+            return
         build_version = plugin_version.build_version
 
         region_config = self.get_region_config_from_db(service, plugin_id, build_version)

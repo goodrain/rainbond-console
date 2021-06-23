@@ -311,7 +311,7 @@ class ShareService(object):
                         s_v = dict()
                         s_v['file_content'] = ''
                         if volume.volume_type == "config-file":
-                            config_file = volume_repo.get_service_config_file(volume.ID)
+                            config_file = volume_repo.get_service_config_file(volume)
                             if config_file:
                                 s_v['file_content'] = config_file.file_content
                         s_v['category'] = volume.category
@@ -863,6 +863,7 @@ class ShareService(object):
             share_record.share_version_alias = version_alias
             share_record.share_app_market_name = market_id
             share_record.update_time = datetime.datetime.now()
+            share_record.share_app_version_info = version_describe
             share_record.save()
             # 提交事务
             if sid:

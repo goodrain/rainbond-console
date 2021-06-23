@@ -68,6 +68,19 @@ class TeamRepo(object):
                     tenants.append(tn)
         return tenants
 
+    @staticmethod
+    def get_user_notjoin_teams(eid, user_id, name=None):
+        enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
+        if not enterprise:
+            return []
+        tenant_ids = list(
+            PermRelTenant.objects.filter(user_id=user_id, enterprise_id=enterprise.ID).values_list("tenant_id",
+                                                                                                   flat=True).order_by("-ID"))
+        q = ~Q(ID__in=tenant_ids)
+        if name:
+            q &= Q(tenant_alias__contains=name)
+        return Tenants.objects.filter(q)
+
     def get_user_perms_in_permtenant(self, user_id, tenant_id):
         tenant_perms = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id)
         if not tenant_perms:
@@ -191,7 +204,7 @@ class TeamRepo(object):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
 
     def get_enterprise_team_by_name(self, enterprise_id, team_name):
-        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name)
+        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name).first()
 
     def update_by_tenant_id(self, tenant_id, **data):
         return Tenants.objects.filter(tenant_id=tenant_id).update(**data)

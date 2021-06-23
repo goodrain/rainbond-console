@@ -3130,7 +3130,7 @@ AppUpgradeInfoView = {
     }
 }
 
-AppUpgradeTaskView = {
+AppUpgradeView = {
     "__message": {
         "get": {
             "perms": [200001]
@@ -3747,3 +3747,11 @@ AppVersionUDView = {
 }
 
 EnterpriseTeams = {"__message": {"get": {"perms": [120000]}}}
+
+EnterpriseUserTeamRoles = {
+    "__message": {
+        "post": {
+            "perms": [100000]
+        },
+    }
+}

@@ -202,17 +202,11 @@ class APPOperationsView(TeamAppAPIView):
             self.has_perms([300007, 400009])
         if action == "deploy":
             self.has_perms([300008, 400010])
-        code, msg = app_manage_service.batch_operations(self.team, request.user, action, service_ids, None)
-        if code != 200:
-            result = {"msg": "batch operation error"}
-            rst_serializer = FailSerializer(data=result)
-            rst_serializer.is_valid()
-            return Response(rst_serializer.data, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            result = {"msg": msg}
-            rst_serializer = SuccessSerializer(data=result)
-            rst_serializer.is_valid()
-            return Response(rst_serializer.data, status=status.HTTP_200_OK)
+        app_manage_service.batch_operations(self.team, self.region_name, request.user, action, service_ids, None)
+        result = {"msg": "操作成功"}
+        rst_serializer = SuccessSerializer(data=result)
+        rst_serializer.is_valid()
+        return Response(rst_serializer.data, status=status.HTTP_200_OK)
 
 
 class ListAppServicesView(TeamAppAPIView):
@@ -354,8 +348,16 @@ class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceO
         serializer = AppServiceTelescopicVerticalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_memory = serializer.data.get("new_memory")
+        new_gpu = serializer.data.get("new_gpu", None)
+        new_cpu = serializer.data.get("new_cpu", None)
         code, msg = app_manage_service.vertical_upgrade(
-            self.team, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+            self.team,
+            self.service,
+            self.user,
+            int(new_memory),
+            oauth_instance=self.oauth_instance,
+            new_gpu=new_gpu,
+            new_cpu=new_cpu)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="vertical upgrade error", msg_show=msg)
         return Response(None, status=code)

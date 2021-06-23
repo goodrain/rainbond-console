@@ -216,13 +216,13 @@ class AppEnvView(AppBaseView):
               paramType: form
 
         """
-        name = request.data.get("name", None)
-        attr_name = request.data.get("attr_name", None)
-        attr_value = request.data.get("attr_value", None)
-        scope = request.data.get('scope', None)
+        name = request.data.get("name", "")
+        attr_name = request.data.get("attr_name", "")
+        attr_value = request.data.get("attr_value", "")
+        scope = request.data.get('scope', "")
         is_change = request.data.get('is_change', True)
         # try:
-        if not scope:
+        if not scope or not attr_name:
             return Response(general_message(400, "params error", "参数异常"), status=400)
         if scope not in ("inner", "outer"):
             return Response(general_message(400, "params error", "scope范围只能是inner或outer"), status=400)
@@ -333,8 +333,8 @@ class AppEnvManageView(AppBaseView):
         env_id = kwargs.get("env_id", None)
         if not env_id:
             return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
-        name = request.data.get("name", None)
-        attr_value = request.data.get("attr_value", None)
+        name = request.data.get("name", "")
+        attr_value = request.data.get("attr_value", "")
 
         code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value,
                                                               self.user.nick_name)

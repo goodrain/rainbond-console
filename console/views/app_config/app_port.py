@@ -206,11 +206,8 @@ class AppPortManageView(AppBaseView):
         """
         container_port = kwargs.get("port", None)
         if not container_port:
-            return Response(general_message(400, "container_port not specify", "端口变量名未指定"), status=400)
-        code, msg, data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port),
-                                                                     self.user.nick_name)
-        if code != 200:
-            return Response(general_message(code, "delete port fail", msg), status=code)
+            raise AbortRequest("container_port not specify", "端口变量名未指定")
+        data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port), self.user.nick_name)
         result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
         return Response(result, status=result["code"])
 

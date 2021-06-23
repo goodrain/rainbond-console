@@ -15,7 +15,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -141,16 +141,21 @@ class EnterpriseTeams(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseUserTeams(JWTAuthApiView):
+class EnterpriseUserTeams(EnterpriseAdminView):
     def get(self, request, enterprise_id, user_id, *args, **kwargs):
-        user = request.user
         name = request.GET.get("name", None)
-        code = 200
-        if int(user_id) != int(user.user_id):
-            raise AbortRequest("mismatched user id")
-        tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
+        user = user_repo.get_user_by_user_id(user_id)
+        teams = team_services.list_user_teams(enterprise_id, user, name)
+        result = general_message(200, "team query success", "查询成功", list=teams)
+        return Response(result, status=200)
+
+
+class EnterpriseMyTeams(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        name = request.GET.get("name", None)
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name)
         result = general_message(200, "team query success", "查询成功", list=tenants)
-        return Response(result, status=code)
+        return Response(result, status=200)
 
 
 class EnterpriseTeamOverView(JWTAuthApiView):
@@ -430,3 +435,11 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
             response = self.handle_exception(exc)
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
+
+
+class EnterpriseUserTeamRoleView(EnterpriseHeaderView):
+    def post(self, request, eid, user_id, tenant_name, *args, **kwargs):
+        role_ids = request.data.get('role_ids', [])
+        res = enterprise_services.create_user_roles(eid, user_id, tenant_name, role_ids)
+        result = general_message(200, "ok", "设置成功", bean=res)
+        return Response(result, status=200)

@@ -13,6 +13,12 @@ def compare_version(currentversion, expectedversion):
     return -1
 
 
+def sorted_versions(versions):
+    sort_versions = sorted(versions, key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x.split(".")])
+    sort_versions.reverse()
+    return sort_versions
+
+
 def get_new_versions(currentversion, *version_lists):
     new_versions = []
     for version in version_lists:

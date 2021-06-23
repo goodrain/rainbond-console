@@ -96,7 +96,7 @@ class GroupAppBackupService(object):
             "event_id": event_id,
             "group_id": group_uuid,
             "metadata": json.dumps(metadata),
-            "service_ids": [s.service_id for s in services],
+            "service_ids": [s.service_id for s in services if s.create_status == "complete"],
             "mode": mode,
             "version": version,
             "s3_config": s3_config,
@@ -131,6 +131,7 @@ class GroupAppBackupService(object):
                 raise ServiceHandleException(msg="backup failed", msg_show="上次备份任务未完成或有正在恢复的备份或该版本已存在", status_code=409)
             if e.status == 401:
                 raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
+            raise ServiceHandleException(msg=e.message["body"].get("msg", "backup failed"), msg_show="备份失败")
 
     def get_backup_group_uuid(self, group_id):
         backup_record = backup_record_repo.get_record_by_group_id(group_id)
@@ -278,6 +279,7 @@ class GroupAppBackupService(object):
             if not third_party_service_endpoints:
                 raise ServiceHandleException(msg="third party service endpoints can't be null", msg_show="第三方组件实例不可为空")
         app_info = {
+            "component_id": service.component_id,
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],

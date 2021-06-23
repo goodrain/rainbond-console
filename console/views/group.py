@@ -173,11 +173,16 @@ class TenantGroupOperationView(ApplicationView):
 class TenantAppUpgradableNumView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         data = dict()
+        data['upgradable_num'] = 0
         try:
-            data['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
+            data['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, self.app)
         except MaxRetryError as e:
             logger.warning("get the number of upgradable app: {}".format(e))
-            data['upgradable_num'] = 0
+        except ServiceHandleException as e:
+            logger.warning("get the number of upgradable app: {}".format(e))
+            if e.status_code != 404:
+                raise e
+
         result = general_message(200, "success", "success", bean=data)
         return Response(result, status=result["code"])
 
@@ -229,11 +234,8 @@ class TenantGroupCommonOperationView(RegionTenantHeaderCloudEnterpriseCenterView
         if action == "deploy":
             self.has_perms([300008, 400010])
             # 批量操作
-        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
-        if code != 200:
-            result = general_message(code, "batch manage error", msg)
-        else:
-            result = general_message(200, "success", "操作成功")
+        app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids, self.oauth_instance)
+        result = general_message(200, "success", "操作成功")
         return Response(result, status=result["code"])
 
 
@@ -291,7 +293,7 @@ class AppKubernetesServiceView(ApplicationView):
             if not k8s_service.get("port_alias"):
                 raise AbortRequest("the field 'port_alias' is required")
 
-        group_service.update_kubernetes_services(self.tenant, self.region_name, app_id, k8s_services)
+        group_service.update_kubernetes_services(self.tenant, self.region_name, self.app, k8s_services)
 
         result = general_message(200, "success", "更新成功", list=k8s_services)
         return Response(result)

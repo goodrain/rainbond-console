@@ -89,7 +89,6 @@ class PluginBuildVersionService(object):
 
     def update_plugin_build_status(self, region, tenant):
         logger.debug("start thread to update build status")
-
         pbvs = plugin_version_repo.get_plugin_build_version_by_tenant_and_region(
             tenant.tenant_id, region).filter(build_status__in=["building", "timeout", "time_out"])
         for pbv in pbvs:

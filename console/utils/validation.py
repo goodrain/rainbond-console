@@ -42,7 +42,11 @@ def validate_endpoint_address(address):
 
 def validate_endpoints_info(endpoints_info):
     total_domain = 0
+    exist_address = dict()
     for address in endpoints_info:
+        if exist_address.get(address):
+            raise ServiceHandleException(msg="Multiple instances of the same address are not allowed", msg_show="不允许多实例地址相同")
+        exist_address[address] = address
         if "https://" in address:
             address = address.partition("https://")[2]
         if "http://" in address:
