@@ -265,6 +265,7 @@ class TenantHeaderView(JWTAuthApiView):
         self.report = Dict({"ok": True})
         self.user = None
         self.is_team_owner = False
+        self.response_region = None
 
     def get_perms(self):
         self.user_perms = []

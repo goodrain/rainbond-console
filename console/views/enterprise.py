@@ -3,7 +3,7 @@ import json
 import logging
 
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
-from console.exception.main import ServiceHandleException, AbortRequest
+from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo

@@ -564,10 +564,6 @@ class TenantServiceInfo(BaseModel):
     def is_slug(self):
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
 
-    @property
-    def component_id(self):
-        return self.service_id
-
     def is_third_party(self):
         if self.service_source == ComponentSource.THIRD_PARTY.value:
             return True
@@ -1059,10 +1055,6 @@ class ServiceGroup(BaseModel):
     app_store_url = models.CharField(max_length=255, help_text="应用商店 URL")
     app_template_name = models.CharField(max_length=255, help_text="应用模板名称")
     version = models.CharField(max_length=255, help_text="Helm 应用版本")
-
-    @property
-    def app_id(self):
-        return self.ID
 
     @property
     def app_id(self):
