@@ -92,7 +92,7 @@ class AppUpgradeInfoView(ApplicationView):
 
 class AppUpgradeRollbackView(AppUpgradeRecordView):
     def post(self, request, group_id, record_id, *args, **kwargs):
-        record = upgrade_service.restore(self.tenant, self.region, self.user, self.app, self.app_upgrade_record)
+        record, _ = upgrade_service.restore(self.tenant, self.region, self.user, self.app, self.app_upgrade_record)
         return MessageResponse(msg="success", bean=record)
 
 
@@ -122,7 +122,7 @@ class AppUpgradeView(AppUpgradeRecordView):
         # It is not yet possible to upgrade based on services, which is user-specified attribute changes
         components = parse_item(request, "services", default=[])
         component_keys = [cpt["service"]["service_key"] for cpt in components]
-        record = upgrade_service.upgrade(
+        record, _ = upgrade_service.upgrade(
             self.tenant,
             self.region,
             self.user,
