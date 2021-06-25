@@ -177,6 +177,13 @@ class GroupAppCopyService(object):
                         elif service["service_base"]["service_source"] == "docker_image":
                             service["service_base"]["image"] = service["service_base"]["image"].split(":")[0] + ":" + version
                             service["service_base"]["version"] = version
+                envs = changes[service["service_base"]["service_id"]].get("envs")
+                if not envs:
+                    continue
+                for env in service["service_env_vars"]:
+                    if not envs.get(env["attr_name"]):
+                        continue
+                    env["attr_name"] = envs[env["attr_name"]]
         return metadata
 
     def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map, same_team, same_region):
