@@ -2,7 +2,7 @@
 import logging
 import os
 
-from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound
+from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound, ErrOauthServiceNotFound
 from console.models.main import OAuthServices, UserOAuthServices
 from console.utils.oauth.oauth_types import (get_oauth_instance, support_oauth_type)
 
@@ -32,7 +32,10 @@ class OAuthRepo(object):
 
     @staticmethod
     def get_by_client_id(client_id):
-        return OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False)
+        try:
+            OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False)
+        except OAuthServices.DoesNotExist:
+            raise ErrOauthServiceNotFound
 
     def open_get_oauth_services_by_service_id(self, service_id):
         return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()

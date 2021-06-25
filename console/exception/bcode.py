@@ -94,6 +94,12 @@ class ErrOauthUserNotFound(ServiceHandleException):
             "the oauth user is not found", msg_show="Oauth 用户不存在", status_code=404, error_code=20305)
 
 
+class ErrOauthServiceNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrOauthServiceNotFound, self).__init__(
+            "oauth service is not found", msg_show="OAuth 服务不存在", status_code=404, error_code=20306)
+
+
 # 20400 ~ 20499 => enterprise
 class ErrEnterpriseNotFound(ServiceHandleException):
     def __init__(self):
