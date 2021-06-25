@@ -43,6 +43,7 @@ class AppPostInfoSerializer(serializers.Serializer):
 
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
     gateway_rules = GatewayRuleSerializer(required=False)
+
     class Meta:
         model = TenantServiceInfo
         exclude = [
