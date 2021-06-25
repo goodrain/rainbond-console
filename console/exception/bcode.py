@@ -82,6 +82,24 @@ class ErrExpiredAuthnOauthService(ServiceHandleException):
             "oauth authentication information has expired", msg_show="该Oauth服务认证信息已过期，请重新认证", status_code=400, error_code=20303)
 
 
+class ErrOauthUserNotLogout(ServiceHandleException):
+    def __init__(self):
+        super(ErrOauthUserNotLogout, self).__init__(
+            "the oauth user is not logged out", msg_show="Oauth 用户尚未退出登录", status_code=409, error_code=20304)
+
+
+class ErrOauthUserNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrOauthUserNotFound, self).__init__(
+            "the oauth user is not found", msg_show="Oauth 用户不存在", status_code=404, error_code=20305)
+
+
+class ErrOauthServiceNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrOauthServiceNotFound, self).__init__(
+            "oauth service is not found", msg_show="OAuth 服务不存在", status_code=404, error_code=20306)
+
+
 # 20400 ~ 20499 => enterprise
 class ErrEnterpriseNotFound(ServiceHandleException):
     def __init__(self):
