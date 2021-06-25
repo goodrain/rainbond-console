@@ -927,8 +927,6 @@ class DomainService(object):
             service.gateway_rules = gateway_rules
         return services
 
-
-
     def get_tcp_rules_by_service_ids(self, region_name, service_ids):
         tcpdomains = tcp_domain.get_services_tcpdomains(service_ids)
         tcpdomain = region_services.get_region_tcpdomain(region_name=region_name)
@@ -938,5 +936,6 @@ class DomainService(object):
                 continue
             domain.end_point = tcpdomain + ":" + arr[1]
         return tcpdomains
+
 
 domain_service = DomainService()
