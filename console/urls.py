@@ -74,7 +74,7 @@ from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
                                  OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect, OauthType,
-                                 OAuthUserInfo, UserOAuthLink)
+                                 OAuthUserInfo, UserOAuthLink, OauthUserLogoutView)
 from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
                                  TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
 from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView)
@@ -135,6 +135,7 @@ urlpatterns = [
     url(r"^oauth/type$", OauthType.as_view()),
     url(r"^oauth/user/authorize$", OAuthServerUserAuthorize.as_view()),
     url(r"^oauth/user$", OAuthUserInfo.as_view()),
+    url(r"^oauth/user/logout$", OauthUserLogoutView.as_view()),
     url(r"^oauth/user/link$", UserOAuthLink.as_view()),
     url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repositories$", OAuthGitUserRepositories.as_view()),
     url(r"^oauth/service/(?P<service_id>[\w\-]+)/user/repository/(?P<path>[\w\-]+)/(?P<name>.*)$",
