@@ -9,6 +9,7 @@ from console.repositories.app import service_source_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import volume_repo
+from console.repositories.app_config import domain_repo
 from console.repositories.probe_repo import probe_repo
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.component_graph import component_graph_repo
@@ -60,6 +61,9 @@ class OriginalApp(object):
 
     def _create_components(self, app_id, upgrade_group_id):
         components = group_service.list_components_by_upgrade_group_id(app_id, upgrade_group_id)
+        component_ids = [cpt.component_id for cpt in components]
+
+        http_rules = self._list_http_rules(component_ids)
 
         result = []
         # TODO(huangrh): get the attributes at once, don't get it iteratively
@@ -72,8 +76,19 @@ class OriginalApp(object):
             probe = probe_repo.get_probe(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
+            rules = http_rules.get(cpt.component_id)
             result.append(
-                Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, []))
+                Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, [], http_rules=rules))
+        return result
+
+    @staticmethod
+    def _list_http_rules(component_ids):
+        http_rules = domain_repo.list_by_component_ids(component_ids)
+        result = {}
+        for rule in http_rules:
+            rules = result.get(rule.service_id, [])
+            rules.append(rule)
+            result[rule.service_id] = rules
         return result
 
     def _volume_deps(self):
