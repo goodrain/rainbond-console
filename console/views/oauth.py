@@ -3,7 +3,7 @@ import json
 import logging
 from urllib.parse import urlsplit
 
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.oauth_service import oauth_sev_user_service
@@ -16,6 +16,8 @@ from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message
+from console.login.jwt_manager import JwtManager
+from console.utils.reqparse import parse_item
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -228,6 +230,29 @@ class OAuthServerAuthorize(AlowAnyApiView):
             oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
         return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)
+
+
+class OauthUserLogoutView(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+        client_id = parse_item(request, "client_id", required=True)
+        client_secret = parse_item(request, "client_secret", required=True)
+        user_id = parse_item(request, "user_id", required=True)
+
+        oauth_service = oauth_repo.get_by_client_id(client_id)
+        if oauth_service.oauth_type != "dbox":
+            raise AbortRequest("unsupported oauth type {} for oauth user logout".format(oauth_service.oauth_type))
+        if oauth_service.client_secret != client_secret:
+            raise AbortRequest("the requested client key does not match")
+
+        oauth_user = oauth_user_repo.get_by_oauth_user_id(oauth_service.ID, user_id)
+
+        # Go to Oauth2 Server to check if the user has logged out
+        api = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+        api.is_logout()
+
+        # logout
+        JwtManager().delete_user_id(oauth_user.user_id)
+        return Response(status=status.HTTP_200_OK)
 
 
 class OAuthUserInfo(AlowAnyApiView):
