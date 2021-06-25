@@ -78,7 +78,18 @@ class OriginalApp(object):
             graphs = component_graph_repo.list(cpt.service_id)
             rules = http_rules.get(cpt.component_id)
             result.append(
-                Component(cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, [], http_rules=rules))
+                Component(
+                    cpt,
+                    component_source,
+                    envs,
+                    ports,
+                    volumes,
+                    config_files,
+                    probe,
+                    None,
+                    monitors,
+                    graphs, [],
+                    http_rules=rules))
         return result
 
     @staticmethod
