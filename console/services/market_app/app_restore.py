@@ -82,7 +82,7 @@ class AppRestore(MarketApp):
 
         self._deploy()
 
-        return self.rollback_record
+        return self.rollback_record, self.component_group
 
     def _save_new_app(self):
         # save new app

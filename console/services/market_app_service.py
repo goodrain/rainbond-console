@@ -81,17 +81,19 @@ class MarketAppService(object):
             _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
             market_app, app_version = app_market_service.cloud_app_model_to_db_model(
                 market, app_model_key, version, for_install=True)
-            if not market_app:
-                raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
         else:
             market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
                                                                                       version)
-            if not market_app:
-                raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
             if app_version and app_version.region_name and app_version.region_name != region.region_name:
                 raise AbortRequest(
                     msg="app version can not install to this region",
                     msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+
+        if not market_app:
+            raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
+        if not app_version:
+            raise AbortRequest("app version not found", "应用市场应用版本不存在", status_code=404, error_code=404)
+
         app_template = json.loads(app_version.app_template)
 
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
@@ -109,6 +111,7 @@ class MarketAppService(object):
             market_name,
             is_deploy=is_deploy)
         app_upgrade.install()
+        return market_app.app_name
 
     def install_service(self,
                         tenant,
