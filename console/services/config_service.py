@@ -273,13 +273,7 @@ class PlatformConfigService(ConfigService):
             self.base_cfg_keys.append("OAUTH_SERVICES")
 
         self.cfg_keys = [
-            "TITLE",
-            "LOGO",
-            "FAVICON",
-            "IS_REGIST",
-            "DOCUMENT",
-            "OFFICIAL_DEMO",
-            ConfigKeyEnum.ENTERPRISE_EDITION.name,
+            "TITLE", "LOGO", "FAVICON", "IS_REGIST", "DOCUMENT", "OFFICIAL_DEMO", ConfigKeyEnum.ENTERPRISE_EDITION.name,
             "IS_DISABLE_LOGOUT"
         ]
         self.cfg_keys_value = {
