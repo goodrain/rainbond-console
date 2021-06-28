@@ -463,7 +463,7 @@ class AppUpgrade(MarketApp):
                 app_id=self.app_id,
                 config_group_name=cg["name"],
                 deploy_type=cg["injection_type"],
-                enable=cg.get("enable", False),
+                enable=True,  # always true
                 region_name=self.region_name,
                 config_group_id=make_uuid(),
             )
