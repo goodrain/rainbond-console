@@ -89,7 +89,8 @@ class UpgradeService(object):
             component_keys,
             is_deploy=True)
         record = app_upgrade.upgrade()
-        return self.serialized_upgrade_record(record)
+        app_template_name = component_group.group_alias
+        return self.serialized_upgrade_record(record), app_template_name
 
     def upgrade_component(self, tenant, region, user, component: TenantServiceInfo, version):
         component_group = tenant_service_group_repo.get_component_group(component.upgrade_group_id)
@@ -118,7 +119,8 @@ class UpgradeService(object):
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         app_restore = AppRestore(tenant, region, user, app, component_group, record)
         record = app_restore.restore()
-        return self.serialized_upgrade_record(record)
+        record, component_group = app_restore.restore()
+        return self.serialized_upgrade_record(record), component_group.group_alias
 
     @staticmethod
     def _app_template_source(app_id, app_model_key, upgrade_group_id):
