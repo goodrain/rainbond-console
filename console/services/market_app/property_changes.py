@@ -120,7 +120,7 @@ class PropertyChanges(object):
                 continue
             old_port = old_container_ports[new_port["container_port"]]
             outer_change = new_port["is_outer_service"] and not old_port.is_outer_service
-            inner_change = new_port["is_inner_service"] and not old_port.is_outer_service
+            inner_change = new_port["is_inner_service"] and not old_port.is_inner_service
             protocol_change = new_port["protocol"] != old_port.protocol
             port_alias_change = new_port["port_alias"] != old_port.port_alias
             if outer_change or inner_change or protocol_change or port_alias_change:
@@ -188,7 +188,7 @@ class PropertyChanges(object):
             return {"add": new_probe, "upd": []}
         old_probe = old_probe.to_dict()
         for k, v in list(new_probe.items()):
-            if key in list(new_probe.keys()) and old_probe[k] != v:
+            if k in list(old_probe.keys()) and old_probe[k] != v:
                 return {"add": [], "upd": new_probe}
         return None
 
@@ -210,11 +210,12 @@ class PropertyChanges(object):
                 continue
 
             try:
+                old_promql = promql_service.add_or_update_label(component_id, old_graph.promql)
                 new_promql = promql_service.add_or_update_label(component_id, graph.get("promql"))
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
-            if new_promql != old_graph.promql:
+            if new_promql != old_promql:
                 update.append(graph)
         return {
             "add": add,

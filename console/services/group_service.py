@@ -342,10 +342,10 @@ class GroupService(object):
             if not app.get("allocate_mem"):
                 app["allocate_mem"] = 0
             for svc in app["service_list"]:
-                app["allocate_mem"] += svc.min_memory
+                app["allocate_mem"] += svc.min_memory * svc.min_node
                 if svc.status in ["running", "upgrade", "starting", "some_abnormal"]:
                     # if is running used_mem ++
-                    app["used_mem"] += svc.min_memory
+                    app["used_mem"] += svc.min_memory * svc.min_node
                     app["run_service_num"] += 1
             app.pop("service_list")
             re_app_list.append(app)
