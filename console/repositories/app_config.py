@@ -726,6 +726,10 @@ class ServiceDomainRepository(object):
     def bulk_create(http_rules):
         ServiceDomain.objects.bulk_create(http_rules)
 
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        return ServiceDomain.objects.filter(service_id__in=component_ids)
+
 
 class ServiceExtendRepository(object):
     # only market service return extend_method
