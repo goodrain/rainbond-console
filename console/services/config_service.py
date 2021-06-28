@@ -273,8 +273,13 @@ class PlatformConfigService(ConfigService):
             self.base_cfg_keys.append("OAUTH_SERVICES")
 
         self.cfg_keys = [
-            "TITLE", "LOGO", "FAVICON", "IS_REGIST", "DOCUMENT", "OFFICIAL_DEMO", ConfigKeyEnum.ENTERPRISE_EDITION.name,
-            "IS_DISABLE_LOGOUT"
+            "TITLE",
+            "LOGO",
+            "FAVICON",
+            "IS_REGIST",
+            "DOCUMENT",
+            "OFFICIAL_DEMO",
+            ConfigKeyEnum.ENTERPRISE_EDITION.name,
         ]
         self.cfg_keys_value = {
             "TITLE": {
@@ -312,11 +317,6 @@ class PlatformConfigService(ConfigService):
             ConfigKeyEnum.ENTERPRISE_EDITION.name: {
                 "value": "false",
                 "desc": "是否是企业版",
-                "enable": True
-            },
-            "IS_DISABLE_LOGOUT": {
-                "value": os.getenv('IS_DISABLE_LOGOUT', False),
-                "desc": "是否禁用退出登录功能",
                 "enable": True
             },
         }
