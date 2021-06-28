@@ -266,7 +266,7 @@ class NewComponents(object):
             envs.extend(self._create_envs_4_ports(component, port, governance_mode))
         return envs
 
-    def _create_envs_4_ports(self, component: TenantServiceInfo,  port: TenantServicesPort, governance_mode):
+    def _create_envs_4_ports(self, component: TenantServiceInfo, port: TenantServicesPort, governance_mode):
         port_alias = component.service_alias.upper()
         host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
         attr_name_prefix = port_alias + str(port.container_port)

@@ -568,7 +568,7 @@ class AppUpgrade(MarketApp):
 
     def _new_component_plugins(self, components: [Component]):
         plugins = {plugin.plugin.origin_share_id: plugin for plugin in self._plugins()}
-        old_plugin_deps = [dep.service_id+dep.plugin_id for dep in self.original_app.plugin_deps]
+        old_plugin_deps = [dep.service_id + dep.plugin_id for dep in self.original_app.plugin_deps]
 
         components = {cpt.component.service_key: cpt for cpt in components}
         component_keys = {tmpl["service_id"]: tmpl["service_key"] for tmpl in self.app_template.get("apps")}
