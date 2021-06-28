@@ -170,15 +170,7 @@ class DomainService(object):
     def get_tcp_rules_by_app_id(self, region_name, app_id):
         services = group_service.get_group_services(app_id)
         service_ids = [s.service_id for s in services]
-        tcpdomains = tcp_domain.get_services_tcpdomains(service_ids)
-        tcpdomain = region_services.get_region_tcpdomain(region_name=region_name)
-        for domain in tcpdomains:
-            arr = domain.end_point.split(":")
-            if len(arr) != 2 or arr[0] != "0.0.0.0":
-                continue
-            domain.end_point = tcpdomain + ":" + arr[1]
-
-        return tcpdomains
+        return self.get_tcp_rules_by_service_ids(region_name, service_ids)
 
     def get_sld_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id,
@@ -910,6 +902,40 @@ class DomainService(object):
                                                   service_alias, tcp_rule_id, tenant_id, region_id)
             logger.debug("create default gateway stream rule for component {0} port {1}, endpoint {2}".format(
                 service.service_alias, port.container_port, end_point))
+
+    def get_components_that_contains_gateway_rules(self, region_name, services):
+        service_ids = [s.service_id for s in services]
+        tcp_rules = self.get_tcp_rules_by_service_ids(region_name, service_ids)
+        http_rules = domain_repo.get_domains_by_service_ids(service_ids)
+
+        exist_tcp_rules = dict()
+        for tcp_rule in tcp_rules:
+            if not exist_tcp_rules.get(tcp_rule.service_id):
+                exist_tcp_rules[tcp_rule.service_id] = []
+            exist_tcp_rules[tcp_rule.service_id].append(tcp_rule)
+
+        exist_http_rules = dict()
+        for http_rule in http_rules:
+            if not exist_http_rules.get(http_rule.service_id):
+                exist_http_rules[http_rule.service_id] = []
+            exist_http_rules[http_rule.service_id].append(http_rule)
+
+        for service in services:
+            gateway_rules = dict()
+            gateway_rules["http"] = exist_http_rules.get(service.service_id, [])
+            gateway_rules["tcp"] = exist_tcp_rules.get(service.service_id, [])
+            service.gateway_rules = gateway_rules
+        return services
+
+    def get_tcp_rules_by_service_ids(self, region_name, service_ids):
+        tcpdomains = tcp_domain.get_services_tcpdomains(service_ids)
+        tcpdomain = region_services.get_region_tcpdomain(region_name=region_name)
+        for domain in tcpdomains:
+            arr = domain.end_point.split(":")
+            if len(arr) != 2 or arr[0] != "0.0.0.0":
+                continue
+            domain.end_point = tcpdomain + ":" + arr[1]
+        return tcpdomains
 
 
 domain_service = DomainService()
