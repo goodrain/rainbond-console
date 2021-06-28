@@ -69,7 +69,7 @@ class GroupAppsCopyView(TeamAPIView):
                                                                              tar_app_id)
         services = groupapp_copy_service.copy_group_services(request.user, self.team, self.region_name, tar_team,
                                                              tar_region_name, tar_group, app_id, services)
-        services = domain_service.get_gateway_rules_by_services(tar_region_name, services)
+        services = domain_service.get_components_that_contains_gateway_rules(tar_region_name, services)
         services = ServiceBaseInfoSerializer(data=services, many=True)
         services.is_valid()
         serializers = AppCopyCResSerializer(data={"services": services.data})

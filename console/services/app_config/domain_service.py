@@ -903,7 +903,7 @@ class DomainService(object):
             logger.debug("create default gateway stream rule for component {0} port {1}, endpoint {2}".format(
                 service.service_alias, port.container_port, end_point))
 
-    def get_gateway_rules_by_services(self, region_name, services):
+    def get_components_that_contains_gateway_rules(self, region_name, services):
         service_ids = [s.service_id for s in services]
         tcp_rules = self.get_tcp_rules_by_service_ids(region_name, service_ids)
         http_rules = domain_repo.get_domains_by_service_ids(service_ids)
