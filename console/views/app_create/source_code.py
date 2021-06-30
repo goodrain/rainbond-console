@@ -154,8 +154,6 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                     logger.exception(e)
                     new_service.open_webhooks = False
                 new_service.save()
-            # 添加组件所在组
-
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
 
