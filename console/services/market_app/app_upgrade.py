@@ -463,7 +463,7 @@ class AppUpgrade(MarketApp):
                 app_id=self.app_id,
                 config_group_name=cg["name"],
                 deploy_type=cg["injection_type"],
-                enable=True,  # tmpl does not have the 'enable' property
+                enable=True,  # always true
                 region_name=self.region_name,
                 config_group_id=make_uuid(),
             )
@@ -568,6 +568,7 @@ class AppUpgrade(MarketApp):
 
     def _new_component_plugins(self, components: [Component]):
         plugins = {plugin.plugin.origin_share_id: plugin for plugin in self._plugins()}
+        old_plugin_deps = [dep.service_id + dep.plugin_id for dep in self.original_app.plugin_deps]
 
         components = {cpt.component.service_key: cpt for cpt in components}
         component_keys = {tmpl["service_id"]: tmpl["service_key"] for tmpl in self.app_template.get("apps")}
@@ -593,6 +594,9 @@ class AppUpgrade(MarketApp):
             plugin = plugins.get(plugin_dep["plugin_key"])
             if not plugin:
                 logger.info("plugin {} not found".format(plugin_dep["plugin_key"]))
+                continue
+
+            if component.component.component_id + plugin.plugin.plugin_id in old_plugin_deps:
                 continue
 
             # plugin configs

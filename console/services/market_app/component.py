@@ -263,3 +263,4 @@ class Component(object):
             probe = ServiceProbe(**upd)
             probe.ID = self.probe.ID
             probe.service_id = self.probe.service_id
+            self.probe = probe

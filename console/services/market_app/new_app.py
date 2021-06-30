@@ -217,16 +217,17 @@ class NewApp(object):
             graphs.extend(cpt.graphs)
 
         components = [cpt.component for cpt in self.update_components]
+        component_ids = [cpt.component_id for cpt in components]
         service_repo.bulk_update(components)
         service_source_repo.bulk_update(sources)
         extend_repo.bulk_create_or_update(extend_infos)
-        env_var_repo.overwrite_by_component_ids(self.component_ids, envs)
-        port_repo.overwrite_by_component_ids(self.component_ids, ports)
-        volume_repo.overwrite_by_component_ids(self.component_ids, volumes)
-        config_file_repo.overwrite_by_component_ids(self.component_ids, config_files)
-        probe_repo.overwrite_by_component_ids(self.component_ids, probes)
-        service_monitor_repo.overwrite_by_component_ids(self.component_ids, monitors)
-        component_graph_repo.overwrite_by_component_ids(self.component_ids, graphs)
+        env_var_repo.overwrite_by_component_ids(component_ids, envs)
+        port_repo.overwrite_by_component_ids(component_ids, ports)
+        volume_repo.overwrite_by_component_ids(component_ids, volumes)
+        config_file_repo.overwrite_by_component_ids(component_ids, config_files)
+        probe_repo.overwrite_by_component_ids(component_ids, probes)
+        service_monitor_repo.overwrite_by_component_ids(component_ids, monitors)
+        component_graph_repo.overwrite_by_component_ids(component_ids, graphs)
 
     def _save_component_deps(self):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)

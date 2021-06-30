@@ -8,6 +8,7 @@ from rest_framework_jwt.settings import api_settings
 from rest_framework_jwt.views import JSONWebTokenAPIView, jwt_response_payload_handler
 
 from console.serializer import CustomJWTSerializer
+from console.login.jwt_manager import JwtManager
 from www.services import user_svc
 from www.utils.return_message import general_message, error_message
 
@@ -57,6 +58,8 @@ class JWTTokenView(JSONWebTokenAPIView):
                 if api_settings.JWT_AUTH_COOKIE:
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=30))
                     response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+                jwt_manager = JwtManager()
+                jwt_manager.set(response_data["token"], user.user_id)
                 return response
             result = general_message(400, "login failed", "{}".format(list(dict(serializer.errors).values())[0][0]))
             return Response(result, status=status.HTTP_400_BAD_REQUEST)

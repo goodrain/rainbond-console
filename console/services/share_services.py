@@ -887,6 +887,8 @@ class ShareService(object):
                 group.config_group_name,
                 "injection_type":
                 group.deploy_type,
+                "enable":
+                group.enable,
                 "config_items":
                 {item.item_key: item.item_value
                  for item in app_config_group_item_repo.list(group.config_group_id)},

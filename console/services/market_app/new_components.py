@@ -28,6 +28,7 @@ from console.exception.main import ErrVolumePath
 # enum
 from console.enum.component_enum import ComponentType
 from console.constants import AppConstants
+from console.enum.app import GovernanceModeEnum
 # util
 from www.utils.crypt import make_uuid
 
@@ -88,12 +89,13 @@ class NewComponents(object):
 
             # component source
             component_source = self._template_to_component_source(cpt, component_tmpl)
+            # ports
+            ports, http_rules = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
             # envs
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")
             envs = self._template_to_envs(cpt, inner_envs, outer_envs)
-            # ports
-            ports, http_rules = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
+            envs = self._ensure_port_envs(cpt, envs, ports, self.original_app.governance_mode)
             # volumes
             volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
             # probe
@@ -256,6 +258,36 @@ class NewComponents(object):
                 gateway_rules.append(gateway_rule)
         return new_ports, gateway_rules
 
+    def _ensure_port_envs(self, component, envs, ports, governance_mode):
+        # filter out the old port envs
+        envs = [env for env in envs if env.container_port == 0]
+        # create outer envs for every port
+        for port in ports:
+            envs.extend(self._create_envs_4_ports(component, port, governance_mode))
+        return envs
+
+    def _create_envs_4_ports(self, component: TenantServiceInfo, port: TenantServicesPort, governance_mode):
+        port_alias = component.service_alias.upper()
+        host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
+        attr_name_prefix = port_alias + str(port.container_port)
+        host_env = self._create_port_env(component, port, "连接地址", attr_name_prefix + "_HOST", host_value)
+        port_env = self._create_port_env(component, port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
+        return [host_env, port_env]
+
+    @staticmethod
+    def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name, attr_name, attr_value):
+        return TenantServiceEnvVar(
+            tenant_id=component.tenant_id,
+            service_id=component.component_id,
+            container_port=port.container_port,
+            name=name,
+            attr_name=attr_name,
+            attr_value=attr_value,
+            is_change=False,
+            scope="outer",
+            create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        )
+
     def _create_default_gateway_rule(self, component: TenantServiceInfo, port: TenantServicesPort):
         # only create gateway rule for http port now
         if not port.is_outer_service or port.protocol != "http":
@@ -316,6 +348,7 @@ class NewComponents(object):
         result = []
         for probe in probes:
             result.append(probe_service.create_probe(self.tenant, component, probe))
+        return result
 
     def _template_to_extend_info(self, component, extend_info):
         if not extend_info:

@@ -5,6 +5,7 @@ import urllib.parse
 import urllib.request
 
 import requests
+from console.exception.bcode import ErrOauthUserNotLogout
 from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.oauth import OAuth2Interface, OAuth2User
 from console.utils.urlutil import set_get_url
@@ -160,3 +161,12 @@ class DboxApiV1(DboxApiV1MiXin, OAuth2Interface):
             return set_get_url(self.oauth_service.auth_url, params)
         else:
             raise NoOAuthServiceErr("no found oauth service")
+
+    def is_logout(self):
+        """
+        Check if the user is logged out.
+        """
+        self.set_api(self.oauth_service.home_url, self.oauth_user.access_token)
+        resp = self.api._api_get("/oauth/islogout")
+        if resp:
+            raise ErrOauthUserNotLogout

@@ -155,7 +155,8 @@ class AppManageBase(object):
 
 class AppManageService(AppManageBase):
     def start(self, tenant, service, user, oauth_instance):
-        if not check_memory_quota(oauth_instance, tenant.enterprise_id, service.min_memory, service.min_node):
+        if service.service_source != "third_party" and not check_memory_quota(oauth_instance, tenant.enterprise_id,
+                                                                              service.min_memory, service.min_node):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body = dict()

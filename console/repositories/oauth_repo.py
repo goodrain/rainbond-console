@@ -2,7 +2,7 @@
 import logging
 import os
 
-from console.exception.bcode import ErrOauthServiceExists
+from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound, ErrOauthServiceNotFound
 from console.models.main import OAuthServices, UserOAuthServices
 from console.utils.oauth.oauth_types import (get_oauth_instance, support_oauth_type)
 
@@ -29,6 +29,13 @@ class OAuthRepo(object):
                 return OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
             return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
+
+    @staticmethod
+    def get_by_client_id(client_id):
+        try:
+            OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False)
+        except OAuthServices.DoesNotExist:
+            raise ErrOauthServiceNotFound
 
     def open_get_oauth_services_by_service_id(self, service_id):
         return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
@@ -179,6 +186,12 @@ class UserOAuthRepo(object):
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
+
+    def get_by_oauth_user_id(selfself, service_id, oauth_user_id):
+        try:
+            return UserOAuthServices.objects.get(service_id=service_id, oauth_user_id=oauth_user_id)
+        except UserOAuthServices.DoesNotExist:
+            raise ErrOauthUserNotFound
 
     def user_oauth_exists(self, service_id, oauth_user_id):
         try:

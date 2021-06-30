@@ -11,10 +11,15 @@ from console.exception.main import AbortRequest
 from console.utils.shortcuts import get_object_or_404
 from django.db.models import Q
 from www.db.base import BaseConnection
-from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation, ServiceAttachInfo, ServiceCreateStep,
-                             ServiceDomain, ServiceDomainCertificate, ServicePaymentNotify, ServiceTcpDomain, TenantServiceAuth,
-                             TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
-                             TenantServiceRelation, TenantServicesPort, TenantServiceVolume, ThirdPartyServiceEndpoints)
+from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation,
+                             ServiceAttachInfo, ServiceCreateStep,
+                             ServiceDomain, ServiceDomainCertificate,
+                             ServicePaymentNotify, ServiceTcpDomain,
+                             TenantServiceAuth, TenantServiceConfigurationFile,
+                             TenantServiceEnv, TenantServiceEnvVar,
+                             TenantServiceMountRelation, TenantServiceRelation,
+                             TenantServicesPort, TenantServiceVolume,
+                             ThirdPartyServiceEndpoints)
 from www.models.service_publish import ServiceExtendMethod
 
 logger = logging.getLogger("default")
@@ -726,6 +731,10 @@ class ServiceDomainRepository(object):
     def bulk_create(http_rules):
         ServiceDomain.objects.bulk_create(http_rules)
 
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        return ServiceDomain.objects.filter(service_id__in=component_ids)
+
 
 class ServiceExtendRepository(object):
     # only market service return extend_method
@@ -914,6 +923,22 @@ class TenantServiceEndpoints(object):
             "service_cname": service.service_cname,
             "endpoints_info": "",
             "endpoints_type": "api"
+        }
+        return ThirdPartyServiceEndpoints.objects.create(**data)
+
+    def create_kubernetes_endpoints(self, tenant, service, service_name, namespace):
+        endpoints = self.get_service_endpoints_by_service_id(service.service_id)
+        if endpoints:
+            return
+        data = {
+            "tenant_id": tenant.tenant_id,
+            "service_id": service.service_id,
+            "service_cname": service.service_cname,
+            "endpoints_info": json.dumps({
+                'serviceName': service_name,
+                'namespace': namespace
+            }),
+            "endpoints_type": "kubernetes"
         }
         return ThirdPartyServiceEndpoints.objects.create(**data)
 

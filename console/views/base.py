@@ -36,6 +36,7 @@ from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
+from console.login.jwt_manager import JwtManager
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -84,6 +85,12 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         if jwt_value is None:
             msg = _('未提供验证信息')
             raise AuthenticationInfoHasExpiredError(msg)
+
+        # Check if the jwt is expired.If not, reset the expire time
+        jwt_manager = JwtManager()
+        if not jwt_manager.exists(jwt_value):
+            raise AuthenticationInfoHasExpiredError("token expired")
+
         # if have SSO login modules
         if settings.MODULES.get('SSO_LOGIN', None):
             sso_user_id = request.COOKIES.get('uid')
@@ -116,6 +123,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
                 raise AuthenticationInfoHasExpiredError(msg)
 
             user = self.authenticate_credentials(payload)
+            jwt_manager.set(jwt_value, user.user_id)
             return user, jwt_value
 
     def authenticate_credentials(self, payload):

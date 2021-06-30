@@ -14,11 +14,15 @@ from console.appstore.appstore import app_store
 from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
-from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion)
-from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
+from console.models.main import (AppMarket, RainbondCenterApp,
+                                 RainbondCenterAppVersion)
+from console.repositories.app import (app_market_repo, service_repo,
+                                      service_source_repo)
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
-from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
+from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo,
+                                             service_endpoints_repo,
+                                             tcp_domain, volume_repo)
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -35,7 +39,9 @@ from django.forms.models import model_to_dict
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 from www.models.main import ServiceConsume, TenantServiceInfo
-from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource,
+from www.tenantservice.baseservice import (BaseTenantService,
+                                           CodeRepositoriesService,
+                                           ServicePluginResource,
                                            TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
@@ -245,7 +251,7 @@ class AppService(object):
 
         return 200, "创建成功", ts
 
-    def __init_third_party_app(self, region, end_point):
+    def __init_third_party_app(self, region):
         """
         初始化创建外置组件的默认数据,未存入数据库
         """
@@ -259,7 +265,7 @@ class AppService(object):
         tenant_service.setting = ""
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
-        tenant_service.min_node = len(end_point)
+        tenant_service.min_node = 0
         tenant_service.min_memory = 0
         tenant_service.min_cpu = 0
         tenant_service.version = "81701"
@@ -277,21 +283,12 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_third_party_app(self,
-                               region,
-                               tenant,
-                               user,
-                               service_cname,
-                               endpoints,
-                               endpoints_type,
-                               is_inner_service=False,
-                               component_type="rainbond"):
+    def create_third_party_app(self, region, tenant, user, service_cname, static_endpoints, endpoints_type, source_config={}):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             raise ServiceHandleException(msg=msg, msg_show="组件名称不合法", status_code=400, error_code=400)
-        # 初始化
-        new_service = self.__init_third_party_app(region, endpoints)
+        new_service = self.__init_third_party_app(region)
         new_service.tenant_id = tenant.tenant_id
         new_service.service_cname = service_cname
         service_id = make_uuid(tenant.tenant_id)
@@ -301,50 +298,49 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = ''
         new_service.protocol = 'tcp'
-        new_service.component_type = component_type
         new_service.save()
-        if endpoints_type == "static":
-            # 如果只有一个端口，就设定为默认端口，没有或有多个端口，不设置默认端口
-            if endpoints:
-                from console.views.app_create.source_outer import \
-                    check_endpoints
-                errs, isDomain = check_endpoints(endpoints)
-                if errs:
-                    return 400, "组件地址不合法", None
-                port_list = []
-                prefix = ""
-                protocol = "tcp"
-                for endpoint in endpoints:
-                    if 'https://' in endpoint:
-                        endpoint = endpoint.split('https://')[1]
-                        prefix = "https"
-                        protocol = "http"
-                    if 'http://' in endpoint:
-                        endpoint = endpoint.split('http://')[1]
-                        prefix = "http"
-                        protocol = "http"
-                    if ':' in endpoint:
-                        port_list.append(endpoint.split(':')[1])
-                if len(port_list) == 0 and isDomain is True and prefix != "":
-                    port_list.append(443 if prefix == "https" else 80)
-                port_re = list(set(port_list))
-                if len(port_re) == 1:
-                    port = int(port_re[0])
-                    if port:
-                        port_alias = new_service.service_alias.upper().replace("-", "_") + str(port)
-                        service_port = {
-                            "tenant_id": tenant.tenant_id,
-                            "service_id": new_service.service_id,
-                            "container_port": port,
-                            "mapping_port": port,
-                            "protocol": protocol,
-                            "port_alias": port_alias,
-                            "is_inner_service": is_inner_service,
-                            "is_outer_service": False,
-                            "k8s_service_name": new_service.service_alias + "-" + str(port),
-                        }
-                        port_repo.add_service_port(**service_port)
-                service_endpoints_repo.update_or_create_endpoints(tenant, new_service, endpoints)
+        if endpoints_type == "kubernetes":
+            service_endpoints_repo.create_kubernetes_endpoints(tenant, new_service, source_config["service_name"],
+                                                               source_config["namespace"])
+        if endpoints_type == "static" and static_endpoints:
+            from console.views.app_create.source_outer import check_endpoints
+            errs, is_domain = check_endpoints(static_endpoints)
+            if errs:
+                return 400, "组件地址不合法", None
+            port_list = []
+            prefix = ""
+            protocol = "tcp"
+            for endpoint in static_endpoints:
+                if 'https://' in endpoint:
+                    endpoint = endpoint.split('https://')[1]
+                    prefix = "https"
+                    protocol = "http"
+                if 'http://' in endpoint:
+                    endpoint = endpoint.split('http://')[1]
+                    prefix = "http"
+                    protocol = "http"
+                if ':' in endpoint:
+                    port_list.append(endpoint.split(':')[1])
+            if len(port_list) == 0 and is_domain is True and prefix != "":
+                port_list.append(443 if prefix == "https" else 80)
+            port_re = list(set(port_list))
+            if len(port_re) == 1:
+                port = int(port_re[0])
+                if port:
+                    port_alias = new_service.service_alias.upper().replace("-", "_") + str(port)
+                    service_port = {
+                        "tenant_id": tenant.tenant_id,
+                        "service_id": new_service.service_id,
+                        "container_port": port,
+                        "mapping_port": port,
+                        "protocol": protocol,
+                        "port_alias": port_alias,
+                        "is_inner_service": False,
+                        "is_outer_service": False,
+                        "k8s_service_name": new_service.service_alias + "-" + str(port),
+                    }
+                    port_repo.add_service_port(**service_port)
+            service_endpoints_repo.update_or_create_endpoints(tenant, new_service, static_endpoints)
 
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
@@ -574,23 +570,6 @@ class AppService(object):
         data["service_name"] = service.service_name
         return data
 
-    def __handle_service_ports(self, tenant, service, ports):
-        """处理创建组件的端口。对于打开了对内或对外端口的组件，需由业务端手动打开"""
-        try:
-            for port in ports:
-                if port.is_outer_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port,
-                                                               "open_outer", port.protocol, port.port_alias)
-                    if code != 200:
-                        logger.error("create service manage port error : {0}".format(msg))
-                if port.is_inner_service:
-                    code, msg, data = port_service.manage_port(tenant, service, service.service_region, port.container_port,
-                                                               "open_inner", port.protocol, port.port_alias)
-                    if code != 200:
-                        logger.error("create service manage port error : {0}".format(msg))
-        except Exception as e:
-            logger.exception(e)
-
     def add_service_default_porbe(self, tenant, service):
         ports = port_service.get_service_ports(service)
         port_length = len(ports)
@@ -681,11 +660,6 @@ class AppService(object):
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         ports_info = ports.values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service',
                                   'is_outer_service', 'k8s_service_name')
-
-        for port_info in ports_info:
-            port_info["is_inner_service"] = is_inner_service
-            port_info["is_outer_service"] = False
-
         if ports_info:
             data["ports_info"] = list(ports_info)
 
@@ -696,20 +670,20 @@ class AppService(object):
                 eps = json.loads(endpoints.endpoints_info)
                 validate_endpoints_info(eps)
             endpoints_dict = dict()
-            endpoints_dict[endpoints.endpoints_type] = endpoints.endpoints_info
+            # endpoint source config
+            endpoints_dict[endpoints.endpoints_type] = json.loads(endpoints.endpoints_info)
             data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
-
         # etcd keys
         data["etcd_key"] = service.check_uuid
         # 数据中心创建
         app_id = service_group_relation_repo.get_group_id_by_service(service)
         region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
         data["app_id"] = region_app_id
+        logger.debug('create third component from region, data: {0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成
         service.create_status = "complete"
-        self.__handle_service_ports(tenant, service, ports)
         service.save()
         return service
 
