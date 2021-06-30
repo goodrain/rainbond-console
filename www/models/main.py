@@ -526,7 +526,6 @@ class TenantServiceInfo(BaseModel):
     service_name = models.CharField(max_length=100, default='', help_text="组件名称（新加属性，数据中心使用）")
     oauth_service_id = models.IntegerField(default=None, null=True, blank=True, help_text="拉取源码所用的OAuth服务id")
     git_full_name = models.CharField(max_length=64, null=True, blank=True, default=None, help_text="git项目的fullname")
-    component_type = models.CharField(max_length=32, null=True, blank=True, default=None, help_text="the type of the component")
 
     def __unicode__(self):
         return self.service_alias
@@ -636,7 +635,6 @@ class TenantServiceInfoDelete(BaseModel):
     is_upgrate = models.BooleanField(default=False, help_text='是否可以更新')
     build_upgrade = models.BooleanField(default=True, help_text='组件构建后是否升级')
     service_name = models.CharField(max_length=100, default='', help_text="组件名称（新加属性，数据中心使用）")
-    component_type = models.CharField(max_length=32, default='', help_text="the type of component")
 
 
 class TenantServiceLog(BaseModel):

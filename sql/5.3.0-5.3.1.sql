@@ -9,9 +9,6 @@ CREATE TABLE IF NOT EXISTS `service_components` (
     KEY (`app_id`,`service_name`,`component_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE `tenant_service_delete` ADD COLUMN `component_type` varchar(32) NULL AFTER `service_name`;
-ALTER TABLE `tenant_service` ADD COLUMN `component_type` varchar(32) NULL AFTER `service_name`;
-
 ALTER TABLE `rbdconsole`.`service_group` 
 ADD COLUMN `app_store_name` varchar(255) NULL AFTER `app_type`,
 ADD COLUMN `app_store_url` varchar(2047) NULL AFTER `app_store_name`,
