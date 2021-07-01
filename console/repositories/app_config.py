@@ -921,14 +921,14 @@ class TenantServiceEndpoints(object):
         }
         return ThirdPartyServiceEndpoints.objects.create(**data)
 
-    def create_kubernetes_endpoints(self, tenant, service, service_name, namespace):
-        endpoints = self.get_service_endpoints_by_service_id(service.service_id)
+    def create_kubernetes_endpoints(self, tenant, component, service_name, namespace):
+        endpoints = self.get_service_endpoints_by_service_id(component.service_id)
         if endpoints:
             return
         data = {
             "tenant_id": tenant.tenant_id,
-            "service_id": service.service_id,
-            "service_cname": service.service_cname,
+            "service_id": component.service_id,
+            "service_cname": component.service_cname,
             "endpoints_info": json.dumps({
                 'serviceName': service_name,
                 'namespace': namespace

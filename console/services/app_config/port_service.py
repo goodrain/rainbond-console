@@ -15,11 +15,11 @@ from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameEx
 from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
 # repository
 from console.repositories.app import service_repo
-from console.repositories.app_config import (domain_repo, port_repo, service_endpoints_repo, tcp_domain, env_var_repo)
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, service_endpoints_repo, tcp_domain)
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
-from console.repositories.region_repo import region_repo
 from console.repositories.region_app import region_app_repo
+from console.repositories.region_repo import region_repo
 # service
 from console.services.app_config.domain_service import domain_service
 from console.services.app_config.env_service import AppEnvVarService
@@ -28,11 +28,11 @@ from console.services.region_services import region_services
 # model
 from www.models.main import ServiceGroup
 from www.models.main import TenantServiceEnvVar
+from www.models.main import TenantServicesPort
 from console.models.main import TenantServiceInfo
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantServicesPort
 from www.utils.crypt import make_uuid
 
 pros = ProbeService()
@@ -196,7 +196,10 @@ class AppPortService(object):
         # 第三方组件暂时只允许添加一个端口
         tenant_service_ports = self.get_service_ports(service)
         if tenant_service_ports and service.service_source == "third_party":
-            return 400, "第三方组件只支持配置一个端口", None
+            # TODO: all thirdcomponent implementation by custom component, then remove this restriction.
+            endpoint_config = service_endpoints_repo.get_service_endpoints_by_service_id(service_id=service.service_id)
+            if endpoint_config and endpoint_config.first().endpoints_type != "kubernetes":
+                return 400, "第三方组件只支持配置一个端口", None
 
         container_port = int(container_port)
         self.check_port(service, container_port)

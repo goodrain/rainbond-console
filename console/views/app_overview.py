@@ -119,6 +119,7 @@ class AppDetailView(AppBaseView):
             service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id).first()
             if service_endpoints:
                 bean["register_way"] = service_endpoints.endpoints_type
+                bean["endpoints_type"] = service_endpoints.endpoints_type
                 if service_endpoints.endpoints_type == "api":
                     # 从环境变量中获取域名，没有在从请求中获取
                     host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
@@ -132,6 +133,8 @@ class AppDetailView(AppBaseView):
 
                     bean["discovery_type"] = endpoints_info_dict["type"]
                     bean["discovery_key"] = endpoints_info_dict["key"]
+                if service_endpoints.endpoints_type == "kubernetes":
+                    bean["kubernetes"] = json.loads(service_endpoints.endpoints_info)
 
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
