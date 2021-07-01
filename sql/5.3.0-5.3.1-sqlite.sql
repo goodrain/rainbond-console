@@ -129,4 +129,9 @@ ALTER TABLE `app_upgrade_record` ADD COLUMN `parent_id` int DEFAULT 0;
 
 ALTER TABLE tenant_service add COLUMN container_gpu int(64) DEFAULT 0;
 ALTER TABLE tenant_service_delete add COLUMN container_gpu int(64) DEFAULT 0;
+
+ALTER TABLE `service_group` ADD COLUMN `app_store_name` varchar(255) NULL;
+ALTER TABLE `service_group` ADD COLUMN `app_store_url` varchar(2047) NULL;
+ALTER TABLE `service_group` ADD COLUMN `app_template_name` varchar(255) NULL;
+ALTER TABLE `service_group` ADD COLUMN `version` varchar(255) NULL;
 COMMIT;
