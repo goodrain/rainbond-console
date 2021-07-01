@@ -862,7 +862,7 @@ class AppManageService(AppManageBase):
         # Batch delete considers that the preconditions have been met,
         # and no longer judge the preconditions
         for cpt in components:
-            self._truncate_service(tenant, cpt, user)
+            self.truncate_service(tenant, cpt, user)
 
     def get_etcd_keys(self, tenant, service):
         logger.debug("ready delete etcd data while delete service")
