@@ -175,15 +175,20 @@ class ComponentGraphService(object):
             graph.save()
 
     def exchange_graphs(self, component_id, graph_ids):
-        if not graph_ids or len(graph_ids) != 2:
-            raise AbortRequest(msg="No graph_ids or wrong number of graph_ids", msg_show="没有图表ID或图表ID数量有误")
-        graphs = []
+        sequence = 0
+        graph_id_map = dict()
+        # Mapping graph ID to graph
+        old_graphs = component_graph_repo.list(component_id)
+        for old_graph in old_graphs:
+            graph_id_map[old_graph.graph_id] = old_graph
+        # modified sequence
         for graph_id in graph_ids:
-            graph = component_graph_repo.get(component_id, graph_id)
-            graphs.append(graph)
-        # exchange graph sequence
-        graphs[0].sequence, graphs[1].sequence = graphs[1].sequence, graphs[0].sequence
-        for graph in graphs:
+            if not graph_id_map.get(graph_id):
+                raise AbortRequest(msg="wrong number of graph_id {}".format(graph_id), msg_show="该图表不存在")
+            graph_id_map[graph_id].sequence = sequence
+            sequence += 1
+        # update model
+        for graph in old_graphs:
             graph.save()
 
 

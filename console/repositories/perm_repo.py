@@ -119,7 +119,7 @@ class UserKindRoleRepo(object):
             user_roles = UserRole.objects.filter(role_id__in=role_ids, user_id=user.user_id)
         return user_roles
 
-    def get_users_roles(self, kind, kind_id, users):
+    def get_users_roles(self, kind, kind_id, users, creater_id=0):
         data = []
         user_roles_kv = {}
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
@@ -133,11 +133,13 @@ class UserKindRoleRepo(object):
             role_ids = roles.values_list("ID", flat=True)
             users_roles = UserRole.objects.filter(role_id__in=role_ids)
             for user_role in users_roles:
-                user_roles_kv[str(user_role.user_id)].append({
+                user_roles_kv.get(str(user_role.user_id), []).append({
                     "role_id": user_role.role_id,
                     "role_name": role_id_name_kv[str(user_role.role_id)]
                 })
         for user in users:
+            if int(user.user_id) == int(creater_id):
+                user_roles_kv.get(str(user.user_id), []).append({"role_id": 0, "role_name": "拥有者"})
             data.append({
                 "nick_name": user.nick_name,
                 "email": user.email,

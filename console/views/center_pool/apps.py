@@ -6,18 +6,14 @@ import datetime
 import json
 import logging
 
-from console.exception.main import (AccountOverdueException, ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import app_tag_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.services.app import app_market_service
 from console.services.config_service import EnterpriseConfigService
-from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.region_services import region_services
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
-from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework import status
 from rest_framework.response import Response
@@ -93,7 +89,6 @@ class CenterAppListView(JWTAuthApiView):
 
 class CenterAppView(RegionTenantHeaderView):
     @never_cache
-    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """
         创建应用市场应用
@@ -120,57 +115,16 @@ class CenterAppView(RegionTenantHeaderView):
               type: bool
               paramType: form
         """
-        try:
-            group_id = request.data.get("group_id", -1)
-            app_id = request.data.get("app_id", None)
-            app_version = request.data.get("app_version", None)
-            is_deploy = request.data.get("is_deploy", True)
-            install_from_cloud = request.data.get("install_from_cloud", False)
-            market_name = request.data.get("market_name", None)
-            if not app_id or not app_version:
-                return Response(general_message(400, "app id is null", "请指明需要安装的应用"), status=400)
-            if int(group_id) != -1:
-                group_service.get_group_by_id(self.tenant, self.response_region, group_id)
-            app = None
-            app_version_info = None
-            if install_from_cloud:
-                dt, market = app_market_service.get_app_market(self.tenant.enterprise_id, market_name, raise_exception=True)
-                app, app_version_info = app_market_service.cloud_app_model_to_db_model(
-                    market, app_id, app_version, for_install=True)
-                if not app:
-                    return Response(general_message(404, "not found", "云端应用不存在"), status=404)
-            else:
-                app, app_version_info = market_app_service.get_rainbond_app_and_version(self.user.enterprise_id, app_id,
-                                                                                        app_version)
-                if not app:
-                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-                if app_version_info.region_name and app_version_info.region_name != self.region_name:
-                    raise ServiceHandleException(
-                        msg="app version can not install to this region",
-                        msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version_info.region_name))
+        app_id = request.data.get("group_id", -1)
+        app_model_key = request.data.get("app_id", None)
+        version = request.data.get("app_version", None)
+        is_deploy = request.data.get("is_deploy", True)
+        install_from_cloud = request.data.get("install_from_cloud", False)
+        market_name = request.data.get("market_name", None)
 
-            market_app_service.install_service(
-                self.tenant,
-                self.response_region,
-                self.user,
-                group_id,
-                app,
-                app_version_info,
-                is_deploy,
-                install_from_cloud,
-                market_name=market_name)
-            if not install_from_cloud:
-                market_app_service.update_rainbond_app_install_num(self.user.enterprise_id, app_id, app_version)
-            logger.debug("market app create success")
-            result = general_message(200, "success", "创建成功")
-        except ServiceHandleException as e:
-            raise e
-        except ResourceNotEnoughException as re:
-            raise re
-        except AccountOverdueException as re:
-            logger.exception(re)
-            return Response(general_message(10406, "resource is not enough", re.message), status=412)
-        return Response(result, status=result["code"])
+        market_app_service.install_app(self.tenant, self.region, self.user, app_id, app_model_key, version, market_name,
+                                       install_from_cloud, is_deploy)
+        return Response(general_message(200, "success", "创建成功"), status=200)
 
 
 class CenterAppCLView(JWTAuthApiView):
@@ -203,14 +157,15 @@ class CenterAppCLView(JWTAuthApiView):
         """
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
-        is_complete = request.GET.get("is_complete", None)
         tags = request.GET.get("tags", [])
+        is_complete = request.GET.get("is_complete", None)
+        need_install = request.GET.get("need_install", "false")
         if tags:
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         apps, count = market_app_service.get_visiable_apps(self.user, enterprise_id, scope, app_name, tags, is_complete, page,
-                                                           page_size)
+                                                           page_size, need_install)
         return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
 
     @never_cache

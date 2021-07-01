@@ -71,6 +71,7 @@ class AppDeployService(object):
     def pre_deploy_action(self, tenant, service, version=None):
         """perform pre-deployment actions"""
         if service.service_source == "market":
+            # TODO: set app template init MarketService
             self.impl = MarketService(tenant, service, version)
 
         self.impl.pre_action()
@@ -117,21 +118,15 @@ class MarketService(object):
     Define some methods for upgrading market services.
     """
 
-    def __init__(self, tenant, service, version, all_component_one_model=None):
+    def __init__(self, tenant, service, version, all_component_one_model=None, component_change_info=None, app_version=None):
         self.tenant = tenant
         self.service = service
         self.market_name = None
         # tenant service models
         self.all_component_one_model = all_component_one_model
         self.service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
-        if self.service_source.extend_info:
-            extend_info = json.loads(self.service_source.extend_info)
-            self.install_from_cloud = extend_info.get("install_from_cloud", False)
-            self.market_name = extend_info.get("market_name", None)
-            if self.install_from_cloud:
-                logger.info("service {0} imstall from cloud".format(service.service_alias))
-        else:
-            self.install_from_cloud = False
+        self.install_from_cloud = self.service_source.is_install_from_cloud()
+        self.market_name = self.service_source.get_market_name()
         # If no version is specified, the default version is used.
         self.async_action = None
         if not version:
@@ -139,7 +134,14 @@ class MarketService(object):
             self.async_action = AsyncAction.BUILD.value
         self.version = version
         self.group_key = self.service_source.group_key
-        self.changes = {}
+        self.changes = component_change_info
+        if app_version:
+            self.template = json.loads(app_version.app_template)
+            self.template_update_time = app_version.update_time
+        else:
+            self.template = None
+            self.template_update_time = None
+        self.update_source = False
         # data that has been successfully changed
         self.changed = {}
         self.backup = None
@@ -153,7 +155,7 @@ class MarketService(object):
         self.auto_restore = True
 
     def dummy_func(self, changes):
-        pass
+        logger.debug("dummy_func")
 
     def set_properties(self, typ3=PropertyType.ALL.value):
         """
@@ -266,17 +268,20 @@ class MarketService(object):
             self.async_action = AsyncAction.NOTHING.value
 
     def set_changes(self):
-        pc = PropertiesChanges(
-            self.service,
-            self.tenant,
-            all_component_one_model=self.all_component_one_model,
-            install_from_cloud=self.install_from_cloud)
-        template = get_upgrade_app_template(self.tenant, self.version, pc)
-        self.template = template
-        self.pc = pc
-        changes = pc.get_property_changes(template=template)
-        logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
-        self.changes = changes
+        pc = None
+        if not self.template:
+            pc = PropertiesChanges(
+                self.service,
+                self.tenant,
+                all_component_one_model=self.all_component_one_model,
+                install_from_cloud=self.install_from_cloud)
+            template = get_upgrade_app_template(self.tenant, self.version, pc)
+            self.template = template
+            self.template_update_time = pc.template_updatetime
+        if not self.changes and self.changes != {} and pc:
+            _, changes = pc.get_property_changes(template=template)
+            logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
+            self.changes = changes
 
     def create_backup(self):
         """create_backup
@@ -298,11 +303,15 @@ class MarketService(object):
         """
         Perform modifications to the given properties. must be called after `set_changes`.
         """
-        component = get_template_component(self.template, self.pc)
+        component = get_template_component(self.template, self.service_source)
         # if component is null, maybe new app not have this component
         if component:
-            self._update_service(component)
-            self._update_service_source(component, self.version)
+            if not self.update_source:
+                self._update_service(component)
+                self._update_service_source(component, self.version, self.template_update_time)
+                self.update_source = True
+            if not self.changes:
+                return
             changes = deepcopy(self.changes)
             if changes:
                 for k, v in list(changes.items()):
@@ -350,6 +359,8 @@ class MarketService(object):
         synchronize with the region side. must be called after `set_changes`.
         raise: RegionApiBaseHttpClient.CallApiError
         """
+        if not self.changes:
+            return
         changes = deepcopy(self.changes)
         if changes:
             for k, v in list(changes.items()):
@@ -402,7 +413,7 @@ class MarketService(object):
         self.service.version = app["version"]
         self.service.save()
 
-    def _update_service_source(self, app, version):
+    def _update_service_source(self, app, version, template_updatetime):
         new_extend_info = {}
         share_image = app.get("share_image", None)
         share_slug_path = app.get("share_slug_path", None)
@@ -419,6 +430,11 @@ class MarketService(object):
         else:
             service_share_uuid = app.get("service_key", "")
         new_extend_info["source_service_share_uuid"] = service_share_uuid
+        if template_updatetime:
+            if type(template_updatetime) == datetime:
+                new_extend_info["update_time"] = template_updatetime.strftime('%Y-%m-%d %H:%M:%S')
+            elif type(template_updatetime) == str:
+                new_extend_info["update_time"] = template_updatetime
         if self.install_from_cloud:
             new_extend_info["install_from_cloud"] = True
             new_extend_info["market"] = "default"
@@ -683,7 +699,7 @@ class MarketService(object):
                 logger.warning("service id: {}; volume name: {}; failed to update volume: \
                     volume not found.".format(self.service.service_id, volume["volume_name"]))
             logger.debug("update volume {} for component {}".format(v.volume_name, self.service.service_id))
-            cfg = volume_repo.get_service_config_file(v.ID)
+            cfg = volume_repo.get_service_config_file(v)
             cfg.file_content = file_content
             cfg.save()
 
@@ -862,7 +878,7 @@ class MarketService(object):
                 "volume_type": dep_vol.volume_type
             }
             if dep_vol.volume_type == "config-file":
-                config_file = volume_repo.get_service_config_file(dep_vol.ID)
+                config_file = volume_repo.get_service_config_file(dep_vol)
                 data["file_content"] = config_file.file_content
             region_api.add_service_dep_volumes(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                                data)
@@ -902,7 +918,7 @@ class MarketService(object):
             app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service,
                                                         self.template["apps"], self.version, add)
         except ServiceHandleException as e:
-            logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
+            logger.exception(e)
 
         delete = plugins.get("delete", [])
         for plugin in delete:

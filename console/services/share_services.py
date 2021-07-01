@@ -311,7 +311,7 @@ class ShareService(object):
                         s_v = dict()
                         s_v['file_content'] = ''
                         if volume.volume_type == "config-file":
-                            config_file = volume_repo.get_service_config_file(volume.ID)
+                            config_file = volume_repo.get_service_config_file(volume)
                             if config_file:
                                 s_v['file_content'] = config_file.file_content
                         s_v['category'] = volume.category
@@ -495,6 +495,7 @@ class ShareService(object):
                         "image_info": app.get("service_image", None),
                         "slug_info": app.get("service_slug", None)
                     }
+                    re_body = None
                     try:
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
@@ -784,8 +785,10 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
-                        # slug组件
-                        if delivered_type_map[service['service_id']] == "slug":
+                        delivered_type = delivered_type_map.get(service['service_id'], None)
+                        if not delivered_type:
+                            continue
+                        if delivered_type == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
                                                                                   share_team.enterprise_id)
                             service["share_type"] = "slug"
@@ -860,6 +863,7 @@ class ShareService(object):
             share_record.share_version_alias = version_alias
             share_record.share_app_market_name = market_id
             share_record.update_time = datetime.datetime.now()
+            share_record.share_app_version_info = version_describe
             share_record.save()
             # 提交事务
             if sid:
@@ -883,6 +887,8 @@ class ShareService(object):
                 group.config_group_name,
                 "injection_type":
                 group.deploy_type,
+                "enable":
+                group.enable,
                 "config_items":
                 {item.item_key: item.item_value
                  for item in app_config_group_item_repo.list(group.config_group_id)},

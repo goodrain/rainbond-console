@@ -22,7 +22,6 @@ class ServiceRepo(object):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND a.service_region = b.region
                 AND b.enterprise_id = "{eid}"
                 AND a.service_source = "source_code"
                 AND a.create_status = "complete"
@@ -40,7 +39,6 @@ class ServiceRepo(object):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND a.service_region = b.region
                 AND b.enterprise_id = "{eid}"
                 AND a.create_status="complete"
                 AND a.service_source IN ( "docker_image", "docker_compose", "docker_run" )
@@ -58,7 +56,6 @@ class ServiceRepo(object):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND a.service_region = b.region
                 AND b.enterprise_id = "{eid}"
                 AND a.service_source = "market"
                 AND ( a.image LIKE "%mysql%" OR a.image LIKE "%postgres%" OR a.image LIKE "%mariadb%" )
@@ -148,6 +145,15 @@ class ServiceRepo(object):
 
     def get_service_by_service_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids, )
+
+    @staticmethod
+    def bulk_create(components):
+        TenantServiceInfo.objects.bulk_create(components)
+
+    @staticmethod
+    def bulk_update(components):
+        TenantServiceInfo.objects.filter(pk__in=[cpt.ID for cpt in components]).delete()
+        TenantServiceInfo.objects.bulk_create(components)
 
 
 service_repo = ServiceRepo()

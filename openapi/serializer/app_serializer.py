@@ -5,6 +5,7 @@ import re
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers, validators
 from www.models.main import ServiceGroup, TenantServiceInfo
+from openapi.serializer.gateway_serializer import GatewayRuleSerializer
 
 ACTION_CHOICE = (
     ("stop", ("stop")),
@@ -41,6 +42,8 @@ class AppPostInfoSerializer(serializers.Serializer):
 
 
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
+    gateway_rules = GatewayRuleSerializer(required=False)
+
     class Meta:
         model = TenantServiceInfo
         exclude = [
@@ -146,6 +149,13 @@ def new_memory_validator(value):
         raise serializers.ValidationError('参数超出范围，请选择64~65536之间的整数值', value)
 
 
+def new_cpu_validator(value):
+    if not isinstance(value, int):
+        raise serializers.ValidationError('请输入int类型数据')
+    if value < 0:
+        raise serializers.ValidationError('请输入正整数数据')
+
+
 def new_node_validator(value):
     if not isinstance(value, int):
         raise serializers.ValidationError('请输入int类型数据')
@@ -155,6 +165,8 @@ def new_node_validator(value):
 
 class AppServiceTelescopicVerticalSerializer(serializers.Serializer):
     new_memory = serializers.IntegerField(help_text="组件内存", allow_null=False, validators=[new_memory_validator])
+    new_gpu = serializers.IntegerField(help_text="组件gpu显存申请", allow_null=True, validators=[new_cpu_validator])
+    new_cpu = serializers.IntegerField(help_text="组件cpu额度申请", allow_null=True, validators=[new_cpu_validator])
 
 
 class AppServiceTelescopicHorizontalSerializer(serializers.Serializer):

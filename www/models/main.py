@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 
 from console.enum.app import GovernanceModeEnum
+from console.enum.component_enum import ComponentSource
 from console.utils import runner_util
 from django.conf import settings
 from django.db import models
@@ -12,7 +13,6 @@ from django.db.models.fields import (AutoField, BooleanField, CharField, DateTim
 from django.db.models.fields.files import FileField
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
-from console.enum.component_enum import ComponentSource
 
 logger = logging.getLogger("default")
 
@@ -41,9 +41,6 @@ class AnonymousUser(object):
     pk = None
     username = ''
     is_active = False
-
-    def __init__(self):
-        pass
 
     def __str__(self):
         return 'AnonymousUser'
@@ -339,7 +336,7 @@ class Tenants(BaseModel):
     tenant_id = models.CharField(max_length=33, unique=True, default=make_tenant_id, help_text="租户id")
     tenant_name = models.CharField(max_length=64, unique=True, help_text="租户名称")
     # This property is deprecated
-    region = models.CharField(max_length=64, default='', help_text="区域中心,弃用")
+    # region = models.CharField(max_length=64, default='', help_text="区域中心,弃用")
     is_active = models.BooleanField(default=True, help_text="激活状态")
     pay_type = models.CharField(max_length=5, choices=tenant_type, help_text="付费状态")
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="账户余额")
@@ -466,15 +463,17 @@ class TenantServiceInfo(BaseModel):
     update_version = models.IntegerField(default=1, help_text="内部发布次数")
     image = models.CharField(max_length=200, help_text="镜像")
     cmd = models.CharField(max_length=2048, null=True, blank=True, help_text="启动参数")
+    min_node = models.IntegerField(help_text="实例数量", default=1)
+    min_cpu = models.IntegerField(help_text="cpu分配额 1000=1core", default=500)
+    container_gpu = models.IntegerField(help_text="gpu显存数量", default=0)
+    min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
+
     # deprecated
     setting = models.CharField(max_length=200, null=True, blank=True, help_text="设置项")
     extend_method = models.CharField(
         max_length=32, choices=extend_method, default='stateless_multiple', help_text="组件部署类型,stateless or state")
     # deprecated
     env = models.CharField(max_length=200, null=True, blank=True, help_text="环境变量")
-    min_node = models.IntegerField(help_text="启动个数", default=1)
-    min_cpu = models.IntegerField(help_text="cpu个数", default=500)
-    min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
     # deprecated
     inner_port = models.IntegerField(help_text="内部端口", default=0)
     # deprecated
@@ -508,9 +507,10 @@ class TenantServiceInfo(BaseModel):
     port_type = models.CharField(max_length=15, default='multi_outer', help_text="端口类型，one_outer;dif_protocol;multi_outer")
     # 组件创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text="组件创建类型cloud云市组件,assistant云帮组件")
+    # 组件所属关系，从模型安装的多个组件所属一致。
+    tenant_service_group_id = models.IntegerField(default=0, help_text="组件归属的组件组id，从应用模版安装的组件该字段需要赋值")
     # deprecated
     expired_time = models.DateTimeField(null=True, help_text="过期时间")
-    tenant_service_group_id = models.IntegerField(default=0, help_text="组件归属的组件组id")
     open_webhooks = models.BooleanField(default=False, help_text='是否开启自动触发部署功能（兼容老版本组件）')
     service_source = models.CharField(
         max_length=15, default="", null=True, blank=True, help_text="组件来源(source_code, market, docker_run, docker_compose)")
@@ -541,6 +541,14 @@ class TenantServiceInfo(BaseModel):
         return data
 
     @property
+    def component_id(self):
+        return self.service_id
+
+    @property
+    def upgrade_group_id(self):
+        return self.tenant_service_group_id
+
+    @property
     def clone_url(self):
         if self.code_from == "github":
             code_user = self.git_url.split("/")[3]
@@ -559,6 +567,11 @@ class TenantServiceInfo(BaseModel):
         if self.service_source == ComponentSource.THIRD_PARTY.value:
             return True
         return False
+
+    def calculate_min_cpu(self, min_memory):
+        # The algorithm is absolete
+        min_cpu = int(min_memory) / 128 * 20
+        return int(min_cpu)
 
 
 class TenantServiceInfoDelete(BaseModel):
@@ -585,6 +598,7 @@ class TenantServiceInfoDelete(BaseModel):
     min_node = models.IntegerField(help_text="启动个数", default=1)
     min_cpu = models.IntegerField(help_text="cpu个数", default=500)
     min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
+    container_gpu = models.IntegerField(help_text="gpu显存数量", default=0)
     inner_port = models.IntegerField(help_text="内部端口")
     volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text="mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text="mount目录")
@@ -928,13 +942,19 @@ class TenantServiceEnvVar(BaseModel):
     container_port = models.IntegerField(default=0, help_text="端口")
     name = models.CharField(max_length=1024, blank=True, help_text="名称")
     attr_name = models.CharField(max_length=1024, help_text="属性")
-    attr_value = models.CharField(max_length=2048, help_text="值")
+    attr_value = models.TextField(help_text="值")
     is_change = models.BooleanField(default=False, blank=True, help_text="是否可改变")
     scope = models.CharField(max_length=10, help_text="范围", default=ScopeType.OUTER.value)
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
 
     def __unicode__(self):
         return self.name
+
+    def is_port_env(self):
+        return self.container_port != 0
+
+    def is_host_env(self):
+        return self.container_port != 0 and self.attr_name.endswith("_HOST")
 
 
 class TenantServicesPort(BaseModel):
@@ -964,6 +984,9 @@ class TenantServiceMountRelation(BaseModel):
     dep_service_id = models.CharField(max_length=32, help_text="依赖组件id")
     mnt_name = models.CharField(max_length=100, help_text="mnt name")
     mnt_dir = models.CharField(max_length=400, help_text="mnt dir")
+
+    def key(self):
+        return self.service_id + self.dep_service_id + self.mnt_name
 
 
 class TenantServiceVolume(BaseModel):
@@ -1000,6 +1023,7 @@ class TenantServiceConfigurationFile(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text="组件id")
     volume_id = models.IntegerField(null=True, help_text="存储id")
+    volume_name = models.CharField(max_length=32, null=True, help_text="组件名称, 唯一标识")
     file_content = models.TextField(blank=True, help_text="配置文件内容")
 
 
@@ -1024,6 +1048,14 @@ class ServiceGroup(BaseModel):
         help_text="governance mode")
     create_time = models.DateTimeField(help_text="创建时间")
     update_time = models.DateTimeField(help_text="更新时间")
+
+    @property
+    def app_id(self):
+        return self.ID
+
+    @property
+    def app_name(self):
+        return self.group_name
 
 
 class ServiceGroupRelation(BaseModel):
@@ -1314,7 +1346,7 @@ class TenantEnterpriseToken(BaseModel):
 
 
 class TenantServiceGroup(BaseModel):
-    """组件组实体"""
+    """从应用模型安装的组件从属关系记录"""
 
     class Meta:
         db_table = 'tenant_service_group'
@@ -1325,7 +1357,7 @@ class TenantServiceGroup(BaseModel):
     group_key = models.CharField(max_length=32, help_text="组件组id")
     group_version = models.CharField(max_length=32, help_text="组件组版本")
     region_name = models.CharField(max_length=64, help_text="区域中心名称")
-    service_group_id = models.IntegerField(default=0, help_text="ServiceGroup主键, 组件分类ID")
+    service_group_id = models.IntegerField(default=0, help_text="安装时所属应用的主键ID")
 
 
 class ServiceTcpDomain(BaseModel):

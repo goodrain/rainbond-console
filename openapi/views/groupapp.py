@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 
+from console.services.app_config.domain_service import domain_service
 from console.services.groupcopy_service import groupapp_copy_service
 from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 from openapi.serializer.groupapp_serializer import (AppCopyCResSerializer, AppCopyCSerializer, AppCopyLSerializer)
@@ -68,6 +69,7 @@ class GroupAppsCopyView(TeamAPIView):
                                                                              tar_app_id)
         services = groupapp_copy_service.copy_group_services(request.user, self.team, self.region_name, tar_team,
                                                              tar_region_name, tar_group, app_id, services)
+        services = domain_service.get_components_that_contains_gateway_rules(tar_region_name, services)
         services = ServiceBaseInfoSerializer(data=services, many=True)
         services.is_valid()
         serializers = AppCopyCResSerializer(data={"services": services.data})

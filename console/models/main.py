@@ -118,7 +118,7 @@ class RainbondCenterAppVersion(BaseModel):
     enterprise_id = models.CharField(max_length=32, default="public", help_text="企业ID")
     app_id = models.CharField(max_length=32, help_text="应用id")
     version = models.CharField(max_length=32, help_text="版本")
-    version_alias = models.CharField(max_length=32, default="NA", help_text="别名")
+    version_alias = models.CharField(max_length=64, default="NA", help_text="别名")
     app_version_info = models.CharField(max_length=255, help_text="版本信息")
     record_id = models.IntegerField(help_text="分享流程id，控制一个分享流程产出一个实体")
     share_user = models.IntegerField(help_text="分享人id")
@@ -219,7 +219,8 @@ class ServiceShareRecord(BaseModel):
     team_name = models.CharField(max_length=64, help_text="应用所在团队唯一名称")
     event_id = models.CharField(max_length=32, null=True, blank=True, help_text="介质同步事件ID,弃用，使用表service_share_record_event")
     share_version = models.CharField(max_length=15, null=True, blank=True, help_text="应用组发布版本")
-    share_version_alias = models.CharField(max_length=32, null=True, blank=True, help_text="应用组发布版本别名")
+    share_version_alias = models.CharField(max_length=64, null=True, blank=True, help_text="应用组发布版本别名")
+    share_app_version_info = models.CharField(max_length=255, help_text="应用组发布版本描述")
     is_success = models.BooleanField(default=False, help_text="发布是否成功")
     step = models.IntegerField(default=0, help_text="当前发布进度")
     # 1 发布中 2 取消发布 3 发布完成
@@ -346,6 +347,13 @@ class ServiceSourceInfo(BaseModel):
         if self.extend_info:
             extend_info = json.loads(self.extend_info)
             return extend_info.get("market_name")
+
+    def get_template_update_time(self):
+        if self.extend_info:
+            extend_info = json.loads(self.extend_info)
+            update_time = extend_info.get("update_time", None)
+            if update_time:
+                return datetime.strptime(update_time, '%Y-%m-%d %H:%M:%S')
 
 
 class TeamGitlabInfo(BaseModel):
@@ -736,6 +744,12 @@ class UpgradeStatus(IntEnum):
     PARTIAL_ROLLBACK = 7  # 部分回滚
     UPGRADE_FAILED = 8  # 升级失败
     ROLLBACK_FAILED = 9  # 回滚失败
+    DEPLOY_FAILED = 10
+
+
+class AppUpgradeRecordType(Enum):
+    UPGRADE = "upgrade"
+    ROLLBACK = "rollback"
 
 
 class AppUpgradeRecord(BaseModel):
@@ -755,6 +769,44 @@ class AppUpgradeRecord(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     market_name = models.CharField(max_length=64, null=True, help_text="商店标识")
     is_from_cloud = models.BooleanField(default=False, help_text="应用来源")
+    upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32, null=True)
+    record_type = models.CharField(max_length=64, null=True, help_text="记录类型, 升级/回滚")
+    parent_id = models.IntegerField(default=0, help_text="回滚记录对应的升级记录 ID")
+
+    def to_dict(self):
+        record = super(AppUpgradeRecord, self).to_dict()
+        record["can_rollback"] = self.can_rollback()
+        record["is_finished"] = self.is_finished()
+        return record
+
+    def is_finished(self):
+        return self.status not in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+
+    def can_rollback(self):
+        if self.record_type != AppUpgradeRecordType.UPGRADE.value:
+            return False
+        statuses = [
+            UpgradeStatus.UPGRADED.value,
+            UpgradeStatus.ROLLBACK.value,
+            UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value,
+            UpgradeStatus.DEPLOY_FAILED.value,
+        ]
+        return self.status in statuses
+
+    def can_upgrade(self):
+        return self.status == UpgradeStatus.NOT.value
+
+    def can_deploy(self):
+        if not self.is_finished():
+            return False
+        statuses = [
+            UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value
+        ]
+        return True if self.status in statuses else False
 
 
 class ServiceUpgradeRecord(BaseModel):
@@ -784,11 +836,14 @@ class ServiceUpgradeRecord(BaseModel):
     )
     service_cname = models.CharField(max_length=100, help_text="服务名")
     upgrade_type = models.CharField(max_length=20, default=UpgradeType.UPGRADE.value, help_text="升级类型")
-    event_id = models.CharField(max_length=32)
+    event_id = models.CharField(max_length=32, null=True)
     update = models.TextField(help_text="升级信息")
     status = models.IntegerField(default=UpgradeStatus.NOT.value, help_text="升级状态")
     update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
+
+    def is_finished(self):
+        return self.status not in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
 
 
 class RegionConfig(BaseModel):
@@ -951,7 +1006,7 @@ class ServiceMonitor(BaseModel):
     name = models.CharField(max_length=64, help_text="名称")
     tenant_id = models.CharField(max_length=32, help_text="团队ID")
     service_id = models.CharField(max_length=32, help_text="组件ID")
-    path = models.CharField(max_length=32, help_text="组件ID")
+    path = models.CharField(max_length=255, help_text="监控路径")
     port = models.IntegerField(help_text="端口号")
     service_show_name = models.CharField(max_length=64, help_text="展示名称")
     interval = models.CharField(max_length=10, help_text="收集指标时间间隔")
@@ -1006,3 +1061,15 @@ class ComponentGraph(BaseModel):
     title = models.CharField(max_length=255, help_text="the title of the graph")
     promql = models.CharField(max_length=2047, help_text="the title of the graph")
     sequence = models.IntegerField(help_text="the sequence number of the graph")
+
+
+class AppUpgradeSnapshot(BaseModel):
+    class Meta:
+        db_table = "app_upgrade_snapshots"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    tenant_id = models.CharField(max_length=32)
+    upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
+    snapshot_id = models.CharField(max_length=32, help_text="the identity of the snapshot")
+    snapshot = models.TextField()

@@ -3,13 +3,13 @@
   Created on 18/1/30.
 """
 
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
+import logging
 
 from console.services.app_config import extend_service
 from console.views.app_config.base import AppBaseView
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.utils.return_message import general_message
-import logging
 
 logger = logging.getLogger("default")
 
@@ -38,6 +38,7 @@ class AppExtendView(AppBaseView):
             "memory_list": memory_list,
             "current_node": self.service.min_node,
             "current_memory": self.service.min_memory,
+            "current_gpu": self.service.container_gpu,
             "extend_method": self.service.extend_method
         }
         result = general_message(200, "success", "操作成功", bean=bean)

@@ -2,16 +2,13 @@
 import logging
 
 from console.exception.main import ServiceHandleException
-from console.models.main import ServiceMonitor
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.group import group_repo
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
-from console.repositories.probe_repo import probe_repo
 from console.repositories.service_repo import service_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
-from console.services.app_config import label_service, port_service
-from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.app_config import port_service
 from console.services.backup_service import groupapp_backup_service
 from console.services.groupapp_recovery.groupapps_migrate import \
     migrate_service
@@ -39,7 +36,7 @@ class GroupAppCopyService(object):
         services_metadata, change_services_map = self.get_modify_group_metadata(old_team, old_region_name, tar_team,
                                                                                 tar_region_name, group_id, service_ids, changes)
         groupapp_copy_service.save_new_group_app(user, tar_team, tar_region_name, tar_group.ID, services_metadata,
-                                                 change_services_map)
+                                                 change_services_map, old_team == tar_team, old_region_name == tar_region_name)
         return groupapp_copy_service.build_services(user, tar_team, tar_region_name, tar_group.ID, change_services_map)
 
     def get_group_services_with_build_source(self, tenant, region_name, group_id):
@@ -47,13 +44,13 @@ class GroupAppCopyService(object):
         if not group_services:
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
-        services = service_repo.get_service_by_service_ids(service_ids=service_ids)
+        build_infos = base_service.get_build_infos(tenant, service_ids)
+
         for group_service in group_services:
             group_service["app_name"] = group_service.get("group_name")
-            for service in services:
-                if group_service["service_id"] == service.service_id:
-                    group_service["build_source"] = base_service.get_build_info(tenant, service)
-                    group_service["build_source"]["service_id"] = service.service_id
+            if build_infos.get(group_service["service_id"], None):
+                group_service["build_source"] = build_infos[group_service["service_id"]]
+                group_service["build_source"]["service_id"] = group_service["service_id"]
         return group_services
 
     def check_and_get_team_group(self, user, team_name, region_name, group_id):
@@ -69,7 +66,7 @@ class GroupAppCopyService(object):
         return team, group
 
     def get_modify_group_metadata(self, old_team, old_region_name, tar_team, tar_region_name, group_id, service_ids, changes):
-        total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team)
+        total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team, old_region_name)
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids
@@ -180,10 +177,17 @@ class GroupAppCopyService(object):
                         elif service["service_base"]["service_source"] == "docker_image":
                             service["service_base"]["image"] = service["service_base"]["image"].split(":")[0] + ":" + version
                             service["service_base"]["version"] = version
+                envs = changes[service["service_base"]["service_id"]].get("envs")
+                if not envs:
+                    continue
+                for env in service["service_env_vars"]:
+                    if not envs.get(env["attr_name"]):
+                        continue
+                    env["attr_name"] = envs[env["attr_name"]]
         return metadata
 
-    def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map):
-        migrate_service.save_data(tar_team, region_name, user, changed_service_map, metadata, group_id)
+    def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map, same_team, same_region):
+        migrate_service.save_data(tar_team, region_name, user, changed_service_map, metadata, group_id, same_team, same_region)
 
     def change_services_map(self, service_ids):
         change_services = {}
@@ -222,43 +226,7 @@ class GroupAppCopyService(object):
                 else:
                     # 数据中心创建组件
                     new_service = app_service.create_region_service(tenant, service, user.nick_name)
-
                 service = new_service
-                # 为组件添加默认探针
-                if self.is_need_to_add_default_probe(service):
-                    code, msg, probe = app_service.add_service_default_porbe(tenant, service)
-                    logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
-                else:
-                    probes = probe_repo.get_service_probe(service.service_id)
-                    if probes:
-                        for probe in probes:
-                            prob_data = {
-                                "service_id": service.service_id,
-                                "scheme": probe.scheme,
-                                "path": probe.path,
-                                "port": probe.port,
-                                "cmd": probe.cmd,
-                                "http_header": probe.http_header,
-                                "initial_delay_second": probe.initial_delay_second,
-                                "period_second": probe.period_second,
-                                "timeout_second": probe.timeout_second,
-                                "failure_threshold": probe.failure_threshold,
-                                "success_threshold": probe.success_threshold,
-                                "is_used": (1 if probe.is_used else 0),
-                                "probe_id": probe.probe_id,
-                                "mode": probe.mode,
-                            }
-                            try:
-                                res, body = region_api.add_service_probe(service.service_region, tenant.tenant_name,
-                                                                         service.service_alias, prob_data)
-                                if res.get("status") != 200:
-                                    logger.debug(body)
-                                    probe.delete()
-                            except Exception as e:
-                                logger.debug("error", e)
-                                probe.delete()
-                # 添加组件有无状态标签
-                label_service.update_service_state_label(tenant, service)
                 # 部署组件
                 app_manage_service.deploy(tenant, service, user, group_version=None)
 
@@ -298,23 +266,6 @@ class GroupAppCopyService(object):
                 if build_error_plugin_ids:
                     app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
                         service.service_id).filter(plugin_id__in=build_error_plugin_ids).delete()
-                # create service_monitor in region
-                service_monitors = service_monitor_repo.get_component_service_monitors(tenant.tenant_id, service.service_id)
-                for monitor in service_monitors:
-                    req = {
-                        "name": monitor.name,
-                        "path": monitor.path,
-                        "port": monitor.port,
-                        "service_show_name": monitor.service_show_name,
-                        "interval": monitor.interval
-                    }
-                    try:
-                        region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
-                                                          service.service_alias, req)
-                    except region_api.CallApiError as e:
-                        ServiceMonitor.objects.filter(
-                            tenant_id=tenant.tenant_id, service_id=service.service_id, name=monitor.name).delete()
-                        logger.debug(e)
         return result
 
 

@@ -24,6 +24,7 @@ from www.models.main import SuperAdminUser, Users
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.utils.return_message import error_message, general_message
+from console.login.jwt_manager import JwtManager
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
@@ -167,6 +168,8 @@ class TenantServiceView(BaseApiView):
                 payload = jwt_payload_handler(user)
                 token = jwt_encode_handler(payload)
                 data["token"] = token
+                jwt_manager = JwtManager()
+                jwt_manager.set(token, user.user_id)
                 result = general_message(200, "register success", "注册成功", bean=data)
                 response = Response(result, status=200)
                 return response

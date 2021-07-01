@@ -223,8 +223,8 @@ class RolePermService(object):
 
 
 class UserKindRoleService(object):
-    def get_users_roles(self, kind, kind_id, users):
-        return user_kind_role_repo.get_users_roles(kind, kind_id, users)
+    def get_users_roles(self, kind, kind_id, users, creater_id=0):
+        return user_kind_role_repo.get_users_roles(kind, kind_id, users, creater_id=creater_id)
 
     def get_user_roles(self, kind, kind_id, user):
         return user_kind_role_repo.get_user_roles(kind, kind_id, user)

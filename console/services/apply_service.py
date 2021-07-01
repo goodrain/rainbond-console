@@ -22,11 +22,17 @@ class ApplyService(object):
                 "apply_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             return apply_repo.create_apply_info(**info)
-        elif applicant[0].is_pass == 2:
-            applicant[0].is_pass = 0
-            applicant[0].save()
-            return applicant
-        raise ServiceHandleException(msg="already applied for it", msg_show="该团队已经申请过")
+        if applicant[0].is_pass == 0:
+            raise ServiceHandleException(msg="already applied for it", msg_show="该团队已经申请过")
+        if applicant[0].is_pass == 1:
+            teams = team_repo.get_tenants_by_user_id(user_id)
+            tnames = [team.tenant_name for team in teams]
+            if team_name in tnames:
+                raise ServiceHandleException(msg="already join for it", msg_show="您已加入该团队")
+        applicant[0].apply_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        applicant[0].is_pass = 0
+        applicant[0].save()
+        return applicant
 
     def delete_applicants(self, user_id, team_name):
         applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)

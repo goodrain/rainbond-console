@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from django.db.models import Q
 
+from console.exception.bcode import ErrComponentGroupNotFound
 from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
 
 logger = logging.getLogger("default")
@@ -97,8 +98,9 @@ class GroupRepository(object):
     def get_multi_app_info(self, app_ids):
         return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-update_time", "-order_index")
 
-    def get_apps_in_multi_team(self, team_ids):
-        return ServiceGroup.objects.filter(tenant_id__in=team_ids).order_by("-update_time", "-order_index")
+    def get_apps_in_multi_team(self, team_ids, region_names):
+        return ServiceGroup.objects.filter(
+            tenant_id__in=team_ids, region_name__in=region_names).order_by("-update_time", "-order_index")
 
     def get_by_service_id(self, tenant_id, service_id):
         try:
@@ -193,8 +195,15 @@ class TenantServiceGroupRepository(object):
     def create_tenant_service_group(self, **params):
         return TenantServiceGroup.objects.create(**params)
 
-    def get_group_by_service_group_id(self, service_group_id):
-        return TenantServiceGroup.objects.filter(ID=service_group_id).first()
+    @staticmethod
+    def get_component_group(service_group_id):
+        component_group = TenantServiceGroup.objects.filter(ID=service_group_id).first()
+        if not component_group:
+            raise ErrComponentGroupNotFound
+        return component_group
+
+    def get_group_by_app_id(self, app_id):
+        return TenantServiceGroup.objects.filter(service_group_id=app_id)
 
 
 group_repo = GroupRepository()

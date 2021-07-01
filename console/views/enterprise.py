@@ -15,7 +15,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -73,8 +73,8 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
-            data = ent_config_servier.update_config(key, value)
             try:
+                data = ent_config_servier.update_config(key, value)
                 result = general_message(200, "success", "更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)
@@ -141,22 +141,21 @@ class EnterpriseTeams(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseUserTeams(JWTAuthApiView):
+class EnterpriseUserTeams(EnterpriseAdminView):
     def get(self, request, enterprise_id, user_id, *args, **kwargs):
-        user = request.user
         name = request.GET.get("name", None)
-        code = 200
-        if int(user_id) != int(user.user_id):
-            result = general_message(400, "failed", "请求失败")
-            return Response(result, status=code)
-        try:
-            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
-            result = general_message(200, "team query success", "查询成功", list=tenants)
-        except Exception as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "failed", "请求失败")
-        return Response(result, status=code)
+        user = user_repo.get_user_by_user_id(user_id)
+        teams = team_services.list_user_teams(enterprise_id, user, name)
+        result = general_message(200, "team query success", "查询成功", list=teams)
+        return Response(result, status=200)
+
+
+class EnterpriseMyTeams(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        name = request.GET.get("name", None)
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name)
+        result = general_message(200, "team query success", "查询成功", list=tenants)
+        return Response(result, status=200)
 
 
 class EnterpriseTeamOverView(JWTAuthApiView):
@@ -172,9 +171,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
                     user_role_list = user_kind_role_service.get_user_roles(
                         kind="team", kind_id=tenant.tenant_id, user=request.user)
                     roles = [x["role_name"] for x in user_role_list["roles"]]
@@ -198,10 +195,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         new_join_team.append(team_item)
             if join_tenants:
                 for tenant in join_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
@@ -225,10 +219,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                         new_join_team.append(team_item)
             if request_tenants:
                 for request_tenant in request_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(request_tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(request_tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
@@ -444,3 +435,11 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
             response = self.handle_exception(exc)
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
+
+
+class EnterpriseUserTeamRoleView(EnterpriseHeaderView):
+    def post(self, request, eid, user_id, tenant_name, *args, **kwargs):
+        role_ids = request.data.get('role_ids', [])
+        res = enterprise_services.create_user_roles(eid, user_id, tenant_name, role_ids)
+        result = general_message(200, "ok", "设置成功", bean=res)
+        return Response(result, status=200)

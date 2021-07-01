@@ -125,5 +125,11 @@ class AppStore(object):
         store_client = get_market_client(store.access_key, store.url)
         return store_client.bindable_markets()
 
+    @apiException
+    def get_orgs(self, store):
+        store_client = get_market_client(store.access_key, store.url)
+        data = store_client.get_orgs()
+        return data
+
 
 app_store = AppStore()

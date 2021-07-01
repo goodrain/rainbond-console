@@ -270,10 +270,16 @@ class UserService(object):
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name):
+    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name, phone):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
         user.real_name = real_name
-        user.set_password(raw_password)
+        if phone:
+            u = user_repo.get_user_by_phone(phone)
+            if u and int(u.user_id) != int(user.user_id):
+                raise AbortRequest(msg="phone exists", msg_show="手机号已存在")
+            user.phone = phone
+        if raw_password:
+            user.set_password(raw_password)
         return user
 
     def get_user_detail(self, tenant_name, nick_name):
@@ -494,9 +500,10 @@ class UserService(object):
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
-    def check_params(self, user_name, email, password, re_password, eid=None):
+    def check_params(self, user_name, email, password, re_password, eid=None, phone=None):
         self.__check_user_name(user_name, eid)
         self.__check_email(email)
+        self.__check_phone(phone)
         if password != re_password:
             raise AbortRequest("The two passwords do not match", "两次输入的密码不一致")
 
@@ -519,6 +526,13 @@ class UserService(object):
             raise AbortRequest("invalid email", "邮箱地址不合法")
         if self.get_user_by_email(email):
             raise AbortRequest("username already exists", "邮箱已存在", status_code=409, error_code=409)
+
+    def __check_phone(self, phone):
+        if not phone:
+            return
+        user = user_repo.get_user_by_phone(phone)
+        if user is not None:
+            raise AbortRequest("user phone already exists", "用户手机号已存在", status_code=409)
 
     def init_webhook_user(self, service, hook_type, committer_name=None):
         nick_name = hook_type

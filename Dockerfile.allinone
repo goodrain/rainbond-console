@@ -1,10 +1,10 @@
 ARG VERSION=V5.3-dev
-ARG RELEASE_DESC=
 
 FROM golang:1.14-stretch as builder
+# ENV GOPROXY=https://goproxy.io
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-RUN git clone -b V5.3 --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN git clone -b main --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor
@@ -12,8 +12,9 @@ RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor
 
 FROM rainbond/rainbond-ui:${VERSION}
 
-LABEL author="zengqg@goodrain.com" 
+ARG RELEASE_DESC=
 
+LABEL author="zengqg@goodrain.com"
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
     apt-get update && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/* && \
     wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \

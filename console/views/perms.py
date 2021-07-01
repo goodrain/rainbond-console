@@ -9,7 +9,7 @@ from console.services.perm_services import role_perm_service
 from console.services.perm_services import user_kind_perm_service
 from console.services.perm_services import user_kind_role_service
 from console.services.team_services import team_services
-from console.views.base import RegionTenantHeaderView, AlowAnyApiView
+from console.views.base import RegionTenantHeaderView, AlowAnyApiView, TenantHeaderView
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
@@ -22,7 +22,7 @@ class PermsInfoLView(AlowAnyApiView):
         return Response(result, status=200)
 
 
-class TeamRolesLCView(RegionTenantHeaderView):
+class TeamRolesLCView(TenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         roles = role_kind_services.get_roles("team", self.tenant.tenant_id, with_default=True)
         result = general_message(200, "success", None, list=roles.values("name", "ID"))
@@ -86,7 +86,8 @@ class TeamRolePermsRUDView(RegionTenantHeaderView):
 class TeamUsersRolesLView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         team_users = team_services.get_team_users(self.tenant)
-        data = user_kind_role_service.get_users_roles(kind="team", kind_id=self.tenant.tenant_id, users=team_users)
+        data = user_kind_role_service.get_users_roles(
+            kind="team", kind_id=self.tenant.tenant_id, users=team_users, creater_id=self.tenant.creater)
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 

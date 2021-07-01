@@ -176,7 +176,7 @@ class UserPemTraView(TeamOwnerView):
         return Response(result, status=200)
 
 
-class AdminUserLCView(JWTAuthApiView):
+class AdminUserLCView(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         users = user_services.get_admin_users(enterprise_id)
         result = general_message(200, "success", "获取企业管理员列表成功", list=users)
@@ -280,7 +280,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
         # check user info
-        user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
+        user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id, phone)
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         # create user
@@ -314,13 +314,16 @@ class EnterPriseUsersUDView(JWTAuthApiView):
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
         password = request.data.get("password", None)
         real_name = request.data.get("real_name", None)
-        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name)
+        phone = request.data.get("phone", None)
+
+        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name, phone)
         user.save()
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
         if oauth_instance:
             data = {
                 "password": password,
                 "real_name": real_name,
+                "phone": phone,
             }
             oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
         result = general_message(200, "success", "更新用户成功")

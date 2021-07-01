@@ -1,6 +1,5 @@
 # -*- coding: UTF-8 -*-
 import datetime
-import hashlib
 import os
 import uuid
 
@@ -19,15 +18,7 @@ def create_db_client():
 
 def make_uuid(key=None):
     random_uuid = str(uuid.uuid4()).replace('-', '')
-    if key is not None:
-        if isinstance(key, str):
-            merged_str = random_uuid + key.encode('utf8')
-        elif isinstance(key, str):
-            merged_str = random_uuid + key
-
-        return hashlib.md5(merged_str).hexdigest()
-    else:
-        return random_uuid
+    return random_uuid
 
 
 def get_region_id():

@@ -72,8 +72,10 @@ class TeamService(object):
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
-    def get_team_users(self, team):
+    def get_team_users(self, team, name=None):
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+        if users and name:
+            users = users.filter(Q(nick_name__contains=name) | Q(real_name__contains=name))
         return users
 
     def get_tenant_users_by_tenant_name(self, tenant_name):
@@ -233,9 +235,6 @@ class TeamService(object):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
         return tenants
 
-    def get_active_user_tenants(self, user_id):
-        return team_repo.get_active_tenants_by_user_id(user_id=user_id)
-
     @transaction.atomic
     def exit_current_team(self, team_name, user_id):
         s_id = transaction.savepoint()
@@ -272,9 +271,6 @@ class TeamService(object):
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-        default_region = ""
-        if region_list and len(region_list) > 0:
-            default_region = region_list[0]
         if not team_alias:
             team_alias = "{0}的团队".format(user.nick_name)
         params = {
@@ -282,7 +278,6 @@ class TeamService(object):
             "pay_type": pay_type,
             "pay_level": pay_level,
             "creater": user.user_id,
-            "region": default_region,
             "expired_time": expire_time,
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
@@ -353,47 +348,62 @@ class TeamService(object):
             tenant["role_infos"] = roles["roles"]
         return tenants, total
 
-    def __team_with_region_info(self, tenant, request_user=None):
+    def __team_with_region_info(self, tenant, request_user=None, get_region=True):
         try:
             user = user_repo.get_user_by_user_id(tenant.creater)
             owner_name = user.get_name()
         except UserNotExistError:
             owner_name = None
-        if request_user:
-            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
-            roles = [x["role_name"] for x in user_role_list["roles"]]
-            if tenant.creater == request_user.user_id:
-                roles.append("owner")
-        region_info_map = []
-        region_list = team_repo.get_team_regions(tenant.tenant_id)
-        if region_list:
-            region_name_list = region_list.values_list("region_name", flat=True)
-            region_infos = region_repo.get_region_by_region_names(region_name_list)
-            if region_infos:
-                for region in region_infos:
-                    region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
+
         info = {
             "team_name": tenant.tenant_name,
             "team_alias": tenant.tenant_alias,
             "team_id": tenant.tenant_id,
             "create_time": tenant.create_time,
-            "region": tenant.region,
-            "region_list": region_info_map,
             "enterprise_id": tenant.enterprise_id,
             "owner": tenant.creater,
             "owner_name": owner_name,
         }
+
         if request_user:
+            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
+            roles = [x["role_name"] for x in user_role_list["roles"]]
+            if tenant.creater == request_user.user_id:
+                roles.append("owner")
             info["roles"] = roles
+
+        if get_region:
+            region_info_map = []
+            region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
+            if region_name_list:
+                region_infos = region_repo.get_region_by_region_names(region_name_list)
+                if region_infos:
+                    for region in region_infos:
+                        region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
+            info["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
+            info["region_list"] = region_info_map
+
         return info
 
-    def get_teams_region_by_user_id(self, enterprise_id, user, name=None):
+    def get_teams_region_by_user_id(self, enterprise_id, user, name=None, get_region=True):
         teams_list = list()
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
         if tenants:
             for tenant in tenants:
-                teams_list.append(self.__team_with_region_info(tenant, user))
+                team = self.__team_with_region_info(tenant, user, get_region=get_region)
+                teams_list.append(team)
         return teams_list
+
+    def list_user_teams(self, enterprise_id, user, name):
+        # User joined team
+        teams = self.get_teams_region_by_user_id(enterprise_id, user, name, get_region=False)
+        # The team that the user did not join
+        user_id = user.user_id if user else ""
+        nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)
+        for nojoin_team in nojoin_teams:
+            team = self.__team_with_region_info(nojoin_team, get_region=False)
+            teams.append(team)
+        return teams
 
     def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
         tenant = team_repo.get_user_tenant_by_name(user_id, tenant_name)

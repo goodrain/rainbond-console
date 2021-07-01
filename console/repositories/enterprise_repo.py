@@ -97,6 +97,7 @@ class TenantEnterpriseRepo(object):
             return None
         active_tenants_list = []
         for tenant in tenants:
+            role = None
             owner = None
             try:
                 owner = user_repo.get_user_by_user_id(tenant.creater)
@@ -106,28 +107,25 @@ class TenantEnterpriseRepo(object):
             except UserRoleNotFoundException:
                 if tenant.creater == user_id:
                     role = "owner"
-                else:
-                    role = None
-            region_name_list = []
-            region_list = team_repo.get_team_regions(tenant.tenant_id)
-            if region_list:
-                region_name_list = region_list.values_list("region_name", flat=True)
-            team_item = {
-                "tenant_id": tenant.tenant_id,
-                "team_alias": tenant.tenant_alias,
-                "owner": tenant.creater,
-                "owner_name": owner.get_name() if owner else "",
-                "enterprise_id": tenant.enterprise_id,
-                "create_time": tenant.create_time,
-                "team_name": tenant.tenant_name,
-                "region": tenant.region,
-                "region_list": region_name_list,
-                "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
-                "role": role
-            }
-            if not team_item["region"] and len(region_name_list) > 0:
-                team_item["region"] = region_name_list[0]
-            active_tenants_list.append(team_item)
+
+            region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
+            if len(region_name_list) > 0:
+                team_item = {
+                    "tenant_id": tenant.tenant_id,
+                    "team_alias": tenant.tenant_alias,
+                    "owner": tenant.creater,
+                    "owner_name": owner.get_name() if owner else "",
+                    "enterprise_id": tenant.enterprise_id,
+                    "create_time": tenant.create_time,
+                    "team_name": tenant.tenant_name,
+                    "region": region_name_list[0] if region_name_list else "",
+                    "region_list": region_name_list,
+                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
+                    "role": role
+                }
+                if not team_item["region"] and len(region_name_list) > 0:
+                    team_item["region"] = region_name_list[0]
+                active_tenants_list.append(team_item)
         active_tenants_list.sort(key=lambda x: x["num"], reverse=True)
         active_tenants_list = active_tenants_list[:3]
         return active_tenants_list

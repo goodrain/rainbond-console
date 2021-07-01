@@ -56,7 +56,8 @@ class AppVolumeView(AppBaseView):
         volumes_list = []
         if is_config:
             for tenant_service_volume in volumes:
-                cf_file = volume_repo.get_service_config_file(tenant_service_volume["ID"])
+                volume = volume_repo.get_service_volume_by_pk(tenant_service_volume["ID"])
+                cf_file = volume_repo.get_service_config_file(volume)
                 if cf_file:
                     tenant_service_volume["file_content"] = cf_file.file_content
                 volumes_list.append(tenant_service_volume)
@@ -186,7 +187,7 @@ class AppVolumeManageView(AppBaseView):
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
             return Response(general_message(400, "volume is null", "存储不存在"), status=400)
-        service_config = volume_repo.get_service_config_file(volume_id)
+        service_config = volume_repo.get_service_config_file(volume)
         if volume.volume_type == 'config-file':
             if not service_config:
                 return Response(general_message(400, "file_content is null", "配置文件内容不存在"), status=400)

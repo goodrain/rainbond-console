@@ -2,6 +2,7 @@
 """
   Created on 18/1/11.
 """
+import base64
 import datetime
 import json
 import logging
@@ -15,14 +16,17 @@ from console.enum.component_enum import ComponentType
 from console.exception.main import ServiceHandleException
 from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion)
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
-from console.repositories.app_config import (dep_relation_repo, env_var_repo, mnt_repo, port_repo, service_endpoints_repo,
-                                             volume_repo)
+from console.repositories.app_config import dep_relation_repo
+from console.repositories.app_config import domain_repo as http_rule_repo
+from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
+from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.services.app_config import label_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.utils.validation import validate_endpoints_info
 from django.db import transaction
@@ -377,7 +381,7 @@ class AppService(object):
     def create_region_service(self, tenant, service, user_name, do_deploy=True, dep_sids=None):
         data = self.__init_create_data(tenant, service, user_name, do_deploy, dep_sids)
         service_dep_relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
-        # 依赖
+        # handle dependencies attribute
         depend_ids = [{
             "dep_order": dep.dep_order,
             "dep_service_type": dep.dep_service_type,
@@ -386,37 +390,33 @@ class AppService(object):
             "tenant_id": dep.tenant_id
         } for dep in service_dep_relations]
         data["depend_ids"] = depend_ids
-        # 端口
+        # handle port attribute
         ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         ports_info = ports.values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service',
                                   'is_outer_service', 'k8s_service_name')
 
-        for port_info in ports_info:
-            port_info["is_inner_service"] = False
-            port_info["is_outer_service"] = False
-
         if ports_info:
             data["ports_info"] = list(ports_info)
-        # 环境变量
+        # handle env attribute
         envs_info = env_var_repo.get_service_env(tenant.tenant_id, service.service_id).values(
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
             data["envs_info"] = list(envs_info)
-        # 持久化目录
+        # handle volume attribute
         volume_info = volume_repo.get_service_volumes_with_config_file(service.service_id)
         if volume_info:
             volume_list = []
             for volume in volume_info:
                 volume_info = model_to_dict(volume)
                 if volume.volume_type == "config-file":
-                    config_file = volume_repo.get_service_config_file(volume.ID)
+                    config_file = volume_repo.get_service_config_file(volume)
                     if config_file:
                         volume_info.update({"file_content": config_file.file_content})
                 volume_list.append(volume_info)
             data["volumes_info"] = volume_list
 
         logger.debug(tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-        # 挂载信息
+        # handle dep volume attribute
         mnt_info = mnt_repo.get_service_mnts(service.tenant_id, service.service_id)
         if mnt_info:
             data["dep_volumes_info"] = [{
@@ -430,16 +430,104 @@ class AppService(object):
 
         # runtime os name
         data["os_type"] = label_service.get_service_os_name(service)
-        # 数据中心创建
+
+        # app id
         app_id = service_group_relation_repo.get_group_id_by_service(service)
         region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
         data["app_id"] = region_app_id
+
+        # handle component monitor
+        monitors = service_monitor_repo.get_component_service_monitors(tenant.tenant_id, service.service_id).values(
+            'name', 'service_show_name', 'path', 'port', 'interval')
+        if monitors:
+            data["component_monitors"] = list(monitors)
+
+        # handle component probe
+        probes = probe_repo.get_service_probe(service.service_id).values(
+            'service_id', 'probe_id', 'mode', 'scheme', 'path', 'port', 'cmd', 'http_header', 'initial_delay_second',
+            'period_second', 'timeout_second', 'is_used', 'failure_threshold', 'success_threshold')
+        if probes:
+            probes = list(probes)
+            for i in range(len(probes)):
+                probes[i]['is_used'] = 1 if probes[i]['is_used'] else 0
+            data["component_probes"] = probes
+        # handle gateway rules
+        http_rules = http_rule_repo.get_service_domains(service.service_id)
+        if http_rules:
+            rule_data = []
+            for rule in http_rules:
+                rule_data.append(self.__init_http_rule_for_region(tenant, service, rule, user_name))
+            data["http_rules"] = rule_data
+
+        stream_rule = tcp_domain.get_service_tcpdomains(service.service_id)
+        if stream_rule:
+            rule_data = []
+            for rule in stream_rule:
+                rule_data.append(self.__init_stream_rule_for_region(tenant, service, rule, user_name))
+            data["tcp_rules"] = rule_data
+        # create in region
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # 将组件创建状态变更为创建完成
+        # conponent install complete
         service.create_status = "complete"
-        self.__handle_service_ports(tenant, service, ports)
         service.save()
         return service
+
+    def __init_stream_rule_for_region(self, tenant, service, rule, user_name):
+
+        data = dict()
+        data["tcp_rule_id"] = rule.tcp_rule_id
+        data["service_id"] = service.service_id
+        data["container_port"] = rule.container_port
+        hp = rule.end_point.split(":")
+        if len(hp) == 2:
+            data["ip"] = hp[0]
+            data["port"] = int(hp[1])
+        if rule.rule_extensions:
+            rule_extensions = []
+            for ext in rule.rule_extensions.split(","):
+                ext_info = ext.split(":")
+                if len(ext_info) == 2:
+                    rule_extensions.append({"key": ext_info[0], "value": ext_info[1]})
+            data["rule_extensions"] = rule_extensions
+        return data
+
+    def __init_http_rule_for_region(self, tenant, service, rule, user_name):
+        certificate_info = None
+        if rule.certificate_id:
+            certificate_info = http_rule_repo.get_certificate_by_pk(int(rule.certificate_id))
+        data = dict()
+        data["uuid"] = make_uuid(rule.domain_name)
+        data["domain"] = rule.domain_name
+        data["service_id"] = service.service_id
+        data["tenant_id"] = tenant.tenant_id
+        data["tenant_name"] = tenant.tenant_name
+        data["protocol"] = rule.protocol
+        data["container_port"] = int(rule.container_port)
+        data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        data["add_user"] = user_name
+        data["enterprise_id"] = tenant.enterprise_id
+        data["http_rule_id"] = rule.http_rule_id
+        data["path"] = rule.domain_path
+        data["cookie"] = rule.domain_cookie
+        data["header"] = rule.domain_heander
+        data["weight"] = rule.the_weight
+        if rule.rule_extensions:
+            rule_extensions = []
+            for ext in rule.rule_extensions.split(","):
+                ext_info = ext.split(":")
+                if len(ext_info) == 2:
+                    rule_extensions.append({"key": ext_info[0], "value": ext_info[1]})
+            data["rule_extensions"] = rule_extensions
+        data["certificate"] = ""
+        data["private_key"] = ""
+        data["certificate_name"] = ""
+        data["certificate_id"] = ""
+        if certificate_info:
+            data["certificate"] = base64.b64decode(certificate_info.certificate).decode()
+            data["private_key"] = certificate_info.private_key
+            data["certificate_name"] = certificate_info.alias
+            data["certificate_id"] = certificate_info.certificate_id
+        return data
 
     def __init_create_data(self, tenant, service, user_name, do_deploy, dep_sids):
         data = dict()
@@ -449,6 +537,7 @@ class AppService(object):
         data["comment"] = service.desc
         data["image_name"] = service.image
         data["container_cpu"] = int(service.min_cpu)
+        data["container_gpu"] = int(service.container_gpu)
         data["container_memory"] = int(service.min_memory)
         data["volume_path"] = "vol" + service.service_id[0:10]
         data["extend_method"] = service.extend_method
@@ -660,6 +749,7 @@ class AppMarketService(object):
                 "ID": market.ID,
             }
             if extend == "true":
+                version = "1.0"
                 try:
                     extend_info = app_store.get_market(market)
                     market.description = extend_info.description
@@ -667,8 +757,9 @@ class AppMarketService(object):
                     market.status = extend_info.status
                     market.create_time = extend_info.create_time
                     market.access_actions = extend_info.access_actions
+                    version = extend_info.version if hasattr(extend_info, "version") else version
                 except Exception as e:
-                    logger.debug(e)
+                    logger.exception(e)
                     market.description = None
                     market.alias = market.name
                     market.status = 0
@@ -679,6 +770,7 @@ class AppMarketService(object):
                     "alias": market.alias,
                     "status": market.status,
                     "access_actions": market.access_actions,
+                    "version": version
                 })
             market_list.append(dt)
         return market_list
@@ -694,12 +786,14 @@ class AppMarketService(object):
             "ID": market.ID,
         }
         if extend == "true":
+            version = "1.0"
             try:
                 extend_info = app_store.get_market(market)
                 market.description = extend_info.description
                 market.alias = extend_info.name
                 market.status = extend_info.status
                 market.access_actions = extend_info.access_actions
+                version = extend_info.version if extend_info.version else version
             except Exception as e:
                 logger.debug(e)
                 market.description = None
@@ -714,6 +808,7 @@ class AppMarketService(object):
                 "alias": market.alias,
                 "status": market.status,
                 "access_actions": market.access_actions,
+                "version": version
             })
         return dt, market
 
@@ -726,7 +821,7 @@ class AppMarketService(object):
     def create_app_market(self, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
-            raise ServiceHandleException(msg="name exist", msg_show="名称已存在", status_code=400)
+            raise ServiceHandleException(msg="name exist", msg_show="标识已存在", status_code=400)
         return app_market_repo.create_app_market(**data)
 
     @transaction.atomic
@@ -744,7 +839,7 @@ class AppMarketService(object):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
             if exit_market.ID != app_market.ID:
-                raise ServiceHandleException(msg="name exist", msg_show="名称已存在", status_code=400)
+                raise ServiceHandleException(msg="name exist", msg_show="标识已存在", status_code=400)
         app_market.name = data["name"]
         app_market.type = data["type"]
         app_market.enterprise_id = data["enterprise_id"]
@@ -883,7 +978,7 @@ class AppMarketService(object):
         results = app_store.get_app(market, app_id)
         return self.app_model_serializers(market, results, extend=extend)
 
-    def get_market_app_model_versions(self, market, app_id, query_all=False, extend=False):
+    def get_market_app_model_versions(self, market: AppMarket, app_id, query_all=False, extend=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         results = app_store.get_app_versions(market, app_id, query_all=query_all)
@@ -897,9 +992,17 @@ class AppMarketService(object):
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
 
-    def cloud_app_model_to_db_model(self, market, app_id, version, for_install=False):
+    def cloud_app_model_to_db_model(self, market: AppMarket, app_id, version, for_install=False):
         app = app_store.get_app(market, app_id)
-        app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
+        rainbond_app_version = None
+        app_template = None
+        try:
+            if version:
+                app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
+        except ServiceHandleException as e:
+            if e.status_code != 404:
+                logger.exception(e)
+            app_template = None
         rainbond_app = RainbondCenterApp(
             app_id=app.app_key_id,
             app_name=app.name,
@@ -912,16 +1015,17 @@ class AppMarketService(object):
             create_time=app.create_time,
             update_time=app.update_time)
         rainbond_app.market_name = market.name
-        rainbond_app_version = RainbondCenterAppVersion(
-            app_id=app.app_key_id,
-            app_template=app_template.template,
-            version=app_template.version,
-            version_alias=app_template.version_alias,
-            template_version=app_template.rainbond_version,
-            app_version_info=app_template.description,
-            update_time=app_template.update_time,
-            is_official=1)
-        rainbond_app_version.template_type = app_template.template_type
+        if app_template:
+            rainbond_app_version = RainbondCenterAppVersion(
+                app_id=app.app_key_id,
+                app_template=app_template.template,
+                version=app_template.version,
+                version_alias=app_template.version_alias,
+                template_version=app_template.rainbond_version,
+                app_version_info=app_template.description,
+                update_time=app_template.update_time,
+                is_official=1)
+            rainbond_app_version.template_type = app_template.template_type
         return rainbond_app, rainbond_app_version
 
     def create_market_app_model(self, market, body):
@@ -941,6 +1045,32 @@ class AppMarketService(object):
             return []
 
         return [bm.to_dict() for bm in bindable_markets]
+
+    def get_market_orgs(self, market):
+        results = app_store.get_orgs(market)
+        return self.org_serializers(results)
+
+    def org_serializers(self, data):
+        organizations = []
+        if not data:
+            return []
+        for dt in data:
+            org = {
+                "eid": dt.eid,
+                "name": dt.name,
+                "org_id": dt.org_id,
+                "desc": dt.desc,
+            }
+            organizations.append(Dict(org))
+        return organizations
+
+    def update_market_app(self, app_id, upgrade_group_id, app_model_key, version):
+        # plugins
+        # config groups
+        # app
+        # create update record
+        # build, update or nothing
+        return
 
 
 app_service = AppService()

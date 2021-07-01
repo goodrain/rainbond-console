@@ -179,7 +179,7 @@ class EnterpriseConfigService(ConfigService):
                     "hub_password": None
                 },
                 "desc": "AppStore镜像仓库配置",
-                "enable": True
+                "enable": False
             },
             "NEWBIE_GUIDE": {
                 "value": None,
@@ -219,7 +219,7 @@ class EnterpriseConfigService(ConfigService):
             "OAUTH_SERVICES": {
                 "value": self.get_oauth_services(),
                 "desc": "开启/关闭OAuthServices功能",
-                "enable": True
+                "enable": False
             },
         }
 
@@ -268,9 +268,9 @@ class EnterpriseConfigService(ConfigService):
 class PlatformConfigService(ConfigService):
     def __init__(self):
         super(PlatformConfigService, self).__init__()
-        self.base_cfg_keys = [
-            "IS_PUBLIC", "OAUTH_SERVICES", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"
-        ]
+        self.base_cfg_keys = ["IS_PUBLIC", "MARKET_URL", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"]
+        if not os.getenv('IS_PUBLIC', False):
+            self.base_cfg_keys.append("OAUTH_SERVICES")
 
         self.cfg_keys = [
             "TITLE",
