@@ -101,7 +101,7 @@ CREATE TABLE "service_share_record" (
     "share_app_market_name" varchar(64) NULL,
     "create_time" datetime NOT NULL,
     "update_time" datetime NOT NULL,
-    `share_app_version_info` VARCHAR(255) DEFAULT ''
+    "share_app_version_info" varchar(255) DEFAULT ''
 );
 
 INSERT INTO tenant_service_env_var (`ID`, `tenant_id`, `service_id`, `container_port`, `name`, `attr_name`, `attr_value`, `is_change`, `scope`, `create_time`)
