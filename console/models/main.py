@@ -1063,16 +1063,6 @@ class ComponentGraph(BaseModel):
     sequence = models.IntegerField(help_text="the sequence number of the graph")
 
 
-class ServiceComponents(BaseModel):
-    class Meta:
-        db_table = "service_components"
-
-    app_id = models.IntegerField(help_text="the identifier of application")
-    service_name = models.CharField(help_text="the name of the kubernetes services")
-    component_id = models.CharField(max_length=32, help_text="the identity of the component")
-    port = models.IntegerField(help_text="the port of the component helm component only has one port")
-
-
 class AppUpgradeSnapshot(BaseModel):
     class Meta:
         db_table = "app_upgrade_snapshots"

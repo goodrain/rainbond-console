@@ -13,8 +13,7 @@ from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_config import endpoint_service, port_service
 from console.services.group_service import group_service
-from console.utils.validation import (validate_endpoint_address,
-                                      validate_endpoints_info)
+from console.utils.validation import (validate_endpoint_address, validate_endpoints_info)
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView, RegionTenantHeaderView
 from django.db.transaction import atomic
@@ -51,8 +50,8 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             if not service_name:
                 return Response(general_message(400, "kubernetes service name is null", "Kubernetes Service名称必须指定"), status=400)
             source_config = {"service_name": service_name, "namespace": request.data.get("namespace", "")}
-        new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user, service_cname, static,
-                                                         endpoints_type, source_config)
+        new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user, service_cname,
+                                                         endpoints_type, static, source_config)
         # 添加组件所在组
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, new_service.service_id)
         if code != 200:

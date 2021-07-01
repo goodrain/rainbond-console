@@ -205,6 +205,10 @@ class TenantServiceInfoRepository(object):
     def get_services_by_team_and_region(self, team_id, region_name):
         return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).all()
 
+    @staticmethod
+    def bulk_create(components: [TenantServiceInfo]):
+        TenantServiceInfo.objects.bulk_create(components)
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):

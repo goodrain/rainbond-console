@@ -8,11 +8,12 @@ from console.enum.app import GovernanceModeEnum
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
+from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.application import application_service
 from console.services.market_app_service import market_app_service
-from console.utils.reqparse import parse_item, parse_argument
+from console.utils.reqparse import parse_item
 from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
@@ -328,47 +329,10 @@ class ApplicationPodView(ApplicationView):
         return Response(result)
 
 
-class ApplicationServiceView(ApplicationView):
+class ApplicationHelmAppComponentView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
-        services = group_service.list_services(self.tenant, self.region_name, app_id)
-        result = general_message(200, "success", "安装成功", list=services)
-        return Response(result)
-
-
-class ApplicationComponentView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
-        service_name = parse_argument(request, "service_name", required=True)
-        components = application_service.list_components_by_service_name(self.region_name, self.tenant, app_id, service_name)
-        return Response(general_message(200, "success", "查询成功", list=components))
-
-    def post(self, request, app_id, *args, **kwargs):
-        port = parse_item(request, "port", required=True)
-        service_name = parse_item(request, "service_name", required=True)
-        application_service.create_thirdparty_component(self.user, self.region_name, self.tenant, app_id, service_name, port)
-        return Response(general_message(200, "success", "创建成功"))
-
-
-class ApplicationComponentBatchView(ApplicationView):
-    def post(self, request, app_id, *args, **kwargs):
-        services = request.data
-        if type(services) != list:
-            raise AbortRequest("expect list, but got " + type(services))
-        for service in services:
-            if not service.get("service_name"):
-                raise AbortRequest("the field 'service_name' is required")
-            if not service.get("address"):
-                raise AbortRequest("the field 'address' is required")
-            if not service.get("ports"):
-                raise AbortRequest("the field 'address' is required")
-
-        application_service.batch_create_thirdparty_components(self.user, self.region_name, self.tenant, app_id, services)
-        return Response(general_message(200, "success", "创建成功"))
-
-
-class ApplicationOrphanComponentView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
-        components = application_service.list_orphan_components(self.region_name, self.tenant, app_id)
-        return Response(general_message(200, "success", "查询成功", list=components))
+        components, err = helm_app_service.list_components(self.tenant, self.region_name, self.user, self.app)
+        return Response(general_message(err.get("code", 200), err.get("msg", "success"), "查询成功", list=components))
 
 
 class ApplicationParseServicesView(ApplicationView):

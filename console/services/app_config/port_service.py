@@ -27,6 +27,8 @@ from console.services.app_config.probe_service import ProbeService
 from console.services.region_services import region_services
 # model
 from www.models.main import ServiceGroup
+from www.models.main import TenantServiceEnvVar
+from console.models.main import TenantServiceInfo
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -904,6 +906,28 @@ class AppPortService(object):
         endpoint_info = [endpoint.address for endpoint in endpoint_list]
         validate_endpoints_info(endpoint_info)
         return "", "", 200
+
+    def create_envs_4_ports(self, component: TenantServiceInfo, port: TenantServicesPort, governance_mode):
+        port_alias = component.service_alias.upper()
+        host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
+        attr_name_prefix = port_alias + str(port.container_port)
+        host_env = self._create_port_env(component, port, "连接地址", attr_name_prefix + "_HOST", host_value)
+        port_env = self._create_port_env(component, port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
+        return [host_env, port_env]
+
+    @staticmethod
+    def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name, attr_name, attr_value):
+        return TenantServiceEnvVar(
+            tenant_id=component.tenant_id,
+            service_id=component.component_id,
+            container_port=port.container_port,
+            name=name,
+            attr_name=attr_name,
+            attr_value=attr_value,
+            is_change=False,
+            scope="outer",
+            create_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        )
 
 
 class EndpointService(object):

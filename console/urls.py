@@ -65,11 +65,10 @@ from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 ApplicationInstallView, ApplicationPodView, ApplicationServiceView, ApplicationComponentView,
-                                 ApplicationOrphanComponentView, ApplicationParseServicesView, ApplicationComponentBatchView,
-                                 ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView)
+from console.views.group import (
+    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
+    TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
+    ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -282,8 +281,6 @@ urlpatterns = [
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/pods/(?P<pod_name>[\w\-]+)$', ApplicationPodView.as_view(),
         perms.TenantGroupOperationView),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/services$', ApplicationServiceView.as_view(),
-        perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/upgradable_num$', TenantAppUpgradableNumView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode', AppGovernanceModeView.as_view(),
@@ -300,12 +297,8 @@ urlpatterns = [
         perms.AppConfigGroupView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
         AppConfigGroupView.as_view(), perms.AppConfigGroupView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/components$', ApplicationComponentView.as_view(),
-        perms.TenantGroupOperationView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/batch-components$', ApplicationComponentBatchView.as_view(),
-        perms.TenantGroupOperationView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/orphan-components$',
-        ApplicationOrphanComponentView.as_view(), perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/helmapp-components$',
+        ApplicationHelmAppComponentView.as_view(), perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/parse-services$', ApplicationParseServicesView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/releases$', ApplicationReleasesView.as_view(),

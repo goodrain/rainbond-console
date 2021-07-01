@@ -22,7 +22,6 @@ from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.user_repo import user_repo
-from console.repositories.service_component import service_component_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.utils.shortcuts import get_object_or_404
@@ -489,8 +488,6 @@ class GroupService(object):
         # avoid circular import
         from console.services.app_actions import app_manage_service
         app_manage_service.delete_components(tenant, components, user)
-        # delete app
-        service_component_repo.delete_by_app_id(app.app_id)
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     def _delete_rainbond_app(self, tenant, region_name, app):
@@ -690,34 +687,8 @@ class GroupService(object):
         })
 
     @staticmethod
-    def list_services(tenant_name, region_name, app_id):
-        # key is the function to get the identify key of service.
-        def key(service_name, port):
-            return service_name + "-" + str(port)
-
-        # list the existing service component
-        service_components = service_component_repo.list_by_app_id(app_id)
-        # create a map for service_components
-        service_components = {key(sc.service_name, sc.port): sc for sc in service_components}
-
-        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        services = region_api.list_app_services(region_name, tenant_name, region_app_id)
-
-        # filter out the existing service component
-        for service in services:
-            ports = [port for port in service["tcp_ports"] if not service_components.get(key(service["service_name"], port))]
-            service["tcp_ports"] = ports
-        return services
-
-    @staticmethod
     def get_pod(tenant, region_name, pod_name):
         return region_api.get_pod(region_name, tenant.tenant_name, pod_name)
-
-    def get_service(self, tenant, region_name, app_id, service_name):
-        services = self.list_services(tenant.tenant_name, region_name, app_id)
-        for svc in services:
-            if svc.get("service_name") == service_name:
-                return svc
 
     @staticmethod
     def list_components(app_id):

@@ -21,7 +21,7 @@ class JwtManager(object):
                     _instance = object.__new__(cls)
                     JwtManager._instance = _instance
 
-                cls.enable = os.getenv("ENABLE_JWT_MANAGER", True)
+                cls.enable = os.getenv("ENABLE_JWT_MANAGER", False)
                 if not cls.enable:
                     return JwtManager._instance
 

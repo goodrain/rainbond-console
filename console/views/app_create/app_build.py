@@ -53,8 +53,6 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 is_deploy = False
                 # create third component from region
                 new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
-                # auto start third component
-                app_manage_service.start(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
             else:
                 # 数据中心创建组件
                 new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)

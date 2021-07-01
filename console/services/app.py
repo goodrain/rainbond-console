@@ -8,21 +8,25 @@ import json
 import logging
 import random
 import string
-
 from addict import Dict
-from console.appstore.appstore import app_store
-from console.constants import AppConstants, PluginImage, SourceCodeType
+
+from django.db import transaction
+from django.db.models import Q
+from django.forms.models import model_to_dict
+
+# enum
 from console.enum.component_enum import ComponentType
+# exception
+from console.exception.main import AbortRequest
 from console.exception.main import ServiceHandleException
-from console.models.main import (AppMarket, RainbondCenterApp,
-                                 RainbondCenterAppVersion)
-from console.repositories.app import (app_market_repo, service_repo,
-                                      service_source_repo)
+from console.exception.bcode import ErrThirdComponentStartFailed
+from console.constants import AppConstants, PluginImage, SourceCodeType
+from console.appstore.appstore import app_store
+from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion)
+from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
-from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo,
-                                             service_endpoints_repo,
-                                             tcp_domain, volume_repo)
+from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -33,15 +37,15 @@ from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.utils.validation import validate_endpoints_info
-from django.db import transaction
-from django.db.models import Q
-from django.forms.models import model_to_dict
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
+# model
+from www.models.main import ServiceGroupRelation
 from www.models.main import ServiceConsume, TenantServiceInfo
-from www.tenantservice.baseservice import (BaseTenantService,
-                                           CodeRepositoriesService,
-                                           ServicePluginResource,
+from www.models.main import ThirdPartyServiceEndpoints
+from www.models.main import TenantServicesPort
+from www.models.main import ServiceGroup
+from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource,
                                            TenantUsedResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
@@ -284,20 +288,7 @@ class AppService(object):
         return tenant_service
 
     def create_third_party_app(self, region, tenant, user, service_cname, static_endpoints, endpoints_type, source_config={}):
-        service_cname = service_cname.rstrip().lstrip()
-        is_pass, msg = self.check_service_cname(tenant, service_cname, region)
-        if not is_pass:
-            raise ServiceHandleException(msg=msg, msg_show="组件名称不合法", status_code=400, error_code=400)
-        new_service = self.__init_third_party_app(region)
-        new_service.tenant_id = tenant.tenant_id
-        new_service.service_cname = service_cname
-        service_id = make_uuid(tenant.tenant_id)
-        service_alias = self.create_service_alias(service_id)
-        new_service.service_id = service_id
-        new_service.service_alias = service_alias
-        new_service.creater = user.pk
-        new_service.server_type = ''
-        new_service.protocol = 'tcp'
+        new_service = self._create_third_component(tenant, region, user, service_cname)
         new_service.save()
         if endpoints_type == "kubernetes":
             service_endpoints_repo.create_kubernetes_endpoints(tenant, new_service, source_config["service_name"],
@@ -344,6 +335,155 @@ class AppService(object):
 
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
+
+    def create_third_components(self, tenant, region_name, user, app: ServiceGroup, component_type, services):
+        if component_type != "kubernetes":
+            raise AbortRequest("unsupported third component type: {}".format(component_type))
+        components = self.create_third_components_kubernetes(tenant, region_name, user, app, services)
+
+        # start the third components
+        component_ids = [cpt.component_id for cpt in components]
+        try:
+            from console.services.app_actions import app_manage_service
+            app_manage_service.batch_operations(tenant, region_name, user, "start", component_ids)
+        except Exception as e:
+            logger.exception(e)
+            raise ErrThirdComponentStartFailed()
+
+    @transaction.atomic
+    def create_third_components_kubernetes(self, tenant, region_name, user, app: ServiceGroup, services):
+        components = []
+        relations = []
+        endpoints = []
+        new_ports = []
+        envs = []
+        component_bodies = []
+        for service in services:
+            # components
+            component_cname = service["service_name"]
+            component = self._create_third_component(tenant, region_name, user, component_cname)
+            component.create_status = "complete"
+            components.append(component)
+
+            relation = ServiceGroupRelation(
+                group_id=app.app_id,
+                tenant_id=component.tenant_id,
+                service_id=component.component_id,
+                region_name=region_name,
+            )
+            relations.append(relation)
+
+            # endpoints
+            endpoints.append(
+                ThirdPartyServiceEndpoints(
+                    tenant_id=component.tenant_id,
+                    service_id=component.service_id,
+                    service_cname=component_cname,
+                    endpoints_type="kubernetes",
+                    endpoints_info=json.dumps({
+                        'serviceName': service["service_name"],
+                        'namespace': service["namespace"],
+                    }),
+                ))
+            endpoint = {
+                "kubernetes": {
+                    'serviceName': service["service_name"],
+                    'namespace': service["namespace"],
+                }
+            }
+
+            # ports
+            ports = service.get("ports")
+            if not ports:
+                continue
+            for port in ports:
+                new_port = TenantServicesPort(
+                    tenant_id=component.tenant_id,
+                    service_id=component.service_id,
+                    container_port=port["port"],
+                    mapping_port=port["port"],
+                    protocol="udp" if port["protocol"].lower() == "udp" else "tcp",
+                    port_alias=component.service_alias.upper() + str(port["port"]),
+                    is_inner_service=True,
+                    is_outer_service=False,
+                    k8s_service_name=component.service_alias + "-" + str(port["port"]),
+                )
+                new_ports.append(new_port)
+
+                # port envs
+                port_envs = port_service.create_envs_4_ports(component, new_port, app.governance_mode)
+                envs.extend(port_envs)
+
+            component_body = self._create_third_component_body(component, endpoint, new_ports, envs)
+            component_bodies.append(component_body)
+
+        region_app_id = region_app_repo.get_region_app_id(region_name, app.app_id)
+
+        self._sync_third_components(tenant.tenant_name, region_name, region_app_id, component_bodies)
+
+        try:
+            self._save_third_components(components, relations, endpoints, new_ports, envs)
+        except Exception as e:
+            self._rollback_third_components(tenant.tenant_name, region_name, region_app_id, components)
+            raise e
+
+        return components
+
+    def _create_third_component(self, tenant, region_name, user, service_cname):
+        service_cname = service_cname.rstrip().lstrip()
+        is_pass, msg = self.check_service_cname(tenant, service_cname, region_name)
+        if not is_pass:
+            raise ServiceHandleException(msg=msg, msg_show="组件名称不合法", status_code=400, error_code=400)
+        component = self.__init_third_party_app(region_name)
+        component.tenant_id = tenant.tenant_id
+        component.service_cname = service_cname
+        service_id = make_uuid(tenant.tenant_id)
+        service_alias = self.create_service_alias(service_id)
+        component.service_id = service_id
+        component.service_alias = service_alias
+        component.creater = user.pk
+        component.server_type = ''
+        component.protocol = 'tcp'
+        return component
+
+    @staticmethod
+    def _save_third_components(components, relations, third_endpoints, ports, envs):
+        service_repo.bulk_create(components)
+        service_group_relation_repo.bulk_create(relations)
+        service_endpoints_repo.bulk_create(third_endpoints)
+        port_repo.bulk_create(ports)
+        env_var_repo.bulk_create(envs)
+
+    @staticmethod
+    def _create_third_component_body(component, endpoint, ports, envs):
+        component_base = component.to_dict()
+        component_base["component_id"] = component_base["service_id"]
+        component_base["component_name"] = component_base["service_name"]
+        component_base["component_alias"] = component_base["service_alias"]
+        component_base["container_cpu"] = component.min_cpu
+        component_base["container_memory"] = component.min_memory
+        component_base["replicas"] = component.min_node
+
+        return {
+            "component_base": component_base,
+            "envs": [env.to_dict() for env in envs],
+            "ports": [port.to_dict() for port in ports],
+            "endpoints": endpoint,
+        }
+
+    @staticmethod
+    def _sync_third_components(tenant_name, region_name, region_app_id, component_bodies):
+        body = {
+            "components": component_bodies,
+        }
+        region_api.sync_components(tenant_name, region_name, region_app_id, body)
+
+    @staticmethod
+    def _rollback_third_components(tenant_name, region_name, region_app_id, components: [TenantServiceInfo]):
+        body = {
+            "delete_component_ids": [component.component_id for component in components],
+        }
+        region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
     def get_app_list(self, tenant_id, region, query=""):
         q = Q(tenant_id=tenant_id, service_region=region)

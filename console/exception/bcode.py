@@ -137,6 +137,12 @@ class ErrComponentBuildFailed(ServiceHandleException):
             msg="failed to build component", msg_show="组件构建失败", status_code=400, error_code=20800)
 
 
+class ErrThirdComponentStartFailed(ServiceHandleException):
+    def __init__(self):
+        super(ErrThirdComponentStartFailed, self).__init__(
+            msg="failed to start third component", msg_show="启动第三方组件失败, 请稍后重试", status_code=400, error_code=20801)
+
+
 # 20900 ~ 20999 => app upgrade
 class ErrAppUpgradeRecordNotFound(ServiceHandleException):
     def __init__(self):
