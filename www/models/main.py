@@ -1049,10 +1049,10 @@ class ServiceGroup(BaseModel):
     create_time = models.DateTimeField(help_text="创建时间")
     update_time = models.DateTimeField(help_text="更新时间")
     app_type = models.CharField(max_length=255, default="rainbond", help_text="应用类型")
-    app_store_name = models.CharField(max_length=255, help_text="应用商店名称")
-    app_store_url = models.CharField(max_length=255, help_text="应用商店 URL")
-    app_template_name = models.CharField(max_length=255, help_text="应用模板名称")
-    version = models.CharField(max_length=255, help_text="Helm 应用版本")
+    app_store_name = models.CharField(max_length=255, null=True, blank=True, help_text="应用商店名称")
+    app_store_url = models.CharField(max_length=255, null=True, blank=True, help_text="应用商店 URL")
+    app_template_name = models.CharField(max_length=255, null=True, blank=True, help_text="应用模板名称")
+    version = models.CharField(max_length=255, null=True, blank=True, help_text="Helm 应用版本")
 
     @property
     def app_id(self):
