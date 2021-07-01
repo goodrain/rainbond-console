@@ -4,9 +4,12 @@
 """
 import logging
 import re
+from datetime import datetime
 
-from console.enum.app import GovernanceModeEnum
-from console.exception.bcode import ErrUserNotFound
+from deprecated import deprecated
+
+from console.enum.app import GovernanceModeEnum, AppType
+from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
@@ -45,16 +48,55 @@ class GroupService(object):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
     @transaction.atomic
-    def create_app(self, tenant, region_name, app_name, note="", username="", re_model=False):
-        app = self.__add_group(tenant, region_name, app_name, note, username)
-        self.create_region_app(tenant, region_name, app)
+    def create_app(self,
+                   tenant,
+                   region_name,
+                   app_name,
+                   note="",
+                   username="",
+                   app_store_name="",
+                   app_store_url="",
+                   app_template_name="",
+                   version="",
+                   eid=""):
+        self.check_app_name(tenant, region_name, app_name)
+        # check parameter for helm app
+        app_type = AppType.rainbond.name
+        if app_store_name or app_template_name or version:
+            app_type = AppType.helm.name
+            if not app_store_name:
+                raise AbortRequest("the field 'app_store_name' is required")
+            if not app_store_url:
+                raise AbortRequest("the field 'app_store_url' is required")
+            if not app_template_name:
+                raise AbortRequest("the field 'app_template_name' is required")
+            if not version:
+                raise AbortRequest("the field 'version' is required")
+
+        app = ServiceGroup(
+            tenant_id=tenant.tenant_id,
+            region_name=region_name,
+            group_name=app_name,
+            note=note,
+            is_default=False,
+            username=username,
+            update_time=datetime.now(),
+            create_time=datetime.now(),
+            app_type=app_type,
+            app_store_name=app_store_name,
+            app_store_url=app_store_url,
+            app_template_name=app_template_name,
+            version=version,
+        )
+        group_repo.create(app)
+
+        self.create_region_app(tenant, region_name, app, eid=eid)
+
         res = app.to_dict()
         # compatible with the old version
         res["group_id"] = app.ID
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
-        if re_model:
-            return res, app
         return res
 
     def create_default_app(self, tenant, region_name):
@@ -62,16 +104,17 @@ class GroupService(object):
         self.create_region_app(tenant, region_name, app)
         return app.to_dict()
 
-    def __add_group(self, tenant, region_name, app_name, note="", username=""):
-        self.check_app_name(tenant, region_name, app_name)
-        if group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name):
-            raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
-        return group_repo.add_group(tenant.tenant_id, region_name, app_name, group_note=note, username=username)
-
-    def create_region_app(self, tenant, region_name, app):
-        region_app = region_api.create_application(region_name, tenant.tenant_name, {
-            "app_name": app.group_name,
-        })
+    def create_region_app(self, tenant, region_name, app, eid=""):
+        region_app = region_api.create_application(
+            region_name, tenant.tenant_name, {
+                "eid": eid,
+                "app_name": app.group_name,
+                "app_type": app.app_type,
+                "app_store_name": app.app_store_name,
+                "app_store_url": app.app_store_url,
+                "app_template_name": app.app_template_name,
+                "version": app.version,
+            })
 
         # record the dependencies between region app and console app
         data = {
@@ -81,7 +124,20 @@ class GroupService(object):
         }
         region_app_repo.create(**data)
 
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
+    @staticmethod
+    def _parse_overrides(overrides):
+        new_overrides = []
+        for key in overrides:
+            val = overrides[key]
+            if type(val) == int:
+                val = str(val)
+            if type(val) != str:
+                raise AbortRequest("wrong override value which type is {}".format(type(val)))
+            new_overrides.append(key + "=" + val)
+        return new_overrides
+
+    @transaction.atomic
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, overrides="", version="", revision=0):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -95,7 +151,11 @@ class GroupService(object):
             except ErrUserNotFound:
                 raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
         # check app name
-        self.check_app_name(tenant, region_name, app_name)
+        if app_name:
+            self.check_app_name(tenant, region_name, app_name)
+        if overrides:
+            overrides = self._parse_overrides(overrides)
+
         group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
         if group and int(group.ID) != int(app_id):
             raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
@@ -104,7 +164,17 @@ class GroupService(object):
         }
         if app_name:
             data["group_name"] = app_name
+        if version:
+            data["version"] = version
+
         group_repo.update(app_id, **data)
+
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
+            "overrides": overrides,
+            "version": version,
+            "revision": revision,
+        })
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
@@ -118,6 +188,18 @@ class GroupService(object):
         group_service_relation_repo.update_service_relation(group_id, default_group_id)
         return 200, "删除成功", group_id
 
+    @staticmethod
+    def add_component_to_app(tenant, region_name, app_id, component_id):
+        if not app_id:
+            return
+        app_id = int(app_id)
+        if app_id > 0:
+            group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+            if not group:
+                raise ErrApplicationNotFound
+            group_service_relation_repo.add_service_group_relation(app_id, component_id, tenant.tenant_id, region_name)
+
+    @deprecated("You should use 'add_component_to_app'")
     def add_service_to_group(self, tenant, region_name, group_id, service_id):
         if group_id:
             group_id = int(group_id)
@@ -155,6 +237,7 @@ class GroupService(object):
         res = app.to_dict()
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
+        res['app_type'] = app.app_type
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         res['share_num'] = share_repo.count_by_app_id(app_id)
@@ -237,8 +320,8 @@ class GroupService(object):
             }
             group_service_relation_repo.create_service_group_relation(**params)
 
-    def get_groups_and_services(self, tenant, region, query=""):
-        groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region, query)
+    def get_groups_and_services(self, tenant, region, query="", app_type=""):
+        groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region, query, app_type)
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
@@ -385,20 +468,47 @@ class GroupService(object):
         return service_source_repo.get_service_sources_by_service_ids([service_id])
 
     def get_service_source_by_group_key(self, group_key):
-        """ geet service source by group key"""
+        """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
-    # 应用内没有组件情况下删除应用
     @transaction.atomic
-    def delete_group_no_service(self, group_id):
-        if not group_id or (type(group_id) == str and not str.isdigit(group_id)) or int(group_id) < 0:
-            return 400, "需要删除的应用ID不合法", None
-        # 删除应用
-        group_repo.delete_group_by_pk(group_id)
-        # 删除升级记录
-        upgrade_repo.delete_app_record_by_group_id(group_id)
+    def delete_app(self, tenant, region_name, app):
+        if app.app_type == AppType.helm.name:
+            self._delete_helm_app(tenant, region_name, app)
+            return
+        self._delete_rainbond_app(tenant, region_name, app)
 
-        return 200, "删除成功", group_id
+    def _delete_helm_app(self, tenant, region_name, app, user=None):
+        """
+        For helm application,  can be delete directly, regardless of whether there are components
+        """
+        # delete components
+        components = self.list_components(app.app_id)
+        group_service_relation_repo.delete_relation_by_group_id(app.app_id)
+        # avoid circular import
+        from console.services.app_actions import app_manage_service
+        app_manage_service.delete_components(tenant, components, user)
+        self._delete_app(tenant.tenant_name, region_name, app.app_id)
+
+    def _delete_rainbond_app(self, tenant, region_name, app):
+        """
+        For rainbond application, with components, cannot be deleted directly
+        """
+        service = group_service_relation_repo.get_service_by_group(app.app_id)
+        if service:
+            raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
+
+        self._delete_app(region_name, tenant.tenant_name, app.app_id)
+
+    @staticmethod
+    def _delete_app(tenant_name, region_name, app_id):
+        group_repo.delete_group_by_pk(app_id)
+        upgrade_repo.delete_app_record_by_group_id(app_id)
+        try:
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        except RegionApp.DoesNotExist:
+            return
+        region_api.delete_app(region_name, tenant_name, region_app_id)
 
     def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""
@@ -556,7 +666,34 @@ class GroupService(object):
         status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
         if status.get("status") == "NIL":
             status["status"] = None
+        overrides = status.get("overrides", [])
+        if overrides:
+            status["overrides"] = [{override.split("=")[0]: override.split("=")[1]} for override in overrides]
         return status
+
+    @staticmethod
+    def get_detect_process(tenant, region_name, app_id):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        process = region_api.get_app_detect_process(region_name, tenant.tenant_name, region_app_id)
+        return process
+
+    def install_app(self, tenant, region_name, app_id, overrides):
+        if overrides:
+            overrides = self._parse_overrides(overrides)
+
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.install_app(region_name, tenant.tenant_name, region_app_id, {
+            "overrides": overrides,
+        })
+
+    @staticmethod
+    def get_pod(tenant, region_name, pod_name):
+        return region_api.get_pod(region_name, tenant.tenant_name, pod_name)
+
+    @staticmethod
+    def list_components(app_id):
+        service_groups = group_service_relation_repo.list_service_groups(app_id)
+        return service_repo.list_by_ids([sg.service_id for sg in service_groups])
 
 
 group_service = GroupService()

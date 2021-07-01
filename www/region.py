@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 from www.utils.conf_tool import regionConfig
 import logging
+
 logger = logging.getLogger("default")
 
 

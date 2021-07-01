@@ -200,6 +200,7 @@ class AppUpgrade(MarketApp):
                     "service_cname": cpt.component.service_cname,
                     "service_key": cpt.component.service_key,
                     "type": "add",
+                    "can_upgrade": True,
                 },
                 "upgrade_info": tmpl,
             })

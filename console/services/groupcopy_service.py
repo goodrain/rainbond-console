@@ -216,7 +216,7 @@ class GroupAppCopyService(object):
         if not group_services:
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
-        services = service_repo.get_service_by_service_ids(service_ids=service_ids)
+        services = service_repo.list_by_component_ids(service_ids=service_ids)
         result = []
         for service in services:
             if service.service_id in change_service_ids:

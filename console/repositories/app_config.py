@@ -11,15 +11,10 @@ from console.exception.main import AbortRequest
 from console.utils.shortcuts import get_object_or_404
 from django.db.models import Q
 from www.db.base import BaseConnection
-from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation,
-                             ServiceAttachInfo, ServiceCreateStep,
-                             ServiceDomain, ServiceDomainCertificate,
-                             ServicePaymentNotify, ServiceTcpDomain,
-                             TenantServiceAuth, TenantServiceConfigurationFile,
-                             TenantServiceEnv, TenantServiceEnvVar,
-                             TenantServiceMountRelation, TenantServiceRelation,
-                             TenantServicesPort, TenantServiceVolume,
-                             ThirdPartyServiceEndpoints)
+from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation, ServiceAttachInfo, ServiceCreateStep,
+                             ServiceDomain, ServiceDomainCertificate, ServicePaymentNotify, ServiceTcpDomain, TenantServiceAuth,
+                             TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
+                             TenantServiceRelation, TenantServicesPort, TenantServiceVolume, ThirdPartyServiceEndpoints)
 from www.models.service_publish import ServiceExtendMethod
 
 logger = logging.getLogger("default")
@@ -941,6 +936,18 @@ class TenantServiceEndpoints(object):
             "endpoints_type": "kubernetes"
         }
         return ThirdPartyServiceEndpoints.objects.create(**data)
+
+    @staticmethod
+    def list_by_service_name(tenant_id, service_name):
+        return ThirdPartyServiceEndpoints.objects.filter(tenant_id=tenant_id, endpoints_info__contains=service_name)
+
+    @staticmethod
+    def bulk_create(endpoints: [ThirdPartyServiceEndpoints]):
+        ThirdPartyServiceEndpoints.objects.bulk_create(endpoints)
+
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        return ThirdPartyServiceEndpoints.objects.filter(service_id__in=component_ids)
 
 
 class GatewayCustom(object):

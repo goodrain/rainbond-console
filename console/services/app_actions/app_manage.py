@@ -858,6 +858,12 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 507, "删除异常"
 
+    def delete_components(self, tenant, components, user=None):
+        # Batch delete considers that the preconditions have been met,
+        # and no longer judge the preconditions
+        for cpt in components:
+            self._truncate_service(tenant, cpt, user)
+
     def get_etcd_keys(self, tenant, service):
         logger.debug("ready delete etcd data while delete service")
         keys = []
@@ -878,18 +884,7 @@ class AppManageService(AppManageBase):
                     keys.append(record.restore_id)
         return keys
 
-    def truncate_service(self, tenant, service, user=None):
-        """彻底删除组件"""
-
-        try:
-            data = {}
-            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
-            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id,
-                                      data)
-        except region_api.CallApiError as e:
-            if int(e.status) != 404:
-                logger.exception(e)
-                return 500, "删除组件失败 {0}".format(e.message)
+    def _truncate_service(self, tenant, service, user=None):
         if service.create_status == "complete":
             data = service.toJSON()
             data.pop("ID")
@@ -928,13 +923,31 @@ class AppManageService(AppManageBase):
         component_graph_service.delete_by_component_id(service.service_id)
         app_config_group_service_repo.delete_effective_service(service.service_id)
         service_monitor_repo.delete_by_service_id(service.service_id)
+        self.__create_service_delete_event(tenant, service, user)
+        service.delete()
+
+    @transaction.atomic
+    def truncate_service(self, tenant, service, user=None):
+        """彻底删除组件"""
+        try:
+            data = {}
+            data["etcd_keys"] = self.get_etcd_keys(tenant, service)
+            region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id,
+                                      data)
+        except region_api.CallApiError as e:
+            if int(e.status) != 404:
+                logger.exception(e)
+                return 500, "删除组件失败 {0}".format(e.message)
+
+        self._truncate_service(tenant, service, user)
+
+        # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
-        self.__create_service_delete_event(tenant, service, user)
-        service.delete()
+
         return 200, "success"
 
     def __create_service_delete_event(self, tenant, service, user):
