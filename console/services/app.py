@@ -463,12 +463,13 @@ class AppService(object):
         component_base["container_cpu"] = component.min_cpu
         component_base["container_memory"] = component.min_memory
         component_base["replicas"] = component.min_node
+        component_base["kind"] = "third_party"
 
         return {
             "component_base": component_base,
             "envs": [env.to_dict() for env in envs],
             "ports": [port.to_dict() for port in ports],
-            "endpoints": endpoint,
+            "endpoint": endpoint,
         }
 
     @staticmethod
