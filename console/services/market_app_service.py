@@ -7,9 +7,6 @@ import json
 import logging
 import time
 
-# market app
-from console.services.market_app.component_group import ComponentGroup
-from console.services.market_app.app_upgrade import AppUpgrade
 # enum
 from console.constants import AppConstants
 from console.enum.app import GovernanceModeEnum
@@ -17,7 +14,7 @@ from console.enum.component_enum import ComponentType
 # exception
 from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameExists)
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.models.main import (AppMarket, AppUpgradeRecord, RainbondCenterApp, RainbondCenterAppVersion)
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
 from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo)
 from console.repositories.base import BaseConnection
@@ -36,6 +33,9 @@ from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.group_service import group_service
+from console.services.market_app.app_upgrade import AppUpgrade
+# market app
+from console.services.market_app.component_group import ComponentGroup
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
@@ -44,14 +44,12 @@ from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
+# www
+from www.apiclient.regionapi import RegionInvokeApi
 # model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
                              TenantServicesPort, Users)
 from www.models.plugin import ServicePluginConfigVar
-from console.models.main import AppUpgradeRecord
-from console.models.main import AppMarket
-# www
-from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
@@ -1512,7 +1510,7 @@ class MarketAppService(object):
         if not component_sources:
             return []
         component_ids = [cs.service_id for cs in component_sources]
-        components = service_repo.get_service_by_service_ids(component_ids)
+        components = service_repo.list_by_component_ids(component_ids)
 
         versions = self.list_app_versions(enterprise_id, component_sources[0])
 
