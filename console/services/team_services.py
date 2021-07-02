@@ -66,11 +66,11 @@ class TeamService(object):
             raise ServiceHandleException(msg="user not found", msg_show="用户不存在", status_code=404)
         exist_team_user = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
-        if exist_team_user:
-            raise ServiceHandleException(msg="user exist", msg_show="用户已经加入此团队")
-        PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="", enterprise_id=enterprise.ID)
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
+        if exist_team_user:
+            return
+        PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="", enterprise_id=enterprise.ID)
 
     def get_team_users(self, team, name=None):
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
