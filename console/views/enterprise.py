@@ -58,6 +58,10 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent = enter.to_dict()
         if ent:
             ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
+        regions = region_repo.get_regions_by_enterprise_id(enterprise_id, 1)
+        ent["disable_install_cluster_log"] = False
+        if regions:
+            ent["disable_install_cluster_log"] = True
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
