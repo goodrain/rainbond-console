@@ -812,7 +812,7 @@ class AppService(object):
                 validate_endpoints_info(eps)
             endpoints_dict = dict()
             # endpoint source config
-            endpoints_dict[endpoints.endpoints_type] = json.loads(endpoints.endpoints_info)
+            endpoints_dict[endpoints.endpoints_type] = json.loads(endpoints.endpoints_info) if endpoints.endpoints_info else {}
             data["endpoints"] = endpoints_dict
         data["kind"] = service.service_source
         # etcd keys
