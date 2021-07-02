@@ -321,7 +321,7 @@ class TeamService(object):
             raw_tenants = tall
         tenants = []
         for tenant in raw_tenants:
-            tenants.append(self.__team_with_region_info(tenant, user))
+            tenants.append(self.team_with_region_info(tenant, user))
         return tenants, total
 
     def list_teams_v2(self, eid, query=None, page=None, page_size=None):
@@ -348,7 +348,7 @@ class TeamService(object):
             tenant["role_infos"] = roles["roles"]
         return tenants, total
 
-    def __team_with_region_info(self, tenant, request_user=None, get_region=True):
+    def team_with_region_info(self, tenant, request_user=None, get_region=True):
         try:
             user = user_repo.get_user_by_user_id(tenant.creater)
             owner_name = user.get_name()
@@ -390,7 +390,7 @@ class TeamService(object):
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
         if tenants:
             for tenant in tenants:
-                team = self.__team_with_region_info(tenant, user, get_region=get_region)
+                team = self.team_with_region_info(tenant, user, get_region=get_region)
                 teams_list.append(team)
         return teams_list
 
@@ -401,7 +401,7 @@ class TeamService(object):
         user_id = user.user_id if user else ""
         nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)
         for nojoin_team in nojoin_teams:
-            team = self.__team_with_region_info(nojoin_team, get_region=False)
+            team = self.team_with_region_info(nojoin_team, get_region=False)
             teams.append(team)
         return teams
 
@@ -501,6 +501,10 @@ class TeamService(object):
 
     def update(self, tenant_id, data):
         team_repo.update_by_tenant_id(tenant_id, **data)
+
+    @staticmethod
+    def check_resource_name(tenant_name: str, region_name: str, rtype: string, name: str):
+        return region_api.check_resource_name(tenant_name, region_name, rtype, name)
 
 
 team_services = TeamService()

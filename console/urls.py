@@ -65,9 +65,10 @@ from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantAppUpgradableNumView, TenantGroupCommonOperationView, TenantGroupOperationView,
-                                 TenantGroupView)
+from console.views.group import (
+    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
+    TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
+    ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView)
 from console.views.jwt_token_view import JWTTokenView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
@@ -105,11 +106,11 @@ from console.views.service_share import (
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
-from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView,
-                                JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamCheckKubernetesServiceName,
-                                TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
-                                TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
-                                UserApplyStatusView, UserDelView, UserFuzSerView)
+from console.views.team import (
+    AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView, JoinTeamView, NotJoinTeamUserView,
+    RegisterStatusView, TeamCheckKubernetesServiceName, TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView,
+    TeamSortDomainQueryView, TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView,
+    UserDelView, UserFuzSerView, TeamsPermissionCreateApp, TeamCheckResourceName)
 from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -228,6 +229,7 @@ urlpatterns = [
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(),
         perms.TeamServiceOverViewView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/check-resource-name$', TeamCheckResourceName.as_view()),
 
     # 应用事件动态
     url(r'teams/(?P<team_name>[\w\-]+)/services/event$', ServiceEventsView.as_view(), perms.ServiceEventsView),
@@ -275,6 +277,10 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view(), perms.TenantGroupView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)$', TenantGroupOperationView.as_view(),
         perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/install$', ApplicationInstallView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/pods/(?P<pod_name>[\w\-]+)$', ApplicationPodView.as_view(),
+        perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/upgradable_num$', TenantAppUpgradableNumView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode', AppGovernanceModeView.as_view(),
@@ -291,6 +297,15 @@ urlpatterns = [
         perms.AppConfigGroupView),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/configgroups/(?P<name>[\w\-]+)$',
         AppConfigGroupView.as_view(), perms.AppConfigGroupView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/helmapp-components$',
+        ApplicationHelmAppComponentView.as_view(), perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/parse-services$', ApplicationParseServicesView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/releases$', ApplicationReleasesView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/visit$', ApplicationIngressesView.as_view(),
+        perms.TenantGroupOperationView),
+
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),
@@ -774,6 +789,8 @@ urlpatterns = [
         EnterpriseUserTeamRoleView.as_view(), perms.EnterpriseUserTeamRoles),
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
+    url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/create-app-teams$", TeamsPermissionCreateApp.as_view()),
+
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

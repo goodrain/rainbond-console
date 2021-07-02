@@ -5,8 +5,8 @@
 import logging
 
 from console.cloud.services import check_memory_quota
-from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
 from console.exception.bcode import ErrComponentBuildFailed
+from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service, event_service
@@ -51,7 +51,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 raise ServiceHandleException(msg="not enough quota", error_code=20002)
             if self.service.service_source == "third_party":
                 is_deploy = False
-                # 数据中心连接创建第三方组件
+                # create third component from region
                 new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
             else:
                 # 数据中心创建组件

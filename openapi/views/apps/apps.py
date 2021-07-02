@@ -165,15 +165,8 @@ class AppInfoView(TeamAppAPIView):
                             app_manage_service.delete_again(self.user, self.team, service, is_force=True)
                 if code_status != 200:
                     raise ServiceHandleException(msg=msg_list, msg_show="请求错误")
-                else:
-                    code, msg, data = group_service.delete_group_no_service(self.app.ID)
-                    if code != 200:
-                        raise ServiceHandleException(msg=msg, msg_show="请求错误")
-                    return Response(None, status=code)
-        code, msg, data = group_service.delete_group_no_service(self.app.ID)
-        if code != 200:
-            raise ServiceHandleException(msg=msg, msg_show="请求错误")
-        return Response(None, status=code)
+        group_service.delete_app(self.team, self.region_name, self.app)
+        return Response(None, status=200)
 
 
 class APPOperationsView(TeamAppAPIView):
@@ -248,8 +241,8 @@ class CreateThirdComponentView(TeamAppAPIView):
         req_date = ctcs.data
         validate_endpoints_info(req_date["endpoints"])
         new_component = console_app_service.create_third_party_app(self.region_name, self.team, self.user,
-                                                                   req_date["component_name"], req_date["endpoints"],
-                                                                   req_date["endpoints_type"])
+                                                                   req_date["component_name"], req_date["endpoints_type"],
+                                                                   req_date["endpoints"])
         # add component to app
         code, msg_show = group_service.add_service_to_group(self.team, self.region_name, app_id, new_component.service_id)
         if code != 200:

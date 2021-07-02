@@ -137,6 +137,12 @@ class ErrComponentBuildFailed(ServiceHandleException):
             msg="failed to build component", msg_show="组件构建失败", status_code=400, error_code=20800)
 
 
+class ErrThirdComponentStartFailed(ServiceHandleException):
+    def __init__(self):
+        super(ErrThirdComponentStartFailed, self).__init__(
+            msg="failed to start third component", msg_show="启动第三方组件失败, 请稍后重试", status_code=400, error_code=20801)
+
+
 # 20900 ~ 20999 => app upgrade
 class ErrAppUpgradeRecordNotFound(ServiceHandleException):
     def __init__(self):
@@ -193,3 +199,22 @@ class ErrAppUpgradeWrongStatus(ServiceHandleException):
     def __init__(self):
         super(ErrAppUpgradeWrongStatus, self).__init__(
             "the status of the upgrade record is not not_upgraded", msg_show="只能升级未升级的升级记录", status_code=400, error_code=20908)
+
+
+# 20800 ~ 20899 => appliction
+class ErrApplicationNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrApplicationNotFound, self).__init__(
+            msg="application not found", msg_show="应用不存在", status_code=404, error_code=20800)
+
+
+class ErrApplicationServiceNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrApplicationServiceNotFound, self).__init__(
+            msg="application service not found", msg_show="应用服务不存在", status_code=404, error_code=20801)
+
+
+class ErrServiceAddressNotFound(ServiceHandleException):
+    def __init__(self):
+        super(ErrServiceAddressNotFound, self).__init__(
+            msg="service address not found", msg_show="服务地址不存在", status_code=404, error_code=20802)

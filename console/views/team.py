@@ -951,3 +951,30 @@ class TeamCheckKubernetesServiceName(RegionTenantHeaderView):
                 "is_valid": is_valid,
             })
         return Response(result)
+
+
+class TeamsPermissionCreateApp(JWTAuthApiView):
+    """
+    Teams with permission to create apps
+    """
+
+    def get(self, request, enterprise_id, *args, **kwargs):
+        teams = list()
+        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, self.user.user_id)
+        if tenants:
+            for tenant in tenants:
+                perms = user_services.list_user_team_perms(self.user, tenant)
+                if 200001 not in perms or 300002 not in perms or 400002 not in perms:
+                    continue
+                teams.append(team_services.team_with_region_info(tenant, self.user))
+        result = general_message(200, "success", "查询成功", list=teams)
+        return Response(result, status=result["code"])
+
+
+class TeamCheckResourceName(JWTAuthApiView):
+    def post(self, request, team_name, *args, **kwargs):
+        name = parse_item(request, "name", required=True)
+        rtype = parse_item(request, "type", required=True)
+        region_name = parse_item(request, "region_name", required=True)
+        components = team_services.check_resource_name(team_name, region_name, rtype, name)
+        return Response(general_message(200, "success", "查询成功", list=components))
