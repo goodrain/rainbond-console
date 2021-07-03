@@ -2,23 +2,18 @@
 import logging
 from datetime import datetime
 
-# service
-from console.services.app_config import env_var_service
-# repository
-from console.repositories.app_config import port_repo
-# model
-from www.models.main import TenantServicesPort
-from www.models.main import ServiceProbe
-from www.models.main import TenantServiceEnvVar
-from www.models.main import TenantServiceVolume
-from www.models.main import TenantServiceConfigurationFile
-from www.models.plugin import TenantServicePluginRelation
-from console.models.main import ComponentGraph
-from console.models.main import ServiceMonitor
-# exception
-from console.exception.main import EnvAlreadyExist, InvalidEnvName
 # enum
 from console.enum.app import GovernanceModeEnum
+# exception
+from console.exception.main import EnvAlreadyExist, InvalidEnvName
+from console.models.main import ComponentGraph, ServiceMonitor
+# repository
+from console.repositories.app_config import port_repo
+# service
+from console.services.app_config import env_var_service
+# model
+from www.models.main import (ServiceProbe, TenantServiceConfigurationFile, TenantServiceEnvVar, TenantServicesPort,
+                             TenantServiceVolume)
 # util
 from www.utils.crypt import make_uuid
 
@@ -53,7 +48,7 @@ class Component(object):
         self.graphs = list(graphs)
         self.component_deps = []
         self.volume_deps = []
-        self.plugin_deps: [TenantServicePluginRelation] = list(plugin_deps)
+        self.plugin_deps = list(plugin_deps)
         self.app_config_groups = []
         self.service_group_rel = service_group_rel
 

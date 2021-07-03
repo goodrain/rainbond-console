@@ -921,6 +921,34 @@ class TenantServiceEndpoints(object):
         }
         return ThirdPartyServiceEndpoints.objects.create(**data)
 
+    def create_kubernetes_endpoints(self, tenant, component, service_name, namespace):
+        endpoints = self.get_service_endpoints_by_service_id(component.service_id)
+        if endpoints:
+            return
+        data = {
+            "tenant_id": tenant.tenant_id,
+            "service_id": component.service_id,
+            "service_cname": component.service_cname,
+            "endpoints_info": json.dumps({
+                'serviceName': service_name,
+                'namespace': namespace
+            }),
+            "endpoints_type": "kubernetes"
+        }
+        return ThirdPartyServiceEndpoints.objects.create(**data)
+
+    @staticmethod
+    def list_by_service_name(tenant_id, service_name):
+        return ThirdPartyServiceEndpoints.objects.filter(tenant_id=tenant_id, endpoints_info__contains=service_name)
+
+    @staticmethod
+    def bulk_create(endpoints: [ThirdPartyServiceEndpoints]):
+        ThirdPartyServiceEndpoints.objects.bulk_create(endpoints)
+
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        return ThirdPartyServiceEndpoints.objects.filter(service_id__in=component_ids)
+
 
 class GatewayCustom(object):
     def get_configuration_by_rule_id(self, rule_id):

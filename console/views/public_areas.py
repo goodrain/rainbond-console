@@ -190,7 +190,8 @@ class ServiceGroupView(RegionTenantHeaderView):
         """
         code = 200
         query = request.GET.get("query", "")
-        groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
+        app_type = request.GET.get("app_type", "")
+        groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query, app_type)
         return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
 
 
@@ -340,7 +341,7 @@ class ServiceEventsView(RegionTenantHeaderView):
             if event["Target"] == "service":
                 service_ids.append(event["TargetID"])
 
-        services = service_repo.get_service_by_service_ids(service_ids)
+        services = service_repo.list_by_component_ids(service_ids)
 
         event_service_list = []
         for event in event_service_dynamic_list:

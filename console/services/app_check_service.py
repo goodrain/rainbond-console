@@ -35,8 +35,6 @@ class AppCheckService(object):
             return "third-party-service"
 
     def check_service(self, tenant, service, is_again, user=None):
-        # if service.create_status == "complete":
-        #     return 409, "组件完成创建,请勿重复检测", None
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)
@@ -90,9 +88,8 @@ class AppCheckService(object):
         elif service.service_source == AppConstants.THIRD_PARTY:
             # endpoints信息
             service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
-            if service_endpoints:
-                if service_endpoints.endpoints_type == "discovery":
-                    source_body = service_endpoints.endpoints_info
+            if service_endpoints and service_endpoints.endpoints_type == "discovery":
+                source_body = service_endpoints.endpoints_info
 
         body["username"] = user_name
         body["password"] = password

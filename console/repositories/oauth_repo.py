@@ -33,7 +33,7 @@ class OAuthRepo(object):
     @staticmethod
     def get_by_client_id(client_id):
         try:
-            OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False)
+            return OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False)
         except OAuthServices.DoesNotExist:
             raise ErrOauthServiceNotFound
 

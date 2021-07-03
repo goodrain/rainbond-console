@@ -5,10 +5,11 @@ import os
 import re
 from datetime import datetime
 
+from console.utils import perms
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
                                           TenantNotExistError, UserExistError, UserNotExistError)
 from console.exception.main import AbortRequest
-from console.models.main import EnterpriseUserPerm, UserRole
+from console.models.main import EnterpriseUserPerm, UserRole, PermsInfo, RoleInfo, RolePerms
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
@@ -550,6 +551,26 @@ class UserService(object):
                 nick_name = hook_type
         user_obj = Users(user_id=service.creater, nick_name=nick_name)
         return user_obj
+
+    @staticmethod
+    def list_user_team_perms(user, tenant):
+        admin_roles = user_services.list_roles(user.enterprise_id, user.user_id)
+        user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
+        if tenant.creater == user.user_id:
+            team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
+            user_perms.extend(team_perms)
+            user_perms.append(200000)
+        else:
+            team_roles = RoleInfo.objects.filter(kind="team", kind_id=tenant.tenant_id)
+            if team_roles:
+                role_ids = team_roles.values_list("ID", flat=True)
+                team_user_roles = UserRole.objects.filter(user_id=user.user_id, role_id__in=role_ids)
+                if team_user_roles:
+                    team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
+                    team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
+                    if team_role_perms:
+                        user_perms.extend(list(team_role_perms.values_list("perm_code", flat=True)))
+        return list(set(user_perms))
 
 
 user_services = UserService()
