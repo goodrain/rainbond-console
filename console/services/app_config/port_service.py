@@ -505,7 +505,7 @@ class AppPortService(object):
                     service_tcp_domain.save()
             else:
                 # 在service_tcp_domain表中保存数据
-                res, data = region_api.get_port(region.region_name, tenant.tenant_name)
+                res, data = region_api.get_port(region.region_name, tenant.tenant_name, True)
                 if int(res.status) != 200:
                     return 400, "请求数据中心异常"
                 end_point = "0.0.0.0:{0}".format(data["bean"])
