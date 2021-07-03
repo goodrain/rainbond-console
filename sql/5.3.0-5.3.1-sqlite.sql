@@ -134,4 +134,5 @@ ALTER TABLE `service_group` ADD COLUMN `app_store_name` varchar(255) NULL;
 ALTER TABLE `service_group` ADD COLUMN `app_store_url` varchar(2047) NULL;
 ALTER TABLE `service_group` ADD COLUMN `app_template_name` varchar(255) NULL;
 ALTER TABLE `service_group` ADD COLUMN `version` varchar(255) NULL;
+ALTER TABLE `service_group` ADD COLUMN `app_type` varchar(255) DEFAULT 'rainbond';
 COMMIT;

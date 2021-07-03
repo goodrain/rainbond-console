@@ -49,7 +49,7 @@ class HelmAppService(object):
     def list_services(tenant_name, region_name, app_id):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         services = region_api.list_app_services(region_name, tenant_name, region_app_id)
-        return services
+        return services if services else []
 
     @staticmethod
     def _list_component_service_relations(component_ids):
