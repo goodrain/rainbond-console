@@ -36,4 +36,4 @@ enum34==1.1.6
 validators==0.14.2
 deprecated==1.2.10
 redis==3.5.3
--e git+https://github.com/goodrain/appstore-sdk-python.git@python3#egg=openapi_client
+-e git+https://gitee.com/rainbond/appstore-sdk-python.git@python3#egg=openapi_client
