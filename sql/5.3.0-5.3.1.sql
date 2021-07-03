@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `app_upgrade_snapshots` (
      `update_time` datetime(6) NOT NULL,
      `create_time` datetime(6) NOT NULL,
      PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=588 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 ALTER TABLE rainbond_center_app_version modify COLUMN version_alias VARCHAR(64);
 ALTER TABLE service_share_record modify COLUMN share_version_alias VARCHAR(64);
