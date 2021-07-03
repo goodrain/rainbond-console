@@ -6,17 +6,14 @@ import logging
 import re
 
 from console.constants import AppConstants, ServiceLanguageConstants
-from console.enum.component_enum import ComponentType
-from console.enum.component_enum import is_state
-from console.exception.main import ServiceHandleException, ErrVolumePath
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import volume_repo
-from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
-from console.services.exception import ErrVolumeTypeNotFound
+from console.enum.component_enum import ComponentType, is_state
+from console.exception.main import ErrVolumePath, ServiceHandleException
+from console.repositories.app_config import mnt_repo, volume_repo
 from console.services.app_config.label_service import LabelService
-from www.models.main import TenantServiceVolume
+from console.services.exception import (ErrVolumeTypeDoNotAllowMultiNode, ErrVolumeTypeNotFound)
 from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantServiceVolume
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
@@ -71,12 +68,13 @@ class AppVolumeService(object):
             state = True
             base_opts.append({"volume_type": "local", "name_show": "本地存储"})
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        for opt in body.list:
-            if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
-                if state:
+        if body and hasattr(body, 'list'):
+            for opt in body.list:
+                if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
+                    if state:
+                        base_opts.append(opt)
+                else:
                     base_opts.append(opt)
-            else:
-                base_opts.append(opt)
         return base_opts
 
     def get_best_suitable_volume_settings(self,
