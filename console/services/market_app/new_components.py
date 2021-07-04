@@ -3,6 +3,7 @@ import logging
 import json
 from datetime import datetime
 
+from .utils import is_same_component
 from console.services.market_app.component import Component
 # service
 from console.services.app_config import port_service
@@ -23,8 +24,8 @@ from www.models.service_publish import ServiceExtendMethod
 from www.models.main import TenantServiceConfigurationFile
 # exception
 from console.exception.main import AbortRequest
-from console.exception.bcode import ErrK8sServiceNameExists
 from console.exception.main import ErrVolumePath
+from console.exception.bcode import ErrK8sServiceNameExists
 # enum
 from console.enum.component_enum import ComponentType
 from console.constants import AppConstants
@@ -71,12 +72,11 @@ class NewComponents(object):
         create component and related attributes
         """
         # new component templates
-        exist_components = {cpt.component.service_key: cpt.component for cpt in self.original_app.components()}
-        templates = self.app_template.get("apps")
-        templates = templates if templates else []
-        templates = [ct for ct in templates if not exist_components.get(ct.get("service_key"))]
+        exist_components = self.original_app.components()
+        templates = self.app_template.get("apps") if self.app_template.get("apps") else []
+        new_component_tmpls = self._get_new_component_templates(exist_components, templates)
 
-        components = [self._template_to_component(self.tenant.tenant_id, template) for template in templates]
+        components = [self._template_to_component(self.tenant.tenant_id, template) for template in new_component_tmpls]
         if self.components_keys:
             components = [cpt for cpt in components if cpt.service_key in self.components_keys]
 
@@ -119,6 +119,21 @@ class NewComponents(object):
                 Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs, [],
                           http_rules, service_group_rel))
         return result
+
+    def _get_new_component_templates(self, exist_components: [Component], component_templates):
+        tmpls = []
+        for tmpl in component_templates:
+            if self._component_exists(exist_components, tmpl):
+                continue
+            tmpls.append(tmpl)
+        return tmpls
+
+    @staticmethod
+    def _component_exists(exist_components: [Component], component_tmpl):
+        for component in exist_components:
+            if is_same_component(component, component_tmpl):
+                return True
+        return False
 
     def _template_to_component(self, tenant_id, template):
         component = TenantServiceInfo()
