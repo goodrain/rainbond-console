@@ -27,6 +27,7 @@ from console.repositories.app_config_group import app_config_group_service_repo
 # exception
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrAppUpgradeDeployFailed
+from console.exception.bcode import ErrApplicationNotFound
 # model
 from console.models.main import AppUpgradeRecord
 from console.models.main import UpgradeStatus
@@ -81,6 +82,8 @@ class AppUpgrade(MarketApp):
         self.record = record
         self.app_id = self.component_group.app_id
         self.app = group_repo.get_group_by_pk(tenant.tenant_id, region.region_name, self.app_id)
+        if not self.app:
+            raise ErrApplicationNotFound
         self.upgrade_group_id = self.component_group.upgrade_group_id
         self.app_model_key = self.component_group.app_model_key
         self.old_version = self.component_group.version
