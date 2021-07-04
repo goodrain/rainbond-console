@@ -2,6 +2,7 @@
 import copy
 
 from .utils import get_component_template
+from .component import Component
 from console.services.market_app.original_app import OriginalApp
 
 
@@ -20,6 +21,8 @@ class UpdateComponents(object):
         self.version = version
         self.components_keys = components_keys
         self.property_changes = property_changes
+        # update service_key and service_share_uuid based on the new app template
+        self._ensure_component_keys(self.original_app.components())
         self.components = self._create_update_components()
 
     def _create_update_components(self):
@@ -49,3 +52,14 @@ class UpdateComponents(object):
             cpt.component_source.version = self.version
 
         return components
+
+    def _ensure_component_keys(self, components: [Component]):
+        for component in components:
+            self._ensure_component_key(component)
+
+    def _ensure_component_key(self, component: [Component]):
+        tmpl = get_component_template(component, self.app_template)
+        if not tmpl:
+            return
+        component.component.service_key = tmpl.get("service_key", component.component.service_key)
+        component.component_source.service_share_uuid = tmpl.get("service_share_uuid", component.component_source.service_share_uuid)
