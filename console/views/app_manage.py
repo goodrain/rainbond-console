@@ -548,7 +548,7 @@ class MarketServiceUpgradeView(AppBaseView):
         version = parse_item(request, "group_version", required=True)
 
         # get app
-        app = group_repo.get_by_service_id(self.service.service_id)
+        app = group_repo.get_by_service_id(self.tenant.tenant_id, self.service.service_id)
 
         upgrade_service.upgrade_component(self.tenant, self.region, self.user, app, self.service, version)
         return Response(status=200, data=general_message(200, "success", "升级成功"))
