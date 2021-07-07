@@ -120,7 +120,6 @@ class UpgradeService(object):
 
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         app_restore = AppRestore(tenant, region, user, app, component_group, record)
-        record = app_restore.restore()
         record, component_group = app_restore.restore()
         return self.serialized_upgrade_record(record), component_group.group_alias
 

@@ -6,6 +6,7 @@ from datetime import datetime
 
 from django.db import transaction
 
+from console.services.market_app.utils import get_component_template
 from console.services.market_app.plugin import Plugin
 from console.services.market_app.market_app import MarketApp
 from console.services.market_app.new_app import NewApp

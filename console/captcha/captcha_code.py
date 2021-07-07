@@ -6,7 +6,7 @@ import re
 import uuid
 from io import BytesIO
 
-from console.views.base import BaseApiView
+from console.views.base import AlowAnyApiView
 from django.conf import settings
 from django.http import HttpResponse
 from PIL import Image, ImageDraw, ImageFont
@@ -18,7 +18,7 @@ current_path = settings.BASE_DIR
 NON_DIGITS_RX = re.compile('[^\d]')
 
 
-class CaptchaView(BaseApiView):
+class CaptchaView(AlowAnyApiView):
     def getsize(self, font, text):
         if hasattr(font, 'getoffset'):
             return [x + y for x, y in zip(font.getsize(text), font.getoffset(text))]

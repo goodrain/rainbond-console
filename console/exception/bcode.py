@@ -201,7 +201,7 @@ class ErrAppUpgradeWrongStatus(ServiceHandleException):
             "the status of the upgrade record is not not_upgraded", msg_show="只能升级未升级的升级记录", status_code=400, error_code=20908)
 
 
-# 20800 ~ 20899 => appliction
+# 20800 ~ 20899 => application
 class ErrApplicationNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrApplicationNotFound, self).__init__(
