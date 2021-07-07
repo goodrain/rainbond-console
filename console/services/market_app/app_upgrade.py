@@ -19,7 +19,6 @@ from console.services.market_app.component import Component
 from console.services.backup_service import groupapp_backup_service
 # repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
-from console.repositories.group import group_repo
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
@@ -38,6 +37,7 @@ from console.models.main import ConfigGroupService
 from console.models.main import RegionConfig
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
+from www.models.main import ServiceGroup
 from www.models.plugin import TenantServicePluginRelation
 from www.models.plugin import ServicePluginConfigVar
 from www.models.plugin import TenantPlugin
@@ -58,6 +58,7 @@ class AppUpgrade(MarketApp):
                  tenant,
                  region: RegionConfig,
                  user,
+                 app: ServiceGroup,
                  version,
                  component_group,
                  app_template,
@@ -79,8 +80,8 @@ class AppUpgrade(MarketApp):
 
         self.component_group = ComponentGroup(enterprise_id, component_group, version)
         self.record = record
-        self.app_id = self.component_group.app_id
-        self.app = group_repo.get_group_by_pk(tenant.tenant_id, region.region_name, self.app_id)
+        self.app = app
+        self.app_id = app.app_id
         self.upgrade_group_id = self.component_group.upgrade_group_id
         self.app_model_key = self.component_group.app_model_key
         self.old_version = self.component_group.version
