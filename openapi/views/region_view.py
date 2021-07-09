@@ -19,6 +19,7 @@ from openapi.serializer.region_serializer import RegionInfoSerializer
 from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
 from openapi.views.base import BaseOpenAPIView
 from www.utils.crypt import make_uuid
+
 logger = logging.getLogger("default")
 
 

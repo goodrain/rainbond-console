@@ -4,11 +4,9 @@ import datetime
 import logging
 import time
 
+from console.utils.exception import (ServiceHandleException, err_cert_expired, err_cert_mismatch, err_invalid_cert,
+                                     err_invalid_private_key)
 from OpenSSL import crypto
-
-from console.utils.exception import err_cert_expired
-from console.utils.exception import err_invalid_cert, err_cert_mismatch, err_invalid_private_key
-from console.utils.exception import ServiceHandleException
 
 logger = logging.getLogger("default")
 
@@ -47,7 +45,7 @@ def analyze_cert(content):
     else:
         cert_source = "第三方签发"
     data["issued_by"] = cert_source
-    data["end_data"] = utc2local(end_data)
+    data["end_data"] = utc2local(str(end_data, encoding="utf-8"))
 
     return data
 
@@ -83,9 +81,9 @@ def cert_is_effective(content, private_key):
         pri_key = crypto.load_privatekey(crypto.FILETYPE_PEM, private_key)
     except Exception:
         raise err_invalid_private_key
-    sign = crypto.sign(pri_key, "data", b"sha256")
+    sign = crypto.sign(pri_key, "data", "sha256")
     try:
-        crypto.verify(cert, sign, "data", b"sha256")
+        crypto.verify(cert, sign, "data", "sha256")
     except Exception:
         raise err_cert_mismatch
     return True

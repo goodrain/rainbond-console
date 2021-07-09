@@ -2,17 +2,17 @@
 """
   Created on 18/2/1.
 """
+import logging
 from re import split as re_spilt
+
+from console.serializer import TenantServiceUpdateSerilizer
+from console.services.app import app_service
+from console.services.app_check_service import app_check_service
+from console.utils.oauth.oauth_types import support_oauth_type
+from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.views.app_config.base import AppBaseView
-from console.utils.oauth.oauth_types import support_oauth_type
-from console.services.app_check_service import app_check_service
-from console.services.app import app_service
 from www.utils.return_message import general_message
-import logging
-from console.serializer import TenantServiceUpdateSerilizer
 
 logger = logging.getLogger("default")
 
@@ -59,18 +59,7 @@ class AppCheck(AppBaseView):
         if data["service_info"] and len(data["service_info"]) < 2:
             # No need to save env, ports and other information for multiple services here.
             logger.debug("start save check info ! {0}".format(self.service.create_status))
-            save_code, save_msg = app_check_service.save_service_check_info(self.tenant, self.service, data)
-            if save_code != 200:
-                data["check_status"] = "failure"
-                save_error = {
-                    "error_type": "check info save error",
-                    "solve_advice": "修改相关信息后重新尝试",
-                    "error_info": "{}".format(save_msg)
-                }
-                if data["error_infos"]:
-                    data["error_infos"].append(save_error)
-                else:
-                    data["error_infos"] = [save_error]
+            app_check_service.save_service_check_info(self.tenant, self.service, data)
         check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
         code_from = self.service.code_from
         if code_from in list(support_oauth_type.keys()):

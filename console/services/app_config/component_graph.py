@@ -1,16 +1,16 @@
 # -*- coding: utf8 -*-
-import logging
 import json
+import logging
 import os
 
 from django.db import transaction
 
 from console.models.main import ComponentGraph
-from goodrain_web.settings import BASE_DIR
 from console.exception.main import AbortRequest
-from console.exception.bcode import ErrInternalGraphsNotFound
+from console.exception.bcode import ErrInternalGraphsNotFound, ErrComponentGraphNotFound
 from console.repositories.component_graph import component_graph_repo
 from console.services.app_config.promql_service import promql_service
+from goodrain_web.settings import BASE_DIR
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -50,6 +50,12 @@ class ComponentGraphService(object):
         graphs = []
         seq = self._next_sequence(component_id)
         for graph in internal_graphs.get(graph_name):
+            try:
+                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
+                continue
+            except ErrComponentGraphNotFound:
+                pass
+
             try:
                 promql = promql_service.add_or_update_label(component_id, graph["promql"])
             except AbortRequest as e:
@@ -119,10 +125,17 @@ class ComponentGraphService(object):
         cgs = []
         for graph in graphs:
             try:
+                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
+                continue
+            except ErrComponentGraphNotFound:
+                pass
+
+            try:
                 promql = promql_service.add_or_update_label(component_id, graph.get("promql"))
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
+
             cgs.append(
                 ComponentGraph(
                     component_id=component_id,
@@ -162,15 +175,20 @@ class ComponentGraphService(object):
             graph.save()
 
     def exchange_graphs(self, component_id, graph_ids):
-        if not graph_ids or len(graph_ids) != 2:
-            raise AbortRequest(msg="No graph_ids or wrong number of graph_ids", msg_show="没有图表ID或图表ID数量有误")
-        graphs = []
+        sequence = 0
+        graph_id_map = dict()
+        # Mapping graph ID to graph
+        old_graphs = component_graph_repo.list(component_id)
+        for old_graph in old_graphs:
+            graph_id_map[old_graph.graph_id] = old_graph
+        # modified sequence
         for graph_id in graph_ids:
-            graph = component_graph_repo.get(component_id, graph_id)
-            graphs.append(graph)
-        # exchange graph sequence
-        graphs[0].sequence, graphs[1].sequence = graphs[1].sequence, graphs[0].sequence
-        for graph in graphs:
+            if not graph_id_map.get(graph_id):
+                raise AbortRequest(msg="wrong number of graph_id {}".format(graph_id), msg_show="该图表不存在")
+            graph_id_map[graph_id].sequence = sequence
+            sequence += 1
+        # update model
+        for graph in old_graphs:
             graph.save()
 
 

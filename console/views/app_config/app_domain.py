@@ -25,6 +25,7 @@ from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -102,7 +103,7 @@ class TenantCertificateView(RegionTenantHeaderView):
         """
         alias = request.data.get("alias", None)
         if len(alias) > 64:
-            return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
+            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
@@ -175,7 +176,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             return Response(400, "no param certificate_id", "缺少未指明具体证书")
         new_alias = request.data.get("alias", None)
         if len(new_alias) > 64:
-            return Response(general_message(400, "alias len is not allow more than 64", "证书别名长度超过64位"), status=400)
+            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
 
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
@@ -399,7 +400,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             return Response(result, status=400)
         certificate_id = request.data.get("certificate_id", None)
         service_id = request.data.get("service_id", None)
-        do_path = request.data.get("domain_path", None)
+        do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
         domain_heander = request.data.get("domain_heander", None)
         rule_extensions = request.data.get("rule_extensions", None)
@@ -410,6 +411,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
 
         # 判断参数
+        if len(do_path) > 1024:
+            raise AbortRequest(msg="Maximum length of location 1024", msg_show="Location最大长度1024")
         if not container_port or not domain_name or not service_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
@@ -512,7 +515,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             return Response(result, status=400)
         certificate_id = request.data.get("certificate_id", None)
         service_id = request.data.get("service_id", None)
-        do_path = request.data.get("domain_path", None)
+        do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
         domain_heander = request.data.get("domain_heander", None)
         rule_extensions = request.data.get("rule_extensions", None)
@@ -523,6 +526,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
 
         # 判断参数
+        if len(do_path) > 1024:
+            raise AbortRequest(msg="Maximum length of location 1024", msg_show="Location最大长度1024")
         if not service_id or not container_port or not domain_name or not http_rule_id:
             return Response(general_message(400, "parameters are missing", "参数缺失"), status=400)
 
@@ -697,7 +702,6 @@ class DomainQueryView(RegionTenantHeaderView):
         region = region_repo.get_region_by_region_name(self.response_region)
         # 查询分页排序
         if search_conditions:
-            search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             cursor = connection.cursor()
             cursor.execute("select count(sd.domain_name) \
@@ -811,7 +815,6 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
         try:
             # 查询分页排序
             if search_conditions:
-                search_conditions = search_conditions.decode('utf-8')
                 # 获取总数
                 cursor = connection.cursor()
                 cursor.execute("select count(1) from service_tcp_domain std \
@@ -1116,7 +1119,7 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         # Check if the given endpoint exists.
         region = region_repo.get_region_by_region_name(service.service_region)
         service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
-        if service_tcpdomain and service_tcpdomain[0].service_id != service_id:
+        if service_tcpdomain and service_tcpdomain[0].tcp_rule_id != tcp_rule_id:
             result = general_message(400, "failed", "策略已存在")
             return Response(result)
 

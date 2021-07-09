@@ -5,10 +5,11 @@ import os
 import re
 from datetime import datetime
 
+from console.utils import perms
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
                                           TenantNotExistError, UserExistError, UserNotExistError)
 from console.exception.main import AbortRequest
-from console.models.main import EnterpriseUserPerm, UserRole
+from console.models.main import EnterpriseUserPerm, UserRole, PermsInfo, RoleInfo, RolePerms
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
@@ -270,10 +271,16 @@ class UserService(object):
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name):
+    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name, phone):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
         user.real_name = real_name
-        user.set_password(raw_password)
+        if phone:
+            u = user_repo.get_user_by_phone(phone)
+            if u and int(u.user_id) != int(user.user_id):
+                raise AbortRequest(msg="phone exists", msg_show="手机号已存在")
+            user.phone = phone
+        if raw_password:
+            user.set_password(raw_password)
         return user
 
     def get_user_detail(self, tenant_name, nick_name):
@@ -493,9 +500,10 @@ class UserService(object):
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
-    def check_params(self, user_name, email, password, re_password, eid=None):
+    def check_params(self, user_name, email, password, re_password, eid=None, phone=None):
         self.__check_user_name(user_name, eid)
         self.__check_email(email)
+        self.__check_phone(phone)
         if password != re_password:
             raise AbortRequest("The two passwords do not match", "两次输入的密码不一致")
 
@@ -519,6 +527,13 @@ class UserService(object):
         if self.get_user_by_email(email):
             raise AbortRequest("username already exists", "邮箱已存在", status_code=409, error_code=409)
 
+    def __check_phone(self, phone):
+        if not phone:
+            return
+        user = user_repo.get_user_by_phone(phone)
+        if user is not None:
+            raise AbortRequest("user phone already exists", "用户手机号已存在", status_code=409)
+
     def init_webhook_user(self, service, hook_type, committer_name=None):
         nick_name = hook_type
         if service.oauth_service_id:
@@ -535,6 +550,26 @@ class UserService(object):
                 nick_name = hook_type
         user_obj = Users(user_id=service.creater, nick_name=nick_name)
         return user_obj
+
+    @staticmethod
+    def list_user_team_perms(user, tenant):
+        admin_roles = user_services.list_roles(user.enterprise_id, user.user_id)
+        user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
+        if tenant.creater == user.user_id:
+            team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
+            user_perms.extend(team_perms)
+            user_perms.append(200000)
+        else:
+            team_roles = RoleInfo.objects.filter(kind="team", kind_id=tenant.tenant_id)
+            if team_roles:
+                role_ids = team_roles.values_list("ID", flat=True)
+                team_user_roles = UserRole.objects.filter(user_id=user.user_id, role_id__in=role_ids)
+                if team_user_roles:
+                    team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
+                    team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
+                    if team_role_perms:
+                        user_perms.extend(list(team_role_perms.values_list("perm_code", flat=True)))
+        return list(set(user_perms))
 
 
 user_services = UserService()

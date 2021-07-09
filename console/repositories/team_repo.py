@@ -6,7 +6,7 @@ from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig, TeamGitlabInfo
 from console.repositories.base import BaseConnection
 from django.db.models import Q
-from www.models.main import (PermRelTenant, ServiceGroup, TenantEnterprise, TenantRegionInfo, Tenants, Users)
+from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users)
 
 logger = logging.getLogger("default")
 
@@ -68,25 +68,18 @@ class TeamRepo(object):
                     tenants.append(tn)
         return tenants
 
-    def get_active_tenants_by_user_id(self, user_id):
-        active_tenants_list = []
-        tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
-        tenants = Tenants.objects.filter(ID__in=tenant_ids)
-        if tenants:
-            for tenant in tenants:
-                active_tenants_list.append({
-                    "tenant_id": tenant.tenant_id,
-                    "team_alias": tenant.tenant_alias,
-                    "owner": tenant.creater,
-                    "enterprise_id": tenant.enterprise_id,
-                    "create_time": tenant.create_time,
-                    "team_name": tenant.tenant_name,
-                    "region": tenant.region,
-                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id))
-                })
-            active_tenants_list.sort(key=lambda x: x["num"])
-            active_tenants_list = active_tenants_list[:3]
-        return active_tenants_list
+    @staticmethod
+    def get_user_notjoin_teams(eid, user_id, name=None):
+        enterprise = TenantEnterprise.objects.filter(enterprise_id=eid).first()
+        if not enterprise:
+            return []
+        tenant_ids = list(
+            PermRelTenant.objects.filter(user_id=user_id, enterprise_id=enterprise.ID).values_list("tenant_id",
+                                                                                                   flat=True).order_by("-ID"))
+        q = ~Q(ID__in=tenant_ids)
+        if name:
+            q &= Q(tenant_alias__contains=name)
+        return Tenants.objects.filter(q)
 
     def get_user_perms_in_permtenant(self, user_id, tenant_id):
         tenant_perms = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id)
@@ -138,14 +131,14 @@ class TeamRepo(object):
         tenant = Tenants.objects.get(tenant_name=tenant_name)
         PermRelTenant.objects.filter(tenant_id=tenant.ID).delete()
         row = Tenants.objects.filter(ID=tenant.ID).delete()
-        return row > 0
+        return len(row) > 0
 
     def delete_by_tenant_id(self, tenant_id):
         # TODO: use transaction
         tenant = Tenants.objects.get(tenant_id=tenant_id)
         PermRelTenant.objects.filter(tenant_id=tenant.ID).delete()
         row = Tenants.objects.filter(ID=tenant.ID).delete()
-        return row > 0
+        return len(row) > 0
 
     def get_region_alias(self, region_name):
         try:
@@ -211,7 +204,7 @@ class TeamRepo(object):
         return Tenants.objects.filter(enterprise_id=enterprise_id)
 
     def get_enterprise_team_by_name(self, enterprise_id, team_name):
-        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name)
+        return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_name=team_name).first()
 
     def update_by_tenant_id(self, tenant_id, **data):
         return Tenants.objects.filter(tenant_id=tenant_id).update(**data)
@@ -317,7 +310,11 @@ class TeamRepo(object):
         return result[0].get("total")
 
     def get_team_regions(self, team_id):
-        return TenantRegionInfo.objects.filter(tenant_id=team_id)
+        region_names = TenantRegionInfo.objects.filter(tenant_id=team_id).values_list("region_name", flat=True)
+        return RegionConfig.objects.filter(region_name__in=region_names)
+
+    def get_team_region_names(self, team_id):
+        return self.get_team_regions(team_id).values_list("region_name", flat=True)
 
     def get_team_region_by_name(self, team_id, region_name):
         return TenantRegionInfo.objects.filter(tenant_id=team_id, region_name=region_name)

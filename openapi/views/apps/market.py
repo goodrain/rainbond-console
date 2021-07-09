@@ -65,6 +65,8 @@ class AppInstallView(TeamAppAPIView):
             market, app_model_id, app_model_version, for_install=True)
         if not app:
             raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用不存在")
+        if not app_version_info:
+            raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用版本不存在")
         market_app_service.install_service(
             self.team, self.region_name, self.user, app_id, app, app_version_info, is_deploy, True, market_name=market_name)
         services = group_service.get_group_services(app_id)

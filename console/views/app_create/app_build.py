@@ -4,29 +4,21 @@
 """
 import logging
 
+from console.cloud.services import check_memory_quota
+from console.exception.bcode import ErrComponentBuildFailed
+from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
+from console.repositories.deploy_repo import deploy_repo
+from console.services.app import app_service
+from console.services.app_actions import app_manage_service, event_service
+from console.services.app_config import (dependency_service, env_var_service, port_service, probe_service, volume_service)
+from console.services.compose_service import compose_service
+from console.views.app_config.base import AppBaseView
+from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.exception.main import ServiceHandleException
-from console.repositories.deploy_repo import deploy_repo
-from console.services.app import app_service
-from console.services.app_actions import app_manage_service
-from console.services.app_actions import event_service
-from console.services.app_config import dependency_service
-from console.services.app_config import env_var_service
-from console.services.app_config import label_service
-from console.services.app_config import port_service
-from console.services.app_config import probe_service
-from console.services.app_config import volume_service
-from console.services.compose_service import compose_service
-from console.views.app_config.base import AppBaseView
-from console.views.base import CloudEnterpriseCenterView
-from console.views.base import RegionTenantHeaderView
-from console.cloud.services import check_memory_quota
 from www.apiclient.baseclient import HttpClient
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 
@@ -53,31 +45,31 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         """
         probe = None
         is_deploy = request.data.get("is_deploy", True)
-        status = 200
         try:
             if not check_memory_quota(self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory,
                                       self.service.min_node):
                 raise ServiceHandleException(msg="not enough quota", error_code=20002)
             if self.service.service_source == "third_party":
                 is_deploy = False
-                # 数据中心连接创建第三方组件
+                # create third component from region
                 new_service = app_service.create_third_party_service(self.tenant, self.service, self.user.nick_name)
             else:
                 # 数据中心创建组件
                 new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
 
             self.service = new_service
-            # 为组件添加默认探针
-            if self.is_need_to_add_default_probe():
-                code, msg, probe = app_service.add_service_default_porbe(self.tenant, self.service)
-                logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
             if is_deploy:
-                # 添加组件有无状态标签
-                label_service.update_service_state_label(self.tenant, self.service)
-                # 部署组件
-                app_manage_service.deploy(
-                    self.tenant, self.service, self.user, group_version=None, oauth_instance=self.oauth_instance)
-
+                try:
+                    app_manage_service.deploy(
+                        self.tenant, self.service, self.user, group_version=None, oauth_instance=self.oauth_instance)
+                except ErrInsufficientResource as e:
+                    result = general_message(e.error_code, e.msg, e.msg_show)
+                    return Response(result, status=e.status_code)
+                except Exception as e:
+                    logger.exception(e)
+                    err = ErrComponentBuildFailed()
+                    result = general_message(err.error_code, e, err.msg_show)
+                    return Response(result, status=400)
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
@@ -123,7 +115,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             return True
 
 
-class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -160,18 +152,14 @@ class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
             for service in services:
                 new_service = app_service.create_region_service(self.tenant, service, self.user.nick_name)
                 new_app_list.append(new_service)
-                # 为组件添加默认探针
-                code, msg, probe = app_service.add_service_default_porbe(self.tenant, new_service)
-                if probe:
-                    probe_map[service.service_id] = probe.probe_id
-                # 添加组件有无状态标签
-                label_service.update_service_state_label(self.tenant, new_service)
-
             group_compose.create_status = "complete"
             group_compose.save()
             for s in new_app_list:
                 try:
                     app_manage_service.deploy(self.tenant, s, self.user, group_version=None, oauth_instance=self.oauth_instance)
+                except ErrInsufficientResource as e:
+                    result = general_message(e.error_code, e.msg, e.msg_show)
+                    return Response(result, status=e.status_code)
                 except Exception as e:
                     logger.exception(e)
                     continue
@@ -180,20 +168,16 @@ class ComposeBuildView(RegionTenantHeaderView, CloudEnterpriseCenterView):
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
-            # 删除probe
-            # 删除region端数据
             if services:
                 for service in services:
                     if probe_map:
                         probe_id = probe_map.get(service.service_id)
                         probe_service.delete_service_probe(self.tenant, service, probe_id)
-
                     event_service.delete_service_events(service)
                     port_service.delete_region_port(self.tenant, service)
                     volume_service.delete_region_volumes(self.tenant, service)
                     env_var_service.delete_region_env(self.tenant, service)
                     dependency_service.delete_region_dependency(self.tenant, service)
-
                     app_manage_service.delete_region_service(self.tenant, service)
                     service.create_status = "checked"
                     service.save()

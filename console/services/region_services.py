@@ -8,6 +8,7 @@ from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
 from console.models.main import ConsoleSysConfig, RegionConfig
 from console.repositories.app import service_repo
+from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
@@ -147,7 +148,9 @@ class RegionService(object):
 
     def get_team_unopen_region(self, team_name, enterprise_id):
         usable_regions = region_repo.get_usable_regions(enterprise_id)
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True)
+        team_opened_regions = region_repo.get_team_opened_region(team_name)
+        if team_opened_regions:
+            team_opened_regions = team_opened_regions.filter(is_init=True)
         opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
         unopen_regions = usable_regions.exclude(region_name__in=opened_regions_name)
         return [unopen_region.to_dict() for unopen_region in unopen_regions]
@@ -159,12 +162,22 @@ class RegionService(object):
     def get_public_key(self, tenant, region):
         try:
             res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
-            if body and body["bean"]:
+            if body and "bean" in body:
                 return body["bean"]
             return {}
         except Exception as e:
             logger.exception(e)
             return {}
+
+    def get_region_license_features(self, tenant, region_name):
+        try:
+            body = region_api.get_region_license_feature(tenant, region_name)
+            if body and "list" in body:
+                return body["list"]
+            return []
+        except Exception as e:
+            logger.exception(e)
+            return []
 
     def get_all_regions(self, query="", page=None, page_size=None):
         # 即将移除，仅用于OpenAPI V1
@@ -300,6 +313,8 @@ class RegionService(object):
         if plugins:
             for plugin in plugins:
                 plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id, ignore_cluster_resource, is_force=True)
+
+        group_repo.list_tenant_group_on_region(tenant, region_name).delete()
         # delete tenant
         if not ignore_cluster_resource:
             try:
@@ -350,7 +365,9 @@ class RegionService(object):
     def get_team_usable_regions(self, team_name, enterprise_id):
         usable_regions = region_repo.get_usable_regions(enterprise_id)
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(team_name).filter(is_init=True, region_name__in=region_names)
+        team_opened_regions = region_repo.get_team_opened_region(team_name)
+        if team_opened_regions:
+            team_opened_regions = team_opened_regions.filter(is_init=True, region_name__in=region_names)
         return team_opened_regions
 
     def get_regions_by_enterprise_id(self, enterprise_id):
@@ -491,6 +508,8 @@ class RegionService(object):
         region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
         region_resource["scope"] = region.scope
+        region_resource["provider"] = region.provider
+        region_resource["provider_cluster_id"] = region.provider_cluster_id
         if level == "open":
             region_resource["wsurl"] = region.wsurl
             region_resource["httpdomain"] = region.httpdomain

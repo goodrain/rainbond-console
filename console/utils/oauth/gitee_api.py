@@ -7,6 +7,7 @@ from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceEr
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.urlutil import set_get_url
+from console.exception.bcode import ErrUnAuthnOauthService, ErrExpiredAuthnOauthService
 
 logger = logging.getLogger("default")
 
@@ -166,11 +167,11 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
                             return self.access_token, self.refresh_token
                         except Exception:
                             self.oauth_user.delete()
-                            raise NoAccessKeyErr("access key is expired, please reauthorize")
+                            raise ErrExpiredAuthnOauthService
                     else:
                         self.oauth_user.delete()
-                        raise NoAccessKeyErr("access key is expired, please reauthorize")
-            raise NoAccessKeyErr("can not get access key")
+                        raise ErrExpiredAuthnOauthService
+            raise ErrUnAuthnOauthService
 
     def refresh_access_token(self):
         headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
@@ -256,8 +257,8 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
         repo_list = []
-        repos = [self.api.get_repo(full_name)]
-        for repo in repos:
+        repos, _ = self.api.get_repo(full_name)
+        for repo in [repos]:
             if repo and full_name == repo["full_name"]:
                 repo_list.append({
                     "project_id": repo["id"],

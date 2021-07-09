@@ -8,9 +8,13 @@ LICENSE
 Dockerfile.*
 sources.list
 .git/
-bin
 env
 data
 www/static/www/weavescope-src
 www/migrations
 console/migrations
+logs/
+static/
+test/
+tests/
+Dockerfile

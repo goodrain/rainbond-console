@@ -6,6 +6,8 @@ import re
 import string
 
 from console.exception.main import ServiceHandleException
+from console.exception.bcode import ErrUserNotFound, ErrTenantNotFound
+from console.services.perm_services import user_kind_role_service
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
@@ -249,7 +251,8 @@ class EnterpriseServices(object):
             }
         # 2. get all apps in all teams
         team_ids = [team.tenant_id for team in teams]
-        apps = group_repo.get_apps_in_multi_team(team_ids)
+        region_names = [region.region_name for region in regions]
+        apps = group_repo.get_apps_in_multi_team(team_ids, region_names)
         app_total_num = len(apps)
 
         app_ids = [app.ID for app in apps]
@@ -295,6 +298,19 @@ class EnterpriseServices(object):
             }
         }
         return data
+
+    @staticmethod
+    def create_user_roles(eid, user_id, tenant_name, role_ids):
+        # the user must belong to the enterprise with eid
+        user = user_repo.get_enterprise_user_by_id(eid, user_id)
+        if not user:
+            raise ErrUserNotFound
+        tenant = team_repo.get_enterprise_team_by_name(eid, tenant_name)
+        if not tenant:
+            raise ErrTenantNotFound
+        from console.services.team_services import team_services
+        team_services.add_user_to_team(tenant, user.user_id, role_ids=role_ids)
+        return user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
 
 
 enterprise_services = EnterpriseServices()

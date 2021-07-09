@@ -1,22 +1,24 @@
 # -*- coding: utf8 -*-
+import os
 import json
 import logging
 from urllib.parse import urlsplit
 
-from django.http import HttpResponseRedirect
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
-
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.oauth_service import oauth_sev_user_service
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
 from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView)
+from django.http import HttpResponseRedirect
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message
+from console.login.jwt_manager import JwtManager
+from console.utils.reqparse import parse_item
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -82,7 +84,7 @@ class OauthService(EnterpriseAdminView):
         try:
             services = oauth_repo.create_or_update_console_oauth_services(values, eid)
         except Exception as e:
-            logger.debug(e.message)
+            logger.exception(e)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
         service = oauth_repo.get_conosle_oauth_service(eid)
         api = get_oauth_instance(service.oauth_type, service, None)
@@ -187,7 +189,10 @@ class OAuthServiceRedirect(AlowAnyApiView):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
         service = oauth_repo.get_oauth_services_by_service_id(service_id)
+        route_mode = os.getenv("ROUTE_MODE", "hash")
         path = "/#/oauth/callback?service_id={}&code={}"
+        if route_mode == "history":
+            path = "/oauth/callback?service_id={}&code={}"
         return HttpResponseRedirect(path.format(service.ID, code))
 
 
@@ -215,7 +220,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
         try:
             oauth_user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
-            logger.debug(e.message)
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
@@ -229,6 +234,29 @@ class OAuthServerAuthorize(AlowAnyApiView):
             oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
         return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)
+
+
+class OauthUserLogoutView(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+        client_id = parse_item(request, "client_id", required=True)
+        client_secret = parse_item(request, "client_secret", required=True)
+        user_id = parse_item(request, "user_id", required=True)
+
+        oauth_service = oauth_repo.get_by_client_id(client_id)
+        if oauth_service.oauth_type != "dbox":
+            raise AbortRequest("unsupported oauth type {} for oauth user logout".format(oauth_service.oauth_type))
+        if oauth_service.client_secret != client_secret:
+            raise AbortRequest("the requested client key does not match")
+
+        oauth_user = oauth_user_repo.get_by_oauth_user_id(oauth_service.ID, user_id)
+
+        # Go to Oauth2 Server to check if the user has logged out
+        api = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+        api.is_logout()
+
+        # logout
+        JwtManager().delete_user_id(oauth_user.user_id)
+        return Response(status=status.HTTP_200_OK)
 
 
 class OAuthUserInfo(AlowAnyApiView):
@@ -282,7 +310,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         try:
             user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
-            logger.debug(e.message)
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
 
@@ -497,7 +525,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         if oauth_user is None:
@@ -536,7 +564,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         body["password"] = None
         body["source_body"] = source_body
         try:
-            res, body = region_api.service_source_check(region, tenant, body)
+            res, body = region_api.service_source_check(region, tenant.tenant_name, body)
             return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.debug(e)

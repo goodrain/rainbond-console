@@ -4,6 +4,7 @@ import logging
 
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
+from console.models.main import RegionConfig
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
@@ -14,7 +15,7 @@ from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -57,6 +58,10 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent = enter.to_dict()
         if ent:
             ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
+        regions = region_repo.get_regions_by_enterprise_id(enterprise_id, 1)
+        ent["disable_install_cluster_log"] = False
+        if regions:
+            ent["disable_install_cluster_log"] = True
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
@@ -72,8 +77,8 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent_config_servier = EnterpriseConfigService(enterprise_id)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
-            data = ent_config_servier.update_config(key, value)
             try:
+                data = ent_config_servier.update_config(key, value)
                 result = general_message(200, "success", "更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)
@@ -140,22 +145,21 @@ class EnterpriseTeams(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseUserTeams(JWTAuthApiView):
+class EnterpriseUserTeams(EnterpriseAdminView):
     def get(self, request, enterprise_id, user_id, *args, **kwargs):
-        user = request.user
         name = request.GET.get("name", None)
-        code = 200
-        if int(user_id) != int(user.user_id):
-            result = general_message(400, "failed", "请求失败")
-            return Response(result, status=code)
-        try:
-            tenants = team_services.get_teams_region_by_user_id(enterprise_id, user, name)
-            result = general_message(200, "team query success", "查询成功", list=tenants)
-        except Exception as e:
-            logger.exception(e)
-            code = 400
-            result = general_message(code, "failed", "请求失败")
-        return Response(result, status=code)
+        user = user_repo.get_user_by_user_id(user_id)
+        teams = team_services.list_user_teams(enterprise_id, user, name)
+        result = general_message(200, "team query success", "查询成功", list=teams)
+        return Response(result, status=200)
+
+
+class EnterpriseMyTeams(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        name = request.GET.get("name", None)
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name)
+        result = general_message(200, "team query success", "查询成功", list=tenants)
+        return Response(result, status=200)
 
 
 class EnterpriseTeamOverView(JWTAuthApiView):
@@ -171,89 +175,78 @@ class EnterpriseTeamOverView(JWTAuthApiView):
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.tenant_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
                     user_role_list = user_kind_role_service.get_user_roles(
                         kind="team", kind_id=tenant.tenant_id, user=request.user)
                     roles = [x["role_name"] for x in user_role_list["roles"]]
                     if tenant.creater == request.user.user_id:
                         roles.append("owner")
                     owner = user_repo.get_by_user_id(tenant.creater)
-                    team_item = {
-                        "team_name": tenant.tenant_name,
-                        "team_alias": tenant.tenant_alias,
-                        "team_id": tenant.tenant_id,
-                        "create_time": tenant.create_time,
-                        "region": tenant.region,
-                        "region_list": region_name_list,
-                        "enterprise_id": tenant.enterprise_id,
-                        "owner": tenant.creater,
-                        "owner_name": (owner.get_name() if owner else None),
-                        "roles": roles,
-                        "is_pass": True,
-                    }
-                    if not team_item["region"] and len(region_name_list) > 0:
-                        team_item["region"] = region_name_list[0]
-                    new_join_team.append(team_item)
+                    if len(region_name_list) > 0:
+                        team_item = {
+                            "team_name": tenant.tenant_name,
+                            "team_alias": tenant.tenant_alias,
+                            "team_id": tenant.tenant_id,
+                            "create_time": tenant.create_time,
+                            "region": region_name_list[0],  # first region is default
+                            "region_list": region_name_list,
+                            "enterprise_id": tenant.enterprise_id,
+                            "owner": tenant.creater,
+                            "owner_name": (owner.get_name() if owner else None),
+                            "roles": roles,
+                            "is_pass": True,
+                        }
+                        new_join_team.append(team_item)
             if join_tenants:
                 for tenant in join_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
                         nick_name = user.nick_name
                     except UserNotExistError:
                         nick_name = None
-                    team_item = {
-                        "team_name": tenant.team_name,
-                        "team_alias": tenant.team_alias,
-                        "team_id": tenant.team_id,
-                        "create_time": tenant_info.create_time,
-                        "region": tenant_info.region,
-                        "region_list": region_name_list,
-                        "enterprise_id": tenant_info.enterprise_id,
-                        "owner": tenant_info.creater,
-                        "owner_name": nick_name,
-                        "role": None,
-                        "is_pass": tenant.is_pass,
-                    }
-                    if not team_item["region"] and len(region_name_list) > 0:
-                        team_item["region"] = region_name_list[0]
-                    new_join_team.append(team_item)
+                    if len(region_name_list) > 0:
+                        team_item = {
+                            "team_name": tenant.team_name,
+                            "team_alias": tenant.team_alias,
+                            "team_id": tenant.team_id,
+                            "create_time": tenant_info.create_time,
+                            "region": region_name_list[0],
+                            "region_list": region_name_list,
+                            "enterprise_id": tenant_info.enterprise_id,
+                            "owner": tenant_info.creater,
+                            "owner_name": nick_name,
+                            "role": None,
+                            "is_pass": tenant.is_pass,
+                        }
+                        new_join_team.append(team_item)
             if request_tenants:
                 for request_tenant in request_tenants:
-                    region_name_list = []
-                    region_list = team_repo.get_team_regions(request_tenant.team_id)
-                    if region_list:
-                        region_name_list = region_list.values_list("region_name", flat=True)
+                    region_name_list = team_repo.get_team_region_names(request_tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
                     try:
                         user = user_repo.get_user_by_user_id(tenant_info.creater)
                         nick_name = user.nick_name
                     except UserNotExistError:
                         nick_name = None
-                    team_item = {
-                        "team_name": request_tenant.team_name,
-                        "team_alias": request_tenant.team_alias,
-                        "team_id": request_tenant.team_id,
-                        "apply_time": request_tenant.apply_time,
-                        "user_id": request_tenant.user_id,
-                        "user_name": request_tenant.user_name,
-                        "region": team_repo.get_team_by_team_id(request_tenant.team_id).region,
-                        "region_list": region_name_list,
-                        "enterprise_id": enterprise_id,
-                        "owner": tenant_info.creater,
-                        "owner_name": nick_name,
-                        "role": "viewer",
-                        "is_pass": request_tenant.is_pass,
-                    }
-                    if not team_item["region"] and len(region_name_list) > 0:
-                        team_item["region"] = region_name_list[0]
-                    request_join_team.append(team_item)
+                    if len(region_name_list) > 0:
+                        team_item = {
+                            "team_name": request_tenant.team_name,
+                            "team_alias": request_tenant.team_alias,
+                            "team_id": request_tenant.team_id,
+                            "apply_time": request_tenant.apply_time,
+                            "user_id": request_tenant.user_id,
+                            "user_name": request_tenant.user_name,
+                            "region": region_name_list[0],
+                            "region_list": region_name_list,
+                            "enterprise_id": enterprise_id,
+                            "owner": tenant_info.creater,
+                            "owner_name": nick_name,
+                            "role": "viewer",
+                            "is_pass": request_tenant.is_pass,
+                        }
+                        request_join_team.append(team_item)
             data = {
                 "active_teams": active_tenants,
                 "new_join_team": new_join_team,
@@ -346,6 +339,8 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         region_data = region_services.parse_token(token, region_name, region_alias, region_type)
         region_data["enterprise_id"] = enterprise_id
         region_data["desc"] = desc
+        region_data["provider"] = request.data.get("provider", "")
+        region_data["provider_cluster_id"] = request.data.get("provider_cluster_id", "")
         region_data["status"] = "1"
         region = region_services.add_region(region_data)
         if region:
@@ -369,7 +364,10 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
-        region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
+        try:
+            region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
+        except RegionConfig.DoesNotExist:
+            raise ServiceHandleException(status_code=404, msg="集群已不存在")
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
 
@@ -441,3 +439,11 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
             response = self.handle_exception(exc)
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
+
+
+class EnterpriseUserTeamRoleView(EnterpriseHeaderView):
+    def post(self, request, eid, user_id, tenant_name, *args, **kwargs):
+        role_ids = request.data.get('role_ids', [])
+        res = enterprise_services.create_user_roles(eid, user_id, tenant_name, role_ids)
+        result = general_message(200, "ok", "设置成功", bean=res)
+        return Response(result, status=200)

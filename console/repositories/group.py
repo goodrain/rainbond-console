@@ -7,12 +7,17 @@ import logging
 from datetime import datetime
 from django.db.models import Q
 
+from console.exception.bcode import ErrComponentGroupNotFound
 from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
 
 logger = logging.getLogger("default")
 
 
 class GroupRepository(object):
+    @staticmethod
+    def create(app):
+        app.save()
+
     @staticmethod
     def update(app_id, **data):
         ServiceGroup.objects.filter(pk=app_id).update(**data)
@@ -64,9 +69,11 @@ class GroupRepository(object):
         group_count = ServiceGroup.objects.filter(tenant_id=team_id, ID=group_id).count()
         return group_count
 
-    def get_tenant_region_groups(self, team_id, region, query=""):
-        return ServiceGroup.objects.filter(
-            tenant_id=team_id, region_name=region, group_name__icontains=query).order_by("-update_time", "-order_index")
+    def get_tenant_region_groups(self, team_id, region, query="", app_type=""):
+        q = Q(tenant_id=team_id, region_name=region, group_name__icontains=query)
+        if app_type:
+            q &= Q(app_type=app_type)
+        return ServiceGroup.objects.filter(q).order_by("-update_time", "-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
@@ -97,8 +104,9 @@ class GroupRepository(object):
     def get_multi_app_info(self, app_ids):
         return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-update_time", "-order_index")
 
-    def get_apps_in_multi_team(self, team_ids):
-        return ServiceGroup.objects.filter(tenant_id__in=team_ids).order_by("-update_time", "-order_index")
+    def get_apps_in_multi_team(self, team_ids, region_names):
+        return ServiceGroup.objects.filter(
+            tenant_id__in=team_ids, region_name__in=region_names).order_by("-update_time", "-order_index")
 
     def get_by_service_id(self, tenant_id, service_id):
         try:
@@ -179,7 +187,8 @@ class GroupServiceRelationRepository(object):
     def get_service_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).first()
 
-    def get_services_obj_by_group(self, group_id):
+    @staticmethod
+    def list_service_groups(group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).all()
 
     def update_service_relation(self, group_id, default_group_id):
@@ -193,8 +202,15 @@ class TenantServiceGroupRepository(object):
     def create_tenant_service_group(self, **params):
         return TenantServiceGroup.objects.create(**params)
 
-    def get_group_by_service_group_id(self, service_group_id):
-        return TenantServiceGroup.objects.filter(ID=service_group_id).first()
+    @staticmethod
+    def get_component_group(service_group_id):
+        component_group = TenantServiceGroup.objects.filter(ID=service_group_id).first()
+        if not component_group:
+            raise ErrComponentGroupNotFound
+        return component_group
+
+    def get_group_by_app_id(self, app_id):
+        return TenantServiceGroup.objects.filter(service_group_id=app_id)
 
 
 group_repo = GroupRepository()

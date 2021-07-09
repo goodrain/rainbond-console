@@ -21,6 +21,13 @@ jobs:
       - name: check-code
         run: ./check_code.sh
 
+      - name: SonarQube Scan
+        uses: kitabisa/sonarqube-action@v1.1.0
+        with:
+          host: ${{ secrets.SONARQUBE_HOST }}
+          login: ${{ secrets.SONARQUBE_TOKEN }}
+          projectName: rainbond-console
+
       - name: Extract branch name
         shell: bash
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
@@ -34,4 +41,4 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOMESTIC_DOCKER_PASSWORD: ${{ secrets.DOMESTIC_DOCKER_PASSWORD }}
           DOMESTIC_DOCKER_USERNAME: ${{ secrets.DOMESTIC_DOCKER_USERNAME }}
-        run: VERSION=${{ steps.extract_branch.outputs.branch }}-dev ./release.sh
+        run: VERSION=${{ steps.extract_branch.outputs.branch }}-dev ./release.sh allinone

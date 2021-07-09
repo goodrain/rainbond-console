@@ -6,49 +6,30 @@ import json
 import logging
 
 from console.enum.component_enum import is_state
-
 from console.exception.main import ServiceHandleException
-
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.app_config import auth_repo
-from console.repositories.app_config import compile_env_repo
-from console.repositories.app_config import dep_relation_repo
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import env_var_repo
-from console.repositories.app_config import extend_repo
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import port_repo
-from console.repositories.app_config import tcp_domain
-from console.repositories.app_config import volume_repo
-from console.repositories.app_config import service_endpoints_repo
-from console.repositories.backup_repo import backup_record_repo
-from console.repositories.compose_repo import compose_relation_repo
-from console.repositories.compose_repo import compose_repo
-from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
-from console.repositories.label_repo import service_label_repo
-from console.repositories.plugin import app_plugin_relation_repo
-from console.repositories.plugin import service_plugin_config_repo
-from console.repositories.plugin.plugin import plugin_repo
-from console.repositories.plugin.plugin_config import plugin_config_group_repo
-from console.repositories.plugin.plugin_config import plugin_config_items_repo
-from console.repositories.plugin.plugin_version import build_version_repo
+from console.repositories.app import service_repo, service_source_repo
+from console.repositories.app_config import (auth_repo, compile_env_repo, dep_relation_repo, domain_repo, env_var_repo,
+                                             extend_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
 from console.repositories.app_config_group import app_config_group_repo
-from console.repositories.probe_repo import probe_repo
+from console.repositories.backup_repo import backup_record_repo
 from console.repositories.component_graph import component_graph_repo
+from console.repositories.compose_repo import (compose_relation_repo, compose_repo)
+from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.label_repo import service_label_repo
+from console.repositories.plugin import (app_plugin_relation_repo, service_plugin_config_repo)
+from console.repositories.plugin.plugin import plugin_repo
+from console.repositories.plugin.plugin_config import (plugin_config_group_repo, plugin_config_items_repo)
+from console.repositories.plugin.plugin_version import build_version_repo
+from console.repositories.probe_repo import probe_repo
 from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.app_config.volume_service import AppVolumeService
 from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
-from console.services.exception import ErrBackupInProgress
-from console.services.exception import ErrBackupRecordNotFound
-from console.services.exception import ErrObjectStorageInfoNotFound
+from console.services.exception import (ErrBackupInProgress, ErrBackupRecordNotFound, ErrObjectStorageInfoNotFound)
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.crypt import AuthCode
-from www.utils.crypt import make_uuid
-from console.services.app_config.volume_service import AppVolumeService
+from www.utils.crypt import AuthCode, make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -101,21 +82,21 @@ class GroupAppBackupService(object):
 
         return use_custom_svc
 
-    def backup_group_apps(self, tenant, user, region, group_id, mode, note, force=False):
+    def backup_group_apps(self, tenant, user, region_name, group_id, mode, note, force=False):
         s3_config = EnterpriseConfigService(tenant.enterprise_id).get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
         services = group_service.get_group_services(group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
-        total_memory, metadata = self.get_group_app_metadata(group_id, tenant)
+        total_memory, metadata = self.get_group_app_metadata(group_id, tenant, region_name)
         version = current_time_str("%Y%m%d%H%M%S")
 
         data = {
             "event_id": event_id,
             "group_id": group_uuid,
             "metadata": json.dumps(metadata),
-            "service_ids": [s.service_id for s in services],
+            "service_ids": [s.service_id for s in services if s.create_status == "complete"],
             "mode": mode,
             "version": version,
             "s3_config": s3_config,
@@ -123,7 +104,7 @@ class GroupAppBackupService(object):
         }
         # 向数据中心发起备份任务
         try:
-            body = region_api.backup_group_apps(region, tenant.tenant_name, data)
+            body = region_api.backup_group_apps(region_name, tenant.tenant_name, data)
             bean = body["bean"]
             record_data = {
                 "group_id": group_id,
@@ -131,7 +112,7 @@ class GroupAppBackupService(object):
                 "group_uuid": group_uuid,
                 "version": version,
                 "team_id": tenant.tenant_id,
-                "region": region,
+                "region": region_name,
                 "status": bean["status"],
                 "note": note,
                 "mode": mode,
@@ -145,8 +126,12 @@ class GroupAppBackupService(object):
             return backup_record_repo.create_backup_records(**record_data)
         except region_api.CallApiError as e:
             logger.exception(e)
+            if e.message["body"].get("msg",
+                                     "") == "last backup task do not complete or have restore backup or version is exist":
+                raise ServiceHandleException(msg="backup failed", msg_show="上次备份任务未完成或有正在恢复的备份或该版本已存在", status_code=409)
             if e.status == 401:
                 raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
+            raise ServiceHandleException(msg=e.message["body"].get("msg", "backup failed"), msg_show="备份失败")
 
     def get_backup_group_uuid(self, group_id):
         backup_record = backup_record_repo.get_record_by_group_id(group_id)
@@ -201,7 +186,7 @@ class GroupAppBackupService(object):
         backup_records = backup_record_repo.get_record_by_group_id(group_id)
         return 200, "success", backup_records
 
-    def get_group_app_metadata(self, group_id, tenant):
+    def get_group_app_metadata(self, group_id, tenant, region_name):
         all_data = dict()
         compose_group_info = compose_repo.get_group_compose_by_group_id(group_id)
         compose_service_relation = None
@@ -259,10 +244,10 @@ class GroupAppBackupService(object):
         all_data["plugin_info"]["plugin_config_items"] = plugin_config_items
 
         # application config group
-        config_group_infos = app_config_group_repo.get_config_group_in_use(tenant.region, group_id)
+        config_group_infos = app_config_group_repo.get_config_group_in_use(region_name, group_id)
         app_config_groups = []
         for cgroup_info in config_group_infos:
-            config_group = app_config_group_service.get_config_group(tenant.region, group_id, cgroup_info["config_group_name"])
+            config_group = app_config_group_service.get_config_group(region_name, group_id, cgroup_info["config_group_name"])
             app_config_groups.append(config_group)
         all_data["app_config_group_info"] = app_config_groups
         return total_memory, all_data
@@ -294,6 +279,7 @@ class GroupAppBackupService(object):
             if not third_party_service_endpoints:
                 raise ServiceHandleException(msg="third party service endpoints can't be null", msg_show="第三方组件实例不可为空")
         app_info = {
+            "component_id": service.component_id,
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],

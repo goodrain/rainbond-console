@@ -613,7 +613,7 @@ class BaseTenantService(object):
                     failed.append(dep_volume.volume_name)
                     message.append(json.dumps(body))
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
                 failed.append(dep_volume.volume_name)
                 message.append(e.message)
         if not failed:

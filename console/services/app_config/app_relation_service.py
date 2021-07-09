@@ -4,12 +4,9 @@
 """
 import logging
 
-from console.exception.main import InnerPortNotFound
-from console.exception.main import ServiceRelationAlreadyExist
+from console.exception.main import (InnerPortNotFound, ServiceHandleException, ServiceRelationAlreadyExist)
 from console.repositories.app import service_repo
-from console.repositories.app_config import dep_relation_repo
-from console.repositories.app_config import env_var_repo
-from console.repositories.app_config import port_repo
+from console.repositories.app_config import (dep_relation_repo, env_var_repo, port_repo)
 from console.services.app_config.port_service import AppPortService
 from console.services.exception import ErrDepServiceNotFound
 from www.apiclient.regionapi import RegionInvokeApi
@@ -96,17 +93,31 @@ class AppServiceRelationService(object):
             tenant_service_port = port_service.get_service_port_by_port(dep_service, int(container_port))
             open_service_ports.append(tenant_service_port)
         else:
+            # dep component not have inner port, will open all port
             ports = port_service.get_service_ports(dep_service)
             if ports:
-                open_service_ports.extend(ports)
+                have_inner_port = False
+                for port in ports:
+                    if port.is_inner_service:
+                        have_inner_port = True
+                        break
+                if not have_inner_port:
+                    open_service_ports.extend(ports)
+
         for tenant_service_port in open_service_ports:
-            code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
-                                                       int(tenant_service_port.container_port), "open_inner",
-                                                       tenant_service_port.protocol, tenant_service_port.port_alias, user_name)
-            if code != 200:
-                logger.warning("auto open depend service inner port faliure {}".format(msg))
-            else:
-                logger.debug("auto open depend service inner port success ")
+            try:
+                code, msg, data = port_service.manage_port(tenant, dep_service, dep_service.service_region,
+                                                           int(tenant_service_port.container_port), "open_inner",
+                                                           tenant_service_port.protocol, tenant_service_port.port_alias,
+                                                           user_name)
+                if code != 200:
+                    logger.warning("auto open depend service inner port faliure {}".format(msg))
+                else:
+                    logger.debug("auto open depend service inner port success ")
+            except ServiceHandleException as e:
+                logger.exception(e)
+                if e.status_code != 404:
+                    raise e
 
     def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(

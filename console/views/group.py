@@ -8,11 +8,13 @@ from console.enum.app import GovernanceModeEnum
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
+from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
+from console.services.application import application_service
 from console.services.market_app_service import market_app_service
 from console.utils.reqparse import parse_item
-from console.views.base import (ApplicationView, CloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from www.apiclient.regionapi import RegionInvokeApi
@@ -61,10 +63,23 @@ class TenantGroupView(RegionTenantHeaderView):
         note = request.data.get("note", "")
         if len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-        region_name = self.response_region
-        if request.data.get("region_name", None):
-            region_name = request.data.get("region_name", None)
-        data = group_service.create_app(self.tenant, region_name, app_name, note, self.user.get_username())
+        app_store_name = request.data.get("app_store_name", None)
+        app_store_url = request.data.get("app_store_url", None)
+        app_template_name = request.data.get("app_template_name", None)
+        version = request.data.get("version", None)
+        region_name = request.data.get("region_name", self.response_region)
+        data = group_service.create_app(
+            self.tenant,
+            region_name,
+            app_name,
+            note,
+            self.user.get_username(),
+            app_store_name,
+            app_store_url,
+            app_template_name,
+            version,
+            self.user.enterprise_id,
+        )
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
 
@@ -97,8 +112,20 @@ class TenantGroupOperationView(ApplicationView):
         if note and len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         username = request.data.get("username", None)
+        overrides = request.data.get("overrides", [])
+        version = request.data.get("version", "")
+        revision = request.data.get("revision", 0)
 
-        group_service.update_group(self.tenant, self.response_region, app_id, app_name, note, username)
+        group_service.update_group(
+            self.tenant,
+            self.response_region,
+            app_id,
+            app_name,
+            note,
+            username,
+            overrides=overrides,
+            version=version,
+            revision=revision)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
@@ -119,18 +146,8 @@ class TenantGroupOperationView(ApplicationView):
                   paramType: path
 
         """
-        service = group_service_relation_repo.get_service_by_group(app_id)
-        if not service:
-            code, msg, data = group_service.delete_group_no_service(app_id)
-        else:
-            code = 400
-            msg = '当前应用内存在组件，无法删除'
-            result = general_message(code, msg, None)
-            return Response(result, status=result["code"])
-        if code != 200:
-            result = general_message(code, "delete group error", msg)
-        else:
-            result = general_message(code, "success", msg)
+        group_service.delete_app(self.tenant, self.region_name, self.app)
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
     def get(self, request, app_id, *args, **kwargs):
@@ -150,17 +167,29 @@ class TenantGroupOperationView(ApplicationView):
                 paramType: path
         """
         app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
-        try:
-            app['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, app_id)
-        except MaxRetryError as e:
-            logger.warning("get the number of upgradable app: {}".format(e))
-            app['upgradable_num'] = 0
         result = general_message(200, "success", "success", bean=app)
         return Response(result, status=result["code"])
 
 
+class TenantAppUpgradableNumView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        data = dict()
+        data['upgradable_num'] = 0
+        try:
+            data['upgradable_num'] = market_app_service.count_upgradeable_market_apps(self.tenant, self.region_name, self.app)
+        except MaxRetryError as e:
+            logger.warning("get the number of upgradable app: {}".format(e))
+        except ServiceHandleException as e:
+            logger.warning("get the number of upgradable app: {}".format(e))
+            if e.status_code != 404:
+                raise e
+
+        result = general_message(200, "success", "success", bean=data)
+        return Response(result, status=result["code"])
+
+
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
-class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView):
+class TenantGroupCommonOperationView(RegionTenantHeaderCloudEnterpriseCenterView):
     def post(self, request, *args, **kwargs):
         """
         ---
@@ -184,7 +213,7 @@ class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView)
         """
         action = request.data.get("action", None)
         group_id = int(kwargs.get("group_id", None))
-        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        services = group_service_relation_repo.list_service_groups(group_id)
         if not services:
             result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
@@ -206,11 +235,8 @@ class TenantGroupCommonOperationView(ApplicationView, CloudEnterpriseCenterView)
         if action == "deploy":
             self.has_perms([300008, 400010])
             # 批量操作
-        code, msg = app_manage_service.batch_operations(self.tenant, self.user, action, service_ids, self.oauth_instance)
-        if code != 200:
-            result = general_message(code, "batch manage error", msg)
-        else:
-            result = general_message(200, "success", "操作成功")
+        app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids, self.oauth_instance)
+        result = general_message(200, "success", "操作成功")
         return Response(result, status=result["code"])
 
 
@@ -222,7 +248,7 @@ class GroupStatusView(RegionTenantHeaderView):
         if not group_id or not region_name:
             result = general_message(400, "not group_id", "参数缺失")
             return Response(result)
-        services = group_service_relation_repo.get_services_obj_by_group(group_id)
+        services = group_service_relation_repo.list_service_groups(group_id)
         if not services:
             result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
@@ -268,7 +294,7 @@ class AppKubernetesServiceView(ApplicationView):
             if not k8s_service.get("port_alias"):
                 raise AbortRequest("the field 'port_alias' is required")
 
-        group_service.update_kubernetes_services(self.tenant, self.region_name, app_id, k8s_services)
+        group_service.update_kubernetes_services(self.tenant, self.region_name, self.app, k8s_services)
 
         result = general_message(200, "success", "更新成功", list=k8s_services)
         return Response(result)
@@ -279,3 +305,50 @@ class ApplicationStatusView(ApplicationView):
         status = group_service.get_app_status(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=status)
         return Response(result)
+
+
+class ApplicationDetectPrecessView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        processes = group_service.get_detect_process(self.tenant, self.region_name, app_id)
+        result = general_message(200, "success", "查询成功", list=processes)
+        return Response(result)
+
+
+class ApplicationInstallView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        overrides = request.data.get("overrides")
+        group_service.install_app(self.tenant, self.region_name, app_id, overrides)
+        result = general_message(200, "success", "安装成功")
+        return Response(result)
+
+
+class ApplicationPodView(ApplicationView):
+    def get(self, request, app_id, pod_name, *args, **kwargs):
+        pod = group_service.get_pod(self.tenant, self.region_name, pod_name)
+        result = general_message(200, "success", "安装成功", bean=pod)
+        return Response(result)
+
+
+class ApplicationHelmAppComponentView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        components, err = helm_app_service.list_components(self.tenant, self.region_name, self.user, self.app)
+        return Response(general_message(err.get("code", 200), err.get("msg", "success"), "查询成功", list=components))
+
+
+class ApplicationParseServicesView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        values = parse_item(request, "values", required=True)
+        services = application_service.parse_services(self.region_name, self.tenant, app_id, values)
+        return Response(general_message(200, "success", "查询成功", list=services))
+
+
+class ApplicationReleasesView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        releases = application_service.list_releases(self.region_name, self.tenant, app_id)
+        return Response(general_message(200, "success", "查询成功", list=releases))
+
+
+class ApplicationIngressesView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        result = application_service.list_access_info(self.tenant, app_id)
+        return Response(general_message(200, "success", "查询成功", list=result))

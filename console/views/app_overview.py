@@ -9,13 +9,8 @@ import logging
 import os
 import pickle
 
-from django.db import transaction
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
-
-from console.exception.main import ServiceHandleException
 from console.constants import AppConstants, PluginCategoryConstants
-from console.exception.main import MarketAppLost, RbdAppNotFound
+from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
@@ -32,6 +27,9 @@ from console.services.team_services import team_services
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from django.db import transaction
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import error_message, general_message
 
@@ -75,44 +73,37 @@ class AppDetailView(AppBaseView):
             rainbond_app, rainbond_app_version = rainbond_app_repo.get_rainbond_app_and_version(
                 self.tenant.enterprise_id, service_source.group_key, service_source.version)
             if not rainbond_app:
-                result = general_message(200, "success", "当前云市组件已删除", bean=bean)
+                result = general_message(200, "success", "当前组件安装源模版已删除", bean=bean)
                 return Response(result, status=result["code"])
 
             bean.update({"rain_app_name": rainbond_app.app_name})
-            apps_template = json.loads(rainbond_app_version.app_template)
-            apps_list = apps_template.get("apps")
-            for app in apps_list:
-                if app["service_key"] == self.service.service_key:
-                    if self.service.deploy_version and int(app["deploy_version"]) > int(self.service.deploy_version):
-                        self.service.is_upgrate = True
-                        self.service.save()
-                        bean.update({"service": service_model})
             try:
-                apps_template = json.loads(rainbond_app_version.app_template)
-                apps_list = apps_template.get("apps")
-                service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
-                if service_source and service_source.extend_info:
-                    extend_info = json.loads(service_source.extend_info)
-                    if extend_info:
-                        for app in apps_list:
-                            if "service_share_uuid" in app:
-                                if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
-                                    new_version = int(app["deploy_version"])
-                                    old_version = int(extend_info["source_deploy_version"])
-                                    if new_version > old_version:
-                                        self.service.is_upgrate = True
-                                        self.service.save()
-                                        service_model["is_upgrade"] = True
-                                        bean.update({"service": service_model})
-                            elif "service_share_uuid" not in app and "service_key" in app:
-                                if app["service_key"] == extend_info["source_service_share_uuid"]:
-                                    new_version = int(app["deploy_version"])
-                                    old_version = int(extend_info["source_deploy_version"])
-                                    if new_version > old_version:
-                                        self.service.is_upgrate = True
-                                        self.service.save()
-                                        service_model["is_upgrade"] = True
-                                        bean.update({"service": service_model})
+                if rainbond_app_version:
+                    apps_template = json.loads(rainbond_app_version.app_template)
+                    apps_list = apps_template.get("apps")
+                    service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
+                    if service_source and service_source.extend_info:
+                        extend_info = json.loads(service_source.extend_info)
+                        if extend_info:
+                            for app in apps_list:
+                                if "service_share_uuid" in app:
+                                    if app["service_share_uuid"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
+                                elif "service_share_uuid" not in app and "service_key" in app:
+                                    if app["service_key"] == extend_info["source_service_share_uuid"]:
+                                        new_version = int(app["deploy_version"])
+                                        old_version = int(extend_info["source_deploy_version"])
+                                        if new_version > old_version:
+                                            self.service.is_upgrate = True
+                                            self.service.save()
+                                            service_model["is_upgrade"] = True
+                                            bean.update({"service": service_model})
             except Exception as e:
                 logger.exception(e)
 
@@ -128,6 +119,7 @@ class AppDetailView(AppBaseView):
             service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id).first()
             if service_endpoints:
                 bean["register_way"] = service_endpoints.endpoints_type
+                bean["endpoints_type"] = service_endpoints.endpoints_type
                 if service_endpoints.endpoints_type == "api":
                     # 从环境变量中获取域名，没有在从请求中获取
                     host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
@@ -141,6 +133,8 @@ class AppDetailView(AppBaseView):
 
                     bean["discovery_type"] = endpoints_info_dict["type"]
                     bean["discovery_key"] = endpoints_info_dict["key"]
+                if service_endpoints.endpoints_type == "kubernetes":
+                    bean["kubernetes"] = json.loads(service_endpoints.endpoints_info)
 
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
@@ -537,7 +531,9 @@ class BuildSourceinfo(AppBaseView):
         ---
         """
         from console.services.service_services import base_service
-        bean = base_service.get_build_info(self.tenant, self.service)
+        service_ids = [self.service.service_id]
+        build_infos = base_service.get_build_infos(self.tenant, service_ids)
+        bean = build_infos.get(self.service.service_id, None)
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
@@ -593,7 +589,7 @@ class BuildSourceinfo(AppBaseView):
                             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": "Oauth服务可能已被删除，请重新配置"}
                             return Response(rst, status=200)
                         try:
                             instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)

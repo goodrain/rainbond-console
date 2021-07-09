@@ -23,6 +23,7 @@ class TenantServiceInfoRepository(object):
         sql = """
             SELECT
                 a.service_id,
+                a.service_alias,
                 a.service_cname,
                 b.service_share_uuid
             FROM
@@ -91,6 +92,9 @@ class TenantServiceInfoRepository(object):
 
     def get_services_by_service_group_id(self, service_group_id):
         return TenantServiceInfo.objects.filter(tenant_service_group_id=service_group_id)
+
+    def get_services_by_service_group_ids(self, component_ids, service_group_ids):
+        return TenantServiceInfo.objects.filter(service_id__in=component_ids, tenant_service_group_id__in=service_group_ids)
 
     def get_services_by_raw_sql(self, raw_sql):
         return TenantServiceInfo.objects.raw(raw_sql)
@@ -201,6 +205,10 @@ class TenantServiceInfoRepository(object):
     def get_services_by_team_and_region(self, team_id, region_name):
         return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).all()
 
+    @staticmethod
+    def bulk_create(components: [TenantServiceInfo]):
+        TenantServiceInfo.objects.bulk_create(components)
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):
@@ -234,6 +242,33 @@ class ServiceSourceRepository(object):
     def get_service_sources_by_group_key(self, group_key):
         """使用group_key获取一组云市应用下的所有组件源信息的查询集"""
         return ServiceSourceInfo.objects.filter(group_key=group_key)
+
+    def upgrade_service_source_share_uuid_to_53(self):
+        ssi = ServiceSourceInfo.objects.exclude(service_share_uuid=None)
+        if not ssi:
+            return
+        for ss in ssi:
+            sk = ss.service_share_uuid.split("+")
+            if len(sk) == 2:
+                ss.service_share_uuid = "{0}+{1}".format(sk[1], sk[1])
+                ss.save()
+                component = TenantServiceInfo.objects.filter(service_id=ss.service_id)
+                if component:
+                    component[0].service_key = sk[1]
+                    component[0].save()
+
+    @staticmethod
+    def list_by_app_id(team_id, app_id):
+        # group_key is equivalent to app_id in rainbond_app
+        return ServiceSourceInfo.objects.filter(team_id=team_id, group_key=app_id)
+
+    @staticmethod
+    def bulk_create(service_sources):
+        ServiceSourceInfo.objects.bulk_create(service_sources)
+
+    def bulk_update(self, service_sources):
+        ServiceSourceInfo.objects.filter(pk__in=[source.ID for source in service_sources]).delete()
+        self.bulk_create(service_sources)
 
 
 class ServiceRecycleBinRepository(object):

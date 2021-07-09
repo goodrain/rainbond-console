@@ -15,25 +15,23 @@ from console.repositories.service_backup_repo import service_backup_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_restore import AppRestore
 from console.services.app_actions.exception import ErrBackupNotFound
-from console.services.app_actions.properties_changes import (PropertiesChanges, get_upgrade_app_version_template_app,
+from console.services.app_actions.properties_changes import (PropertiesChanges, get_template_component,
                                                              get_upgrade_app_template)
 from console.services.app_config import (AppPortService, env_var_service, mnt_service)
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
+from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.backup_service import \
     groupapp_backup_service as backup_service
 from console.services.exception import ErrDepServiceNotFound
-from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
-from console.services.rbd_center_app_service import rbd_center_app_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
+from www.models.main import TenantServicesPort
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
-from www.models.main import TenantServicesPort
-from console.services.app_config.component_graph import component_graph_service
-from console.services.app_config.service_monitor import service_monitor_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -73,6 +71,7 @@ class AppDeployService(object):
     def pre_deploy_action(self, tenant, service, version=None):
         """perform pre-deployment actions"""
         if service.service_source == "market":
+            # TODO: set app template init MarketService
             self.impl = MarketService(tenant, service, version)
 
         self.impl.pre_action()
@@ -119,19 +118,15 @@ class MarketService(object):
     Define some methods for upgrading market services.
     """
 
-    def __init__(self, tenant, service, version):
+    def __init__(self, tenant, service, version, all_component_one_model=None, component_change_info=None, app_version=None):
         self.tenant = tenant
         self.service = service
         self.market_name = None
+        # tenant service models
+        self.all_component_one_model = all_component_one_model
         self.service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
-        if self.service_source.extend_info:
-            extend_info = json.loads(self.service_source.extend_info)
-            self.install_from_cloud = extend_info.get("install_from_cloud", False)
-            self.market_name = extend_info.get("market_name", None)
-            if self.install_from_cloud:
-                logger.info("service {0} imstall from cloud".format(service.service_alias))
-        else:
-            self.install_from_cloud = False
+        self.install_from_cloud = self.service_source.is_install_from_cloud()
+        self.market_name = self.service_source.get_market_name()
         # If no version is specified, the default version is used.
         self.async_action = None
         if not version:
@@ -139,7 +134,14 @@ class MarketService(object):
             self.async_action = AsyncAction.BUILD.value
         self.version = version
         self.group_key = self.service_source.group_key
-        self.changes = {}
+        self.changes = component_change_info
+        if app_version:
+            self.template = json.loads(app_version.app_template)
+            self.template_update_time = app_version.update_time
+        else:
+            self.template = None
+            self.template_update_time = None
+        self.update_source = False
         # data that has been successfully changed
         self.changed = {}
         self.backup = None
@@ -153,7 +155,7 @@ class MarketService(object):
         self.auto_restore = True
 
     def dummy_func(self, changes):
-        pass
+        logger.debug("dummy_func")
 
     def set_properties(self, typ3=PropertyType.ALL.value):
         """
@@ -266,13 +268,20 @@ class MarketService(object):
             self.async_action = AsyncAction.NOTHING.value
 
     def set_changes(self):
-        pc = PropertiesChanges(self.service, self.tenant, self.install_from_cloud)
-        app = get_upgrade_app_version_template_app(self.tenant, self.version, pc)
-        template = get_upgrade_app_template(self.tenant, self.version, pc)
-        changes = pc.get_property_changes(app, template=template)
-        logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
-        self.changes = changes
-        logger.info("upgrade from cloud do not support.")
+        pc = None
+        if not self.template:
+            pc = PropertiesChanges(
+                self.service,
+                self.tenant,
+                all_component_one_model=self.all_component_one_model,
+                install_from_cloud=self.install_from_cloud)
+            template = get_upgrade_app_template(self.tenant, self.version, pc)
+            self.template = template
+            self.template_update_time = pc.template_updatetime
+        if not self.changes and self.changes != {} and pc:
+            _, changes = pc.get_property_changes(template=template)
+            logger.debug("service id: {}; dest version: {}; changes: {}".format(self.service.service_id, self.version, changes))
+            self.changes = changes
 
     def create_backup(self):
         """create_backup
@@ -294,20 +303,24 @@ class MarketService(object):
         """
         Perform modifications to the given properties. must be called after `set_changes`.
         """
-        service_source = service_source_repo.get_service_source(self.tenant.tenant_id, self.service.service_id)
-        if self.install_from_cloud:
-            app = market_app_service.get_service_app_from_cloud(self.tenant, self.group_key, self.version, service_source)
+        component = get_template_component(self.template, self.service_source)
+        # if component is null, maybe new app not have this component
+        if component:
+            if not self.update_source:
+                self._update_service(component)
+                self._update_service_source(component, self.version, self.template_update_time)
+                self.update_source = True
+            if not self.changes:
+                return
+            changes = deepcopy(self.changes)
+            if changes:
+                for k, v in list(changes.items()):
+                    func = self.update_funcs.get(k, None)
+                    if func is None:
+                        continue
+                    func(v)
         else:
-            app = rbd_center_app_service.get_version_app(self.tenant.enterprise_id, self.version, service_source)
-        self._update_service(app)
-        self._update_service_source(app, self.version)
-        changes = deepcopy(self.changes)
-        if changes:
-            for k, v in list(changes.items()):
-                func = self.update_funcs.get(k, None)
-                if func is None:
-                    continue
-                func(v)
+            raise ServiceHandleException(msg="component is not exist", msg_show="该版本模版不存在该组件，无法进行升级")
 
     @staticmethod
     def _compare_async_action(a, b):
@@ -346,6 +359,8 @@ class MarketService(object):
         synchronize with the region side. must be called after `set_changes`.
         raise: RegionApiBaseHttpClient.CallApiError
         """
+        if not self.changes:
+            return
         changes = deepcopy(self.changes)
         if changes:
             for k, v in list(changes.items()):
@@ -396,13 +411,9 @@ class MarketService(object):
             self.service.image = share_image
         self.service.cmd = app.get("cmd", "")
         self.service.version = app["version"]
-        self.service.min_node = app["extend_method_map"]["min_node"]
-        self.service.min_memory = app["extend_method_map"]["min_memory"]
-        self.service.min_cpu = baseService.calculate_service_cpu(self.service.service_region, self.service.min_memory)
-        self.service.total_memory = self.service.min_node * self.service.min_memory
         self.service.save()
 
-    def _update_service_source(self, app, version):
+    def _update_service_source(self, app, version, template_updatetime):
         new_extend_info = {}
         share_image = app.get("share_image", None)
         share_slug_path = app.get("share_slug_path", None)
@@ -419,6 +430,11 @@ class MarketService(object):
         else:
             service_share_uuid = app.get("service_key", "")
         new_extend_info["source_service_share_uuid"] = service_share_uuid
+        if template_updatetime:
+            if type(template_updatetime) == datetime:
+                new_extend_info["update_time"] = template_updatetime.strftime('%Y-%m-%d %H:%M:%S')
+            elif type(template_updatetime) == str:
+                new_extend_info["update_time"] = template_updatetime
         if self.install_from_cloud:
             new_extend_info["install_from_cloud"] = True
             new_extend_info["market"] = "default"
@@ -456,11 +472,16 @@ class MarketService(object):
         add = envs.get("add", [])
         for env in add:
             container_port = env.get("container_port", 0)
-            if container_port == 0 and env["attr_value"] == "**None**":
-                env["attr_value"] = self.service.service_id[:8]
+            value = env.get("attr_value", "")
+            name = env.get("name", "")
+            attr_name = env.get("attr_name", "")
+            is_change = env.get("is_change", True)
+            if not attr_name:
+                continue
+            if container_port == 0 and value == "**None**":
+                value = self.service.service_id[:8]
             try:
-                env_var_service.create_env_var(self.service, container_port, env["name"], env["attr_name"], env["attr_value"],
-                                               env["is_change"], scope)
+                env_var_service.create_env_var(self.service, container_port, name, attr_name, value, is_change, scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
 
@@ -492,6 +513,8 @@ class MarketService(object):
         add = envs.get("add", [])
         for env in add:
             body = self._create_env_body(env, scope)
+            if not body:
+                continue
             try:
                 region_api.add_service_env(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                            body)
@@ -535,19 +558,21 @@ class MarketService(object):
         convert env to the body needed to add environment variables to the region
         """
         container_port = env.get("container_port", 0)
-        if container_port == 0 and env["attr_value"] == "**None**":
+        if 'attr_name' not in env:
+            return
+        if container_port == 0 and env.get("attr_value") == "**None**":
             env["attr_value"] = self.service.service_id[:8]
         result = {
             "container_port": container_port,
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
-            "name": env["name"],
+            "name": env.get("name"),
             "attr_name": env["attr_name"],
-            "attr_value": str(env["attr_value"]),
+            "attr_value": str(env.get("attr_value")),
             "is_change": True,
             "scope": scope,
             "env_name": env["attr_name"],
-            "env_value": str(env["attr_value"]),
+            "env_value": str(env.get("attr_value")),
             "enterprise_id": self.tenant.enterprise_id
         }
         return result
@@ -657,6 +682,7 @@ class MarketService(object):
             file_content = volume.get("file_content", None)
             if file_content is not None:
                 volume.pop("file_content")
+            logger.debug("add volume {} for component {}".format(volume["volume_name"], self.service.service_id))
             v = volume_repo.add_service_volume(**volume)
             if not file_content and volume["volume_type"] != "config-file":
                 continue
@@ -672,7 +698,8 @@ class MarketService(object):
             if not v:
                 logger.warning("service id: {}; volume name: {}; failed to update volume: \
                     volume not found.".format(self.service.service_id, volume["volume_name"]))
-            cfg = volume_repo.get_service_config_file(v.ID)
+            logger.debug("update volume {} for component {}".format(v.volume_name, self.service.service_id))
+            cfg = volume_repo.get_service_config_file(v)
             cfg.file_content = file_content
             cfg.save()
 
@@ -682,8 +709,13 @@ class MarketService(object):
         """
         for volume in volumes.get("add"):
             volume["enterprise_id"] = self.tenant.enterprise_id
-            region_api.add_service_volumes(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                           volume)
+            try:
+                region_api.add_service_volumes(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                               volume)
+            except RegionApiBaseHttpClient.CallApiError as e:
+                if not e.body or "is exist" not in e.body.msg:
+                    logger.exception(e)
+                    raise e
 
     def _restore_volumes(self, backup):
         backup_data = json.loads(backup.backup_data)
@@ -846,7 +878,7 @@ class MarketService(object):
                 "volume_type": dep_vol.volume_type
             }
             if dep_vol.volume_type == "config-file":
-                config_file = volume_repo.get_service_config_file(dep_vol.ID)
+                config_file = volume_repo.get_service_config_file(dep_vol)
                 data["file_content"] = config_file.file_content
             region_api.add_service_dep_volumes(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                                data)
@@ -883,10 +915,10 @@ class MarketService(object):
         logger.debug("start updating plugins; plugin datas: {}".format(plugins))
         add = plugins.get("add", [])
         try:
-            app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service, self.version,
-                                                        add)
+            app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service,
+                                                        self.template["apps"], self.version, add)
         except ServiceHandleException as e:
-            logger.warning("plugin data: {}; failed to create plugin: {}", add, e)
+            logger.exception(e)
 
         delete = plugins.get("delete", [])
         for plugin in delete:
@@ -901,8 +933,9 @@ class MarketService(object):
         add = plugins.get("add", [])
         for plugin in add:
             data = app_plugin_service.build_plugin_data_4marketsvc(self.tenant, self.service, plugin)
-            region_api.install_service_plugin(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                              data)
+            if data:
+                region_api.install_service_plugin(self.service.service_region, self.tenant.tenant_name,
+                                                  self.service.service_alias, data)
 
         delete = plugins.get("delete", [])
         for plugin in delete:

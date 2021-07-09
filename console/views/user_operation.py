@@ -24,6 +24,7 @@ from www.models.main import SuperAdminUser, Users
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.utils.return_message import error_message, general_message
+from console.login.jwt_manager import JwtManager
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
@@ -128,6 +129,8 @@ class TenantServiceView(BaseApiView):
                 user_info["nick_name"] = nick_name
                 user_info["client_ip"] = client_ip
                 user_info["is_active"] = 1
+                user_info["phone"] = register_form.cleaned_data["phone"]
+                user_info["real_name"] = register_form.cleaned_data["real_name"]
                 user = Users(**user_info)
                 user.set_password(password)
                 user.save()
@@ -159,10 +162,14 @@ class TenantServiceView(BaseApiView):
                 data["user_id"] = user.user_id
                 data["nick_name"] = user.nick_name
                 data["email"] = user.email
+                data["phone"] = user.phone
+                data["real_name"] = user.real_name
                 data["enterprise_id"] = user.enterprise_id
                 payload = jwt_payload_handler(user)
                 token = jwt_encode_handler(payload)
                 data["token"] = token
+                jwt_manager = JwtManager()
+                jwt_manager.set(token, user.user_id)
                 result = general_message(200, "register success", "注册成功", bean=data)
                 response = Response(result, status=200)
                 return response
@@ -409,14 +416,14 @@ class UserFavoriteLCView(JWTAuthApiView):
 
                 old_favorite = user_repo.get_user_favorite_by_name(request.user.user_id, name)
                 if old_favorite:
-                    result = general_message(400, "fail", "名称已存在")
-                    return Response(result, status=status.HTTP_200_OK)
+                    result = general_message(400, "fail", "收藏视图名称已存在")
+                    return Response(result, status=status.HTTP_400_BAD_REQUEST)
                 user_repo.create_user_favorite(request.user.user_id, name, url, is_default)
-                result = general_message(200, "success", "创建成功")
+                result = general_message(200, "success", "收藏视图创建成功")
                 return Response(result, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.debug(e)
-                result = general_message(400, "fail", "创建失败")
+                result = general_message(400, "fail", "收藏视图创建失败")
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
         else:
             result = general_message(400, "fail", "参数错误")

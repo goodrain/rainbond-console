@@ -6,7 +6,7 @@ NC='\033[0m' # No Color
 
 function database_ready() {
     if [ "${DB_TYPE}" == "mysql" ]; then
-        if mysql -h${MYSQL_HOST:-127.0.0.1} -P${MYSQL_PORT:-3306} -u${MYSQL_USER} -p${MYSQL_PASS} -e "use console;" >/dev/null; then
+        if mysql -h${MYSQL_HOST:-127.0.0.1} -P${MYSQL_PORT:-3306} -u${MYSQL_USER} -p${MYSQL_PASS} -e "use ${MYSQL_DB};" >/dev/null; then
             return 0 # 0 = true
         fi
         return 1 # 1 = false
@@ -19,8 +19,16 @@ if [ "$1" = "debug" -o "$1" = "bash" ]; then
 elif [ "$1" = "version" ]; then
     echo "${RELEASE_DESC}"
 else
+    for i in {1..4}; do
+        if ! (database_ready); then
+            echo -e "${RED}Database not ready, will waiting${NC}"
+            sleep 3
+        else
+            break
+        fi
+    done
     if ! (database_ready); then
-        echo -e "${RED}Database not ready${NC}"
+        echo -e "${RED}Database not ready, will exit.${NC}"
         exit 1
     fi
 

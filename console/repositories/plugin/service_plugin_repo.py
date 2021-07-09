@@ -9,8 +9,10 @@ from www.models.plugin import TenantServicePluginRelation
 
 
 class AppPluginRelationRepo(object):
-    def get_multi_service_plugin(self, service_ids):
-        return TenantServicePluginRelation.objects.filter(service_id__in=service_ids)
+    @staticmethod
+    def list_by_component_ids(service_ids):
+        rels = TenantServicePluginRelation.objects.filter(service_id__in=service_ids)
+        return [rel for rel in rels]
 
     def get_service_plugin_relation_by_service_id(self, service_id):
         return TenantServicePluginRelation.objects.filter(service_id=service_id)
@@ -55,6 +57,12 @@ class AppPluginRelationRepo(object):
     def bulk_create(self, plugin_relations):
         TenantServicePluginRelation.objects.bulk_create(plugin_relations)
 
+    @staticmethod
+    def overwrite_by_component_ids(component_ids, plugin_deps):
+        plugin_deps = [plugin_dep for plugin_dep in plugin_deps if plugin_dep.service_id in component_ids]
+        TenantServicePluginRelation.objects.filter(service_id__in=component_ids).delete()
+        TenantServicePluginRelation.objects.bulk_create(plugin_deps)
+
     def check_plugins_by_eid(self, eid):
         """
         check if an app has been shared
@@ -91,3 +99,14 @@ class ServicePluginConfigVarRepository(object):
 
     def get_service_plugin_all_config(self, service_id):
         return ServicePluginConfigVar.objects.filter(service_id=service_id)
+
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        configs = ServicePluginConfigVar.objects.filter(service_id__in=component_ids)
+        return [config for config in configs]
+
+    @staticmethod
+    def overwrite_by_component_ids(component_ids, plugin_configs):
+        plugin_configs = [config for config in plugin_configs if config.service_id in component_ids]
+        ServicePluginConfigVar.objects.filter(service_id__in=component_ids).delete()
+        ServicePluginConfigVar.objects.bulk_create(plugin_configs)

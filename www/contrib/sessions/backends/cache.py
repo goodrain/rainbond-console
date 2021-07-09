@@ -1,6 +1,7 @@
 from django.contrib.sessions.backends.cache import SessionStore as BaseSessionStore
 
 import logging
+
 logger = logging.getLogger('default')
 
 

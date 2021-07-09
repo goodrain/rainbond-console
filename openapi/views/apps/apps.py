@@ -165,15 +165,8 @@ class AppInfoView(TeamAppAPIView):
                             app_manage_service.delete_again(self.user, self.team, service, is_force=True)
                 if code_status != 200:
                     raise ServiceHandleException(msg=msg_list, msg_show="请求错误")
-                else:
-                    code, msg, data = group_service.delete_group_no_service(self.app.ID)
-                    if code != 200:
-                        raise ServiceHandleException(msg=msg, msg_show="请求错误")
-                    return Response(None, status=code)
-        code, msg, data = group_service.delete_group_no_service(self.app.ID)
-        if code != 200:
-            raise ServiceHandleException(msg=msg, msg_show="请求错误")
-        return Response(None, status=code)
+        group_service.delete_app(self.team, self.region_name, self.app)
+        return Response(None, status=200)
 
 
 class APPOperationsView(TeamAppAPIView):
@@ -209,17 +202,11 @@ class APPOperationsView(TeamAppAPIView):
             self.has_perms([300007, 400009])
         if action == "deploy":
             self.has_perms([300008, 400010])
-        code, msg = app_manage_service.batch_operations(self.team, request.user, action, service_ids, None)
-        if code != 200:
-            result = {"msg": "batch operation error"}
-            rst_serializer = FailSerializer(data=result)
-            rst_serializer.is_valid()
-            return Response(rst_serializer.data, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            result = {"msg": msg}
-            rst_serializer = SuccessSerializer(data=result)
-            rst_serializer.is_valid()
-            return Response(rst_serializer.data, status=status.HTTP_200_OK)
+        app_manage_service.batch_operations(self.team, self.region_name, request.user, action, service_ids, None)
+        result = {"msg": "操作成功"}
+        rst_serializer = SuccessSerializer(data=result)
+        rst_serializer.is_valid()
+        return Response(rst_serializer.data, status=status.HTTP_200_OK)
 
 
 class ListAppServicesView(TeamAppAPIView):
@@ -254,8 +241,8 @@ class CreateThirdComponentView(TeamAppAPIView):
         req_date = ctcs.data
         validate_endpoints_info(req_date["endpoints"])
         new_component = console_app_service.create_third_party_app(self.region_name, self.team, self.user,
-                                                                   req_date["component_name"], req_date["endpoints"],
-                                                                   req_date["endpoints_type"])
+                                                                   req_date["component_name"], req_date["endpoints_type"],
+                                                                   req_date["endpoints"])
         # add component to app
         code, msg_show = group_service.add_service_to_group(self.team, self.region_name, app_id, new_component.service_id)
         if code != 200:
@@ -361,8 +348,16 @@ class AppServiceTelescopicVerticalView(TeamAppServiceAPIView, EnterpriseServiceO
         serializer = AppServiceTelescopicVerticalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_memory = serializer.data.get("new_memory")
+        new_gpu = serializer.data.get("new_gpu", None)
+        new_cpu = serializer.data.get("new_cpu", None)
         code, msg = app_manage_service.vertical_upgrade(
-            self.team, self.service, self.user, int(new_memory), oauth_instance=self.oauth_instance)
+            self.team,
+            self.service,
+            self.user,
+            int(new_memory),
+            oauth_instance=self.oauth_instance,
+            new_gpu=new_gpu,
+            new_cpu=new_cpu)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="vertical upgrade error", msg_show=msg)
         return Response(None, status=code)

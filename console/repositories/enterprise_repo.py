@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from django.db.models import Q
-
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.exceptions import (ExterpriseNotExistError, UserNotExistError)
 from console.models.main import (Applicants, EnterpriseUserPerm, RainbondCenterApp)
@@ -12,6 +10,7 @@ from console.repositories.service_repo import service_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import (UserRoleNotFoundException, user_role_repo)
+from django.db.models import Q
 from www.models.main import (PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise, TenantRegionInfo, Tenants,
                              Users)
 
@@ -87,7 +86,7 @@ class TenantEnterpriseRepo(object):
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
     def get_enterprise_shared_app_nums(self, enterprise_id):
-        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, source="local")
+        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id)
         if not apps:
             return 0
         return len(set(apps.values_list("app_id", flat=True)))
@@ -98,6 +97,7 @@ class TenantEnterpriseRepo(object):
             return None
         active_tenants_list = []
         for tenant in tenants:
+            role = None
             owner = None
             try:
                 owner = user_repo.get_user_by_user_id(tenant.creater)
@@ -107,28 +107,25 @@ class TenantEnterpriseRepo(object):
             except UserRoleNotFoundException:
                 if tenant.creater == user_id:
                     role = "owner"
-                else:
-                    role = None
-            region_name_list = []
-            region_list = team_repo.get_team_regions(tenant.tenant_id)
-            if region_list:
-                region_name_list = region_list.values_list("region_name", flat=True)
-            team_item = {
-                "tenant_id": tenant.tenant_id,
-                "team_alias": tenant.tenant_alias,
-                "owner": tenant.creater,
-                "owner_name": owner.get_name() if owner else "",
-                "enterprise_id": tenant.enterprise_id,
-                "create_time": tenant.create_time,
-                "team_name": tenant.tenant_name,
-                "region": tenant.region,
-                "region_list": region_name_list,
-                "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
-                "role": role
-            }
-            if not team_item["region"] and len(region_name_list) > 0:
-                team_item["region"] = region_name_list[0]
-            active_tenants_list.append(team_item)
+
+            region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
+            if len(region_name_list) > 0:
+                team_item = {
+                    "tenant_id": tenant.tenant_id,
+                    "team_alias": tenant.tenant_alias,
+                    "owner": tenant.creater,
+                    "owner_name": owner.get_name() if owner else "",
+                    "enterprise_id": tenant.enterprise_id,
+                    "create_time": tenant.create_time,
+                    "team_name": tenant.tenant_name,
+                    "region": region_name_list[0] if region_name_list else "",
+                    "region_list": region_name_list,
+                    "num": len(ServiceGroup.objects.filter(tenant_id=tenant.tenant_id)),
+                    "role": role
+                }
+                if not team_item["region"] and len(region_name_list) > 0:
+                    team_item["region"] = region_name_list[0]
+                active_tenants_list.append(team_item)
         active_tenants_list.sort(key=lambda x: x["num"], reverse=True)
         active_tenants_list = active_tenants_list[:3]
         return active_tenants_list
@@ -262,7 +259,7 @@ class TenantEnterpriseRepo(object):
         if not group_relation_services:
             return [], 0
         service_ids = group_relation_services.values_list("service_id", flat=True)
-        services = service_repo.get_service_by_service_ids(service_ids)
+        services = service_repo.list_by_component_ids(service_ids)
         return services[(page - 1) * page_size:page * page_size], services.count()
 
 

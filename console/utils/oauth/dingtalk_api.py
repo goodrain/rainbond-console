@@ -82,7 +82,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
     def _compute_signature(self, secret, canonicalString):
         message = canonicalString.encode(encoding="utf-8")
         sec = secret.encode(encoding="utf-8")
-        return str(base64.b64encode(hmac.new(sec, message, digestmod=hashlib.sha256).digest()))
+        return base64.b64encode(hmac.new(sec, message, digestmod=hashlib.sha256).digest()).decode()
 
     def _get_user_info(self, code=None):
         '''

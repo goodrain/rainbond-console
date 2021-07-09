@@ -190,7 +190,8 @@ class ServiceGroupView(RegionTenantHeaderView):
         """
         code = 200
         query = request.GET.get("query", "")
-        groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
+        app_type = request.GET.get("app_type", "")
+        groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query, app_type)
         return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
 
 
@@ -241,6 +242,8 @@ class GroupServiceView(RegionTenantHeaderView):
                     team_id=self.team.tenant_id,
                     region_name=self.response_region,
                     enterprise_id=self.team.enterprise_id)
+                if page_size == "-1" or page_size == "" or page_size == "0":
+                    page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
                 paginator = Paginator(no_group_service_list, page_size)
                 try:
                     no_group_service_list = paginator.page(page).object_list
@@ -264,6 +267,8 @@ class GroupServiceView(RegionTenantHeaderView):
                 team_name=self.team_name,
                 enterprise_id=self.team.enterprise_id,
                 query=query)
+            if page_size == "-1" or page_size == "" or page_size == "0":
+                page_size = len(group_service_list) if len(group_service_list) > 0 else 10
             paginator = Paginator(group_service_list, page_size)
             try:
                 group_service_list = paginator.page(page).object_list
@@ -318,14 +323,16 @@ class ServiceEventsView(RegionTenantHeaderView):
         total = 0
         region_list = region_repo.get_team_opened_region(self.tenant)
         event_service_dynamic_list = []
-        for region in region_list:
-            try:
-                events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id, self.tenant,
-                                                                                region.region_name, int(page), int(page_size))
-                event_service_dynamic_list = event_service_dynamic_list + events
-                total = total + event_count
-            except Exception as e:
-                logger.error("Region api return error {0}, ignore it".format(e))
+        if region_list:
+            for region in region_list:
+                try:
+                    events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id,
+                                                                                    self.tenant, region.region_name, int(page),
+                                                                                    int(page_size))
+                    event_service_dynamic_list = event_service_dynamic_list + events
+                    total = total + event_count
+                except Exception as e:
+                    logger.error("Region api return error {0}, ignore it".format(e))
 
         event_service_dynamic_list = sorted(event_service_dynamic_list, key=cmp_to_key(self.__sort_events))
 
@@ -334,7 +341,7 @@ class ServiceEventsView(RegionTenantHeaderView):
             if event["Target"] == "service":
                 service_ids.append(event["TargetID"])
 
-        services = service_repo.get_service_by_service_ids(service_ids)
+        services = service_repo.list_by_component_ids(service_ids)
 
         event_service_list = []
         for event in event_service_dynamic_list:

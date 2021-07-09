@@ -16,18 +16,25 @@ import sys
 
 from corsheaders.defaults import default_headers
 
-APPEND_SLASH = False
+# rainbond version
+VERSION = "5.3.0"
+
+APPEND_SLASH = True
 SETTING_DIR = os.path.dirname(__file__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 HOME_DIR = os.getenv("HOME_DIR", BASE_DIR)
 
 DATA_DIR = os.path.join(HOME_DIR, 'data')
+DATA_DIR = os.getenv("DATA_DIR", DATA_DIR)
 # Create log directory
 LOG_PATH = os.getenv("LOG_PATH", os.path.join(HOME_DIR, 'logs'))
 folder = os.path.exists(LOG_PATH)
 if not folder:
     os.makedirs(LOG_PATH)
+
+MEDIA_URL = '/data/media/'
+MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 
 DEFAULT_HANDLERS = ['file_handler', 'console']
 
@@ -116,18 +123,6 @@ MODULES = {
     "Privite_Github": False,
     "SSO_LOGIN": SSO_LOGIN == "TRUE",
 }
-
-if os.getenv("MEMCACHED_HOST") and os.getenv("MEMCACHED_PORT"):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-            'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
-        },
-        'session': {
-            'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-            'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
-        }
-    }
 
 TENANT_VALID_TIME = 7
 
@@ -260,11 +255,7 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static/'
-MEDIA_URL = '/data/media/'
-MEDIA_ROOT = '/data/media'
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
-
-# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 LOGGING = {
     'version': 1,

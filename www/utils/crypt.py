@@ -6,7 +6,7 @@ import uuid
 
 
 def encrypt_passwd(string):
-    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(ord(string[2]) / 7)
+    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(int(ord(string[2]) / 7))
     password = hashlib.sha224(new_word.encode("utf-8")).hexdigest()[0:16]
     return password
 
@@ -43,6 +43,8 @@ class AuthCode(object):
         @param key: 密钥
         @return:原始字符串
         """
+        if type(string) is bytes:
+            string = string.decode()
         remainder = len(string) % 4
         if 0 < remainder < 4:
             string += '=' * (4 - remainder)
@@ -50,6 +52,8 @@ class AuthCode(object):
 
     @staticmethod
     def _md5(source_string):
+        if type(source_string) == str:
+            return hashlib.md5(source_string.encode('UTF-8')).hexdigest()
         return hashlib.md5(source_string).hexdigest()
 
     @classmethod
@@ -85,6 +89,11 @@ class AuthCode(object):
 
         if operation == 'DECODE':
             handled_string = base64.urlsafe_b64decode(input_string[rand_key_length:])
+            # Compatible with old backup package
+            try:
+                handled_string = handled_string.decode()
+            except UnicodeDecodeError:
+                pass
         else:
             expiration_time = expiry + int(time.time) if expiry else 0
             handled_string = '%010d' % expiration_time + cls._md5(input_string + key_b)[:16] + input_string
@@ -117,7 +126,10 @@ class AuthCode(object):
             tmp = box[a]
             box[a] = box[j]
             box[j] = tmp
-            result += chr(ord(handled_string[i]) ^ (box[(box[a] + box[j]) % 256]))
+            if type(handled_string[i]) == str:
+                result += chr(ord(handled_string[i]) ^ (box[(box[a] + box[j]) % 256]))
+                continue
+            result += chr(handled_string[i] ^ (box[(box[a] + box[j]) % 256]))
 
         if operation == 'DECODE':
             if (int(result[:10]) == 0 or (int(result[:10]) - time.time() > 0)) and \
@@ -126,7 +138,7 @@ class AuthCode(object):
             else:
                 output_string = ''
         else:
-            encode_string = base64.urlsafe_b64encode(result)
-            output_string = key_c + encode_string.replace('=', '')
+            encode_string = base64.urlsafe_b64encode(result.encode('UTF-8'))
+            output_string = key_c + encode_string.decode().replace('=', '')
 
         return output_string

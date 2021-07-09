@@ -10,6 +10,7 @@ from console.repositories.oauth_repo import oauth_user_repo
 
 from console.services.enterprise_services import enterprise_services
 from console.services.user_services import user_services
+from console.login.jwt_manager import JwtManager
 
 from www.models.main import Users
 
@@ -74,6 +75,8 @@ class OAuthUserService(object):
                 if api_settings.JWT_AUTH_COOKIE:
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=30))
                     response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+                jwt_manager = JwtManager()
+                jwt_manager.set(token, authenticated_user.user_id)
                 return response
 
             else:
@@ -117,6 +120,8 @@ class OAuthUserService(object):
                 if api_settings.JWT_AUTH_COOKIE:
                     expiration = (datetime.datetime.now() + api_settings.JWT_EXPIRATION_DELTA)
                     response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                jwt_manager = JwtManager()
+                jwt_manager.set(token, user.user_id)
                 return response
             msg = "user is not authenticated"
             return Response({"data": {"bean": {"result": rst, "msg": msg}}}, status=200)

@@ -4,16 +4,14 @@
 """
 import logging
 
+from console.exception.main import AbortRequest
+from console.repositories.app_config import port_repo
+from console.services.app_config import domain_service, port_service
+from console.utils.reqparse import parse_item
+from console.views.app_config.base import AppBaseView
 from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.exception.main import AbortRequest
-from console.utils.reqparse import parse_item
-from console.repositories.app_config import port_repo
-from console.services.app_config import domain_service
-from console.services.app_config import port_service
-from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -48,20 +46,19 @@ class AppPortView(AppBaseView):
             outer_url = ""
             inner_url = ""
 
-            if port_info["environment"]:
-                if port.is_inner_service:
-                    try:
-                        inner_host, inner_port = "127.0.0.1", None
-                        for pf in port_info["environment"]:
-                            if not pf.get("name"):
-                                continue
-                            if pf.get("name").endswith("PORT"):
-                                inner_port = pf.get("value")
-                            if pf.get("name").endswith("HOST"):
-                                inner_host = pf.get("value")
-                        inner_url = "{0}:{1}".format(inner_host, inner_port)
-                    except Exception as se:
-                        logger.exception(se)
+            if port_info["environment"] and port.is_inner_service:
+                try:
+                    inner_host, inner_port = "127.0.0.1", None
+                    for pf in port_info["environment"]:
+                        if not pf.get("name"):
+                            continue
+                        if pf.get("name").endswith("PORT"):
+                            inner_port = pf.get("value")
+                        if pf.get("name").endswith("HOST"):
+                            inner_host = pf.get("value")
+                    inner_url = "{0}:{1}".format(inner_host, inner_port)
+                except Exception as se:
+                    logger.exception(se)
             port_info["inner_url"] = inner_url
             outer_service = variables.get("outer_service", None)
             if outer_service:
@@ -140,7 +137,7 @@ class AppPortView(AppBaseView):
         if not port_alias:
             port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
         code, msg, port_info = port_service.add_service_port(self.tenant, self.service, port, protocol, port_alias,
-                                                             is_inner_service, is_outer_service, self.user.nick_name)
+                                                             is_inner_service, is_outer_service, None, self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
 
@@ -209,11 +206,8 @@ class AppPortManageView(AppBaseView):
         """
         container_port = kwargs.get("port", None)
         if not container_port:
-            return Response(general_message(400, "container_port not specify", "端口变量名未指定"), status=400)
-        code, msg, data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port),
-                                                                     self.user.nick_name)
-        if code != 200:
-            return Response(general_message(code, "delete port fail", msg), status=code)
+            raise AbortRequest("container_port not specify", "端口变量名未指定")
+        data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port), self.user.nick_name)
         result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
         return Response(result, status=result["code"])
 

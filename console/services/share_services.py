@@ -35,21 +35,16 @@ class ShareService(object):
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
-            can_publish_list = [service for service in service_list if service.service_source != "market"]
-            if not can_publish_list:
-                data = {"code": 400, "success": False, "msg_show": "此应用中的组件全部来源于共享库或应用商店,无法再次发布", "list": [], "bean": {}}
-                return data
-            else:
-                # 批量查询组件状态
-                service_ids = [service.service_id for service in service_list]
-                status_list = base_service.status_multi_service(
-                    region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
-                for status in status_list:
-                    if status["status"] != "running":
-                        data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(), "bean": dict()}
-                        return data
-                data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(), "bean": dict()}
-                return data
+            # 批量查询组件状态
+            service_ids = [service.service_id for service in service_list]
+            status_list = base_service.status_multi_service(
+                region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
+            for status in status_list:
+                if status["status"] == "running":
+                    data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
+                    return data
+            data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
+            return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
             return data
@@ -220,7 +215,8 @@ class ShareService(object):
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
-                    service_versions[version["service_id"]] = version["build_version"]
+                    if version and "service_id" in version and "build_version" in version:
+                        service_versions[version["service_id"]] = version["build_version"]
                 return service_versions
         except Exception as e:
             logger.exception(e)
@@ -228,11 +224,6 @@ class ShareService(object):
         return None
 
     def query_share_service_info(self, team, group_id, scope=None):
-        service_last_share_info, _ = self.get_last_shared_app_version(team, group_id, scope)
-        if service_last_share_info:
-            service_last_share_info = service_last_share_info.get("apps")
-            if service_last_share_info:
-                service_last_share_info = {service["service_id"]: service for service in service_last_share_info}
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
@@ -260,6 +251,8 @@ class ShareService(object):
             all_data_map = dict()
 
             for service in service_list:
+                if not deploy_versions or not deploy_versions.get(service.service_id):
+                    continue
                 data = dict()
                 data['service_id'] = service.service_id
                 data['tenant_id'] = service.tenant_id
@@ -267,6 +260,7 @@ class ShareService(object):
                 # The component is redistributed without the key from the installation source, which would cause duplication.
                 # service_id  can be thought of as following a component lifecycle.
                 data['service_key'] = service.service_id
+                # service_share_uuid The build policy cannot be changed
                 data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
                 data['need_share'] = True
                 data['category'] = service.category
@@ -286,15 +280,16 @@ class ShareService(object):
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 e_m = dict()
                 e_m['step_node'] = 1
-                e_m['min_memory'] = service.min_memory
+                e_m['min_memory'] = 64
+                e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
-                e_m['step_memory'] = 128
+                e_m['step_memory'] = 64
                 e_m['is_restart'] = 0
                 e_m['min_node'] = service.min_node
                 if is_singleton(service.extend_method):
                     e_m['max_node'] = 1
                 else:
-                    e_m['max_node'] = 20
+                    e_m['max_node'] = 64
                 data['extend_method_map'] = e_m
                 data['port_map_list'] = list()
                 if service_port_map.get(service.service_id):
@@ -316,7 +311,7 @@ class ShareService(object):
                         s_v = dict()
                         s_v['file_content'] = ''
                         if volume.volume_type == "config-file":
-                            config_file = volume_repo.get_service_config_file(volume.ID)
+                            config_file = volume_repo.get_service_config_file(volume)
                             if config_file:
                                 s_v['file_content'] = config_file.file_content
                         s_v['category'] = volume.category
@@ -346,7 +341,6 @@ class ShareService(object):
                             data['service_env_map_list'].append(e_c)
 
                 data['service_related_plugin_config'] = list()
-                # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
                 plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=[service.service_id])
                 for spr in plugins_relation_list:
                     service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(
@@ -354,14 +348,7 @@ class ShareService(object):
                     plugin_data = spr.to_dict()
                     plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
                     data['service_related_plugin_config'].append(plugin_data)
-                if service_last_share_info:
-                    service_data = service_last_share_info.get(service.service_id)
-                    if service_data:
-                        data["extend_method_map"] = self.service_last_share_cache(data["extend_method_map"],
-                                                                                  service_data["extend_method_map"])
-                        data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
-                                                                                     service_data["service_env_map_list"])
-                        # component moniotr
+                # component moniotr
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
 
@@ -508,6 +495,7 @@ class ShareService(object):
                         "image_info": app.get("service_image", None),
                         "slug_info": app.get("service_slug", None)
                     }
+                    re_body = None
                     try:
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
@@ -562,6 +550,8 @@ class ShareService(object):
         if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
         app_template = json.loads(apps_version.app_template)
+        if "plugins" not in app_template:
+            return
         plugins_info = app_template["plugins"]
         plugin_list = []
         for plugin in plugins_info:
@@ -795,8 +785,10 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
-                        # slug组件
-                        if delivered_type_map[service['service_id']] == "slug":
+                        delivered_type = delivered_type_map.get(service['service_id'], None)
+                        if not delivered_type:
+                            continue
+                        if delivered_type == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
                                                                                   share_team.enterprise_id)
                             service["share_type"] = "slug"
@@ -861,7 +853,8 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
             )
-            # print(json.dumps(app_templete))
+            if app_store.is_no_multiple_region_hub(enterprise_id=share_team.enterprise_id):
+                app_version.region_name = region_name
             app_version.save()
             share_record.step = 2
             share_record.scope = scope
@@ -870,6 +863,7 @@ class ShareService(object):
             share_record.share_version_alias = version_alias
             share_record.share_app_market_name = market_id
             share_record.update_time = datetime.datetime.now()
+            share_record.share_app_version_info = version_describe
             share_record.save()
             # 提交事务
             if sid:
@@ -893,6 +887,8 @@ class ShareService(object):
                 group.config_group_name,
                 "injection_type":
                 group.deploy_type,
+                "enable":
+                group.enable,
                 "config_items":
                 {item.item_key: item.item_value
                  for item in app_config_group_item_repo.list(group.config_group_id)},

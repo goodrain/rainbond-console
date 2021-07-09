@@ -1,6 +1,5 @@
 Django==1.11.29
-mysqlclient==2.0.2
-pylibmc==1.5.0
+mysqlclient==2.0.1
 django-crispy-forms==1.6.0
 addict==0.4.0
 gunicorn==19.10.0
@@ -36,4 +35,5 @@ PyGithub==1.44.1
 enum34==1.1.6
 validators==0.14.2
 deprecated==1.2.10
--e git+https://github.com/goodrain/appstore-sdk-python.git@python3#egg=openapi_client
+redis==3.5.3
+-e git+https://gitee.com/rainbond/appstore-sdk-python.git@python3#egg=openapi_client

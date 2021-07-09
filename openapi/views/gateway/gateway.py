@@ -197,11 +197,11 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             http_rules = domain_service.get_http_rules_by_app_id(app_id)
             data["http"] = http_rules
         elif query == "tcp":
-            tcp_rules = domain_service.get_tcp_rules_by_app_id(app_id)
+            tcp_rules = domain_service.get_tcp_rules_by_app_id(self.region_name, app_id)
             data["tcp"] = tcp_rules
         else:
             http_rules = domain_service.get_http_rules_by_app_id(app_id)
-            tcp_rules = domain_service.get_tcp_rules_by_app_id(app_id)
+            tcp_rules = domain_service.get_tcp_rules_by_app_id(self.region_name, app_id)
             data["http"] = http_rules
             data["tcp"] = tcp_rules
 
@@ -253,11 +253,8 @@ class ListAppGatewayRuleView(TeamAppAPIView):
                 logger.exception(e)
                 raise ServiceHandleException(status_code=code, msg="change port fail", msg_show="open port failure")
             # 添加tcp策略
-            code, msg, data = domain_service.bind_tcpdomain(self.team, self.user, service, end_point, container_port,
-                                                            default_port, rule_extensions, default_ip)
-
-            if code != 200:
-                raise ServiceHandleException(status_code=code, msg="bind domain error", msg_show=msg)
+            domain_service.bind_tcpdomain(self.team, self.user, service, end_point, container_port, default_port,
+                                          rule_extensions, default_ip)
 
         elif ads.data.get("protocol") == "http":
             httpdomain = ads.data.get("http")
@@ -302,7 +299,7 @@ class ListAppGatewayRuleView(TeamAppAPIView):
             raise ServiceHandleException(msg="error parameters: protocol", msg_show="错误参数: protocol")
         data = {}
         http_rules = domain_service.get_http_rules_by_app_id(app_id)
-        tcp_rules = domain_service.get_tcp_rules_by_app_id(app_id)
+        tcp_rules = domain_service.get_tcp_rules_by_app_id(self.region_name, app_id)
         data["http"] = http_rules
         data["tcp"] = tcp_rules
         re = GatewayRuleSerializer(data)
