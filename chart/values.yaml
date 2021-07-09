@@ -1,0 +1,254 @@
+# set storage
+pvc:
+  storageClassName: rainbondvolumerwx
+  # 5Gi
+  storageSize: 5Gi
+
+# redis configuration
+redis:
+  # set name
+  fullname: rainbond-redis
+
+  # redis images
+  image:
+    repository: redis
+    pullPolicy: IfNotPresent
+    tag: 4.0.12
+
+  # password 
+  password: "123456"
+  podAnnotations: {}
+
+  # set labels
+  selectorLabels: 
+    rainbond: redis
+
+  # # storage
+  # pvc:
+  #   storageClassName: rainbondvolumerwx
+  #   # 5Gi
+  #   storageSize: 5Gi
+
+  # set pod resources 
+  resources:
+    limits:
+      cpu: 80m
+      memory: 64Mi
+    requests:
+      cpu: 30m
+      memory: 64Mi
+
+  nodeSelector: {}
+  affinity: {}
+
+# mysql configuration
+mysql:
+  fullname: rainbond-mysql
+  # mysql images
+  image:
+    repository: mysql
+    pullPolicy: IfNotPresent
+    tag: 5.7.23
+
+  # mysql user pass
+  secret:
+    user: admin
+    password: admin
+    rootpassword: root
+    database: console
+
+  podAnnotations: {}
+
+  # set labels
+  selectorLabels: 
+    rainbond: mysql
+
+  # storage
+  # pvc:
+  #   storageClassName: rainbondvolumerwx
+  #   # 5Gi
+  #   storageSize: 5Gi
+
+  # set pod resources 
+  resources:
+    limits:
+      cpu: 640m
+      memory: 512Mi
+    requests:
+      cpu: 120m
+      memory: 512Mi
+
+  nodeSelector: {}
+  affinity: {}
+
+# adaptor configuration
+adaptor:
+
+  # set name
+  fullname: rainbond-adaptor
+
+  # enable adaptor
+  enable: false
+
+  # adaptor images
+  image:
+    repository: hub.goodrain.com/859a51f9bb3b48b5bfd222e3bef56425/16e3a841549bbd12110996d05f06c3bc
+    pullPolicy: IfNotPresent
+    tag: "20210705194120"
+
+  podAnnotations: {}
+
+  # set labels
+  selectorLabels: 
+    rainbond: adaptor
+
+  # storage
+  # pvc:
+  #   storageClassName: rainbondvolumerwx
+  #   # 5Gi
+  #   storageSize: 5Gi
+
+  # set pod resources 
+  resources:
+    limits:
+      cpu: 80m
+      memory: 64Mi
+    requests:
+      cpu: 30m
+      memory: 64Mi
+
+  nodeSelector: {}
+  affinity: {}
+
+# console configuration
+console:
+
+  # set name
+  fullname: rainbond-console
+
+  # enable console
+  enable: false
+
+  # set replicas
+  replicasCount: 1
+
+  # set RELEASE_DESC
+  RELEASE_DESC: "v5.3.1-release-20210703"
+
+  # console images
+  image:
+    repository: hub.goodrain.com/859a51f9bb3b48b5bfd222e3bef56425/5eead886f81d475f48ff2c2e71fa20f1
+    pullPolicy: IfNotPresent
+    tag: "20210705193612"
+
+  podAnnotations: {}
+
+  # set labels
+  selectorLabels: 
+    rainbond: console
+
+  # storage
+  # pvc:
+  #   storageClassName: rainbondvolumerwx
+  #   # 5Gi
+  #   storageSize: 5Gi
+
+  # set pod resources 
+  resources:
+    limits:
+      cpu: 1280m
+      memory: 1Gi
+    requests:
+      cpu: 240m
+      memory: 1Gi
+
+  nodeSelector: {}
+  affinity: {}
+
+# ui configuration
+ui:
+
+  # set name
+  fullname: rainbond-ui
+
+  # enable ui
+  enable: false
+
+  # set replicas
+  replicasCount: 1
+
+  # ui images
+  image:
+    repository: hub.goodrain.com/859a51f9bb3b48b5bfd222e3bef56425/94cc86f1400e52d90773a96e094372fb
+    pullPolicy: IfNotPresent
+    tag: "20210705194043"
+  
+  # set service
+  svc:
+    type: NodePort
+    nodePort: 30600
+
+  podAnnotations: {}
+
+  # set labels
+  selectorLabels: 
+    rainbond: ui
+
+  # set pod resources 
+  resources:
+    limits:
+      cpu: 120m
+      memory: 128Mi
+    requests:
+      cpu: 30m
+      memory: 128Mi
+
+  nodeSelector: {}
+  affinity: {}
+
+# allinone
+allinone:
+
+  # set name
+  fullname: rainbond-allinone
+
+  # enable allinone
+  enable: true
+
+  # set replicas
+  replicasCount: 1
+
+  # console images
+  image:
+    repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond
+    pullPolicy: IfNotPresent
+    tag: "v5.3.1-release-allinone"
+
+  # set service
+  svc:
+    type: NodePort
+    nodePort: 30707
+
+  podAnnotations: {}
+
+  # set labels
+  selectorLabels: 
+    rainbond: allinone
+
+  # storage
+  # pvc:
+  #   storageClassName: rainbondvolumerwx
+  #   # 5Gi
+  #   storageSize: 5Gi
+
+  # set pod resources 
+  resources: {}
+    # limits:
+    #   cpu: 640m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 120m
+    #   memory: 512Mi
+
+  nodeSelector: {}
+  affinity: {}
