@@ -1,6 +1,6 @@
 # set storage
 pvc:
-  storageClassName: rainbondvolumerwx
+  storageClassName: ""
   # 5Gi
   storageSize: 5Gi
 
@@ -22,12 +22,6 @@ redis:
   # set labels
   selectorLabels: 
     rainbond: redis
-
-  # # storage
-  # pvc:
-  #   storageClassName: rainbondvolumerwx
-  #   # 5Gi
-  #   storageSize: 5Gi
 
   # set pod resources 
   resources:
@@ -63,12 +57,6 @@ mysql:
   selectorLabels: 
     rainbond: mysql
 
-  # storage
-  # pvc:
-  #   storageClassName: rainbondvolumerwx
-  #   # 5Gi
-  #   storageSize: 5Gi
-
   # set pod resources 
   resources:
     limits:
@@ -101,12 +89,6 @@ adaptor:
   # set labels
   selectorLabels: 
     rainbond: adaptor
-
-  # storage
-  # pvc:
-  #   storageClassName: rainbondvolumerwx
-  #   # 5Gi
-  #   storageSize: 5Gi
 
   # set pod resources 
   resources:
@@ -234,12 +216,6 @@ allinone:
   # set labels
   selectorLabels: 
     rainbond: allinone
-
-  # storage
-  # pvc:
-  #   storageClassName: rainbondvolumerwx
-  #   # 5Gi
-  #   storageSize: 5Gi
 
   # set pod resources 
   resources: {}
