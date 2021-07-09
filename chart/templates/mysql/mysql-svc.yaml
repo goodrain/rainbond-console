@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mysql.fullname }}
+  labels:
+    rainbond: mysql
+spec:
+  ports:
+  - port: 3306
+    name: tcp
+  clusterIP: None
+  {{- with .Values.mysql.selectorLabels }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
