@@ -185,7 +185,7 @@ class BaseService(object):
         apps = dict()
         markets = dict()
         build_infos = dict()
-        services = service_repo.get_service_by_service_ids(service_ids=service_ids)
+        services = service_repo.list_by_component_ids(service_ids=service_ids)
         svc_sources = service_source_repo.get_service_sources(team_id=tenant.tenant_id, service_ids=service_ids)
         service_sources = {svc_ss.service_id: svc_ss for svc_ss in svc_sources}
 

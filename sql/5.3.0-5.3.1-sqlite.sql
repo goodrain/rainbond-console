@@ -134,4 +134,47 @@ ALTER TABLE `service_group` ADD COLUMN `app_store_name` varchar(255) NULL;
 ALTER TABLE `service_group` ADD COLUMN `app_store_url` varchar(2047) NULL;
 ALTER TABLE `service_group` ADD COLUMN `app_template_name` varchar(255) NULL;
 ALTER TABLE `service_group` ADD COLUMN `version` varchar(255) NULL;
+ALTER TABLE `service_group` ADD COLUMN `app_type` varchar(255) DEFAULT 'rainbond';
+
+--dedup tenant_service_group--
+DELETE 
+FROM
+ tenant_service_group 
+WHERE
+ id NOT IN ( SELECT id FROM ( SELECT min( id ) AS id FROM tenant_service_group GROUP BY group_key, service_group_id ) AS b );
+
+-- update tenant_service_group version --
+UPDATE `tenant_service_group` 
+SET group_version = (
+	SELECT
+		max( ss.version ) AS version 
+	FROM
+		service_source ss,
+		tenant_service ts 
+	WHERE
+		ss.service_id = ts.service_id 
+		AND ts.tenant_service_group_id = tenant_service_group.ID 
+	GROUP BY
+		ts.tenant_service_group_id 
+	) 
+WHERE
+	EXISTS (
+	SELECT
+		max( ss.version ) AS version 
+	FROM
+		service_source ss,
+		tenant_service ts 
+	WHERE
+		ss.service_id = ts.service_id 
+		AND ts.tenant_service_group_id = tenant_service_group.ID 
+	GROUP BY
+	ts.tenant_service_group_id 
+	)
+
+-- update service_share_uuid and service_key  --
+UPDATE service_source SET service_share_uuid=(SUBSTR(service_share_uuid, 34) || "+" || SUBSTR(service_share_uuid, 34));
+UPDATE tenant_service 
+SET service_key = ( SELECT SUBSTR( service_source.service_share_uuid, 34 ) FROM service_source WHERE service_source.service_id = tenant_service.service_id ) 
+WHERE
+	EXISTS ( SELECT SUBSTR( service_source.service_share_uuid, 34 ) FROM service_source WHERE service_source.service_id = tenant_service.service_id );
 COMMIT;

@@ -15,6 +15,10 @@ logger = logging.getLogger("default")
 
 class GroupRepository(object):
     @staticmethod
+    def create(app):
+        app.save()
+
+    @staticmethod
     def update(app_id, **data):
         ServiceGroup.objects.filter(pk=app_id).update(**data)
 
@@ -65,9 +69,11 @@ class GroupRepository(object):
         group_count = ServiceGroup.objects.filter(tenant_id=team_id, ID=group_id).count()
         return group_count
 
-    def get_tenant_region_groups(self, team_id, region, query=""):
-        return ServiceGroup.objects.filter(
-            tenant_id=team_id, region_name=region, group_name__icontains=query).order_by("-update_time", "-order_index")
+    def get_tenant_region_groups(self, team_id, region, query="", app_type=""):
+        q = Q(tenant_id=team_id, region_name=region, group_name__icontains=query)
+        if app_type:
+            q &= Q(app_type=app_type)
+        return ServiceGroup.objects.filter(q).order_by("-update_time", "-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
@@ -181,7 +187,8 @@ class GroupServiceRelationRepository(object):
     def get_service_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).first()
 
-    def get_services_obj_by_group(self, group_id):
+    @staticmethod
+    def list_service_groups(group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id).all()
 
     def update_service_relation(self, group_id, default_group_id):

@@ -15,11 +15,11 @@ from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameEx
 from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
 # repository
 from console.repositories.app import service_repo
-from console.repositories.app_config import (domain_repo, port_repo, service_endpoints_repo, tcp_domain, env_var_repo)
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, service_endpoints_repo, tcp_domain)
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
-from console.repositories.region_repo import region_repo
 from console.repositories.region_app import region_app_repo
+from console.repositories.region_repo import region_repo
 # service
 from console.services.app_config.domain_service import domain_service
 from console.services.app_config.env_service import AppEnvVarService
@@ -27,10 +27,12 @@ from console.services.app_config.probe_service import ProbeService
 from console.services.region_services import region_services
 # model
 from www.models.main import ServiceGroup
+from www.models.main import TenantServiceEnvVar
+from www.models.main import TenantServicesPort
+from console.models.main import TenantServiceInfo
 # www
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantServicesPort
 from www.utils.crypt import make_uuid
 
 pros = ProbeService()
@@ -194,7 +196,10 @@ class AppPortService(object):
         # 第三方组件暂时只允许添加一个端口
         tenant_service_ports = self.get_service_ports(service)
         if tenant_service_ports and service.service_source == "third_party":
-            return 400, "第三方组件只支持配置一个端口", None
+            # TODO: all thirdcomponent implementation by custom component, then remove this restriction.
+            endpoint_config = service_endpoints_repo.get_service_endpoints_by_service_id(service_id=service.service_id)
+            if endpoint_config and endpoint_config.first().endpoints_type != "kubernetes":
+                return 400, "第三方组件只支持配置一个端口", None
 
         container_port = int(container_port)
         self.check_port(service, container_port)
@@ -500,7 +505,7 @@ class AppPortService(object):
                     service_tcp_domain.save()
             else:
                 # 在service_tcp_domain表中保存数据
-                res, data = region_api.get_port(region.region_name, tenant.tenant_name)
+                res, data = region_api.get_port(region.region_name, tenant.tenant_name, True)
                 if int(res.status) != 200:
                     return 400, "请求数据中心异常"
                 end_point = "0.0.0.0:{0}".format(data["bean"])
@@ -904,6 +909,28 @@ class AppPortService(object):
         endpoint_info = [endpoint.address for endpoint in endpoint_list]
         validate_endpoints_info(endpoint_info)
         return "", "", 200
+
+    def create_envs_4_ports(self, component: TenantServiceInfo, port: TenantServicesPort, governance_mode):
+        port_alias = component.service_alias.upper()
+        host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
+        attr_name_prefix = port_alias + str(port.container_port)
+        host_env = self._create_port_env(component, port, "连接地址", attr_name_prefix + "_HOST", host_value)
+        port_env = self._create_port_env(component, port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
+        return [host_env, port_env]
+
+    @staticmethod
+    def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name, attr_name, attr_value):
+        return TenantServiceEnvVar(
+            tenant_id=component.tenant_id,
+            service_id=component.component_id,
+            container_port=port.container_port,
+            name=name,
+            attr_name=attr_name,
+            attr_value=attr_value,
+            is_change=False,
+            scope="outer",
+            create_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        )
 
 
 class EndpointService(object):

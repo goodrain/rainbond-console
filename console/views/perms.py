@@ -92,7 +92,7 @@ class TeamUsersRolesLView(RegionTenantHeaderView):
         return Response(result, status=200)
 
 
-class TeamUserRolesRUDView(RegionTenantHeaderView):
+class TeamUserRolesRUDView(TenantHeaderView):
     def get(self, request, team_name, user_id, *args, **kwargs):
         team_users = team_services.get_team_users(self.tenant)
         user = team_users.filter(user_id=user_id).first()

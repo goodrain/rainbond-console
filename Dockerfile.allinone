@@ -7,7 +7,7 @@ ENV GOPATH=/go
 RUN git clone -b main --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 ARG LDFLAGS
-RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor
+RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 
 FROM rainbond/rainbond-ui:${VERSION}

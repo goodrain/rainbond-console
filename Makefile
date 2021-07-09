@@ -8,4 +8,4 @@ check:
 build-base:
 	docker build -t rainbond/rbd-ui-base:V5.3 -f Dockerfile.base .
 build-allinone-image:
-	docker build -t --tag VERSION=V5.3 --tag rainbond/rainbond:v5.3 -f Dockerfile.allinone .	
+	docker build --build-arg VERSION=V5.3 -t rainbond/rainbond:v5.3 -f Dockerfile.allinone .

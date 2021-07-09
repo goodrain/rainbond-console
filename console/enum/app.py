@@ -13,3 +13,8 @@ class GovernanceModeEnum(AutoNumber):
     @classmethod
     def names(cls):
         return [key.name for key in cls]
+
+
+class AppType(AutoNumber):
+    rainbond = ()
+    helm = ()

@@ -2,6 +2,7 @@
 from django.core.paginator import Paginator
 
 import logging
+
 logger = logging.getLogger('default')
 
 
