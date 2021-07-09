@@ -1,4 +1,4 @@
-Django==1.11.29
+Django==2.2.24
 mysqlclient==2.0.1
 django-crispy-forms==1.6.0
 addict==0.4.0
