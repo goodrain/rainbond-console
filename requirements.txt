@@ -8,7 +8,7 @@ simplejson==3.8.0
 urllib3==1.25.10
 certifi
 whitenoise==2.0.3
-pillow==8.1.0
+pillow==8.2.0
 djangorestframework==3.8
 markdown==2.6.2
 django-filter==0.11.0
