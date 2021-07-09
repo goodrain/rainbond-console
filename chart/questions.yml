@@ -132,5 +132,5 @@ questions:
     type: int
     min: 30000
     max: 32767
-    show_if: "ui.svc.type=NodePort"
+    show_if: "allinone.svc.type=NodePort"
     label: NodePort Http Port
