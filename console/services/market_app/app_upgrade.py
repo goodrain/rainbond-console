@@ -6,6 +6,7 @@ from datetime import datetime
 
 from django.db import transaction
 
+from .enum import ActionType
 from console.services.market_app.plugin import Plugin
 from console.services.market_app.market_app import MarketApp
 from console.services.market_app.new_app import NewApp
@@ -498,6 +499,9 @@ class AppUpgrade(MarketApp):
             new_component = new_components.get(cpt.component.component_id)
             if new_component:
                 csnap["action_type"] = new_component.action_type
+            else:
+                # no action for original component without changes
+                csnap["action_type"] = ActionType.NOTHING.value
             components.append(csnap)
         if not components:
             return None
