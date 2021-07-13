@@ -334,12 +334,12 @@ class AppUpgrade(MarketApp):
 
         # create new component dependency from app_template
         new_component_deps = self._create_component_deps(components)
-        component_deps = self.ensure_component_deps(self.original_app, new_component_deps, tmpl_component_ids,
+        component_deps = self.ensure_component_deps(new_component_deps, tmpl_component_ids,
                                                     self.is_upgrade_one)
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(components)
-        volume_deps = self.ensure_volume_deps(self.original_app, new_volume_deps, tmpl_component_ids, self.is_upgrade_one)
+        volume_deps = self.ensure_volume_deps(new_volume_deps, tmpl_component_ids, self.is_upgrade_one)
 
         # config groups
         config_groups = self._config_groups()

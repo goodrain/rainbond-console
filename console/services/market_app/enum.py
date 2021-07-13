@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from enum import Enum
+from enum import IntEnum
 
 
-class ActionType(Enum):
-    BUILD = "build"
-    UPDATE = "update"
-    NOTHING = "nothing"
+class ActionType(IntEnum):
+    BUILD = 2
+    UPDATE = 1
+    NOTHING = 0

@@ -160,11 +160,11 @@ class AppRestore(MarketApp):
 
         # component dependencies
         new_deps = self._create_component_deps(component_ids)
-        component_deps = self.ensure_component_deps(self.original_app, new_deps)
+        component_deps = self.ensure_component_deps(new_deps)
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(component_ids)
-        volume_deps = self.ensure_volume_deps(self.original_app, new_volume_deps)
+        volume_deps = self.ensure_volume_deps(new_volume_deps)
 
         # plugins
         plugins = self.list_original_plugins()

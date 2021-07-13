@@ -71,8 +71,7 @@ class MarketApp(object):
 
         return res
 
-    @staticmethod
-    def ensure_component_deps(original_app: OriginalApp, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
+    def ensure_component_deps(self, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
         """
         确保组件依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -84,16 +83,15 @@ class MarketApp(object):
         # component_ids 是相同 app_id 和 upgrade_group_id 下的组件, 所以 dep_service_id 不属于 component_ids 的依赖关系属于'情况2'
         if is_upgrade_one:
             # never update component dependency for updating one component.
-            return original_app.component_deps
-        component_ids = [cpt.component.component_id for cpt in original_app.components()]
+            return self.original_app.component_deps
+        component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_ids in tmpl_component_ids]
-        deps = [dep for dep in original_app.component_deps if dep.dep_service_id not in component_ids]
+        deps = [dep for dep in self.original_app.component_deps if dep.dep_service_id not in component_ids]
         deps.extend(new_deps)
         return deps
 
-    @staticmethod
-    def ensure_volume_deps(original_app: OriginalApp, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
+    def ensure_volume_deps(self, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
         """
         确保存储依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -105,11 +103,11 @@ class MarketApp(object):
         # component_ids 是相同 app_id 和 upgrade_group_id 下的组件, 所以 dep_service_id 不属于 component_ids 的依赖关系属于'情况2'
         if is_upgrade_one:
             # never update volume dependency for updating one component.
-            return original_app.volume_deps
-        component_ids = [cpt.component.component_id for cpt in original_app.components()]
+            return self.original_app.volume_deps
+        component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_ids in tmpl_component_ids]
-        deps = [dep for dep in original_app.volume_deps if dep.dep_service_id not in component_ids]
+        deps = [dep for dep in self.original_app.volume_deps if dep.dep_service_id not in component_ids]
         deps.extend(new_deps)
         return deps
 
