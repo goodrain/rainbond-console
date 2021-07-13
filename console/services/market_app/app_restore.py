@@ -4,6 +4,7 @@ import logging
 import copy
 from datetime import datetime
 
+from .enum import ActionType
 from .market_app import MarketApp
 from .original_app import OriginalApp
 from .new_app import NewApp
@@ -204,7 +205,7 @@ class AppRestore(MarketApp):
         monitors = [ServiceMonitor(**monitor) for monitor in snap["service_monitors"]]
         # graphs
         graphs = [ComponentGraph(**graph) for graph in snap["component_graphs"]]
-        return Component(
+        cpt = Component(
             component=component,
             component_source=component_source,
             envs=envs,
@@ -217,6 +218,8 @@ class AppRestore(MarketApp):
             graphs=graphs,
             plugin_deps=[],
         )
+        cpt.action_type = snap.get("action_type", ActionType.BUILD.value)
+        return cpt
 
     def _create_component_deps(self, component_ids):
         component_deps = []
