@@ -6,6 +6,7 @@ from datetime import datetime
 
 from django.db import transaction
 
+from .enum import ActionType
 from console.services.market_app.plugin import Plugin
 from console.services.market_app.market_app import MarketApp
 from console.services.market_app.new_app import NewApp
@@ -328,13 +329,18 @@ class AppUpgrade(MarketApp):
 
         components = new_components + update_components
 
+        # component existing in the template.
+        tmpl_components = self._tmpl_components(components)
+        tmpl_component_ids = [cpt.component.component_id for cpt in tmpl_components]
+
         # create new component dependency from app_template
         new_component_deps = self._create_component_deps(components)
-        component_deps = self.ensure_component_deps(self.original_app, new_component_deps)
+        component_deps = self.ensure_component_deps(new_component_deps, tmpl_component_ids,
+                                                    self.is_upgrade_one)
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(components)
-        volume_deps = self.ensure_volume_deps(self.original_app, new_volume_deps)
+        volume_deps = self.ensure_volume_deps(new_volume_deps, tmpl_component_ids, self.is_upgrade_one)
 
         # config groups
         config_groups = self._config_groups()
@@ -483,10 +489,19 @@ class AppUpgrade(MarketApp):
     def _take_snapshot(self):
         if self.is_upgrade_one:
             return
+
+        new_components = {cpt.component.component_id: cpt for cpt in self.new_app.components()}
+
         components = []
         for cpt in self.original_app.components():
             # component snapshot
             csnap, _ = groupapp_backup_service.get_service_details(self.tenant, cpt.component)
+            new_component = new_components.get(cpt.component.component_id)
+            if new_component:
+                csnap["action_type"] = new_component.action_type
+            else:
+                # no action for original component without changes
+                csnap["action_type"] = ActionType.NOTHING.value
             components.append(csnap)
         if not components:
             return None
@@ -750,3 +765,7 @@ class AppUpgrade(MarketApp):
                     protocol=option.get("protocol", ""))
                 config_items.append(config_item)
         return config_groups, config_items
+
+    def _tmpl_components(self, components: [Component]):
+        component_keys = [tmpl.get("service_key") for tmpl in self.app_template.get("apps")]
+        return [cpt for cpt in components if cpt.component.service_key in component_keys]
