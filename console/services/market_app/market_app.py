@@ -56,7 +56,6 @@ class MarketApp(object):
                 "operation": "build",
                 "build_infos": builds,
             }
-            print(json.dumps(body))
             _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
             res += body["bean"]["batch_result"]
 
@@ -65,7 +64,6 @@ class MarketApp(object):
                 "operation": "upgrade",
                 "upgrade_infos": upgrades,
             }
-            print(json.dumps(body))
             _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
             res += body["bean"]["batch_result"]
 
