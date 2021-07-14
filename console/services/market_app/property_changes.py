@@ -185,11 +185,11 @@ class PropertyChanges(object):
             if key in list(new_probe.keys()):
                 new_probe.pop(key)
         if not old_probe:
-            return {"add": new_probe, "upd": []}
+            return {"add": [new_probe], "upd": []}
         old_probe = old_probe.to_dict()
         for k, v in list(new_probe.items()):
             if k in list(old_probe.keys()) and old_probe[k] != v:
-                return {"add": [], "upd": new_probe}
+                return {"add": [], "upd": [new_probe]}
         return None
 
     @staticmethod

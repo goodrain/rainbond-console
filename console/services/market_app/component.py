@@ -250,11 +250,13 @@ class Component(object):
     def _update_probe(self, probe):
         add = probe.get("add")
         if add:
+            add = add[0]
             add["probe_id"] = make_uuid()
             self.probe = ServiceProbe(**add)
             self.probe.service_id = self.component.component_id
         upd = probe.get("upd", None)
         if upd:
+            upd = upd[0]
             probe = ServiceProbe(**upd)
             probe.ID = self.probe.ID
             probe.service_id = self.probe.service_id
