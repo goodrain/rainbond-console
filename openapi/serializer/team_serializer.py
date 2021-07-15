@@ -160,12 +160,12 @@ class TeamAppsResourceSerializer(serializers.Serializer):
 
 
 class TeamOverviewSerializer(serializers.Serializer):
-    total_cpu = serializers.IntegerField(help_text=u"cpu总额", default=0)
-    total_memory = serializers.IntegerField(help_text=u"内存总额", default=0)
-    used_cpu = serializers.IntegerField(help_text=u"占用cpu", default=0)
-    used_memory = serializers.IntegerField(help_text=u"占用内存", default=0)
-    app_nums = serializers.IntegerField(help_text=u"应用总数", default=0)
-    component_nums = serializers.IntegerField(help_text=u"组件总数", default=0)
+    total_cpu = serializers.IntegerField(help_text="cpu总额", default=0)
+    total_memory = serializers.IntegerField(help_text="内存总额", default=0)
+    used_cpu = serializers.IntegerField(help_text="占用cpu", default=0)
+    used_memory = serializers.IntegerField(help_text="占用内存", default=0)
+    app_nums = serializers.IntegerField(help_text="应用总数", default=0)
+    component_nums = serializers.IntegerField(help_text="组件总数", default=0)
 
 
 class TenantRegionListSerializer(serializers.Serializer):
