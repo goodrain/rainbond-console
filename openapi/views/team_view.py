@@ -17,11 +17,10 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
-    CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer,
-    ListTeamRegionsRespSerializer, TeamOverviewSerializer,
-    ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
-    TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer,
-    TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
+    CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
+    TeamOverviewSerializer, ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer,
+    TeamCertificatesCSerializer, TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer,
+    TeamRegionReqSerializer, TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
 from openapi.serializer.utils import pagination
 from openapi.views.base import (BaseOpenAPIView, TeamAPIView, TeamNoRegionAPIView)
 from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
