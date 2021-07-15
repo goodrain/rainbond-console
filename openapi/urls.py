@@ -14,7 +14,7 @@ from openapi.views.enterprise_view import EnterpriseConfigView
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
-                                     TeamCertificatesRUDView, TeamInfo, TeamsResourceView)
+                                     TeamCertificatesRUDView, TeamInfo, TeamOverviewView, TeamsResourceView)
 from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView)
 from openapi.views.apps.apps import ListAppsView
 
@@ -55,6 +55,7 @@ urlpatterns = [
         perms.TeamCertificatesRUDView),
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/overview', TeamOverviewView.as_view()),
     # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
