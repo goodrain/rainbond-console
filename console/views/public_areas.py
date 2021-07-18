@@ -286,14 +286,18 @@ class GroupServiceView(RegionTenantHeaderView):
 
 class ServiceEventsView(RegionTenantHeaderView):
     def __sort_events(self, event1, event2):
-        if event1.start_time < event2.start_time:
+        event1_start_time = event1.get("StartTime") if isinstance(event1, dict) else event1.start_time
+        event2_start_time = event2.get("StartTime") if isinstance(event2, dict) else event2.start_time
+        if event1_start_time < event2_start_time:
             return 1
-        if event1.start_time > event2.start_time:
+        if event1_start_time > event2_start_time:
             return -1
-        if event1.start_time == event2.start_time:
-            if event1.ID < event2.start_time:
+        if event1_start_time == event2_start_time:
+            event1_ID = event1.get("ID") if isinstance(event1, dict) else event1.ID
+            event2_ID = event2.get("ID") if isinstance(event2, dict) else event2.ID
+            if event1_ID < event2_ID:
                 return 1
-            if event1.ID > event2.ID:
+            if event1_ID > event2_ID:
                 return -1
             return 0
 
@@ -321,7 +325,7 @@ class ServiceEventsView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 3)
         total = 0
-        region_list = region_repo.get_team_opened_region(self.tenant)
+        region_list = region_repo.get_team_opened_region(self.tenant.tenant_name)
         event_service_dynamic_list = []
         if region_list:
             for region in region_list:
