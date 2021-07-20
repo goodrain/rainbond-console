@@ -142,12 +142,13 @@ class GroupService(object):
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
         # check username
+        data = {
+            "note": note,
+        }
         if username:
             try:
-                data = {"username": username}
+                data["username"] = username
                 user_repo.get_user_by_username(username)
-                group_repo.update(app_id, **data)
-                return
             except ErrUserNotFound:
                 raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
         # check app name
@@ -159,9 +160,7 @@ class GroupService(object):
         group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
         if group and int(group.ID) != int(app_id):
             raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
-        data = {
-            "note": note,
-        }
+
         if app_name:
             data["group_name"] = app_name
         if version:

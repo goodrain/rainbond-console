@@ -62,9 +62,9 @@ class Component(object):
                 continue
             update_func = update_funcs[key]
             update_func(changes.get(key))
-        self._ensure_port_envs(governance_mode)
+        self.ensure_port_envs(governance_mode)
 
-    def _ensure_port_envs(self, governance_mode):
+    def ensure_port_envs(self, governance_mode):
         # filter out the old port envs
         envs = [env for env in self.envs if env.container_port == 0]
         # create outer envs for every port
@@ -73,12 +73,15 @@ class Component(object):
         self.envs = envs
 
     def _create_envs_4_ports(self, port: TenantServicesPort, governance_mode):
-        port_alias = self.component.service_alias.upper()
+        attr_name_prefix = port.port_alias.upper() if port.port_alias else self._create_default_attr_name_prefix(port)
         host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
-        attr_name_prefix = port_alias + str(port.container_port)
         host_env = self._create_port_env(port, "连接地址", attr_name_prefix + "_HOST", host_value)
         port_env = self._create_port_env(port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
         return [host_env, port_env]
+
+    def _create_default_attr_name_prefix(self, port: TenantServicesPort):
+        port_alias = self.component.service_alias.upper()
+        return port_alias + str(port.container_port)
 
     def _create_port_env(self, port: TenantServicesPort, name, attr_name, attr_value):
         return TenantServiceEnvVar(

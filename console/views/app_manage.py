@@ -11,6 +11,7 @@ from console.enum.component_enum import is_state, is_support
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException)
 from console.repositories.app import service_repo
+from console.repositories.group import group_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
@@ -545,7 +546,11 @@ class MarketServiceUpgradeView(AppBaseView):
 
     def post(self, request, *args, **kwargs):
         version = parse_item(request, "group_version", required=True)
-        upgrade_service.upgrade_component(self.tenant, self.region, self.user, self.service, version)
+
+        # get app
+        app = group_repo.get_by_service_id(self.tenant.tenant_id, self.service.service_id)
+
+        upgrade_service.upgrade_component(self.tenant, self.region, self.user, app, self.service, version)
         return Response(status=200, data=general_message(200, "success", "升级成功"))
 
 
