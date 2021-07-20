@@ -1,0 +1,88 @@
+{{- if .Values.allinone.enable }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.allinone.fullname }}
+  labels:
+    rainbond: allinone
+spec:
+  replicas: {{ .Values.allinone.replicasCount }}
+  selector:
+  {{- with .Values.allinone.selectorLabels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+  template:
+    metadata:
+    {{- with .Values.allinone.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.allinone.selectorLabels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    spec:
+      containers:
+        - name: allinone
+          image: "{{ .Values.allinone.image.repository }}:{{ .Values.allinone.image.tag }}"
+          imagePullPolicy: {{ .Values.allinone.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: rainbond-mysql-secret
+            - secretRef:
+                name: rainbond-redis-secret
+          env:
+            - name: TZ
+              value: "Asia/Shanghai"
+            - name: DB_TYPE
+              value: "mysql"
+            - name: MYSQL_HOST
+              value: "{{ .Values.mysql.fullname }}"
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_PASS
+              value: "$(MYSQL_PASSWORD)"
+            - name: REDIS_HOST
+              value: "{{ .Values.redis.fullname }}"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASS
+              value: "$(REDISC_REQUIREPASS)"
+          ports:
+            - name: tcp
+              containerPort: 7070
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /console/config/info
+              port: 7070
+              scheme: HTTP
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 20
+          volumeMounts:
+          - mountPath: /app/data
+            name: allinone-data
+          - mountPath: /root/.ssh
+            name: allinone-ssh
+          resources:
+            {{- toYaml .Values.allinone.resources | nindent 12 }}
+      volumes:
+      - name: allinone-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.allinone.fullname }}-pvc-data
+      - name: allinone-ssh
+        persistentVolumeClaim:
+          claimName: {{ .Values.allinone.fullname }}-pvc-ssh
+      {{- with .Values.allinone.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.allinone.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.redis.fullname }}
+  labels:
+    rainbond: redis
+spec:
+  ports:
+  - port: 6379
+    name: tcp
+  clusterIP: None
+  {{- with .Values.redis.selectorLabels }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}

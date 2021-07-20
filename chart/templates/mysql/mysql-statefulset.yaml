@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.mysql.fullname }}
+  labels:
+    rainbond: mysql
+spec:
+  serviceName: {{ .Values.mysql.fullname }}
+  replicas: 1
+  selector:
+  {{- with .Values.mysql.selectorLabels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+  template:
+    metadata:
+    {{- with .Values.mysql.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.mysql.selectorLabels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    spec:
+      containers:
+        - name: mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+          env:
+            - name: TZ
+              value: "Asia/Shanghai"
+          envFrom:
+            - secretRef:
+                name: rainbond-mysql-secret
+          ports:
+            - name: tcp
+              containerPort: 3306
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 2
+            periodSeconds: 3
+            successThreshold: 1
+            tcpSocket:
+              port: 3306
+            timeoutSeconds: 30
+          volumeMounts:
+          - mountPath: /var/lib/mysql
+            name: mysql-data
+          - mountPath: /etc/mysql/conf.d/mysql.cnf
+            name: mysql-config
+            subPath: mysql.cnf
+          resources:
+            {{- toYaml .Values.mysql.resources | nindent 12 }}
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: rainbond-mysql-pvc
+      - name: mysql-config
+        configMap:
+          name: rainbond-mysql-cm
+      {{- with .Values.mysql.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mysql.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
