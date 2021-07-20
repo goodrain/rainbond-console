@@ -703,6 +703,7 @@ class ShareService(object):
             market_id = None
             market = None
             app_model_name = None
+            share_store_name = ''
             if target:
                 market_id = target.get("store_id")
             if not market_id:
@@ -710,9 +711,10 @@ class ShareService(object):
             if market_id:
                 scope = "goodrain"
                 market = app_market_service.get_app_market_by_name(share_team.enterprise_id, market_id, raise_exception=True)
-                cloud_app = app_market_service.get_market_app_model(market, app_model_id)
+                cloud_app = app_market_service.get_market_app_model(market, app_model_id, True)
                 if cloud_app:
                     app_model_name = cloud_app.app_name
+                    share_store_name = cloud_app.market_name
             else:
                 local_app_version = RainbondCenterApp.objects.filter(app_id=app_model_id).first()
                 if not local_app_version:
@@ -862,6 +864,8 @@ class ShareService(object):
             share_record.share_version = version
             share_record.share_version_alias = version_alias
             share_record.share_app_market_name = market_id
+            share_record.share_app_model_name = app_model_name
+            share_record.share_store_name = share_store_name
             share_record.update_time = datetime.datetime.now()
             share_record.share_app_version_info = version_describe
             share_record.save()
