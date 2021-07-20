@@ -456,7 +456,7 @@ class AppUpgrade(MarketApp):
         """
         config_groups = list(app_config_group_repo.list(self.region_name, self.app_id))
         config_group_names = [cg.config_group_name for cg in config_groups]
-        tmpl = self.app_template.get("app_config_groups", [])
+        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
         for cg in tmpl:
             if cg["name"] in config_group_names:
                 continue
@@ -509,7 +509,7 @@ class AppUpgrade(MarketApp):
         config_group_items = list(app_config_group_item_repo.list_by_app_id(self.app_id))
 
         item_keys = [item.config_group_name + item.item_key for item in config_group_items]
-        tmpl = self.app_template.get("app_config_groups", [])
+        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
         for cg in tmpl:
             config_group = config_groups.get(cg["name"])
             if not config_group:
@@ -544,7 +544,7 @@ class AppUpgrade(MarketApp):
         config_group_components = list(app_config_group_service_repo.list_by_app_id(self.app_id))
         config_group_component_keys = [cgc.config_group_name + cgc.service_id for cgc in config_group_components]
 
-        tmpl = self.app_template.get("app_config_groups", [])
+        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
         for cg in tmpl:
             config_group = config_groups.get(cg["name"])
             if not config_group:
