@@ -43,29 +43,30 @@ class ServiceShareRecordView(RegionTenantHeaderView):
         page_size = int(request.GET.get("page_size", 10))
         total, share_records = share_repo.get_service_share_records_by_groupid(
             team_name=team_name, group_id=group_id, page=page, page_size=page_size)
-        if share_records:
-            for share_record in share_records:
-                app_model_name = None
-                app_model_id = None
-                version_alias = None
-                upgrade_time = None
-                app_version_info = ""
-                # todo get store name
-                store_name = None
-                store_id = share_record.share_app_market_name
-                scope = share_record.scope
-                app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
-                if app:
-                    app_model_id = share_record.app_id
-                    app_model_name = app.app_name
-                    app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
-                    if app_version:
-                        version_alias = app_version.version_alias
-                        upgrade_time = app_version.upgrade_time
-                        app_version_info = app_version.app_version_info
-                else:
-                    try:
-                        if store_id and share_record.app_id:
+        if not share_records:
+            result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
+            return Response(result, status=200)
+        for share_record in share_records:
+            app_model_name = share_record.share_app_model_name
+            app_model_id = share_record.app_id
+            version_alias = None
+            upgrade_time = None
+            app_version_info = ""
+            store_name = share_record.share_store_name
+            store_id = share_record.share_app_market_name
+            scope = share_record.scope
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
+            if app:
+                app_model_name = app.app_name
+                app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+                if app_version:
+                    version_alias = app_version.version_alias
+                    upgrade_time = app_version.upgrade_time
+                    app_version_info = app_version.app_version_info
+            else:
+                try:
+                    if store_id and share_record.app_id:
+                        if not app_model_name:
                             mkt = market.get(share_record.share_app_market_name, None)
                             if not mkt:
                                 mkt = app_market_service.get_app_market_by_name(
@@ -74,41 +75,41 @@ class ServiceShareRecordView(RegionTenantHeaderView):
 
                             c_app = cloud_app.get(share_record.app_id, None)
                             if not c_app:
-                                c_app = app_market_service.get_market_app_model(mkt, share_record.app_id)
+                                c_app = app_market_service.get_market_app_model(mkt, share_record.app_id, True)
                                 cloud_app[share_record.app_id] = c_app
-                            app_model_id = share_record.app_id
+                            store_name = c_app.market_name
                             app_model_name = c_app.app_name
-                    except ServiceHandleException:
-                        app_model_id = share_record.app_id
-                data.append({
-                    "app_model_id":
-                    app_model_id,
-                    "app_model_name":
-                    app_model_name,
-                    "version":
-                    share_record.share_version,
-                    "version_alias": (share_record.share_version_alias if share_record.share_version_alias else version_alias),
-                    "scope":
-                    scope,
-                    "create_time":
-                    share_record.create_time,
-                    "upgrade_time":
-                    upgrade_time,
-                    "step":
-                    share_record.step,
-                    "is_success":
-                    share_record.is_success,
-                    "status":
-                    share_record.status,
-                    "scope_target": {
-                        "store_name": store_name,
-                        "store_id": store_id,
-                    },
-                    "record_id":
-                    share_record.ID,
-                    "app_version_info":
-                    share_record.share_app_version_info if share_record.share_app_version_info else app_version_info,
-                })
+                except ServiceHandleException:
+                    app_model_id = share_record.app_id
+            data.append({
+                "app_model_id":
+                app_model_id,
+                "app_model_name":
+                app_model_name,
+                "version":
+                share_record.share_version,
+                "version_alias": (share_record.share_version_alias if share_record.share_version_alias else version_alias),
+                "scope":
+                scope,
+                "create_time":
+                share_record.create_time,
+                "upgrade_time":
+                upgrade_time,
+                "step":
+                share_record.step,
+                "is_success":
+                share_record.is_success,
+                "status":
+                share_record.status,
+                "scope_target": {
+                    "store_name": store_name,
+                    "store_id": store_id,
+                },
+                "record_id":
+                share_record.ID,
+                "app_version_info":
+                share_record.share_app_version_info if share_record.share_app_version_info else app_version_info,
+            })
         result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
         return Response(result, status=200)
 

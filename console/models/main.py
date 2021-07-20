@@ -227,7 +227,9 @@ class ServiceShareRecord(BaseModel):
     status = models.IntegerField(default=0, help_text="当前发布状态 1, 2, 3")
     app_id = models.CharField(max_length=64, null=True, blank=True, help_text="应用id")
     scope = models.CharField(max_length=64, null=True, blank=True, help_text="分享范围")
-    share_app_market_name = models.CharField(max_length=64, null=True, blank=True, help_text="分享应用商店名称")
+    share_app_market_name = models.CharField(max_length=64, null=True, blank=True, help_text="分享应用商店标识")
+    share_store_name = models.CharField(max_length=64, null=True, blank=True, help_text="分享应用商店名称，用于记录发布范围指定的应用商店名")
+    share_app_model_name = models.CharField(max_length=64, null=True, blank=True, help_text="分享应用模板名称")
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now_add=True, help_text="更新时间")
 
