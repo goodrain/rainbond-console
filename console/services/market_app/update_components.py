@@ -62,4 +62,5 @@ class UpdateComponents(object):
         if not tmpl:
             return
         component.component.service_key = tmpl.get("service_key", component.component.service_key)
-        component.component_source.service_share_uuid = tmpl.get("service_share_uuid", component.component_source.service_share_uuid)
+        component.component_source.service_share_uuid = tmpl.get("service_share_uuid",
+                                                                 component.component_source.service_share_uuid)
