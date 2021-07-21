@@ -101,7 +101,12 @@ class NewApp(object):
         self.component_group.save()
 
     def components(self):
-        components = self._components()
+        return self._ensure_components(self._components())
+
+    def list_update_components(self):
+        return self._ensure_components(self.update_components)
+
+    def _ensure_components(self, components):
         # component dependency
         component_deps = {}
         for dep in self.component_deps:
@@ -243,7 +248,8 @@ class NewApp(object):
     def _existing_volume_deps(self):
         components = self._components()
         volume_deps = volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id,
-                                                                        [cpt.component.component_id for cpt in components])
+                                                                        [cpt.component.component_id for cpt in
+                                                                         components])
         return {dep.key(): dep for dep in volume_deps}
 
     def _save_plugin_deps(self):

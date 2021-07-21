@@ -107,6 +107,7 @@ class AppUpgrade(MarketApp):
         self.property_changes = PropertyChanges(self.original_app.components(), plugins, self.app_template)
 
         self.new_app = self._create_new_app()
+        self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
@@ -385,6 +386,7 @@ class AppUpgrade(MarketApp):
         被依赖组件唯一标识: dep["dep_service_key"]
         """
         components = {cpt.component_source.service_share_uuid: cpt.component for cpt in components}
+        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
 
         deps = []
         for tmpl in self.app_template.get("apps", []):
@@ -395,7 +397,7 @@ class AppUpgrade(MarketApp):
                     continue
 
                 dep_component_key = dep["dep_service_key"]
-                dep_component = components.get(dep_component_key)
+                dep_component = components.get(dep_component_key) if components.get(dep_component_key) else original_components.get(dep_component_key)
                 if not dep_component:
                     logger.info("The component({}) cannot find the dependent component({})".format(
                         component_key, dep_component_key))
@@ -419,6 +421,8 @@ class AppUpgrade(MarketApp):
         for cpt in raw_components:
             volumes.extend(cpt.volumes)
         components = {cpt.component_source.service_share_uuid: cpt.component for cpt in raw_components}
+        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
+
         deps = []
         for tmpl in self.app_template.get("apps", []):
             component_key = tmpl.get("service_share_uuid")
@@ -432,7 +436,7 @@ class AppUpgrade(MarketApp):
             for dep in volume_deps:
                 # check if the dependent component exists
                 dep_component_key = dep["service_share_uuid"]
-                dep_component = components.get(dep_component_key)
+                dep_component = components.get(dep_component_key) if components.get(dep_component_key) else original_components.get(dep_component_key)
                 if not dep_component:
                     logger.info("dependent component({}) not found".format(dep_component.service_id))
                     continue

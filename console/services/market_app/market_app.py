@@ -82,8 +82,8 @@ class MarketApp(object):
         if is_upgrade_one:
             # If the dependency of the component has changed with other components (existing in the template
             # and installed), then update it.
-            deps = new_deps.extend(self.original_app.component_deps)
-            return self._dedup_deps(deps)
+            new_deps.extend(self.original_app.component_deps)
+            return self._dedup_deps(new_deps)
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
@@ -104,8 +104,8 @@ class MarketApp(object):
         if is_upgrade_one:
             # If the dependency of the component has changed with other components (existing in the template
             # and installed), then update it.
-            deps = new_deps.extend(self.original_app.volume_deps)
-            return self._dedup_deps(deps)
+            new_deps.extend(self.original_app.volume_deps)
+            return self._dedup_deps(new_deps)
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
@@ -349,8 +349,11 @@ class MarketApp(object):
         return upgrades
 
     def _dedup_deps(self, deps):
-        exists = []
         result = []
+        if not deps:
+            return []
+
+        exists = []
         for dep in deps:
             if dep.service_id + dep.dep_service_id in exists:
                 continue
