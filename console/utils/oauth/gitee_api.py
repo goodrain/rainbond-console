@@ -218,15 +218,15 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         if repos:
             for repo in repos:
                 repo_list.append({
-                    "project_id": repo["id"],
-                    "project_full_name": repo["full_name"],
-                    "project_name": repo["name"],
-                    "project_description": repo["description"],
-                    "project_url": repo["html_url"],
-                    "project_default_branch": repo["default_branch"],
-                    "project_ssl_url": repo["ssh_url"],
-                    "updated_at": repo["updated_at"],
-                    "created_at": repo["created_at"]
+                    "project_id": repo.get("id"),
+                    "project_full_name": repo.get("full_name"),
+                    "project_name": repo.get("name"),
+                    "project_description": repo.get("description"),
+                    "project_url": repo.get("html_url"),
+                    "project_default_branch": repo.get("default_branch"),
+                    "project_ssl_url": repo.get("ssh_url"),
+                    "updated_at": repo.get("updated_at"),
+                    "created_at": repo.get("created_at")
                 })
         return repo_list, total
 
@@ -242,15 +242,15 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             for repo in repos:
                 if repo:
                     repo_list.append({
-                        "project_id": repo["id"],
-                        "project_full_name": repo["full_name"],
-                        "project_name": repo["name"],
-                        "project_description": repo["description"],
-                        "project_url": repo["html_url"],
-                        "project_default_branch": repo["default_branch"],
-                        "project_ssl_url": repo["ssh_url"],
-                        "updated_at": repo["updated_at"],
-                        "created_at": repo["created_at"]
+                        "project_id": repo.get("id"),
+                        "project_full_name": repo.get("full_name"),
+                        "project_name": repo.get("name"),
+                        "project_description": repo.get("description"),
+                        "project_url": repo.get("html_url"),
+                        "project_default_branch": repo.get("default_branch"),
+                        "project_ssl_url": repo.get("ssh_url"),
+                        "updated_at": repo.get("updated_at"),
+                        "created_at": repo.get("created_at")
                     })
         return repo_list, total
 
@@ -259,17 +259,17 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         repo_list = []
         repos, _ = self.api.get_repo(full_name)
         for repo in [repos]:
-            if repo and full_name == repo["full_name"]:
+            if repo and full_name == repo.get("full_name"):
                 repo_list.append({
-                    "project_id": repo["id"],
-                    "project_full_name": repo["full_name"],
-                    "project_name": repo["name"],
-                    "project_description": repo["description"],
-                    "project_url": repo["html_url"],
-                    "project_default_branch": repo["default_branch"],
-                    "project_ssl_url": repo["ssh_url"],
-                    "updated_at": repo["updated_at"],
-                    "created_at": repo["created_at"]
+                    "project_id": repo.get("id"),
+                    "project_full_name": repo.get("full_name"),
+                    "project_name": repo.get("name"),
+                    "project_description": repo.get("description"),
+                    "project_url": repo.get("html_url"),
+                    "project_default_branch": repo.get("default_branch"),
+                    "project_ssl_url": repo.get("ssh_url"),
+                    "updated_at": repo.get("updated_at"),
+                    "created_at": repo.get("created_at")
                 })
         return repo_list
 
