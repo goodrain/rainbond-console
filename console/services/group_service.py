@@ -60,6 +60,8 @@ class GroupService(object):
                    version="",
                    eid=""):
         self.check_app_name(tenant, region_name, app_name)
+        if group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name):
+            raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
         # check parameter for helm app
         app_type = AppType.rainbond.name
         if app_store_name or app_template_name or version:
