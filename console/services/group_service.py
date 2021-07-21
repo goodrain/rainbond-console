@@ -38,7 +38,7 @@ class GroupService(object):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
     @staticmethod
-    def check_app_name(tenant, region_name, group_name):
+    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
@@ -46,6 +46,11 @@ class GroupService(object):
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
         if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
+        exist_app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
+        if not exist_app:
+            return
+        if not app or exist_app.app_id != app.app_id:
+            raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
 
     @transaction.atomic
     def create_app(self,
@@ -150,15 +155,15 @@ class GroupService(object):
                 return
             except ErrUserNotFound:
                 raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
+
+        app = group_repo.get_group_by_id(app_id)
+
         # check app name
         if app_name:
-            self.check_app_name(tenant, region_name, app_name)
+            self.check_app_name(tenant, region_name, app_name, app)
         if overrides:
             overrides = self._parse_overrides(overrides)
 
-        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
-        if group and int(group.ID) != int(app_id):
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
         data = {
             "note": note,
         }
