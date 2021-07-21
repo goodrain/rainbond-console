@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.redis.fullname }}
+  labels:
+    rainbond: redis
+spec:
+  serviceName: {{ .Values.redis.fullname }}
+  replicas: 1
+  selector:
+  {{- with .Values.redis.selectorLabels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+  template:
+    metadata:
+    {{- with .Values.redis.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.redis.selectorLabels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    spec:
+      containers:
+        - name: redis
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          env:
+            - name: TZ
+              value: "Asia/Shanghai"
+            - name: REDISC_DATABASES
+              value: "16"
+            - name: REDISC_DBFILENAME
+              value: "dump.rdb"
+            - name: REDISC_LOGFILE
+              value: "/data/redis.log"
+            - name: REDISC_LOGLEVEL
+              value: "notice"
+            - name: REDISC_MAXCLIENTS
+              value: "10000"
+            - name: REDISC_NOTIFY-KEYSPACE-EVENTS
+              value: "Ex"
+            - name: REDISC_PROTECTED-MODE
+              value: "yes"
+            - name: REDISC_SLOWLOG-LOG-SLOWER-THAN
+              value: "10000"
+            - name: REDISC_SLOWLOG-MAX-LEN
+              value: "128"
+            - name: REDISC_TCP-KEEPALIVE
+              value: "300"
+            - name: REDISC_TIMEOUT
+              value: "0"
+          envFrom:
+            - secretRef:
+                name: rainbond-redis-secret
+          ports:
+            - name: tcp
+              containerPort: 6379
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+          - mountPath: /data
+            name: redis-data
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: rainbond-redis-pvc
+      {{- with .Values.redis.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.redis.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      

@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from .utils import is_same_component
+from .enum import ActionType
 from console.services.market_app.component import Component
 # service
 from console.services.app_config import port_service
@@ -117,6 +118,7 @@ class NewComponents(object):
             component = Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors,
                                   graphs, [], http_rules, service_group_rel)
             component.ensure_port_envs(self.original_app.governance_mode)
+            component.action_type = ActionType.BUILD.value
             result.append(component)
         return result
 

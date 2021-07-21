@@ -4,6 +4,7 @@ from datetime import datetime
 
 # enum
 from console.enum.app import GovernanceModeEnum
+from .enum import ActionType
 # exception
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
 # repository
@@ -52,6 +53,7 @@ class Component(object):
         self.plugin_deps = list(plugin_deps)
         self.app_config_groups = []
         self.service_group_rel = service_group_rel
+        self.action_type = ActionType.NOTHING.value
 
     def set_changes(self, changes, governance_mode):
         """
@@ -114,6 +116,7 @@ class Component(object):
         if not dv["is_change"]:
             return
         self.component.deploy_version = dv["new"]
+        self.update_action_type(ActionType.BUILD.value)
 
     def _update_version(self, v):
         if not v["is_change"]:
@@ -122,9 +125,11 @@ class Component(object):
 
     def _update_inner_envs(self, envs):
         self._update_envs(envs, "inner")
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_outer_envs(self, envs):
         self._update_envs(envs, "outer")
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_envs(self, envs, scope):
         if envs is None:
@@ -178,6 +183,7 @@ class Component(object):
                 old_port.is_inner_service = port["is_inner_service"]
             if not old_port.is_outer_service:
                 old_port.is_outer_service = port["is_outer_service"]
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_component_graphs(self, component_graphs):
         if not component_graphs:
@@ -197,6 +203,7 @@ class Component(object):
                 continue
             old_graph.promql = graph.get("promql", "")
             old_graph.sequence = graph.get("sequence", 99)
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_component_monitors(self, component_monitors):
         if not component_monitors:
@@ -207,6 +214,7 @@ class Component(object):
             new_monitor.service_id = self.component.component_id
             new_monitor.tenant_id = self.component.tenant_id
             self.monitors.append(new_monitor)
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_port_data(self, port):
         container_port = int(port["container_port"])
@@ -250,6 +258,7 @@ class Component(object):
             old_config_file.file_content = volume.get("file_content")
 
         self.config_files = old_config_files.values()
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_probe(self, probe):
         add = probe.get("add")
@@ -263,3 +272,8 @@ class Component(object):
             probe.ID = self.probe.ID
             probe.service_id = self.probe.service_id
             self.probe = probe
+        self.update_action_type(ActionType.UPDATE.value)
+
+    def update_action_type(self, action_type):
+        if action_type > self.action_type:
+            self.action_type = action_type

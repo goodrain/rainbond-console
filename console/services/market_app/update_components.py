@@ -35,6 +35,7 @@ class UpdateComponents(object):
             if self.components_keys and cpt.component.service_key not in self.components_keys:
                 continue
             cpt = copy.deepcopy(cpt)
+            cpt.component_source.version = self.version
             components.append(cpt)
 
         cpt_changes = {change["component_id"]: change for change in self.property_changes.changes}
