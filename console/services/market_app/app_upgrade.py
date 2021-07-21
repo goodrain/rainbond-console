@@ -336,8 +336,7 @@ class AppUpgrade(MarketApp):
 
         # create new component dependency from app_template
         new_component_deps = self._create_component_deps(components)
-        component_deps = self.ensure_component_deps(new_component_deps, tmpl_component_ids,
-                                                    self.is_upgrade_one)
+        component_deps = self.ensure_component_deps(new_component_deps, tmpl_component_ids, self.is_upgrade_one)
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(components)
@@ -397,7 +396,8 @@ class AppUpgrade(MarketApp):
                     continue
 
                 dep_component_key = dep["dep_service_key"]
-                dep_component = components.get(dep_component_key) if components.get(dep_component_key) else original_components.get(dep_component_key)
+                dep_component = components.get(dep_component_key) if components.get(
+                    dep_component_key) else original_components.get(dep_component_key)
                 if not dep_component:
                     logger.info("The component({}) cannot find the dependent component({})".format(
                         component_key, dep_component_key))
@@ -436,7 +436,8 @@ class AppUpgrade(MarketApp):
             for dep in volume_deps:
                 # check if the dependent component exists
                 dep_component_key = dep["service_share_uuid"]
-                dep_component = components.get(dep_component_key) if components.get(dep_component_key) else original_components.get(dep_component_key)
+                dep_component = components.get(dep_component_key) if components.get(
+                    dep_component_key) else original_components.get(dep_component_key)
                 if not dep_component:
                     logger.info("dependent component({}) not found".format(dep_component.service_id))
                     continue

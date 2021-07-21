@@ -11,8 +11,6 @@ from console.services.app_config.promql_service import promql_service
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
 # model
-from www.models.main import TenantServiceMountRelation
-from www.models.main import TenantServiceRelation
 from www.models.plugin import TenantPlugin
 from www.models.plugin import TenantServicePluginRelation
 # exception

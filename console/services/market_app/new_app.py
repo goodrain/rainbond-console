@@ -248,8 +248,7 @@ class NewApp(object):
     def _existing_volume_deps(self):
         components = self._components()
         volume_deps = volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id,
-                                                                        [cpt.component.component_id for cpt in
-                                                                         components])
+                                                                        [cpt.component.component_id for cpt in components])
         return {dep.key(): dep for dep in volume_deps}
 
     def _save_plugin_deps(self):
