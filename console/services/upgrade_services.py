@@ -64,7 +64,7 @@ class UpgradeService(object):
             },
         }
 
-    def upgrade(self, tenant, region, user, version, record: AppUpgradeRecord, component_keys=None):
+    def upgrade(self, tenant, region, user, app, version, record: AppUpgradeRecord, component_keys=None):
         """
         Upgrade application market applications
         """
@@ -80,6 +80,7 @@ class UpgradeService(object):
             tenant,
             region,
             user,
+            app,
             version,
             component_group,
             app_template,
@@ -92,7 +93,7 @@ class UpgradeService(object):
         app_template_name = component_group.group_alias
         return self.serialized_upgrade_record(record), app_template_name
 
-    def upgrade_component(self, tenant, region, user, component: TenantServiceInfo, version):
+    def upgrade_component(self, tenant, region, user, app, component: TenantServiceInfo, version):
         component_group = tenant_service_group_repo.get_component_group(component.upgrade_group_id)
         app_template_source = service_source_repo.get_service_source(component.tenant_id, component.component_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
@@ -102,6 +103,7 @@ class UpgradeService(object):
             tenant,
             region,
             user,
+            app,
             version,
             component_group,
             app_template,
@@ -118,7 +120,6 @@ class UpgradeService(object):
 
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         app_restore = AppRestore(tenant, region, user, app, component_group, record)
-        record = app_restore.restore()
         record, component_group = app_restore.restore()
         return self.serialized_upgrade_record(record), component_group.group_alias
 
@@ -154,7 +155,7 @@ class UpgradeService(object):
         app_template_source = self._app_template_source(app.app_id, component_group.group_key, upgrade_group_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
-        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, version, component_group, app_template,
+        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, app, version, component_group, app_template,
                                  app_template_source.is_install_from_cloud(), app_template_source.get_market_name())
         return app_upgrade.changes()
 
