@@ -71,6 +71,6 @@ WHERE
 UPDATE service_source SET service_share_uuid=CONCAT(SUBSTRING(service_share_uuid, 34),"+",SUBSTRING(service_share_uuid, 34));
 UPDATE tenant_service a
 JOIN service_source b ON a.service_id = b.service_id 
-SET a.service_key = SUBSTRING ( b.service_share_uuid, 34 ) 
+SET a.service_key = SUBSTRING( b.service_share_uuid, 34 )
 WHERE
 	a.service_source = "market";
