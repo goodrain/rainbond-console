@@ -1,0 +1,65 @@
+{{- if .Values.ui.enable }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.ui.fullname }}
+  labels:
+    rainbond: ui
+spec:
+  replicas: {{ .Values.ui.replicasCount }}
+  selector:
+  {{- with .Values.ui.selectorLabels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+  template:
+    metadata:
+    {{- with .Values.ui.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.ui.selectorLabels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    spec:
+      containers:
+        - name: ui
+          image: "{{ .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}"
+          imagePullPolicy: {{ .Values.ui.image.pullPolicy }}
+          env:
+            - name: TZ
+              value: "Asia/Shanghai"
+          ports:
+            - name: tcp
+              containerPort: 6000
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /console/config/info
+              port: 6000
+              scheme: HTTP
+            initialDelaySeconds: 4
+            periodSeconds: 3
+            successThreshold: 1
+            timeoutSeconds: 5
+          volumeMounts:
+          - mountPath: /app/nginx/conf.d/web.conf
+            subPath: web.conf
+            name: ui-conf
+          resources:
+            {{- toYaml .Values.ui.resources | nindent 12 }}
+      volumes:
+      - name: ui-conf
+        configMap:
+          name: rainbond-ui-cm
+      {{- with .Values.ui.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ui.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
