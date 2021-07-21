@@ -53,36 +53,33 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             store_name = share_record.share_store_name
             store_id = share_record.share_app_market_name
             scope = share_record.scope
-            app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
-            if app:
-                if not app_model_name:
-                    app_model_name = app.app_name
-                    app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
-                    if app_version:
-                        upgrade_time = app_version.upgrade_time
-                        share_record.share_version_alias = app_version.version_alias
-                        share_record.share_app_version_info = app_version.app_version_info
-                    share_record.share_app_model_name = app_model_name
-                    share_record.save()
-            else:
+            if scope != "goodrain" and not app_model_name:
+                app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
+                app_model_name = app.app_name
+                app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+                if app_version:
+                    upgrade_time = app_version.upgrade_time
+                    share_record.share_version_alias = app_version.version_alias
+                    share_record.share_app_version_info = app_version.app_version_info
+                share_record.share_app_model_name = app_model_name
+                share_record.save()
+            if scope == "goodrain" and store_id and share_record.app_id and not app_model_name:
                 try:
-                    if store_id and share_record.app_id:
-                        if not app_model_name:
-                            mkt = market.get(share_record.share_app_market_name, None)
-                            if not mkt:
-                                mkt = app_market_service.get_app_market_by_name(
-                                    self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
-                                market[share_record.share_app_market_name] = mkt
+                    mkt = market.get(share_record.share_app_market_name, None)
+                    if not mkt:
+                        mkt = app_market_service.get_app_market_by_name(
+                            self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+                        market[share_record.share_app_market_name] = mkt
 
-                            c_app = cloud_app.get(share_record.app_id, None)
-                            if not c_app:
-                                c_app = app_market_service.get_market_app_model(mkt, share_record.app_id, True)
-                                cloud_app[share_record.app_id] = c_app
-                            store_name = c_app.market_name
-                            app_model_name = c_app.app_name
-                            share_record.share_app_model_name = app_model_name
-                            share_record.share_store_name = store_name
-                            share_record.save()
+                    c_app = cloud_app.get(share_record.app_id, None)
+                    if not c_app:
+                        c_app = app_market_service.get_market_app_model(mkt, share_record.app_id, True)
+                        cloud_app[share_record.app_id] = c_app
+                    store_name = c_app.market_name
+                    app_model_name = c_app.app_name
+                    share_record.share_app_model_name = app_model_name
+                    share_record.share_store_name = store_name
+                    share_record.save()
                 except ServiceHandleException:
                     app_model_id = share_record.app_id
             data.append({
