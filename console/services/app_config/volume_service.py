@@ -158,7 +158,7 @@ class AppVolumeService(object):
         return vos
 
     def check_volume_name(self, service, volume_name):
-        r = re.compile('^[a-zA-Z0-9_]+$')
+        r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
                 raise ServiceHandleException(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
