@@ -52,7 +52,7 @@ class PropertyChanges(object):
         cpt_changes = []
         for cpt in components:
             # get component template
-            tmpl = get_component_template(cpt.component_source, app_template)
+            tmpl = get_component_template(cpt, app_template)
             if not tmpl:
                 continue
             cpt_changes.append(self._get_component_change(cpt, tmpl))

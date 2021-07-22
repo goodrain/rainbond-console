@@ -7,7 +7,6 @@ from console.enum.app import GovernanceModeEnum
 from .enum import ActionType
 # exception
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
-from console.models.main import ComponentGraph, ServiceMonitor
 # repository
 from console.repositories.app_config import port_repo
 # service
@@ -15,6 +14,8 @@ from console.services.app_config import env_var_service
 # model
 from www.models.main import (ServiceProbe, TenantServiceConfigurationFile, TenantServiceEnvVar, TenantServicesPort,
                              TenantServiceVolume)
+from console.models.main import ComponentGraph, ServiceMonitor
+from console.models.main import ServiceSourceInfo
 # util
 from www.utils.crypt import make_uuid
 
@@ -24,7 +25,7 @@ logger = logging.getLogger("default")
 class Component(object):
     def __init__(self,
                  component,
-                 component_source,
+                 component_source: ServiceSourceInfo,
                  envs,
                  ports,
                  volumes,
