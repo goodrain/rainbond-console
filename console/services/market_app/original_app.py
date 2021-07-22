@@ -39,8 +39,9 @@ class OriginalApp(object):
         self._components = self._create_components(app.app_id, upgrade_group_id)
 
         # dependency
-        self.component_deps = dep_relation_repo.list_by_component_ids(self.tenant_id,
-                                                                      [cpt.component.component_id for cpt in self._components])
+        component_deps = dep_relation_repo.list_by_component_ids(self.tenant_id,
+                                                                 [cpt.component.component_id for cpt in self._components])
+        self.component_deps = list(component_deps)
         self.volume_deps = self._volume_deps()
 
         # plugins

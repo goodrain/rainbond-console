@@ -3,6 +3,8 @@ import logging
 import json
 from datetime import datetime
 
+from .utils import is_same_component
+from .enum import ActionType
 from console.services.market_app.component import Component
 # service
 from console.services.app_config import port_service
@@ -23,12 +25,11 @@ from www.models.service_publish import ServiceExtendMethod
 from www.models.main import TenantServiceConfigurationFile
 # exception
 from console.exception.main import AbortRequest
-from console.exception.bcode import ErrK8sServiceNameExists
 from console.exception.main import ErrVolumePath
+from console.exception.bcode import ErrK8sServiceNameExists
 # enum
 from console.enum.component_enum import ComponentType
 from console.constants import AppConstants
-from console.enum.app import GovernanceModeEnum
 # util
 from www.utils.crypt import make_uuid
 
@@ -71,12 +72,11 @@ class NewComponents(object):
         create component and related attributes
         """
         # new component templates
-        exist_components = {cpt.component.service_key: cpt.component for cpt in self.original_app.components()}
-        templates = self.app_template.get("apps")
-        templates = templates if templates else []
-        templates = [ct for ct in templates if not exist_components.get(ct.get("service_key"))]
+        exist_components = self.original_app.components()
+        templates = self.app_template.get("apps") if self.app_template.get("apps") else []
+        new_component_tmpls = self._get_new_component_templates(exist_components, templates)
 
-        components = [self._template_to_component(self.tenant.tenant_id, template) for template in templates]
+        components = [self._template_to_component(self.tenant.tenant_id, template) for template in new_component_tmpls]
         if self.components_keys:
             components = [cpt for cpt in components if cpt.service_key in self.components_keys]
 
@@ -95,7 +95,6 @@ class NewComponents(object):
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")
             envs = self._template_to_envs(cpt, inner_envs, outer_envs)
-            envs = self._ensure_port_envs(cpt, envs, ports, self.original_app.governance_mode)
             # volumes
             volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
             # probe
@@ -115,10 +114,28 @@ class NewComponents(object):
                 tenant_id=self.tenant.tenant_id,
                 region_name=self.region_name,
             )
-            result.append(
-                Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs, [],
-                          http_rules, service_group_rel))
+
+            component = Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors,
+                                  graphs, [], http_rules, service_group_rel)
+            component.ensure_port_envs(self.original_app.governance_mode)
+            component.action_type = ActionType.BUILD.value
+            result.append(component)
         return result
+
+    def _get_new_component_templates(self, exist_components: [Component], component_templates):
+        tmpls = []
+        for tmpl in component_templates:
+            if self._component_exists(exist_components, tmpl):
+                continue
+            tmpls.append(tmpl)
+        return tmpls
+
+    @staticmethod
+    def _component_exists(exist_components: [Component], component_tmpl):
+        for component in exist_components:
+            if is_same_component(component, component_tmpl):
+                return True
+        return False
 
     def _template_to_component(self, tenant_id, template):
         component = TenantServiceInfo()
@@ -257,22 +274,6 @@ class NewComponents(object):
             if gateway_rule:
                 gateway_rules.append(gateway_rule)
         return new_ports, gateway_rules
-
-    def _ensure_port_envs(self, component, envs, ports, governance_mode):
-        # filter out the old port envs
-        envs = [env for env in envs if env.container_port == 0]
-        # create outer envs for every port
-        for port in ports:
-            envs.extend(self._create_envs_4_ports(component, port, governance_mode))
-        return envs
-
-    def _create_envs_4_ports(self, component: TenantServiceInfo, port: TenantServicesPort, governance_mode):
-        port_alias = component.service_alias.upper()
-        host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
-        attr_name_prefix = port_alias + str(port.container_port)
-        host_env = self._create_port_env(component, port, "连接地址", attr_name_prefix + "_HOST", host_value)
-        port_env = self._create_port_env(component, port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
-        return [host_env, port_env]
 
     @staticmethod
     def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name, attr_name, attr_value):
