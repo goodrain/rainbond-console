@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from .new_app import NewApp
+from .original_app import OriginalApp
 from .utils import get_component_template
+from .enum import ActionType
 # service
 from console.services.market_app.component import Component
 from console.services.app_config.promql_service import promql_service
@@ -28,11 +31,28 @@ class PropertyChanges(object):
     def need_change(self):
         return self.changes
 
+    def ensure_dep_changes(self, new_app: NewApp, original_app: OriginalApp):
+        update_components = {component.component.component_id: component for component in new_app.list_update_components()}
+        original_components = {component.component.component_id: component for component in original_app.components()}
+
+        for change in self.changes:
+            component_id = change["component_id"]
+            update_component = update_components.get(component_id)
+            if not update_component:
+                continue
+            original_component = original_components.get(component_id)
+            # update component if component dependencies changed
+            if len(original_component.component_deps) != len(update_component.component_deps):
+                update_component.update_action_type(ActionType.UPDATE.value)
+            # update component if volume dependencies changed
+            if len(original_component.volume_deps) != len(update_component.volume_deps):
+                update_component.update_action_type(ActionType.UPDATE.value)
+
     def _get_component_changes(self, components, app_template):
         cpt_changes = []
         for cpt in components:
             # get component template
-            tmpl = get_component_template(cpt.component_source, app_template)
+            tmpl = get_component_template(cpt, app_template)
             if not tmpl:
                 continue
             cpt_changes.append(self._get_component_change(cpt, tmpl))
