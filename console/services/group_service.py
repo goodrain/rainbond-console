@@ -146,13 +146,14 @@ class GroupService(object):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
-        # check username
+        data = {
+            "note": note,
+        }
         if username:
+            # check username
             try:
-                data = {"username": username}
+                data["username"] = username
                 user_repo.get_user_by_username(username)
-                group_repo.update(app_id, **data)
-                return
             except ErrUserNotFound:
                 raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
 
@@ -164,9 +165,6 @@ class GroupService(object):
         if overrides:
             overrides = self._parse_overrides(overrides)
 
-        data = {
-            "note": note,
-        }
         if app_name:
             data["group_name"] = app_name
         if version:
@@ -386,8 +384,10 @@ class GroupService(object):
                 # if plugin is turn on means component is using this plugin
                 plugins[plugin.service_id] += plugin.min_memory
 
+        app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
         for app in app_list:
+            app_status = app_id_statuses.get(app.ID)
             apps[app.ID] = {
                 "group_id": app.ID,
                 "update_time": app.update_time,
@@ -395,10 +395,9 @@ class GroupService(object):
                 "group_name": app.group_name,
                 "group_note": app.note,
                 "service_list": [],
+                "used_mem": app_status.get("memory", 0) if app_status else 0
             }
         for service in service_list:
-            # memory used for plugin
-            service.min_memory += plugins.get(service.service_id, 0)
             apps[service.group_id]["service_list"].append(service)
 
         share_list = share_repo.get_multi_app_share_records(app_ids)
@@ -433,11 +432,38 @@ class GroupService(object):
                 app["allocate_mem"] += svc.min_memory
                 if svc.status in ["running", "upgrade", "starting", "some_abnormal"]:
                     # if is running used_mem ++
-                    app["used_mem"] += svc.min_memory
                     app["run_service_num"] += 1
+            if app["used_mem"] > app["allocate_mem"]:
+                app["allocate_mem"] = app["used_mem"]
             app.pop("service_list")
             re_app_list.append(app)
         return re_app_list
+
+    @staticmethod
+    def get_region_app_statuses(tenant_name, region_name, app_ids):
+        # Obtain the application ID of the cluster and
+        # record the corresponding relationship of the console application ID
+        region_apps = region_app_repo.list_by_app_ids(region_name, app_ids)
+        region_app_ids = []
+        app_id_rels = dict()
+        for region_app in region_apps:
+            region_app_ids.append(region_app.region_app_id)
+            app_id_rels[region_app.app_id] = region_app.region_app_id
+        # Get the status of cluster application
+        resp = region_api.list_app_statuses_by_app_ids(tenant_name, region_name, {"app_ids": region_app_ids})
+        app_statuses = resp.get("list", [])
+        # The relationship between cluster application ID and state
+        # is transformed into that between console application ID and state
+        # Returns the relationship between console application ID and status
+        app_id_status_rels = dict()
+        region_app_id_status_rels = dict()
+        for app_status in app_statuses:
+            region_app_id_status_rels[app_status.get("app_id", "")] = app_status
+        for app_id in app_ids:
+            if not app_id_rels.get(app_id):
+                continue
+            app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
+        return app_id_status_rels
 
     @staticmethod
     def list_components_by_upgrade_group_id(group_id, upgrade_group_id):

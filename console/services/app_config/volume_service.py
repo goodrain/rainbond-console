@@ -162,7 +162,7 @@ class AppVolumeService(object):
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
                 raise ServiceHandleException(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
-            volume_name = service.service_cname + make_uuid()[-3:]
+            volume_name = service.service_alias + "-" + make_uuid()[-3:]
         volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
 
         if volume:
@@ -333,9 +333,9 @@ class AppVolumeService(object):
         if service.create_status == "complete":
             data = {
                 "category": service.category,
-                "volume_name": volume_name,
-                "volume_path": volume_path,
-                "volume_type": volume_type,
+                "volume_name": volume.volume_name,
+                "volume_path": volume.volume_path,
+                "volume_type": volume.volume_type,
                 "enterprise_id": tenant.enterprise_id,
                 "volume_capacity": volume.volume_capacity,
                 "volume_provider_name": volume.volume_provider_name,
