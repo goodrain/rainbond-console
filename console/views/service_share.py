@@ -83,33 +83,22 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 except ServiceHandleException:
                     app_model_id = share_record.app_id
             data.append({
-                "app_model_id":
-                app_model_id,
-                "app_model_name":
-                app_model_name,
-                "version":
-                share_record.share_version,
+                "app_model_id": app_model_id,
+                "app_model_name": app_model_name,
+                "version": share_record.share_version,
                 "version_alias": share_record.share_version_alias,
-                "scope":
-                scope,
-                "create_time":
-                share_record.create_time,
-                "upgrade_time":
-                upgrade_time,
-                "step":
-                share_record.step,
-                "is_success":
-                share_record.is_success,
-                "status":
-                share_record.status,
+                "scope": scope,
+                "create_time": share_record.create_time,
+                "upgrade_time": upgrade_time,
+                "step": share_record.step,
+                "is_success": share_record.is_success,
+                "status": share_record.status,
                 "scope_target": {
                     "store_name": store_name,
                     "store_id": store_id,
                 },
-                "record_id":
-                share_record.ID,
-                "app_version_info":
-                share_record.share_app_version_info,
+                "record_id": share_record.ID,
+                "app_version_info": share_record.share_app_version_info,
             })
         result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
         return Response(result, status=200)
