@@ -55,7 +55,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             scope = share_record.scope
             if scope != "goodrain" and not app_model_name:
                 app = rainbond_app_repo.get_rainbond_app_by_app_id(self.tenant.enterprise_id, share_record.app_id)
-                app_model_name = app.app_name
+                app_model_name = app.app_name if app else ""
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
                 if app_version:
                     upgrade_time = app_version.upgrade_time
