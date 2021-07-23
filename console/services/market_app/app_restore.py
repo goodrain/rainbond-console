@@ -211,7 +211,7 @@ class AppRestore(MarketApp):
             ports=ports,
             volumes=volumes,
             config_files=config_files,
-            probe=probes[0] if probes else None,
+            probes=probes,
             extend_info=extend_info,
             monitors=monitors,
             graphs=graphs,

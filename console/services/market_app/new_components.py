@@ -100,9 +100,6 @@ class NewComponents(object):
             volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
             # probe
             probes = self._template_to_probes(cpt, component_tmpl.get("probes"))
-            probe = None
-            if probes:
-                probe = probes[0]
             # extend info
             extend_info = self._template_to_extend_info(cpt, component_tmpl.get("extend_method_map"))
             # service monitors
@@ -116,7 +113,7 @@ class NewComponents(object):
                 region_name=self.region_name,
             )
             result.append(
-                Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors, graphs, [],
+                Component(cpt, component_source, envs, ports, volumes, config_files, probes, extend_info, monitors, graphs, [],
                           http_rules, service_group_rel))
         return result
 

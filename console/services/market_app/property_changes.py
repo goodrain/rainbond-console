@@ -56,9 +56,9 @@ class PropertyChanges(object):
         volumes = self._volumes(component.volumes, component_tmpl.get("service_volume_map_list", []), component.config_files)
         if volumes:
             result["volumes"] = volumes
-        probe = self._probe(component.probe, component_tmpl["probes"])
-        if probe:
-            result["probe"] = probe
+        probes = self._probe(component.probes, component_tmpl["probes"])
+        if probes:
+            result["probes"] = probes
         # plugin dependency
         plugin_deps = self._plugin_deps(component.plugin_deps, component_tmpl.get("service_related_plugin_config"))
         if plugin_deps:
@@ -173,24 +173,45 @@ class PropertyChanges(object):
         }
 
     @staticmethod
-    def _probe(old_probe, new_probes):
+    def _probe(old_probes, new_probes):
         """
         Support adding and updating all attributes
         """
         if not new_probes:
             return None
-        new_probe = new_probes[0]
-        # remove redundant keys
-        for key in ["ID", "probe_id", "service_id"]:
-            if key in list(new_probe.keys()):
-                new_probe.pop(key)
-        if not old_probe:
-            return {"add": [new_probe], "upd": []}
-        old_probe = old_probe.to_dict()
-        for k, v in list(new_probe.items()):
-            if k in list(old_probe.keys()) and old_probe[k] != v:
-                return {"add": [], "upd": [new_probe]}
-        return None
+
+        old_probes = {probe.mode: probe for probe in old_probes}
+
+        add = []
+        upd = []
+        for new_probe in new_probes:
+            # remove redundant keys
+            for key in ["ID", "probe_id", "service_id"]:
+                if key in list(new_probe.keys()):
+                    new_probe.pop(key)
+
+            old_probe = old_probes.get(new_probe["mode"])
+            if not old_probe:
+                # create new probe
+                add.append(new_probe)
+                continue
+            # update old probe
+            old_probe = old_probe.to_dict()
+            for k, v in list(new_probe.items()):
+                if k in list(old_probe.keys()) and old_probe[k] != v:
+                    upd.append(new_probe)
+            del old_probes[old_probe.mode]
+
+        delete = []
+        for mode in old_probes:
+            probe = old_probes[mode]
+            delete.append(probe.to_dict())
+
+        return {
+            "add": add,
+            "upd": upd,
+            "delete": delete,
+        }
 
     @staticmethod
     def _graphs(component_id, old_graphs, graphs):

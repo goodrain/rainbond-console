@@ -128,15 +128,15 @@ class MarketApp(object):
             component_base["container_cpu"] = cpt.component.min_cpu
             component_base["container_memory"] = cpt.component.min_memory
             component_base["replicas"] = cpt.component.min_node
-            probe = cpt.probe.to_dict() if cpt.probe else None
-            if probe:
+            probes = [probe.to_dict() for probe in cpt.probes]
+            for probe in probes:
                 probe["is_used"] = 1 if probe["is_used"] else 0
             component = {
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in cpt.envs],
                 "ports": [port.to_dict() for port in cpt.ports],
                 "config_files": [cf.to_dict() for cf in cpt.config_files],
-                "probe": probe,
+                "probes": probes,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
                 "http_rules": self._create_http_rules(cpt.http_rules)
             }

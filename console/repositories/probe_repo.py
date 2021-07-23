@@ -20,6 +20,10 @@ class ServiceProbeRepository(object):
     def get_probe(self, service_id):
         return ServiceProbe.objects.filter(service_id=service_id).first()
 
+    @staticmethod
+    def list_probes(service_id):
+        return ServiceProbe.objects.filter(service_id=service_id)
+
     def add_service_probe(self, **probe_data):
         return ServiceProbe.objects.create(**probe_data)
 
