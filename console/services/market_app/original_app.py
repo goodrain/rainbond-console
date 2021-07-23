@@ -78,19 +78,9 @@ class OriginalApp(object):
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
             rules = http_rules.get(cpt.component_id)
-            result.append(
-                Component(
-                    cpt,
-                    component_source,
-                    envs,
-                    ports,
-                    volumes,
-                    config_files,
-                    probe,
-                    None,
-                    monitors,
-                    graphs, [],
-                    http_rules=rules))
+            component = Component(
+                cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, [], http_rules=rules)
+            result.append(component)
         return result
 
     @staticmethod
