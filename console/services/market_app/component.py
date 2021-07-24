@@ -269,9 +269,13 @@ class Component(object):
         upd = probe.get("upd")
         if upd:
             new_probes.extend(upd)
+        # There can only be one probe of the same mode
+        # Dedup new probes based on mode
+        new_probes = {probe["mode"]: probe for probe in new_probes}
 
         probes = []
-        for probe in new_probes:
+        for key in new_probes:
+            probe = new_probes[key]
             old_probe = old_probes.get(probe["mode"])
             if not old_probe:
                 # create new probe

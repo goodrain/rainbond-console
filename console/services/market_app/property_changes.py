@@ -201,10 +201,14 @@ class PropertyChanges(object):
             return None
 
         old_probes = {probe.mode: probe for probe in old_probes}
+        # There can only be one probe of the same mode
+        # Dedup new probes based on mode
+        new_probes = {probe.mode["probe"] for probe in new_probes}
 
         add = []
         upd = []
-        for new_probe in new_probes:
+        for key in new_probes:
+            new_probe = new_probes[key]
             # remove redundant keys
             for key in ["ID", "probe_id", "service_id"]:
                 if key in list(new_probe.keys()):
