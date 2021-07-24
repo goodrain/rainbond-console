@@ -169,8 +169,8 @@ class NewApp(object):
             http_rules.extend(cpt.http_rules)
             volumes.extend(cpt.volumes)
             config_files.extend(cpt.config_files)
-            if cpt.probe:
-                probes.append(cpt.probe)
+            if cpt.probes:
+                probes.extend(cpt.probes)
             if cpt.extend_info:
                 extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)
@@ -214,8 +214,8 @@ class NewApp(object):
             ports.extend(cpt.ports)
             volumes.extend(cpt.volumes)
             config_files.extend(cpt.config_files)
-            if cpt.probe:
-                probes.append(cpt.probe)
+            if cpt.probes:
+                probes.extend(cpt.probes)
             if cpt.extend_info:
                 extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)

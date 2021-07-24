@@ -74,12 +74,12 @@ class OriginalApp(object):
             ports = port_repo.get_service_ports(cpt.tenant_id, cpt.service_id)
             volumes = volume_repo.get_service_volumes_with_config_file(cpt.service_id)
             config_files = volume_repo.get_service_config_files(cpt.service_id)
-            probe = probe_repo.get_probe(cpt.service_id)
+            probes = probe_repo.list_probes(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
             rules = http_rules.get(cpt.component_id)
             component = Component(
-                cpt, component_source, envs, ports, volumes, config_files, probe, None, monitors, graphs, [], http_rules=rules)
+                cpt, component_source, envs, ports, volumes, config_files, probes, None, monitors, graphs, [], http_rules=rules)
             result.append(component)
         return result
 

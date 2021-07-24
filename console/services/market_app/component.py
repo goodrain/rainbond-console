@@ -30,7 +30,7 @@ class Component(object):
                  ports,
                  volumes,
                  config_files,
-                 probe,
+                 probes: [ServiceProbe],
                  extend_info,
                  monitors,
                  graphs,
@@ -44,7 +44,7 @@ class Component(object):
         self.http_rules = list(http_rules) if http_rules else []
         self.volumes = list(volumes)
         self.config_files = list(config_files)
-        self.probe = probe
+        self.probes = list(probes) if probes else []
         self.extend_info = extend_info
         self.monitors = list(monitors)
         self.graphs = list(graphs)
@@ -107,7 +107,7 @@ class Component(object):
             "connect_infos": self._update_outer_envs,
             "ports": self._update_ports,
             "volumes": self._update_volumes,
-            "probe": self._update_probe,
+            "probes": self._update_probe,
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
         }
@@ -261,17 +261,35 @@ class Component(object):
         self.update_action_type(ActionType.UPDATE.value)
 
     def _update_probe(self, probe):
+        old_probes = {probe.mode: probe for probe in self.probes}
+
+        new_probes = []
         add = probe.get("add")
         if add:
-            add["probe_id"] = make_uuid()
-            self.probe = ServiceProbe(**add)
-            self.probe.service_id = self.component.component_id
-        upd = probe.get("upd", None)
+            new_probes.extend(add)
+        upd = probe.get("upd")
         if upd:
-            probe = ServiceProbe(**upd)
-            probe.ID = self.probe.ID
-            probe.service_id = self.probe.service_id
-            self.probe = probe
+            new_probes.extend(upd)
+        # There can only be one probe of the same mode
+        # Dedup new probes based on mode
+        new_probes = {probe["mode"]: probe for probe in new_probes}
+
+        probes = []
+        for key in new_probes:
+            probe = new_probes[key]
+            old_probe = old_probes.get(probe["mode"])
+            if not old_probe:
+                # create new probe
+                probe["probe_id"] = make_uuid()
+                probe["service_id"] = self.component.component_id
+                probes.append(ServiceProbe(**probe))
+                continue
+            # update probe
+            probe = ServiceProbe(**probe)
+            probe.ID = old_probe.ID
+            probe.service_id = self.component.component_id
+            probes.append(probe)
+        self.probes = probes
         self.update_action_type(ActionType.UPDATE.value)
 
     def update_action_type(self, action_type):

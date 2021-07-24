@@ -99,9 +99,6 @@ class NewComponents(object):
             volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
             # probe
             probes = self._template_to_probes(cpt, component_tmpl.get("probes"))
-            probe = None
-            if probes:
-                probe = probes[0]
             # extend info
             extend_info = self._template_to_extend_info(cpt, component_tmpl.get("extend_method_map"))
             # service monitors
@@ -114,8 +111,7 @@ class NewComponents(object):
                 tenant_id=self.tenant.tenant_id,
                 region_name=self.region_name,
             )
-
-            component = Component(cpt, component_source, envs, ports, volumes, config_files, probe, extend_info, monitors,
+            component = Component(cpt, component_source, envs, ports, volumes, config_files, probes, extend_info, monitors,
                                   graphs, [], http_rules, service_group_rel)
             component.ensure_port_envs(self.original_app.governance_mode)
             component.action_type = ActionType.BUILD.value
