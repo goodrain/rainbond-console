@@ -3,6 +3,7 @@ import json
 
 from django.db import transaction
 
+from .enum import ActionType
 from .new_app import NewApp
 from .original_app import OriginalApp
 from .plugin import Plugin
@@ -44,32 +45,31 @@ class MarketApp(object):
         self._sync_app_config_groups(self.original_app)
 
     def deploy(self):
-        builds = []
-        for cpt in self.new_app.components():
-            build = dict()
-            build["service_id"] = cpt.component.component_id
-            build["action"] = 'deploy'
-            if cpt.component.build_upgrade:
-                build["action"] = 'upgrade'
-            build["kind"] = "build_from_market_image"
-            extend_info = json.loads(cpt.component_source.extend_info)
-            build["image_info"] = {
-                "image_url": cpt.component.image,
-                "user": extend_info.get("hub_user"),
-                "password": extend_info.get("hub_password"),
-                "cmd": cpt.component.cmd,
+        builds = self._generate_builds()
+        upgrades = self._generate_upgrades()
+
+        # Region do not support different operation in one API.
+        # We have to call build, then upgrade.
+        res = []
+        if builds:
+            body = {
+                "operation": "build",
+                "build_infos": builds,
             }
-            builds.append(build)
+            _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
+            res += body["bean"]["batch_result"]
 
-        body = {
-            "operation": "build",
-            "build_infos": builds,
-        }
-        _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
-        return body["bean"]["batch_result"]
+        if upgrades:
+            body = {
+                "operation": "upgrade",
+                "upgrade_infos": upgrades,
+            }
+            _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
+            res += body["bean"]["batch_result"]
 
-    @staticmethod
-    def ensure_component_deps(original_app: OriginalApp, new_deps):
+        return res
+
+    def ensure_component_deps(self, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
         """
         确保组件依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -79,13 +79,19 @@ class MarketApp(object):
         """
         # 保留 app_id 和 upgrade_group_id 都不同的依赖关系
         # component_ids 是相同 app_id 和 upgrade_group_id 下的组件, 所以 dep_service_id 不属于 component_ids 的依赖关系属于'情况2'
-        component_ids = [cpt.component.component_id for cpt in original_app.components()]
-        deps = [dep for dep in original_app.component_deps if dep.dep_service_id not in component_ids]
+        if is_upgrade_one:
+            # If the dependency of the component has changed with other components (existing in the template
+            # and installed), then update it.
+            new_deps.extend(self.original_app.component_deps)
+            return self._dedup_deps(new_deps)
+        component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
+        if tmpl_component_ids:
+            component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
+        deps = [dep for dep in self.original_app.component_deps if dep.dep_service_id not in component_ids]
         deps.extend(new_deps)
         return deps
 
-    @staticmethod
-    def ensure_volume_deps(original_app: OriginalApp, new_deps):
+    def ensure_volume_deps(self, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
         """
         确保存储依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -95,8 +101,15 @@ class MarketApp(object):
         """
         # 保留 app_id 和 upgrade_group_id 都不同的依赖关系
         # component_ids 是相同 app_id 和 upgrade_group_id 下的组件, 所以 dep_service_id 不属于 component_ids 的依赖关系属于'情况2'
-        component_ids = [cpt.component.component_id for cpt in original_app.components()]
-        deps = [dep for dep in original_app.volume_deps if dep.dep_service_id not in component_ids]
+        if is_upgrade_one:
+            # If the dependency of the component has changed with other components (existing in the template
+            # and installed), then update it.
+            new_deps.extend(self.original_app.volume_deps)
+            return self._dedup_deps(new_deps)
+        component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
+        if tmpl_component_ids:
+            component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
+        deps = [dep for dep in self.original_app.volume_deps if dep.dep_service_id not in component_ids]
         deps.extend(new_deps)
         return deps
 
@@ -303,3 +316,47 @@ class MarketApp(object):
         build_version_repo.bulk_create(build_versions)
         config_group_repo.bulk_create_plugin_config_group(config_groups)
         config_item_repo.bulk_create_items(config_items)
+
+    def _generate_builds(self):
+        builds = []
+        for cpt in self.new_app.components():
+            if cpt.action_type != ActionType.BUILD.value:
+                continue
+            build = dict()
+            build["service_id"] = cpt.component.component_id
+            build["action"] = 'deploy'
+            if cpt.component.build_upgrade:
+                build["action"] = 'upgrade'
+            build["kind"] = "build_from_market_image"
+            extend_info = json.loads(cpt.component_source.extend_info)
+            build["image_info"] = {
+                "image_url": cpt.component.image,
+                "user": extend_info.get("hub_user"),
+                "password": extend_info.get("hub_password"),
+                "cmd": cpt.component.cmd,
+            }
+            builds.append(build)
+        return builds
+
+    def _generate_upgrades(self):
+        upgrades = []
+        for cpt in self.new_app.components():
+            if cpt.action_type != ActionType.UPDATE.value:
+                continue
+            upgrade = dict()
+            upgrade["service_id"] = cpt.component.component_id
+            upgrades.append(upgrade)
+        return upgrades
+
+    def _dedup_deps(self, deps):
+        result = []
+        if not deps:
+            return []
+
+        exists = []
+        for dep in deps:
+            if dep.service_id + dep.dep_service_id in exists:
+                continue
+            result.append(dep)
+            exists.append(dep.service_id + dep.dep_service_id)
+        return result

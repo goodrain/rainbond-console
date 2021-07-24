@@ -126,6 +126,7 @@ class AppUpgradeView(AppUpgradeRecordView):
             self.tenant,
             self.region,
             self.user,
+            self.app,
             version,
             self.app_upgrade_record,
             component_keys,

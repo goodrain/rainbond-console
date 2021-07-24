@@ -102,6 +102,7 @@ class MarketAppService(object):
             tenant,
             region,
             user,
+            app,
             version,
             component_group,
             app_template,

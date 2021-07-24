@@ -101,7 +101,12 @@ class NewApp(object):
         self.component_group.save()
 
     def components(self):
-        components = self._components()
+        return self._ensure_components(self._components())
+
+    def list_update_components(self):
+        return self._ensure_components(self.update_components)
+
+    def _ensure_components(self, components):
         # component dependency
         component_deps = {}
         for dep in self.component_deps:
