@@ -1949,3 +1949,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
+
+    def list_app_statuses_by_app_ids(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/appstatuses".format(tenant_name=tenant_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return body

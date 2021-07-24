@@ -2,6 +2,7 @@
 """
   Created on 18/1/15.
 """
+import re
 import logging
 
 from django.views.decorators.cache import never_cache
@@ -14,6 +15,7 @@ from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
+from console.exception.main import AbortRequest
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -109,6 +111,9 @@ class AppVolumeView(AppBaseView):
 
         """
         volume_name = request.data.get("volume_name", None)
+        r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
+        if not r.match(volume_name):
+            raise AbortRequest(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
         volume_type = request.data.get("volume_type", None)
         volume_path = request.data.get("volume_path", None)
         file_content = request.data.get("file_content", None)
