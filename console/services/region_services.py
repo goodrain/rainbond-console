@@ -383,6 +383,8 @@ class RegionService(object):
             raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
             region_api.test_region_api(region_data)
+        except region_api.CallApiError:
+            raise ServiceHandleException(status_code=400, msg="request timed out", msg_show="连接集群超时，请确保访问地址的可用性, 且已放行 8443 端口")
         except ServiceHandleException:
             raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
         region = region_repo.create_region(region_data)

@@ -170,6 +170,12 @@ class RegionApiBaseHttpClient(object):
                 "error_code": 10411,
             })
         except MaxRetryError as e:
+            if type(e.reason) is urllib3.exceptions.ConnectTimeoutError:
+                raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
+                    "type": "request time out",
+                    "error": e.reason.args[1],
+                    "error_code": 10411,
+                })
             logger.debug("error url {}".format(url))
             logger.exception(e)
             raise ServiceHandleException(error_code=10411, msg="MaxRetryError", msg_show="访问数据中心异常，请稍后重试")
