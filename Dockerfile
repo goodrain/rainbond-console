@@ -1,8 +1,7 @@
 ARG BASE_VERSION=V5.3
-ARG RELEASE_DESC=
 
 FROM rainbond/rbd-ui-base:${BASE_VERSION}
-
+ARG RELEASE_DESC=
 LABEL author="zengqg@goodrain.com" 
 
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/
