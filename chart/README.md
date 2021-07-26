@@ -1,3 +1,3 @@
 ### Rainbond Console
 
-* Use helm install Rainbond-Console in kubernetes
+* This helm chart is not in being maintained, Move to the new Github https://github.com/goodrain/rainbond-chart
