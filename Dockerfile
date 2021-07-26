@@ -14,8 +14,8 @@ WORKDIR /app/ui
 RUN chmod +x /app/ui/entrypoint.sh \
       && mkdir /app/logs \
       && mkdir /app/data \
-      && python -m pip install --upgrade pip \
-      && pip install -r requirements.txt \
+      && python -m pip install -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com/pypi/simple/ --upgrade pip \
+      && pip install -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com/pypi/simple/ -r requirements.txt \
       && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
       && rm -rf /root/.cache \
       && rm -rf /tmp/* \
