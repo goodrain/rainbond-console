@@ -125,7 +125,7 @@ class AppVolumeView(AppBaseView):
         reclaim_policy = request.data.get('reclaim_policy', '')  # TODO fanyangyang 使用serialer进行参数校验
         allow_expansion = request.data.get('allow_expansion', False)
         mode = request.data.get("mode")
-        if mode is not None and (mode > 777 or mode < 0):
+        if mode is not None and (not isinstance(mode, int) or (mode > 777 or mode < 0)):
             raise AbortRequest("mode be a number between 0 and 777 (octal)", msg_show="权限必须是在0和777之间的八进制数")
 
         settings = {}
@@ -205,7 +205,7 @@ class AppVolumeManageView(AppBaseView):
         if not volume:
             return Response(general_message(400, "volume is null", "存储不存在"), status=400)
         mode = request.data.get("mode")
-        if mode is not None and (mode > 777 or mode < 0):
+        if mode is not None and (not isinstance(mode, int) or (mode > 777 or mode < 0)):
             raise AbortRequest("mode be a number between 0 and 777 (octal)", msg_show="权限必须是在0和777之间的八进制数")
         service_config = volume_repo.get_service_config_file(volume)
         if volume.volume_type == 'config-file':
