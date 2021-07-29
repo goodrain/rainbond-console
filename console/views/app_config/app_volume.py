@@ -228,11 +228,11 @@ class AppVolumeManageView(AppBaseView):
                                                        self.service.service_alias, data)
         if res.status == 200:
             volume.volume_path = new_volume_path
+            if mode is not None:
+                volume.mode = mode
             volume.save()
             if volume.volume_type == 'config-file':
                 service_config.file_content = new_file_content
-                if mode is not None:
-                    service_config.mode = mode
                 service_config.save()
             result = general_message(200, "success", "修改成功")
             return Response(result, status=result["code"])
