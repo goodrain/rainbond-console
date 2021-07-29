@@ -1,9 +1,12 @@
 # -*- coding: utf8 -*-
 import copy
+import json
+from datetime import datetime
 
 from .utils import get_component_template
 from .component import Component
 from console.services.market_app.original_app import OriginalApp
+from console.models.main import ServiceSourceInfo
 
 
 class UpdateComponents(object):
@@ -50,7 +53,7 @@ class UpdateComponents(object):
             cpt.component.cmd = component_tmpl.get("cmd", "")
             cpt.component.version = component_tmpl["version"]
 
-            cpt.component_source.version = self.version
+            self._update_component_source(cpt.component_source, component_tmpl, self.version)
 
         return components
 
@@ -65,3 +68,24 @@ class UpdateComponents(object):
         component.component.service_key = tmpl.get("service_key", component.component.service_key)
         component.component_source.service_share_uuid = tmpl.get("service_share_uuid",
                                                                  component.component_source.service_share_uuid)
+
+    def _update_component_source(self, component_source: ServiceSourceInfo, tmpl: map, version):
+        extend_info = json.loads(component_source.extend_info)
+
+        service_image = tmpl.get("service_image")
+        if type(service_image) is dict:
+            for key in service_image:
+                extend_info[key] = service_image[key]
+
+        extend_info["source_deploy_version"] = tmpl.get("deploy_version")
+        extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
+            "service_share_uuid", None) else tmpl.get("service_key", "")
+        update_time = self.app_template.get("update_time")
+        if update_time:
+            if type(update_time) == datetime:
+                extend_info["update_time"] = update_time.strftime('%Y-%m-%d %H:%M:%S')
+            elif type(update_time) == str:
+                extend_info["update_time"] = update_time
+
+        component_source.extend_info = json.dumps(extend_info)
+        component_source.version = version
