@@ -8,6 +8,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import domain_repo
+from console.repositories.app_config import configuration_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import dep_relation_repo
@@ -155,6 +156,7 @@ class NewApp(object):
         envs = []
         ports = []
         http_rules = []
+        http_rule_configs = []
         volumes = []
         config_files = []
         probes = []
@@ -167,6 +169,7 @@ class NewApp(object):
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             http_rules.extend(cpt.http_rules)
+            http_rule_configs.extend(cpt.http_rule_configs)
             volumes.extend(cpt.volumes)
             config_files.extend(cpt.config_files)
             if cpt.probes:
@@ -176,6 +179,7 @@ class NewApp(object):
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
             service_group_rels.append(cpt.service_group_rel)
+
         components = [cpt.component for cpt in self.new_components]
 
         service_repo.bulk_create(components)
@@ -183,6 +187,7 @@ class NewApp(object):
         env_var_repo.bulk_create(envs)
         port_repo.bulk_create(ports)
         domain_repo.bulk_create(http_rules)
+        configuration_repo.bulk_create(http_rule_configs)
         volume_repo.bulk_create(volumes)
         config_file_repo.bulk_create(config_files)
         probe_repo.bulk_create(probes)
@@ -207,6 +212,8 @@ class NewApp(object):
         extend_infos = []
         monitors = []
         graphs = []
+        http_rules = []
+        http_rule_configs = []
         # TODO(huangrh): merged with _save_components
         for cpt in self.update_components:
             sources.append(cpt.component_source)
@@ -220,6 +227,8 @@ class NewApp(object):
                 extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
+            http_rules.extend(cpt.http_rules)
+            http_rule_configs.extend(cpt.http_rule_configs)
 
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
@@ -233,6 +242,8 @@ class NewApp(object):
         probe_repo.overwrite_by_component_ids(component_ids, probes)
         service_monitor_repo.overwrite_by_component_ids(component_ids, monitors)
         component_graph_repo.overwrite_by_component_ids(component_ids, graphs)
+        domain_repo.overwrite_by_component_ids(component_ids, http_rules)
+        configuration_repo.overwrite_by_component_ids(component_ids, http_rule_configs)
 
     def _save_component_deps(self):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)

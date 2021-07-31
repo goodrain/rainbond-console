@@ -25,6 +25,8 @@ from www.models.main import TenantServiceConfigurationFile
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
 from www.models.main import ServiceProbe
+from www.models.main import ServiceDomain
+from www.models.main import GatewayCustomConfiguration
 from www.models.plugin import TenantServicePluginRelation
 from www.models.plugin import ServicePluginConfigVar
 from www.models.service_publish import ServiceExtendMethod
@@ -63,7 +65,7 @@ class AppRestore(MarketApp):
         self.rollback_record = None
         self.component_group = component_group
 
-        self.original_app = OriginalApp(tenant.tenant_id, region, app, component_group.ID)
+        self.original_app = OriginalApp(tenant, region, app, component_group.ID)
         self.snapshot = self._get_snapshot()
         self.new_app = self._create_new_app()
         super(AppRestore, self).__init__(self.original_app, self.new_app)
@@ -194,7 +196,9 @@ class AppRestore(MarketApp):
         # ports
         ports = [TenantServicesPort(**port) for port in snap["service_ports"]]
         # service_extend_method
-        extend_info = ServiceExtendMethod(**snap["service_extend_method"])
+        extend_info = None
+        if snap.get("service_extend_method"):
+            extend_info = ServiceExtendMethod(**snap.get("service_extend_method"))
         # volumes
         volumes = [TenantServiceVolume(**volume) for volume in snap["service_volumes"]]
         # configuration files
@@ -205,6 +209,10 @@ class AppRestore(MarketApp):
         monitors = [ServiceMonitor(**monitor) for monitor in snap["service_monitors"]]
         # graphs
         graphs = [ComponentGraph(**graph) for graph in snap["component_graphs"]]
+        # http rules
+        http_rules = [ServiceDomain(**sd) for sd in snap["service_domains"]]
+        # http rule configs
+        http_rule_configs = [GatewayCustomConfiguration(**config) for config in snap.get("http_rule_configs", [])]
         cpt = Component(
             component=component,
             component_source=component_source,
@@ -217,6 +225,8 @@ class AppRestore(MarketApp):
             monitors=monitors,
             graphs=graphs,
             plugin_deps=[],
+            http_rules=http_rules,
+            http_rule_configs=http_rule_configs,
         )
         cpt.action_type = snap.get("action_type", ActionType.BUILD.value)
         return cpt

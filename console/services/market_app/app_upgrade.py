@@ -97,7 +97,7 @@ class AppUpgrade(MarketApp):
         self.market_name = market_name
 
         # original app
-        self.original_app = OriginalApp(self.tenant_id, self.region, self.app, self.upgrade_group_id)
+        self.original_app = OriginalApp(self.tenant, self.region, self.app, self.upgrade_group_id)
 
         # plugins
         self.original_plugins = self.list_original_plugins()

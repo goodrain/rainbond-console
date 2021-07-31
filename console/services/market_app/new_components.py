@@ -5,6 +5,7 @@ from datetime import datetime
 
 from .utils import is_same_component
 from .enum import ActionType
+from .app_template import AppTemplate
 from console.services.market_app.component import Component
 # service
 from console.services.app_config import port_service
@@ -17,6 +18,7 @@ from www.models.main import TenantServicesPort
 from www.models.main import TenantServiceEnvVar
 from www.models.main import ServiceGroupRelation
 from www.models.main import ServiceDomain
+from www.models.main import GatewayCustomConfiguration
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
@@ -30,6 +32,7 @@ from console.exception.bcode import ErrK8sServiceNameExists
 # enum
 from console.enum.component_enum import ComponentType
 from console.constants import AppConstants
+from console.constants import DomainType
 # util
 from www.utils.crypt import make_uuid
 
@@ -58,7 +61,7 @@ class NewComponents(object):
         self.user = user
         self.original_app = original_app
         self.app_model_key = app_model_key
-        self.app_template = app_template
+        self.app_template = AppTemplate(app_template)
         self.version = version
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
@@ -73,7 +76,7 @@ class NewComponents(object):
         """
         # new component templates
         exist_components = self.original_app.components()
-        templates = self.app_template.get("apps") if self.app_template.get("apps") else []
+        templates = self.app_template.component_templates()
         new_component_tmpls = self._get_new_component_templates(exist_components, templates)
 
         components = [self._template_to_component(self.tenant.tenant_id, template) for template in new_component_tmpls]
@@ -90,7 +93,7 @@ class NewComponents(object):
             # component source
             component_source = self._template_to_component_source(cpt, component_tmpl)
             # ports
-            ports, http_rules = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
+            ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
             # envs
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")
@@ -111,8 +114,22 @@ class NewComponents(object):
                 tenant_id=self.tenant.tenant_id,
                 region_name=self.region_name,
             )
-            component = Component(cpt, component_source, envs, ports, volumes, config_files, probes, extend_info, monitors,
-                                  graphs, [], http_rules, service_group_rel)
+            # ingress
+            http_rules, http_rule_configs = self._template_to_service_domain(cpt, ports)
+            component = Component(
+                cpt,
+                component_source,
+                envs,
+                ports,
+                volumes,
+                config_files,
+                probes,
+                extend_info,
+                monitors,
+                graphs, [],
+                http_rules=http_rules,
+                http_rule_configs=http_rule_configs,
+                service_group_rel=service_group_rel)
             component.ensure_port_envs(self.original_app.governance_mode)
             component.action_type = ActionType.BUILD.value
             result.append(component)
@@ -241,7 +258,6 @@ class NewComponents(object):
         if not ports:
             return [], []
         new_ports = []
-        gateway_rules = []
         for port in ports:
             component_port = port["container_port"]
             k8s_service_name = port.get("k8s_service_name") if port.get(
@@ -265,11 +281,7 @@ class NewComponents(object):
                 k8s_service_name=k8s_service_name,
             )
             new_ports.append(port)
-
-            gateway_rule = self._create_default_gateway_rule(component, port)
-            if gateway_rule:
-                gateway_rules.append(gateway_rule)
-        return new_ports, gateway_rules
+        return new_ports
 
     @staticmethod
     def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name, attr_name, attr_value):
@@ -402,3 +414,82 @@ class NewComponents(object):
             )
             new_graphs[new_graph.title] = new_graph
         return new_graphs.values()
+
+    def _template_to_service_domain(self, component: TenantServiceInfo, ports: [TenantServicesPort]):
+        ports = {port.container_port: port for port in ports}
+        ingress_http_routes = self.app_template.list_ingress_http_routes_by_component_key(component.service_key)
+
+        service_domains = []
+        configs = []
+        for ingress in ingress_http_routes:
+            port = ports.get(ingress["port"])
+            if not port:
+                logger.warning("component id: {}; port not found for ingress {}".format(component.component_id,
+                                                                                        ingress["ingress_key"]))
+                continue
+
+            service_domain = ServiceDomain(
+                http_rule_id=make_uuid(),
+                ingress_key=ingress["ingress_key"],
+                region_id=self.region.region_id,
+                tenant_id=self.tenant.tenant_id,
+                service_id=component.component_id,
+                service_name=component.service_alias,
+                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                container_port=ingress["port"],
+                protocol="http",
+                domain_type=DomainType.WWW,
+                service_alias=component.service_cname,
+                domain_path=ingress["location"],
+                domain_cookie=self._domain_cookie_or_header(ingress["cookies"]),
+                domain_heander=self._domain_cookie_or_header(ingress["headers"]),
+                type=0 if ingress["default_domain"] else 1,
+                the_weight=100,
+                is_outer_service=port.is_outer_service,
+                auto_ssl=False,
+                rule_extensions=self._ingress_load_balancing(ingress["load_balancing"]),
+            )
+            if service_domain.type == 0:
+                service_domain.domain_name = str(port.container_port) + "." + str(component.service_alias) + "." + str(
+                    self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+            else:
+                service_domain.domain_name = make_uuid()[:6] + str(port.container_port) + "." + str(
+                    component.service_alias) + "." + str(self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+            service_domain.is_senior = len(service_domain.domain_cookie) > 0 or len(service_domain.domain_heander) > 0
+            service_domains.append(service_domain)
+
+            # config
+            config = self._ingress_config(service_domain.http_rule_id, ingress)
+            configs.append(config)
+
+        return service_domains, configs
+
+    @staticmethod
+    def _domain_cookie_or_header(items):
+        res = []
+        for key in items:
+            res.append(key + "=" + items[key])
+        return ";".join(res)
+
+    @staticmethod
+    def _ingress_config(rule_id, ingress):
+        return GatewayCustomConfiguration(
+            rule_id=rule_id,
+            value=json.dumps({
+                "proxy_buffer_numbers": ingress["proxy_buffer_numbers"] if ingress["proxy_buffer_numbers"] else 4,
+                "proxy_buffer_size": ingress["proxy_buffer_size"] if ingress["proxy_buffer_size"] else 4,
+                "proxy_body_size": ingress["request_body_size_limit"] if ingress["request_body_size_limit"] else 0,
+                "proxy_connect_timeout": ingress["connection_timeout"] if ingress["connection_timeout"] else 5,
+                "proxy_read_timeout": ingress["response_timeout"] if ingress["response_timeout"] else 60,
+                "proxy_send_timeout": ingress["request_timeout"] if ingress["request_timeout"] else 60,
+                "proxy_buffering": "off",
+                "WebSocket": ingress["websocket"] if ingress["websocket"] else False,
+                "set_headers": ingress["set_headers"],
+            }))
+
+    @staticmethod
+    def _ingress_load_balancing(lb):
+        if lb == "cookie-session-affinity":
+            return "lb-type:cookie-session-affinity"
+        # round-robin is the default value of load balancing
+        return "lb-type:round-robin"

@@ -66,17 +66,35 @@ class PropertyChanges(object):
         return True
 
     def _get_component_changes(self, components, app_template):
+        ingress_http_routes = self._list_ingress_routes(app_template, "ingress_http_routes")
+        ingress_stream_routes = self._list_ingress_routes(app_template, "ingress_stream_routes")
+
         cpt_changes = []
         for cpt in components:
             # get component template
             tmpl = get_component_template(cpt, app_template)
             if not tmpl:
                 continue
-            cpt_changes.append(self._get_component_change(cpt, tmpl))
+            cpt_ingress_http_routes = ingress_http_routes.get(tmpl["service_key"])
+            cpt_ingress_stream_routes = ingress_stream_routes.get(tmpl["service_key"])
+            cpt_changes.append(self._get_component_change(cpt, tmpl, cpt_ingress_http_routes, cpt_ingress_stream_routes))
 
         return cpt_changes
 
-    def _get_component_change(self, component: Component, component_tmpl: map):
+    @staticmethod
+    def _list_ingress_routes(app_template, ingress_type):
+        ingress_routes = app_template.get(ingress_type)
+        if not ingress_routes:
+            return {}
+        result = {}
+        for ingress in ingress_routes:
+            ingresses = result.get(ingress["component_key"], [])
+            ingresses.append(ingress)
+            result[ingress["component_key"]] = ingresses
+        return result
+
+    def _get_component_change(self, component: Component, component_tmpl: map, cpt_ingress_http_routes: list,
+                              cpt_ingress_stream_routes: list):
         result = {"component_id": component.component.service_id}
         deploy_version = self._deploy_version(component.component.deploy_version, component_tmpl.get("deploy_version"))
         if deploy_version:
@@ -110,6 +128,13 @@ class PropertyChanges(object):
             "component_monitors", []))
         if monitors:
             result["component_monitors"] = monitors
+
+        ingress_http_routes = self._ingress_routes(component.http_rules, cpt_ingress_http_routes)
+        if ingress_http_routes:
+            result["ingress_http_routes"] = ingress_http_routes
+        ingress_stream_routes = self._ingress_routes(component.http_rules, cpt_ingress_stream_routes)
+        if ingress_stream_routes:
+            result["ingress_stream_routes"] = ingress_stream_routes
 
         return result
 
@@ -326,3 +351,17 @@ class PropertyChanges(object):
             plugin_dep["plugin"] = plugin.to_dict()
             add.append(plugin_dep)
         return {"add": add}
+
+    @staticmethod
+    def _ingress_routes(rules, ingress_routes):
+        if not ingress_routes:
+            return None
+        ingress_keys = [rule.ingress_key for rule in rules]
+        add = []
+        for ingress in ingress_routes:
+            if ingress["ingress_key"] in ingress_keys:
+                continue
+            add.append(ingress)
+        return {
+            "add": add,
+        }

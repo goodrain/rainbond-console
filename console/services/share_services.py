@@ -17,6 +17,7 @@ from console.repositories.component_graph import component_graph_repo
 from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
+from console.repositories.app_config import domain_repo, configuration_repo, tcp_domain
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
 from console.services.group_service import group_service
@@ -745,6 +746,12 @@ class ShareService(object):
             service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
             app_templete["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
 
+            # ingress
+            ingress_http_routes = self._list_http_ingresses(service_ids_keys_map)
+            app_templete["ingress_http_routes"] = ingress_http_routes
+            ingress_stream_routes = self._list_stream_ingresses(service_ids_keys_map)
+            app_templete["ingress_stream_routes"] = ingress_stream_routes
+
             # plugins
             try:
                 # 确定分享的插件ID
@@ -880,6 +887,68 @@ class ShareService(object):
             if sid:
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
+
+    def _list_http_ingresses(self, component_keys):
+        service_domains = domain_repo.list_by_component_ids(component_keys.keys())
+        if not service_domains:
+            return []
+        configs = configuration_repo.list_by_rule_ids([sd.http_rule_id for sd in service_domains])
+        configs = {cfg.rule_id: json.loads(cfg.value) for cfg in configs}
+
+        ingress_http_routes = []
+        for sd in service_domains:
+            config = configs.get(sd.http_rule_id, {})
+            ingress_http_route = {
+                "ingress_key": sd.http_rule_id,
+                "default_domain": sd.type == 0,
+                "location": sd.domain_path,
+                "cookies": self._parse_cookie_or_header(sd.domain_cookie),
+                "headers": self._parse_cookie_or_header(sd.domain_heander),
+                "ssl": sd.auto_ssl,
+                "load_balancing": sd.load_balancing,
+                "connection_timeout": config.get("proxy_connect_timeout"),
+                "request_timeout": config.get("proxy_send_timeout"),
+                "response_timeout": config.get("proxy_read_timeout"),
+                "request_body_size_limit": config.get("proxy_body_size"),
+                "proxy_buffer_numbers": config.get("proxy_buffer_numbers"),
+                "proxy_buffer_size": config.get("proxy_buffer_size"),
+                "websocket": config.get("WebSocket"),
+                "component_key": component_keys.get(sd.service_id),
+                "port": sd.container_port,
+                "set_headers": config.get("set_headers"),
+            }
+            ingress_http_routes.append(ingress_http_route)
+        return ingress_http_routes
+
+    @staticmethod
+    def _list_stream_ingresses(component_keys):
+        tcp_domains = tcp_domain.list_by_component_ids(component_keys.keys())
+        if not tcp_domains:
+            return []
+
+        ingress_stream_routes = []
+        for cd in tcp_domains:
+            ingress_stream_route = {
+                "ingress_key": cd.tcp_rule_id,
+                "protocol": cd.protocol,
+                "load_balancing": cd.load_balancing,
+                "component_key": component_keys.get(cd.service_id),
+                "port": cd.container_port,
+            }
+            ingress_stream_routes.append(ingress_stream_route)
+        return ingress_stream_routes
+
+    @staticmethod
+    def _parse_cookie_or_header(cookies: str):
+        # example: foo=bar;apple=pie
+        cookies = cookies.replace(" ", "")
+        result = {}
+        for cookie in cookies.split(";"):
+            kvs = cookie.split("=")
+            if len(kvs) != 2 or kvs[0] == "" or kvs[1] == "":
+                continue
+            result[kvs[0]] = kvs[1]
+        return result
 
     def config_groups(self, region_name, service_ids_keys_map):
         groups = app_config_group_repo.list_by_service_ids(region_name, service_ids_keys_map.keys())

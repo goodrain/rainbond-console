@@ -10,6 +10,7 @@ from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import volume_repo
 from console.repositories.app_config import domain_repo
+from console.repositories.app_config import tcp_domain
 from console.repositories.probe_repo import probe_repo
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.component_graph import component_graph_repo
@@ -26,13 +27,14 @@ from console.models.main import RegionConfig
 
 
 class OriginalApp(object):
-    def __init__(self, tenant_id, region: RegionConfig, app: ServiceGroup, upgrade_group_id):
-        self.tenant_id = tenant_id
+    def __init__(self, tenant, region: RegionConfig, app: ServiceGroup, upgrade_group_id):
+        self.tenant = tenant
+        self.tenant_id = tenant.tenant_id
         self.region = region
         self.region_name = region.region_name
         self.app_id = app.app_id
         self.upgrade_group_id = upgrade_group_id
-        self.app = group_repo.get_group_by_pk(tenant_id, region.region_name, app.app_id)
+        self.app = group_repo.get_group_by_pk(self.tenant_id, region.region_name, app.app_id)
         self.governance_mode = app.governance_mode
 
         self._component_ids = self._component_ids()
@@ -65,6 +67,7 @@ class OriginalApp(object):
         component_ids = [cpt.component_id for cpt in components]
 
         http_rules = self._list_http_rules(component_ids)
+        tcp_rules = self._list_tcp_rules(component_ids)
 
         result = []
         # TODO(huangrh): get the attributes at once, don't get it iteratively
@@ -77,9 +80,19 @@ class OriginalApp(object):
             probes = probe_repo.list_probes(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
-            rules = http_rules.get(cpt.component_id)
             component = Component(
-                cpt, component_source, envs, ports, volumes, config_files, probes, None, monitors, graphs, [], http_rules=rules)
+                cpt,
+                component_source,
+                envs,
+                ports,
+                volumes,
+                config_files,
+                probes,
+                None,
+                monitors,
+                graphs, [],
+                http_rules=http_rules.get(cpt.component_id),
+                tcp_rules=tcp_rules.get(cpt.component_id))
             result.append(component)
         return result
 
@@ -88,6 +101,16 @@ class OriginalApp(object):
         http_rules = domain_repo.list_by_component_ids(component_ids)
         result = {}
         for rule in http_rules:
+            rules = result.get(rule.service_id, [])
+            rules.append(rule)
+            result[rule.service_id] = rules
+        return result
+
+    @staticmethod
+    def _list_tcp_rules(component_ids):
+        tcp_rules = tcp_domain.list_by_component_ids(component_ids)
+        result = {}
+        for rule in tcp_rules:
             rules = result.get(rule.service_id, [])
             rules.append(rule)
             result[rule.service_id] = rules
