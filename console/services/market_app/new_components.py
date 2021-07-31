@@ -199,11 +199,12 @@ class NewComponents(object):
         extend_info["source_deploy_version"] = tmpl.get("deploy_version")
         extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
             "service_share_uuid", None) else tmpl.get("service_key", "")
-        if "update_time" in tmpl:
-            if type(tmpl["update_time"]) == datetime:
-                extend_info["update_time"] = tmpl["update_time"].strftime('%Y-%m-%d %H:%M:%S')
-            elif type(tmpl["update_time"]) == str:
-                extend_info["update_time"] = tmpl["update_time"]
+        update_time = self.app_template.get("update_time")
+        if update_time:
+            if type(update_time) == datetime:
+                extend_info["update_time"] = update_time.strftime('%Y-%m-%d %H:%M:%S')
+            elif type(update_time) == str:
+                extend_info["update_time"] = update_time
         if self.install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
