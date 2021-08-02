@@ -334,7 +334,7 @@ class NewComponents(object):
 
                 volumes2.append(
                     volume_service.create_service_volume(self.tenant, component, volume["volume_path"], volume["volume_type"],
-                                                         volume["volume_name"], settings))
+                                                         volume["volume_name"], settings=settings, mode=volume.get("mode")))
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
         return volumes2, config_files
