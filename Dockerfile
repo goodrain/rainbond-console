@@ -4,7 +4,7 @@ ARG PIP_SOURCE_URL=http://mirrors.aliyun.com/pypi/simple
 ARG PIP_SOURCE_HOST=mirrors.aliyun.com
 
 FROM rainbond/rbd-ui-base:${BASE_VERSION}
-
+ARG RELEASE_DESC=
 LABEL author="zengqg@goodrain.com" 
 
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/
@@ -16,9 +16,9 @@ WORKDIR /app/ui
 RUN chmod +x /app/ui/entrypoint.sh \
       && mkdir /app/logs \
       && mkdir /app/data \
-      && python -m pip install --upgrade pip \
       && pip config set global.index-url "$PIP_SOURCE_URL" \
       && pip config set install.trusted-host "$PIP_SOURCE_HOST" \
+      && python -m pip install --upgrade pip \
       && pip install -r requirements.txt \
       && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
       && rm -rf /root/.cache \

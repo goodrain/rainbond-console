@@ -241,7 +241,7 @@ class PropertyChanges(object):
             for k, v in list(new_probe.items()):
                 if k in list(old_probe.keys()) and old_probe[k] != v:
                     upd.append(new_probe)
-            del old_probes[old_probe.mode]
+            del old_probes[old_probe["mode"]]
 
         delete = []
         for mode in old_probes:
