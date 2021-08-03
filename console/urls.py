@@ -46,7 +46,7 @@ from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppD
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
                                         ImageAppView, ListAppPodsView)
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
-from console.views.center_pool.app_export import CenterAppExportView
+from console.views.center_pool.app_export import CenterAppExportView, EnterpriseAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
 from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
                                             LocalComponentLibraryConfigCheck, TagCLView, TagUDView)
@@ -775,6 +775,8 @@ urlpatterns = [
 
     # 应用导出
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view(), perms.CenterAppExportView),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export/(?P<event_id>[\w\-]+)$', EnterpriseAppExportView.as_view(),
+        perms.CenterAppExportView),
     # WIP
     # 创建应用导入记录
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import$', EnterpriseAppImportInitView.as_view()),

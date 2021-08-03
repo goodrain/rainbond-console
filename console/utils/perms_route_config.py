@@ -3679,6 +3679,9 @@ CenterAppExportView = {
         "post": {
             "perms": [110004]
         },
+        "delete": {
+            "perms": [110004]
+        },
     }
 }
 

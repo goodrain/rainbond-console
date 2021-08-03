@@ -1264,6 +1264,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data).encode('utf-8'))
         return res, body
 
+    def delete_export_app(self, region_name, enterprise_id, event_id):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url += "/v2/app/export/{event_id}".format(event_id=event_id)
+        self._set_headers(token)
+        self._delete(url, self.default_headers, region=region_name)
+
     def get_app_export_status(self, region, enterprise_id, event_id):
         """查询应用导出状态"""
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)

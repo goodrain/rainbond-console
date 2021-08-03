@@ -546,6 +546,14 @@ class AppExportRepository(object):
     def get_enter_export_record_by_key_and_version(self, enterprise_id, group_key, version):
         return AppExportRecord.objects.filter(group_key=group_key, version=version, enterprise_id__in=["public", enterprise_id])
 
+    @staticmethod
+    def get_by_event_id(enterprise_id, event_id):
+        return AppExportRecord.objects.get(enterprise_id=enterprise_id, event_id=event_id)
+
+    @staticmethod
+    def delete_by_event_id(enterprise_id, event_id):
+        AppExportRecord.objects.filter(enterprise_id=enterprise_id, event_id=event_id).delete()
+
 
 class AppImportRepository(object):
     def get_import_record(self, id):

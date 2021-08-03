@@ -12,12 +12,14 @@ import urllib.request
 
 from console.appstore.appstore import app_store
 from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
 from console.repositories.market_app_repo import (app_export_record_repo, app_import_record_repo, rainbond_app_repo)
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.region_services import region_services
+# model
+from console.models.main import RainbondCenterApp, RainbondCenterAppVersion
+from console.models.main import AppExportRecord
 from goodrain_web import settings
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
@@ -140,6 +142,8 @@ class AppExportService(object):
 
                 if export_record.format == "rainbond-app":
                     rainbond_app_init_data.update({
+                        "event_id":
+                        export_record.event_id,
                         "is_export_before":
                         True,
                         "status":
@@ -150,6 +154,8 @@ class AppExportService(object):
                     })
                 if export_record.format == "docker-compose":
                     docker_compose_init_data.update({
+                        "event_id":
+                        export_record.event_id,
                         "is_export_before":
                         True,
                         "status":
@@ -197,6 +203,18 @@ class AppExportService(object):
             return "failed"
         else:
             return "exporting"
+
+    @staticmethod
+    def delete_export_record(enterprise_id, event_id):
+        try:
+            export_record = app_export_record_repo.get_by_event_id(enterprise_id, event_id)
+        except AppExportRecord.DoesNotExist:
+            logger.warning("event id: {}; export record not found".format(event_id))
+            return
+
+        region_api.delete_export_app(export_record.region_name, enterprise_id, event_id)
+
+        app_export_record_repo.delete_by_event_id(enterprise_id, event_id)
 
 
 class AppImportService(object):

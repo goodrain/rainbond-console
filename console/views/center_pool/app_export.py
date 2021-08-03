@@ -76,3 +76,9 @@ class CenterAppExportView(JWTAuthApiView):
 
         result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
         return Response(result, status=result["code"])
+
+
+class EnterpriseAppExportView(JWTAuthApiView):
+    def delete(self, request, enterprise_id, event_id, *args, **kwargs):
+        export_service.delete_export_record(enterprise_id, event_id)
+        return Response(general_message(200, "success", "删除成功"), status=200)
