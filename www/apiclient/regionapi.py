@@ -1956,3 +1956,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
         return body
+
+    def get_component_log(self, tenant_name, region_name, service_alias, pod_name, container_name):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/log?podName={}&containerName={}".format(tenant_name, service_alias, pod_name, container_name)
+        self._set_headers(token)
+        resp, _ = self._get(url, self._set_headers(token), region=region_name, preload_content=False)
+        return resp
