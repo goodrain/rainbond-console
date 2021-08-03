@@ -68,7 +68,7 @@ class AppVolumeService(object):
             state = True
             base_opts.append({"volume_type": "local", "name_show": "本地存储"})
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        if body and hasattr(body, 'list'):
+        if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
                 if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
                     if state:
