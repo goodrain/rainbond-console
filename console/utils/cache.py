@@ -58,12 +58,13 @@ class Cache(object):
         self.cache[key] = {"expired_time": time.time() + seconds, "value": value}
 
     def _remove_expired_key(self):
-        remove_num = 0
+        remove_keys = []
         for key in self.cache:
             if self.cache[key]["expired_time"] < time.time():
-                self.cache.pop(key)
-                remove_num += 1
-        return remove_num
+                remove_keys.append(key)
+        for remove_key in remove_keys:
+            self.cache.pop(remove_key)
+        return len(remove_keys)
 
     @property
     def size(self):
