@@ -9,9 +9,10 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
+import datetime
 
 from console.appstore.appstore import app_store
-from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
+from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound, AbortRequest)
 from console.repositories.market_app_repo import (app_export_record_repo, app_import_record_repo, rainbond_app_repo)
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import \
@@ -139,6 +140,11 @@ class AppExportService(object):
                         export_record.save()
                     except Exception as e:
                         logger.exception(e)
+                can_delete = True
+                try:
+                    self._can_delete(export_record)
+                except AbortRequest:
+                    can_delete = False
 
                 if export_record.format == "rainbond-app":
                     rainbond_app_init_data.update({
@@ -148,6 +154,8 @@ class AppExportService(object):
                         True,
                         "status":
                         export_record.status,
+                        "can_delete":
+                        can_delete,
                         "file_path":
                         self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
                             "/v2", ""))
@@ -160,6 +168,8 @@ class AppExportService(object):
                         True,
                         "status":
                         export_record.status,
+                        "can_delete":
+                        can_delete,
                         "file_path":
                         self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
                             "/v2", ""))
@@ -215,6 +225,16 @@ class AppExportService(object):
         region_api.delete_export_app(export_record.region_name, enterprise_id, event_id)
 
         app_export_record_repo.delete_by_event_id(enterprise_id, event_id)
+
+    @staticmethod
+    def _can_delete(export_record):
+        if export_record.status != "exporting":
+            return
+        timeout = os.environ.get("APP_EXPORT_TIMEOUT", 30)
+        deadline = export_record.update_time + datetime.timedelta(minutes=timeout)
+        now = datetime.datetime.now()
+        if deadline > now:
+            raise AbortRequest("the app is being exported, and not reach the deadline", msg_show="导出中, 且未超过 30 分钟.")
 
 
 class AppImportService(object):
