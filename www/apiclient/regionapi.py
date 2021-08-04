@@ -1957,9 +1957,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
         return body
 
-    def get_component_log(self, tenant_name, region_name, service_alias, pod_name, container_name):
+    def get_component_log(self, tenant_name, region_name, service_alias, pod_name, container_name, follow=False):
         url, token = self.__get_region_access_info(tenant_name, region_name)
-        url = url + "/v2/tenants/{}/services/{}/log?podName={}&containerName={}".format(tenant_name, service_alias, pod_name, container_name)
+        follow = "true" if follow else "false"
+        url = url + "/v2/tenants/{}/services/{}/log?podName={}&containerName={}&follow={}".format(
+            tenant_name, service_alias, pod_name, container_name, follow)
         self._set_headers(token)
         resp, _ = self._get(url, self._set_headers(token), region=region_name, preload_content=False)
         return resp
