@@ -634,6 +634,9 @@ class GroupService(object):
             component_base["component_id"] = component_base["service_id"]
             component_base["component_name"] = component_base["service_name"]
             component_base["component_alias"] = component_base["service_alias"]
+            component_base["container_cpu"] = cpt.min_cpu
+            component_base["container_memory"] = cpt.min_memory
+            component_base["replicas"] = cpt.min_node
             component = {
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in envs if env.service_id == cpt.component_id]
