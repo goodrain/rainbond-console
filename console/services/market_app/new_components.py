@@ -484,7 +484,7 @@ class NewComponents(object):
                 "proxy_send_timeout": ingress["request_timeout"] if ingress["request_timeout"] else 60,
                 "proxy_buffering": "off",
                 "WebSocket": ingress["websocket"] if ingress["websocket"] else False,
-                "set_headers": ingress["set_headers"],
+                "set_headers": ingress["proxy_header"],
             }))
 
     @staticmethod
