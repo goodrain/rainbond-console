@@ -33,6 +33,7 @@ class ServiceExtendMethod(BaseModel):
     max_memory = models.IntegerField(default=20, help_text="最大内存")
     step_memory = models.IntegerField(default=1, help_text="内存步长")
     is_restart = models.BooleanField(default=False, blank=True, help_text="是否重启")
+    min_cpu = models.IntegerField(default=20, help_text="最小CPU")
 
     def to_dict(self):
         opts = self._meta

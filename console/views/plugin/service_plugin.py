@@ -159,17 +159,18 @@ class ServicePluginOperationView(AppBaseView):
             return Response(general_message(404, "not found plugin relation", "未找到组件使用的插件"), status=404)
         else:
             build_version = service_plugin_relation.build_version
-        pbv = plugin_version_service.get_by_id_and_version(self.tenant.tenant_id, plugin_id, build_version)
         # 更新内存和cpu
-        memory = request.data.get("min_memory", pbv.min_memory)
-        cpu = common_services.calculate_cpu(self.service.service_region, memory)
+        memory = request.data.get("min_memory", 0)
+        cpu = request.data.get("min_cpu", 0)
 
         data = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = is_active
         data["version_id"] = build_version
-        data["plugin_memory"] = int(memory)
-        data["plugin_cpu"] = int(cpu)
+        if memory != 0:
+            data["plugin_memory"] = int(memory)
+        if cpu != 0:
+            data["plugin_cpu"] = int(cpu)
         # 更新数据中心数据参数
         region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
                                                   data)

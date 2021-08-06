@@ -772,7 +772,7 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             body = dict()
             body["container_memory"] = new_memory
-            if new_cpu is None or type(new_gpu) != int:
+            if new_cpu is None or type(new_cpu) != int:
                 new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
             body["container_cpu"] = new_cpu
             if new_gpu is not None and type(new_gpu) == int:

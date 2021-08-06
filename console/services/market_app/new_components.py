@@ -11,6 +11,7 @@ from console.services.app_config import port_service
 from console.services.app_config import volume_service
 from console.services.app_config import probe_service
 from console.services.app_config.promql_service import promql_service
+from www.tenantservice.baseservice import BaseTenantService
 # model
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
@@ -34,6 +35,7 @@ from console.constants import AppConstants
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
+baseService = BaseTenantService()
 
 
 class NewComponents(object):
@@ -172,7 +174,11 @@ class NewComponents(object):
             component.min_memory = template.get("extend_method_map", {}).get("min_memory")
         else:
             component.min_memory = 512
-        component.min_cpu = component.calculate_min_cpu(component.min_memory)
+
+        if template.get("extend_method_map", {}).get("min_cpu"):
+            component.min_cpu = template["extend_method_map"]["min_cpu"]
+        else:
+            component.min_cpu = component.calculate_min_cpu(component.min_memory)
         component.total_memory = component.min_node * component.min_memory
 
         return component
@@ -363,7 +369,9 @@ class NewComponents(object):
             min_memory=extend_info["min_memory"],
             max_memory=extend_info["max_memory"],
             step_memory=extend_info["step_memory"],
-            is_restart=extend_info["is_restart"])
+            is_restart=extend_info["is_restart"],
+            min_cpu=extend_info["min_cpu"] if extend_info.get("min_cpu") else baseService.calculate_service_cpu(
+                component.service_region, component.min_memory))
 
     def _template_to_service_monitors(self, component, service_monitors):
         if not service_monitors:
