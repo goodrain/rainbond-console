@@ -5,7 +5,6 @@
 import json
 import logging
 
-from console.services.common_services import common_services
 from console.services.plugin import app_plugin_service, plugin_version_service
 from console.views.app_config.base import AppBaseView
 from django.db import transaction
