@@ -11,7 +11,6 @@ from console.services.app_config import port_service
 from console.services.app_config import volume_service
 from console.services.app_config import probe_service
 from console.services.app_config.promql_service import promql_service
-from console.services.app_config import label_service
 # model
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
@@ -50,7 +49,8 @@ class NewComponents(object):
                  install_from_cloud,
                  components_keys,
                  market_name="",
-                 is_deploy=False):
+                 is_deploy=False,
+                 support_labels=None):
         """
         components_keys: component keys that the user select.
         """
@@ -66,7 +66,7 @@ class NewComponents(object):
         self.market_name = market_name
         self.is_deploy = is_deploy
 
-        self.support_labels = label_service.list_available_labels(tenant, region.region_name)
+        self.support_labels = support_labels if support_labels else []
 
         self.components_keys = components_keys
         self.components = self.create_components()
@@ -118,7 +118,7 @@ class NewComponents(object):
             # labels
             labels = self._template_to_labels(cpt, component_tmpl.get("labels"))
             component = Component(cpt, component_source, envs, ports, volumes, config_files, probes, extend_info, monitors,
-                                  graphs, [], http_rules, service_group_rel, labels)
+                                  graphs, [], http_rules, service_group_rel, labels, self.support_labels)
             component.ensure_port_envs(self.original_app.governance_mode)
             component.action_type = ActionType.BUILD.value
             result.append(component)
@@ -418,11 +418,11 @@ class NewComponents(object):
             lab = support_labels.get(label["label_name"])
             if not lab:
                 continue
-            new_labels.append(ServiceLabels(
-                tenant_id=component.tenant_id,
-                service_id=component.service_id,
-                label_id=lab.label_id,
-                region=self.region_name,
-                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            ))
+            new_labels.append(
+                ServiceLabels(
+                    tenant_id=component.tenant_id,
+                    service_id=component.service_id,
+                    label_id=lab.label_id,
+                    region=self.region_name,
+                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         return new_labels

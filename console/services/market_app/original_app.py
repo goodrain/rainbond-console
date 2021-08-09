@@ -3,6 +3,7 @@
 from console.services.market_app.component import Component
 # service
 from console.services.group_service import group_service
+from console.services.app_config import label_service
 # repository
 from console.repositories.group import group_repo
 from console.repositories.app import service_source_repo
@@ -27,14 +28,16 @@ from console.models.main import RegionConfig
 
 
 class OriginalApp(object):
-    def __init__(self, tenant_id, region: RegionConfig, app: ServiceGroup, upgrade_group_id):
-        self.tenant_id = tenant_id
+    def __init__(self, tenant, region: RegionConfig, app: ServiceGroup, upgrade_group_id, support_labels=None):
+        self.tenant_id = tenant.tenant_id
         self.region = region
         self.region_name = region.region_name
         self.app_id = app.app_id
         self.upgrade_group_id = upgrade_group_id
-        self.app = group_repo.get_group_by_pk(tenant_id, region.region_name, app.app_id)
+        self.app = group_repo.get_group_by_pk(tenant.tenant_id, region.region_name, app.app_id)
         self.governance_mode = app.governance_mode
+
+        self.support_labels = support_labels
 
         self._component_ids = self._component_ids()
         self._components = self._create_components(app.app_id, upgrade_group_id)
@@ -83,7 +86,18 @@ class OriginalApp(object):
             graphs = component_graph_repo.list(cpt.service_id)
             rules = http_rules.get(cpt.component_id)
             component = Component(
-                cpt, component_source, envs, ports, volumes, config_files, probes, None, monitors, graphs, [], http_rules=rules)
+                cpt,
+                component_source,
+                envs,
+                ports,
+                volumes,
+                config_files,
+                probes,
+                None,
+                monitors,
+                graphs, [],
+                http_rules=rules,
+                support_labels=self.support_labels)
             result.append(component)
         return result
 

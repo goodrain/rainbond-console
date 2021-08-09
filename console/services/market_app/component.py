@@ -9,11 +9,13 @@ from .enum import ActionType
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
 # repository
 from console.repositories.app_config import port_repo
+from console.repositories.label_repo import label_repo
 # service
 from console.services.app_config import env_var_service
 # model
 from www.models.main import (ServiceProbe, TenantServiceConfigurationFile, TenantServiceEnvVar, TenantServicesPort,
                              TenantServiceVolume)
+from www.models.label import ServiceLabels
 from console.models.main import ComponentGraph, ServiceMonitor
 from console.models.main import ServiceSourceInfo
 # util
@@ -37,7 +39,8 @@ class Component(object):
                  plugin_deps,
                  http_rules=None,
                  service_group_rel=None,
-                 labels=None):
+                 labels=None,
+                 support_labels=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
@@ -55,6 +58,7 @@ class Component(object):
         self.app_config_groups = []
         self.labels = list(labels) if labels else []
         self.service_group_rel = service_group_rel
+        self.support_labels = {label.label_name: label for label in support_labels}
         self.action_type = ActionType.NOTHING.value
 
     def set_changes(self, changes, governance_mode):
@@ -110,6 +114,7 @@ class Component(object):
             "ports": self._update_ports,
             "volumes": self._update_volumes,
             "probes": self._update_probe,
+            "labels": self._update_labels,
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
         }
@@ -216,6 +221,24 @@ class Component(object):
             new_monitor.service_id = self.component.component_id
             new_monitor.tenant_id = self.component.tenant_id
             self.monitors.append(new_monitor)
+        self.update_action_type(ActionType.UPDATE.value)
+
+    def _update_labels(self, labels):
+        if not labels:
+            return
+        labels = labels.get("add", [])
+        for cl in labels:
+            label = self.support_labels.get(cl["label_name"])
+            if not label:
+                continue
+            self.labels.append(
+                ServiceLabels(
+                    tenant_id=self.component.tenant_id,
+                    service_id=self.component.component_id,
+                    label_id=label.label_id,
+                    region=self.component.service_region,
+                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                ))
         self.update_action_type(ActionType.UPDATE.value)
 
     def _update_port_data(self, port):

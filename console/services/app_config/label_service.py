@@ -59,7 +59,7 @@ class LabelService(object):
         if region_config:
             node_label_ids = node_label_repo.get_node_label_by_region(
                 region_config.region_id).exclude(label_id__in=service_label_ids).values_list(
-                "label_id", flat=True)
+                    "label_id", flat=True)
         used_labels = label_repo.get_labels_by_label_ids(service_label_ids)
         logger.debug('-----------used_labels------->{0}'.format(used_labels))
         unused_labels = []
@@ -80,8 +80,7 @@ class LabelService(object):
         service_labels = list()
         for label_id in label_ids:
             service_label = ServiceLabels(
-                tenant_id=tenant.tenant_id, service_id=service.service_id, label_id=label_id,
-                region=service.service_region)
+                tenant_id=tenant.tenant_id, service_id=service.service_id, label_id=label_id, region=service.service_region)
             service_labels.append(service_label)
 
         if service.create_status == "complete":
@@ -139,8 +138,7 @@ class LabelService(object):
         label_list = list()
         label_list.append(body)
         label_dict["labels"] = label_list
-        region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias,
-                                              label_dict)
+        region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, label_dict)
         return 200, "success"
 
     def set_service_os_label(self, tenant, service, os):
