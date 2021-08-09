@@ -118,7 +118,8 @@ class AppPluginService(object):
             tp.origin_share_id AS origin_share_id,
             pbv.build_version AS build_version,
             tsp.min_memory AS min_memory,
-            tsp.plugin_status AS plugin_status
+            tsp.plugin_status AS plugin_status,
+            tsp.min_cpu As min_cpu
         FROM
             tenant_service_plugin_relation tsp
             LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
