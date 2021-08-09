@@ -8,7 +8,6 @@ from .enum import ActionType
 # service
 from console.services.market_app.component import Component
 from console.services.app_config.promql_service import promql_service
-from console.services.app_config import label_service
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
 # model

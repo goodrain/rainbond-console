@@ -9,7 +9,6 @@ from .enum import ActionType
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
 # repository
 from console.repositories.app_config import port_repo
-from console.repositories.label_repo import label_repo
 # service
 from console.services.app_config import env_var_service
 # model

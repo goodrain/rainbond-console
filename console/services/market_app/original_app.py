@@ -3,7 +3,6 @@
 from console.services.market_app.component import Component
 # service
 from console.services.group_service import group_service
-from console.services.app_config import label_service
 # repository
 from console.repositories.group import group_repo
 from console.repositories.app import service_source_repo
