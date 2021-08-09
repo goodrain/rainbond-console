@@ -712,8 +712,6 @@ class ServiceDomain(BaseModel):
         db_table = 'service_domain'
 
     http_rule_id = models.CharField(max_length=128, unique=True, help_text="http_rule_id")
-    ingress_key = models.CharField(
-        max_length=32, null=True, default=None, blank=True, help_text="ingress 标识, 应用模板中 ingress 的唯一标识")
     region_id = models.CharField(max_length=36, help_text="region id")
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_id = models.CharField(max_length=32, help_text="组件id")
@@ -1385,8 +1383,6 @@ class ServiceTcpDomain(BaseModel):
         db_table = 'service_tcp_domain'
 
     tcp_rule_id = models.CharField(max_length=128, unique=True, help_text="tcp_rule_id")
-    ingress_key = models.CharField(
-        max_length=32, null=True, default=None, blank=True, help_text="ingress 标识, 应用模板中 ingress 的唯一标识")
     region_id = models.CharField(max_length=36, help_text="region id")
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_id = models.CharField(max_length=32, help_text="组件id")

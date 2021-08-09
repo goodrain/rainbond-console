@@ -899,7 +899,6 @@ class ShareService(object):
         for sd in service_domains:
             config = configs.get(sd.http_rule_id, {})
             ingress_http_route = {
-                "ingress_key": sd.http_rule_id,
                 "default_domain": sd.type == 0,
                 "location": sd.domain_path,
                 "cookies": self._parse_cookie_or_header(sd.domain_cookie),
@@ -929,7 +928,6 @@ class ShareService(object):
         ingress_stream_routes = []
         for cd in tcp_domains:
             ingress_stream_route = {
-                "ingress_key": cd.tcp_rule_id,
                 "protocol": cd.protocol,
                 "load_balancing": cd.load_balancing,
                 "component_key": component_keys.get(cd.service_id),

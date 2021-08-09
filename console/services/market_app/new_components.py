@@ -199,7 +199,7 @@ class NewComponents(object):
         extend_info["source_deploy_version"] = tmpl.get("deploy_version")
         extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
             "service_share_uuid", None) else tmpl.get("service_key", "")
-        update_time = self.app_template.get("update_time")
+        update_time = self.app_template.app_template.get("update_time")
         if update_time:
             if type(update_time) == datetime:
                 extend_info["update_time"] = update_time.strftime('%Y-%m-%d %H:%M:%S')
@@ -425,13 +425,11 @@ class NewComponents(object):
         for ingress in ingress_http_routes:
             port = ports.get(ingress["port"])
             if not port:
-                logger.warning("component id: {}; port not found for ingress {}".format(component.component_id,
-                                                                                        ingress["ingress_key"]))
+                logger.warning("component id: {}; port not found for ingress".format(component.component_id))
                 continue
 
             service_domain = ServiceDomain(
                 http_rule_id=make_uuid(),
-                ingress_key=ingress["ingress_key"],
                 region_id=self.region.region_id,
                 tenant_id=self.tenant.tenant_id,
                 service_id=component.component_id,

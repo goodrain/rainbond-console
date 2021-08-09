@@ -212,8 +212,6 @@ class NewApp(object):
         extend_infos = []
         monitors = []
         graphs = []
-        http_rules = []
-        http_rule_configs = []
         # TODO(huangrh): merged with _save_components
         for cpt in self.update_components:
             sources.append(cpt.component_source)
@@ -227,8 +225,6 @@ class NewApp(object):
                 extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
-            http_rules.extend(cpt.http_rules)
-            http_rule_configs.extend(cpt.http_rule_configs)
 
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
@@ -242,8 +238,6 @@ class NewApp(object):
         probe_repo.overwrite_by_component_ids(component_ids, probes)
         service_monitor_repo.overwrite_by_component_ids(component_ids, monitors)
         component_graph_repo.overwrite_by_component_ids(component_ids, graphs)
-        domain_repo.overwrite_by_component_ids(component_ids, http_rules)
-        configuration_repo.overwrite_by_component_ids(component_ids, http_rule_configs)
 
     def _save_component_deps(self):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)

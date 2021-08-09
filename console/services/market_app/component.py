@@ -70,8 +70,6 @@ class Component(object):
             update_func = update_funcs[key]
             update_func(changes.get(key))
 
-        self._update_ingress_http_routes(tenant, region, changes.get("ingress_http_routes"))
-
         self.ensure_port_envs(governance_mode)
 
     def ensure_port_envs(self, governance_mode):
@@ -302,15 +300,3 @@ class Component(object):
     def update_action_type(self, action_type):
         if action_type > self.action_type:
             self.action_type = action_type
-
-    def _update_ingress_http_routes(self, tenant, region, ingress_http_routes):
-        if not ingress_http_routes:
-            return
-        ports = {port.container_port: port for port in self.ports}
-
-        from .utils import parse_ingress_http_routes
-        http_rules, http_rule_configs = parse_ingress_http_routes(tenant, region, self.component, ingress_http_routes["add"],
-                                                                  ports)
-        self.http_rules.extend(http_rules)
-        self.http_rule_configs.extend(http_rule_configs)
-        self.update_action_type(ActionType.UPDATE.value)
