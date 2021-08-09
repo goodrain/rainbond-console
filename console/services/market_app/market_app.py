@@ -8,6 +8,7 @@ from .new_app import NewApp
 from .original_app import OriginalApp
 from .plugin import Plugin
 # repository
+from console.repositories.label_repo import label_repo
 from console.repositories.plugin import config_group_repo
 from console.repositories.plugin import config_item_repo
 from console.repositories.plugin.plugin import plugin_version_repo
@@ -31,6 +32,8 @@ class MarketApp(object):
 
         self.tenant_name = self.new_app.tenant.tenant_name
         self.region_name = self.new_app.region_name
+
+        self.labels = {label.label_id: label for label in label_repo.get_all_labels()}
 
     @transaction.atomic
     def save_new_app(self):
@@ -151,12 +154,20 @@ class MarketApp(object):
                 "config_files": [cf.to_dict() for cf in cpt.config_files],
                 "probes": probes,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
-                "http_rules": self._create_http_rules(cpt.http_rules)
+                "http_rules": self._create_http_rules(cpt.http_rules),
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:
                 volume["allow_expansion"] = True if volume["allow_expansion"] == 1 else False
             component["volumes"] = volumes
+            # labels
+            labels = []
+            for cl in cpt.labels:
+                label = self.labels.get(cl.label_id)
+                if not label:
+                    continue
+                labels.append({"label_key": "node-selector", "label_value": label.label_name})
+            component["labels"] = labels
             # volume dependency
             if cpt.volume_deps:
                 deps = []

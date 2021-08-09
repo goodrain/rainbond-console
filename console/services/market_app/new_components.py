@@ -11,6 +11,7 @@ from console.services.app_config import port_service
 from console.services.app_config import volume_service
 from console.services.app_config import probe_service
 from console.services.app_config.promql_service import promql_service
+from console.services.app_config import label_service
 # model
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
@@ -23,6 +24,7 @@ from console.models.main import ComponentGraph
 from console.models.main import RegionConfig
 from www.models.service_publish import ServiceExtendMethod
 from www.models.main import TenantServiceConfigurationFile
+from www.models.label import ServiceLabels
 # exception
 from console.exception.main import AbortRequest
 from console.exception.main import ErrVolumePath
@@ -63,6 +65,8 @@ class NewComponents(object):
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
         self.is_deploy = is_deploy
+
+        self.support_labels = label_service.list_available_labels(tenant, region.region_name)
 
         self.components_keys = components_keys
         self.components = self.create_components()
@@ -111,8 +115,10 @@ class NewComponents(object):
                 tenant_id=self.tenant.tenant_id,
                 region_name=self.region_name,
             )
+            # labels
+            labels = self._template_to_labels(cpt, component_tmpl.get("labels"))
             component = Component(cpt, component_source, envs, ports, volumes, config_files, probes, extend_info, monitors,
-                                  graphs, [], http_rules, service_group_rel)
+                                  graphs, [], http_rules, service_group_rel, labels)
             component.ensure_port_envs(self.original_app.governance_mode)
             component.action_type = ActionType.BUILD.value
             result.append(component)
@@ -402,3 +408,21 @@ class NewComponents(object):
             )
             new_graphs[new_graph.title] = new_graph
         return new_graphs.values()
+
+    def _template_to_labels(self, component, labels):
+        support_labels = {label.label_name: label for label in self.support_labels}
+        if not labels:
+            return []
+        new_labels = []
+        for label in labels:
+            lab = support_labels.get(label["label_name"])
+            if not lab:
+                continue
+            new_labels.append(ServiceLabels(
+                tenant_id=component.tenant_id,
+                service_id=component.service_id,
+                label_id=lab.label_id,
+                region=self.region_name,
+                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ))
+        return new_labels

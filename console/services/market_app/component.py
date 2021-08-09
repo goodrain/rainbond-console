@@ -36,7 +36,8 @@ class Component(object):
                  graphs,
                  plugin_deps,
                  http_rules=None,
-                 service_group_rel=None):
+                 service_group_rel=None,
+                 labels=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
@@ -52,6 +53,7 @@ class Component(object):
         self.volume_deps = []
         self.plugin_deps = list(plugin_deps)
         self.app_config_groups = []
+        self.labels = list(labels) if labels else []
         self.service_group_rel = service_group_rel
         self.action_type = ActionType.NOTHING.value
 

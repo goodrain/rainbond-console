@@ -20,6 +20,7 @@ from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
+from console.repositories.label_repo import label_repo
 # model
 from www.models.main import ServiceGroup
 from console.models.main import RegionConfig
@@ -52,6 +53,9 @@ class OriginalApp(object):
         self.config_groups = self._config_groups()
         self.config_group_items = self._config_group_items()
         self.config_group_components = self._config_group_components()
+
+        # labels
+        self.labels = list(label_repo.get_all_labels())
 
     def components(self):
         return self._components
