@@ -67,6 +67,6 @@ def validate_endpoints_info(endpoints_info):
 
 def validate_name(name):
     # 只支持中文、字母、数字和-_组合,并且必须以中文、字母、数字开始和结束
-    if re.match(r'[a-z0-9A-Z\u4e00-\u9fa5]+(([_\-]+[a-z0-9A-Z\u4e00-\u9fa5]+)*?)$', name):
+    if re.match(r'^[a-z0-9A-Z\u4e00-\u9fa5]([a-zA-Z0-9_\-\u4e00-\u9fa5]*[a-z0-9A-Z\u4e00-\u9fa5])?$', name):
         return True
     return False
