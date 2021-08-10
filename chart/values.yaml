@@ -1,6 +1,6 @@
 # set storage
 pvc:
-  storageClassName: ""
+  storageClassName: ''
   # 5Gi
   storageSize: 5Gi
 
@@ -15,15 +15,15 @@ redis:
     pullPolicy: IfNotPresent
     tag: 4.0.12
 
-  # password 
-  password: "123456"
+  # password
+  password: '123456'
   podAnnotations: {}
 
   # set labels
-  selectorLabels: 
+  selectorLabels:
     rainbond: redis
 
-  # set pod resources 
+  # set pod resources
   resources:
     limits:
       cpu: 80m
@@ -54,10 +54,10 @@ mysql:
   podAnnotations: {}
 
   # set labels
-  selectorLabels: 
+  selectorLabels:
     rainbond: mysql
 
-  # set pod resources 
+  # set pod resources
   resources:
     limits:
       cpu: 640m
@@ -71,7 +71,6 @@ mysql:
 
 # adaptor configuration
 adaptor:
-
   # set name
   fullname: rainbond-adaptor
 
@@ -82,15 +81,15 @@ adaptor:
   image:
     repository: hub.goodrain.com/859a51f9bb3b48b5bfd222e3bef56425/16e3a841549bbd12110996d05f06c3bc
     pullPolicy: IfNotPresent
-    tag: "20210705194120"
+    tag: '20210705194120'
 
   podAnnotations: {}
 
   # set labels
-  selectorLabels: 
+  selectorLabels:
     rainbond: adaptor
 
-  # set pod resources 
+  # set pod resources
   resources:
     limits:
       cpu: 80m
@@ -104,7 +103,6 @@ adaptor:
 
 # console configuration
 console:
-
   # set name
   fullname: rainbond-console
 
@@ -115,18 +113,18 @@ console:
   replicasCount: 1
 
   # set RELEASE_DESC
-  RELEASE_DESC: "v5.3.1-release-20210703"
+  RELEASE_DESC: 'v5.3.1-release-20210703'
 
   # console images
   image:
     repository: hub.goodrain.com/859a51f9bb3b48b5bfd222e3bef56425/5eead886f81d475f48ff2c2e71fa20f1
     pullPolicy: IfNotPresent
-    tag: "20210705193612"
+    tag: '20210705193612'
 
   podAnnotations: {}
 
   # set labels
-  selectorLabels: 
+  selectorLabels:
     rainbond: console
 
   # storage
@@ -135,7 +133,7 @@ console:
   #   # 5Gi
   #   storageSize: 5Gi
 
-  # set pod resources 
+  # set pod resources
   resources:
     limits:
       cpu: 1280m
@@ -149,7 +147,6 @@ console:
 
 # ui configuration
 ui:
-
   # set name
   fullname: rainbond-ui
 
@@ -163,8 +160,8 @@ ui:
   image:
     repository: hub.goodrain.com/859a51f9bb3b48b5bfd222e3bef56425/94cc86f1400e52d90773a96e094372fb
     pullPolicy: IfNotPresent
-    tag: "20210705194043"
-  
+    tag: '20210705194043'
+
   # set service
   svc:
     type: NodePort
@@ -173,10 +170,10 @@ ui:
   podAnnotations: {}
 
   # set labels
-  selectorLabels: 
+  selectorLabels:
     rainbond: ui
 
-  # set pod resources 
+  # set pod resources
   resources:
     limits:
       cpu: 120m
@@ -190,7 +187,6 @@ ui:
 
 # allinone
 allinone:
-
   # set name
   fullname: rainbond-allinone
 
@@ -204,7 +200,7 @@ allinone:
   image:
     repository: registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond
     pullPolicy: IfNotPresent
-    tag: "v5.3.1-release-allinone"
+    tag: 'v5.3.2-release-allinone'
 
   # set service
   svc:
@@ -214,11 +210,12 @@ allinone:
   podAnnotations: {}
 
   # set labels
-  selectorLabels: 
+  selectorLabels:
     rainbond: allinone
 
-  # set pod resources 
-  resources: {}
+  # set pod resources
+  resources:
+    {}
     # limits:
     #   cpu: 640m
     #   memory: 512Mi

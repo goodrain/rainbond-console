@@ -241,8 +241,8 @@ class CreateThirdComponentView(TeamAppAPIView):
         req_date = ctcs.data
         validate_endpoints_info(req_date["endpoints"])
         new_component = console_app_service.create_third_party_app(self.region_name, self.team, self.user,
-                                                                   req_date["component_name"], req_date["endpoints_type"],
-                                                                   req_date["endpoints"])
+                                                                   req_date["component_name"], req_date["endpoints"],
+                                                                   req_date["endpoints_type"])
         # add component to app
         code, msg_show = group_service.add_service_to_group(self.team, self.region_name, app_id, new_component.service_id)
         if code != 200:

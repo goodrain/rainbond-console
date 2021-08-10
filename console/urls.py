@@ -22,6 +22,7 @@ from console.views.app_config.graph import (ComponentExchangeGraphsView, Compone
                                             ComponentInternalGraphsView)
 from console.views.app_config.service_monitor import (ComponentMetricsView, ComponentServiceMonitorEditView,
                                                       ComponentServiceMonitorView)
+from console.views.app_config.app_log import ComponentLogView
 from console.views.app_config_group import (AppConfigGroupView, ListAppConfigGroupView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID)
@@ -554,6 +555,7 @@ urlpatterns = [
         ComponentGraphView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/metrics$', ComponentMetricsView.as_view(),
         perms.AppServiceMonitor),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/logs$', ComponentLogView.as_view(), perms.AppLogView),
 
     # 获取当前可用全部数据中心
     url(r'^regions$', QyeryRegionView.as_view()),
