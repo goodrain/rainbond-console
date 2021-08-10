@@ -1013,6 +1013,7 @@ class TenantServiceVolume(BaseModel):
     backup_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="备份策略")
     reclaim_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="回收策略")
     allow_expansion = models.NullBooleanField(max_length=100, null=True, default=0, blank=True, help_text="只是支持控制扩展，0：不支持；1：支持")
+    mode = models.IntegerField(null=True, help_text="存储权限")
 
 
 class TenantServiceConfigurationFile(BaseModel):

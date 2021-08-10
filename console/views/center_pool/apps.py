@@ -18,6 +18,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework import status
 from rest_framework.response import Response
 from www.utils.return_message import error_message, general_message
+from console.utils.validation import validate_name
 
 logger = logging.getLogger('default')
 
@@ -189,7 +190,9 @@ class CenterAppCLView(JWTAuthApiView):
         if not name:
             result = general_message(400, "error params", "请填写应用名称")
             return Response(result, status=400)
-
+        if not validate_name(name):
+            result = general_message(400, "error params", "应用名称只支持中文、字母、数字和-_组合,并且必须以中文、字母、数字开始和结束")
+            return Response(result, status=400)
         app_info = {
             "app_name": name,
             "describe": describe,
@@ -216,6 +219,9 @@ class CenterAppUDView(JWTAuthApiView):
 
     def put(self, request, enterprise_id, app_id, *args, **kwargs):
         name = request.data.get("name")
+        if not validate_name(name):
+            result = general_message(400, "error params", "应用名称只支持中文、字母、数字和-_组合,并且必须以中文、字母、数字开始和结束")
+            return Response(result, status=400)
         describe = request.data.get("describe", 'This is a default description.')
         pic = request.data.get("pic")
         details = request.data.get("details")
