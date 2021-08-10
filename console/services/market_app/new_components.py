@@ -447,7 +447,8 @@ class NewComponents(object):
             if service_domain.type == 0:
                 service_domain.domain_name = self._create_default_domain(component.service_alias, port.container_port)
             else:
-                service_domain.domain_name = make_uuid()[:6] + self._create_default_domain(component.service_alias, port.container_port)
+                service_domain.domain_name = make_uuid()[:6] + self._create_default_domain(
+                    component.service_alias, port.container_port)
             service_domain.is_senior = len(service_domain.domain_cookie) > 0 or len(service_domain.domain_heander) > 0
             service_domains.append(service_domain)
 
@@ -459,7 +460,7 @@ class NewComponents(object):
 
         return service_domains, configs
 
-    def _ensure_default_http_rule(self, component: TenantServiceInfo,  http_rules: [ServiceDomain], ports: [TenantServicesPort]):
+    def _ensure_default_http_rule(self, component: TenantServiceInfo, http_rules: [ServiceDomain], ports: [TenantServicesPort]):
         new_http_rules = {}
         for rule in http_rules:
             rules = new_http_rules.get(rule.container_port, [])
@@ -491,7 +492,6 @@ class NewComponents(object):
             if rule.type == 0:
                 return True
         return False
-
 
     def _create_default_domain(self, service_alias: str, port: int):
         return str(port) + "." + service_alias + "." + self.tenant.tenant_name + "." + self.region.httpdomain
