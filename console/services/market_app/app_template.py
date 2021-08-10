@@ -8,10 +8,7 @@ class AppTemplate(object):
         self._ingress_stream_routes = self._component_key_2_ingress_routes("ingress_stream_routes")
 
     def list_ingress_http_routes_by_component_key(self, component_key):
-        return self._ingress_http_routes.get(component_key)
-
-    def list_ingress_stream_routes_by_component_key(self, component_key):
-        return self._ingress_stream_routes.get(component_key)
+        return self._ingress_http_routes.get(component_key, [])
 
     def component_templates(self):
         return self.app_template.get("apps") if self.app_template.get("apps") else []

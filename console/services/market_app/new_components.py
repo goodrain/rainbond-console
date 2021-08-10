@@ -299,11 +299,7 @@ class NewComponents(object):
         )
 
     def _create_default_gateway_rule(self, component: TenantServiceInfo, port: TenantServicesPort):
-        # only create gateway rule for http port now
-        if not port.is_outer_service or port.protocol != "http":
-            return None
-        domain_name = str(port.container_port) + "." + str(component.service_alias) + "." + str(
-            self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+        domain_name = self._create_default_domain(component.service_alias, port.container_port)
         return ServiceDomain(
             service_id=component.service_id,
             service_name=component.service_name,
@@ -417,13 +413,13 @@ class NewComponents(object):
         return new_graphs.values()
 
     def _template_to_service_domain(self, component: TenantServiceInfo, ports: [TenantServicesPort]):
-        ports = {port.container_port: port for port in ports}
+        new_ports = {port.container_port: port for port in ports}
         ingress_http_routes = self.app_template.list_ingress_http_routes_by_component_key(component.service_key)
 
         service_domains = []
         configs = []
         for ingress in ingress_http_routes:
-            port = ports.get(ingress["port"])
+            port = new_ports.get(ingress["port"])
             if not port:
                 logger.warning("component id: {}; port not found for ingress".format(component.component_id))
                 continue
@@ -449,11 +445,9 @@ class NewComponents(object):
                 rule_extensions=self._ingress_load_balancing(ingress["load_balancing"]),
             )
             if service_domain.type == 0:
-                service_domain.domain_name = str(port.container_port) + "." + str(component.service_alias) + "." + str(
-                    self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+                service_domain.domain_name = self._create_default_domain(component.service_alias, port.container_port)
             else:
-                service_domain.domain_name = make_uuid()[:6] + str(port.container_port) + "." + str(
-                    component.service_alias) + "." + str(self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+                service_domain.domain_name = make_uuid()[:6] + self._create_default_domain(component.service_alias, port.container_port)
             service_domain.is_senior = len(service_domain.domain_cookie) > 0 or len(service_domain.domain_heander) > 0
             service_domains.append(service_domain)
 
@@ -461,7 +455,46 @@ class NewComponents(object):
             config = self._ingress_config(service_domain.http_rule_id, ingress)
             configs.append(config)
 
+        self._ensure_default_http_rule(component, service_domains, ports)
+
         return service_domains, configs
+
+    def _ensure_default_http_rule(self, component: TenantServiceInfo,  http_rules: [ServiceDomain], ports: [TenantServicesPort]):
+        new_http_rules = {}
+        for rule in http_rules:
+            rules = new_http_rules.get(rule.container_port, [])
+            rules.append(rule)
+            new_http_rules[rule.container_port] = rules
+
+        for port in ports:
+            port_http_rules = new_http_rules.get(port.container_port, [])
+
+            # only create gateway rule for http port now
+            if not port.is_outer_service or port.protocol != "http":
+                return None
+
+            # Create a default http rule if there is no http rules
+            if len(port_http_rules) == 0:
+                http_rule = self._create_default_gateway_rule(component, port)
+                http_rules.append(http_rule)
+                continue
+
+            # If there is no default rule, make the first rule the default rule
+            if not self._contains_default_rule(port_http_rules):
+                http_rule = port_http_rules[0]
+                http_rule.type = 0
+                http_rule.domain_name = self._create_default_domain(component.service_alias, port.container_port)
+
+    @staticmethod
+    def _contains_default_rule(rules: [ServiceDomain]):
+        for rule in rules:
+            if rule.type == 0:
+                return True
+        return False
+
+
+    def _create_default_domain(self, service_alias: str, port: int):
+        return str(port) + "." + service_alias + "." + self.tenant.tenant_name + "." + self.region.httpdomain
 
     @staticmethod
     def _domain_cookie_or_header(items):
