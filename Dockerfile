@@ -5,6 +5,7 @@ ARG PIP_SOURCE_HOST=mirrors.aliyun.com
 
 FROM rainbond/rbd-ui-base:${BASE_VERSION}
 ARG RELEASE_DESC=
+
 LABEL author="zengqg@goodrain.com" 
 
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/
