@@ -17,7 +17,7 @@ from console.repositories.component_graph import component_graph_repo
 from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
-from console.repositories.app_config import domain_repo, configuration_repo, tcp_domain
+from console.repositories.app_config import domain_repo, configuration_repo, port_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
 from console.services.group_service import group_service
@@ -690,7 +690,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, region_name, share_record, share_team, share_user, share_info, use_force):
+    def create_share_info(self, tenant, region_name, share_record, share_team, share_user, share_info, use_force):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -747,10 +747,8 @@ class ShareService(object):
             app_templete["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
 
             # ingress
-            ingress_http_routes = self._list_http_ingresses(service_ids_keys_map)
+            ingress_http_routes = self._list_http_ingresses(tenant, service_ids_keys_map)
             app_templete["ingress_http_routes"] = ingress_http_routes
-            ingress_stream_routes = self._list_stream_ingresses(service_ids_keys_map)
-            app_templete["ingress_stream_routes"] = ingress_stream_routes
 
             # plugins
             try:
@@ -888,15 +886,23 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
 
-    def _list_http_ingresses(self, component_keys):
+    def _list_http_ingresses(self, tenant, component_keys):
         service_domains = domain_repo.list_by_component_ids(component_keys.keys())
         if not service_domains:
             return []
         configs = configuration_repo.list_by_rule_ids([sd.http_rule_id for sd in service_domains])
         configs = {cfg.rule_id: json.loads(cfg.value) for cfg in configs}
 
+        ports = port_repo.list_by_service_ids(tenant.tenant_id, component_keys.keys())
+        ports = {port.container_port: port for port in ports}
+
         ingress_http_routes = []
         for sd in service_domains:
+            # only work for outer port
+            port = ports.get(sd.container_port)
+            if not port or not port.is_outer_service:
+                continue
+
             config = configs.get(sd.http_rule_id, {})
             ingress_http_route = {
                 "default_domain": sd.type == 0,
@@ -918,23 +924,6 @@ class ShareService(object):
             }
             ingress_http_routes.append(ingress_http_route)
         return ingress_http_routes
-
-    @staticmethod
-    def _list_stream_ingresses(component_keys):
-        tcp_domains = tcp_domain.list_by_component_ids(component_keys.keys())
-        if not tcp_domains:
-            return []
-
-        ingress_stream_routes = []
-        for cd in tcp_domains:
-            ingress_stream_route = {
-                "protocol": cd.protocol,
-                "load_balancing": cd.load_balancing,
-                "component_key": component_keys.get(cd.service_id),
-                "port": cd.container_port,
-            }
-            ingress_stream_routes.append(ingress_stream_route)
-        return ingress_stream_routes
 
     @staticmethod
     def _parse_cookie_or_header(cookies: str):
