@@ -730,10 +730,6 @@ class ServiceDomainRepository(object):
     def list_by_component_ids(component_ids):
         return ServiceDomain.objects.filter(service_id__in=component_ids)
 
-    def overwrite_by_component_ids(self, component_ids, http_rules):
-        ServiceDomain.objects.filter(service_id__in=component_ids).delete()
-        self.bulk_create(http_rules)
-
 
 class ServiceExtendRepository(object):
     # only market service return extend_method
@@ -976,11 +972,6 @@ class GatewayCustom(object):
     @staticmethod
     def bulk_create(configs: [GatewayCustomConfiguration]):
         GatewayCustomConfiguration.objects.bulk_create(configs)
-
-    def overwrite_by_component_ids(self, component_ids, configs):
-        service_domains = ServiceDomain.objects.filter(service_id__in=component_ids)
-        self.delete_by_rule_ids([sd.http_rule_id for sd in service_domains])
-        self.bulk_create(configs)
 
 
 tcp_domain = ServiceTcpDomainRepository()

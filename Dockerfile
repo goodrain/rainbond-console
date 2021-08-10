@@ -4,7 +4,6 @@ ARG PIP_SOURCE_URL=http://mirrors.aliyun.com/pypi/simple
 ARG PIP_SOURCE_HOST=mirrors.aliyun.com
 
 FROM rainbond/rbd-ui-base:${BASE_VERSION}
-ARG RELEASE_DESC=
 
 LABEL author="zengqg@goodrain.com" 
 
