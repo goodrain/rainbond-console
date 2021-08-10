@@ -4,6 +4,7 @@ import os
 import random
 import re
 import string
+import json
 
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrUserNotFound, ErrTenantNotFound
@@ -18,6 +19,7 @@ from django.db.transaction import atomic
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
 from www.utils.crypt import make_uuid
+from console.utils.cache import cache
 
 logger = logging.getLogger('default')
 
@@ -229,6 +231,11 @@ class EnterpriseServices(object):
 
     # def get_services_status_by_service_ids(self, region_name, enterprise_id, service_ids):
     def get_enterprise_runing_service(self, enterprise_id, regions):
+        cache_key = "{}+enterprise_running_service".format(enterprise_id)
+        cache_data = cache.get(cache_key)
+        if cache_data:
+            return json.loads(cache_data)
+
         app_total_num = 0
         app_running_num = 0
         component_total_num = 0
@@ -297,6 +304,7 @@ class EnterpriseServices(object):
                 "closed": component_total_num - component_running_num
             }
         }
+        cache.set(cache_key, json.dumps(data), 30)
         return data
 
     @staticmethod

@@ -68,7 +68,7 @@ class AppVolumeService(object):
             state = True
             base_opts.append({"volume_type": "local", "name_show": "本地存储"})
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        if body and hasattr(body, 'list'):
+        if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
                 if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
                     if state:
@@ -280,7 +280,7 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def create_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings=None):
+    def create_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings=None, mode=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         volume_name = self.check_volume_name(service, volume_name)
@@ -294,7 +294,8 @@ class AppVolumeService(object):
             "host_path": host_path,
             "volume_type": volume_type,
             "volume_path": volume_path,
-            "volume_name": volume_name
+            "volume_name": volume_name,
+            "mode": mode,
         }
 
         if settings:
@@ -318,7 +319,8 @@ class AppVolumeService(object):
                            volume_name,
                            file_content=None,
                            settings=None,
-                           user_name=''):
+                           user_name='',
+                           mode=None):
 
         volume = self.create_service_volume(
             tenant,
@@ -327,6 +329,7 @@ class AppVolumeService(object):
             volume_type,
             volume_name,
             settings,
+            mode=mode,
         )
 
         # region端添加数据
@@ -345,6 +348,7 @@ class AppVolumeService(object):
                 "reclaim_policy": volume.reclaim_policy,
                 "allow_expansion": volume.allow_expansion,
                 "operator": user_name,
+                "mode": mode,
             }
             if volume_type == "config-file":
                 data["file_content"] = file_content
