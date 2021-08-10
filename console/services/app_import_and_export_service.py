@@ -387,8 +387,10 @@ class AppImportService(object):
         if not metadata:
             return
         for app_template in metadata:
-            app_describe = app_template["annotations"]["describe"] if app_template.get("annotations", {}).get(
-                "describe", "") else app_template.pop("describe", "")
+            annotations = app_template.get("annotations", {})
+            app_describe = app_template.pop("describe", "")
+            if annotations.get("describe", ""):
+                app_describe = annotations["describe"]
             app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
             # if app exists, update it
             if app:
@@ -398,25 +400,31 @@ class AppImportService(object):
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
                 if app_version:
+                    version_info = annotations.get("version_info")
+                    version_alias = annotations.get("version_alias")
+                    if not version_info:
+                        version_info = app_version.app_version_info
+                    if not version_alias:
+                        version_alias = app_version.version_alias
                     # update version if exists
                     app_version.scope = import_record.scope
                     app_version.app_template = json.dumps(app_template)
                     app_version.template_version = app_template["template_version"]
-                    app_version.app_version_info = app_template["annotations"]["version_info"] if app_template.get(
-                        "annotations", {}).get("version_info", "") else app_version.app_version_info,
-                    app_version.version_alias = app_template["annotations"]["version_alias"] if app_template.get(
-                        "annotations", {}).get("version_alias", "") else app_version.version_alias,
+                    app_version.app_version_info = version_info,
+                    app_version.version_alias = version_alias,
                     app_version.save()
                 else:
                     # create a new version
                     rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
             else:
-                image_base64_string = app_template["annotations"]["image_base64_string"] if app_template.get(
-                    "annotations", {}).get("image_base64_string", "") else app_template.pop("image_base64_string", "")
+                image_base64_string = app_template.pop("image_base64_string", "")
+                if annotations.get("image_base64_string"):
+                    image_base64_string = annotations["image_base64_string"]
                 pic_url = ""
                 if image_base64_string:
-                    suffix = app_template["annotations"]["suffix"] if app_template.get("annotations", {}).get(
-                        "suffix", "") else app_template.pop("suffix", "jpg")
+                    suffix = app_template.pop("suffix", "jpg")
+                    if annotations.get("suffix"):
+                        suffix = annotations["suffix"]
                     pic_url = self.decode_image(image_base64_string, suffix)
                 key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
                 if key_and_version in key_and_version_list:
