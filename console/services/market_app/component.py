@@ -226,8 +226,8 @@ class Component(object):
         if not labels:
             return
         labels = labels.get("add", [])
-        for cl in labels:
-            label = self.support_labels.get(cl["label_name"])
+        for key in labels:
+            label = self.support_labels.get(key)
             if not label:
                 continue
             self.labels.append(

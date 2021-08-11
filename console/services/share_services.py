@@ -126,16 +126,13 @@ class ShareService(object):
 
         res = {}
         for component_label in component_labels:
-            clabels = res.get(component_label.service_id, [])
+            clabels = res.get(component_label.service_id, {})
             label = labels.get(component_label.label_id)
             if not label:
                 logger.warning("component id: {}; label id: {}; label not found".format(component_label.service_id,
                                                                                         component_label.label_id))
                 continue
-            clabels.append({
-                "label_name": label.label_name,
-                "label_alias": label.label_alias,
-            })
+            clabels[label.label_name] = label.label_alias
             res[component_label.service_id] = clabels
         return res
 

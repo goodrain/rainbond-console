@@ -415,7 +415,7 @@ class NewComponents(object):
             return []
         new_labels = []
         for label in labels:
-            lab = support_labels.get(label["label_name"])
+            lab = support_labels.get(label)
             if not lab:
                 continue
             new_labels.append(

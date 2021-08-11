@@ -338,12 +338,14 @@ class PropertyChanges(object):
         if not new_labels:
             return None
 
-        old_label_names = [self.labels.get(label.label_id) for label in old_labels if self.labels.get(label.label_id)]
+        old_label_names = [
+            self.support_labels.get(label.label_id) for label in old_labels if self.support_labels.get(label.label_id)
+        ]
 
-        add = []
+        add = {}
         for label in new_labels:
-            if label["label_name"] not in old_label_names:
-                add.append(label)
+            if label not in old_label_names:
+                add[label] = new_labels[label]
         if not add:
             return None
         return {"add": add}
