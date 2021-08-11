@@ -150,8 +150,24 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         return user
 
 
+class JWTAuthenticationSafe(JSONWebTokenAuthentication):
+    """
+    Use authentication_classes=[] in the view, but this always bypasses JWT authentication,
+    even when there is a valid Authorization-header with a token.
+    This class can obtain relevant user information when it has a token,
+    and is used for apis that do not require authentication
+    """
+
+    def authenticate(self, request):
+        try:
+            return super().authenticate(request=request)
+        except AuthenticationInfoHasExpiredError:
+            return None
+
+
 class BaseApiView(APIView):
     permission_classes = (AllowAny, )
+    authentication_classes = (JWTAuthenticationSafe, )
 
     def __init__(self, *args, **kwargs):
         super(BaseApiView, self).__init__(*args, **kwargs)

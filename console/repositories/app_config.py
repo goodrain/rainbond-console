@@ -884,6 +884,10 @@ class ServiceTcpDomainRepository(object):
     def delete_by_component_port(component_id, port):
         ServiceTcpDomain.objects.filter(service_id=component_id, container_port=port).delete()
 
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        return ServiceTcpDomain.objects.filter(service_id__in=component_ids)
+
 
 class TenantServiceEndpoints(object):
     def get_service_endpoints_by_service_id(self, service_id):
@@ -960,6 +964,14 @@ class GatewayCustom(object):
     @staticmethod
     def delete_by_rule_ids(rule_ids):
         GatewayCustomConfiguration.objects.filter(rule_id__in=rule_ids).delete()
+
+    @staticmethod
+    def list_by_rule_ids(rule_ids):
+        return GatewayCustomConfiguration.objects.filter(rule_id__in=rule_ids)
+
+    @staticmethod
+    def bulk_create(configs: [GatewayCustomConfiguration]):
+        GatewayCustomConfiguration.objects.bulk_create(configs)
 
 
 tcp_domain = ServiceTcpDomainRepository()

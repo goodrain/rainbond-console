@@ -47,7 +47,8 @@ class UpdateComponents(object):
             if not component_tmpl:
                 continue
 
-            cpt.set_changes(cpt_changes[cpt.component.component_id], self.original_app.governance_mode)
+            cpt.set_changes(self.original_app.tenant, self.original_app.region, cpt_changes[cpt.component.component_id],
+                            self.original_app.governance_mode)
 
             cpt.component.image = component_tmpl["share_image"]
             cpt.component.cmd = component_tmpl.get("cmd", "")
