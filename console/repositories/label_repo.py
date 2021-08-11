@@ -20,6 +20,18 @@ class ServiceLabelsReporsitory(object):
     def get_service_label(self, service_id, label_id):
         return ServiceLabels.objects.filter(service_id=service_id, label_id=label_id).first()
 
+    @staticmethod
+    def list_by_component_ids(component_ids):
+        return ServiceLabels.objects.filter(service_id__in=component_ids)
+
+    @staticmethod
+    def bulk_create(labels: [ServiceLabels]):
+        ServiceLabels.objects.bulk_create(labels)
+
+    def overwrite_by_component_ids(self, component_ids, labels: [ServiceLabels]):
+        ServiceLabels.objects.filter(service_id__in=component_ids).delete()
+        self.bulk_create(labels)
+
 
 class NodeLabelsReporsitory(object):
     def get_node_label_by_region(self, region_id):
@@ -53,6 +65,14 @@ class LabelsReporsitory(object):
 
     def get_labels_by_label_name(self, label_name):
         return Labels.objects.filter(label_name=label_name).first()
+
+    @staticmethod
+    def list_by_label_ids(label_ids):
+        return Labels.objects.filter(label_id__in=label_ids)
+
+    @staticmethod
+    def bulk_create(labels: [Labels]):
+        return Labels.objects.bulk_create(labels)
 
 
 service_label_repo = ServiceLabelsReporsitory()

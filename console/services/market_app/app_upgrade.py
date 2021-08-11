@@ -18,6 +18,7 @@ from console.services.market_app.component_group import ComponentGroup
 from console.services.market_app.component import Component
 # service
 from console.services.backup_service import groupapp_backup_service
+from console.services.app_config import label_service
 # repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 from console.repositories.app_snapshot import app_snapshot_repo
@@ -96,15 +97,17 @@ class AppUpgrade(MarketApp):
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
 
+        self.support_labels = label_service.list_available_labels(tenant, region.region_name)
+
         # original app
-        self.original_app = OriginalApp(self.tenant, self.region, self.app, self.upgrade_group_id)
+        self.original_app = OriginalApp(self.tenant, self.region, self.app, self.upgrade_group_id, self.support_labels)
 
         # plugins
         self.original_plugins = self.list_original_plugins()
         self.new_plugins = self._create_new_plugins()
         plugins = [plugin.plugin for plugin in self._plugins()]
 
-        self.property_changes = PropertyChanges(self.original_app.components(), plugins, self.app_template)
+        self.property_changes = PropertyChanges(self.original_app.components(), plugins, self.app_template, self.support_labels)
 
         self.new_app = self._create_new_app()
         self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
@@ -321,9 +324,19 @@ class AppUpgrade(MarketApp):
 
     def _create_new_app(self):
         # new components
-        new_components = NewComponents(self.tenant, self.region, self.user, self.original_app, self.app_model_key,
-                                       self.app_template, self.version, self.install_from_cloud, self.component_keys,
-                                       self.market_name, self.is_deploy).components
+        new_components = NewComponents(
+            self.tenant,
+            self.region,
+            self.user,
+            self.original_app,
+            self.app_model_key,
+            self.app_template,
+            self.version,
+            self.install_from_cloud,
+            self.component_keys,
+            self.market_name,
+            self.is_deploy,
+            support_labels=self.support_labels).components
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys, self.property_changes).components

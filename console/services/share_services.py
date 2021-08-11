@@ -18,6 +18,8 @@ from console.repositories.market_app_repo import (app_export_record_repo, rainbo
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
 from console.repositories.app_config import domain_repo, configuration_repo, port_repo
+from console.repositories.label_repo import service_label_repo
+from console.repositories.label_repo import label_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
 from console.services.group_service import group_service
@@ -116,6 +118,24 @@ class ShareService(object):
             del g["ID"]
             result[graph.component_id].append(g)
         return result
+
+    @staticmethod
+    def list_component_labels(component_ids):
+        component_labels = service_label_repo.list_by_component_ids(component_ids)
+        labels = label_repo.list_by_label_ids([label.label_id for label in component_labels])
+        labels = {label.label_id: label for label in labels}
+
+        res = {}
+        for component_label in component_labels:
+            clabels = res.get(component_label.service_id, {})
+            label = labels.get(component_label.label_id)
+            if not label:
+                logger.warning("component id: {}; label id: {}; label not found".format(component_label.service_id,
+                                                                                        component_label.label_id))
+                continue
+            clabels[label.label_name] = label.label_alias
+            res[component_label.service_id] = clabels
+        return res
 
     def get_dep_mnts_by_ids(self, tenant_id, service_ids):
         mnt_relations = mnt_repo.list_mnt_relations_by_service_ids(tenant_id, service_ids)
@@ -251,6 +271,8 @@ class ShareService(object):
             sid_2_graphs = self.list_component_graphs(array_ids)
             all_data_map = dict()
 
+            labels = self.list_component_labels(array_ids)
+
             for service in service_list:
                 if not deploy_versions or not deploy_versions.get(service.service_id):
                     continue
@@ -324,6 +346,7 @@ class ShareService(object):
                         s_v['access_mode'] = volume.access_mode
                         s_v['share_policy'] = volume.share_policy
                         s_v['backup_policy'] = volume.backup_policy
+                        s_v['mode'] = volume.mode
                         data['service_volume_map_list'].append(s_v)
 
                 data['service_env_map_list'] = list()
@@ -349,9 +372,10 @@ class ShareService(object):
                     plugin_data = spr.to_dict()
                     plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
                     data['service_related_plugin_config'].append(plugin_data)
-                # component moniotr
+                # component monitor
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
+                data["labels"] = labels.get(service.component_id, [])
 
                 all_data_map[service.service_id] = data
 

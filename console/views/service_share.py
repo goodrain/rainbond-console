@@ -19,6 +19,7 @@ from goodrain_web import settings
 from rest_framework.response import Response
 from www.utils.crypt import make_uuid
 from www.utils.return_message import error_message, general_message
+from console.utils.validation import validate_name
 
 logger = logging.getLogger('default')
 # 数字和字母组合，不允许纯数字
@@ -674,10 +675,14 @@ class AppMarketAppModelLView(JWTAuthApiView):
             except Exception as e:
                 logger.exception(e)
                 base64_logo = ""
+        name = request.data.get("name", "")
+        if not validate_name(name):
+            raise ServiceHandleException(msg="error params", msg_show="应用名称只支持中文、字母、数字和-_组合,并且必须以中文、字母、数字开始和结束")
+
         dt = {
             "desc": request.data.get("desc"),
             "logo": base64_logo,
-            "name": request.data.get("name"),
+            "name": name,
             "publish_type": request.data.get("publish_type"),
             "tags": request.data.get("tags"),
             "introduction": request.data.get("introduction"),

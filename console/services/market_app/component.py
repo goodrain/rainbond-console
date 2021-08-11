@@ -14,6 +14,7 @@ from console.services.app_config import env_var_service
 # model
 from www.models.main import (ServiceProbe, TenantServiceConfigurationFile, TenantServiceEnvVar, TenantServicesPort,
                              TenantServiceVolume)
+from www.models.label import ServiceLabels
 from console.models.main import ComponentGraph, ServiceMonitor
 from console.models.main import ServiceSourceInfo
 # util
@@ -38,7 +39,9 @@ class Component(object):
                  http_rules=None,
                  http_rule_configs=None,
                  tcp_rules=None,
-                 service_group_rel=None):
+                 service_group_rel=None,
+                 labels=None,
+                 support_labels=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
@@ -56,7 +59,9 @@ class Component(object):
         self.volume_deps = []
         self.plugin_deps = list(plugin_deps)
         self.app_config_groups = []
+        self.labels = list(labels) if labels else []
         self.service_group_rel = service_group_rel
+        self.support_labels = {label.label_name: label for label in support_labels}
         self.action_type = ActionType.NOTHING.value
 
     def set_changes(self, tenant, region, changes, governance_mode):
@@ -113,6 +118,7 @@ class Component(object):
             "ports": self._update_ports,
             "volumes": self._update_volumes,
             "probes": self._update_probe,
+            "labels": self._update_labels,
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
         }
@@ -221,6 +227,24 @@ class Component(object):
             self.monitors.append(new_monitor)
         self.update_action_type(ActionType.UPDATE.value)
 
+    def _update_labels(self, labels):
+        if not labels:
+            return
+        labels = labels.get("add", [])
+        for key in labels:
+            label = self.support_labels.get(key)
+            if not label:
+                continue
+            self.labels.append(
+                ServiceLabels(
+                    tenant_id=self.component.tenant_id,
+                    service_id=self.component.component_id,
+                    label_id=label.label_id,
+                    region=self.component.service_region,
+                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                ))
+        self.update_action_type(ActionType.UPDATE.value)
+
     def _update_port_data(self, port):
         container_port = int(port["container_port"])
         port_alias = self.component.service_alias.upper()
@@ -238,6 +262,7 @@ class Component(object):
         port["port_alias"] = port_alias
 
     def _update_volumes(self, volumes):
+        old_volumes = {volume.volume_name: volume for volume in self.volumes}
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
@@ -257,6 +282,8 @@ class Component(object):
 
         old_config_files = {config_file.volume_name: config_file for config_file in self.config_files}
         for volume in volumes.get("upd"):
+            old_volume = old_volumes.get(volume["volume_name"])
+            old_volume.mode = volume.get("mode")
             old_config_file = old_config_files.get(volume.get("volume_name"))
             if not old_config_file:
                 continue
