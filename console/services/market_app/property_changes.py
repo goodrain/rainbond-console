@@ -22,10 +22,11 @@ logger = logging.getLogger("default")
 
 
 class PropertyChanges(object):
-    def __init__(self, components: [Component], plugins: [TenantPlugin], app_template):
+    def __init__(self, components: [Component], plugins: [TenantPlugin], app_template, support_labels):
         self.components = components
         self.plugins = plugins
         self.app_template = app_template
+        self.support_labels = support_labels
         self.changes = self._get_component_changes(components, app_template)
 
     def need_change(self):
@@ -96,6 +97,9 @@ class PropertyChanges(object):
         probes = self._probe(component.probes, component_tmpl["probes"])
         if probes:
             result["probes"] = probes
+        labels = self._labels(component.labels, component_tmpl["labels"])
+        if labels:
+            result["labels"] = labels
         # plugin dependency
         plugin_deps = self._plugin_deps(component.plugin_deps, component_tmpl.get("service_related_plugin_config"))
         if plugin_deps:
@@ -325,4 +329,23 @@ class PropertyChanges(object):
                 continue
             plugin_dep["plugin"] = plugin.to_dict()
             add.append(plugin_dep)
+        return {"add": add}
+
+    def _labels(self, old_labels, new_labels):
+        """
+        Support adding.
+        """
+        if not new_labels:
+            return None
+
+        old_label_names = [
+            self.support_labels.get(label.label_id) for label in old_labels if self.support_labels.get(label.label_id)
+        ]
+
+        add = {}
+        for label in new_labels:
+            if label not in old_label_names:
+                add[label] = new_labels[label]
+        if not add:
+            return None
         return {"add": add}
