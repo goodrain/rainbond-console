@@ -97,7 +97,7 @@ class PropertyChanges(object):
         probes = self._probe(component.probes, component_tmpl["probes"])
         if probes:
             result["probes"] = probes
-        labels = self._labels(component.labels, component_tmpl["labels"])
+        labels = self._labels(component.labels, component_tmpl.get("labels"))
         if labels:
             result["labels"] = labels
         # plugin dependency

@@ -198,7 +198,9 @@ class AppRestore(MarketApp):
         # ports
         ports = [TenantServicesPort(**port) for port in snap["service_ports"]]
         # service_extend_method
-        extend_info = ServiceExtendMethod(**snap["service_extend_method"])
+        extend_info = None
+        if snap.get("service_extend_method"):
+            extend_info = ServiceExtendMethod(**snap.get("service_extend_method"))
         # volumes
         volumes = [TenantServiceVolume(**volume) for volume in snap["service_volumes"]]
         # configuration files

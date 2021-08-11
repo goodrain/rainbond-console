@@ -356,6 +356,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
 
         # 继续给app_template_incomplete赋值
         code, msg, bean = share_service.create_share_info(
+            tenant=self.tenant,
             region_name=self.region_name,
             share_record=share_record,
             share_team=self.team,

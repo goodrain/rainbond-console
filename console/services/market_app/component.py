@@ -37,6 +37,8 @@ class Component(object):
                  graphs,
                  plugin_deps,
                  http_rules=None,
+                 http_rule_configs=None,
+                 tcp_rules=None,
                  service_group_rel=None,
                  labels=None,
                  support_labels=None):
@@ -45,6 +47,8 @@ class Component(object):
         self.envs = list(envs)
         self.ports = list(ports)
         self.http_rules = list(http_rules) if http_rules else []
+        self.http_rule_configs = list(http_rule_configs) if http_rule_configs else []
+        self.tcp_rules = list(tcp_rules) if tcp_rules else []
         self.volumes = list(volumes)
         self.config_files = list(config_files)
         self.probes = list(probes) if probes else []
@@ -60,7 +64,7 @@ class Component(object):
         self.support_labels = {label.label_name: label for label in support_labels}
         self.action_type = ActionType.NOTHING.value
 
-    def set_changes(self, changes, governance_mode):
+    def set_changes(self, tenant, region, changes, governance_mode):
         """
         Set changes to the component
         """
@@ -70,6 +74,7 @@ class Component(object):
                 continue
             update_func = update_funcs[key]
             update_func(changes.get(key))
+
         self.ensure_port_envs(governance_mode)
 
     def ensure_port_envs(self, governance_mode):

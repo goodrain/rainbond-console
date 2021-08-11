@@ -8,6 +8,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import domain_repo
+from console.repositories.app_config import configuration_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import dep_relation_repo
@@ -156,6 +157,7 @@ class NewApp(object):
         envs = []
         ports = []
         http_rules = []
+        http_rule_configs = []
         volumes = []
         config_files = []
         probes = []
@@ -169,6 +171,7 @@ class NewApp(object):
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             http_rules.extend(cpt.http_rules)
+            http_rule_configs.extend(cpt.http_rule_configs)
             volumes.extend(cpt.volumes)
             config_files.extend(cpt.config_files)
             if cpt.probes:
@@ -186,6 +189,7 @@ class NewApp(object):
         env_var_repo.bulk_create(envs)
         port_repo.bulk_create(ports)
         domain_repo.bulk_create(http_rules)
+        configuration_repo.bulk_create(http_rule_configs)
         volume_repo.bulk_create(volumes)
         config_file_repo.bulk_create(config_files)
         probe_repo.bulk_create(probes)

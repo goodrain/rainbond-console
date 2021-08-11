@@ -17,6 +17,7 @@ from console.repositories.component_graph import component_graph_repo
 from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
+from console.repositories.app_config import domain_repo, configuration_repo, port_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
 from console.services.app import app_market_service
@@ -713,7 +714,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, region_name, share_record, share_team, share_user, share_info, use_force):
+    def create_share_info(self, tenant, region_name, share_record, share_team, share_user, share_info, use_force):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -768,6 +769,10 @@ class ShareService(object):
             # group config
             service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
             app_templete["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
+
+            # ingress
+            ingress_http_routes = self._list_http_ingresses(tenant, service_ids_keys_map)
+            app_templete["ingress_http_routes"] = ingress_http_routes
 
             # plugins
             try:
@@ -904,6 +909,57 @@ class ShareService(object):
             if sid:
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
+
+    def _list_http_ingresses(self, tenant, component_keys):
+        service_domains = domain_repo.list_by_component_ids(component_keys.keys())
+        if not service_domains:
+            return []
+        configs = configuration_repo.list_by_rule_ids([sd.http_rule_id for sd in service_domains])
+        configs = {cfg.rule_id: json.loads(cfg.value) for cfg in configs}
+
+        ports = port_repo.list_by_service_ids(tenant.tenant_id, component_keys.keys())
+        ports = {port.container_port: port for port in ports}
+
+        ingress_http_routes = []
+        for sd in service_domains:
+            # only work for outer port
+            port = ports.get(sd.container_port)
+            if not port or not port.is_outer_service:
+                continue
+
+            config = configs.get(sd.http_rule_id, {})
+            ingress_http_route = {
+                "default_domain": sd.type == 0,
+                "location": sd.domain_path,
+                "cookies": self._parse_cookie_or_header(sd.domain_cookie),
+                "headers": self._parse_cookie_or_header(sd.domain_heander),
+                "ssl": sd.auto_ssl,
+                "load_balancing": sd.load_balancing,
+                "connection_timeout": config.get("proxy_connect_timeout"),
+                "request_timeout": config.get("proxy_send_timeout"),
+                "response_timeout": config.get("proxy_read_timeout"),
+                "request_body_size_limit": config.get("proxy_body_size"),
+                "proxy_buffer_numbers": config.get("proxy_buffer_numbers"),
+                "proxy_buffer_size": config.get("proxy_buffer_size"),
+                "websocket": config.get("WebSocket"),
+                "component_key": component_keys.get(sd.service_id),
+                "port": sd.container_port,
+                "proxy_header": config.get("set_headers"),
+            }
+            ingress_http_routes.append(ingress_http_route)
+        return ingress_http_routes
+
+    @staticmethod
+    def _parse_cookie_or_header(cookies: str):
+        # example: foo=bar;apple=pie
+        cookies = cookies.replace(" ", "")
+        result = {}
+        for cookie in cookies.split(";"):
+            kvs = cookie.split("=")
+            if len(kvs) != 2 or kvs[0] == "" or kvs[1] == "":
+                continue
+            result[kvs[0]] = kvs[1]
+        return result
 
     def config_groups(self, region_name, service_ids_keys_map):
         groups = app_config_group_repo.list_by_service_ids(region_name, service_ids_keys_map.keys())

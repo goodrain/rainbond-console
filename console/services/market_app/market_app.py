@@ -155,6 +155,7 @@ class MarketApp(object):
                 "probes": probes,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
                 "http_rules": self._create_http_rules(cpt.http_rules),
+                "http_rule_configs": [json.loads(config.value) for config in cpt.http_rule_configs],
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:
@@ -267,7 +268,17 @@ class MarketApp(object):
             rule = gateway_rule.to_dict()
             rule["domain"] = gateway_rule.domain_name
             rule.pop("certificate_id")
-            rule.pop("rule_extensions")
+
+            rule_extensions = []
+            for ext in gateway_rule.rule_extensions.split(";"):
+                kvs = ext.split(":")
+                if len(kvs) != 2 or kvs[0] == "" or kvs[1] == "":
+                    continue
+                rule_extensions.append({
+                    "key": kvs[0],
+                    "value": kvs[1],
+                })
+            rule["rule_extensions"] = rule_extensions
             rules.append(rule)
         return rules
 
