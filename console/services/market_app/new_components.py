@@ -188,11 +188,12 @@ class NewComponents(object):
         extend_info["source_deploy_version"] = tmpl.get("deploy_version")
         extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
             "service_share_uuid", None) else tmpl.get("service_key", "")
-        if "update_time" in tmpl:
-            if type(tmpl["update_time"]) == datetime:
-                extend_info["update_time"] = tmpl["update_time"].strftime('%Y-%m-%d %H:%M:%S')
-            elif type(tmpl["update_time"]) == str:
-                extend_info["update_time"] = tmpl["update_time"]
+        update_time = self.app_template.get("update_time")
+        if update_time:
+            if type(update_time) == datetime:
+                extend_info["update_time"] = update_time.strftime('%Y-%m-%d %H:%M:%S')
+            elif type(update_time) == str:
+                extend_info["update_time"] = update_time
         if self.install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
@@ -339,8 +340,14 @@ class NewComponents(object):
                         settings["volume_capacity"] = volume.get("volume_capacity", 0)
 
                 volumes2.append(
-                    volume_service.create_service_volume(self.tenant, component, volume["volume_path"], volume["volume_type"],
-                                                         volume["volume_name"], settings))
+                    volume_service.create_service_volume(
+                        self.tenant,
+                        component,
+                        volume["volume_path"],
+                        volume["volume_type"],
+                        volume["volume_name"],
+                        settings=settings,
+                        mode=volume.get("mode")))
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
         return volumes2, config_files

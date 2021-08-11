@@ -257,6 +257,7 @@ class Component(object):
         port["port_alias"] = port_alias
 
     def _update_volumes(self, volumes):
+        old_volumes = {volume.volume_name: volume for volume in self.volumes}
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
@@ -276,6 +277,8 @@ class Component(object):
 
         old_config_files = {config_file.volume_name: config_file for config_file in self.config_files}
         for volume in volumes.get("upd"):
+            old_volume = old_volumes.get(volume["volume_name"])
+            old_volume.mode = volume.get("mode")
             old_config_file = old_config_files.get(volume.get("volume_name"))
             if not old_config_file:
                 continue

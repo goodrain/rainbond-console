@@ -145,7 +145,9 @@ class UpgradeService(object):
             raise AbortRequest("app template not found", "找不到应用模板", status_code=404, error_code=404)
 
         try:
-            return json.loads(app_version.app_template)
+            app_template = json.loads(app_version.app_template)
+            app_template["update_time"] = app_version.update_time
+            return app_template
         except JSONDecodeError:
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
 
