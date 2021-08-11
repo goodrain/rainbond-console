@@ -22,6 +22,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.migration_repo import migrate_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.utils.shortcuts import get_object_or_404
@@ -539,7 +540,12 @@ class GroupService(object):
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         except RegionApp.DoesNotExist:
             return
-        region_api.delete_app(region_name, tenant_name, region_app_id)
+        keys = []
+        migrate_record = migrate_repo.get_by_original_group_id(app_id)
+        if migrate_record:
+            for record in migrate_record:
+                keys.append(record.restore_id)
+        region_api.delete_app(region_name, tenant_name, region_app_id, {"etcd_keys": keys})
 
     def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""
