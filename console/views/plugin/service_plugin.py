@@ -159,16 +159,16 @@ class ServicePluginOperationView(AppBaseView):
         else:
             build_version = service_plugin_relation.build_version
         # 更新内存和cpu
-        memory = request.data.get("min_memory", 0)
-        cpu = request.data.get("min_cpu", 0)
+        memory = request.data.get("min_memory")
+        cpu = request.data.get("min_cpu")
 
         data = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = is_active
         data["version_id"] = build_version
-        if memory != 0:
+        if memory is not None:
             data["plugin_memory"] = int(memory)
-        if cpu != 0:
+        if cpu is not None:
             data["plugin_cpu"] = int(cpu)
         # 更新数据中心数据参数
         region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,

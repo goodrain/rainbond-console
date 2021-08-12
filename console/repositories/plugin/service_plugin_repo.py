@@ -29,14 +29,14 @@ class AppPluginRelationRepo(object):
 
     def create_service_plugin_relation(self, **params):
         """创建组件插件关系"""
-        TenantServicePluginRelation.objects.create(**params)
+        return TenantServicePluginRelation.objects.create(**params)
 
     def update_service_plugin_status(self, service_id, plugin_id, is_active, cpu, memory):
         tspr = TenantServicePluginRelation.objects.filter(service_id=service_id, plugin_id=plugin_id).first()
         tspr.plugin_status = is_active
-        if cpu != 0:
+        if cpu is not None and type(cpu) == int and cpu >= 0:
             tspr.min_cpu = cpu
-        if memory != 0:
+        if memory is not None and type(memory) == int and memory >= 0:
             tspr.min_memory = memory
         tspr.save()
 

@@ -168,14 +168,16 @@ class NewComponents(object):
                 component.extend_method = extend_method
 
         component.min_node = template.get("extend_method_map", {}).get("min_node")
-        if template.get("extend_method_map", {}).get("init_memory"):
-            component.min_memory = template.get("extend_method_map", {}).get("init_memory")
+        min_memory = template.get("extend_method_map", {}).get("init_memory")
+        if min_memory is not None:
+            component.min_memory = min_memory
         elif template.get("extend_method_map", {}).get("min_memory"):
             component.min_memory = template.get("extend_method_map", {}).get("min_memory")
         else:
             component.min_memory = 512
 
-        if template.get("extend_method_map", {}).get("min_cpu"):
+        min_cpu = template.get("extend_method_map", {}).get("min_cpu")
+        if min_cpu is not None:
             component.min_cpu = template["extend_method_map"]["min_cpu"]
         else:
             component.min_cpu = component.calculate_min_cpu(component.min_memory)
@@ -360,6 +362,9 @@ class NewComponents(object):
         version = component.version
         if len(version) > 255:
             version = version[:255]
+        min_cpu = extend_info.get("min_cpu")
+        if min_cpu is None:
+            min_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
         return ServiceExtendMethod(
             service_key=component.service_key,
             app_version=version,
@@ -370,8 +375,7 @@ class NewComponents(object):
             max_memory=extend_info["max_memory"],
             step_memory=extend_info["step_memory"],
             is_restart=extend_info["is_restart"],
-            min_cpu=extend_info["min_cpu"] if extend_info.get("min_cpu") else baseService.calculate_service_cpu(
-                component.service_region, component.min_memory))
+            min_cpu=min_cpu)
 
     def _template_to_service_monitors(self, component, service_monitors):
         if not service_monitors:

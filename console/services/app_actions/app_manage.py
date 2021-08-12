@@ -762,8 +762,8 @@ class AppManageService(AppManageBase):
     def vertical_upgrade(self, tenant, service, user, new_memory, oauth_instance, new_gpu=None, new_cpu=None):
         """组件垂直升级"""
         new_memory = int(new_memory)
-        if new_memory > 65536 or new_memory < 32:
-            return 400, "内存范围在32M到64G之间"
+        if new_memory > 65536 or new_memory < 0:
+            return 400, "内存范围在0M到64G之间"
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
         if new_memory > service.min_memory and not check_memory_quota(oauth_instance, tenant.enterprise_id,

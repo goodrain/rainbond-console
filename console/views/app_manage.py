@@ -232,9 +232,7 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
 
         """
         try:
-            new_memory = request.data.get("new_memory", None)
-            if not new_memory:
-                return Response(general_message(400, "memory is null", "请选择升级内存"), status=400)
+            new_memory = request.data.get("new_memory", 0)
             new_gpu = request.data.get("new_gpu", None)
             new_cpu = request.data.get("new_cpu", None)
             code, msg = app_manage_service.vertical_upgrade(

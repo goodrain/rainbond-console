@@ -748,8 +748,10 @@ class AppService(object):
         git_url = data.get("git_url", service.git_url)
         min_memory = data.get("min_memory", service.min_memory)
         min_memory = int(min_memory)
-        min_cpu = data.get("min_cpu", 0)
-        if type(min_cpu) != int or min_cpu <= 0:
+        min_cpu = data.get("min_cpu")
+        if isinstance(min_cpu, str):
+            min_cpu = int(min_cpu)
+        if type(min_cpu) != int or min_cpu < 0:
             min_cpu = baseService.calculate_service_cpu(service.service_region, min_memory)
 
         extend_method = data.get("extend_method", service.extend_method)
