@@ -93,6 +93,7 @@ class MarketAppService(object):
             raise AbortRequest("app version not found", "应用市场应用版本不存在", status_code=404, error_code=404)
 
         app_template = json.loads(app_version.app_template)
+        app_template["update_time"] = app_version.update_time
 
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
@@ -1017,9 +1018,10 @@ class MarketAppService(object):
             }
             # If the versions are the same, take the last version information
             app_with_versions[version.app_id][version_info["version"]] = version_info
-            if version_info["version"] in app_release_ver_nums[
-                    version.app_id] or version_info["version"] in app_not_release_ver_nums[version.app_id]:
-                continue
+            if version_info["version"] in app_release_ver_nums[version.app_id]:
+                app_release_ver_nums[version.app_id].remove(version_info["version"])
+            if version_info["version"] in app_not_release_ver_nums[version.app_id]:
+                app_not_release_ver_nums[version.app_id].remove(version_info["version"])
             if version_info["dev_status"] == "release":
                 app_release_ver_nums[version.app_id].append(version_info["version"])
                 continue
@@ -1333,6 +1335,8 @@ class MarketAppService(object):
                     versions.append(version.version)
                 elif current_version_time:
                     version_time = time.mktime(current_version_time.timetuple())
+                    logger.debug("current version time: {}; new version time: {}; need update: {}".format(
+                        new_version_time, version_time, new_version_time > version_time))
                     if compare == 0 and new_version_time > version_time:
                         versions.append(version.version)
             else:

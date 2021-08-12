@@ -22,15 +22,12 @@ from console.repositories.event_repo import event_repo
 from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo)
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.migration_repo import migrate_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_backup_repo import service_backup_repo
-from console.repositories.service_group_relation_repo import \
-    service_group_relation_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
@@ -875,13 +872,6 @@ class AppManageService(AppManageBase):
             logger.debug("ready for delete etcd service share data")
             for event in events:
                 keys.append(event.region_share_id)
-        # 删除恢复迁移的etcd数据
-        group_id = service_group_relation_repo.get_group_id_by_service(service)
-        if group_id:
-            migrate_record = migrate_repo.get_by_original_group_id(group_id)
-            if migrate_record:
-                for record in migrate_record:
-                    keys.append(record.restore_id)
         return keys
 
     def _truncate_service(self, tenant, service, user=None):

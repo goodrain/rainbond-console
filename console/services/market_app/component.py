@@ -14,6 +14,7 @@ from console.services.app_config import env_var_service
 # model
 from www.models.main import (ServiceProbe, TenantServiceConfigurationFile, TenantServiceEnvVar, TenantServicesPort,
                              TenantServiceVolume)
+from www.models.label import ServiceLabels
 from console.models.main import ComponentGraph, ServiceMonitor
 from console.models.main import ServiceSourceInfo
 # util
@@ -30,21 +31,27 @@ class Component(object):
                  ports,
                  volumes,
                  config_files,
-                 probe,
+                 probes: [ServiceProbe],
                  extend_info,
                  monitors,
                  graphs,
                  plugin_deps,
                  http_rules=None,
-                 service_group_rel=None):
+                 http_rule_configs=None,
+                 tcp_rules=None,
+                 service_group_rel=None,
+                 labels=None,
+                 support_labels=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
         self.ports = list(ports)
         self.http_rules = list(http_rules) if http_rules else []
+        self.http_rule_configs = list(http_rule_configs) if http_rule_configs else []
+        self.tcp_rules = list(tcp_rules) if tcp_rules else []
         self.volumes = list(volumes)
         self.config_files = list(config_files)
-        self.probe = probe
+        self.probes = list(probes) if probes else []
         self.extend_info = extend_info
         self.monitors = list(monitors)
         self.graphs = list(graphs)
@@ -52,10 +59,12 @@ class Component(object):
         self.volume_deps = []
         self.plugin_deps = list(plugin_deps)
         self.app_config_groups = []
+        self.labels = list(labels) if labels else []
         self.service_group_rel = service_group_rel
+        self.support_labels = {label.label_name: label for label in support_labels}
         self.action_type = ActionType.NOTHING.value
 
-    def set_changes(self, changes, governance_mode):
+    def set_changes(self, tenant, region, changes, governance_mode):
         """
         Set changes to the component
         """
@@ -65,6 +74,7 @@ class Component(object):
                 continue
             update_func = update_funcs[key]
             update_func(changes.get(key))
+
         self.ensure_port_envs(governance_mode)
 
     def ensure_port_envs(self, governance_mode):
@@ -107,7 +117,8 @@ class Component(object):
             "connect_infos": self._update_outer_envs,
             "ports": self._update_ports,
             "volumes": self._update_volumes,
-            "probe": self._update_probe,
+            "probes": self._update_probe,
+            "labels": self._update_labels,
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
         }
@@ -216,6 +227,24 @@ class Component(object):
             self.monitors.append(new_monitor)
         self.update_action_type(ActionType.UPDATE.value)
 
+    def _update_labels(self, labels):
+        if not labels:
+            return
+        labels = labels.get("add", [])
+        for key in labels:
+            label = self.support_labels.get(key)
+            if not label:
+                continue
+            self.labels.append(
+                ServiceLabels(
+                    tenant_id=self.component.tenant_id,
+                    service_id=self.component.component_id,
+                    label_id=label.label_id,
+                    region=self.component.service_region,
+                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                ))
+        self.update_action_type(ActionType.UPDATE.value)
+
     def _update_port_data(self, port):
         container_port = int(port["container_port"])
         port_alias = self.component.service_alias.upper()
@@ -233,6 +262,7 @@ class Component(object):
         port["port_alias"] = port_alias
 
     def _update_volumes(self, volumes):
+        old_volumes = {volume.volume_name: volume for volume in self.volumes}
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
@@ -252,6 +282,8 @@ class Component(object):
 
         old_config_files = {config_file.volume_name: config_file for config_file in self.config_files}
         for volume in volumes.get("upd"):
+            old_volume = old_volumes.get(volume["volume_name"])
+            old_volume.mode = volume.get("mode")
             old_config_file = old_config_files.get(volume.get("volume_name"))
             if not old_config_file:
                 continue
@@ -261,17 +293,35 @@ class Component(object):
         self.update_action_type(ActionType.UPDATE.value)
 
     def _update_probe(self, probe):
+        old_probes = {probe.mode: probe for probe in self.probes}
+
+        new_probes = []
         add = probe.get("add")
         if add:
-            add["probe_id"] = make_uuid()
-            self.probe = ServiceProbe(**add)
-            self.probe.service_id = self.component.component_id
-        upd = probe.get("upd", None)
+            new_probes.extend(add)
+        upd = probe.get("upd")
         if upd:
-            probe = ServiceProbe(**upd)
-            probe.ID = self.probe.ID
-            probe.service_id = self.probe.service_id
-            self.probe = probe
+            new_probes.extend(upd)
+        # There can only be one probe of the same mode
+        # Dedup new probes based on mode
+        new_probes = {probe["mode"]: probe for probe in new_probes}
+
+        probes = []
+        for key in new_probes:
+            probe = new_probes[key]
+            old_probe = old_probes.get(probe["mode"])
+            if not old_probe:
+                # create new probe
+                probe["probe_id"] = make_uuid()
+                probe["service_id"] = self.component.component_id
+                probes.append(ServiceProbe(**probe))
+                continue
+            # update probe
+            probe = ServiceProbe(**probe)
+            probe.ID = old_probe.ID
+            probe.service_id = self.component.component_id
+            probes.append(probe)
+        self.probes = probes
         self.update_action_type(ActionType.UPDATE.value)
 
     def update_action_type(self, action_type):

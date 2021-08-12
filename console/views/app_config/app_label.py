@@ -125,20 +125,9 @@ class AppLabelAvailableView(AppBaseView):
             for label_obj in label_obj_list:
                 labels_name_list.append(label_obj.label_name)
         # 查询数据中心可使用的标签
-        try:
-            code, msg, data_list = label_service.get_region_labels(self.tenant, self.service)
-            if code == 200 and data_list:
-                label_name_list = []
-                labels = label_repo.get_all_labels()
-                if labels:
-                    for label in labels:
-                        label_name_list.append(label.label_name)
-                for label_name in data_list:
-                    if label_name not in label_name_list:
-                        label_repo.create_label(label_name, label_name)
-                    labels_name_list.append(label_name)
-        except Exception as e:
-            logger.exception(e)
+        labels = label_service.list_available_labels(self.tenant, self.region_name)
+        for label in labels:
+            labels_name_list.append(label.label_name)
 
         # 去除该组件已绑定的标签
         service_labels = service_label_repo.get_service_labels(self.service.service_id)
