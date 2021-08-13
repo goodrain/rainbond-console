@@ -176,9 +176,9 @@ class NewComponents(object):
         else:
             component.min_memory = 512
 
-        min_cpu = template.get("extend_method_map", {}).get("min_cpu")
-        if min_cpu is not None:
-            component.min_cpu = template["extend_method_map"]["min_cpu"]
+        container_cpu = template.get("extend_method_map", {}).get("container_cpu")
+        if container_cpu is not None:
+            component.min_cpu = template["extend_method_map"]["container_cpu"]
         else:
             component.min_cpu = component.calculate_min_cpu(component.min_memory)
         component.total_memory = component.min_node * component.min_memory
@@ -362,9 +362,9 @@ class NewComponents(object):
         version = component.version
         if len(version) > 255:
             version = version[:255]
-        min_cpu = extend_info.get("min_cpu")
-        if min_cpu is None:
-            min_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
+        container_cpu = extend_info.get("container_cpu")
+        if container_cpu is None:
+            container_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
         return ServiceExtendMethod(
             service_key=component.service_key,
             app_version=version,
@@ -375,7 +375,7 @@ class NewComponents(object):
             max_memory=extend_info["max_memory"],
             step_memory=extend_info["step_memory"],
             is_restart=extend_info["is_restart"],
-            min_cpu=min_cpu)
+            container_cpu=container_cpu)
 
     def _template_to_service_monitors(self, component, service_monitors):
         if not service_monitors:
