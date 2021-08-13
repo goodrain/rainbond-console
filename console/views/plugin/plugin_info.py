@@ -234,7 +234,11 @@ class PluginVersionInfoView(PluginBaseView):
               required: false
               type: string
               paramType: form
-
+            - name: min_cpu
+              description: 最小CPU
+              required: false
+              type: int
+              paramType: form
         """
         try:
             plugin_alias = request.data.get("plugin_alias", self.plugin.plugin_alias)
@@ -244,7 +248,9 @@ class PluginVersionInfoView(PluginBaseView):
             code_repo = request.data.get("code_repo", self.plugin.code_repo)
             code_version = request.data.get("code_version", self.plugin_version.code_version)
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
-            min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
+            min_cpu = request.data.get("min_cpu", 0)
+            if type(min_cpu) != int or min_cpu < 0:
+                min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
             # if get username and password is "", means user remove the username and password
             username = request.data.get("username", "")
             password = request.data.get("password", "")

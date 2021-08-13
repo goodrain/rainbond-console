@@ -309,6 +309,7 @@ class ShareService(object):
                 e_m['step_memory'] = 64
                 e_m['is_restart'] = 0
                 e_m['min_node'] = service.min_node
+                e_m['container_cpu'] = service.min_cpu
                 if is_singleton(service.extend_method):
                     e_m['max_node'] = 1
                 else:

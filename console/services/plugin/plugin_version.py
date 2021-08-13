@@ -39,9 +39,11 @@ class PluginBuildVersionService(object):
                              build_cmd="",
                              image_tag="latest",
                              code_version="master",
-                             build_version=None):
+                             build_version=None,
+                             min_cpu=None):
         """创建插件版本信息"""
-        min_cpu = self.calculate_cpu(region, int(min_memory))
+        if min_cpu is None or type(min_cpu) != int:
+            min_cpu = self.calculate_cpu(region, int(min_memory))
         if not build_version:
             build_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 

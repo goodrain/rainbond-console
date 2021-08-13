@@ -655,17 +655,14 @@ class GroupappsMigrateService(object):
             pr.pop("ID")
             new_pr = TenantServicePluginRelation(**pr)
             new_pr.service_id = service_id
-            if not new_pr.min_memory:
+            if new_pr.min_memory is None:
+                new_pr.min_memory = 0
+                new_pr.min_cpu = 0
                 for plugin_version in plugin_versions:
                     if new_pr.plugin_id == plugin_version.plugin_id:
                         new_pr.min_memory = plugin_version.min_memory
                         new_pr.min_cpu = plugin_version.min_cpu
                         break
-            if not new_pr.min_memory:
-                new_pr.min_memory = 64
-            # The CPU is not used as a setting parameter
-            if not new_pr.min_cpu:
-                new_pr.min_cpu = 1
             new_plugin_relations.append(new_pr)
         TenantServicePluginRelation.objects.bulk_create(new_plugin_relations)
 

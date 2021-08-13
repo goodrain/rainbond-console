@@ -88,6 +88,7 @@ class PluginCreateView(RegionTenantHeaderView):
         code_repo = request.data.get("code_repo", None)
         code_version = request.data.get("code_version", None)
         image = request.data.get("image", None)
+        min_cpu = request.data.get("min_cpu", None)
         # username and password is used for private docker hub or private git repo
         username = request.data.get("username", None)
         password = request.data.get("password", None)
@@ -137,8 +138,17 @@ class PluginCreateView(RegionTenantHeaderView):
 
             # 创建插件版本信息
             plugin_build_version = plugin_version_service.create_build_version(
-                self.response_region, tenant_plugin.plugin_id, self.tenant.tenant_id, self.user.user_id, "", "unbuild",
-                min_memory, build_cmd, image_tag, code_version)
+                self.response_region,
+                tenant_plugin.plugin_id,
+                self.tenant.tenant_id,
+                self.user.user_id,
+                "",
+                "unbuild",
+                min_memory,
+                build_cmd,
+                image_tag,
+                code_version,
+                min_cpu=min_cpu)
             # 数据中心创建插件
             code, msg = plugin_service.create_region_plugin(self.response_region, self.tenant, tenant_plugin, image_tag)
             if code != 200:

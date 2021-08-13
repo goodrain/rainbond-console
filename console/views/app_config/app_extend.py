@@ -39,7 +39,8 @@ class AppExtendView(AppBaseView):
             "current_node": self.service.min_node,
             "current_memory": self.service.min_memory,
             "current_gpu": self.service.container_gpu,
-            "extend_method": self.service.extend_method
+            "extend_method": self.service.extend_method,
+            "current_cpu": self.service.min_cpu
         }
         result = general_message(200, "success", "操作成功", bean=bean)
         return Response(result, status=result["code"])

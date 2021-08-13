@@ -12,6 +12,7 @@ from console.services.app_config import port_service
 from console.services.app_config import volume_service
 from console.services.app_config import probe_service
 from console.services.app_config.promql_service import promql_service
+from www.tenantservice.baseservice import BaseTenantService
 # model
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
@@ -38,6 +39,7 @@ from console.constants import DomainType
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
+baseService = BaseTenantService()
 
 
 class NewComponents(object):
@@ -191,13 +193,19 @@ class NewComponents(object):
                 component.extend_method = extend_method
 
         component.min_node = template.get("extend_method_map", {}).get("min_node")
-        if template.get("extend_method_map", {}).get("init_memory"):
-            component.min_memory = template.get("extend_method_map", {}).get("init_memory")
+        min_memory = template.get("extend_method_map", {}).get("init_memory")
+        if min_memory is not None:
+            component.min_memory = min_memory
         elif template.get("extend_method_map", {}).get("min_memory"):
             component.min_memory = template.get("extend_method_map", {}).get("min_memory")
         else:
             component.min_memory = 512
-        component.min_cpu = component.calculate_min_cpu(component.min_memory)
+
+        container_cpu = template.get("extend_method_map", {}).get("container_cpu")
+        if container_cpu is not None:
+            component.min_cpu = template["extend_method_map"]["container_cpu"]
+        else:
+            component.min_cpu = component.calculate_min_cpu(component.min_memory)
         component.total_memory = component.min_node * component.min_memory
 
         return component
@@ -376,6 +384,9 @@ class NewComponents(object):
         version = component.version
         if len(version) > 255:
             version = version[:255]
+        container_cpu = extend_info.get("container_cpu")
+        if container_cpu is None:
+            container_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
         return ServiceExtendMethod(
             service_key=component.service_key,
             app_version=version,
@@ -385,7 +396,8 @@ class NewComponents(object):
             min_memory=extend_info["min_memory"],
             max_memory=extend_info["max_memory"],
             step_memory=extend_info["step_memory"],
-            is_restart=extend_info["is_restart"])
+            is_restart=extend_info["is_restart"],
+            container_cpu=container_cpu)
 
     def _template_to_service_monitors(self, component, service_monitors):
         if not service_monitors:
