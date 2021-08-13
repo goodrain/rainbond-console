@@ -196,14 +196,6 @@ class AppPortService(object):
         except AbortRequest:
             k8s_service_name = service.service_alias + "-" + str(container_port)
 
-        # 第三方组件暂时只允许添加一个端口
-        tenant_service_ports = self.get_service_ports(service)
-        if tenant_service_ports and service.service_source == "third_party":
-            # TODO: all thirdcomponent implementation by custom component, then remove this restriction.
-            endpoint_config = service_endpoints_repo.get_service_endpoints_by_service_id(service_id=service.service_id)
-            if endpoint_config and endpoint_config.first().endpoints_type != "kubernetes":
-                return 400, "第三方组件只支持配置一个端口", None
-
         container_port = int(container_port)
         self.check_port(service, container_port)
 
@@ -938,7 +930,7 @@ class AppPortService(object):
 
 class EndpointService(object):
     @transaction.atomic()
-    def add_endpoint(self, tenant, service, address, is_online):
+    def add_endpoint(self, tenant, service, address):
 
         try:
             _, body = region_api.get_third_party_service_pods(service.service_region, tenant.tenant_name, service.service_alias)
@@ -961,7 +953,7 @@ class EndpointService(object):
                 logger.debug("close third part port: {0}".format(ports[0].container_port))
                 port_service.close_thirdpart_outer(tenant, service, ports[0])
 
-        data = {"address": address, "is_online": is_online}
+        data = {"address": address}
 
         try:
             res, _ = region_api.post_third_party_service_endpoints(service.service_region, tenant.tenant_name,
