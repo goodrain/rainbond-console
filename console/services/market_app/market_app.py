@@ -90,7 +90,10 @@ class MarketApp(object):
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
-        deps = [dep for dep in self.original_app.component_deps if dep.dep_service_id not in component_ids]
+        deps = [
+            dep for dep in self.original_app.component_deps
+            if dep.dep_service_id not in component_ids or dep.service_id not in tmpl_component_ids
+        ]
         deps.extend(new_deps)
         return deps
 
@@ -112,7 +115,10 @@ class MarketApp(object):
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
-        deps = [dep for dep in self.original_app.volume_deps if dep.dep_service_id not in component_ids]
+        deps = [
+            dep for dep in self.original_app.volume_deps
+            if dep.dep_service_id not in component_ids or dep.service_id not in tmpl_component_ids
+        ]
         deps.extend(new_deps)
         return deps
 
