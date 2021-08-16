@@ -205,7 +205,7 @@ class NewComponents(object):
         if container_cpu is not None:
             component.min_cpu = template["extend_method_map"]["container_cpu"]
         else:
-            component.min_cpu = component.calculate_min_cpu(component.min_memory)
+            component.min_cpu = 0
         component.total_memory = component.min_node * component.min_memory
 
         return component

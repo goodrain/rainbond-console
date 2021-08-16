@@ -250,7 +250,7 @@ class PluginVersionInfoView(PluginBaseView):
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
             min_cpu = request.data.get("min_cpu", 0)
             if type(min_cpu) != int or min_cpu < 0:
-                min_cpu = plugin_version_service.calculate_cpu(self.response_region, min_memory)
+                min_cpu = 0
             # if get username and password is "", means user remove the username and password
             username = request.data.get("username", "")
             password = request.data.get("password", "")
