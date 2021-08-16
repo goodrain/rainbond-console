@@ -9,6 +9,7 @@ from django.forms import model_to_dict
 
 from console.repositories.plugin import plugin_version_repo
 from www.apiclient.regionapi import RegionInvokeApi
+from console.services.common_services import common_services
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -22,12 +23,6 @@ REGION_BUILD_STATUS_MAP = {
 
 
 class PluginBuildVersionService(object):
-    def calculate_cpu(self, region, min_memory):
-        min_cpu = int(min_memory) / 128 * 20
-        if region == "ali-hz":
-            min_cpu *= 2
-        return min_cpu
-
     def create_build_version(self,
                              region,
                              plugin_id,
@@ -43,7 +38,7 @@ class PluginBuildVersionService(object):
                              min_cpu=None):
         """创建插件版本信息"""
         if min_cpu is None or type(min_cpu) != int:
-            min_cpu = self.calculate_cpu(region, int(min_memory))
+            min_cpu = common_services.calculate_cpu(int(min_memory))
         if not build_version:
             build_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 

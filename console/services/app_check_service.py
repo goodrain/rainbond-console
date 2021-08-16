@@ -251,7 +251,7 @@ class AppCheckService(object):
         service_info = check_service_info
         service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
-        min_cpu = common_services.calculate_cpu(service.service_region, memory)
+        min_cpu = common_services.calculate_cpu(memory)
         service.min_memory = memory - memory % 32
         service.min_cpu = min_cpu
         # Set the deployment type based on the test results

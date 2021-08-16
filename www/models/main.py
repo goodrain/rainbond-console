@@ -568,11 +568,6 @@ class TenantServiceInfo(BaseModel):
             return True
         return False
 
-    def calculate_min_cpu(self, min_memory):
-        # The algorithm is absolete
-        min_cpu = int(min_memory) / 128 * 20
-        return int(min_cpu)
-
 
 class TenantServiceInfoDelete(BaseModel):
     class Meta:
