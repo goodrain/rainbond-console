@@ -12,7 +12,6 @@ from console.services.app_config import volume_service
 from console.services.app_config import probe_service
 from console.services.app_config.promql_service import promql_service
 from www.tenantservice.baseservice import BaseTenantService
-from console.services.common_services import common_services
 # model
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
@@ -181,7 +180,7 @@ class NewComponents(object):
         if container_cpu is not None:
             component.min_cpu = template["extend_method_map"]["container_cpu"]
         else:
-            component.min_cpu = common_services.calculate_cpu(component.min_memory)
+            component.min_cpu = 0
         component.total_memory = component.min_node * component.min_memory
 
         return component

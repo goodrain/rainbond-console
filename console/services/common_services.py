@@ -40,11 +40,6 @@ class CommonServices(object):
             logger.exception(e)
             return None
 
-    def calculate_cpu(self, memory):
-        """根据内存和数据中心计算cpu"""
-        min_cpu = int(memory) * 30 / 128
-        return min_cpu
-
     def is_public(self):
         return settings.MODULES.get('SSO_LOGIN')
 

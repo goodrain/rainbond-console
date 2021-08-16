@@ -14,7 +14,6 @@ from console.repositories.app_config import service_endpoints_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
                                          volume_service)
-from console.services.common_services import common_services
 from console.services.region_services import region_services
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
@@ -251,9 +250,8 @@ class AppCheckService(object):
         service_info = check_service_info
         service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
-        min_cpu = common_services.calculate_cpu(memory)
         service.min_memory = memory - memory % 32
-        service.min_cpu = min_cpu
+        service.min_cpu = 0
         # Set the deployment type based on the test results
         logger.debug("save svc extend_method {0}".format(
             service_info.get("service_type", ComponentType.stateless_multiple.value)))

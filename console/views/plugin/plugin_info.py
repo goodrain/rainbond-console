@@ -15,7 +15,6 @@ from goodrain_web.tools import JuncheePaginator
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import error_message, general_message
-from console.services.common_services import common_services
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -251,7 +250,7 @@ class PluginVersionInfoView(PluginBaseView):
             min_memory = request.data.get("min_memory", self.plugin_version.min_memory)
             min_cpu = request.data.get("min_cpu", 0)
             if type(min_cpu) != int or min_cpu < 0:
-                min_cpu = common_services.calculate_cpu(min_memory)
+                min_cpu = 0
             # if get username and password is "", means user remove the username and password
             username = request.data.get("username", "")
             password = request.data.get("password", "")
