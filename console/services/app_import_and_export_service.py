@@ -390,7 +390,7 @@ class AppImportService(object):
             annotations = app_template.get("annotations", {})
             app_describe = app_template.pop("describe", "")
             if annotations.get("describe", ""):
-                app_describe = annotations["describe"]
+                app_describe = annotations.pop("describe", "")
             app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
             # if app exists, update it
             if app:
@@ -419,12 +419,12 @@ class AppImportService(object):
             else:
                 image_base64_string = app_template.pop("image_base64_string", "")
                 if annotations.get("image_base64_string"):
-                    image_base64_string = annotations["image_base64_string"]
+                    image_base64_string = annotations.pop("image_base64_string", "")
                 pic_url = ""
                 if image_base64_string:
                     suffix = app_template.pop("suffix", "jpg")
                     if annotations.get("suffix"):
-                        suffix = annotations["suffix"]
+                        suffix = annotations.pop("suffix", "jpg")
                     pic_url = self.decode_image(image_base64_string, suffix)
                 key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
                 if key_and_version in key_and_version_list:
