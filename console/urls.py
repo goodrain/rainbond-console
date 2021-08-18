@@ -119,6 +119,7 @@ from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegi
                                           UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
+from console.views.custom_configs import CustomConfigsCLView
 
 urlpatterns = [
     # record error logs
@@ -128,6 +129,7 @@ urlpatterns = [
     url(r'^init/perms$', InitPerms.as_view()),
     # 获取权限列表
     url(r'^perms$', PermsInfoLView.as_view()),
+    url(r'^custom_configs$', CustomConfigsCLView.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view(), perms.OauthConfig),
     url(r"^oauth/oauth-services$", OauthService.as_view(), perms.OauthService),
