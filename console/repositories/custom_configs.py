@@ -11,5 +11,9 @@ class CustomConfigsReporsitory(object):
     def list():
         return ConsoleConfig.objects.filter().values()
 
+    @staticmethod
+    def delete(keys):
+        return ConsoleConfig.objects.filter(key__in=keys).delete()
+
 
 custom_configs_repo = CustomConfigsReporsitory()
