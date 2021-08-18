@@ -376,7 +376,7 @@ class ShareService(object):
                 # component monitor
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
-                data["labels"] = labels.get(service.component_id, [])
+                data["labels"] = labels.get(service.component_id, {})
 
                 all_data_map[service.service_id] = data
 
