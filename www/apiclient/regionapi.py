@@ -1860,13 +1860,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
-    def delete_app(self, region_name, tenant_name, app_id):
+    def delete_app(self, region_name, tenant_name, app_id, data={}):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id
 
         self._set_headers(token)
-        _, _ = self._delete(url, self.default_headers, region=region_name)
+        _, _ = self._delete(url, self.default_headers, region=region_name, body=json.dumps(data))
 
     def delete_app_config_group(self, region_name, tenant_name, app_id, config_group_name):
         url, token = self.__get_region_access_info(tenant_name, region_name)
@@ -1956,3 +1956,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
         return body
+
+    def get_component_log(self, tenant_name, region_name, service_alias, pod_name, container_name, follow=False):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        follow = "true" if follow else "false"
+        url = url + "/v2/tenants/{}/services/{}/log?podName={}&containerName={}&follow={}".format(
+            tenant_name, service_alias, pod_name, container_name, follow)
+        self._set_headers(token)
+        resp, _ = self._get(url, self._set_headers(token), region=region_name, preload_content=False)
+        return resp

@@ -5,24 +5,28 @@ from datetime import datetime
 
 from .utils import is_same_component
 from .enum import ActionType
+from .app_template import AppTemplate
 from console.services.market_app.component import Component
 # service
 from console.services.app_config import port_service
 from console.services.app_config import volume_service
 from console.services.app_config import probe_service
 from console.services.app_config.promql_service import promql_service
+from www.tenantservice.baseservice import BaseTenantService
 # model
 from www.models.main import TenantServiceInfo
 from www.models.main import TenantServicesPort
 from www.models.main import TenantServiceEnvVar
 from www.models.main import ServiceGroupRelation
 from www.models.main import ServiceDomain
+from www.models.main import GatewayCustomConfiguration
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
 from console.models.main import RegionConfig
 from www.models.service_publish import ServiceExtendMethod
 from www.models.main import TenantServiceConfigurationFile
+from www.models.label import ServiceLabels
 # exception
 from console.exception.main import AbortRequest
 from console.exception.main import ErrVolumePath
@@ -30,10 +34,12 @@ from console.exception.bcode import ErrK8sServiceNameExists
 # enum
 from console.enum.component_enum import ComponentType
 from console.constants import AppConstants
+from console.constants import DomainType
 # util
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
+baseService = BaseTenantService()
 
 
 class NewComponents(object):
@@ -48,7 +54,8 @@ class NewComponents(object):
                  install_from_cloud,
                  components_keys,
                  market_name="",
-                 is_deploy=False):
+                 is_deploy=False,
+                 support_labels=None):
         """
         components_keys: component keys that the user select.
         """
@@ -58,11 +65,13 @@ class NewComponents(object):
         self.user = user
         self.original_app = original_app
         self.app_model_key = app_model_key
-        self.app_template = app_template
+        self.app_template = AppTemplate(app_template)
         self.version = version
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
         self.is_deploy = is_deploy
+
+        self.support_labels = support_labels if support_labels else []
 
         self.components_keys = components_keys
         self.components = self.create_components()
@@ -73,7 +82,7 @@ class NewComponents(object):
         """
         # new component templates
         exist_components = self.original_app.components()
-        templates = self.app_template.get("apps") if self.app_template.get("apps") else []
+        templates = self.app_template.component_templates()
         new_component_tmpls = self._get_new_component_templates(exist_components, templates)
 
         components = [self._template_to_component(self.tenant.tenant_id, template) for template in new_component_tmpls]
@@ -90,7 +99,7 @@ class NewComponents(object):
             # component source
             component_source = self._template_to_component_source(cpt, component_tmpl)
             # ports
-            ports, http_rules = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
+            ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
             # envs
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")
@@ -111,8 +120,26 @@ class NewComponents(object):
                 tenant_id=self.tenant.tenant_id,
                 region_name=self.region_name,
             )
-            component = Component(cpt, component_source, envs, ports, volumes, config_files, probes, extend_info, monitors,
-                                  graphs, [], http_rules, service_group_rel)
+            # ingress
+            http_rules, http_rule_configs = self._template_to_service_domain(cpt, ports)
+            # labels
+            labels = self._template_to_labels(cpt, component_tmpl.get("labels"))
+            component = Component(
+                cpt,
+                component_source,
+                envs,
+                ports,
+                volumes,
+                config_files,
+                probes,
+                extend_info,
+                monitors,
+                graphs, [],
+                http_rules=http_rules,
+                http_rule_configs=http_rule_configs,
+                service_group_rel=service_group_rel,
+                labels=labels,
+                support_labels=self.support_labels)
             component.ensure_port_envs(self.original_app.governance_mode)
             component.action_type = ActionType.BUILD.value
             result.append(component)
@@ -166,13 +193,19 @@ class NewComponents(object):
                 component.extend_method = extend_method
 
         component.min_node = template.get("extend_method_map", {}).get("min_node")
-        if template.get("extend_method_map", {}).get("init_memory"):
-            component.min_memory = template.get("extend_method_map", {}).get("init_memory")
+        min_memory = template.get("extend_method_map", {}).get("init_memory")
+        if min_memory is not None:
+            component.min_memory = min_memory
         elif template.get("extend_method_map", {}).get("min_memory"):
             component.min_memory = template.get("extend_method_map", {}).get("min_memory")
         else:
             component.min_memory = 512
-        component.min_cpu = component.calculate_min_cpu(component.min_memory)
+
+        container_cpu = template.get("extend_method_map", {}).get("container_cpu")
+        if container_cpu is not None:
+            component.min_cpu = template["extend_method_map"]["container_cpu"]
+        else:
+            component.min_cpu = 0
         component.total_memory = component.min_node * component.min_memory
 
         return component
@@ -182,11 +215,12 @@ class NewComponents(object):
         extend_info["source_deploy_version"] = tmpl.get("deploy_version")
         extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
             "service_share_uuid", None) else tmpl.get("service_key", "")
-        if "update_time" in tmpl:
-            if type(tmpl["update_time"]) == datetime:
-                extend_info["update_time"] = tmpl["update_time"].strftime('%Y-%m-%d %H:%M:%S')
-            elif type(tmpl["update_time"]) == str:
-                extend_info["update_time"] = tmpl["update_time"]
+        update_time = self.app_template.app_template.get("update_time")
+        if update_time:
+            if type(update_time) == datetime:
+                extend_info["update_time"] = update_time.strftime('%Y-%m-%d %H:%M:%S')
+            elif type(update_time) == str:
+                extend_info["update_time"] = update_time
         if self.install_from_cloud:
             extend_info["install_from_cloud"] = True
             extend_info["market"] = "default"
@@ -241,7 +275,6 @@ class NewComponents(object):
         if not ports:
             return [], []
         new_ports = []
-        gateway_rules = []
         for port in ports:
             component_port = port["container_port"]
             k8s_service_name = port.get("k8s_service_name") if port.get(
@@ -265,11 +298,7 @@ class NewComponents(object):
                 k8s_service_name=k8s_service_name,
             )
             new_ports.append(port)
-
-            gateway_rule = self._create_default_gateway_rule(component, port)
-            if gateway_rule:
-                gateway_rules.append(gateway_rule)
-        return new_ports, gateway_rules
+        return new_ports
 
     @staticmethod
     def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name, attr_name, attr_value):
@@ -286,11 +315,7 @@ class NewComponents(object):
         )
 
     def _create_default_gateway_rule(self, component: TenantServiceInfo, port: TenantServicesPort):
-        # only create gateway rule for http port now
-        if not port.is_outer_service or port.protocol != "http":
-            return None
-        domain_name = str(port.container_port) + "." + str(component.service_alias) + "." + str(
-            self.tenant.tenant_name) + "." + str(self.region.httpdomain)
+        domain_name = self._create_default_domain(component.service_alias, port.container_port)
         return ServiceDomain(
             service_id=component.service_id,
             service_name=component.service_name,
@@ -333,8 +358,14 @@ class NewComponents(object):
                         settings["volume_capacity"] = volume.get("volume_capacity", 0)
 
                 volumes2.append(
-                    volume_service.create_service_volume(self.tenant, component, volume["volume_path"], volume["volume_type"],
-                                                         volume["volume_name"], settings))
+                    volume_service.create_service_volume(
+                        self.tenant,
+                        component,
+                        volume["volume_path"],
+                        volume["volume_type"],
+                        volume["volume_name"],
+                        settings=settings,
+                        mode=volume.get("mode")))
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
         return volumes2, config_files
@@ -353,6 +384,9 @@ class NewComponents(object):
         version = component.version
         if len(version) > 255:
             version = version[:255]
+        container_cpu = extend_info.get("container_cpu")
+        if container_cpu is None:
+            container_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
         return ServiceExtendMethod(
             service_key=component.service_key,
             app_version=version,
@@ -362,7 +396,8 @@ class NewComponents(object):
             min_memory=extend_info["min_memory"],
             max_memory=extend_info["max_memory"],
             step_memory=extend_info["step_memory"],
-            is_restart=extend_info["is_restart"])
+            is_restart=extend_info["is_restart"],
+            container_cpu=container_cpu)
 
     def _template_to_service_monitors(self, component, service_monitors):
         if not service_monitors:
@@ -402,3 +437,135 @@ class NewComponents(object):
             )
             new_graphs[new_graph.title] = new_graph
         return new_graphs.values()
+
+    def _template_to_service_domain(self, component: TenantServiceInfo, ports: [TenantServicesPort]):
+        new_ports = {port.container_port: port for port in ports}
+        ingress_http_routes = self.app_template.list_ingress_http_routes_by_component_key(component.service_key)
+
+        service_domains = []
+        configs = []
+        for ingress in ingress_http_routes:
+            port = new_ports.get(ingress["port"])
+            if not port:
+                logger.warning("component id: {}; port not found for ingress".format(component.component_id))
+                continue
+
+            service_domain = ServiceDomain(
+                http_rule_id=make_uuid(),
+                region_id=self.region.region_id,
+                tenant_id=self.tenant.tenant_id,
+                service_id=component.component_id,
+                service_name=component.service_alias,
+                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                container_port=ingress["port"],
+                protocol="http",
+                domain_type=DomainType.WWW,
+                service_alias=component.service_cname,
+                domain_path=ingress["location"],
+                domain_cookie=self._domain_cookie_or_header(ingress["cookies"]),
+                domain_heander=self._domain_cookie_or_header(ingress["headers"]),
+                type=0 if ingress["default_domain"] else 1,
+                the_weight=100,
+                is_outer_service=port.is_outer_service,
+                auto_ssl=False,
+                rule_extensions=self._ingress_load_balancing(ingress["load_balancing"]),
+            )
+            if service_domain.type == 0:
+                service_domain.domain_name = self._create_default_domain(component.service_alias, port.container_port)
+            else:
+                service_domain.domain_name = make_uuid()[:6] + self._create_default_domain(
+                    component.service_alias, port.container_port)
+            service_domain.is_senior = len(service_domain.domain_cookie) > 0 or len(service_domain.domain_heander) > 0
+            service_domains.append(service_domain)
+
+            # config
+            config = self._ingress_config(service_domain.http_rule_id, ingress)
+            configs.append(config)
+
+        self._ensure_default_http_rule(component, service_domains, ports)
+
+        return service_domains, configs
+
+    def _ensure_default_http_rule(self, component: TenantServiceInfo, http_rules: [ServiceDomain], ports: [TenantServicesPort]):
+        new_http_rules = {}
+        for rule in http_rules:
+            rules = new_http_rules.get(rule.container_port, [])
+            rules.append(rule)
+            new_http_rules[rule.container_port] = rules
+
+        for port in ports:
+            port_http_rules = new_http_rules.get(port.container_port, [])
+
+            # only create gateway rule for http port now
+            if not port.is_outer_service or port.protocol != "http":
+                return None
+
+            # Create a default http rule if there is no http rules
+            if len(port_http_rules) == 0:
+                http_rule = self._create_default_gateway_rule(component, port)
+                http_rules.append(http_rule)
+                continue
+
+            # If there is no default rule, make the first rule the default rule
+            if not self._contains_default_rule(port_http_rules):
+                http_rule = port_http_rules[0]
+                http_rule.type = 0
+                http_rule.domain_name = self._create_default_domain(component.service_alias, port.container_port)
+
+    @staticmethod
+    def _contains_default_rule(rules: [ServiceDomain]):
+        for rule in rules:
+            if rule.type == 0:
+                return True
+        return False
+
+    def _create_default_domain(self, service_alias: str, port: int):
+        return str(port) + "." + service_alias + "." + self.tenant.tenant_name + "." + self.region.httpdomain
+
+    @staticmethod
+    def _domain_cookie_or_header(items):
+        res = []
+        for key in items:
+            res.append(key + "=" + items[key])
+        return ";".join(res)
+
+    @staticmethod
+    def _ingress_config(rule_id, ingress):
+        return GatewayCustomConfiguration(
+            rule_id=rule_id,
+            value=json.dumps({
+                "proxy_buffer_numbers": ingress["proxy_buffer_numbers"] if ingress["proxy_buffer_numbers"] else 4,
+                "proxy_buffer_size": ingress["proxy_buffer_size"] if ingress["proxy_buffer_size"] else 4,
+                "proxy_body_size": ingress["request_body_size_limit"] if ingress["request_body_size_limit"] else 0,
+                "proxy_connect_timeout": ingress["connection_timeout"] if ingress["connection_timeout"] else 5,
+                "proxy_read_timeout": ingress["response_timeout"] if ingress["response_timeout"] else 60,
+                "proxy_send_timeout": ingress["request_timeout"] if ingress["request_timeout"] else 60,
+                "proxy_buffering": "off",
+                "WebSocket": ingress["websocket"] if ingress["websocket"] else False,
+                "set_headers": ingress["proxy_header"],
+            }))
+
+    @staticmethod
+    def _ingress_load_balancing(lb):
+        if lb == "cookie-session-affinity":
+            return "lb-type:cookie-session-affinity"
+        # round-robin is the default value of load balancing
+        return "lb-type:round-robin"
+
+    def _template_to_labels(self, component, labels):
+        support_labels = {label.label_name: label for label in self.support_labels}
+        if not labels:
+            return []
+        new_labels = []
+        for label in labels:
+            lab = support_labels.get(label)
+            if not lab:
+                continue
+            new_labels.append(
+                ServiceLabels(
+                    tenant_id=component.tenant_id,
+                    service_id=component.service_id,
+                    label_id=lab.label_id,
+                    region=self.region_name,
+                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        return new_labels

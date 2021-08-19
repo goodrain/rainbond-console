@@ -118,7 +118,8 @@ class AppPluginService(object):
             tp.origin_share_id AS origin_share_id,
             pbv.build_version AS build_version,
             tsp.min_memory AS min_memory,
-            tsp.plugin_status AS plugin_status
+            tsp.plugin_status AS plugin_status,
+            tsp.min_cpu As min_cpu
         FROM
             tenant_service_plugin_relation tsp
             LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
@@ -198,7 +199,9 @@ class AppPluginService(object):
         data["version_id"] = plugin_version
         data["operator"] = user.nick_name if user else None
         data.update(region_config)
-        self.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id, plugin_version)
+        plugin_rel = self.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id, plugin_version)
+        data["plugin_cpu"] = plugin_rel.min_cpu
+        data["plugin_memory"] = plugin_rel.min_memory
         try:
             region_api.install_service_plugin(region, tenant.tenant_name, service.service_alias, data)
         except region_api.CallApiError as e:

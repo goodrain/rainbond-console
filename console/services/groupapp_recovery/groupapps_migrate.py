@@ -376,6 +376,8 @@ class GroupappsMigrateService(object):
                 volume["volume_type"] = settings["volume_type"]
             new_volume = TenantServiceVolume(**volume)
             new_volume.service_id = service.service_id
+            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, new_volume.volume_path)
+            new_volume.host_path = host_path
             volume_list.append(new_volume)
         if volume_list:
             # bulk_create do not return volume's id(django database connection feature can_return_ids_from_bulk_insert)
@@ -653,17 +655,14 @@ class GroupappsMigrateService(object):
             pr.pop("ID")
             new_pr = TenantServicePluginRelation(**pr)
             new_pr.service_id = service_id
-            if not new_pr.min_memory:
+            if new_pr.min_memory is None:
+                new_pr.min_memory = 0
+                new_pr.min_cpu = 0
                 for plugin_version in plugin_versions:
                     if new_pr.plugin_id == plugin_version.plugin_id:
                         new_pr.min_memory = plugin_version.min_memory
                         new_pr.min_cpu = plugin_version.min_cpu
                         break
-            if not new_pr.min_memory:
-                new_pr.min_memory = 64
-            # The CPU is not used as a setting parameter
-            if not new_pr.min_cpu:
-                new_pr.min_cpu = 1
             new_plugin_relations.append(new_pr)
         TenantServicePluginRelation.objects.bulk_create(new_plugin_relations)
 

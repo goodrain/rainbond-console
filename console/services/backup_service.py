@@ -9,7 +9,8 @@ from console.enum.component_enum import is_state
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import (auth_repo, compile_env_repo, dep_relation_repo, domain_repo, env_var_repo,
-                                             extend_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
+                                             extend_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo,
+                                             configuration_repo)
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.component_graph import component_graph_repo
@@ -256,6 +257,7 @@ class GroupAppBackupService(object):
         service_base = service.to_dict()
         service_labels = service_label_repo.get_service_labels(service.service_id)
         service_domains = domain_repo.get_service_domains(service.service_id)
+        http_rule_configs = configuration_repo.list_by_rule_ids([sd.http_rule_id for sd in service_domains])
         service_tcpdomains = tcp_domain.get_service_tcpdomains(service.service_id)
         service_probes = probe_repo.get_service_probe(service.service_id)
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
@@ -283,6 +285,7 @@ class GroupAppBackupService(object):
             "service_base": service_base,
             "service_labels": [label.to_dict() for label in service_labels],
             "service_domains": [domain.to_dict() for domain in service_domains],
+            "http_rule_configs": [config.to_dict() for config in http_rule_configs],
             "service_tcpdomains": [tcpdomain.to_dict() for tcpdomain in service_tcpdomains],
             "service_probes": [probe.to_dict() for probe in service_probes],
             "service_source": service_source.to_dict() if service_source else None,

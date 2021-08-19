@@ -22,15 +22,12 @@ from console.repositories.event_repo import event_repo
 from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo)
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
-from console.repositories.migration_repo import migrate_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_backup_repo import service_backup_repo
-from console.repositories.service_group_relation_repo import \
-    service_group_relation_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
@@ -762,8 +759,8 @@ class AppManageService(AppManageBase):
     def vertical_upgrade(self, tenant, service, user, new_memory, oauth_instance, new_gpu=None, new_cpu=None):
         """组件垂直升级"""
         new_memory = int(new_memory)
-        if new_memory > 65536 or new_memory < 32:
-            return 400, "内存范围在32M到64G之间"
+        if new_memory > 65536 or new_memory < 0:
+            return 400, "内存范围在0M到64G之间"
         if new_memory % 32 != 0:
             return 400, "内存必须为32的倍数"
         if new_memory > service.min_memory and not check_memory_quota(oauth_instance, tenant.enterprise_id,
@@ -772,7 +769,7 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             body = dict()
             body["container_memory"] = new_memory
-            if new_cpu is None or type(new_gpu) != int:
+            if new_cpu is None or type(new_cpu) != int:
                 new_cpu = baseService.calculate_service_cpu(service.service_region, new_memory)
             body["container_cpu"] = new_cpu
             if new_gpu is not None and type(new_gpu) == int:
@@ -875,13 +872,6 @@ class AppManageService(AppManageBase):
             logger.debug("ready for delete etcd service share data")
             for event in events:
                 keys.append(event.region_share_id)
-        # 删除恢复迁移的etcd数据
-        group_id = service_group_relation_repo.get_group_id_by_service(service)
-        if group_id:
-            migrate_record = migrate_repo.get_by_original_group_id(group_id)
-            if migrate_record:
-                for record in migrate_record:
-                    keys.append(record.restore_id)
         return keys
 
     def _truncate_service(self, tenant, service, user=None):

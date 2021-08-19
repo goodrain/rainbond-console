@@ -1,5 +1,9 @@
 # -*- coding: utf8 -*-
+import logging
+
 from .component import Component
+
+logger = logging.getLogger("default")
 
 
 def get_component_template(component: Component, app_template):

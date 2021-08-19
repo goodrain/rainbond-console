@@ -177,7 +177,7 @@ class GroupServiceRelationRepository(object):
     def list_serivce_ids_by_app_id(tenant_id, region_name, app_id):
         relations = ServiceGroupRelation.objects.filter(tenant_id=tenant_id, region_name=region_name, group_id=app_id)
         if not relations:
-            return
+            return []
         return relations.values_list("service_id", flat=True)
 
     @staticmethod

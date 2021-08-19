@@ -258,6 +258,8 @@ class GroupAppCopyService(object):
                         data["plugin_id"] = service_plugin.plugin_id
                         data["switch"] = True
                         data["version_id"] = service_plugin.build_version
+                        data["plugin_cpu"] = service_plugin.min_cpu
+                        data["plugin_memory"] = service_plugin.min_memory
                         data.update(region_config)
                         region_api.install_service_plugin(region_name, tenant.tenant_name, service.service_alias, data)
                     except region_api.CallApiError as e:

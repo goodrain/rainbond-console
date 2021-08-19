@@ -104,6 +104,7 @@ class TenantServiceUpdateSerilizer(serializers.Serializer):
     docker_cmd = serializers.CharField(max_length=2048, required=False, help_text="镜像创建命令")
     git_url = serializers.CharField(max_length=100, required=False, help_text="code代码仓库")
     min_memory = serializers.IntegerField(required=False, help_text="内存大小单位（M）")
+    min_cpu = serializers.IntegerField(required=False, help_text="cpu分配额(单位：1000=1Core)")
     extend_method = serializers.CharField(max_length=32, required=False, help_text="组件类型")
     user_name = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text="拉取仓库需要的用户名")
     password = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text="拉取仓库需要的密码")
