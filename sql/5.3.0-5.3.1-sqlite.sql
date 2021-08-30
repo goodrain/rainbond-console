@@ -142,6 +142,8 @@ FROM
  tenant_service_group 
 WHERE
  id NOT IN ( SELECT id FROM ( SELECT min( id ) AS id FROM tenant_service_group GROUP BY group_key, service_group_id ) AS b );
+UPDATE tenant_service 
+	SET tenant_service_group_id = ( SELECT c.ID FROM service_group_relation b, tenant_service_group c WHERE tenant_service.service_id = b.service_id AND c.service_group_id = b.group_id  AND tenant_service.service_source = "market");
 
 -- update tenant_service_group version --
 UPDATE `tenant_service_group` 
