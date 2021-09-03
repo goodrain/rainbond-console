@@ -396,7 +396,8 @@ class GroupService(object):
                 "group_name": app.group_name,
                 "group_note": app.note,
                 "service_list": [],
-                "used_mem": app_status.get("memory", 0) if app_status else 0
+                "used_mem": app_status.get("memory", 0) if app_status else 0,
+                "status": app_status.get("status", "UNKNOWN")
             }
         for service in service_list:
             apps[service.group_id]["service_list"].append(service)
