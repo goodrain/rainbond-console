@@ -64,7 +64,8 @@ class GroupService(object):
                    app_store_url="",
                    app_template_name="",
                    version="",
-                   eid=""):
+                   eid="",
+                   logo=""):
         self.check_app_name(tenant, region_name, app_name)
         # check parameter for helm app
         app_type = AppType.rainbond.name
@@ -93,6 +94,7 @@ class GroupService(object):
             app_store_url=app_store_url,
             app_template_name=app_template_name,
             version=version,
+            logo=logo,
         )
         group_repo.create(app)
 
@@ -143,12 +145,13 @@ class GroupService(object):
         return new_overrides
 
     @transaction.atomic
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, overrides="", version="", revision=0):
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, overrides="", version="", revision=0, logo=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
         data = {
             "note": note,
+            "logo": logo,
         }
         if username:
             # check username
@@ -247,6 +250,7 @@ class GroupService(object):
         res['share_num'] = share_repo.count_by_app_id(app_id)
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
+        res['logo'] = app.logo
 
         try:
             principal = user_repo.get_user_by_username(app.username)
@@ -397,7 +401,8 @@ class GroupService(object):
                 "group_note": app.note,
                 "service_list": [],
                 "used_mem": app_status.get("memory", 0) if app_status else 0,
-                "status": app_status.get("status", "UNKNOWN")
+                "status": app_status.get("status", "UNKNOWN"),
+                "logo": app.logo,
             }
         for service in service_list:
             apps[service.group_id]["service_list"].append(service)
