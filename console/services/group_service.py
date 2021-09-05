@@ -363,7 +363,7 @@ class GroupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
-    def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id):
+    def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id, tenant):
         app_list = group_repo.get_multi_app_info(app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
         # memory info
@@ -403,9 +403,16 @@ class GroupService(object):
                 "used_mem": app_status.get("memory", 0) if app_status else 0,
                 "status": app_status.get("status", "UNKNOWN"),
                 "logo": app.logo,
+                "accesses": [],
             }
+        from console.services.app_config import port_service
         for service in service_list:
             apps[service.group_id]["service_list"].append(service)
+            access_type, data = port_service.get_access_info(tenant, service)
+            apps[service.group_id]["accesses"].append({
+                "access_type": access_type,
+                "access_info": data,
+            })
 
         share_list = share_repo.get_multi_app_share_records(app_ids)
         share_records = dict()
